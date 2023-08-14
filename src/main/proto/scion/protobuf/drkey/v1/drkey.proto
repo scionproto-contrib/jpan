@@ -16,7 +16,7 @@ syntax = "proto3";
 
 // option go_package = "github.com/scionproto/scion/pkg/proto/drkey";
 
-option java_package = "org.scion.proto";
+option java_package = "org.scion.proto.drkey";
 // option java_outer_classname = "ScionProtos";
 
 

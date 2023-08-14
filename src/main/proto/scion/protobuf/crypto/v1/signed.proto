@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/scionproto/scion/pkg/proto/crypto";
+option java_package = "org.scion.proto.crypto";
 
 package proto.crypto.v1;
 

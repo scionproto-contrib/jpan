@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/scionproto/scion/pkg/proto/gateway";
+option java_package = "org.scion.proto.gateway";
 
 package proto.gateway.v1;
 

@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/scionproto/scion/pkg/proto/discovery";
+option java_package = "org.scion.proto.discovery";
 
 package proto.discovery.v1;
 

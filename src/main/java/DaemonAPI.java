@@ -12,23 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package protobuf;
+public class DaemonAPI {
 
-import org.junit.jupiter.api.Test;
-import org.scion.proto.daemon.Daemon;
-import org.scion.proto.drkey.Drkey;
 
-import static org.junit.jupiter.api.Assertions.*;
+//    private static class DaemonSrv extends org.scion.proto.daemon.Daemon.Service {
+//
+//    }
+    public static void main(String[] args) {
 
-public class SmokeTest {
-
-    @Test
-    public void smoketest() {
-        Drkey.Protocol protocol = Drkey.Protocol.forNumber(1);
-        assertNotNull(protocol);
-        assertEquals(1, protocol.getNumber());
-
-        Daemon.Service daemonService = Daemon.Service.newBuilder().build();
-        assertNotNull(daemonService.getUri());
     }
 }
