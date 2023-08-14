@@ -12,7 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <scion.junit.version>4.13.2</scion.junit.version>
+        <scion.junit.version>5.10.0</scion.junit.version>
         <scion.protobuf.version>3.23.0</scion.protobuf.version>
         <scion.slf4j.version>2.0.7</scion.slf4j.version>
 
@@ -122,8 +122,8 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <version>${scion.junit.version}</version>
             <scope>test</scope>
         </dependency>
