@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>scion.org</groupId>
+    <artifactId>scion-java-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <scion.junit.version>4.13.2</scion.junit.version>
+        <scion.protobuf.version>3.23.0</scion.protobuf.version>
+        <scion.slf4j.version>2.0.7</scion.slf4j.version>
+
+        <scion.bnd-maven-plugin.version>6.4.0</scion.bnd-maven-plugin.version>
+        <scion.build-helper-maven-plugin.version>3.3.0</scion.build-helper-maven-plugin.version>
+        <scion.maven-clean-plugin.version>3.2.0</scion.maven-clean-plugin.version>
+        <scion.maven-compiler-plugin.version>3.11.0</scion.maven-compiler-plugin.version>
+        <scion.maven-deploy-plugin.version>3.1.1</scion.maven-deploy-plugin.version>
+        <scion.maven-enforcer-plugin.version>3.3.0</scion.maven-enforcer-plugin.version>
+        <scion.maven-gpg-plugin.version>3.0.1</scion.maven-gpg-plugin.version>
+        <scion.maven-install-plugin.version>3.1.1</scion.maven-install-plugin.version>
+        <scion.maven-jar-plugin.version>3.3.0</scion.maven-jar-plugin.version>
+        <scion.maven-javadoc-plugin.version>3.5.0</scion.maven-javadoc-plugin.version>
+        <scion.maven-plugin-plugin.version>3.8.2</scion.maven-plugin-plugin.version>
+        <scion.maven-resources-plugin.version>3.3.1</scion.maven-resources-plugin.version>
+        <scion.maven-source-plugin.version>3.2.1</scion.maven-source-plugin.version>
+        <scion.maven-surefire-plugin.version>3.0.0</scion.maven-surefire-plugin.version>
+        <scion.nexus-staging-maven-plugin.version>1.6.13</scion.nexus-staging-maven-plugin.version>
+    </properties>
+
+    <name>SCION Java API</name>
+    <description>Java API for SCION</description>
+    <url>https://scion.org</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/tzaeschke/scion-java-api</url>
+        <connection>scm:git:git@github.com:tzaeschke/scion-java-api.git</connection>
+        <developerConnection>scm:git:git@github.com:tzaeschke/scion-java-api.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+
+    <!-- mvn versions:display-dependency-updates -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Note that this is upgraded in the on-jdk-9 profile below -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${scion.slf4j.version}</version>
+            </dependency>
+
+            <!-- Include this globally for all tests -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>${scion.slf4j.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${scion.junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${scion.protobuf.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${scion.protobuf.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protoc</artifactId>
+                <version>3.23.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
+                <version>1.56.1</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Note that this is upgraded in the on-jdk-9 profile below -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${scion.slf4j.version}</version>
+        </dependency>
+
+        <!-- Include this globally for all tests -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${scion.slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${scion.junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${scion.protobuf.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>${scion.protobuf.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protoc</artifactId>
+            <version>3.24.0</version>
+            <type>pom</type>
+        </dependency>
+
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>1.56.1</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.os72</groupId>
+                <artifactId>protoc-jar-maven-plugin</artifactId>
+                <version>3.11.4</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <optimizeCodegen>false</optimizeCodegen>
+<!--                            <protocVersion>3.23.0</protocVersion>-->
+                            <includeStdTypes>true</includeStdTypes>
+<!--                        </configuration>-->
+                        <!--                        <configuration>-->
+<!--                            <addProtoSources>all</addProtoSources>-->
+<!--                            <includeMavenTypes>direct</includeMavenTypes>-->
+                            <includeDirectories>
+                                <include>src/main/proto</include>
+                            </includeDirectories>
+                            <inputDirectories>
+                                <include>src/main/proto</include>
+                            </inputDirectories>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/target/generated-sources</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-shade-plugin</artifactId>-->
+<!--                <version>3.2.4</version>-->
+<!--                <configuration>-->
+<!--                    &lt;!&ndash;Put your configurations here&ndash;&gt;-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>shade</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+        </plugins>
+    </build>
+</project>
