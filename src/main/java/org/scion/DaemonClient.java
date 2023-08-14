@@ -1,4 +1,5 @@
-package org.scion;// Copyright 2023 ETH Zurich
+package org.scion;
+// Copyright 2023 ETH Zurich
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,89 +26,87 @@ import java.util.concurrent.TimeUnit;
 
 public class DaemonClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(DaemonClient.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(DaemonClient.class.getName());
 
-    private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
-    private final DaemonServiceGrpc.DaemonServiceStub asyncStub;
-    private final DaemonServiceGrpc.DaemonServiceFutureStub futureStub;
+  private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
+  private final DaemonServiceGrpc.DaemonServiceStub asyncStub;
+  private final DaemonServiceGrpc.DaemonServiceFutureStub futureStub;
 
-    private Random random = new Random();
+  private Random random = new Random();
 
-    /**
-     * Construct client for accessing RouteGuide server using the existing channel.
-     */
-    public DaemonClient(Channel channel) {
-        blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
-        asyncStub = DaemonServiceGrpc.newStub(channel);
-        futureStub = DaemonServiceGrpc.newFutureStub(channel);
+  /** Construct client for accessing RouteGuide server using the existing channel. */
+  public DaemonClient(Channel channel) {
+    blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
+    asyncStub = DaemonServiceGrpc.newStub(channel);
+    futureStub = DaemonServiceGrpc.newFutureStub(channel);
+  }
+
+  /** Blocking unary call example. */
+  public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
+    info("*** GetPath: src={0} lon={1}", srcIsdAs, dstIsdAs);
+
+    Daemon.PathsRequest request =
+        Daemon.PathsRequest.newBuilder()
+            .setSourceIsdAs(srcIsdAs)
+            .setDestinationIsdAs(dstIsdAs)
+            .build();
+
+    Daemon.PathsResponse response;
+    try {
+      response = blockingStub.paths(request);
+    } catch (StatusRuntimeException e) {
+      warning("RPC failed: {0}", e.getStatus());
+      return Collections.emptyList();
     }
 
-    /**
-     * Blocking unary call example.
-     */
-    public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
-        info("*** GetPath: src={0} lon={1}", srcIsdAs, dstIsdAs);
+    return response.getPathsList();
+  }
 
-        Daemon.PathsRequest request = Daemon.PathsRequest.newBuilder().setSourceIsdAs(srcIsdAs).setDestinationIsdAs(dstIsdAs).build();
-
-        Daemon.PathsResponse response;
-        try {
-            response = blockingStub.paths(request);
-        } catch (StatusRuntimeException e) {
-            warning("RPC failed: {0}", e.getStatus());
-            return Collections.emptyList();
-        }
-
-        return response.getPathsList();
+  /** Issues several different requests and then exits. */
+  public static void main(String[] args) throws InterruptedException {
+    String target = "localhost:8980";
+    if (args.length > 0) {
+      if ("--help".equals(args[0])) {
+        System.err.println("Usage: [target]");
+        System.err.println();
+        System.err.println("  target  The server to connect to. Defaults to " + target);
+        System.exit(1);
+      }
+      target = args[0];
     }
 
-    /**
-     * Issues several different requests and then exits.
-     */
-    public static void main(String[] args) throws InterruptedException {
-        String target = "localhost:8980";
-        if (args.length > 0) {
-            if ("--help".equals(args[0])) {
-                System.err.println("Usage: [target]");
-                System.err.println("");
-                System.err.println("  target  The server to connect to. Defaults to " + target);
-                System.exit(1);
-            }
-            target = args[0];
-        }
+    // TODO credentials?
+    ManagedChannel channel =
+        Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
+    List<Daemon.Path> paths;
+    try {
+      DaemonClient client = new DaemonClient(channel);
+      // Looking for a valid feature
+      client.getPath(409146138, -746188906);
 
-        // TODO credentials?
-        ManagedChannel channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create())
-                .build();
-        List<Daemon.Path> paths;
-        try {
-            DaemonClient client = new DaemonClient(channel);
-            // Looking for a valid feature
-            client.getPath(409146138, -746188906);
+      // Feature missing.
+      paths = client.getPath(0, 0);
 
-            // Feature missing.
-            paths = client.getPath(0, 0);
-
-            // Looking for features between 40, -75 and 42, -73.
-        } finally {
-            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
-        }
-
-        System.out.println("Paths found: " + paths.size());
-        for (Daemon.Path path : paths) {
-            System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
-            int i = 0;
-            for (Daemon.PathInterface segment : path.getInterfacesList()) {
-                System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs());
-            }
-        }
+      // Looking for features between 40, -75 and 42, -73.
+    } finally {
+      channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    private void info(String msg, Object... params) {
-        logger.info(msg, params);
+    System.out.println("Paths found: " + paths.size());
+    for (Daemon.Path path : paths) {
+      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
+      int i = 0;
+      for (Daemon.PathInterface segment : path.getInterfacesList()) {
+        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs());
+      }
     }
+  }
 
-    private void warning(String msg, Object... params) {
-        logger.warn(msg, params);
-    }
+  private void info(String msg, Object... params) {
+    logger.info(msg, params);
+  }
+
+  private void warning(String msg, Object... params) {
+    logger.warn(msg, params);
+  }
 }
