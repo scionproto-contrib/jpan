@@ -12,6 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <scion.google-java-format.version>1.16.0</scion.google-java-format.version>
         <scion.junit.version>5.10.0</scion.junit.version>
         <scion.protobuf.version>3.23.0</scion.protobuf.version>
         <scion.slf4j.version>2.0.7</scion.slf4j.version>
@@ -102,18 +103,24 @@
                 <artifactId>grpc-protobuf</artifactId>
                 <version>1.56.1</version>
             </dependency>
+
+            <!-- For gRPC -->
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>1.3.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
-        <!-- Note that this is upgraded in the on-jdk-9 profile below -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${scion.slf4j.version}</version>
         </dependency>
 
-        <!-- Include this globally for all tests -->
+        <!-- Include default slf4j implementation for all tests -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
@@ -152,13 +159,25 @@
             <artifactId>grpc-protobuf</artifactId>
             <version>1.56.1</version>
         </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>1.56.1</version>
+        </dependency>
+
+        <!-- Do we need this? TODO -->
+        <dependency>
+            <groupId>com.google.googlejavaformat</groupId>
+            <artifactId>google-java-format</artifactId>
+            <version>${scion.google-java-format.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
+                <version>3.11.0</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -188,6 +207,17 @@
                             <inputDirectories>
                                 <include>src/main/proto</include>
                             </inputDirectories>
+                            <outputTargets>
+                                <outputTarget>
+                                    <type>java</type>
+<!--                                    <outputDirectory>src/main/java</outputDirectory>-->
+                                </outputTarget>
+                                <outputTarget>
+                                    <type>grpc-java</type>
+<!--                                    <outputDirectory>src/main/java</outputDirectory>-->
+                                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.57.1</pluginArtifact>
+                                </outputTarget>
+                            </outputTargets>
                         </configuration>
                     </execution>
                 </executions>
