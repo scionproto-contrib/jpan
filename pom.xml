@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>scion.org</groupId>
-    <artifactId>scion-java-api</artifactId>
+    <artifactId>scion-java-client</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -47,9 +47,9 @@
     </licenses>
 
     <scm>
-        <url>https://github.com/tzaeschke/scion-java-api</url>
-        <connection>scm:git:git@github.com:tzaeschke/scion-java-api.git</connection>
-        <developerConnection>scm:git:git@github.com:tzaeschke/scion-java-api.git</developerConnection>
+        <url>https://github.com/netsec-ethz/scion-java-client</url>
+        <connection>scm:git:git@github.com:netsec-ethz/scion-java-client.git</connection>
+        <developerConnection>scm:git:git@github.com:netsec-ethz/scion-java-client.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
