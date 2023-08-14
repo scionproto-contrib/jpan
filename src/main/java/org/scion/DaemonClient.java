@@ -1,4 +1,3 @@
-package org.scion;
 // Copyright 2023 ETH Zurich
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,32 +12,45 @@ package org.scion;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+package org.scion;
+
 import io.grpc.*;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public class DaemonClient {
+public class DaemonClient implements Closeable {
 
   private static final Logger logger = LoggerFactory.getLogger(DaemonClient.class.getName());
 
   private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
-  private final DaemonServiceGrpc.DaemonServiceStub asyncStub;
-  private final DaemonServiceGrpc.DaemonServiceFutureStub futureStub;
+  //  private final DaemonServiceGrpc.DaemonServiceStub asyncStub;
+  //  private final DaemonServiceGrpc.DaemonServiceFutureStub futureStub;
 
-  private Random random = new Random();
+  private final ManagedChannel channel;
+
+  public static DaemonClient create(String daemonAddress) {
+    return new DaemonClient(daemonAddress);
+  }
+
+  private DaemonClient(String daemonAddress) {
+    channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
+    blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
+  }
 
   /** Construct client for accessing RouteGuide server using the existing channel. */
-  public DaemonClient(Channel channel) {
+  private DaemonClient(ManagedChannel channel) {
+    this.channel = channel;
     blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
-    asyncStub = DaemonServiceGrpc.newStub(channel);
-    futureStub = DaemonServiceGrpc.newFutureStub(channel);
+    //    asyncStub = DaemonServiceGrpc.newStub(channel);
+    //    futureStub = DaemonServiceGrpc.newFutureStub(channel);
   }
 
   /** Blocking unary call example. */
@@ -108,5 +120,14 @@ public class DaemonClient {
 
   private void warning(String msg, Object... params) {
     logger.warn(msg, params);
+  }
+
+  @Override
+  public void close() throws IOException {
+    try {
+      channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
   }
 }
