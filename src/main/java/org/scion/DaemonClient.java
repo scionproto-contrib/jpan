@@ -55,7 +55,7 @@ public class DaemonClient implements Closeable {
 
   /** Blocking unary call example. */
   public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
-    info("*** GetPath: src={0} lon={1}", srcIsdAs, dstIsdAs);
+    info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
     Daemon.PathsRequest request =
         Daemon.PathsRequest.newBuilder()
@@ -67,8 +67,8 @@ public class DaemonClient implements Closeable {
     try {
       response = blockingStub.paths(request);
     } catch (StatusRuntimeException e) {
-      warning("RPC failed: {0}", e.getStatus());
-      return Collections.emptyList();
+      warning("RPC failed: {}", e.getStatus());
+      throw new ScionException(e);
     }
 
     return response.getPathsList();
@@ -76,30 +76,37 @@ public class DaemonClient implements Closeable {
 
   /** Issues several different requests and then exits. */
   public static void main(String[] args) throws InterruptedException {
-    String target = "localhost:8980";
+    String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+//    String target = "localhost:8980";
     if (args.length > 0) {
       if ("--help".equals(args[0])) {
         System.err.println("Usage: [target]");
         System.err.println();
-        System.err.println("  target  The server to connect to. Defaults to " + target);
+        System.err.println("  target  The server to connect to. Defaults to " + daemonAddr);
         System.exit(1);
       }
-      target = args[0];
+      daemonAddr = args[0];
     }
+
+
+//    List<Daemon.Path> paths;
+    long srcIA = Util.ParseIA("1-ff00:0:110");
+    long dstIA = Util.ParseIA("1-ff00:0:112");
+//    try (DaemonClient client = DaemonClient.create(daemonAddr)) {
+//      client.getPath(srcIA, dstIA);
+//      paths = client.getPath(0, 0);
+//    } catch (IOException e) {
+//      throw new RuntimeException(e);
+//    }
+
 
     // TODO credentials?
     ManagedChannel channel =
-        Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
+        Grpc.newChannelBuilder(daemonAddr, InsecureChannelCredentials.create()).build();
     List<Daemon.Path> paths;
     try {
       DaemonClient client = new DaemonClient(channel);
-      // Looking for a valid feature
-      client.getPath(409146138, -746188906);
-
-      // Feature missing.
-      paths = client.getPath(0, 0);
-
-      // Looking for features between 40, -75 and 42, -73.
+      paths = client.getPath(srcIA, dstIA);
     } finally {
       channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
     }
