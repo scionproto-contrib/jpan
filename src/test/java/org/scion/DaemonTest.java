@@ -27,8 +27,6 @@ import org.slf4j.LoggerFactory;
 
 public class DaemonTest {
 
-  public static final Logger logger = LoggerFactory.getLogger(DaemonTest.class);
-
   private static final InetSocketAddress DAEMON_ADDRESS =
       new InetSocketAddress("127.0.0.15", 30255);
   //  private static final InetSocketAddress DAEMON_ADDRESS =

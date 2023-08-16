@@ -46,17 +46,14 @@ public class MockDaemon implements AutoCloseable {
         logger.info("Server started, listening on " + address);
 
         // TODO remove?
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                System.err.println("Shutting down daemon server");
-                try {
-                    server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    e.printStackTrace(System.err);
-                }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.err.println("Shutting down daemon server");
+            try {
+                server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace(System.err);
             }
-        });
+        }));
         return this;
     }
 

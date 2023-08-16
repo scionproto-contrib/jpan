@@ -15,7 +15,6 @@
 package org.scion;
 
 import io.grpc.*;
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -26,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class DaemonClient implements AutoCloseable {
 
-  private static final Logger logger = LoggerFactory.getLogger(DaemonClient.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(DaemonClient.class.getName());
 
   private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
   //  private final DaemonServiceGrpc.DaemonServiceStub asyncStub;
@@ -59,7 +58,7 @@ public class DaemonClient implements AutoCloseable {
 
   /** Blocking unary call example. */
   public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
-    info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
+    LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
     Daemon.PathsRequest request =
         Daemon.PathsRequest.newBuilder()
@@ -71,10 +70,7 @@ public class DaemonClient implements AutoCloseable {
     try {
       response = blockingStub.paths(request);
     } catch (StatusRuntimeException e) {
-      warning("RPC failed: {}", e.getStatus());
       throw new ScionException(e);
-      //e.printStackTrace();
-      //return Collections.emptyList();
     }
 
     return response.getPathsList();
@@ -84,44 +80,11 @@ public class DaemonClient implements AutoCloseable {
   public static void main(String[] args) throws InterruptedException {
     String daemonHost = "127.0.0.12"; // from 110-topo
     int daemonPort = 30255; // from 110-topo
-    String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-//    String target = "localhost:8980";
-    if (args.length > 0) {
-      if ("--help".equals(args[0])) {
-        System.err.println("Usage: [target]");
-        System.err.println();
-        System.err.println("  target  The server to connect to. Defaults to " + daemonAddr);
-        System.exit(1);
-      }
-      daemonAddr = args[0];
-    }
 
-
-//    List<Daemon.Path> paths;
     long srcIA = Util.ParseIA("1-ff00:0:110");
     long dstIA = Util.ParseIA("1-ff00:0:112");
-//    try (DaemonClient client = DaemonClient.create(daemonAddr)) {
-//      client.getPath(srcIA, dstIA);
-//      paths = client.getPath(0, 0);
-//    } catch (IOException e) {
-//      throw new RuntimeException(e);
-//    }
-
-
-
 
     List<Daemon.Path> paths;
-//    // TODO credentials?
-//    ManagedChannel channel =
-//        Grpc.newChannelBuilder(daemonAddr, InsecureChannelCredentials.create()).build();
-//    try {
-//      DaemonClient client = new DaemonClient(channel);
-//      paths = client.getPath(srcIA, dstIA);
-//    } finally {
-//      channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
-//    }
-
-
     try (DaemonClient client = DaemonClient.create(daemonHost, daemonPort)) {
       paths = client.getPath(srcIA, dstIA);
     } catch (IOException e) {
@@ -136,14 +99,6 @@ public class DaemonClient implements AutoCloseable {
         System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs() + "  " + Util.toStringIA(segment.getIsdAs()));
       }
     }
-  }
-
-  private void info(String msg, Object... params) {
-    logger.info(msg, params);
-  }
-
-  private void warning(String msg, Object... params) {
-    logger.warn(msg, params);
   }
 
   @Override
