@@ -22,8 +22,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DaemonTest {
 

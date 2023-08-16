@@ -48,15 +48,6 @@ public class DaemonClient implements AutoCloseable {
     blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
   }
 
-  /** Construct client for accessing RouteGuide server using the existing channel. */
-  private DaemonClient(ManagedChannel channel) {
-    this.channel = channel;
-    blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
-    //    asyncStub = DaemonServiceGrpc.newStub(channel);
-    //    futureStub = DaemonServiceGrpc.newFutureStub(channel);
-  }
-
-  /** Blocking unary call example. */
   public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
     LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
@@ -76,8 +67,7 @@ public class DaemonClient implements AutoCloseable {
     return response.getPathsList();
   }
 
-  /** Issues several different requests and then exits. */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     String daemonHost = "127.0.0.12"; // from 110-topo
     int daemonPort = 30255; // from 110-topo
 
