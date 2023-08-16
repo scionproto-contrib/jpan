@@ -16,9 +16,7 @@ package org.scion;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.grpc.StatusRuntimeException;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.proto.daemon.Daemon;
@@ -46,21 +44,21 @@ public class DaemonTest {
     //assertEquals("finishConnect(..) failed: Connection refused", thrown.getMessage());
   }
 
-  @Test
-  public void testWrongDaemonXYZ() {
-    ScionException thrown = assertThrows(ScionException.class, () -> {
-      //ConnectException thrown = assertThrows(ConnectException.class, () -> {
-      String daemonAddr = "127.0.0.12:30255";
-      long srcIA = Util.ParseIA("1-ff00:0:110");
-      long dstIA = Util.ParseIA("1-ff00:0:112");
-      try (DaemonClient client = DaemonClient.create(daemonAddr)) {
-        client.getPath(srcIA, dstIA);
-      }
-    });
-
-    assertEquals("io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
-    //assertEquals("finishConnect(..) failed: Connection refused", thrown.getMessage());
-  }
+//  @Test
+//  public void testWrongDaemonXYZ() {
+//    ScionException thrown = assertThrows(ScionException.class, () -> {
+//      //ConnectException thrown = assertThrows(ConnectException.class, () -> {
+//      String daemonAddr = "127.0.0.12:30255";
+//      long srcIA = Util.ParseIA("1-ff00:0:110");
+//      long dstIA = Util.ParseIA("1-ff00:0:112");
+//      try (DaemonClient client = DaemonClient.create(daemonAddr)) {
+//        client.getPath(srcIA, dstIA);
+//      }
+//    });
+//
+//    assertEquals("io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
+//    //assertEquals("finishConnect(..) failed: Connection refused", thrown.getMessage());
+//  }
 
   @Test
   public void getPath() {

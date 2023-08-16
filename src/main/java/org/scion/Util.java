@@ -16,6 +16,32 @@ package org.scion;
 
 public class Util {
 
+  //  const (
+  //  IABytes       = 8
+  private static final int ISDBits = 16;
+
+  // ISD is the ISolation Domain identifier. See formatting and allocations here:
+  // https://github.com/scionproto/scion/wiki/ISD-and-AS-numbering#isd-numbers
+  // type ISD uint16
+
+  // AS is the Autonomous System identifier. See formatting and allocations here:
+  // https://github.com/scionproto/scion/wiki/ISD-and-AS-numbering#as-numbers
+  //  type AS uint64
+
+  // IA represents the ISD (ISolation Domain) and AS (Autonomous System) Id of a given SCION AS.
+  // The highest 16 bit form the ISD number and the lower 48 bits form the AS number.
+  //  type IA uint64
+  private static final int ASBits = 48;
+  private static final int BGPASBits = 32;
+  //  MaxISD    ISD = (1 << ISDBits) - 1
+  private static final long MaxAS = (1L << ASBits) - 1L;
+  //  MaxBGPAS  AS  = (1 << BGPASBits) - 1
+  //
+  private static final int asPartBits = 16;
+  private static final int asPartBase = 16;
+  private static final int asPartMask = (1 << asPartBits) - 1; // TODO int????
+  private static final int asParts = ASBits / asPartBits;
+
   // ParseIA parses an IA from a string of the format 'isd-as'.
   public static long ParseIA(String ia) { // (IA, error) {
     String[] parts = ia.split("-"); // TODO regex
@@ -33,32 +59,6 @@ public class Util {
     //    }
     return MustIAFrom(isd, as);
   }
-
-  // ISD is the ISolation Domain identifier. See formatting and allocations here:
-  // https://github.com/scionproto/scion/wiki/ISD-and-AS-numbering#isd-numbers
-  // type ISD uint16
-
-  // AS is the Autonomous System identifier. See formatting and allocations here:
-  // https://github.com/scionproto/scion/wiki/ISD-and-AS-numbering#as-numbers
-  //  type AS uint64
-
-  // IA represents the ISD (ISolation Domain) and AS (Autonomous System) Id of a given SCION AS.
-  // The highest 16 bit form the ISD number and the lower 48 bits form the AS number.
-  //  type IA uint64
-
-  //  const (
-  //  IABytes       = 8
-  private static final int ISDBits = 16;
-  private static final int ASBits = 48;
-  private static final int BGPASBits = 32;
-  //  MaxISD    ISD = (1 << ISDBits) - 1
-  private static final long MaxAS = (1L << ASBits) - 1L;
-  //  MaxBGPAS  AS  = (1 << BGPASBits) - 1
-  //
-  private static final int asPartBits = 16;
-  private static final int asPartBase = 16;
-  private static final int asPartMask = (1 << asPartBits) - 1; // TODO int????
-  private static final int asParts = ASBits / asPartBits;
   // )
 
   // ParseISD parses an ISD from a decimal string. Note that ISD 0 is parsed
@@ -144,6 +144,19 @@ public class Util {
     return as;
   }
 
+
+  public static String toStringIA(long ia) {
+    long mask = 0xFFFFL << 48;
+    String s = "";
+    s +=  Long.toString((ia & mask) >>> 48, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString((ia & mask) >>> 16, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString(ia & mask, 16);
+    return s;
+  }
   // TODO check all ParseUint to use correct bit width  16/32/64 (48??)
   // TODO Return ScionException????
   // TODO

@@ -15,16 +15,14 @@
 package org.scion;
 
 import io.grpc.*;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class DaemonClient implements Closeable {
 
@@ -36,11 +34,17 @@ public class DaemonClient implements Closeable {
 
   private final ManagedChannel channel;
 
+  private static DaemonClient create(String daemonHost, int daemonPort) {
+    return create(daemonHost + ":" + daemonPort);
+  }
+
   public static DaemonClient create(String daemonAddress) {
     return new DaemonClient(daemonAddress);
   }
 
   private DaemonClient(String daemonAddress) {
+    //ManagedChannelBuilder.forAddress(daemonAddress, 1223);
+    //ManagedChannelBuilder.forTarget().
     channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
     blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
   }
@@ -69,6 +73,8 @@ public class DaemonClient implements Closeable {
     } catch (StatusRuntimeException e) {
       warning("RPC failed: {}", e.getStatus());
       throw new ScionException(e);
+      //e.printStackTrace();
+      //return Collections.emptyList();
     }
 
     return response.getPathsList();
@@ -76,6 +82,8 @@ public class DaemonClient implements Closeable {
 
   /** Issues several different requests and then exits. */
   public static void main(String[] args) throws InterruptedException {
+    String daemonHost = "127.0.0.12"; // from 110-topo
+    int daemonPort = 30255; // from 110-topo
     String daemonAddr = "127.0.0.12:30255"; // from 110-topo
 //    String target = "localhost:8980";
     if (args.length > 0) {
@@ -100,23 +108,32 @@ public class DaemonClient implements Closeable {
 //    }
 
 
-    // TODO credentials?
-    ManagedChannel channel =
-        Grpc.newChannelBuilder(daemonAddr, InsecureChannelCredentials.create()).build();
+
+
     List<Daemon.Path> paths;
-    try {
-      DaemonClient client = new DaemonClient(channel);
+//    // TODO credentials?
+//    ManagedChannel channel =
+//        Grpc.newChannelBuilder(daemonAddr, InsecureChannelCredentials.create()).build();
+//    try {
+//      DaemonClient client = new DaemonClient(channel);
+//      paths = client.getPath(srcIA, dstIA);
+//    } finally {
+//      channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+//    }
+
+
+    try (DaemonClient client = DaemonClient.create(daemonHost, daemonPort)) {
       paths = client.getPath(srcIA, dstIA);
-    } finally {
-      channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+    } catch (IOException e) {
+        throw new RuntimeException(e);
     }
 
-    System.out.println("Paths found: " + paths.size());
+      System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
       int i = 0;
       for (Daemon.PathInterface segment : path.getInterfacesList()) {
-        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs());
+        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs() + "  " + Util.toStringIA(segment.getIsdAs()));
       }
     }
   }
