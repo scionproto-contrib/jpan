@@ -24,7 +24,7 @@ import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DaemonClient implements Closeable {
+public class DaemonClient implements AutoCloseable {
 
   private static final Logger logger = LoggerFactory.getLogger(DaemonClient.class.getName());
 

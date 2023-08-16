@@ -17,9 +17,11 @@ package org.scion;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.proto.daemon.Daemon;
+import org.scion.testutil.MockDaemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,43 +29,38 @@ public class DaemonTest {
 
   public static final Logger logger = LoggerFactory.getLogger(DaemonTest.class);
 
+  private static final InetSocketAddress DAEMON_ADDRESS =
+      new InetSocketAddress("127.0.0.15", 30255);
+  //  private static final InetSocketAddress DAEMON_ADDRESS =
+  //          new InetSocketAddress("127.0.0.12", 30255); // from 110-topo
+
+  private static String toHostAddrPort(InetSocketAddress address) {
+    return address.getAddress().getHostAddress() + ":" + address.getPort();
+  }
 
   @Test
   public void testWrongDaemonAddress() {
-    ScionException thrown = assertThrows(ScionException.class, () -> {
-      //ConnectException thrown = assertThrows(ConnectException.class, () -> {
-      String daemonAddr = "127.0.0.112:65432";//30255";
-      long srcIA = Util.ParseIA("1-ff00:0:110");
-      long dstIA = Util.ParseIA("1-ff00:0:112");
-      try (DaemonClient client = DaemonClient.create(daemonAddr)) {
-        client.getPath(srcIA, dstIA);
-      }
-    });
+    ScionException thrown =
+        assertThrows(
+            ScionException.class,
+            () -> {
+              String daemonAddr = "127.0.0.112:65432"; // 30255";
+              long srcIA = Util.ParseIA("1-ff00:0:110");
+              long dstIA = Util.ParseIA("1-ff00:0:112");
+              try (DaemonClient client = DaemonClient.create(daemonAddr)) {
+                client.getPath(srcIA, dstIA);
+              }
+            });
 
     assertEquals("io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
-    //assertEquals("finishConnect(..) failed: Connection refused", thrown.getMessage());
   }
 
-//  @Test
-//  public void testWrongDaemonXYZ() {
-//    ScionException thrown = assertThrows(ScionException.class, () -> {
-//      //ConnectException thrown = assertThrows(ConnectException.class, () -> {
-//      String daemonAddr = "127.0.0.12:30255";
-//      long srcIA = Util.ParseIA("1-ff00:0:110");
-//      long dstIA = Util.ParseIA("1-ff00:0:112");
-//      try (DaemonClient client = DaemonClient.create(daemonAddr)) {
-//        client.getPath(srcIA, dstIA);
-//      }
-//    });
-//
-//    assertEquals("io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
-//    //assertEquals("finishConnect(..) failed: Connection refused", thrown.getMessage());
-//  }
-
   @Test
-  public void getPath() {
-    // String target = "localhost:8980";
-    String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+  public void getPath() throws IOException {
+    MockDaemon mock = MockDaemon.create(DAEMON_ADDRESS).start();
+
+    // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+    String daemonAddr = toHostAddrPort(DAEMON_ADDRESS);
     List<Daemon.Path> paths;
     long srcIA = Util.ParseIA("1-ff00:0:110");
     long dstIA = Util.ParseIA("1-ff00:0:112");
@@ -73,13 +70,26 @@ public class DaemonTest {
       throw new RuntimeException(e);
     }
 
-    System.out.println("Paths found: " + paths.size());
-    for (Daemon.Path path : paths) {
-      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
-      int i = 0;
-      for (Daemon.PathInterface segment : path.getInterfacesList()) {
-        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs());
-      }
-    }
+    // Expected:
+    //    Paths found: 1
+    //    Path: first hop = 127.0.0.10:31004
+    //    0: 2 561850441793808
+    //    0: 1 561850441793810
+
+    assertEquals(1, paths.size());
+    Daemon.Path path0 = paths.get(0);
+    assertEquals("127.0.0.10:31004", path0.getInterface().getAddress().getAddress());
+
+    //    System.out.println("Paths found: " + paths.size());
+    //    for (Daemon.Path path : paths) {
+    //      System.out.println("Path: first hop = " +
+    // path.getInterface().getAddress().getAddress());
+    //      int i = 0;
+    //      for (Daemon.PathInterface segment : path.getInterfacesList()) {
+    //        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs());
+    //      }
+    //    }
+
+    mock.close();
   }
 }
