@@ -26,6 +26,8 @@ This can be fixed by building with Java JDK 1.8.
 - Use slfj4 logging framework: widely used ond flexible.
 - Use Junit 5.
 - Use Google style guide for code
+- We do **not** introduce custom exceptions. The rationale is that we want our API to be as similar
+  as possible as the standard networking API.
 
 
 ### TODO
