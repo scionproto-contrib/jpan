@@ -33,6 +33,13 @@ public class DaemonClient implements AutoCloseable {
 
   private final ManagedChannel channel;
 
+  private DaemonClient(String daemonAddress) {
+    // ManagedChannelBuilder.forAddress(daemonAddress, 1223);
+    // ManagedChannelBuilder.forTarget().
+    channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
+    blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
+  }
+
   private static DaemonClient create(String daemonHost, int daemonPort) {
     return create(daemonHost + ":" + daemonPort);
   }
@@ -41,11 +48,36 @@ public class DaemonClient implements AutoCloseable {
     return new DaemonClient(daemonAddress);
   }
 
-  private DaemonClient(String daemonAddress) {
-    //ManagedChannelBuilder.forAddress(daemonAddress, 1223);
-    //ManagedChannelBuilder.forTarget().
-    channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
-    blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
+  public static void main(String[] args) {
+    String daemonHost = "127.0.0.12"; // from 110-topo
+    int daemonPort = 30255; // from 110-topo
+
+    long srcIA = Util.ParseIA("1-ff00:0:110");
+    long dstIA = Util.ParseIA("1-ff00:0:112");
+
+    List<Daemon.Path> paths;
+    try (DaemonClient client = DaemonClient.create(daemonHost, daemonPort)) {
+      paths = client.getPath(srcIA, dstIA);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    System.out.println("Paths found: " + paths.size());
+    for (Daemon.Path path : paths) {
+      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
+      int i = 0;
+      for (Daemon.PathInterface segment : path.getInterfacesList()) {
+        System.out.println(
+            "    "
+                + i
+                + ": "
+                + segment.getId()
+                + " "
+                + segment.getIsdAs()
+                + "  "
+                + Util.toStringIA(segment.getIsdAs()));
+      }
+    }
   }
 
   public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
@@ -65,30 +97,6 @@ public class DaemonClient implements AutoCloseable {
     }
 
     return response.getPathsList();
-  }
-
-  public static void main(String[] args) {
-    String daemonHost = "127.0.0.12"; // from 110-topo
-    int daemonPort = 30255; // from 110-topo
-
-    long srcIA = Util.ParseIA("1-ff00:0:110");
-    long dstIA = Util.ParseIA("1-ff00:0:112");
-
-    List<Daemon.Path> paths;
-    try (DaemonClient client = DaemonClient.create(daemonHost, daemonPort)) {
-      paths = client.getPath(srcIA, dstIA);
-    } catch (IOException e) {
-        throw new RuntimeException(e);
-    }
-
-      System.out.println("Paths found: " + paths.size());
-    for (Daemon.Path path : paths) {
-      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
-      int i = 0;
-      for (Daemon.PathInterface segment : path.getInterfacesList()) {
-        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs() + "  " + Util.toStringIA(segment.getIsdAs()));
-      }
-    }
   }
 
   @Override
