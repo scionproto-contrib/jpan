@@ -42,6 +42,12 @@ public class HopField {
     // https://scion.docs.anapaya.net/en/latest/protocols/scion-header.html#hop-field-mac-computation
     private int mac;
 
+    public static HopField read(byte[] data, int offset) {
+        HopField field = new HopField();
+        // TODO read!!!
+        return field;
+    }
+
 
     public int length() {
         return 12;
