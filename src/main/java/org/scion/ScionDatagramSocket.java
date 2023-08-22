@@ -82,7 +82,7 @@ public class ScionDatagramSocket {
         readCommonHeader(data, common);
         System.out.println("Common header: " + common);
         int offset = ScionCommonHeader.BYTES;
-        AddressHeader address = new AddressHeader();
+        AddressHeader address = new AddressHeader(common);
         readAddressHeader(data, offset, address);
         System.out.println("Address header: " + address);
         offset += 6 * 4;
@@ -96,7 +96,7 @@ public class ScionDatagramSocket {
         static final int BYTES = 3 * 4;
         //  4 bit: Version : Currently, only 0 is supported.
         int version;
-        //  8 bit: TrafficClass
+        //  8 bit: TrafficClass / QoS
         int trafficLClass;
         // 20 bit: FlowID
         int flowId;
@@ -119,6 +119,7 @@ public class ScionDatagramSocket {
         int sl;
         //  8 bit: reserved
         int reserved;
+        int len = 3 * 4;
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -142,6 +143,7 @@ public class ScionDatagramSocket {
     }
 
     static class AddressHeader {
+        ScionCommonHeader common;
         //  8 bit: DstISD
         int dstISD;
         // 48 bit: DstAS
@@ -151,20 +153,66 @@ public class ScionDatagramSocket {
         // 48 bit: SrcAS
         long srcAS;
         //  ? bit: DstHostAddr
+        int dstHost0;
+        int dstHost1;
+        int dstHost2;
+        int dstHost3;
         //  ? bit: SrcHostAddr
+        int srcHost0;
+        int srcHost1;
+        int srcHost2;
+        int srcHost3;
+
+        int len;
+
+        AddressHeader(ScionCommonHeader common) {
+            this.common = common;
+        }
 
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("Address Header: ");
-                        sb.append("  DstISD=" + dstISD);
-                        sb.append("  DstAS =" + dstAS);
+            //            sb.append("  DstISD=" + dstISD);
+            //            sb.append("  DstAS =" + dstAS);
             //            //sb.append("\n");
-                        sb.append("  SrcISD=" + srcISD);
-                        sb.append("  SrcAS =" + srcAS);
+            //            sb.append("  SrcISD=" + srcISD);
+            //            sb.append("  SrcAS =" + srcAS);
             //            System.out.println(sb);
             sb.append("  dstIsdAs=").append(Util.toStringIA(dstISD, dstAS));
             sb.append("  srcIsdAs=").append(Util.toStringIA(srcISD, srcAS));
+            sb.append("  dstHost=" + common.dt + "/");
+            if (common.dl == 0) {
+                sb.append(Util.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
+            } else if (common.dl == 3) {
+                sb.append(Util.toStringIPv6(common.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            } else {
+                sb.append("Format not recognized: " + Util.toStringIPv6(common.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            }
+//            switch (common.dl) {
+//                case 0: sb.append(Util.toStringIPv4(dstHost0)); break;
+//                case 1: sb.append(Util.toStringIPv4(dstHost0)).append(Util.toStringIPv4(dstHost1)); break;
+//                case 2: sb.append(Util.toStringIPv4(dstHost0)).append(Util.toStringIPv4(dstHost1)).append(Util.toStringIPv4(dstHost2)); break;
+//                case 3: sb.append(Util.toStringIPv4(dstHost0)).append(Util.toStringIPv4(dstHost1)).append(Util.toStringIPv4(dstHost2)).append(Util.toStringIPv4(dstHost3)); break;
+//                default:
+//                    throw new IllegalArgumentException("DL=" + common.dl);
+//            }
+            sb.append("  srcHost=" + common.st + "/");
+            if (common.sl == 0) {
+                sb.append(Util.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
+            } else if (common.sl == 3) {
+                sb.append(Util.toStringIPv6(common.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            } else {
+                sb.append("Format not recognized: " + Util.toStringIPv6(common.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            }
+//            switch (common.sl) {
+//                case 0: sb.append(Util.toStringIPv4(srcHost0)); break;
+//                case 1: sb.append(Util.toStringIPv4(srcHost0)).append(Util.toStringIPv4(srcHost1)); break;
+//                case 2: sb.append(Util.toStringIPv4(srcHost0)).append(Util.toStringIPv4(srcHost1)).append(Util.toStringIPv4(srcHost2)); break;
+//                case 3: sb.append(Util.toStringIPv4(srcHost0)).append(Util.toStringIPv4(srcHost1)).append(Util.toStringIPv4(srcHost2)).append(Util.toStringIPv4(srcHost3)); break;
+//                default:
+//                    throw new IllegalArgumentException("SL=" + common.sl);
+//            }
             return sb.toString();
         }
     }
@@ -198,9 +246,10 @@ public class ScionDatagramSocket {
         header.st = readInt(i2, 12, 2);
         header.sl = readInt(i2, 14, 2);
         header.reserved = readInt(i2, 16, 16);
+        header.len = 3 * 4;
     }
 
-    private void readAddressHeader(byte[] data, int offset, AddressHeader header) {
+    private void readAddressHeader(byte[] data, int headerOffset, AddressHeader header) {
         //  8 bit: DstISD
         // 48 bit: DstAS
         //  8 bit: SrcISD
@@ -208,12 +257,48 @@ public class ScionDatagramSocket {
         //  ? bit: DstHostAddr
         //  ? bit: SrcHostAddr
 
+        int offset = headerOffset;
+
         long l0 = readLong(data, offset);
-        long l1 = readLong(data, offset + 8);
+        offset += 8;
+        long l1 = readLong(data, offset);
+        offset += 8;
         header.dstISD = (int) readLong(l0, 0, 16);
-        header.dstAS = readLong(l0, 4, 48);
+        header.dstAS = readLong(l0, 16, 48);
         header.srcISD = (int) readLong(l1, 0, 16);
-        header.srcAS = readLong(l1, 4, 48);
+        header.srcAS = readLong(l1, 16, 48);
+
+        header.dstHost0 = readInt(data, offset);
+        offset += 4;
+        if (header.common.dl >= 1) {
+            header.dstHost1 = readInt(data, offset);
+            offset += 4;
+        }
+        if (header.common.dl >= 2) {
+            header.dstHost2 = readInt(data, offset);
+            offset += 4;
+        }
+        if (header.common.dl >= 3) {
+            header.dstHost3 = readInt(data, offset);
+            offset += 4;
+        }
+
+        header.srcHost0 = readInt(data, offset);
+        offset += 4;
+        if (header.common.sl >= 1) {
+            header.srcHost1 = readInt(data, offset);
+            offset += 4;
+        }
+        if (header.common.sl >= 2) {
+            header.srcHost2 = readInt(data, offset);
+            offset += 4;
+        }
+        if (header.common.sl >= 3) {
+            header.srcHost3 = readInt(data, offset);
+            offset += 4;
+        }
+
+        header.len = offset - headerOffset;
     }
 
     private void readPathHeader(byte[] data, int offset) {
