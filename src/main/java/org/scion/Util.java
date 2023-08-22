@@ -157,6 +157,20 @@ public class Util {
     s +=  Long.toString(ia & mask, 16);
     return s;
   }
+
+  public static String toStringIA(long isd, long as) {
+    long ia = (isd << 48) | as;
+    long mask = 0xFFFFL << 48;
+    String s = "";
+    s +=  Long.toString((ia & mask) >>> 48, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString((ia & mask) >>> 16, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString(ia & mask, 16);
+    return s;
+  }
   // TODO check all ParseUint to use correct bit width  16/32/64 (48??)
   // TODO Return ScionException????
   // TODO

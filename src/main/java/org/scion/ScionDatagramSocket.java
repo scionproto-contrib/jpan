@@ -34,11 +34,29 @@ public class ScionDatagramSocket {
     }
 
     public void receive(DatagramPacket packet) throws IOException {
-        DatagramPacket incoming = new DatagramPacket(new byte[1], 1);
+//        System.out.println("receive - 1"); // TODO
+        byte[] buf = new byte[65536];
+        DatagramPacket incoming = new DatagramPacket(buf, buf.length);
+//        System.out.println("receive - 2"); // TODO
         socket.receive(incoming);
+        System.out.println("received: len=" + incoming.getLength()); // TODO
+//        for (int i = 0; i < incoming.getLength(); i++) {
+//            System.out.print("  " + incoming.getData()[i]);
+//        }
+//        System.out.println();
+        if (incoming.getLength() == 1) {
+            System.out.println("Aborting");
+            return;
+        }
+//        System.out.println("receive - 3b : " + incoming.getLength()); // TODO
+        readScionHeader(incoming);
+//        System.out.println("receive - g"); // TODO
         packet.setData(incoming.getData());
+//        System.out.println("receive - 4"); // TODO
         packet.setPort(incoming.getPort());
+//        System.out.println("receive - 5"); // TODO
         packet.setAddress(incoming.getAddress());
+//        System.out.println("receive - 6"); // TODO
         // Not necessary: packet.setSocketAddress(incoming.getSocketAddress());
     }
 
@@ -60,17 +78,98 @@ public class ScionDatagramSocket {
 
     private void readScionHeader(DatagramPacket p) {
         byte[] data = p.getData();
-        int offset = 0;
-        readCommonHeader(data);
-        offset += 3 * 4;
-        readAddressHeader(data, offset);
+        ScionCommonHeader common = new ScionCommonHeader();
+        readCommonHeader(data, common);
+        System.out.println("Common header: " + common);
+        int offset = ScionCommonHeader.BYTES;
+        AddressHeader address = new AddressHeader();
+        readAddressHeader(data, offset, address);
+        System.out.println("Address header: " + address);
         offset += 6 * 4;
         readPathHeader(data, offset);
         //offset += ???;
         //readExtensionHeader(data, offset);
     }
 
-    private void readCommonHeader(byte[] data) {
+
+    static class ScionCommonHeader {
+        static final int BYTES = 3 * 4;
+        //  4 bit: Version : Currently, only 0 is supported.
+        int version;
+        //  8 bit: TrafficClass
+        int trafficLClass;
+        // 20 bit: FlowID
+        int flowId;
+        //  8 bit: NextHdr
+        int nextHeader;
+        //  8 bit: HdrLen :  Common header + address header + path header. bytes = hdrLen * 4;
+        int hdrLen;
+        int hdrLenBytes;
+        // 16 bit: PayloadLen
+        int payLoadLen;
+        //  8 bit: PathType  :  Empty (0), SCION (1), OneHopPath (2), EPIC (3) and COLIBRI (4)
+        int pathType;
+        //  2 bit: DT
+        int dt;
+        //  2 bit: DL : 4 bytes, 8 bytes, 12 bytes and 16 bytes
+        int dl;
+        //  2 bit: ST
+        int st;
+        //  2 bit: SL : 4 bytes, 8 bytes, 12 bytes and 16 bytes
+        int sl;
+        //  8 bit: reserved
+        int reserved;
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Common Header: ");
+            sb.append("  VER=" + version);
+            sb.append("  TrafficClass=" + trafficLClass);
+            sb.append("  FlowID=" + flowId);
+            // sb.append("\n");
+            sb.append("  NextHdr=" + nextHeader + "/" + hdrLenBytes);
+            sb.append("  HdrLen=" + hdrLen);
+            sb.append("  PayloadLen=" + payLoadLen);
+            // sb.append("\n");
+            sb.append("  PathType=" + pathType);
+            sb.append("  DT=" + dt);
+            sb.append("  DL=" + dl);
+            sb.append("  ST=" + st);
+            sb.append("  SL=" + sl);
+            sb.append("  RSV=" + reserved);
+            return sb.toString();
+        }
+    }
+
+    static class AddressHeader {
+        //  8 bit: DstISD
+        int dstISD;
+        // 48 bit: DstAS
+        long dstAS;
+        //  8 bit: SrcISD
+        int srcISD;
+        // 48 bit: SrcAS
+        long srcAS;
+        //  ? bit: DstHostAddr
+        //  ? bit: SrcHostAddr
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Address Header: ");
+                        sb.append("  DstISD=" + dstISD);
+                        sb.append("  DstAS =" + dstAS);
+            //            //sb.append("\n");
+                        sb.append("  SrcISD=" + srcISD);
+                        sb.append("  SrcAS =" + srcAS);
+            //            System.out.println(sb);
+            sb.append("  dstIsdAs=").append(Util.toStringIA(dstISD, dstAS));
+            sb.append("  srcIsdAs=").append(Util.toStringIA(srcISD, srcAS));
+            return sb.toString();
+        }
+    }
+
+    private void readCommonHeader(byte[] data, ScionCommonHeader header) {
         //  4 bit: Version
         //  8 bit: TrafficClass
         // 20 bit: FlowID
@@ -86,26 +185,22 @@ public class ScionDatagramSocket {
         int i0 = readInt(data, 0);
         int i1 = readInt(data, 4);
         int i2 = readInt(data, 8);
-        StringBuilder sb = new StringBuilder();
-        sb.append("Common Header: ");
-        sb.append(" VER=" + readInt(i0, 0, 4));
-        sb.append(" TC =" + readInt(i0, 4, 8));
-        sb.append(" FlowID=" + readInt(i0, 12, 20));
-        sb.append("\n");
-        sb.append(" NextHdr=" + readInt(i1, 0, 8));
-        sb.append(" HdrLen=" + readInt(i1, 8, 8));
-        sb.append(" PayloadLen=" + readInt(i1, 16, 16));
-        sb.append("\n");
-        sb.append(" PathType=" + readInt(i2, 0, 8));
-        sb.append(" DT" + readInt(i2, 8, 2));
-        sb.append(" DL" + readInt(i2, 10, 2));
-        sb.append(" ST" + readInt(i2, 12, 2));
-        sb.append(" SL" + readInt(i2, 14, 2));
-        sb.append(" DT" + readInt(i2, 16, 16));
-        System.out.println(sb);
+        header.version = readInt(i0, 0, 4);
+        header.trafficLClass = + readInt(i0, 4, 8);
+        header.flowId = readInt(i0, 12, 20);
+        header.nextHeader = readInt(i1, 0, 8);
+        header.hdrLen = readInt(i1, 8, 8);
+        header.hdrLenBytes = header.hdrLen * 4;
+        header.payLoadLen = readInt(i1, 16, 16);
+        header.pathType = readInt(i2, 0, 8);
+        header.dt = readInt(i2, 8, 2);
+        header.dl = readInt(i2, 10, 2);
+        header.st = readInt(i2, 12, 2);
+        header.sl = readInt(i2, 14, 2);
+        header.reserved = readInt(i2, 16, 16);
     }
 
-    private void readAddressHeader(byte[] data, int offset) {
+    private void readAddressHeader(byte[] data, int offset, AddressHeader header) {
         //  8 bit: DstISD
         // 48 bit: DstAS
         //  8 bit: SrcISD
@@ -115,15 +210,10 @@ public class ScionDatagramSocket {
 
         long l0 = readLong(data, offset);
         long l1 = readLong(data, offset + 8);
-        StringBuilder sb = new StringBuilder();
-        sb.append("Address Header: ");
-        sb.append(" DstISD=" + readLong(l0, 0, 16));
-        sb.append(" DstAS =" + readLong(l0, 4, 48));
-        sb.append("\n");
-        sb.append(" SrcISD=" + readLong(l1, 0, 16));
-        sb.append(" SrcAS =" + readLong(l1, 4, 48));
-        System.out.println(sb);
-        System.out.println("Address Header (2): " + Util.toStringIA(l0) + " <- " + Util.toStringIA(l1));
+        header.dstISD = (int) readLong(l0, 0, 16);
+        header.dstAS = readLong(l0, 4, 48);
+        header.srcISD = (int) readLong(l1, 0, 16);
+        header.srcAS = readLong(l1, 4, 48);
     }
 
     private void readPathHeader(byte[] data, int offset) {

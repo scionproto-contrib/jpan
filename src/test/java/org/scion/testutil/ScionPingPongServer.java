@@ -22,9 +22,18 @@ public class ScionPingPongServer {
         listData.add("Pong 333");
     }
 
+    //TODO FIX PATH to go 1.20 -> Reinstall update-alternatives
+    // TODO Run shion.sh run
+    // - ps -ef | grep dispatcher
+    // lsof -ni | grep 63972
+    // kill -15 63972
+    // start Java scion server
+
+
     public static void main(String[] args) {
-        //int port = 13579;
-        int port = 30255;
+        //int port = 30255;
+        //int port = 30041;
+        int port = 40041;
 
         try {
             ScionPingPongServer server = new ScionPingPongServer(port);
@@ -39,16 +48,20 @@ public class ScionPingPongServer {
     private void service() throws IOException {
         while (true) {
             DatagramPacket request = new DatagramPacket(new byte[1], 1);
+            System.out.println("service - 1"); // TODO
             socket.receive(request);
 
+            System.out.println("service - 2"); // TODO
             String quote = getRandomPong();
             byte[] buffer = quote.getBytes();
 
+            System.out.println("service - 3"); // TODO
             InetAddress clientAddress = request.getAddress();
             int clientPort = request.getPort();
 
-            DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
-            socket.send(response);
+            System.out.println("service - 4"); // TODO
+//            DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
+//            socket.send(response);
         }
     }
 
