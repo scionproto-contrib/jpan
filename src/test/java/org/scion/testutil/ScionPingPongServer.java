@@ -53,12 +53,14 @@ public class ScionPingPongServer {
             DatagramPacket request = new DatagramPacket(new byte[1], 1);
             System.out.println("service - 1"); // TODO
             socket.receive(request);
-            for (int i = 0; i < request.getLength(); i++) {
-                System.out.print(Integer.toHexString(Byte.toUnsignedInt(request.getData()[request.getOffset() + i])) + ", ");
-            }
-            System.out.println();
+//            for (int i = 0; i < request.getLength(); i++) {
+//                System.out.print(Integer.toHexString(Byte.toUnsignedInt(request.getData()[request.getOffset() + i])) + ", ");
+//            }
+//            System.out.println();
             String msg = new String(request.getData(), request.getOffset(), request.getLength());
-            System.out.println("Received: " + msg);
+            System.out.println("Received (from " + request.getPort() + "): " + msg);
+            System.out.println("Received (from " + request.getAddress() + "): " + msg);
+            System.out.println("Received (from " + request.getSocketAddress() + "): " + msg);
 
             System.out.println("service - 2"); // TODO
             String quote = getRandomPong();

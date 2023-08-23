@@ -18,6 +18,9 @@ import static org.scion.internal.ByteUtil.*;
 
 import org.scion.Util;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 public class AddressHeader {ScionCommonHeader common;
     //  8 bit: DstISD
     int dstISD;
@@ -98,6 +101,18 @@ public class AddressHeader {ScionCommonHeader common;
         return header;
     }
 
+    public InetAddress getSrcHostAddress(byte[] data) {
+        // TODO this is awkward, we should not pass in data[] here. (Or we should do it everywhere)
+        byte[] bytes = new byte[(common.sl + 1) * 4];
+        int offset = 16 + (common.dl + 1) * 4;
+        System.arraycopy(data, common.length() + offset, bytes, 0, bytes.length);
+        try {
+            return InetAddress.getByAddress(bytes);
+        } catch (UnknownHostException e) {
+            // This really should not happen
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public String toString() {

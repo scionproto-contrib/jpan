@@ -56,4 +56,7 @@ public class PseudoHeader {
         return 8;
     }
 
+    public int getSrcPort() {
+        return srcPort;
+    }
 }

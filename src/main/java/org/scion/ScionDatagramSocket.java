@@ -17,10 +17,7 @@ package org.scion;
 import org.scion.internal.*;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketAddress;
-import java.net.SocketException;
+import java.net.*;
 
 public class ScionDatagramSocket {
   /*
@@ -114,8 +111,13 @@ public class ScionDatagramSocket {
 
     // build packet
     userPacket.setData(p.getData(), offset, p.getLength() - offset);
-    userPacket.setPort(p.getPort());
-    userPacket.setAddress(p.getAddress());
+    userPacket.setPort(udpHeader.getSrcPort());
+    // InetAddress srcAddr = InetAddress.getByName(common.);
+    // SocketAddress src = new InetSocketAddress();
+    // userPacket.setAddress(p.getAddress());
+    if (common.pathType() == 1) {
+      userPacket.setAddress(address.getSrcHostAddress(data));
+    }
   }
 
   private void readExtensionHeader(byte[] data, int offset) {}
