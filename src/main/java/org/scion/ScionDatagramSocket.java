@@ -109,9 +109,8 @@ public class ScionDatagramSocket {
     // TODO Handle checksum in PseudoHeader?
 
     // build packet
-    // TODO should the destination be 0 or userPacket.getOffset() ????
     int length = (p.getLength() - offset);
-    System.arraycopy(p.getData(), offset, userPacket.getData(), 0, length);
+    System.arraycopy(p.getData(), offset, userPacket.getData(), userPacket.getOffset(), length);
     userPacket.setLength(length);
     userPacket.setPort(udpHeader.getSrcPort());
     userPacket.setAddress(address.getSrcHostAddress(data));
