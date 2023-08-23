@@ -14,10 +14,7 @@
 
 package org.scion;
 
-import org.scion.internal.AddressHeader;
-import org.scion.internal.PathHeaderOneHopPath;
-import org.scion.internal.PathHeaderScion;
-import org.scion.internal.ScionCommonHeader;
+import org.scion.internal.*;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -54,15 +51,7 @@ public class ScionDatagramSocket {
       return;
     }
     //        System.out.println("receive - 3b : " + incoming.getLength()); // TODO
-    readScionHeader(incoming);
-    //        System.out.println("receive - g"); // TODO
-    packet.setData(incoming.getData());
-    //        System.out.println("receive - 4"); // TODO
-    packet.setPort(incoming.getPort());
-    //        System.out.println("receive - 5"); // TODO
-    packet.setAddress(incoming.getAddress());
-    //        System.out.println("receive - 6"); // TODO
-    // Not necessary: packet.setSocketAddress(incoming.getSocketAddress());
+    readScionHeader(incoming, packet);
   }
 
   public void send(DatagramPacket packet) throws IOException {
@@ -81,7 +70,7 @@ public class ScionDatagramSocket {
     return socket.getPort();
   }
 
-  private void readScionHeader(DatagramPacket p) {
+  private int readScionHeader(DatagramPacket p, DatagramPacket userPacket) {
     byte[] data = p.getData();
     ScionCommonHeader common = ScionCommonHeader.read(data, 0);
     System.out.println("Common header: " + common);
@@ -98,13 +87,32 @@ public class ScionDatagramSocket {
       offset += pathHeader.length();
       System.out.println("Path header: " + pathHeader);
     } else {
-
       throw new UnsupportedOperationException("Path type: " + common.pathType());
     }
     System.out.println(
         "Left: " + (p.getLength() - offset) + " vs " + (common.hdrLenBytes() - offset));
     // offset += ???;
     // readExtensionHeader(data, offset);
+
+
+    // Pseudo header
+    PseudoHeader udpHeader = PseudoHeader.read(data, offset);
+    System.out.println(udpHeader);
+    offset += udpHeader.length();
+
+
+    // build packet
+    //        System.out.println("receive - g"); // TODO
+    userPacket.setData(p.getData(), offset, p.getLength() - offset);
+    //        System.out.println("receive - 4"); // TODO
+    userPacket.setPort(p.getPort());
+    //        System.out.println("receive - 5"); // TODO
+    userPacket.setAddress(p.getAddress());
+    //        System.out.println("receive - 6"); // TODO
+    // Not necessary: packet.setSocketAddress(incoming.getSocketAddress());
+
+
+    return offset;
   }
 
   private void readExtensionHeader(byte[] data, int offset) {}

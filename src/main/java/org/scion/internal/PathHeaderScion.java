@@ -36,6 +36,9 @@ public class PathHeaderScion {ScionCommonHeader common;
     private InfoField info1;
     private InfoField info2;
 
+    private HopField[] hops = new HopField[64];
+    private int nHops;
+
     int len;
 
     PathHeaderScion(ScionCommonHeader common) {
@@ -77,6 +80,21 @@ public class PathHeaderScion {ScionCommonHeader common;
             }
         }
 
+        for (int i = 0; i < header.seg0Len; i++) {
+            header.hops[header.nHops] = HopField.read(data, offset);
+            offset += header.hops[header.nHops].length();
+            header.nHops++;
+        }
+        for (int i = 0; i < header.seg1Len; i++) {
+            header.hops[header.nHops] = HopField.read(data, offset);
+            offset += header.hops[header.nHops].length();
+            header.nHops++;
+        }
+        for (int i = 0; i < header.seg2Len; i++) {
+            header.hops[header.nHops] = HopField.read(data, offset);
+            offset += header.hops[header.nHops].length();
+            header.nHops++;
+        }
 
         header.len = offset - headerOffset;
         return header;
@@ -92,13 +110,18 @@ public class PathHeaderScion {ScionCommonHeader common;
                 "  seg1Len=" + seg1Len +
                 "  seg2Len=" + seg2Len;
         if (info0 != null) {
-            s += "  info0=" + info0;
+            s += "\n  info0=" + info0;
         }
         if (info1 != null) {
-            s += "  info1=" + info1;
+            s += "\n  info1=" + info1;
         }
         if (info2 != null) {
-            s += "  info2=" + info2;
+            s += "\n  info2=" + info2;
+        }
+        for (HopField hop : hops) {
+            if (hop != null) {
+                s += "\n    hop=" + hop;
+            }
         }
         return s;
     }

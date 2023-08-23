@@ -47,9 +47,18 @@ public class ScionPingPongServer {
 
     private void service() throws IOException {
         while (true) {
+            // TODO avoid byte[]? Or use byte[] internally?  --> May be to small!!!  -> Not transparently plugable!
+            //      -> users need to adapt array size. Without adaptation: requires copy.....
+            //      -> Copy is alright, but high performance user may want a a way to avoid the copy....
             DatagramPacket request = new DatagramPacket(new byte[1], 1);
             System.out.println("service - 1"); // TODO
             socket.receive(request);
+            for (int i = 0; i < request.getLength(); i++) {
+                System.out.print(Integer.toHexString(Byte.toUnsignedInt(request.getData()[request.getOffset() + i])) + ", ");
+            }
+            System.out.println();
+            String msg = new String(request.getData(), request.getOffset(), request.getLength());
+            System.out.println("Received: " + msg);
 
             System.out.println("service - 2"); // TODO
             String quote = getRandomPong();

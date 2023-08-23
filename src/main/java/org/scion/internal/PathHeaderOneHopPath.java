@@ -52,9 +52,9 @@ public class PathHeaderOneHopPath {ScionCommonHeader common;
     @Override
     public String toString() {
         return "OneHopPath header: " +
-                "  info=" + info +
-                "  hop0=" + hop0 +
-                "  hop1=" + hop1;
+                "\n  info=" + info +
+                "\n    hop0=" + hop0 +
+                "\n    hop1=" + hop1;
     }
 
     public int length() {
