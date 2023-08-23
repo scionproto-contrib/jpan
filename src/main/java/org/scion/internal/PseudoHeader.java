@@ -34,8 +34,8 @@ public class PseudoHeader {
     }
 
     private void readData(byte[] data, int offset) {
-        int i0 = ByteUtil.readInt(data, offset);
-        int i1 = ByteUtil.readInt(data, offset + 4);
+        int i0 = readInt(data, offset);
+        int i1 = readInt(data, offset + 4);
         srcPort = readInt(i0, 0, 16);
         dstPort = readInt(i0, 16, 16);
         packetLength = readInt(i1, 0, 16);
@@ -45,9 +45,9 @@ public class PseudoHeader {
     @Override
     public String toString() {
         return "UdpPseudoHeader{" +
-                ", srcPort" + srcPort +
+                "srcPort=" + srcPort +
                 ", dstPort=" + dstPort +
-                ", length" + packetLength +
+                ", length=" + packetLength +
                 ", checkSum=" + checkSum +
                 '}';
     }

@@ -20,7 +20,7 @@ public class ByteUtil {
         int r = 0;
         for (int i = 0; i < 4; i++) {
             r <<= 8;
-            r |= data[i + offsetBytes];
+            r |= Byte.toUnsignedInt(data[i + offsetBytes]);
         }
         return r;
     }
@@ -29,7 +29,7 @@ public class ByteUtil {
         long r = 0;
         for (int i = 0; i < 8; i++) {
             r <<= 8;
-            r |= data[i + offsetBytes];
+            r |= Byte.toUnsignedLong(data[i + offsetBytes]);
         }
         return r;
     }
