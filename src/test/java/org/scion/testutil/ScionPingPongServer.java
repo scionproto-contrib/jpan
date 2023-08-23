@@ -58,8 +58,6 @@ public class ScionPingPongServer {
 //            }
 //            System.out.println();
             String msg = new String(request.getData(), request.getOffset(), request.getLength());
-            System.out.println("Received (from " + request.getPort() + "): " + msg);
-            System.out.println("Received (from " + request.getAddress() + "): " + msg);
             System.out.println("Received (from " + request.getSocketAddress() + "): " + msg);
 
             System.out.println("service - 2"); // TODO
