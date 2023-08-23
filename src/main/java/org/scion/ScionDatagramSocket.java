@@ -28,6 +28,8 @@ public class ScionDatagramSocket {
    */
 
   private final DatagramSocket socket;
+  private final byte[] buf = new byte[65535 - 28];  // -28 for 8 byte UDP + 20 byte IP header
+
 
   public ScionDatagramSocket() throws SocketException {
     this.socket = new DatagramSocket();
@@ -41,31 +43,21 @@ public class ScionDatagramSocket {
     this.socket.bind(address);
   }
 
-  public void receive(DatagramPacket packet) throws IOException {
-    //        System.out.println("receive - 1"); // TODO
-    byte[] buf = new byte[65536];
+  public synchronized void receive(DatagramPacket packet) throws IOException {
+    // synchronized because we use `buffer`
     DatagramPacket incoming = new DatagramPacket(buf, buf.length);
-    //        System.out.println("receive - 2"); // TODO
     socket.receive(incoming);
     System.out.println("received: len=" + incoming.getLength()); // TODO
-    //        for (int i = 0; i < incoming.getLength(); i++) {
-    //            System.out.print("  " + incoming.getData()[i]);
-    //        }
-    //        System.out.println();
-    if (incoming.getLength() == 1) {
-      System.out.println("Aborting");
-      return;
-    }
-    //        System.out.println("receive - 3b : " + incoming.getLength()); // TODO
     readScionHeader(incoming, packet);
   }
 
-  public void send(DatagramPacket packet) throws IOException {
-    DatagramPacket outgoing = new DatagramPacket(new byte[1], 1);
-    outgoing.setData(packet.getData());
-    outgoing.setPort(packet.getPort());
-    outgoing.setAddress(packet.getAddress());
-    socket.send(outgoing);
+  public synchronized void send(DatagramPacket packet) throws IOException {
+    // synchronized because we use `buffer`
+    // TODO use local field Datagram Packer?!
+    DatagramPacket outgoing = new DatagramPacket(buf, buf.length);
+    writeScionHeader(outgoing, packet);
+
+    // TODO!!!  socket.send(outgoing);
   }
 
   public int getLocalPort() {
@@ -74,6 +66,22 @@ public class ScionDatagramSocket {
 
   public int getPort() {
     return socket.getPort();
+  }
+
+  private void writeScionHeader(DatagramPacket p, DatagramPacket userPacket) {
+    // TODO reset offset ?!?!?!?
+    int offset = p.getOffset();
+    if (offset != 0) {
+      throw new IllegalStateException("of=" + offset);
+    }
+    offset += ScionCommonHeader.write(p.getData(), offset, userPacket, socket.getLocalAddress());
+    offset += AddressHeader.write(p.getData(), p.getOffset(), userPacket, socket.getLocalAddress());
+
+
+//    outgoing.setData(packet.getData());
+//    outgoing.setPort(packet.getPort());
+//    outgoing.setAddress(packet.getAddress());
+
   }
 
   private void readScionHeader(DatagramPacket p, DatagramPacket userPacket) {

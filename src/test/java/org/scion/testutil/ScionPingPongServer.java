@@ -61,7 +61,6 @@ public class ScionPingPongServer {
             String msg = new String(request.getData(), request.getOffset(), request.getLength());
             System.out.println("Received (from " + request.getSocketAddress() + "): " + msg);
 
-            System.out.println("service - 2"); // TODO
             String quote = getRandomPong();
             byte[] buffer = quote.getBytes();
 
@@ -70,8 +69,8 @@ public class ScionPingPongServer {
             int clientPort = request.getPort();
 
             System.out.println("service - 4"); // TODO
-//            DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
-//            socket.send(response);
+            DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
+            socket.send(response);
         }
     }
 

@@ -60,4 +60,22 @@ public class ByteUtil {
         int shift = 32 - bitOffset - 1;
         return ((input >>> shift) & mask) != 0;
     }
+
+
+    public static void writeInt(byte[] data, int offset, int value) {
+        data[offset] = (byte) (value >>> 24);
+        data[offset + 1] = (byte) ((value >>> 16) & 0xFF);
+        data[offset + 2] = (byte) ((value >>> 8) & 0xFF);
+        data[offset + 3] = (byte) (value & 0xFF);
+    }
+
+    public static int writeInt(int dst, int bitOffset, int bitLength, int value) {
+        int mask = value << (32 - bitOffset - bitLength);
+        return dst | mask;
+    }
+
+    public static int writeBool(int dst, int bitOffset, boolean value) {
+        int mask = 1 << (32 - 1 - bitOffset);
+        return dst | mask;
+    }
 }
