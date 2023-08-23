@@ -25,6 +25,9 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 - **Copy buffers?** We copy a packet's data array do a new DataGramPacket for the user.
   The alternative would be to use offset/length, however, this would not be really
   pluggable because user would need respect SCION header sizes when creating buffers for packets.
+  - Replacing the buffer in the user's packet is bad, this may be surprising for users
+  - Using the buffer directly to read SCION packets is also bad because it may be too small
+  - --> We definitely need to copy.
 - **Inherit DatagramSocket?** For now we do not inherit DatagramSocket.
   - Making DatagramSocket a super class of ScionDatagramSocket can easily be done later on.
   - Disadvantages 
@@ -69,4 +72,7 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 
 * [ ] Header classes could be consolidated, e.g. ScionHeader + AddressHeader.
 * [ ] Headers could store raw header info and extract data on the fly when required.
-      This safes space and simplifies.
+      This safes space and simplifies. Problem: we either need to copy
+      the data[] in case we need the header data later (user's API calls, or when sending),
+      or we need to store key data from the header.
+      Solution: copy byte[] with header data instead of payload? Whichever is smaller???

@@ -108,16 +108,13 @@ public class ScionDatagramSocket {
     // TODO handle MAC in HopField?
     // TODO Handle checksum in PseudoHeader?
 
-
     // build packet
-    userPacket.setData(p.getData(), offset, p.getLength() - offset);
+    // TODO should the destination be 0 or userPacket.getOffset() ????
+    int length = (p.getLength() - offset);
+    System.arraycopy(p.getData(), offset, userPacket.getData(), 0, length);
+    userPacket.setLength(length);
     userPacket.setPort(udpHeader.getSrcPort());
-    // InetAddress srcAddr = InetAddress.getByName(common.);
-    // SocketAddress src = new InetSocketAddress();
-    // userPacket.setAddress(p.getAddress());
-    if (common.pathType() == 1) {
-      userPacket.setAddress(address.getSrcHostAddress(data));
-    }
+    userPacket.setAddress(address.getSrcHostAddress(data));
   }
 
   private void readExtensionHeader(byte[] data, int offset) {}

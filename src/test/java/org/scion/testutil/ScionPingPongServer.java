@@ -50,7 +50,8 @@ public class ScionPingPongServer {
             // TODO avoid byte[]? Or use byte[] internally?  --> May be to small!!!  -> Not transparently plugable!
             //      -> users need to adapt array size. Without adaptation: requires copy.....
             //      -> Copy is alright, but high performance user may want a a way to avoid the copy....
-            DatagramPacket request = new DatagramPacket(new byte[1], 1);
+            //      -> Make this configurable via OPTIONS?
+            DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
             System.out.println("service - 1"); // TODO
             socket.receive(request);
 //            for (int i = 0; i < request.getLength(); i++) {
