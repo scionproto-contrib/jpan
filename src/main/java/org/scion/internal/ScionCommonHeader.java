@@ -49,7 +49,7 @@ public class ScionCommonHeader {
     int reserved;
     int len = 3 * 4;
 
-    public static ScionCommonHeader read(byte[] data, int offset) {
+    public void read(byte[] data, int offset) {
         //  4 bit: Version
         //  8 bit: TrafficClass
         // 20 bit: FlowID
@@ -62,25 +62,23 @@ public class ScionCommonHeader {
         //  2 bit: ST
         //  2 bit: SL
         //  8 bit: reserved
-        ScionCommonHeader header = new ScionCommonHeader();
-        int i0 = readInt(data, 0);
-        int i1 = readInt(data, 4);
-        int i2 = readInt(data, 8);
-        header.version = readInt(i0, 0, 4);
-        header.trafficLClass = + readInt(i0, 4, 8);
-        header.flowId = readInt(i0, 12, 20);
-        header.nextHeader = readInt(i1, 0, 8);
-        header.hdrLen = readInt(i1, 8, 8);
-        header.hdrLenBytes = header.hdrLen * 4;
-        header.payLoadLen = readInt(i1, 16, 16);
-        header.pathType = readInt(i2, 0, 8);
-        header.dt = readInt(i2, 8, 2);
-        header.dl = readInt(i2, 10, 2);
-        header.st = readInt(i2, 12, 2);
-        header.sl = readInt(i2, 14, 2);
-        header.reserved = readInt(i2, 16, 16);
-        header.len = BYTES;
-        return header;
+        int i0 = readInt(data, offset);
+        int i1 = readInt(data, offset + 4);
+        int i2 = readInt(data, offset + 8);
+        version = readInt(i0, 0, 4);
+        trafficLClass = + readInt(i0, 4, 8);
+        flowId = readInt(i0, 12, 20);
+        nextHeader = readInt(i1, 0, 8);
+        hdrLen = readInt(i1, 8, 8);
+        hdrLenBytes = hdrLen * 4;
+        payLoadLen = readInt(i1, 16, 16);
+        pathType = readInt(i2, 0, 8);
+        dt = readInt(i2, 8, 2);
+        dl = readInt(i2, 10, 2);
+        st = readInt(i2, 12, 2);
+        sl = readInt(i2, 14, 2);
+        reserved = readInt(i2, 16, 16);
+        len = BYTES;
     }
 
     public static int write(byte[] data, int offset, DatagramPacket input, InetAddress localAddress) {

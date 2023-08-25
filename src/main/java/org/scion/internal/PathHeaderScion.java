@@ -16,36 +16,37 @@ package org.scion.internal;
 
 import static org.scion.internal.ByteUtil.*;
 
-public class PathHeaderScion {ScionCommonHeader common;
+public class PathHeaderScion {
+    ScionCommonHeader commonHeader;
 
     // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
-    int currINF;
+    private int currINF;
     // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
-    int currHF;
+    private int currHF;
     // 6 bit : RSV
-    int reserved;
+    private int reserved;
     // Up to 3 Info fields and up to 64 Hop fields
     // The number of hop fields in a given segment. Seg,Len > 0 implies the existence of info field i.
     // 6 bit : Seg0Len
-    int seg0Len;
+    private int seg0Len;
     // 6 bit : Seg1Len
-    int seg1Len;
+    private int seg1Len;
     // 6 bit : Seg2Len
-    int seg2Len;
+    private int seg2Len;
     private InfoField info0;
     private InfoField info1;
     private InfoField info2;
 
-    private HopField[] hops = new HopField[64];
+    private final HopField[] hops = new HopField[64];
     private int nHops;
 
-    int len;
+    private int len;
 
-    PathHeaderScion(ScionCommonHeader common) {
-        this.common = common;
+    public PathHeaderScion(ScionCommonHeader commonHeader) {
+        this.commonHeader = commonHeader;
     }
 
-    public static PathHeaderScion read(byte[] data, int headerOffset, ScionCommonHeader commonHeader) {
+    public void read(byte[] data, int headerOffset) {
         // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
         // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
         // 6 bit : RSV
@@ -56,48 +57,46 @@ public class PathHeaderScion {ScionCommonHeader common;
         // 6 bit : Seg2Len
 
         int offset = headerOffset;
-        PathHeaderScion header = new PathHeaderScion(commonHeader);
 
         int i0 = readInt(data, offset);
         offset += 4;
-        header.currINF = readInt(i0, 0, 2);
-        header.currHF = readInt(i0, 2, 6);
-        header.reserved = readInt(i0, 8, 6);
-        header.seg0Len = readInt(i0, 14, 6);
-        header.seg1Len = readInt(i0, 20, 6);
-        header.seg2Len = readInt(i0, 26, 6);
+        currINF = readInt(i0, 0, 2);
+        currHF = readInt(i0, 2, 6);
+        reserved = readInt(i0, 8, 6);
+        seg0Len = readInt(i0, 14, 6);
+        seg1Len = readInt(i0, 20, 6);
+        seg2Len = readInt(i0, 26, 6);
 
-        if (header.seg0Len > 0) {
-            header.info0 = InfoField.read(data, offset);
-            offset += header.info0.length();
-            if (header.seg1Len > 0) {
-                header.info1 = InfoField.read(data, offset);
-                offset += header.info1.length();
-                if (header.seg2Len > 0) {
-                    header.info2 = InfoField.read(data, offset);
-                    offset += header.info2.length();
+        if (seg0Len > 0) {
+            info0 = InfoField.read(data, offset);
+            offset += info0.length();
+            if (seg1Len > 0) {
+                info1 = InfoField.read(data, offset);
+                offset += info1.length();
+                if (seg2Len > 0) {
+                    info2 = InfoField.read(data, offset);
+                    offset += info2.length();
                 }
             }
         }
 
-        for (int i = 0; i < header.seg0Len; i++) {
-            header.hops[header.nHops] = HopField.read(data, offset);
-            offset += header.hops[header.nHops].length();
-            header.nHops++;
+        for (int i = 0; i < seg0Len; i++) {
+            hops[nHops] = HopField.read(data, offset);
+            offset += hops[nHops].length();
+            nHops++;
         }
-        for (int i = 0; i < header.seg1Len; i++) {
-            header.hops[header.nHops] = HopField.read(data, offset);
-            offset += header.hops[header.nHops].length();
-            header.nHops++;
+        for (int i = 0; i < seg1Len; i++) {
+            hops[nHops] = HopField.read(data, offset);
+            offset += hops[nHops].length();
+            nHops++;
         }
-        for (int i = 0; i < header.seg2Len; i++) {
-            header.hops[header.nHops] = HopField.read(data, offset);
-            offset += header.hops[header.nHops].length();
-            header.nHops++;
+        for (int i = 0; i < seg2Len; i++) {
+            hops[nHops] = HopField.read(data, offset);
+            offset += hops[nHops].length();
+            nHops++;
         }
 
-        header.len = offset - headerOffset;
-        return header;
+        len = offset - headerOffset;
     }
 
     @Override

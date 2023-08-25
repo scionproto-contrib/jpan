@@ -23,33 +23,34 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class AddressHeader {ScionCommonHeader common;
+public class AddressHeader {
+    ScionCommonHeader commonHeader;
     //  8 bit: DstISD
-    int dstISD;
+    private int dstISD;
     // 48 bit: DstAS
-    long dstAS;
+    private long dstAS;
     //  8 bit: SrcISD
-    int srcISD;
+    private int srcISD;
     // 48 bit: SrcAS
-    long srcAS;
+    private long srcAS;
     //  ? bit: DstHostAddr
-    int dstHost0;
-    int dstHost1;
-    int dstHost2;
-    int dstHost3;
+    private int dstHost0;
+    private int dstHost1;
+    private int dstHost2;
+    private int dstHost3;
     //  ? bit: SrcHostAddr
-    int srcHost0;
-    int srcHost1;
-    int srcHost2;
-    int srcHost3;
+    private int srcHost0;
+    private int srcHost1;
+    private int srcHost2;
+    private int srcHost3;
 
-    int len;
+    private int len;
 
-    AddressHeader(ScionCommonHeader common) {
-        this.common = common;
+    public AddressHeader(ScionCommonHeader commonHeader) {
+        this.commonHeader = commonHeader;
     }
 
-    public static AddressHeader read(byte[] data, int headerOffset, ScionCommonHeader commonHeader) {
+    public void read(byte[] data, int headerOffset) {
         //  8 bit: DstISD
         // 48 bit: DstAS
         //  8 bit: SrcISD
@@ -58,55 +59,63 @@ public class AddressHeader {ScionCommonHeader common;
         //  ? bit: SrcHostAddr
 
         int offset = headerOffset;
-        AddressHeader header = new AddressHeader(commonHeader);
 
         long l0 = readLong(data, offset);
         offset += 8;
         long l1 = readLong(data, offset);
         offset += 8;
-        header.dstISD = (int) readLong(l0, 0, 16);
-        header.dstAS = readLong(l0, 16, 48);
-        header.srcISD = (int) readLong(l1, 0, 16);
-        header.srcAS = readLong(l1, 16, 48);
+        dstISD = (int) readLong(l0, 0, 16);
+        dstAS = readLong(l0, 16, 48);
+        srcISD = (int) readLong(l1, 0, 16);
+        srcAS = readLong(l1, 16, 48);
 
-        header.dstHost0 = readInt(data, offset);
+        dstHost0 = readInt(data, offset);
         offset += 4;
-        if (header.common.dl >= 1) {
-            header.dstHost1 = readInt(data, offset);
+        if (commonHeader.dl >= 1) {
+            dstHost1 = readInt(data, offset);
             offset += 4;
         }
-        if (header.common.dl >= 2) {
-            header.dstHost2 = readInt(data, offset);
+        if (commonHeader.dl >= 2) {
+            dstHost2 = readInt(data, offset);
             offset += 4;
         }
-        if (header.common.dl >= 3) {
-            header.dstHost3 = readInt(data, offset);
+        if (commonHeader.dl >= 3) {
+            dstHost3 = readInt(data, offset);
             offset += 4;
         }
 
-        header.srcHost0 = readInt(data, offset);
+        srcHost0 = readInt(data, offset);
         offset += 4;
-        if (header.common.sl >= 1) {
-            header.srcHost1 = readInt(data, offset);
+        if (commonHeader.sl >= 1) {
+            srcHost1 = readInt(data, offset);
             offset += 4;
         }
-        if (header.common.sl >= 2) {
-            header.srcHost2 = readInt(data, offset);
+        if (commonHeader.sl >= 2) {
+            srcHost2 = readInt(data, offset);
             offset += 4;
         }
-        if (header.common.sl >= 3) {
-            header.srcHost3 = readInt(data, offset);
+        if (commonHeader.sl >= 3) {
+            srcHost3 = readInt(data, offset);
             offset += 4;
         }
 
-        header.len = offset - headerOffset;
-        return header;
+        len = offset - headerOffset;
     }
 
 
-    public static int write(byte[] data, int offset, DatagramPacket input, InetAddress localAddress) {
+    public static int write(byte[] data, int offset, DatagramPacket input, AddressHeader inputHeader) {
         long l0 = 0;
         long l1 = 0;
+
+        l0 = writeLong(l0, 0, 16, inputHeader.srcISD);
+        l0 = writeLong(l0, 16, 48, inputHeader.srcAS);
+        l1 = writeLong(l1, 0, 16, inputHeader.dstISD);
+        l1 = writeLong(l1, 16, 48, inputHeader.dstAS);
+        writeLong(data, offset, l0);
+        writeLong(data, offset + 8, l1);
+
+        // TODO HostAddr
+
 //        i0 = writeInt(i0, 0, 4, 0); // version = 0
 //        i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
 //        i0 = writeInt(i0, 0, 4, 1); // FlowID = 1
@@ -125,14 +134,14 @@ public class AddressHeader {ScionCommonHeader common;
 //        i2 = writeInt(i2, 14, 2, sl); // SL
 //        i2 = writeInt(i2, 16, 16, 0x0); // RSV
 //        writeInt(data, offset + 8, i2);
-        return 0; // TODO
+        return 8 + 8; // TODO
     }
 
     public InetAddress getSrcHostAddress(byte[] data) {
         // TODO this is awkward, we should not pass in data[] here. (Or we should do it everywhere)
-        byte[] bytes = new byte[(common.sl + 1) * 4];
-        int offset = 16 + (common.dl + 1) * 4;
-        System.arraycopy(data, common.length() + offset, bytes, 0, bytes.length);
+        byte[] bytes = new byte[(commonHeader.sl + 1) * 4];
+        int offset = 16 + (commonHeader.dl + 1) * 4;
+        System.arraycopy(data, commonHeader.length() + offset, bytes, 0, bytes.length);
         try {
             return InetAddress.getByAddress(bytes);
         } catch (UnknownHostException e) {
@@ -153,37 +162,37 @@ public class AddressHeader {ScionCommonHeader common;
         //            System.out.println(sb);
         sb.append("  dstIsdAs=").append(Util.toStringIA(dstISD, dstAS));
         sb.append("  srcIsdAs=").append(Util.toStringIA(srcISD, srcAS));
-        sb.append("  dstHost=" + common.dt + "/");
-        if (common.dl == 0) {
+        sb.append("  dstHost=" + commonHeader.dt + "/");
+        if (commonHeader.dl == 0) {
             sb.append(Util.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
-        } else if (common.dl == 3) {
-            sb.append(Util.toStringIPv6(common.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+        } else if (commonHeader.dl == 3) {
+            sb.append(Util.toStringIPv6(commonHeader.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         } else {
-            sb.append("Format not recognized: " + Util.toStringIPv6(common.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            sb.append("Format not recognized: " + Util.toStringIPv6(commonHeader.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         }
-//            switch (common.dl) {
+//            switch (commonHeader.dl) {
 //                case 0: sb.append(Util.toStringIPv4(dstHost0)); break;
 //                case 1: sb.append(Util.toStringIPv4(dstHost0)).append(Util.toStringIPv4(dstHost1)); break;
 //                case 2: sb.append(Util.toStringIPv4(dstHost0)).append(Util.toStringIPv4(dstHost1)).append(Util.toStringIPv4(dstHost2)); break;
 //                case 3: sb.append(Util.toStringIPv4(dstHost0)).append(Util.toStringIPv4(dstHost1)).append(Util.toStringIPv4(dstHost2)).append(Util.toStringIPv4(dstHost3)); break;
 //                default:
-//                    throw new IllegalArgumentException("DL=" + common.dl);
+//                    throw new IllegalArgumentException("DL=" + commonHeader.dl);
 //            }
-        sb.append("  srcHost=" + common.st + "/");
-        if (common.sl == 0) {
+        sb.append("  srcHost=" + commonHeader.st + "/");
+        if (commonHeader.sl == 0) {
             sb.append(Util.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
-        } else if (common.sl == 3) {
-            sb.append(Util.toStringIPv6(common.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+        } else if (commonHeader.sl == 3) {
+            sb.append(Util.toStringIPv6(commonHeader.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         } else {
-            sb.append("Format not recognized: " + Util.toStringIPv6(common.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            sb.append("Format not recognized: " + Util.toStringIPv6(commonHeader.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         }
-//            switch (common.sl) {
+//            switch (commonHeader.sl) {
 //                case 0: sb.append(Util.toStringIPv4(srcHost0)); break;
 //                case 1: sb.append(Util.toStringIPv4(srcHost0)).append(Util.toStringIPv4(srcHost1)); break;
 //                case 2: sb.append(Util.toStringIPv4(srcHost0)).append(Util.toStringIPv4(srcHost1)).append(Util.toStringIPv4(srcHost2)); break;
 //                case 3: sb.append(Util.toStringIPv4(srcHost0)).append(Util.toStringIPv4(srcHost1)).append(Util.toStringIPv4(srcHost2)).append(Util.toStringIPv4(srcHost3)); break;
 //                default:
-//                    throw new IllegalArgumentException("SL=" + common.sl);
+//                    throw new IllegalArgumentException("SL=" + commonHeader.sl);
 //            }
         return sb.toString();
     }

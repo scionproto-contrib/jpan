@@ -75,7 +75,33 @@ public class ByteUtil {
     }
 
     public static int writeBool(int dst, int bitOffset, boolean value) {
-        int mask = 1 << (32 - 1 - bitOffset);
+        int mask = value ? 1 << (32 - 1 - bitOffset) : 0;
+        return dst | mask;
+    }
+
+    public static void writeLong(byte[] data, int offset, long value) {
+        data[offset] = (byte) (value >>> 56);
+        data[offset + 1] = (byte) ((value >>> 48) & 0xFF);
+        data[offset + 2] = (byte) ((value >>> 40) & 0xFF);
+        data[offset + 3] = (byte) ((value >>> 32) & 0xFF);
+        data[offset + 2] = (byte) ((value >>> 24) & 0xFF);
+        data[offset + 5] = (byte) ((value >>> 16) & 0xFF);
+        data[offset + 6] = (byte) ((value >>> 8) & 0xFF);
+        data[offset + 7] = (byte) (value & 0xFF);
+    }
+
+    public static long writeInt(long dst, int bitOffset, int bitLength, int value) {
+        long mask = Integer.toUnsignedLong(value) << (64 - bitOffset - bitLength);
+        return dst | mask;
+    }
+
+    public static long writeLong(long dst, int bitOffset, int bitLength, long value) {
+        long mask = value << (64 - bitOffset - bitLength);
+        return dst | mask;
+    }
+
+    public static long writeBool(long dst, int bitOffset, boolean value) {
+        long mask = value ? 1L << (32 - 1 - bitOffset) : 0L;
         return dst | mask;
     }
 }

@@ -29,6 +29,9 @@ public class ScionDatagramSocket {
 
   private final DatagramSocket socket;
   private final byte[] buf = new byte[65535 - 28];  // -28 for 8 byte UDP + 20 byte IP header
+  private final ScionCommonHeader commonHeader = new ScionCommonHeader();
+  private final AddressHeader addressHeader = new AddressHeader(commonHeader);
+  private final PathHeaderScion pathHeaderScion = new PathHeaderScion(commonHeader);
 
 
   public ScionDatagramSocket() throws SocketException {
@@ -75,7 +78,7 @@ public class ScionDatagramSocket {
       throw new IllegalStateException("of=" + offset);
     }
     offset += ScionCommonHeader.write(p.getData(), offset, userPacket, socket.getLocalAddress());
-    offset += AddressHeader.write(p.getData(), p.getOffset(), userPacket, socket.getLocalAddress());
+    offset += AddressHeader.write(p.getData(), p.getOffset(), userPacket, addressHeader);
 
 
 //    outgoing.setData(packet.getData());
@@ -86,25 +89,25 @@ public class ScionDatagramSocket {
 
   private void readScionHeader(DatagramPacket p, DatagramPacket userPacket) {
     byte[] data = p.getData();
-    ScionCommonHeader common = ScionCommonHeader.read(data, 0);
-    System.out.println("Common header: " + common);
-    int offset = common.length();
-    AddressHeader address = AddressHeader.read(data, offset, common);
-    System.out.println("Address header: " + address);
-    offset += address.length();
-    if (common.pathType() == 1) {
-      PathHeaderScion pathHeader = PathHeaderScion.read(data, offset, common);
-      offset += pathHeader.length();
-      System.out.println("Path header: " + pathHeader);
-    } else if (common.pathType() == 2) {
-      PathHeaderOneHopPath pathHeader = PathHeaderOneHopPath.read(data, offset, common);
+    commonHeader.read(data, 0);
+    System.out.println("Common header: " + commonHeader);
+    int offset = commonHeader.length();
+    addressHeader.read(data, offset);
+    System.out.println("Address header: " + addressHeader);
+    offset += addressHeader.length();
+    if (commonHeader.pathType() == 1) {
+      pathHeaderScion.read(data, offset);
+      offset += pathHeaderScion.length();
+      System.out.println("Path header: " + pathHeaderScion);
+    } else if (commonHeader.pathType() == 2) {
+      PathHeaderOneHopPath pathHeader = PathHeaderOneHopPath.read(data, offset, commonHeader);
       offset += pathHeader.length();
       System.out.println("Path header: " + pathHeader);
     } else {
-      throw new UnsupportedOperationException("Path type: " + common.pathType());
+      throw new UnsupportedOperationException("Path type: " + commonHeader.pathType());
     }
     System.out.println(
-        "Payload: " + (p.getLength() - offset) + " (bytes left in header: " + (common.hdrLenBytes() - offset) + ")");
+        "Payload: " + (p.getLength() - offset) + " (bytes left in header: " + (commonHeader.hdrLenBytes() - offset) + ")");
     // offset += ???;
     // readExtensionHeader(data, offset);
 
@@ -121,7 +124,7 @@ public class ScionDatagramSocket {
     System.arraycopy(p.getData(), offset, userPacket.getData(), userPacket.getOffset(), length);
     userPacket.setLength(length);
     userPacket.setPort(udpHeader.getSrcPort());
-    userPacket.setAddress(address.getSrcHostAddress(data));
+    userPacket.setAddress(addressHeader.getSrcHostAddress(data));
   }
 
   private void readExtensionHeader(byte[] data, int offset) {}
