@@ -19,7 +19,7 @@ import java.util.Arrays;
 import static org.scion.internal.ByteUtil.*;
 
 public class PathHeaderScion {
-    private final ScionCommonHeader commonHeader;
+    private final CommonHeader commonHeader;
 
     // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
     private int currINF;
@@ -44,7 +44,7 @@ public class PathHeaderScion {
 
     private int len;
 
-    public PathHeaderScion(ScionCommonHeader commonHeader) {
+    public PathHeaderScion(CommonHeader commonHeader) {
         this.commonHeader = commonHeader;
         this.info0 = new InfoField();
         this.info1 = new InfoField();
@@ -52,7 +52,7 @@ public class PathHeaderScion {
         Arrays.setAll(hops, value -> new HopField());
     }
 
-    public void read(byte[] data, int headerOffset) {
+    public int read(byte[] data, int headerOffset) {
         reset();
         // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
         // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
@@ -104,9 +104,10 @@ public class PathHeaderScion {
         }
 
         len = offset - headerOffset;
+        return offset;
     }
 
-    public static int write(byte[] data, int offsetStart, ScionCommonHeader commonHeader, AddressHeader addressHeader, PathHeaderScion pathHeaderScion) {
+    public static int write(byte[] data, int offsetStart, CommonHeader commonHeader, AddressHeader addressHeader, PathHeaderScion pathHeaderScion) {
         int offset = offsetStart;
         long l0 = 0;
         long l1 = 0;
@@ -120,7 +121,7 @@ public class PathHeaderScion {
 //        writeLong(data, offset, l1);
 //        offset += 8;
 
-        return offset - offsetStart;
+        return offset;
     }
 
     @Override

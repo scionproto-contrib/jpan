@@ -20,7 +20,7 @@ import java.net.InetAddress;
 
 import static org.scion.internal.ByteUtil.*;
 
-public class ScionCommonHeader {
+public class CommonHeader {
     static final int BYTES = 3 * 4;
     //  4 bit: Version : Currently, only 0 is supported.
     int version;
@@ -49,7 +49,7 @@ public class ScionCommonHeader {
     int reserved;
     int len = 3 * 4;
 
-    public void read(byte[] data, int offset) {
+    public int read(byte[] data, int offset) {
         //  4 bit: Version
         //  8 bit: TrafficClass
         // 20 bit: FlowID
@@ -78,10 +78,11 @@ public class ScionCommonHeader {
         st = readInt(i2, 12, 2);
         sl = readInt(i2, 14, 2);
         reserved = readInt(i2, 16, 16);
-        len = BYTES;
+        return BYTES;
     }
 
-    public static int write(byte[] data, int offset, DatagramPacket input, InetAddress localAddress) {
+    public static int write(byte[] data, DatagramPacket input, InetAddress localAddress) {
+        int offset = 0;
         int i0 = 0;
         int i1 = 0;
         int i2 = 0;
@@ -93,7 +94,8 @@ public class ScionCommonHeader {
         i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO
         i1 = writeInt(i1, 8, 8, 21); // HdrLen = 84/4=21 // TODO?
         i1 = writeInt(i1, 16, 16, input.getLength()); // PayloadLen
-        writeInt(data, offset + 4, i1);
+        writeInt(data, offset, i1);
+        offset += 4;
         i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
         int dl = input.getAddress() instanceof Inet4Address ? 0 : 3;
         i2 = writeInt(i2, 8, 2, 0); // DT
@@ -103,7 +105,8 @@ public class ScionCommonHeader {
         i2 = writeInt(i2, 14, 2, sl); // SL
         i2 = writeInt(i2, 16, 16, 0x0); // RSV
         writeInt(data, offset + 8, i2);
-        return BYTES;
+        offset += 4;
+        return offset;
     }
 
     public String toString() {

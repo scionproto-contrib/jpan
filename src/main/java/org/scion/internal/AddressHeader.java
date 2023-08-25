@@ -22,7 +22,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public class AddressHeader {
-    ScionCommonHeader commonHeader;
+    CommonHeader commonHeader;
     //  8 bit: DstISD
     private int dstISD;
     // 48 bit: DstAS
@@ -44,11 +44,11 @@ public class AddressHeader {
 
     private int len;
 
-    public AddressHeader(ScionCommonHeader commonHeader) {
+    public AddressHeader(CommonHeader commonHeader) {
         this.commonHeader = commonHeader;
     }
 
-    public void read(byte[] data, int headerOffset) {
+    public int read(byte[] data, int headerOffset) {
         //  8 bit: DstISD
         // 48 bit: DstAS
         //  8 bit: SrcISD
@@ -98,10 +98,11 @@ public class AddressHeader {
         }
 
         len = offset - headerOffset;
+        return offset;
     }
 
 
-    public static int write(byte[] data, int offsetStart, ScionCommonHeader commonHeader, AddressHeader inputHeader) {
+    public static int write(byte[] data, int offsetStart, CommonHeader commonHeader, AddressHeader inputHeader) {
         int offset = offsetStart;
         long l0 = 0;
         long l1 = 0;
@@ -145,7 +146,7 @@ public class AddressHeader {
             writeInt(data, offset, inputHeader.dstHost3);
             offset += 4;
         }
-        return offset - offsetStart;
+        return offset;
     }
 
     public InetAddress getSrcHostAddress(byte[] data) {

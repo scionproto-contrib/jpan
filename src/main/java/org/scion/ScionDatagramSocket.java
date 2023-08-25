@@ -29,7 +29,7 @@ public class ScionDatagramSocket {
 
   private final DatagramSocket socket;
   private final byte[] buf = new byte[65535 - 28];  // -28 for 8 byte UDP + 20 byte IP header
-  private final ScionCommonHeader commonHeader = new ScionCommonHeader();
+  private final CommonHeader commonHeader = new CommonHeader();
   private final AddressHeader addressHeader = new AddressHeader(commonHeader);
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion(commonHeader);
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
@@ -74,13 +74,12 @@ public class ScionDatagramSocket {
 
   private void writeScionHeader(DatagramPacket p, DatagramPacket userPacket) {
     // TODO reset offset ?!?!?!?
-    int offset = p.getOffset();
-    if (offset != 0) {
-      throw new IllegalStateException("of=" + offset);
+    if (p.getOffset() != 0) {
+      throw new IllegalStateException("of=" + p.getOffset());
     }
-    offset += ScionCommonHeader.write(p.getData(), offset, userPacket, socket.getLocalAddress());
-    offset += AddressHeader.write(p.getData(), p.getOffset(), commonHeader, addressHeader);
-    offset += PathHeaderScion.write(p.getData(), p.getOffset(), commonHeader, addressHeader, pathHeaderScion);
+    int offset = CommonHeader.write(p.getData(), userPacket, socket.getLocalAddress());
+    offset = AddressHeader.write(p.getData(), p.getOffset(), commonHeader, addressHeader);
+    offset = PathHeaderScion.write(p.getData(), p.getOffset(), commonHeader, addressHeader, pathHeaderScion);
 
 
 //    outgoing.setData(packet.getData());
@@ -91,15 +90,12 @@ public class ScionDatagramSocket {
 
   private void readScionHeader(DatagramPacket p, DatagramPacket userPacket) {
     byte[] data = p.getData();
-    commonHeader.read(data, 0);
+    int offset = commonHeader.read(data, 0);
     System.out.println("Common header: " + commonHeader);
-    int offset = commonHeader.length();
-    addressHeader.read(data, offset);
+    offset = addressHeader.read(data, offset);
     System.out.println("Address header: " + addressHeader);
-    offset += addressHeader.length();
     if (commonHeader.pathType() == 1) {
-      pathHeaderScion.read(data, offset);
-      offset += pathHeaderScion.length();
+      offset = pathHeaderScion.read(data, offset);
       System.out.println("Path header: " + pathHeaderScion);
     } else if (commonHeader.pathType() == 2) {
       offset = pathHeaderOneHop.read(data, offset);
