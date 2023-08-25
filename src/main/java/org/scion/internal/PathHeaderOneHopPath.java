@@ -16,18 +16,23 @@ package org.scion.internal;
 
 import static org.scion.internal.ByteUtil.*;
 
-public class PathHeaderOneHopPath {ScionCommonHeader common;
+public class PathHeaderOneHopPath {
+    private final ScionCommonHeader commonHeader;
 
     // A OneHopPath has exactly one info field and two hop fields
-    private InfoField info;
-    private HopField hop0;
-    private HopField hop1;
+    private final InfoField info;
+    private final HopField hop0;
+    private final HopField hop1;
 
-    PathHeaderOneHopPath(ScionCommonHeader common) {
-        this.common = common;
+    public PathHeaderOneHopPath(ScionCommonHeader commonHeader) {
+        this.commonHeader = commonHeader;
+        info = new InfoField();
+        hop0 = new HopField();
+        hop1 = new HopField();
     }
 
-    public static PathHeaderOneHopPath read(byte[] data, int headerOffset, ScionCommonHeader commonHeader) {
+    public void read(byte[] data, int headerOffset, ScionCommonHeader commonHeader) {
+        reset();
         // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
         // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
         // 6 bit : RSV
@@ -38,15 +43,19 @@ public class PathHeaderOneHopPath {ScionCommonHeader common;
         // 6 bit : Seg2Len
 
         int offset = headerOffset;
-        PathHeaderOneHopPath header = new PathHeaderOneHopPath(commonHeader);
 
-        header.info = InfoField.read(data, offset);
-        offset += header.info.length();
-        header.hop0 = HopField.read(data, offset);
-        offset += header.hop0.length();
-        header.hop1 = HopField.read(data, offset);
-        offset += header.hop1.length();
-        return header;
+        info.read(data, offset);
+        offset += info.length();
+        hop0.read(data, offset);
+        offset += hop0.length();
+        hop1.read(data, offset);
+        offset += hop1.length();
+    }
+
+    public void reset() {
+        info.reset();
+        hop0.reset();
+        hop1.reset();
     }
 
     @Override

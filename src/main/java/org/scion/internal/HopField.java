@@ -43,13 +43,11 @@ public class HopField {
     // https://scion.docs.anapaya.net/en/latest/protocols/scion-header.html#hop-field-mac-computation
     private long mac;
 
-    public static HopField read(byte[] data, int offset) {
-        HopField field = new HopField();
-        field.readData(data, offset);
-        return field;
-    }
+    HopField() {
 
-    private void readData(byte[] data, int offset) {
+    }
+    public void read(byte[] data, int offset) {
+        reset(); // TODO this is duplicate effort.....
         int i0 = ByteUtil.readInt(data, offset);
         long l1 = ByteUtil.readLong(data, offset + 4);
         r0 = readBoolean(i0, 0);
@@ -90,4 +88,19 @@ public class HopField {
         return 12;
     }
 
+    public void reset() {
+        r0 = false;
+        r1 = false;
+        r2 = false;
+        r3 = false;
+        r4 = false;
+        r5 = false;
+        r6 = false;
+        flagI = false;
+        flagE = false;
+        expiryTime = 0;
+        consIngress = 0;
+        consEgress = 0;
+        mac = 0;
+    }
 }

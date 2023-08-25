@@ -32,7 +32,21 @@ public class InfoField {
     // 32 bits : timestamp
     private int timestamp;
 
-    private InfoField(byte[] data, int offset) {
+    InfoField() {
+
+    }
+
+//    private InfoField(byte[] data, int offset) {
+//        int i0 = ByteUtil.readInt(data, offset);
+//        int i1 = ByteUtil.readInt(data, offset + 4);
+//        p = ByteUtil.readBoolean(i0, 6);
+//        c = ByteUtil.readBoolean(i0, 7);
+//        reserved = ByteUtil.readInt(i0, 8, 8);
+//        segID = ByteUtil.readInt(i0, 16, 16);
+//        timestamp = i1;
+//    }
+
+    public void read(byte[] data, int offset) {
         int i0 = ByteUtil.readInt(data, offset);
         int i1 = ByteUtil.readInt(data, offset + 4);
         p = ByteUtil.readBoolean(i0, 6);
@@ -40,10 +54,6 @@ public class InfoField {
         reserved = ByteUtil.readInt(i0, 8, 8);
         segID = ByteUtil.readInt(i0, 16, 16);
         timestamp = i1;
-    }
-
-    public static InfoField read(byte[] data, int offset) {
-        return new InfoField(data, offset);
     }
 
     public int length() {
@@ -66,5 +76,20 @@ public class InfoField {
                 ", segID=" + segID +
                 ", timestamp=" + Integer.toUnsignedString(timestamp) +
                 '}';
+    }
+
+    public void reset() {
+        r0 = false;
+        r1 = false;
+        r2 = false;
+        r3 = false;
+        r4 = false;
+        r5 = false;
+        r6 = false;
+        p = false;
+        c = false;
+        reserved = 0;
+        segID = 0;
+        timestamp = 0;
     }
 }

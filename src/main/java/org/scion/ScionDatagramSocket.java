@@ -32,6 +32,7 @@ public class ScionDatagramSocket {
   private final ScionCommonHeader commonHeader = new ScionCommonHeader();
   private final AddressHeader addressHeader = new AddressHeader(commonHeader);
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion(commonHeader);
+  private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath(commonHeader);
 
 
   public ScionDatagramSocket() throws SocketException {
@@ -78,7 +79,8 @@ public class ScionDatagramSocket {
       throw new IllegalStateException("of=" + offset);
     }
     offset += ScionCommonHeader.write(p.getData(), offset, userPacket, socket.getLocalAddress());
-    offset += AddressHeader.write(p.getData(), p.getOffset(), userPacket, addressHeader);
+    offset += AddressHeader.write(p.getData(), p.getOffset(), commonHeader, addressHeader);
+    offset += PathHeaderScion.write(p.getData(), p.getOffset(), commonHeader, addressHeader, pathHeaderScion);
 
 
 //    outgoing.setData(packet.getData());
@@ -100,9 +102,9 @@ public class ScionDatagramSocket {
       offset += pathHeaderScion.length();
       System.out.println("Path header: " + pathHeaderScion);
     } else if (commonHeader.pathType() == 2) {
-      PathHeaderOneHopPath pathHeader = PathHeaderOneHopPath.read(data, offset, commonHeader);
-      offset += pathHeader.length();
-      System.out.println("Path header: " + pathHeader);
+      pathHeaderOneHop.read(data, offset, commonHeader);
+      offset += pathHeaderOneHop.length();
+      System.out.println("Path header: " + pathHeaderOneHop);
     } else {
       throw new UnsupportedOperationException("Path type: " + commonHeader.pathType());
     }

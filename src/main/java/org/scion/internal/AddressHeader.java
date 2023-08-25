@@ -103,7 +103,8 @@ public class AddressHeader {
     }
 
 
-    public static int write(byte[] data, int offset, DatagramPacket input, AddressHeader inputHeader) {
+    public static int write(byte[] data, int offsetStart, ScionCommonHeader commonHeader, AddressHeader inputHeader) {
+        int offset = offsetStart;
         long l0 = 0;
         long l1 = 0;
 
@@ -112,29 +113,41 @@ public class AddressHeader {
         l1 = writeLong(l1, 0, 16, inputHeader.dstISD);
         l1 = writeLong(l1, 16, 48, inputHeader.dstAS);
         writeLong(data, offset, l0);
-        writeLong(data, offset + 8, l1);
+        offset += 8;
+        writeLong(data, offset, l1);
+        offset += 8;
 
-        // TODO HostAddr
+        // HostAddr
+        writeInt(data, offset, inputHeader.srcHost0);
+        offset += 4;
+        if (commonHeader.sl >= 1) {
+            writeInt(data, offset, inputHeader.srcHost1);
+            offset += 4;
+        }
+        if (commonHeader.sl >= 2) {
+            writeInt(data, offset, inputHeader.srcHost2);
+            offset += 4;
+        }
+        if (commonHeader.sl >= 3) {
+            writeInt(data, offset, inputHeader.srcHost3);
+            offset += 4;
+        }
 
-//        i0 = writeInt(i0, 0, 4, 0); // version = 0
-//        i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
-//        i0 = writeInt(i0, 0, 4, 1); // FlowID = 1
-//        writeInt(data, offset, i0);
-//        offset += 4;
-//        i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO
-//        i1 = writeInt(i1, 8, 8, 21); // HdrLen = 84/4=21 // TODO?
-//        i1 = writeInt(i1, 16, 16, input.getLength()); // PayloadLen
-//        writeInt(data, offset + 4, i1);
-//        i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
-//        int dl = input.getAddress() instanceof Inet4Address ? 0 : 3;
-//        i2 = writeInt(i2, 8, 2, 0); // DT
-//        i2 = writeInt(i2, 10, 2, dl); // DL
-//        i2 = writeInt(i2, 12, 2, 0); // ST
-//        int sl = localAddress instanceof Inet4Address ? 0 : 3;
-//        i2 = writeInt(i2, 14, 2, sl); // SL
-//        i2 = writeInt(i2, 16, 16, 0x0); // RSV
-//        writeInt(data, offset + 8, i2);
-        return 8 + 8; // TODO
+        writeInt(data, offset, inputHeader.dstHost0);
+        offset += 4;
+        if (commonHeader.dl >= 1) {
+            writeInt(data, offset, inputHeader.dstHost1);
+            offset += 4;
+        }
+        if (commonHeader.dl >= 2) {
+            writeInt(data, offset, inputHeader.dstHost2);
+            offset += 4;
+        }
+        if (commonHeader.dl >= 3) {
+            writeInt(data, offset, inputHeader.dstHost3);
+            offset += 4;
+        }
+        return offset - offsetStart;
     }
 
     public InetAddress getSrcHostAddress(byte[] data) {

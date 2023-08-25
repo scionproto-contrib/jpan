@@ -14,10 +14,12 @@
 
 package org.scion.internal;
 
+import java.util.Arrays;
+
 import static org.scion.internal.ByteUtil.*;
 
 public class PathHeaderScion {
-    ScionCommonHeader commonHeader;
+    private final ScionCommonHeader commonHeader;
 
     // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
     private int currINF;
@@ -33,9 +35,9 @@ public class PathHeaderScion {
     private int seg1Len;
     // 6 bit : Seg2Len
     private int seg2Len;
-    private InfoField info0;
-    private InfoField info1;
-    private InfoField info2;
+    private final InfoField info0;
+    private final InfoField info1;
+    private final InfoField info2;
 
     private final HopField[] hops = new HopField[64];
     private int nHops;
@@ -44,9 +46,14 @@ public class PathHeaderScion {
 
     public PathHeaderScion(ScionCommonHeader commonHeader) {
         this.commonHeader = commonHeader;
+        this.info0 = new InfoField();
+        this.info1 = new InfoField();
+        this.info2 = new InfoField();
+        Arrays.setAll(hops, value -> new HopField());
     }
 
     public void read(byte[] data, int headerOffset) {
+        reset();
         // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
         // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
         // 6 bit : RSV
@@ -68,35 +75,52 @@ public class PathHeaderScion {
         seg2Len = readInt(i0, 26, 6);
 
         if (seg0Len > 0) {
-            info0 = InfoField.read(data, offset);
+            info0.read(data, offset);
             offset += info0.length();
             if (seg1Len > 0) {
-                info1 = InfoField.read(data, offset);
+                info1.read(data, offset);
                 offset += info1.length();
                 if (seg2Len > 0) {
-                    info2 = InfoField.read(data, offset);
+                    info2.read(data, offset);
                     offset += info2.length();
                 }
             }
         }
 
         for (int i = 0; i < seg0Len; i++) {
-            hops[nHops] = HopField.read(data, offset);
+            hops[nHops].read(data, offset);
             offset += hops[nHops].length();
             nHops++;
         }
         for (int i = 0; i < seg1Len; i++) {
-            hops[nHops] = HopField.read(data, offset);
+            hops[nHops].read(data, offset);
             offset += hops[nHops].length();
             nHops++;
         }
         for (int i = 0; i < seg2Len; i++) {
-            hops[nHops] = HopField.read(data, offset);
+            hops[nHops].read(data, offset);
             offset += hops[nHops].length();
             nHops++;
         }
 
         len = offset - headerOffset;
+    }
+
+    public static int write(byte[] data, int offsetStart, ScionCommonHeader commonHeader, AddressHeader addressHeader, PathHeaderScion pathHeaderScion) {
+        int offset = offsetStart;
+        long l0 = 0;
+        long l1 = 0;
+
+//        l0 = writeLong(l0, 0, 16, inputHeader.srcISD);
+//        l0 = writeLong(l0, 16, 48, inputHeader.srcAS);
+//        l1 = writeLong(l1, 0, 16, inputHeader.dstISD);
+//        l1 = writeLong(l1, 16, 48, inputHeader.dstAS);
+//        writeLong(data, offset, l0);
+//        offset += 8;
+//        writeLong(data, offset, l1);
+//        offset += 8;
+
+        return offset - offsetStart;
     }
 
     @Override
@@ -108,24 +132,37 @@ public class PathHeaderScion {
                 "  seg0Len=" + seg0Len +
                 "  seg1Len=" + seg1Len +
                 "  seg2Len=" + seg2Len;
-        if (info0 != null) {
+        if (seg0Len > 0) {
             s += "\n  info0=" + info0;
         }
-        if (info1 != null) {
+        if (seg1Len > 0) {
             s += "\n  info1=" + info1;
         }
-        if (info2 != null) {
+        if (seg2Len > 0) {
             s += "\n  info2=" + info2;
         }
-        for (HopField hop : hops) {
-            if (hop != null) {
-                s += "\n    hop=" + hop;
-            }
+        for (int i = 0; i < nHops; i++) {
+            s += "\n    hop=" + hops[i];
         }
         return s;
     }
 
     public int length() {
         return len;
+    }
+
+    private void reset() {
+        currINF = 0;
+        currHF = 0;
+        reserved = 0;
+        seg0Len = 0;
+        seg1Len = 0;
+        seg2Len = 0;
+        info0.reset();
+        info1.reset();
+        info2.reset();
+        for (int i = 0; i < hops.length; i++)
+            hops[i].reset();
+        nHops = 0;
     }
 }
