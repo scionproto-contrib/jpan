@@ -14,6 +14,7 @@
 
 package org.scion;
 
+import org.bouncycastle.crypto.macs.CMac;
 import org.scion.internal.*;
 
 import java.io.IOException;
@@ -28,11 +29,13 @@ public class ScionDatagramSocket {
    */
 
   private final DatagramSocket socket;
+  // TODO use ByteBuffer to manage offset etc?
   private final byte[] buf = new byte[65535 - 28];  // -28 for 8 byte UDP + 20 byte IP header
   private final CommonHeader commonHeader = new CommonHeader();
   private final AddressHeader addressHeader = new AddressHeader(commonHeader);
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion(commonHeader);
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
+  private final CMac macProvider = MAC.HFMacFactory();
 
 
   public ScionDatagramSocket() throws SocketException {
