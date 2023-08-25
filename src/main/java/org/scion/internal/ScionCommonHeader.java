@@ -66,7 +66,7 @@ public class ScionCommonHeader {
         int i1 = readInt(data, offset + 4);
         int i2 = readInt(data, offset + 8);
         version = readInt(i0, 0, 4);
-        trafficLClass = + readInt(i0, 4, 8);
+        trafficLClass = readInt(i0, 4, 8);
         flowId = readInt(i0, 12, 20);
         nextHeader = readInt(i1, 0, 8);
         hdrLen = readInt(i1, 8, 8);

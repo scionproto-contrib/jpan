@@ -32,7 +32,7 @@ public class ScionDatagramSocket {
   private final ScionCommonHeader commonHeader = new ScionCommonHeader();
   private final AddressHeader addressHeader = new AddressHeader(commonHeader);
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion(commonHeader);
-  private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath(commonHeader);
+  private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
 
 
   public ScionDatagramSocket() throws SocketException {
@@ -102,8 +102,7 @@ public class ScionDatagramSocket {
       offset += pathHeaderScion.length();
       System.out.println("Path header: " + pathHeaderScion);
     } else if (commonHeader.pathType() == 2) {
-      pathHeaderOneHop.read(data, offset, commonHeader);
-      offset += pathHeaderOneHop.length();
+      offset = pathHeaderOneHop.read(data, offset);
       System.out.println("Path header: " + pathHeaderOneHop);
     } else {
       throw new UnsupportedOperationException("Path type: " + commonHeader.pathType());

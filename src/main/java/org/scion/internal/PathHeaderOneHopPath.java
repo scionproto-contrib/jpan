@@ -14,24 +14,19 @@
 
 package org.scion.internal;
 
-import static org.scion.internal.ByteUtil.*;
-
 public class PathHeaderOneHopPath {
-    private final ScionCommonHeader commonHeader;
-
     // A OneHopPath has exactly one info field and two hop fields
     private final InfoField info;
     private final HopField hop0;
     private final HopField hop1;
 
-    public PathHeaderOneHopPath(ScionCommonHeader commonHeader) {
-        this.commonHeader = commonHeader;
+    public PathHeaderOneHopPath() {
         info = new InfoField();
         hop0 = new HopField();
         hop1 = new HopField();
     }
 
-    public void read(byte[] data, int headerOffset, ScionCommonHeader commonHeader) {
+    public int read(byte[] data, int headerOffset) {
         reset();
         // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
         // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
@@ -50,6 +45,7 @@ public class PathHeaderOneHopPath {
         offset += hop0.length();
         hop1.read(data, offset);
         offset += hop1.length();
+        return offset;
     }
 
     public void reset() {

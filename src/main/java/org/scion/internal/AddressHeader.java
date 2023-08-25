@@ -18,8 +18,6 @@ import static org.scion.internal.ByteUtil.*;
 
 import org.scion.Util;
 
-import java.net.DatagramPacket;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -175,13 +173,13 @@ public class AddressHeader {
         //            System.out.println(sb);
         sb.append("  dstIsdAs=").append(Util.toStringIA(dstISD, dstAS));
         sb.append("  srcIsdAs=").append(Util.toStringIA(srcISD, srcAS));
-        sb.append("  dstHost=" + commonHeader.dt + "/");
+        sb.append("  dstHost=").append(commonHeader.dt).append("/");
         if (commonHeader.dl == 0) {
             sb.append(Util.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
         } else if (commonHeader.dl == 3) {
             sb.append(Util.toStringIPv6(commonHeader.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         } else {
-            sb.append("Format not recognized: " + Util.toStringIPv6(commonHeader.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            sb.append("Format not recognized: ").append(Util.toStringIPv6(commonHeader.dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         }
 //            switch (commonHeader.dl) {
 //                case 0: sb.append(Util.toStringIPv4(dstHost0)); break;
@@ -191,13 +189,13 @@ public class AddressHeader {
 //                default:
 //                    throw new IllegalArgumentException("DL=" + commonHeader.dl);
 //            }
-        sb.append("  srcHost=" + commonHeader.st + "/");
+        sb.append("  srcHost=").append(commonHeader.st).append("/");
         if (commonHeader.sl == 0) {
             sb.append(Util.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
         } else if (commonHeader.sl == 3) {
             sb.append(Util.toStringIPv6(commonHeader.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         } else {
-            sb.append("Format not recognized: " + Util.toStringIPv6(commonHeader.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            sb.append("Format not recognized: ").append(Util.toStringIPv6(commonHeader.sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         }
 //            switch (commonHeader.sl) {
 //                case 0: sb.append(Util.toStringIPv4(srcHost0)); break;
