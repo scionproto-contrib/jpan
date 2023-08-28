@@ -14,6 +14,8 @@
 
 package org.scion.internal;
 
+import static org.scion.internal.ByteUtil.*;
+
 public class InfoField {
 
     private boolean r0;
@@ -47,13 +49,31 @@ public class InfoField {
 //    }
 
     public void read(byte[] data, int offset) {
-        int i0 = ByteUtil.readInt(data, offset);
-        int i1 = ByteUtil.readInt(data, offset + 4);
-        p = ByteUtil.readBoolean(i0, 6);
-        c = ByteUtil.readBoolean(i0, 7);
-        reserved = ByteUtil.readInt(i0, 8, 8);
-        segID = ByteUtil.readInt(i0, 16, 16);
+        int i0 = readInt(data, offset);
+        int i1 = readInt(data, offset + 4);
+        p = readBoolean(i0, 6);
+        c = readBoolean(i0, 7);
+        reserved = readInt(i0, 8, 8);
+        segID = readInt(i0, 16, 16);
         timestamp = i1;
+    }
+
+    public int write(byte[] data, int offsetStart) {
+        int offset = offsetStart;
+        int i0 = 0;
+
+        i0 = writeInt(i0, 0, 6, 0);
+        i0 = writeBool(i0, 6, p);
+        i0 = writeBool(i0, 7, c);
+        i0 = writeInt(i0, 8, 8, 0); // RSV
+        i0 = writeInt(i0, 16, 16, segID);
+        offset = writeInt(data, offset, i0);
+        offset = writeInt(data, offset, timestamp);
+        return offset;
+    }
+
+    public void reverse() {
+        c = !c;
     }
 
     public int length() {

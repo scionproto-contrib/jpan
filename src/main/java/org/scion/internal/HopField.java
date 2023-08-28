@@ -65,6 +65,22 @@ public class HopField {
         mac = readLong(l1, 16, 48);
     }
 
+    public int write(byte[] data, int offsetStart) {
+        int offset = offsetStart;
+        int i0 = 0;
+        long l1 = 0;
+        i0 = writeInt(i0, 0, 6, 0);
+        i0 = writeBool(i0, 6, flagI);
+        i0 = writeBool(i0, 7, flagE);
+        i0 = writeInt(i0, 8, 8, expiryTime);
+        i0 = writeInt(i0, 16, 8, consIngress);
+        l1 = writeLong(l1, 0, 16, consEgress);
+        l1 = writeLong(l1, 16, 48, mac);
+        offset = writeInt(data, offset, i0);
+        offset = writeLong(data, offset, l1);
+        return offset;
+    }
+
     @Override
     public String toString() {
         return "HopField{" +

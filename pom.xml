@@ -116,12 +116,6 @@
         </dependency>
 
         <dependency>
-            <groupId>de.rtner</groupId>
-            <artifactId>PBKDF2</artifactId>
-            <version>1.1.4</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk15on</artifactId>
             <version>1.70</version>

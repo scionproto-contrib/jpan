@@ -138,4 +138,8 @@ public class CommonHeader {
     public int pathType() {
         return pathType;
     }
+
+    public int getDT() {
+        return dt;
+    }
 }

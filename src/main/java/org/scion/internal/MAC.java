@@ -1,10 +1,5 @@
 package org.scion.internal;
 
-import com.sun.crypto.provider.PBKDF2HmacSHA1Factory;
-import de.rtner.misc.BinTools;
-import de.rtner.security.auth.spi.PBKDF2;
-import de.rtner.security.auth.spi.PBKDF2Engine;
-import de.rtner.security.auth.spi.PBKDF2Parameters;
 import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.engines.AESEngine;

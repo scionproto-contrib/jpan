@@ -19,7 +19,6 @@ import java.util.Arrays;
 import static org.scion.internal.ByteUtil.*;
 
 public class PathHeaderScion {
-    private final CommonHeader commonHeader;
 
     // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
     private int currINF;
@@ -35,17 +34,16 @@ public class PathHeaderScion {
     private int seg1Len;
     // 6 bit : Seg2Len
     private int seg2Len;
-    private final InfoField info0;
-    private final InfoField info1;
-    private final InfoField info2;
+    private InfoField info0;
+    private InfoField info1;
+    private InfoField info2;
 
     private final HopField[] hops = new HopField[64];
     private int nHops;
 
     private int len;
 
-    public PathHeaderScion(CommonHeader commonHeader) {
-        this.commonHeader = commonHeader;
+    public PathHeaderScion() {
         this.info0 = new InfoField();
         this.info1 = new InfoField();
         this.info2 = new InfoField();
@@ -107,22 +105,74 @@ public class PathHeaderScion {
         return offset;
     }
 
-    public static int write(byte[] data, int offsetStart, CommonHeader commonHeader, AddressHeader addressHeader, PathHeaderScion pathHeaderScion) {
+    public int write(byte[] data, int offsetStart) {
         int offset = offsetStart;
-        long l0 = 0;
-        long l1 = 0;
+        int i0 = 0;
 
-//        l0 = writeLong(l0, 0, 16, inputHeader.srcISD);
-//        l0 = writeLong(l0, 16, 48, inputHeader.srcAS);
-//        l1 = writeLong(l1, 0, 16, inputHeader.dstISD);
-//        l1 = writeLong(l1, 16, 48, inputHeader.dstAS);
-//        writeLong(data, offset, l0);
-//        offset += 8;
-//        writeLong(data, offset, l1);
-//        offset += 8;
+        // TODO simplify
+        i0 = writeInt(i0, 0, 2, 0); // CurrINF = 0
+        i0 = writeInt(i0, 2, 6, 0); // CurrHF = 0
+        i0 = writeInt(i0, 8, 6, 0); // RSV = 0
+        if (seg2Len > 0) {
+            i0 = writeInt(i0, 14, 6, seg0Len);
+            i0 = writeInt(i0, 20, 6, seg1Len);
+            i0 = writeInt(i0, 26, 6, seg2Len);
+            offset = writeInt(data, offset, i0);
+            offset = info0.write(data, offset);
+            offset = info1.write(data, offset);
+            offset = info2.write(data, offset);
+        } else if (seg1Len > 0) {
+            i0 = writeInt(i0, 14, 6, seg0Len);
+            i0 = writeInt(i0, 20, 6, seg1Len);
+            i0 = writeInt(i0, 26, 6, 0);
+            offset = writeInt(data, offset, i0);
+            offset = info0.write(data, offset);
+            offset = info1.write(data, offset);
+        } else {
+            i0 = writeInt(i0, 14, 6, seg0Len);
+            i0 = writeInt(i0, 20, 6, 0);
+            i0 = writeInt(i0, 26, 6, 0);
+            offset = writeInt(data, offset, i0);
+            offset = info0.write(data, offset);
+        }
+
+        for (int i = 0; i < seg0Len + seg1Len + seg2Len; i++) {
+            offset = hops[nHops].write(data, offset);
+        }
 
         return offset;
     }
+
+
+    public void reverse() {
+        currINF = 0;
+        currHF = 0;
+        if (seg2Len > 0) {
+            int dummySegLen = seg0Len;
+            seg0Len = seg2Len;
+            seg2Len = dummySegLen;
+            InfoField dummyInfo = info0;
+            info0 = info2;
+            info2 = dummyInfo;
+        } else if (seg1Len > 0) {
+            int dummySegLen = seg0Len;
+            seg0Len = seg1Len;
+            seg1Len = dummySegLen;
+            InfoField dummyInfo = info0;
+            info0 = info1;
+            info1 = dummyInfo;
+        }
+        info0.reverse();
+        info1.reverse();
+        info2.reverse();
+
+        for (int i = 0, j = nHops - 1; i < j; i++, j--) {
+            HopField dummy = hops[i];
+            hops[i] = hops[j];
+            hops[j] = dummy;
+        }
+    }
+
 
     @Override
     public String toString() {

@@ -14,11 +14,9 @@
 
 package org.scion;
 
-import org.bouncycastle.crypto.macs.CMac;
-import org.scion.internal.*;
-
 import java.io.IOException;
 import java.net.*;
+import org.scion.internal.*;
 
 public class ScionDatagramSocket {
   /*
@@ -33,9 +31,15 @@ public class ScionDatagramSocket {
   private final byte[] buf = new byte[65535 - 28];  // -28 for 8 byte UDP + 20 byte IP header
   private final CommonHeader commonHeader = new CommonHeader();
   private final AddressHeader addressHeader = new AddressHeader(commonHeader);
-  private final PathHeaderScion pathHeaderScion = new PathHeaderScion(commonHeader);
+  private final PathHeaderScion pathHeaderScion = new PathHeaderScion();
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
-  private final CMac macProvider = MAC.HFMacFactory();
+  private int underlayPort;
+  private InetAddress underlayAddress;
+  private PathState pathState = PathState.NO_PATH;
+
+  private enum PathState {
+    NO_PATH, RCV_PATH, SEND_PATH
+  }
 
 
   public ScionDatagramSocket() throws SocketException {
@@ -44,6 +48,8 @@ public class ScionDatagramSocket {
 
   public ScionDatagramSocket(int port) throws SocketException {
     this.socket = new DatagramSocket(port);
+    System.out.println("Socket created: local=" + socket.getLocalAddress() + " : " + socket.getLocalPort() +
+            "   remote=" + socket.getInetAddress() + " : " + socket.getPort());
   }
 
   public void bind(SocketAddress address) throws SocketException {
@@ -52,19 +58,47 @@ public class ScionDatagramSocket {
 
   public synchronized void receive(DatagramPacket packet) throws IOException {
     // synchronized because we use `buffer`
-    DatagramPacket incoming = new DatagramPacket(buf, buf.length);
-    socket.receive(incoming);
-    System.out.println("received: len=" + incoming.getLength()); // TODO
-    readScionHeader(incoming, packet);
+    while (true) {
+      // TODO reuse incoming packet
+      DatagramPacket incoming = new DatagramPacket(buf, buf.length);
+      socket.receive(incoming);
+      underlayPort = incoming.getPort();
+      underlayAddress = incoming.getAddress();
+      System.out.println("received: len=" + incoming.getLength()); // TODO
+      if (readScionHeader(incoming, packet)) {
+        break;
+      }
+    }
   }
 
   public synchronized void send(DatagramPacket packet) throws IOException {
     // synchronized because we use `buffer`
+    // TODO request new path after a while?
+    switch (pathState) {
+      case NO_PATH: {
+        // TODO request path from daemon
+        pathState = PathState.SEND_PATH;
+        throw new UnsupportedOperationException();
+        // break;
+      }
+      case RCV_PATH: {
+        // TODO sendPath = receivePath.reverse()
+        pathHeaderScion.reverse();
+        pathState = PathState.SEND_PATH;
+        break;
+      }
+      case SEND_PATH: {
+        // Nothing to do
+        break;
+      }
+      default: throw new IllegalStateException(pathState.name());
+    }
+
     // TODO use local field Datagram Packer?!
     DatagramPacket outgoing = new DatagramPacket(buf, buf.length);
     writeScionHeader(outgoing, packet);
 
-    // TODO!!!  socket.send(outgoing);
+    socket.send(outgoing);
   }
 
   public int getLocalPort() {
@@ -81,28 +115,53 @@ public class ScionDatagramSocket {
       throw new IllegalStateException("of=" + p.getOffset());
     }
     int offset = CommonHeader.write(p.getData(), userPacket, socket.getLocalAddress());
-    offset = AddressHeader.write(p.getData(), p.getOffset(), commonHeader, addressHeader);
-    offset = PathHeaderScion.write(p.getData(), p.getOffset(), commonHeader, addressHeader, pathHeaderScion);
+    offset = AddressHeader.write(p.getData(), offset, commonHeader, addressHeader);
+    offset = pathHeaderScion.write(p.getData(), offset);
 
+    // build packet
+    System.arraycopy(userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
+    System.out.println("length: " + offset + " + " + userPacket.getLength() + "   vs  " + p.getData().length);
+    p.setLength(offset + userPacket.getLength());
 
-//    outgoing.setData(packet.getData());
-//    outgoing.setPort(packet.getPort());
-//    outgoing.setAddress(packet.getAddress());
-
+    // First hop
+    p.setPort(underlayPort);
+    p.setAddress(underlayAddress);
+    pathState = PathState.RCV_PATH;
+    System.out.println("Sending to: " + underlayAddress + " : " + underlayPort);
+    System.out.println("Could send to: " + socket.getInetAddress() + " : " + socket.getPort());
   }
 
-  private void readScionHeader(DatagramPacket p, DatagramPacket userPacket) {
+  private boolean readScionHeader(DatagramPacket p, DatagramPacket userPacket) throws IOException {
+    // TODO See which checks we have to perform from the list in the book p118 (BR ingress)
     byte[] data = p.getData();
     int offset = commonHeader.read(data, 0);
     System.out.println("Common header: " + commonHeader);
     offset = addressHeader.read(data, offset);
+    if (commonHeader.getDT() != 0) {
+      System.out.println("Packet dropped: service address=" + addressHeader.getDstHostAddress() +
+              "  DT=" + commonHeader.getDT());
+      return false;
+    }
+//    if (p.getLength() == 103) {
+//      if (!addressHeader.getDstHostAddress().isAnyLocalAddress()) {
+//        System.out.println("Packet dropped: dstHost=" + addressHeader.getDstHostAddress());
+//        return false;
+//      }
+//    }
+    // TODO ! How can we properly filter out unwanted packets???
+    if (!addressHeader.getDstHostAddress().isLoopbackAddress()) {
+      System.out.println("Packet dropped: dstHost=" + addressHeader.getDstHostAddress());
+      return false;
+    }
+
     System.out.println("Address header: " + addressHeader);
     if (commonHeader.pathType() == 1) {
       offset = pathHeaderScion.read(data, offset);
       System.out.println("Path header: " + pathHeaderScion);
     } else if (commonHeader.pathType() == 2) {
       offset = pathHeaderOneHop.read(data, offset);
-      System.out.println("Path header: " + pathHeaderOneHop);
+      System.out.println("OneHop header: " + pathHeaderOneHop);
+      return false;
     } else {
       throw new UnsupportedOperationException("Path type: " + commonHeader.pathType());
     }
@@ -125,6 +184,8 @@ public class ScionDatagramSocket {
     userPacket.setLength(length);
     userPacket.setPort(udpHeader.getSrcPort());
     userPacket.setAddress(addressHeader.getSrcHostAddress(data));
+    pathState = PathState.RCV_PATH;
+    return true;
   }
 
   private void readExtensionHeader(byte[] data, int offset) {}

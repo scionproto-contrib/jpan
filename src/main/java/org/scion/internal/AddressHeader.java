@@ -18,6 +18,7 @@ import static org.scion.internal.ByteUtil.*;
 
 import org.scion.Util;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -160,6 +161,22 @@ public class AddressHeader {
             // This really should not happen
             throw new RuntimeException(e);
         }
+    }
+
+    public InetAddress getDstHostAddress() throws IOException {
+        byte[] bytes = new byte[(commonHeader.dl + 1) * 4];
+        if (commonHeader.dl == 0 && (commonHeader.dt == 0 || commonHeader.dt == 1)) {
+            writeInt(bytes, 0, dstHost0);
+        } else if (commonHeader.dl == 3 && commonHeader.dt == 0) {
+            writeInt(bytes, 0, dstHost0);
+            writeInt(bytes, 4, dstHost1);
+            writeInt(bytes, 8, dstHost2);
+            writeInt(bytes, 12, dstHost3);
+        } else {
+            throw new UnsupportedOperationException("Dst address not supported: DT/DL=" +
+                    commonHeader.dt + "/" + commonHeader.dl);
+        }
+        return InetAddress.getByAddress(bytes);
     }
 
     @Override
