@@ -25,13 +25,11 @@ import java.net.UnknownHostException;
 public class AddressHeader {
     CommonHeader commonHeader;
     //  8 bit: DstISD
-    private int dstISD;
     // 48 bit: DstAS
-    private long dstAS;
+    private long dstIsdAs;
     //  8 bit: SrcISD
-    private int srcISD;
     // 48 bit: SrcAS
-    private long srcAS;
+    private long srcIsdAs;
     //  ? bit: DstHostAddr
     private int dstHost0;
     private int dstHost1;
@@ -59,14 +57,16 @@ public class AddressHeader {
 
         int offset = headerOffset;
 
-        long l0 = readLong(data, offset);
+//        long l0 = readLong(data, offset);
+        dstIsdAs = readLong(data, offset);
         offset += 8;
-        long l1 = readLong(data, offset);
+//        long l1 = readLong(data, offset);
+        srcIsdAs = readLong(data, offset);
         offset += 8;
-        dstISD = (int) readLong(l0, 0, 16);
-        dstAS = readLong(l0, 16, 48);
-        srcISD = (int) readLong(l1, 0, 16);
-        srcAS = readLong(l1, 16, 48);
+//        dstISD = (int) readLong(l0, 0, 16);
+//        dstAS = readLong(l0, 16, 48);
+//        srcISD = (int) readLong(l1, 0, 16);
+//        srcAS = readLong(l1, 16, 48);
 
         dstHost0 = readInt(data, offset);
         offset += 4;
@@ -102,51 +102,64 @@ public class AddressHeader {
         return offset;
     }
 
+    public void reverse() {
+        long dummy = srcIsdAs;
+        srcIsdAs = dstIsdAs;
+        dstIsdAs = dummy;
+
+        int d;
+        d = srcHost0;
+        srcHost0 = dstHost0;
+        dstHost0 = d;
+
+        d = srcHost1;
+        srcHost1 = dstHost1;
+        dstHost1 = d;
+
+        d = srcHost2;
+        srcHost2 = dstHost2;
+        dstHost2 = d;
+
+        d = srcHost3;
+        srcHost3 = dstHost3;
+        dstHost3 = d;
+    }
 
     public static int write(byte[] data, int offsetStart, CommonHeader commonHeader, AddressHeader inputHeader) {
         int offset = offsetStart;
-        long l0 = 0;
-        long l1 = 0;
-
-        l0 = writeLong(l0, 0, 16, inputHeader.srcISD);
-        l0 = writeLong(l0, 16, 48, inputHeader.srcAS);
-        l1 = writeLong(l1, 0, 16, inputHeader.dstISD);
-        l1 = writeLong(l1, 16, 48, inputHeader.dstAS);
-        writeLong(data, offset, l0);
-        offset += 8;
-        writeLong(data, offset, l1);
-        offset += 8;
+//        long l0 = 0;
+//        long l1 = 0;
+//
+//        l0 = writeLong(l0, 0, 16, inputHeader.srcISD);
+//        l0 = writeLong(l0, 16, 48, inputHeader.srcAS);
+//        l1 = writeLong(l1, 0, 16, inputHeader.dstISD);
+//        l1 = writeLong(l1, 16, 48, inputHeader.dstAS);
+        offset = writeLong(data, offset, inputHeader.dstIsdAs);
+        offset = writeLong(data, offset, inputHeader.srcIsdAs);
 
         // HostAddr
-        writeInt(data, offset, inputHeader.srcHost0);
-        offset += 4;
-        if (commonHeader.sl >= 1) {
-            writeInt(data, offset, inputHeader.srcHost1);
-            offset += 4;
-        }
-        if (commonHeader.sl >= 2) {
-            writeInt(data, offset, inputHeader.srcHost2);
-            offset += 4;
-        }
-        if (commonHeader.sl >= 3) {
-            writeInt(data, offset, inputHeader.srcHost3);
-            offset += 4;
-        }
-
-        writeInt(data, offset, inputHeader.dstHost0);
-        offset += 4;
+        offset = writeInt(data, offset, inputHeader.dstHost0);
         if (commonHeader.dl >= 1) {
-            writeInt(data, offset, inputHeader.dstHost1);
-            offset += 4;
+            offset = writeInt(data, offset, inputHeader.dstHost1);
         }
         if (commonHeader.dl >= 2) {
-            writeInt(data, offset, inputHeader.dstHost2);
-            offset += 4;
+            offset = writeInt(data, offset, inputHeader.dstHost2);
         }
         if (commonHeader.dl >= 3) {
-            writeInt(data, offset, inputHeader.dstHost3);
-            offset += 4;
+            offset = writeInt(data, offset, inputHeader.dstHost3);
         }
+
+        offset = writeInt(data, offset, inputHeader.srcHost0);
+        if (commonHeader.sl >= 1) {
+            offset = writeInt(data, offset, inputHeader.srcHost1);
+        }
+        if (commonHeader.sl >= 2) {
+            offset = writeInt(data, offset, inputHeader.srcHost2);
+        }
+        if (commonHeader.sl >= 3) {
+            offset = writeInt(data, offset, inputHeader.srcHost3);
+        }
+
         return offset;
     }
 
@@ -189,8 +202,8 @@ public class AddressHeader {
         //            sb.append("  SrcISD=" + srcISD);
         //            sb.append("  SrcAS =" + srcAS);
         //            System.out.println(sb);
-        sb.append("  dstIsdAs=").append(Util.toStringIA(dstISD, dstAS));
-        sb.append("  srcIsdAs=").append(Util.toStringIA(srcISD, srcAS));
+        sb.append("  dstIsdAs=").append(Util.toStringIA(dstIsdAs));
+        sb.append("  srcIsdAs=").append(Util.toStringIA(srcIsdAs));
         sb.append("  dstHost=").append(commonHeader.dt).append("/");
         if (commonHeader.dl == 0) {
             sb.append(Util.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
@@ -228,5 +241,13 @@ public class AddressHeader {
 
     public int length() {
         return len;
+    }
+
+    public void setSrcIA(long srcIsdAs) {
+        this.srcIsdAs = srcIsdAs;
+    }
+
+    public void setDstIA(long dstIsdAs) {
+        this.dstIsdAs = dstIsdAs;
     }
 }

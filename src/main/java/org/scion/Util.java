@@ -216,6 +216,13 @@ public class Util {
     return address.getAddress().getHostAddress() + ":" + address.getPort();
   }
 
+
+  public static String getPropertyOrEnv(String propertyName, String envName, String defaultValue) {
+    String value = System.getProperty(propertyName);
+    value = value != null ? value : System.getenv(envName);
+    return value != null ? value : defaultValue;
+  }
+
   // TODO Return ScionException????
   // TODO
 }

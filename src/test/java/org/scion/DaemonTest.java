@@ -30,10 +30,6 @@ public class DaemonTest {
   //  private static final InetSocketAddress DAEMON_ADDRESS =
   //          new InetSocketAddress("127.0.0.12", 30255); // from 110-topo
 
-  private static String toHostAddrPort(InetSocketAddress address) {
-    return address.getAddress().getHostAddress() + ":" + address.getPort();
-  }
-
   @Test
   public void testWrongDaemonAddress() {
     ScionException thrown =
@@ -56,7 +52,7 @@ public class DaemonTest {
     MockDaemon mock = MockDaemon.create(DAEMON_ADDRESS).start();
 
     // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-    String daemonAddr = toHostAddrPort(DAEMON_ADDRESS);
+    String daemonAddr = Util.toHostAddrPort(DAEMON_ADDRESS);
     List<Daemon.Path> paths;
     long srcIA = Util.ParseIA("1-ff00:0:110");
     long dstIA = Util.ParseIA("1-ff00:0:112");

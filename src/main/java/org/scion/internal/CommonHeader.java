@@ -81,6 +81,15 @@ public class CommonHeader {
         return BYTES;
     }
 
+    public void reverse() {
+        int dummy = dt;
+        dt = st;
+        st = dummy;
+        dummy = dl;
+        dl = sl;
+        sl = dummy;
+    }
+
     public static int write(byte[] data, DatagramPacket input, InetAddress localAddress) {
         int offset = 0;
         int i0 = 0;

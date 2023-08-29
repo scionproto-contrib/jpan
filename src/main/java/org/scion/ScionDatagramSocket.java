@@ -16,7 +16,10 @@ package org.scion;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.List;
+
 import org.scion.internal.*;
+import org.scion.proto.daemon.Daemon;
 
 public class ScionDatagramSocket {
   /*
@@ -28,7 +31,7 @@ public class ScionDatagramSocket {
 
   private final DatagramSocket socket;
   // TODO use ByteBuffer to manage offset etc?
-  private final byte[] buf = new byte[65535 - 28];  // -28 for 8 byte UDP + 20 byte IP header
+  private final byte[] buf = new byte[65535 - 28]; // -28 for 8 byte UDP + 20 byte IP header
   private final CommonHeader commonHeader = new CommonHeader();
   private final AddressHeader addressHeader = new AddressHeader(commonHeader);
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion();
@@ -36,22 +39,43 @@ public class ScionDatagramSocket {
   private int underlayPort;
   private InetAddress underlayAddress;
   private PathState pathState = PathState.NO_PATH;
+  // TODO provide ports etc?  Allow separate instances for different sockets?
+  // TODO create lazily to prevent network connections before we create any actual DatagramSocket?
+  private DaemonClient pathService;
+  private InetAddress localAddress;
+  private int localPort;
+  private long srcIA;
+  private long dstIA;
 
   private enum PathState {
-    NO_PATH, RCV_PATH, SEND_PATH
+    NO_PATH,
+    RCV_PATH,
+    SEND_PATH
   }
-
 
   public ScionDatagramSocket() throws SocketException {
     this.socket = new DatagramSocket();
+    System.out.println("Creating socket with src = " + socket.getLocalAddress() + " : " + socket.getLocalPort());
   }
 
   public ScionDatagramSocket(int port) throws SocketException {
     this.socket = new DatagramSocket(port);
-    System.out.println("Socket created: local=" + socket.getLocalAddress() + " : " + socket.getLocalPort() +
-            "   remote=" + socket.getInetAddress() + " : " + socket.getPort());
+    System.out.println(
+        "Socket created: local="
+            + socket.getLocalAddress()
+            + " : "
+            + socket.getLocalPort()
+            + "   remote="
+            + socket.getInetAddress()
+            + " : "
+            + socket.getPort());
   }
 
+  @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via constructor
+  public void setDstIsdAs(String dstIA) {
+    // TODO rename ParseIA to parseIA
+    this.dstIA = Util.ParseIA(dstIA);
+  }
   public void bind(SocketAddress address) throws SocketException {
     this.socket.bind(address);
   }
@@ -75,28 +99,56 @@ public class ScionDatagramSocket {
     // synchronized because we use `buffer`
     // TODO request new path after a while?
     switch (pathState) {
-      case NO_PATH: {
-        // TODO request path from daemon
-        pathState = PathState.SEND_PATH;
-        throw new UnsupportedOperationException();
-        // break;
-      }
-      case RCV_PATH: {
-        // TODO sendPath = receivePath.reverse()
-        pathHeaderScion.reverse();
-        pathState = PathState.SEND_PATH;
-        break;
-      }
-      case SEND_PATH: {
-        // Nothing to do
-        break;
-      }
-      default: throw new IllegalStateException(pathState.name());
+      case NO_PATH:
+        {
+          // TODO request path from daemon
+          if (pathService == null) {
+            pathService = DaemonClient.create();
+          }
+          if (srcIA == 0) {
+            srcIA = pathService.getLocalIsdAs();
+          }
+          System.out.println("Getting path from " + localAddress + " : " + localPort);
+          System.out.println("               to " + packet.getAddress() + " : " + packet.getPort());
+          if (srcIA == 0 || dstIA == 0) {
+            throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
+          }
+          List<Daemon.Path> path = pathService.getPath(srcIA, dstIA);
+
+          addressHeader.setSrcIA(srcIA);
+          addressHeader.setDstIA(dstIA);
+//          addressHeader.setSrcHostAddress(socket.getLocalAddress(), socket.getLocalPort());
+//          addressHeader.setDstHostAddress(packet.getSocketAddress());
+//
+//          pathHeaderScion.setPath(path);
+
+
+          pathState = PathState.SEND_PATH;
+          // break;
+        }
+      case RCV_PATH:
+        {
+          // TODO sendPath = receivePath.reverse()
+          commonHeader.reverse();
+          addressHeader.reverse();
+          pathHeaderScion.reverse();
+          pathState = PathState.SEND_PATH;
+          break;
+        }
+      case SEND_PATH:
+        {
+          // Nothing to do
+          break;
+        }
+      default:
+        throw new IllegalStateException(pathState.name());
     }
 
     // TODO use local field Datagram Packer?!
     DatagramPacket outgoing = new DatagramPacket(buf, buf.length);
     writeScionHeader(outgoing, packet);
+
+    System.out.println("Sending: " + outgoing.getSocketAddress() + " : " + outgoing.getLength() + "/" + outgoing.getOffset() + "/" + outgoing.getData().length);
 
     socket.send(outgoing);
   }
@@ -109,45 +161,30 @@ public class ScionDatagramSocket {
     return socket.getPort();
   }
 
-  private void writeScionHeader(DatagramPacket p, DatagramPacket userPacket) {
-    // TODO reset offset ?!?!?!?
-    if (p.getOffset() != 0) {
-      throw new IllegalStateException("of=" + p.getOffset());
-    }
-    int offset = CommonHeader.write(p.getData(), userPacket, socket.getLocalAddress());
-    offset = AddressHeader.write(p.getData(), offset, commonHeader, addressHeader);
-    offset = pathHeaderScion.write(p.getData(), offset);
-
-    // build packet
-    System.arraycopy(userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
-    System.out.println("length: " + offset + " + " + userPacket.getLength() + "   vs  " + p.getData().length);
-    p.setLength(offset + userPacket.getLength());
-
-    // First hop
-    p.setPort(underlayPort);
-    p.setAddress(underlayAddress);
-    pathState = PathState.RCV_PATH;
-    System.out.println("Sending to: " + underlayAddress + " : " + underlayPort);
-    System.out.println("Could send to: " + socket.getInetAddress() + " : " + socket.getPort());
-  }
-
   private boolean readScionHeader(DatagramPacket p, DatagramPacket userPacket) throws IOException {
     // TODO See which checks we have to perform from the list in the book p118 (BR ingress)
     byte[] data = p.getData();
+    //    for (int i = 0; i < p.getLength(); i++) {
+    //      System.out.print(data[i] + ", ");
+    //    }
+    //    System.out.println();
     int offset = commonHeader.read(data, 0);
     System.out.println("Common header: " + commonHeader);
     offset = addressHeader.read(data, offset);
     if (commonHeader.getDT() != 0) {
-      System.out.println("Packet dropped: service address=" + addressHeader.getDstHostAddress() +
-              "  DT=" + commonHeader.getDT());
+      System.out.println(
+          "Packet dropped: service address="
+              + addressHeader.getDstHostAddress()
+              + "  DT="
+              + commonHeader.getDT());
       return false;
     }
-//    if (p.getLength() == 103) {
-//      if (!addressHeader.getDstHostAddress().isAnyLocalAddress()) {
-//        System.out.println("Packet dropped: dstHost=" + addressHeader.getDstHostAddress());
-//        return false;
-//      }
-//    }
+    //    if (p.getLength() == 103) {
+    //      if (!addressHeader.getDstHostAddress().isAnyLocalAddress()) {
+    //        System.out.println("Packet dropped: dstHost=" + addressHeader.getDstHostAddress());
+    //        return false;
+    //      }
+    //    }
     // TODO ! How can we properly filter out unwanted packets???
     if (!addressHeader.getDstHostAddress().isLoopbackAddress()) {
       System.out.println("Packet dropped: dstHost=" + addressHeader.getDstHostAddress());
@@ -166,7 +203,11 @@ public class ScionDatagramSocket {
       throw new UnsupportedOperationException("Path type: " + commonHeader.pathType());
     }
     System.out.println(
-        "Payload: " + (p.getLength() - offset) + " (bytes left in header: " + (commonHeader.hdrLenBytes() - offset) + ")");
+        "Payload: "
+            + (p.getLength() - offset)
+            + " (bytes left in header: "
+            + (commonHeader.hdrLenBytes() - offset)
+            + ")");
     // offset += ???;
     // readExtensionHeader(data, offset);
 
@@ -189,4 +230,29 @@ public class ScionDatagramSocket {
   }
 
   private void readExtensionHeader(byte[] data, int offset) {}
+
+  private void writeScionHeader(DatagramPacket p, DatagramPacket userPacket) {
+    // TODO reset offset ?!?!?!?
+    if (p.getOffset() != 0) {
+      throw new IllegalStateException("of=" + p.getOffset());
+    }
+    int offset = CommonHeader.write(p.getData(), userPacket, socket.getLocalAddress());
+    System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" + socket.getLocalAddress());
+    offset = AddressHeader.write(p.getData(), offset, commonHeader, addressHeader);
+    offset = pathHeaderScion.write(p.getData(), offset);
+
+    // build packet
+    System.arraycopy(
+        userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
+    System.out.println(
+        "length: " + offset + " + " + userPacket.getLength() + "   vs  " + p.getData().length);
+    p.setLength(offset + userPacket.getLength());
+
+    // First hop
+    p.setPort(underlayPort);
+    p.setAddress(underlayAddress);
+    pathState = PathState.RCV_PATH;
+    System.out.println("Sending to: " + underlayAddress + " : " + underlayPort);
+    System.out.println("Could send to: " + socket.getInetAddress() + " : " + socket.getPort());
+  }
 }
