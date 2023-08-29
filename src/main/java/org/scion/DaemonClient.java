@@ -17,6 +17,7 @@ package org.scion;
 import io.grpc.*;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
@@ -52,6 +53,27 @@ public class DaemonClient implements AutoCloseable {
     String daemonHost = "127.0.0.12"; // from 110-topo
     int daemonPort = 30255; // from 110-topo
 
+    testInterfaces(daemonHost, daemonPort);
+    testServices(daemonHost, daemonPort);
+    testPaths(daemonHost, daemonPort);
+  }
+
+  private static void testInterfaces(String daemonHost, int daemonPort) {
+
+    Map<Long, Daemon.Interface> interfaces;
+    try (DaemonClient client = DaemonClient.create(daemonHost, daemonPort)) {
+      interfaces = client.getInterfaces();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    System.out.println("Interfaces found: " + interfaces.size());
+    for (Map.Entry<Long, Daemon.Interface> entry : interfaces.entrySet()) {
+      System.out.print("    Interface: " + entry.getKey() + " -> "  +  entry.getValue().getAddress());
+    }
+  }
+
+  private static void testPaths(String daemonHost, int daemonPort) {
     long srcIA = Util.ParseIA("1-ff00:0:110");
     long dstIA = Util.ParseIA("1-ff00:0:112");
 
@@ -68,16 +90,49 @@ public class DaemonClient implements AutoCloseable {
       int i = 0;
       for (Daemon.PathInterface segment : path.getInterfacesList()) {
         System.out.println(
-            "    "
-                + i
-                + ": "
-                + segment.getId()
-                + " "
-                + segment.getIsdAs()
-                + "  "
-                + Util.toStringIA(segment.getIsdAs()));
+                "    "
+                        + i
+                        + ": "
+                        + segment.getId()
+                        + " "
+                        + segment.getIsdAs()
+                        + "  "
+                        + Util.toStringIA(segment.getIsdAs()));
       }
     }
+  }
+  private static void testServices(String daemonHost, int daemonPort) {
+    Map<String, Daemon.ListService> services;
+    try (DaemonClient client = DaemonClient.create(daemonHost, daemonPort)) {
+      services = client.getServices();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    System.out.println("Services found: " + services.size());
+    for (Map.Entry<String, Daemon.ListService> entry : services.entrySet()) {
+      System.out.println("ListService: " + entry.getKey());
+      for (Daemon.Service service: entry.getValue().getServicesList()) {
+        System.out.println("    Service: " + service.getUri());
+      }
+    }
+  }
+
+
+  public Map<Long, Daemon.Interface> getInterfaces() {
+    LOG.info("*** GetInterfaces ***");
+
+    Daemon.InterfacesRequest request =
+            Daemon.InterfacesRequest.newBuilder().build();  // TODO getDefaultInstance()?
+
+    Daemon.InterfacesResponse response;
+    try {
+      response = blockingStub.interfaces(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionException(e);
+    }
+
+    return response.getInterfacesMap();
   }
 
   public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
@@ -98,6 +153,43 @@ public class DaemonClient implements AutoCloseable {
 
     return response.getPathsList();
   }
+
+    public Map<String, Daemon.ListService> getServices() {
+      LOG.info("*** GetServices ***");
+
+      Daemon.ServicesRequest request =
+              Daemon.ServicesRequest.newBuilder().build();  // TODO getDefaultInstance()?
+
+      Daemon.ServicesResponse response;
+      try {
+        response = blockingStub.services(request);
+      } catch (StatusRuntimeException e) {
+        throw new ScionException(e);
+      }
+
+      return response.getServicesMap();
+    }
+
+
+  //  public long getIsdIs() {
+  //    LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
+  //
+  //    Daemon.ASRequest request =
+  //            Daemon.ASRequest.newBuilder()
+  //                    .s
+  //                    .setSourceIsdAs(srcIsdAs)
+  //                    .setDestinationIsdAs(dstIsdAs)
+  //                    .build();
+  //
+  //    Daemon.ASResponse response;
+  //    try {
+  //      response = blockingStub.paths(request);
+  //    } catch (StatusRuntimeException e) {
+  //      throw new ScionException(e);
+  //    }
+  //
+  //    return response.getIsdAs();
+  //  }
 
   @Override
   public void close() throws IOException {

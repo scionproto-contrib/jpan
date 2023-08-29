@@ -14,6 +14,8 @@
 
 package org.scion;
 
+import java.net.InetSocketAddress;
+
 public class Util {
 
   //  const (
@@ -207,6 +209,11 @@ public class Util {
       }
     }
     return s;
+  }
+
+  // TODO Isn´t this supported by the InetSocketClass????
+  public static String toHostAddrPort(InetSocketAddress address) {
+    return address.getAddress().getHostAddress() + ":" + address.getPort();
   }
 
   // TODO Return ScionException????
