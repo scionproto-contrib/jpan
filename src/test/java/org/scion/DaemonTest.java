@@ -25,10 +25,8 @@ import org.scion.testutil.MockDaemon;
 
 public class DaemonTest {
 
-  private static final InetSocketAddress DAEMON_ADDRESS =
+  private static final InetSocketAddress MOCK_DAEMON_ADDRESS =
       new InetSocketAddress("127.0.0.15", 30255);
-  //  private static final InetSocketAddress DAEMON_ADDRESS =
-  //          new InetSocketAddress("127.0.0.12", 30255); // from 110-topo
 
   @Test
   public void testWrongDaemonAddress() {
@@ -49,10 +47,10 @@ public class DaemonTest {
 
   @Test
   public void getPath() throws IOException {
-    MockDaemon mock = MockDaemon.create(DAEMON_ADDRESS).start();
+    MockDaemon mock = MockDaemon.create(MOCK_DAEMON_ADDRESS).start();
 
     // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-    String daemonAddr = Util.toHostAddrPort(DAEMON_ADDRESS);
+    String daemonAddr = Util.toHostAddrPort(MOCK_DAEMON_ADDRESS);
     List<Daemon.Path> paths;
     long srcIA = Util.ParseIA("1-ff00:0:110");
     long dstIA = Util.ParseIA("1-ff00:0:112");

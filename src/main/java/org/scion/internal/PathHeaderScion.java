@@ -14,7 +14,11 @@
 
 package org.scion.internal;
 
+import org.scion.Util;
+import org.scion.proto.daemon.Daemon;
+
 import java.util.Arrays;
+import java.util.List;
 
 import static org.scion.internal.ByteUtil.*;
 
@@ -215,5 +219,38 @@ public class PathHeaderScion {
         for (int i = 0; i < hops.length; i++)
             hops[i].reset();
         nHops = 0;
+    }
+
+    public void setPath(List<Daemon.Path> paths) {
+        System.out.println("Paths found: " + paths.size());
+        for (Daemon.Path path : paths) {
+            System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
+            System.out.println("Path: interfaces = " + path.getInterface().getAddress().getAddress());
+            int i = 0;
+            for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
+                System.out.println(
+                        "    pathIf: "
+                                + i
+                                + ": "
+                                + pathIf.getId()
+                                + " "
+                                + pathIf.getIsdAs()
+                                + "  "
+                                + Util.toStringIA(pathIf.getIsdAs()));
+            }
+            for (int hop : path.getInternalHopsList()) {
+                System.out.println("    hop: " + i + ": " + hop);
+            }
+        }
+
+        // TODO Can we get the Underlay from  path.getInterface().getAddress().getAddress(), see above?
+        //     otherwise, see next TODO
+
+        // TODO we get the Underlay via daemon.getInterfaces().getInterface(id).getAddress();
+        // TODO we get "id" from the pathInterfaces?
+
+
+
+        throw new UnsupportedOperationException();
     }
 }

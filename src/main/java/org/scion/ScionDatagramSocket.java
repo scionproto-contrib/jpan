@@ -117,10 +117,10 @@ public class ScionDatagramSocket {
 
           addressHeader.setSrcIA(srcIA);
           addressHeader.setDstIA(dstIA);
-//          addressHeader.setSrcHostAddress(socket.getLocalAddress(), socket.getLocalPort());
-//          addressHeader.setDstHostAddress(packet.getSocketAddress());
-//
-//          pathHeaderScion.setPath(path);
+          addressHeader.setSrcHostAddress(socket.getLocalAddress());
+          addressHeader.setDstHostAddress(packet.getAddress());
+
+          pathHeaderScion.setPath(path);
 
 
           pathState = PathState.SEND_PATH;

@@ -19,6 +19,8 @@ import static org.scion.internal.ByteUtil.*;
 import org.scion.Util;
 
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -249,5 +251,50 @@ public class AddressHeader {
 
     public void setDstIA(long dstIsdAs) {
         this.dstIsdAs = dstIsdAs;
+    }
+
+    public void setDstHostAddress(InetAddress address) {
+        if (address instanceof Inet4Address) {
+            commonHeader.dt = 0;
+            commonHeader.dl = 0;
+            byte[] bytes = address.getAddress();
+            dstHost0 = readInt(bytes, 0);
+            dstHost1 = 0;
+            dstHost2 = 0;
+            dstHost3 = 0;
+        } else if (address instanceof Inet6Address) {
+            commonHeader.dt = 0;
+            commonHeader.dl = 3;
+            byte[] bytes = address.getAddress();
+            dstHost0 = readInt(bytes, 0);
+            dstHost1 = readInt(bytes, 4);
+            dstHost2 = readInt(bytes, 8);
+            dstHost3 = readInt(bytes, 12);
+        } else {
+            throw new UnsupportedOperationException("Dst address class not supported: " + address.getClass().getName());
+        }
+    }
+
+
+    public void setSrcHostAddress(InetAddress address) {
+        if (address instanceof Inet4Address) {
+            commonHeader.st = 0;
+            commonHeader.sl = 0;
+            byte[] bytes = address.getAddress();
+            srcHost0 = readInt(bytes, 0);
+            srcHost1 = 0;
+            srcHost2 = 0;
+            srcHost3 = 0;
+        } else if (address instanceof Inet6Address) {
+            commonHeader.st = 0;
+            commonHeader.sl = 3;
+            byte[] bytes = address.getAddress();
+            srcHost0 = readInt(bytes, 0);
+            srcHost1 = readInt(bytes, 4);
+            srcHost2 = readInt(bytes, 8);
+            srcHost3 = readInt(bytes, 12);
+        } else {
+            throw new UnsupportedOperationException("Dst address class not supported: " + address.getClass().getName());
+        }
     }
 }

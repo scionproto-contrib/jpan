@@ -99,18 +99,23 @@ public class DaemonClient implements AutoCloseable {
     List<Daemon.Path> paths = getPath(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
-      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
+      System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
+      System.out.println("Path: interfaces = " + path.getInterface().getAddress().getAddress());
+      System.out.println("Path: first hop(?) = " + path.getInterface().getAddress().getAddress());
       int i = 0;
-      for (Daemon.PathInterface segment : path.getInterfacesList()) {
+      for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
         System.out.println(
-            "    "
-                + i
-                + ": "
-                + segment.getId()
-                + " "
-                + segment.getIsdAs()
-                + "  "
-                + Util.toStringIA(segment.getIsdAs()));
+                "    pathIf: "
+                        + i
+                        + ": "
+                        + pathIf.getId()
+                        + " "
+                        + pathIf.getIsdAs()
+                        + "  "
+                        + Util.toStringIA(pathIf.getIsdAs()));
+      }
+      for (int hop : path.getInternalHopsList()) {
+        System.out.println("    hop: " + i + ": " + hop);
       }
     }
   }
@@ -158,6 +163,7 @@ public class DaemonClient implements AutoCloseable {
     return response.getInterfacesMap();
   }
 
+  // TODO do not expose proto types
   public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
     LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
@@ -176,6 +182,8 @@ public class DaemonClient implements AutoCloseable {
 
     return response.getPathsList();
   }
+
+  // TODO do not expose proto types
 
   public Map<String, Daemon.ListService> getServices() {
     LOG.info("*** GetServices ***");
