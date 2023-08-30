@@ -15,7 +15,6 @@
 package org.scion.internal;
 
 import org.junit.jupiter.api.Test;
-import org.scion.ScionDatagramSocket;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -36,6 +35,33 @@ public class HeaderParserTest {
             111, 32, 115, 99, 105, 111, 110,
     };
 
+            //00 00 00 00 00 00 00 00 00 00 00 00 86 dd 60 09
+            //02 48 00 73 11 40 fd 00 f0 0d ca fe 00 00 00 00
+            //00 00 7f 00 00 09 fd 00 f0 0d ca fe 00 00 00 00
+            //00 00 7f 00 00 09 75 59 79 24 00 73 6e b2
+//             00 00
+//            00 01 11 15 00 17 01 03 00 00 00 01 ff 00 00 00
+//            01 10 00 01 ff 00 00 00 01 12 7f 00 00 02 00 00
+//            0060   00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00
+//            0070   20 00 00 00 cf 8d 64 ef 1d 56 00 3f 00 01 00 00
+//            0080   41 99 96 80 e6 17 00 3f 00 00 00 02 39 55 e0 37
+//            0090   36 a2 1f 90 00 64 00 17 65 58 52 65 3a 20 48 65
+//            00a0   6c 6c 6f 20 73 63 69 6f 6e
+
+
+    // 0000   00 00 00 00 00 00 00 00 00 00 00 00 86 dd 60 0c   ..............`.
+      // 0010   c0 78 00 73 11 40 fd 00 f0 0d ca fe 00 00 00 00   .x.s.@..........
+      // 0020   00 00 7f 00 00 09 fd 00 f0 0d ca fe 00 00 00 00   ................
+      // 0030   00 00 7f 00 00 09 9c 69 79 24 00 73 6e b2 00 00   .......iy$.sn...
+    //  private static final byte[] packetBytes2 = {
+    //    0x00, 0x00, 0x00, 0x01, 0x11, 0x15, 0x00, 0x17, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff, 0x00,
+    //    0x00, 0x00, 0x01, 0x10, 0x00, 0x01, 0xff, 0x00, 0x00, 0x00, 0x01, 0x12, 0x7f, 0x00, 0x00, 0x02,
+    //    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+    //    0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0xcf, 0x8d, 0x64, 0xef, 0x1d, 0x56, 0x00, 0x00, 0x00, 0x00,
+    //    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    //    0x00, 0x00, 0x00, 0x00, 0x1f, 0x90, 0x00, 0x64, 0x00, 0x0f, 0xf1, 0xe5, 0x52, 0x65, 0x3a, 0x20,
+    //    0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x73, 0x63, 0x69, 0x6f, 0x6e
+    //  };
 
     /**
      * Parse and re-serialize the packet.
@@ -43,18 +69,16 @@ public class HeaderParserTest {
      */
     @Test
     public void testParse() throws IOException {
-        CommonHeader commonHeader = new CommonHeader();
-        AddressHeader addressHeader = new AddressHeader(commonHeader);
+        ScionHeader scionHeader = new ScionHeader();
         PathHeaderScion pathHeaderScion = new PathHeaderScion();
         PseudoHeader pseudoHeaderUdp = new PseudoHeader();
         byte[] data = packetBytes;
 
-        int offset = commonHeader.read(data, 0);
+        int offset = scionHeader.read(data, 0);
         //System.out.println("Common header: " + commonHeader);
-        offset = addressHeader.read(data, offset);
+        assertEquals(1, scionHeader.pathType());
 
         //System.out.println("Address header: " + addressHeader);
-        assertEquals(1, commonHeader.pathType());
         offset = pathHeaderScion.read(data, offset);
 
         // Pseudo header
@@ -75,14 +99,18 @@ public class HeaderParserTest {
 
         DatagramPacket userInput = new DatagramPacket(payload, payload.length);
         InetAddress dstAddress = Inet6Address.getByAddress(new byte[]{127,0,0,1});
-        int writeOffset = CommonHeader.write(newData, userInput, dstAddress);
-        writeOffset = addressHeader.write(newData, writeOffset);
+        int writeOffset = scionHeader.write(newData, userInput, dstAddress, pathHeaderScion);
         writeOffset = pathHeaderScion.write(newData, writeOffset);
         writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
 
         // payload
         System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
 
+        // Fix CurrInf which is "1" in the sample packet:
+        newData[48] = 1;
+
+
+        // PathMeta start at 110!!
 
         assertEquals(offset, writeOffset);
         for (int i = 0; i < data.length; i++) {
@@ -94,9 +122,6 @@ public class HeaderParserTest {
 //        // TODO
 //        pathHeaderScion.reverse();
 //        pathHeaderScion.reverse();
-
-
-
     }
 
 }
