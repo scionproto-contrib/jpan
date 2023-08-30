@@ -97,14 +97,12 @@ public class CommonHeader {
         int i2 = 0;
         i0 = writeInt(i0, 0, 4, 0); // version = 0
         i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
-        i0 = writeInt(i0, 0, 4, 1); // FlowID = 1
-        writeInt(data, offset, i0);
-        offset += 4;
+        i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
+        offset = writeInt(data, offset, i0);
         i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO
         i1 = writeInt(i1, 8, 8, 21); // HdrLen = 84/4=21 // TODO?
-        i1 = writeInt(i1, 16, 16, input.getLength()); // PayloadLen
-        writeInt(data, offset, i1);
-        offset += 4;
+        i1 = writeInt(i1, 16, 16, input.getLength() + 8 ); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
+        offset = writeInt(data, offset, i1);
         i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
         int dl = input.getAddress() instanceof Inet4Address ? 0 : 3;
         i2 = writeInt(i2, 8, 2, 0); // DT
@@ -113,8 +111,7 @@ public class CommonHeader {
         int sl = localAddress instanceof Inet4Address ? 0 : 3;
         i2 = writeInt(i2, 14, 2, sl); // SL
         i2 = writeInt(i2, 16, 16, 0x0); // RSV
-        writeInt(data, offset + 8, i2);
-        offset += 4;
+        offset = writeInt(data, offset, i2);
         return offset;
     }
 

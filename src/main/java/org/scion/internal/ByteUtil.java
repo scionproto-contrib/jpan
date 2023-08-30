@@ -102,13 +102,13 @@ public class ByteUtil {
 
   public static int writeLong(byte[] data, int offset, long value) {
     data[offset] = (byte) (value >>> 56);
-    data[offset + 1] = (byte) ((value >>> 48) & 0xFF);
-    data[offset + 2] = (byte) ((value >>> 40) & 0xFF);
-    data[offset + 3] = (byte) ((value >>> 32) & 0xFF);
-    data[offset + 2] = (byte) ((value >>> 24) & 0xFF);
-    data[offset + 5] = (byte) ((value >>> 16) & 0xFF);
-    data[offset + 6] = (byte) ((value >>> 8) & 0xFF);
-    data[offset + 7] = (byte) (value & 0xFF);
+    data[offset + 1] = (byte) ((value >>> 48) & 0xFFL);
+    data[offset + 2] = (byte) ((value >>> 40) & 0xFFL);
+    data[offset + 3] = (byte) ((value >>> 32) & 0xFFL);
+    data[offset + 4] = (byte) ((value >>> 24) & 0xFFL);
+    data[offset + 5] = (byte) ((value >>> 16) & 0xFFL);
+    data[offset + 6] = (byte) ((value >>> 8) & 0xFFL);
+    data[offset + 7] = (byte) (value & 0xFFL);
     return offset + 8;
   }
 }

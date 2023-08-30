@@ -12,14 +12,9 @@ import java.util.*;
 public class ScionPingPongServer {
     private final ScionDatagramSocket socket;
     private final List<String> listData = new ArrayList<>();
-    private final Random random;
 
     public ScionPingPongServer(int port) throws SocketException {
         socket = new ScionDatagramSocket(port);
-        random = new Random();
-        listData.add("Pong 1");
-        listData.add("Pong 22");
-        listData.add("Pong 333");
     }
 
     //TODO FIX PATH to go 1.20 -> Reinstall update-alternatives
@@ -61,21 +56,17 @@ public class ScionPingPongServer {
             String msg = new String(request.getData(), request.getOffset(), request.getLength());
             System.out.println("Received (from " + request.getSocketAddress() + "): " + msg);
 
-            String quote = getRandomPong();
-            byte[] buffer = quote.getBytes();
+            byte[] buffer = ("Re: " + msg).getBytes();
 
             System.out.println("service - 3"); // TODO
             InetAddress clientAddress = request.getAddress();
             int clientPort = request.getPort();
 
             System.out.println("service - 4"); // TODO
-            DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
+            //DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
+            // IPv6 border router port???
+            DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 31012);
             socket.send(response);
         }
-    }
-
-    private String getRandomPong() {
-        int randomIndex = random.nextInt(listData.size());
-        return listData.get(randomIndex);
     }
 }

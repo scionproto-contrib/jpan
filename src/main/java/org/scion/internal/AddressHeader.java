@@ -127,7 +127,7 @@ public class AddressHeader {
         dstHost3 = d;
     }
 
-    public static int write(byte[] data, int offsetStart, CommonHeader commonHeader, AddressHeader inputHeader) {
+    public int write(byte[] data, int offsetStart) {
         int offset = offsetStart;
 //        long l0 = 0;
 //        long l1 = 0;
@@ -136,30 +136,30 @@ public class AddressHeader {
 //        l0 = writeLong(l0, 16, 48, inputHeader.srcAS);
 //        l1 = writeLong(l1, 0, 16, inputHeader.dstISD);
 //        l1 = writeLong(l1, 16, 48, inputHeader.dstAS);
-        offset = writeLong(data, offset, inputHeader.dstIsdAs);
-        offset = writeLong(data, offset, inputHeader.srcIsdAs);
+        offset = writeLong(data, offset, dstIsdAs);
+        offset = writeLong(data, offset, srcIsdAs);
 
         // HostAddr
-        offset = writeInt(data, offset, inputHeader.dstHost0);
+        offset = writeInt(data, offset, dstHost0);
         if (commonHeader.dl >= 1) {
-            offset = writeInt(data, offset, inputHeader.dstHost1);
+            offset = writeInt(data, offset, dstHost1);
         }
         if (commonHeader.dl >= 2) {
-            offset = writeInt(data, offset, inputHeader.dstHost2);
+            offset = writeInt(data, offset, dstHost2);
         }
         if (commonHeader.dl >= 3) {
-            offset = writeInt(data, offset, inputHeader.dstHost3);
+            offset = writeInt(data, offset, dstHost3);
         }
 
-        offset = writeInt(data, offset, inputHeader.srcHost0);
+        offset = writeInt(data, offset, srcHost0);
         if (commonHeader.sl >= 1) {
-            offset = writeInt(data, offset, inputHeader.srcHost1);
+            offset = writeInt(data, offset, srcHost1);
         }
         if (commonHeader.sl >= 2) {
-            offset = writeInt(data, offset, inputHeader.srcHost2);
+            offset = writeInt(data, offset, srcHost2);
         }
         if (commonHeader.sl >= 3) {
-            offset = writeInt(data, offset, inputHeader.srcHost3);
+            offset = writeInt(data, offset, srcHost3);
         }
 
         return offset;

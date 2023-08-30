@@ -104,8 +104,7 @@ public class DaemonClient implements AutoCloseable {
       System.out.println("Path: first hop(?) = " + path.getInterface().getAddress().getAddress());
       int i = 0;
       for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
-        System.out.println(
-                "    pathIf: "
+        System.out.println("    pathIf: "
                         + i
                         + ": "
                         + pathIf.getId()

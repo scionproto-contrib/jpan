@@ -14,6 +14,8 @@
 
 package org.scion.internal;
 
+import java.util.zip.Checksum;
+
 import static org.scion.internal.ByteUtil.*;
 
 public class PseudoHeader {
@@ -27,19 +29,33 @@ public class PseudoHeader {
     // 16 bit
     private int checkSum;
 
-    public static PseudoHeader read(byte[] data, int offset) {
-        PseudoHeader field = new PseudoHeader();
-        field.readData(data, offset);
-        return field;
-    }
-
-    private void readData(byte[] data, int offset) {
+    public int read(byte[] data, int offset) {
         int i0 = readInt(data, offset);
         int i1 = readInt(data, offset + 4);
         srcPort = readInt(i0, 0, 16);
         dstPort = readInt(i0, 16, 16);
         packetLength = readInt(i1, 0, 16);
         checkSum = readInt(i1, 16, 16);
+        // TODO validate checksum
+        return offset + 8;
+    }
+
+    public void reverse() {
+        int dummy = srcPort;
+        srcPort = dstPort;
+        dstPort = dummy;
+    }
+
+    public int write(byte[] data, int offset, int packetLength) {
+        int i0 = 0;
+        int i1 = 0;
+        i0 = writeInt(i0, 0, 16, srcPort);
+        i0 = writeInt(i0, 16, 16, dstPort);
+        i1 = writeInt(i1, 0, 16, packetLength);
+        i1 = writeInt(i1, 16, 16, checkSum);
+        offset = writeInt(data, offset, i0);
+        offset = writeInt(data, offset, i1);
+        return offset;
     }
 
     @Override

@@ -18,6 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.scion.ScionDatagramSocket;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,11 +37,16 @@ public class HeaderParserTest {
     };
 
 
+    /**
+     * Parse and re-serialize the packet.
+     * The generated content should be identical to the original content
+     */
     @Test
     public void testParse() throws IOException {
         CommonHeader commonHeader = new CommonHeader();
         AddressHeader addressHeader = new AddressHeader(commonHeader);
         PathHeaderScion pathHeaderScion = new PathHeaderScion();
+        PseudoHeader pseudoHeaderUdp = new PseudoHeader();
         byte[] data = packetBytes;
 
         int offset = commonHeader.read(data, 0);
@@ -50,20 +58,39 @@ public class HeaderParserTest {
         offset = pathHeaderScion.read(data, offset);
 
         // Pseudo header
-        PseudoHeader udpHeader = PseudoHeader.read(data, offset);
-        System.out.println(udpHeader);
-        offset += udpHeader.length();
+        offset = pseudoHeaderUdp.read(data, offset);
+        System.out.println(pseudoHeaderUdp);
+
+        byte[] payload = new byte[data.length - offset];
+        System.arraycopy(data, offset, payload, 0, payload.length);
+
+//        // Reverse everything
+//        commonHeader.reverse();
+//        addressHeader.reverse();
+//        pathHeaderScion.reverse();
+//        pseudoHeaderUdp.reverse();
+
+        // Send packet
+        byte[] newData = new byte[data.length];
+
+        DatagramPacket userInput = new DatagramPacket(payload, payload.length);
+        InetAddress dstAddress = Inet6Address.getByAddress(new byte[]{127,0,0,1});
+        int writeOffset = CommonHeader.write(newData, userInput, dstAddress);
+        writeOffset = addressHeader.write(newData, writeOffset);
+        writeOffset = pathHeaderScion.write(newData, writeOffset);
+        writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
+
+        // payload
+        System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
 
 
-//        byte[] newData = new byte[data.length];
-//        int writeOffset = CommonHeader.write(data, input, localAddress);
-//        writeOffset = AddressHeader.write(data, writeOffset, commonHeader, addressHeader);
-//        writeOffset = pathHeaderScion.write(data, writeOffset);
-//
-//
-//        assertArrayEquals(data, newData);
-//
-//
+        assertEquals(offset, writeOffset);
+        for (int i = 0; i < data.length; i++) {
+            System.out.println("i=" + i + ":  " + Integer.toHexString(Byte.toUnsignedInt(data[i])) + " - " + Integer.toHexString(Byte.toUnsignedInt(newData[i])));
+        }
+
+        assertArrayEquals(data, newData);
+
 //        // TODO
 //        pathHeaderScion.reverse();
 //        pathHeaderScion.reverse();
