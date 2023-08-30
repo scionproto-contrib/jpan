@@ -21,33 +21,33 @@ import java.net.InetAddress;
 import static org.scion.internal.ByteUtil.*;
 
 public class CommonHeader {
-    static final int BYTES = 3 * 4;
+    private static final int BYTES = 3 * 4;
     //  4 bit: Version : Currently, only 0 is supported.
-    int version;
+    private int version;
     //  8 bit: TrafficClass / QoS
-    int trafficLClass;
+    private int trafficLClass;
     // 20 bit: FlowID
-    int flowId;
+    private int flowId;
     //  8 bit: NextHdr
-    int nextHeader;
+    private int nextHeader;
     //  8 bit: HdrLen :  Common header + address header + path header. bytes = hdrLen * 4;
-    int hdrLen;
-    int hdrLenBytes;
+    private int hdrLen;
+    private int hdrLenBytes;
     // 16 bit: PayloadLen
-    int payLoadLen;
+    private int payLoadLen;
     //  8 bit: PathType  :  Empty (0), SCION (1), OneHopPath (2), EPIC (3) and COLIBRI (4)
-    int pathType;
+    private int pathType;
     //  2 bit: DT
-    int dt;
+    private int dt;
     //  2 bit: DL : 4 bytes, 8 bytes, 12 bytes and 16 bytes
-    int dl;
+    private int dl;
     //  2 bit: ST
-    int st;
+    private int st;
     //  2 bit: SL : 4 bytes, 8 bytes, 12 bytes and 16 bytes
-    int sl;
+    private int sl;
     //  8 bit: reserved
-    int reserved;
-    int len = 3 * 4;
+    private int reserved;
+    private int len = 3 * 4;
 
     public int read(byte[] data, int offset) {
         //  4 bit: Version
