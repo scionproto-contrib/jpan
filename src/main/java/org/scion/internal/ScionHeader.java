@@ -193,7 +193,7 @@ public class ScionHeader {
         dstHost3 = d;
     }
 
-    public int write(byte[] data, DatagramPacket input, InetAddress localAddress, PathHeaderScion pathHeader) {
+    public int write(byte[] data, DatagramPacket input, PathHeaderScion pathHeader) {
         int offset = 0;
         int i0 = 0;
         int i1 = 0;
@@ -208,11 +208,9 @@ public class ScionHeader {
         i1 = writeInt(i1, 16, 16, input.getLength() + 8 ); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
         offset = writeInt(data, offset, i1);
         i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
-        int dl = input.getAddress() instanceof Inet4Address ? 0 : 3;
         i2 = writeInt(i2, 8, 2, 0); // DT
         i2 = writeInt(i2, 10, 2, dl); // DL
         i2 = writeInt(i2, 12, 2, 0); // ST
-        int sl = localAddress instanceof Inet4Address ? 0 : 3;
         i2 = writeInt(i2, 14, 2, sl); // SL
         i2 = writeInt(i2, 16, 16, 0x0); // RSV
         offset = writeInt(data, offset, i2);
@@ -223,7 +221,6 @@ public class ScionHeader {
 
         // HostAddr
         offset = writeInt(data, offset, dstHost0);
-        System.out.println("Writing dstHost:" + Integer.toHexString(dstHost0));
         if (dl >= 1) {
             offset = writeInt(data, offset, dstHost1);
         }

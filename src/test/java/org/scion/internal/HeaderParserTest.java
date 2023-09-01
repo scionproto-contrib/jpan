@@ -104,8 +104,9 @@ public class HeaderParserTest {
     byte[] newData = new byte[data.length];
 
     DatagramPacket userInput = new DatagramPacket(payload, payload.length);
-    InetAddress dstAddress = Inet6Address.getByAddress(new byte[] {127, 0, 0, 1});
-    int writeOffset = scionHeader.write(newData, userInput, dstAddress, pathHeaderScion);
+    InetAddress srcAddress = Inet6Address.getByAddress(new byte[] {127, 0, 0, 1});  // TODO ????
+    scionHeader.setSrcHostAddress(srcAddress);
+    int writeOffset = scionHeader.write(newData, userInput, pathHeaderScion);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
 

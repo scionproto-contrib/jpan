@@ -251,15 +251,13 @@ public class ScionDatagramSocket {
     return true;
   }
 
-  private void readExtensionHeader(byte[] data, int offset) {}
-
   private void writeScionHeader(DatagramPacket p, DatagramPacket userPacket) {
     // TODO reset offset ?!?!?!?
     if (p.getOffset() != 0) {
       throw new IllegalStateException("of=" + p.getOffset());
     }
     System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" + socket.getLocalAddress());
-    int offset = scionHeader.write(p.getData(), userPacket, socket.getLocalAddress(), pathHeaderScion);
+    int offset = scionHeader.write(p.getData(), userPacket, pathHeaderScion);
     offset = pathHeaderScion.write(p.getData(), offset);
     offset = pseudoHeaderUdp.write(p.getData(), offset, userPacket.getLength());
 
