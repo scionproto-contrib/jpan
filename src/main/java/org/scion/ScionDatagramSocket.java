@@ -160,6 +160,17 @@ public class ScionDatagramSocket {
     return socket.getPort();
   }
 
+  private void printHeaders() {
+    System.out.println("Scion header: " + scionHeader);
+    if (scionHeader.pathType() == Constants.PathTypes.SCION) {
+      System.out.println("Path header: " + pathHeaderScion);
+    } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
+      System.out.println("OneHop header: " + pathHeaderOneHop);
+    } else {
+      throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
+    }
+  }
+
   private boolean readScionHeader(DatagramPacket p, DatagramPacket userPacket) throws IOException {
     // TODO See which checks we have to perform from the list in the book p118 (BR ingress)
     byte[] data = p.getData();
@@ -173,13 +184,10 @@ public class ScionDatagramSocket {
       return false;
     }
 
-    System.out.println("Scion header: " + scionHeader);
     if (scionHeader.pathType() == Constants.PathTypes.SCION) {
       offset = pathHeaderScion.read(data, offset);
-      System.out.println("Path header: " + pathHeaderScion);
     } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
       offset = pathHeaderOneHop.read(data, offset);
-      System.out.println("OneHop header: " + pathHeaderOneHop);
       return false;
     } else {
       throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
@@ -194,6 +202,7 @@ public class ScionDatagramSocket {
         System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
         return false;
       }
+      printHeaders();
 
       offset = pseudoHeaderUdp.read(data, offset);
       System.out.println(pseudoHeaderUdp);
