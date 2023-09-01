@@ -223,6 +223,7 @@ public class ScionHeader {
 
         // HostAddr
         offset = writeInt(data, offset, dstHost0);
+        System.out.println("Writing dstHost:" + Integer.toHexString(dstHost0));
         if (dl >= 1) {
             offset = writeInt(data, offset, dstHost1);
         }

@@ -111,4 +111,68 @@ public class ByteUtil {
     data[offset + 7] = (byte) (value & 0xFFL);
     return offset + 8;
   }
+
+  public static String printHeader(byte[] b) {
+    String NL = System.lineSeparator();
+    StringBuilder sb = new StringBuilder();
+    int pos = 0;
+    sb.append("Common Header").append(NL);
+    pos = printLine(sb, b, pos);
+    pos = printLine(sb, b, pos);
+    pos = printLine(sb, b, pos);
+    sb.append("Address Header").append(NL);
+    pos = printLine(sb, b, pos);
+    pos = printLine(sb, b, pos);
+    pos = printLine(sb, b, pos);
+    pos = printLine(sb, b, pos);
+    int dl = readInt(b[9] << 16, 10, 2);
+    int sl = readInt(b[9] << 16, 14, 2);
+    sb.append("  DstHostAddr").append(NL);
+    for (int i = 0; i < dl + 1; i++) {
+      pos = printLine(sb, b, pos);
+    }
+    sb.append("  SrcHostAddr").append(NL);
+    for (int i = 0; i < sl + 1; i++) {
+      pos = printLine(sb, b, pos);
+    }
+    sb.append("Path Header").append(NL);
+    int segLen0 = readInt(readInt(b, pos), 14, 6);
+      int segLen1 = readInt(readInt(b, pos), 20, 6);
+      int segLen2 = readInt(readInt(b, pos), 26, 6);
+      pos = printLine(sb, b, pos);
+    if (segLen0 > 0) {
+      sb.append("  SegInfo0").append(NL);
+      pos = printLine(sb, b, pos);
+      pos = printLine(sb, b, pos);
+    }
+    if (segLen1 > 0) {
+      sb.append("  SegInfo1").append(NL);
+      pos = printLine(sb, b, pos);
+      pos = printLine(sb, b, pos);
+    }
+    if (segLen2 > 0) {
+      sb.append("  SegInfo2").append(NL);
+      pos = printLine(sb, b, pos);
+      pos = printLine(sb, b, pos);
+    }
+    for (int i = 0; i < segLen0 + segLen1 + segLen2; i++) {
+      sb.append("  HopField ").append(i).append(NL);
+      pos = printLine(sb, b, pos);
+      pos = printLine(sb, b, pos);
+      pos = printLine(sb, b, pos);
+    }
+
+    return sb.toString();
+  }
+
+  private static int printLine(StringBuilder sb, byte[] b, int pos) {
+    String NL = System.lineSeparator();
+    sb.append(String.format("%02d", pos) + "-" + String.format("%02d", pos + 3) + "  ");
+    for (int i =0; i < 4; i++) {
+      sb.append(String.format("%02x", Byte.toUnsignedInt(b[pos + i])));
+      sb.append(" ");
+    }
+    sb.append(NL);
+    return pos + 4;
+  }
 }

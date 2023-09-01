@@ -73,7 +73,7 @@ public class HopField {
         i0 = writeBool(i0, 6, flagI);
         i0 = writeBool(i0, 7, flagE);
         i0 = writeInt(i0, 8, 8, expiryTime);
-        i0 = writeInt(i0, 16, 8, consIngress);
+        i0 = writeInt(i0, 16, 16, consIngress);
         l1 = writeLong(l1, 0, 16, consEgress);
         l1 = writeLong(l1, 16, 48, mac);
         offset = writeInt(data, offset, i0);

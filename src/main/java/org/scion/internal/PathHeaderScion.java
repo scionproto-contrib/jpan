@@ -141,7 +141,7 @@ public class PathHeaderScion {
         }
 
         for (int i = 0; i < seg0Len + seg1Len + seg2Len; i++) {
-            offset = hops[nHops].write(data, offset);
+            offset = hops[i].write(data, offset);
         }
 
         return offset;
@@ -206,20 +206,21 @@ public class PathHeaderScion {
         return len;
     }
 
-    private void reset() {
-        currINF = 0;
-        currHF = 0;
-        reserved = 0;
-        seg0Len = 0;
-        seg1Len = 0;
-        seg2Len = 0;
-        info0.reset();
-        info1.reset();
-        info2.reset();
-        for (int i = 0; i < hops.length; i++)
-            hops[i].reset();
-        nHops = 0;
+  private void reset() {
+    currINF = 0;
+    currHF = 0;
+    reserved = 0;
+    seg0Len = 0;
+    seg1Len = 0;
+    seg2Len = 0;
+    info0.reset();
+    info1.reset();
+    info2.reset();
+    for (int i = 0; i < hops.length; i++) {
+      hops[i].reset();
     }
+    nHops = 0;
+  }
 
     public void setPath(List<Daemon.Path> paths) {
         System.out.println("Paths found: " + paths.size());
