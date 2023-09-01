@@ -167,7 +167,6 @@ public class ScionDatagramSocket {
     //    }
     //    System.out.println();
     int offset = scionHeader.read(data, 0);
-    System.out.println("OFFSET 1 = " + offset);
     if (scionHeader.getDT() != 0) {
       System.out.println(
           "PACKET DROPPED: service address="
@@ -176,17 +175,10 @@ public class ScionDatagramSocket {
               + scionHeader.getDT());
       return false;
     }
-    //    if (p.getLength() == 103) {
-    //      if (!addressHeader.getDstHostAddress().isAnyLocalAddress()) {
-    //        System.out.println("PACKET DROPPED: dstHost=" + addressHeader.getDstHostAddress());
-    //        return false;
-    //      }
-    //    }
 
     System.out.println("Scion header: " + scionHeader);
     if (scionHeader.pathType() == 1) {
       offset = pathHeaderScion.read(data, offset);
-      System.out.println("OFFSET 3 = " + offset);
       System.out.println("Path header: " + pathHeaderScion);
     } else if (scionHeader.pathType() == 2) {
       offset = pathHeaderOneHop.read(data, offset);
@@ -195,14 +187,12 @@ public class ScionDatagramSocket {
     } else {
       throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
     }
-    System.out.println(
-        "Payload: "
-            + (p.getLength() - offset)
-            + " (bytes left in header: "
-            + (scionHeader.hdrLenBytes() - offset)
-            + ")");
-    // offset += ???;
-    // readExtensionHeader(data, offset);
+//    System.out.println(
+//        "Payload: "
+//            + (p.getLength() - offset)
+//            + " (bytes left in header: "
+//            + (scionHeader.hdrLenBytes() - offset)
+//            + ")");
 
     // Pseudo header
     if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
@@ -236,7 +226,6 @@ public class ScionDatagramSocket {
       System.out.println("Packet: DROPPED unknown: " + scionHeader.nextHeader().name());
       return false;
     }
-    System.out.println("OFFSET 4 = " + offset);
 
     // TODO handle MAC in HopField?
     // TODO Handle checksum in PseudoHeader?
@@ -256,7 +245,7 @@ public class ScionDatagramSocket {
     if (p.getOffset() != 0) {
       throw new IllegalStateException("of=" + p.getOffset());
     }
-    System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" + socket.getLocalAddress());
+    // System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" + socket.getLocalAddress());
     int offset = scionHeader.write(p.getData(), userPacket, pathHeaderScion);
     offset = pathHeaderScion.write(p.getData(), offset);
     offset = pseudoHeaderUdp.write(p.getData(), offset, userPacket.getLength());
@@ -265,8 +254,8 @@ public class ScionDatagramSocket {
     System.arraycopy(
         userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
     p.setLength(offset + userPacket.getLength());
-    System.out.println(
-            "length: " + offset + " + " + userPacket.getLength() + "   vs  " + p.getData().length + "  -> " + p.getLength());
+//    System.out.println(
+//            "length: " + offset + " + " + userPacket.getLength() + "   vs  " + p.getData().length + "  -> " + p.getLength());
 
 
     // First hop
@@ -275,7 +264,6 @@ public class ScionDatagramSocket {
     p.setPort(31012);  // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
     p.setAddress(underlayAddress);
     pathState = PathState.RCV_PATH;
-    System.out.println("Sending to: " + underlayAddress + " : " + underlayPort);
-    System.out.println("Could send to: " + socket.getInetAddress() + " : " + socket.getPort());
+    System.out.println("Sending to underlay: " + underlayAddress + " : " + underlayPort);
   }
 }

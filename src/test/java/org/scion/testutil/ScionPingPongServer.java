@@ -47,7 +47,7 @@ public class ScionPingPongServer {
             //      -> Copy is alright, but high performance user may want a a way to avoid the copy....
             //      -> Make this configurable via OPTIONS?
             DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
-            System.out.println("service - 1"); // TODO
+            System.out.println("--- USER - Waiting for packet ----------------------");
             socket.receive(request);
 //            for (int i = 0; i < request.getLength(); i++) {
 //                System.out.print(Integer.toHexString(Byte.toUnsignedInt(request.getData()[request.getOffset() + i])) + ", ");
@@ -58,13 +58,12 @@ public class ScionPingPongServer {
 
             byte[] buffer = ("Re: " + msg).getBytes();
 
-            System.out.println("service - 3"); // TODO
             InetAddress clientAddress = request.getAddress();
             int clientPort = request.getPort();
 
-            System.out.println("service - 4"); // TODO
             //DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
             // IPv6 border router port???
+            System.out.println("--- USER - Sending packet ----------------------");
             DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 31012);
             socket.send(response);
         }
