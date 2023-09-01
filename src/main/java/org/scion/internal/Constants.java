@@ -16,43 +16,16 @@ package org.scion.internal;
 
 public interface Constants {
 
-//    static <E extends ParseEnum<?>> E parse(Class<E> e, int code) {
-//        for (int i = 0; i < HdrTypes.values().length; i++) {
-//            ParseEnum<?> pe = e.getEnumConstants()[i];
-//            if (pe.code() == code) {
-//                return (E) pe;
-//            }
-//        }
-//        throw new IllegalArgumentException("Unknown code: " + code);
-//    }
-//    static <E extends Enum<E>> E parse(E[] e, int code) {
-//        for (int i = 0; i < HdrTypes.values().length; i++) {
-//            ParseEnum pe = e[i];
-//            if (pe.code() == code) {
-//                return pe;
-//            }
-//        }
-//        throw new IllegalArgumentException("Unknown code: " + code);
-//    }
-
-
-    interface ParseEnum<E extends Enum<E>> {
+    interface ParseEnum {
 
         int code();
 
-//        default E parse2(int code) {
-//            for (int i = 0; i < HdrTypes.values().length; i++) {
-//                if (((Enum<E>)this).values()[i].code == code) {
-//                    return HdrTypes.values()[i];
-//                }
-//            }
-//            throw new IllegalArgumentException("Unknown code: " + code);
-//        }
-        static <E extends ParseEnum<?>> E parse(Class<E> e, int code) {
-            for (int i = 0; i < HdrTypes.values().length; i++) {
-                ParseEnum<?> pe = e.getEnumConstants()[i];
+        static <E extends ParseEnum> E parse(Class<E> e, int code) {
+            E[] values = e.getEnumConstants();
+            for (int i = 0; i < values.length; i++) {
+                E pe = values[i];
                 if (pe.code() == code) {
-                    return (E) pe;
+                    return pe;
                 }
             }
             throw new IllegalArgumentException("Unknown code: " + code);
@@ -60,7 +33,7 @@ public interface Constants {
 
     }
 
-  enum PathTypes implements ParseEnum<PathTypes> {
+  enum PathTypes implements ParseEnum {
     Empty(0),
     SCION(1),
     OneHop(2),
@@ -84,7 +57,7 @@ public interface Constants {
   }
 
   // -- This is a combination of address type and length
-  enum AddrTypes implements ParseEnum<AddrTypes> {
+  enum AddrTypes implements ParseEnum {
     IPv4(0x0), //   [0x0] = "IPv4", -- 0000
     SVC(0x4), // [0x4] = "SVC",  -- 0100
     IPv(0x3); // [0x3] = "IPv6", -- 0011
@@ -105,7 +78,7 @@ public interface Constants {
       }
   }
 
-  enum HdrTypes implements ParseEnum<HdrTypes> {
+  enum HdrTypes implements ParseEnum {
     UDP(17),
     HOP_BY_HOP(200),
     END_TO_END(201),

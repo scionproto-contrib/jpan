@@ -83,7 +83,7 @@ public class ScionSCMPHeader {
   //                '}';
   //    }
 
-  public enum ScmpType implements Constants.ParseEnum<ScmpType> {
+  public enum ScmpType implements Constants.ParseEnum {
     // SCMP error messages:
 
     E1(1,"Destination Unreachable"),
