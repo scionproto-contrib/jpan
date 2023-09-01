@@ -14,10 +14,11 @@
 
 package org.scion;
 
+import static org.scion.internal.Constants.*;
+
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
-
 import org.scion.internal.*;
 import org.scion.proto.daemon.Daemon;
 
@@ -162,10 +163,6 @@ public class ScionDatagramSocket {
   private boolean readScionHeader(DatagramPacket p, DatagramPacket userPacket) throws IOException {
     // TODO See which checks we have to perform from the list in the book p118 (BR ingress)
     byte[] data = p.getData();
-    //    for (int i = 0; i < p.getLength(); i++) {
-    //      System.out.print(data[i] + ", ");
-    //    }
-    //    System.out.println();
     int offset = scionHeader.read(data, 0);
     if (scionHeader.getDT() != 0) {
       System.out.println(
@@ -177,26 +174,22 @@ public class ScionDatagramSocket {
     }
 
     System.out.println("Scion header: " + scionHeader);
-    if (scionHeader.pathType() == 1) {
+    if (scionHeader.pathType() == Constants.PathTypes.SCION) {
       offset = pathHeaderScion.read(data, offset);
       System.out.println("Path header: " + pathHeaderScion);
-    } else if (scionHeader.pathType() == 2) {
+    } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
       offset = pathHeaderOneHop.read(data, offset);
       System.out.println("OneHop header: " + pathHeaderOneHop);
       return false;
     } else {
       throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
     }
-//    System.out.println(
-//        "Payload: "
-//            + (p.getLength() - offset)
-//            + " (bytes left in header: "
-//            + (scionHeader.hdrLenBytes() - offset)
-//            + ")");
 
     // Pseudo header
-    if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
+    if (scionHeader.nextHeader() == HdrTypes.UDP) {
       // TODO ! How can we properly filter out unwanted packets???
+      // These are probably answers to polling/keep-alive packets sent from the dispatcher, but the dispatcher
+      // can´t receive them due to pert forwarding to 40041 so the dispatcher keeps requesting them.
       if (!scionHeader.getDstHostAddress().isLoopbackAddress()) {
         System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
         return false;
@@ -204,14 +197,14 @@ public class ScionDatagramSocket {
 
       offset = pseudoHeaderUdp.read(data, offset);
       System.out.println(pseudoHeaderUdp);
-    } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
+    } else if (scionHeader.nextHeader() == HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");
       return false;
-    } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
+    } else if (scionHeader.nextHeader() == HdrTypes.END_TO_END) {
       System.out.println("Packet EndToEnd");
       ScionEndToEndExtensionHeader e2eHeader = new ScionEndToEndExtensionHeader();
       offset = e2eHeader.read(data, offset);
-      if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
+      if (e2eHeader.nextHdr() == HdrTypes.SCMP) {
         ScionSCMPHeader scmpHdr = new ScionSCMPHeader();
         offset = scmpHdr.read(data, offset);
         System.out.println("SCMP:");

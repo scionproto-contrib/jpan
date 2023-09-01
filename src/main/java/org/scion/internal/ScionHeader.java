@@ -316,8 +316,8 @@ public class ScionHeader {
         return hdrLenBytes;
     }
 
-    public int pathType() {
-        return pathType;
+    public Constants.PathTypes pathType() {
+        return Constants.PathTypes.parse(pathType);
     }
 
     public int getDT() {

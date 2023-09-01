@@ -60,7 +60,7 @@ public interface Constants {
 
     }
 
-  enum PathTypes {
+  enum PathTypes implements ParseEnum<PathTypes> {
     Empty(0),
     SCION(1),
     OneHop(2),
@@ -72,10 +72,19 @@ public interface Constants {
     PathTypes(int code) {
       this.code = code;
     }
+
+      public static PathTypes parse(int code) {
+          return Constants.ParseEnum.parse(PathTypes.class, code);
+      }
+
+      @Override
+      public int code() {
+          return code;
+      }
   }
 
   // -- This is a combination of address type and length
-  enum AddrTypes {
+  enum AddrTypes implements ParseEnum<AddrTypes> {
     IPv4(0x0), //   [0x0] = "IPv4", -- 0000
     SVC(0x4), // [0x4] = "SVC",  -- 0100
     IPv(0x3); // [0x3] = "IPv6", -- 0011
@@ -85,9 +94,18 @@ public interface Constants {
     AddrTypes(int code) {
       this.code = code;
     }
+
+      public static AddrTypes parse(int code) {
+          return Constants.ParseEnum.parse(AddrTypes.class, code);
+      }
+
+      @Override
+      public int code() {
+          return code;
+      }
   }
 
-  enum HdrTypes implements Constants.ParseEnum<HdrTypes> {
+  enum HdrTypes implements ParseEnum<HdrTypes> {
     UDP(17),
     HOP_BY_HOP(200),
     END_TO_END(201),
