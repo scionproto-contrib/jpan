@@ -182,11 +182,6 @@ public class ScionDatagramSocket {
     //        return false;
     //      }
     //    }
-    // TODO ! How can we properly filter out unwanted packets???
-    if (!scionHeader.getDstHostAddress().isLoopbackAddress()) {
-      System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
-      return false;
-    }
 
     System.out.println("Scion header: " + scionHeader);
     if (scionHeader.pathType() == 1) {
@@ -210,8 +205,37 @@ public class ScionDatagramSocket {
     // readExtensionHeader(data, offset);
 
     // Pseudo header
-    offset = pseudoHeaderUdp.read(data, offset);
-    System.out.println(pseudoHeaderUdp);
+    if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
+      // TODO ! How can we properly filter out unwanted packets???
+      if (!scionHeader.getDstHostAddress().isLoopbackAddress()) {
+        System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
+        return false;
+      }
+
+      offset = pseudoHeaderUdp.read(data, offset);
+      System.out.println(pseudoHeaderUdp);
+    } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
+      System.out.println("Packet: DROPPED: SCMP");
+      return false;
+    } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
+      System.out.println("Packet EndToEnd");
+      ScionEndToEndExtensionHeader e2eHeader = new ScionEndToEndExtensionHeader();
+      offset = e2eHeader.read(data, offset);
+      if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
+        ScionSCMPHeader scmpHdr = new ScionSCMPHeader();
+        offset = scmpHdr.read(data, offset);
+        System.out.println("SCMP:");
+        System.out.println("    type: " + scmpHdr.getType().getText());
+        System.out.println("    code: " + scmpHdr.getCode());
+      } else {
+        System.out.println("Packet: DROPPED not implemented: " + scionHeader.nextHeader().name());
+        return false;
+      }
+      return false;
+    } else {
+      System.out.println("Packet: DROPPED unknown: " + scionHeader.nextHeader().name());
+      return false;
+    }
     System.out.println("OFFSET 4 = " + offset);
 
     // TODO handle MAC in HopField?

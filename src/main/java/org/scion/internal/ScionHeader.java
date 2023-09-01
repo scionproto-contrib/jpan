@@ -405,4 +405,9 @@ public class ScionHeader {
             throw new UnsupportedOperationException("Dst address not supported: DT/DL=" + dt + "/" + dl);
         }
         return InetAddress.getByAddress(bytes);
-    }}
+    }
+
+    public Constants.HdrTypes nextHeader() {
+        return Constants.HdrTypes.parse(nextHeader);
+    }
+}
