@@ -31,6 +31,7 @@ public class ScionDatagramSocket {
    */
 
   private final DatagramSocket socket;
+  // TODO respect MTU; report MTU to user (?); test!!!
   // TODO use ByteBuffer to manage offset etc?
   private final byte[] buf = new byte[65535 - 28]; // -28 for 8 byte UDP + 20 byte IP header
   private final ScionHeader scionHeader = new ScionHeader();
@@ -43,6 +44,7 @@ public class ScionDatagramSocket {
   // TODO provide ports etc?  Allow separate instances for different sockets?
   // TODO create lazily to prevent network connections before we create any actual DatagramSocket?
   private DaemonClient pathService;
+  // TODO remove?
   private InetAddress localAddress;
   private int localPort;
   private long srcIA;
