@@ -27,5 +27,12 @@ public class Demo {
         // API for PathService
         // TODO rename
         DaemonClient pathService;
+
+
+        // TODO -- TCP
+
+        // TODO -- HTTP
+        // Java 11: HTTPClient
+        // Apache HttpClient, OkHttpClient, Spring WebClient ???
     }
 }
