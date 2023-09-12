@@ -6,7 +6,7 @@
         <!-- Checks for imports                              -->
         <!-- See http://checkstyle.sf.net/config_import.html -->
         <module name="AvoidStarImport">
-            <property name="excludes" value="java.io,java.util,io.grpc,org.junit.jupiter.api.Assertions"/>
+            <property name="excludes" value="java.io,java.util,java.net,io.grpc,org.junit.jupiter.api.Assertions, org.scion.internal.ByteUtil"/>
 <!--            <property name="severity" value="warning" />-->
         </module>
     </module>

@@ -14,13 +14,19 @@
 
 package org.scion;
 
-import static org.scion.internal.Constants.*;
-
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
-import org.scion.internal.*;
+
+import org.scion.internal.Constants;
+import org.scion.internal.PathHeaderOneHopPath;
+import org.scion.internal.PathHeaderScion;
+import org.scion.internal.PseudoHeader;
+import org.scion.internal.ScionEndToEndExtensionHeader;
+import org.scion.internal.ScionHeader;
+import org.scion.internal.ScionSCMPHeader;
 import org.scion.proto.daemon.Daemon;
+
 
 public class ScionDatagramSocket {
   /*
@@ -196,7 +202,7 @@ public class ScionDatagramSocket {
     }
 
     // Pseudo header
-    if (scionHeader.nextHeader() == HdrTypes.UDP) {
+    if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
       // TODO ! How can we properly filter out unwanted packets???
       // These are probably answers to polling/keep-alive packets sent from the dispatcher, but the dispatcher
       // can´t receive them due to pert forwarding to 40041 so the dispatcher keeps requesting them.
@@ -208,14 +214,14 @@ public class ScionDatagramSocket {
 
       offset = pseudoHeaderUdp.read(data, offset);
       System.out.println(pseudoHeaderUdp);
-    } else if (scionHeader.nextHeader() == HdrTypes.SCMP) {
+    } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");
       return false;
-    } else if (scionHeader.nextHeader() == HdrTypes.END_TO_END) {
+    } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
       System.out.println("Packet EndToEnd");
       ScionEndToEndExtensionHeader e2eHeader = new ScionEndToEndExtensionHeader();
       offset = e2eHeader.read(data, offset);
-      if (e2eHeader.nextHdr() == HdrTypes.SCMP) {
+      if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
         ScionSCMPHeader scmpHdr = new ScionSCMPHeader();
         offset = scmpHdr.read(data, offset);
         System.out.println("SCMP:");
