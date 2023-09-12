@@ -63,6 +63,9 @@ public class ScionDatagramSocket {
   }
 
   public ScionDatagramSocket() throws SocketException {
+    // TODO consider extending DatagramSocket. See also deprecation mote here:
+    //      https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+
     this.socket = new DatagramSocket();
     System.out.println("Creating socket with src = " + socket.getLocalAddress() + " : " + socket.getLocalPort());
   }
@@ -132,7 +135,7 @@ public class ScionDatagramSocket {
           pathHeaderScion.setPath(path);
 
           pathState = PathState.SEND_PATH;
-          // break;
+          break;
         }
       case RCV_PATH:
         {

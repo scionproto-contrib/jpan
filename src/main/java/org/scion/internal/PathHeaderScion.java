@@ -17,6 +17,8 @@ package org.scion.internal;
 import org.scion.Util;
 import org.scion.proto.daemon.Daemon;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -223,6 +225,8 @@ public class PathHeaderScion {
   }
 
     public void setPath(List<Daemon.Path> paths) {
+        // TODO reset() necessary???
+
         System.out.println("Paths found: " + paths.size());
         for (Daemon.Path path : paths) {
             System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
@@ -243,6 +247,25 @@ public class PathHeaderScion {
                 System.out.println("    hop: " + i + ": " + hop);
             }
         }
+
+
+        int selectedPathId = 0; // TODO allow configuration!
+        Daemon.Path selectedPath = paths.get(selectedPathId);
+
+        // first router
+        String underlayAddressString = selectedPath.getInterface().getAddress().getAddress();
+        InetAddress underlayAddress;
+        int underlayPort;
+        try {
+            int splitIndex = underlayAddressString.indexOf(':');
+            underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+            underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+        } catch (UnknownHostException e) {
+            // TODO throw IOException?
+            throw new RuntimeException(e);
+        }
+        System.out.println("IP-underlay=" + underlayAddress + "   " + underlayPort);
+
 
         // TODO Can we get the Underlay from  path.getInterface().getAddress().getAddress(), see above?
         //     otherwise, see next TODO

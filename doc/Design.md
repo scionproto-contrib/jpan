@@ -22,6 +22,12 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 
 ## DatagramSocket
 
+- Java 15 has a new Implementation based on NIO, see https://openjdk.org/jeps/373
+  - If Java 8's NIO is sufficient, we can follow the same approach as Java 15.
+    Otherwise we can (as proposed in JEP 373) wrap around an old DatagramSocket and use
+    the nio implementation only when it is available (running on JDK 15 or later).
+    See also deprecation note: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+
 - **Copy buffers?** We copy a packet's data array do a new DataGramPacket for the user.
   The alternative would be to use offset/length, however, this would not be really
   pluggable because user would need respect SCION header sizes when creating buffers for packets.
