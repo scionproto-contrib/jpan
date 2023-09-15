@@ -68,7 +68,7 @@ public class HeaderComposerTest {
     // Socket internal - compose header data
     DaemonClient pathService = DaemonClient.create();
     long srcIA = pathService.getLocalIsdAs();
-    List<Daemon.Path> path = pathService.getPath(srcIA, dstIA);
+    Daemon.Path path = pathService.getPath(srcIA, dstIA).get(0);
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.2");
@@ -76,7 +76,7 @@ public class HeaderComposerTest {
     scionHeader.setDstHostAddress(userPacket.getAddress());
 
     // Socket internal = write header
-    int offset = scionHeader.write(data, userPacket.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+    int offset = scionHeader.write(data, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
     assertEquals(1, scionHeader.pathType().code());
     offset = pathHeaderScion.writePath(data, offset, path);
 
@@ -108,7 +108,7 @@ public class HeaderComposerTest {
               + " - "
               + Integer.toHexString(Byte.toUnsignedInt(data[i])));
       if (i == 5) {
-        continue; // TODO remove
+     //   continue; // TODO remove
       }
       if (i >= 54 && i <= 59) {
         // ignore segID field and timestamp.

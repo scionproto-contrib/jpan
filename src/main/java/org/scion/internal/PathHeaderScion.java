@@ -225,49 +225,11 @@ public class PathHeaderScion {
     nHops = 0;
   }
 
-    public int writePath(byte[] data, int offsetStart, List<Daemon.Path> paths) {
+    public int writePath(byte[] data, int offsetStart, Daemon.Path path) {
         // TODO reset() necessary??? -> info fields !??!?!?
         currINF = 0;
         currHF = 0;
 
-        System.out.println("Paths found: " + paths.size());
-        for (Daemon.Path path : paths) {
-            System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
-            System.out.println("Path: interface = " + path.getInterface().getAddress().getAddress());
-            int i = 0;
-            for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
-                System.out.println(
-                        "    pathIf: "
-                                + i
-                                + ": "
-                                + pathIf.getId()
-                                + " "
-                                + pathIf.getIsdAs()
-                                + "  "
-                                + Util.toStringIA(pathIf.getIsdAs()));
-            }
-            for (int hop : path.getInternalHopsList()) {
-                System.out.println("    hop: " + i + ": " + hop);
-            }
-        }
-
-
-        int selectedPathId = 0; // TODO allow configuration!
-        Daemon.Path selectedPath = paths.get(selectedPathId);
-
-        // first router
-        String underlayAddressString = selectedPath.getInterface().getAddress().getAddress();
-        InetAddress underlayAddress;
-        int underlayPort;
-        try {
-            int splitIndex = underlayAddressString.indexOf(':');
-            underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
-            underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
-        } catch (UnknownHostException e) {
-            // TODO throw IOException?
-            throw new RuntimeException(e);
-        }
-        System.out.println("IP-underlay=" + underlayAddress + "   " + underlayPort);
 
 
         // TODO Can we get the Underlay from  path.getInterface().getAddress().getAddress(), see above?
@@ -277,26 +239,26 @@ public class PathHeaderScion {
         // TODO we get "id" from the pathInterfaces?
 
         // TODO is this correct? Max path size == 3?
-        if (paths.size() >= 1) {
-            info0.set(paths.get(0));
-            seg0Len = paths.get(0).getInternalHopsCount();
-            nHops = paths.get(0).getInterfacesCount(); // TODO what about internalHops?
-        }
-        if (paths.size() >= 2) {
-            info0.set(paths.get(1));
-            seg0Len = paths.get(1).getInternalHopsCount();
-            nHops += paths.get(1).getInterfacesCount();
-        }
-        if (paths.size() >= 3) {
-            info0.set(paths.get(2));
-            seg0Len = paths.get(2).getInternalHopsCount();
-            nHops += paths.get(2).getInterfacesCount();
-        }
+//        if (paths.size() >= 1) {
+//            info0.set(paths.get(0));
+//            seg0Len = paths.get(0).getInternalHopsCount();
+//            nHops = paths.get(0).getInterfacesCount(); // TODO what about internalHops?
+//        }
+//        if (paths.size() >= 2) {
+//            info0.set(paths.get(1));
+//            seg0Len = paths.get(1).getInternalHopsCount();
+//            nHops += paths.get(1).getInterfacesCount();
+//        }
+//        if (paths.size() >= 3) {
+//            info0.set(paths.get(2));
+//            seg0Len = paths.get(2).getInternalHopsCount();
+//            nHops += paths.get(2).getInterfacesCount();
+//        }
 
 
 
         // write
-        ByteString bytes = paths.get(0).getRaw();
+        ByteString bytes = path.getRaw();
         for (int i = 0; i < bytes.size(); i++) {
             data[offsetStart + i] = bytes.byteAt(i);
         }

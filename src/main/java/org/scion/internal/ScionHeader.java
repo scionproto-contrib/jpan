@@ -193,7 +193,7 @@ public class ScionHeader {
         dstHost3 = d;
     }
 
-    public int write(byte[] data, int userPacketLength, PathHeaderScion pathHeader, Constants.PathTypes pathType) {
+    public int write(byte[] data, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
         this.pathType = pathType.code();
         int offset = 0;
         int i0 = 0;
@@ -204,7 +204,7 @@ public class ScionHeader {
         i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
         offset = writeInt(data, offset, i0);
         i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP PseudoHeader
-        int newHdrLen = (calcLen(pathHeader) - 1) / 4 + 1;
+        int newHdrLen = (calcLen(pathHeaderLength) - 1) / 4 + 1;
         i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
         i1 = writeInt(i1, 16, 16, userPacketLength + 8 ); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
         offset = writeInt(data, offset, i1);
@@ -247,7 +247,7 @@ public class ScionHeader {
     }
 
 
-    private int calcLen(PathHeaderScion pathHeader) {
+    private int calcLen(int pathHeaderLength) {
         // Common header
         int len = 12;
 
@@ -257,7 +257,7 @@ public class ScionHeader {
         len += (sl + 1) * 4;
 
         // Path header
-        len += pathHeader.length();
+        len += pathHeaderLength;
         return len;
     }
 

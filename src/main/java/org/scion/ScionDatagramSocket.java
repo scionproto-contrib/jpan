@@ -130,14 +130,16 @@ public class ScionDatagramSocket {
           if (srcIA == 0 || dstIA == 0) {
             throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
           }
-          List<Daemon.Path> path = pathService.getPath(srcIA, dstIA);
+          List<Daemon.Path> paths = pathService.getPath(srcIA, dstIA);
+          Daemon.Path path = paths.get(0); // Just pick the first path for now. // TODO
 
           scionHeader.setSrcIA(srcIA);
           scionHeader.setDstIA(dstIA);
           scionHeader.setSrcHostAddress(socket.getLocalAddress());
           scionHeader.setDstHostAddress(packet.getAddress());
+          setUnderlayAddress(path);
 
-          offset = scionHeader.write(outgoing.getData(),  packet.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+          offset = scionHeader.write(outgoing.getData(),  packet.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
           offset = pathHeaderScion.writePath(outgoing.getData(), offset, path);
           offset = pseudoHeaderUdp.write(outgoing.getData(), offset,  packet.getLength());
           pathState = PathState.SEND_PATH;
@@ -264,7 +266,7 @@ public class ScionDatagramSocket {
       throw new IllegalStateException("of=" + p.getOffset());
     }
     // System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" + socket.getLocalAddress());
-    int offset = scionHeader.write(p.getData(), userPacketLength, pathHeaderScion, Constants.PathTypes.SCION);
+    int offset = scionHeader.write(p.getData(), userPacketLength, pathHeaderScion.length(), Constants.PathTypes.SCION);
     offset = pathHeaderScion.write(p.getData(), offset);
     offset = pseudoHeaderUdp.write(p.getData(), offset, userPacketLength);
     return offset;
@@ -286,5 +288,66 @@ public class ScionDatagramSocket {
     p.setAddress(underlayAddress);
     pathState = PathState.RCV_PATH;
     System.out.println("Sending to underlay: " + underlayAddress + " : " + underlayPort);
+  }
+
+
+
+  // TODO move somewhere else or remove
+  private void printPath(List<Daemon.Path> paths) {
+    System.out.println("Paths found: " + paths.size());
+    for (Daemon.Path path : paths) {
+      System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
+      System.out.println("Path: interface = " + path.getInterface().getAddress().getAddress());
+      int i = 0;
+      for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
+        System.out.println(
+                "    pathIf: "
+                        + i
+                        + ": "
+                        + pathIf.getId()
+                        + " "
+                        + pathIf.getIsdAs()
+                        + "  "
+                        + Util.toStringIA(pathIf.getIsdAs()));
+      }
+      for (int hop : path.getInternalHopsList()) {
+        System.out.println("    hop: " + i + ": " + hop);
+      }
+    }
+
+
+    int selectedPathId = 0; // TODO allow configuration!
+    Daemon.Path selectedPath = paths.get(selectedPathId);
+
+    // first router
+    String underlayAddressString = selectedPath.getInterface().getAddress().getAddress();
+    InetAddress underlayAddress;
+    int underlayPort;
+    try {
+      int splitIndex = underlayAddressString.indexOf(':');
+      underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+      underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+    } catch (UnknownHostException e) {
+      // TODO throw IOException?
+      throw new RuntimeException(e);
+    }
+    System.out.println("IP-underlay=" + underlayAddress + "   " + underlayPort);
+
+  }
+
+  private void setUnderlayAddress(Daemon.Path path) {
+    // first router
+    String underlayAddressString = path.getInterface().getAddress().getAddress();
+    //InetAddress underlayAddress;
+    //int underlayPort;
+    try {
+      int splitIndex = underlayAddressString.indexOf(':');
+      underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+      underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+    } catch (UnknownHostException e) {
+      // TODO throw IOException?
+      throw new RuntimeException(e);
+    }
+    System.out.println("Setting IP-underlay=" + underlayAddress + "   " + underlayPort);
   }
 }

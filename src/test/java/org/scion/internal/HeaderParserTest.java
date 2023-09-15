@@ -102,7 +102,7 @@ public class HeaderParserTest {
     scionHeader.setSrcHostAddress(srcAddress);
     int writeOffset =
         scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
 
@@ -115,13 +115,13 @@ public class HeaderParserTest {
     assertEquals(offset, writeOffset);
     assertArrayEquals(data, newData);
 
-    // After reversing they should not be equal
+    // After reversing, they should not be equal
     scionHeader.reverse();
     pathHeaderScion.reverse();
     // write
     writeOffset =
         scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
     assertFalse(Arrays.equals(data, newData));
@@ -132,7 +132,7 @@ public class HeaderParserTest {
     // write
     writeOffset =
         scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
     // Fix CurrInf which is "1" in the sample packet:
