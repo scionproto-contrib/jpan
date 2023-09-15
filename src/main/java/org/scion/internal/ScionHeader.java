@@ -193,7 +193,8 @@ public class ScionHeader {
         dstHost3 = d;
     }
 
-    public int write(byte[] data, DatagramPacket input, PathHeaderScion pathHeader) {
+    public int write(byte[] data, int userPacketLength, PathHeaderScion pathHeader, Constants.PathTypes pathType) {
+        this.pathType = pathType.code();
         int offset = 0;
         int i0 = 0;
         int i1 = 0;
@@ -205,7 +206,7 @@ public class ScionHeader {
         i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP PseudoHeader
         int newHdrLen = (calcLen(pathHeader) - 1) / 4 + 1;
         i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
-        i1 = writeInt(i1, 16, 16, input.getLength() + 8 ); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
+        i1 = writeInt(i1, 16, 16, userPacketLength + 8 ); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
         offset = writeInt(data, offset, i1);
         i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
         i2 = writeInt(i2, 8, 2, 0); // DT

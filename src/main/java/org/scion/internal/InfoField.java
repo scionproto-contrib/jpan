@@ -14,6 +14,11 @@
 
 package org.scion.internal;
 
+import org.scion.proto.daemon.Daemon;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import static org.scion.internal.ByteUtil.*;
 
 public class InfoField {
@@ -31,8 +36,8 @@ public class InfoField {
     private int reserved;
     // 16 bits : segID
     private int segID;
-    // 32 bits : timestamp
-    private int timestamp;
+    // 32 bits : timestamp (unsigned int)
+    private long timestamp;
 
     InfoField() {
 
@@ -55,7 +60,7 @@ public class InfoField {
         c = readBoolean(i0, 7);
         reserved = readInt(i0, 8, 8);
         segID = readInt(i0, 16, 16);
-        timestamp = i1;
+        timestamp = Integer.toUnsignedLong(i1);  // TODO test this, does it work correctly with signed/unsigned?
     }
 
     public int write(byte[] data, int offsetStart) {
@@ -68,7 +73,7 @@ public class InfoField {
         i0 = writeInt(i0, 8, 8, 0); // RSV
         i0 = writeInt(i0, 16, 16, segID);
         offset = writeInt(data, offset, i0);
-        offset = writeInt(data, offset, timestamp);
+        offset = writeUnsignedInt(data, offset, timestamp);
         return offset;
     }
 
@@ -94,7 +99,7 @@ public class InfoField {
                 ", C=" + c +
                 ", reserved=" + reserved +
                 ", segID=" + segID +
-                ", timestamp=" + Integer.toUnsignedString(timestamp) +
+                ", timestamp=" + Long.toUnsignedString(timestamp) +
                 '}';
     }
 
@@ -111,5 +116,12 @@ public class InfoField {
         reserved = 0;
         segID = 0;
         timestamp = 0;
+    }
+
+    public void set(Daemon.Path path) {
+        p = false; // TODO
+        c = true; // TODO
+        this.timestamp = path.getExpiration().getSeconds();
+        this.segID = 12345; // TODO !!!!!
     }
 }

@@ -14,6 +14,8 @@
 
 package org.scion.internal;
 
+import org.scion.proto.daemon.Daemon;
+
 import static org.scion.internal.ByteUtil.*;
 public class HopField {
 

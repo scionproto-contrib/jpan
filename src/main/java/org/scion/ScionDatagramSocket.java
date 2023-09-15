@@ -110,6 +110,11 @@ public class ScionDatagramSocket {
   public synchronized void send(DatagramPacket packet) throws IOException {
     // synchronized because we use `buffer`
     // TODO request new path after a while?
+
+    // TODO use local field Datagram Packer?!
+    DatagramPacket outgoing = new DatagramPacket(buf, buf.length);
+    int offset = 0;
+
     switch (pathState) {
       case NO_PATH:
         {
@@ -132,8 +137,9 @@ public class ScionDatagramSocket {
           scionHeader.setSrcHostAddress(socket.getLocalAddress());
           scionHeader.setDstHostAddress(packet.getAddress());
 
-          pathHeaderScion.setPath(path);
-
+          offset = scionHeader.write(outgoing.getData(),  packet.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+          offset = pathHeaderScion.writePath(outgoing.getData(), offset, path);
+          offset = pseudoHeaderUdp.write(outgoing.getData(), offset,  packet.getLength());
           pathState = PathState.SEND_PATH;
           break;
         }
@@ -142,22 +148,21 @@ public class ScionDatagramSocket {
           scionHeader.reverse();
           pathHeaderScion.reverse();
           pseudoHeaderUdp.reverse();
+          offset = writeScionHeader(outgoing, packet.getLength());
           pathState = PathState.SEND_PATH;
           break;
         }
       case SEND_PATH:
         {
-          // Nothing to do
+          offset = writeScionHeader(outgoing, packet.getLength());
           break;
         }
       default:
         throw new IllegalStateException(pathState.name());
     }
 
-    // TODO use local field Datagram Packer?!
-    DatagramPacket outgoing = new DatagramPacket(buf, buf.length);
-    writeScionHeader(outgoing, packet);
-
+    // TODO rename & split? writePayload() + sendPacket() ?
+    sendScionPacket(offset, outgoing, packet);
     System.out.println("Sending packet: " + outgoing.getSocketAddress() + " : " + outgoing.getLength() + "/" + outgoing.getOffset() + "/" + outgoing.getData().length);
 
     socket.send(outgoing);
@@ -253,16 +258,19 @@ public class ScionDatagramSocket {
     return true;
   }
 
-  private void writeScionHeader(DatagramPacket p, DatagramPacket userPacket) {
+  private int writeScionHeader(DatagramPacket p, int userPacketLength) {
     // TODO reset offset ?!?!?!?
     if (p.getOffset() != 0) {
       throw new IllegalStateException("of=" + p.getOffset());
     }
     // System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" + socket.getLocalAddress());
-    int offset = scionHeader.write(p.getData(), userPacket, pathHeaderScion);
+    int offset = scionHeader.write(p.getData(), userPacketLength, pathHeaderScion, Constants.PathTypes.SCION);
     offset = pathHeaderScion.write(p.getData(), offset);
-    offset = pseudoHeaderUdp.write(p.getData(), offset, userPacket.getLength());
+    offset = pseudoHeaderUdp.write(p.getData(), offset, userPacketLength);
+    return offset;
+  }
 
+  private void sendScionPacket(int offset, DatagramPacket p, DatagramPacket userPacket) {
     // build packet
     System.arraycopy(
         userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());

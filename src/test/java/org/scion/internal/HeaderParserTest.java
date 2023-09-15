@@ -82,7 +82,7 @@ public class HeaderParserTest {
 
     int offset = scionHeader.read(data, 0);
     // System.out.println("Common header: " + commonHeader);
-    assertEquals(1, scionHeader.pathType());
+    assertEquals(1, scionHeader.pathType().code());
 
     // System.out.println("Address header: " + addressHeader);
     offset = pathHeaderScion.read(data, offset);
@@ -94,19 +94,15 @@ public class HeaderParserTest {
     byte[] payload = new byte[data.length - offset];
     System.arraycopy(data, offset, payload, 0, payload.length);
 
-    //        // Reverse everything
-    //        commonHeader.reverse();
-    //        addressHeader.reverse();
-    //        pathHeaderScion.reverse();
-    //        pseudoHeaderUdp.reverse();
-
     // Send packet
     byte[] newData = new byte[data.length];
 
     DatagramPacket userInput = new DatagramPacket(payload, payload.length);
-    InetAddress srcAddress = Inet6Address.getByAddress(new byte[] {127, 0, 0, 1});  // TODO ????
+    InetAddress srcAddress = Inet6Address.getByAddress(new byte[] {127, 0, 0, 2});
     scionHeader.setSrcHostAddress(srcAddress);
-    int writeOffset = scionHeader.write(newData, userInput, pathHeaderScion);
+    int writeOffset =
+        scionHeader.write(
+            newData, userInput.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
 
@@ -116,33 +112,31 @@ public class HeaderParserTest {
     // Fix CurrInf which is "1" in the sample packet:
     newData[48] = 1;
 
-    // PathMeta start at 110!!
-
     assertEquals(offset, writeOffset);
-    //        for (int i = 0; i < data.length; i++) {
-    //            System.out.println("i=" + i + ":  " +
-    // Integer.toHexString(Byte.toUnsignedInt(data[i])) + " - " +
-    // Integer.toHexString(Byte.toUnsignedInt(newData[i])));
-    //        }
-    //
-    //
-    //        System.out.println(ByteUtil.printHeader(data));
-    //        System.out.println(ByteUtil.printHeader(newData));
-
     assertArrayEquals(data, newData);
 
-
-    // TODO
     // After reversing they should not be equal
     scionHeader.reverse();
     pathHeaderScion.reverse();
-    // TODO write
+    // write
+    writeOffset =
+        scionHeader.write(
+            newData, userInput.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+    writeOffset = pathHeaderScion.write(newData, writeOffset);
+    pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
     assertFalse(Arrays.equals(data, newData));
 
     // Reversing again -> equal again!
     scionHeader.reverse();
     pathHeaderScion.reverse();
-    // TODO write
+    // write
+    writeOffset =
+        scionHeader.write(
+            newData, userInput.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
+    writeOffset = pathHeaderScion.write(newData, writeOffset);
+    pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
+    // Fix CurrInf which is "1" in the sample packet:
+    newData[48] = 1;
     assertArrayEquals(data, newData);
   }
 }

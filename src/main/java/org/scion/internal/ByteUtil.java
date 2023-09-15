@@ -100,6 +100,14 @@ public class ByteUtil {
     return offset + 4;
   }
 
+  public static int writeUnsignedInt(byte[] data, int offset, long value) {
+    data[offset] = (byte) (value >>> 24);
+    data[offset + 1] = (byte) ((value >>> 16) & 0xFF);
+    data[offset + 2] = (byte) ((value >>> 8) & 0xFF);
+    data[offset + 3] = (byte) (value & 0xFF);
+    return offset + 4;
+  }
+
   public static int writeLong(byte[] data, int offset, long value) {
     data[offset] = (byte) (value >>> 56);
     data[offset + 1] = (byte) ((value >>> 48) & 0xFFL);

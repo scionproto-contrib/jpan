@@ -102,7 +102,7 @@ public class HeaderComposerTest {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     PseudoHeader pseudoHeaderUdp = new PseudoHeader();
-    byte[] data = packetBytes;
+    byte[] data = new byte[500];
 
     // User side
     String hostname = "::1";
@@ -115,7 +115,7 @@ public class HeaderComposerTest {
     ScionDatagramSocket socket = new ScionDatagramSocket();
     //socket.setDstIsdAs( "1-ff00:0:112");
     long dstIA = Util.ParseIA("1-ff00:0:112");
-    String msg = "Hello there!";
+    String msg = "Hello scion";
     byte[] sendBuf = msg.getBytes();
     DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, port);
 
@@ -129,16 +129,15 @@ public class HeaderComposerTest {
     DatagramSocket dummySocket = new DatagramSocket(port); // TODO same port??? Is that possioble?
     scionHeader.setSrcHostAddress(dummySocket.getLocalAddress());
     scionHeader.setDstHostAddress(userPacket.getAddress());
-    pathHeaderScion.setPath(path);
-
 
     // Socket internal = write header
-    int offset = scionHeader.write(data, userPacket, pathHeaderScion);
+    int offset = scionHeader.write(data, userPacket.getLength(), pathHeaderScion, Constants.PathTypes.SCION);
     // System.out.println("Common header: " + commonHeader);
-    assertEquals(1, scionHeader.pathType());
+    assertEquals(1, scionHeader.pathType().code());
 
     // System.out.println("Address header: " + addressHeader);
-    offset = pathHeaderScion.write(data, offset);
+    //offset = pathHeaderScion.write(data, offset);
+    offset = pathHeaderScion.writePath(data, offset, path);
 
     // Pseudo header
     offset = pseudoHeaderUdp.write(data, offset, userPacket.getLength());
@@ -156,7 +155,7 @@ public class HeaderComposerTest {
 
     // Socket internal - prepare send
     int underlayPort = -1;
-    InetAddress underlayAddress = InetAddress.getByName("Hello");
+    InetAddress underlayAddress = InetAddress.getByName("127.0.0.1"); // TODO ????????????
     // First hop
     // TODO ?!?!?!?!?!
     // p.setPort(underlayPort);
@@ -167,7 +166,6 @@ public class HeaderComposerTest {
     byte[] payload = new byte[data.length - offset];
     System.arraycopy(data, offset, payload, 0, payload.length);
 
-
     // -----------------------------------------------------------------------------------------------------------
 
     //        // Reverse everything
@@ -177,48 +175,36 @@ public class HeaderComposerTest {
     //        pseudoHeaderUdp.reverse();
 
     // Send packet
-//    byte[] newData = new byte[data.length];
-//
-//    DatagramPacket userInput = new DatagramPacket(payload, payload.length);
-//    InetAddress srcAddress = Inet6Address.getByAddress(new byte[] {127, 0, 0, 1});  // TODO ????
-//    scionHeader.setSrcHostAddress(srcAddress);
-//    int writeOffset = scionHeader.write(newData, userInput, pathHeaderScion);
-//    writeOffset = pathHeaderScion.write(newData, writeOffset);
-//    writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
-//
-//    // payload
-//    System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
+    //    byte[] newData = new byte[data.length];
+    //
+    //    DatagramPacket userInput = new DatagramPacket(payload, payload.length);
+    //    InetAddress srcAddress = Inet6Address.getByAddress(new byte[] {127, 0, 0, 1});  // TODO
+    // ????
+    //    scionHeader.setSrcHostAddress(srcAddress);
+    //    int writeOffset = scionHeader.write(newData, userInput, pathHeaderScion);
+    //    writeOffset = pathHeaderScion.write(newData, writeOffset);
+    //    writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
+    //
+    //    // payload
+    //    System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
 
     // Fix CurrInf which is "1" in the sample packet:
     // TODO payload[48] = 1;
 
     // PathMeta start at 110!!
 
-    //assertEquals(offset, writeOffset);
-    //        for (int i = 0; i < data.length; i++) {
-    //            System.out.println("i=" + i + ":  " +
-    // Integer.toHexString(Byte.toUnsignedInt(data[i])) + " - " +
-    // Integer.toHexString(Byte.toUnsignedInt(newData[i])));
-    //        }
-    //
-    //
-    //        System.out.println(ByteUtil.printHeader(data));
-    //        System.out.println(ByteUtil.printHeader(newData));
+    // assertEquals(offset, writeOffset);
+    for (int i = 0; i < data.length; i++) {
+      System.out.println("i=" + i + ":  "
+                  + Integer.toHexString(Byte.toUnsignedInt(packetBytes[i]))
+                  + " - "
+                  + Integer.toHexString(Byte.toUnsignedInt(data[i])));
+      if (i == 5) {
+        continue; // TODO remove
+      }
+      assertEquals(packetBytes[i], data[i]);
+    }
 
-    assertArrayEquals(data, payload);
-
-
-//    // TODO
-//    // After reversing they should not be equal
-//    scionHeader.reverse();
-//    pathHeaderScion.reverse();
-//    // TODO write
-//    assertFalse(Arrays.equals(data, newData));
-//
-//    // Reversing again -> equal again!
-//    scionHeader.reverse();
-//    pathHeaderScion.reverse();
-//    // TODO write
-//    assertArrayEquals(data, newData);
+    assertArrayEquals(packetBytes, data);
   }
 }
