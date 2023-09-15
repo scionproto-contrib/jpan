@@ -36,7 +36,7 @@ public class PseudoHeader {
         dstPort = readInt(i0, 16, 16);
         packetLength = readInt(i1, 0, 16);
         checkSum = readInt(i1, 16, 16);
-        // TODO validate checksum
+        // We do not validate the checksum
         return offset + 8;
     }
 
@@ -53,6 +53,19 @@ public class PseudoHeader {
         i0 = writeInt(i0, 16, 16, dstPort);
         i1 = writeInt(i1, 0, 16, packetLength + 8);
         i1 = writeInt(i1, 16, 16, checkSum);
+        offset = writeInt(data, offset, i0);
+        offset = writeInt(data, offset, i1);
+        return offset;
+    }
+
+    public int write(byte[] data, int offset, int packetLength, int srcPort, int dstPort) {
+        int i0 = 0;
+        int i1 = 0;
+        i0 = writeInt(i0, 0, 16, srcPort);
+        i0 = writeInt(i0, 16, 16, dstPort);
+        i1 = writeInt(i1, 0, 16, packetLength + 8);
+        checkSum = 0; // We do not check it.
+        i1 = write16(i1, 16, checkSum);
         offset = writeInt(data, offset, i0);
         offset = writeInt(data, offset, i1);
         return offset;

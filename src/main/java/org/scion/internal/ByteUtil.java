@@ -67,6 +67,11 @@ public class ByteUtil {
     return dst | mask;
   }
 
+  public static int write16(int dst, int bitOffset, int value) {
+    int mask = (value & 0xFFFF) << (32 - bitOffset - 16);
+    return dst | mask;
+  }
+
   public static int writeBool(int dst, int bitOffset, boolean value) {
     int mask = value ? 1 << (32 - 1 - bitOffset) : 0;
     return dst | mask;
