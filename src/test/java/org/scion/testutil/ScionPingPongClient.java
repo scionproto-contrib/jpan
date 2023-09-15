@@ -32,7 +32,9 @@ public class ScionPingPongClient {
                 byte[] sendBuf = msg.getBytes();
                 DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, address, port);
                 socket.send(request);
+                System.out.println("Sent!");
 
+                System.out.println("Receiving ...");
                 byte[] buffer = new byte[512];
                 DatagramPacket response = new DatagramPacket(buffer, buffer.length);
                 socket.receive(response);
