@@ -14,11 +14,9 @@
 
 package org.scion.internal;
 
-import java.util.zip.Checksum;
-
 import static org.scion.internal.ByteUtil.*;
 
-public class PseudoHeader {
+public class OverlayHeader {
 
     // 16 bit
     private int srcPort;

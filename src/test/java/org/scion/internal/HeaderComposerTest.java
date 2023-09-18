@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.scion.DaemonClient;
 import org.scion.Util;
@@ -48,7 +48,7 @@ public class HeaderComposerTest {
   public void testCompose() throws IOException {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
-    PseudoHeader pseudoHeaderUdp = new PseudoHeader();
+    OverlayHeader overlayHeaderUdp = new OverlayHeader();
     byte[] data = new byte[500];
     DatagramPacket p = new DatagramPacket(data, data.length);
 
@@ -81,8 +81,8 @@ public class HeaderComposerTest {
     offset = pathHeaderScion.writePath(data, offset, path);
 
     // Pseudo header
-    offset = pseudoHeaderUdp.write(data, offset, userPacket.getLength(), 100, dstPort);
-    System.out.println(pseudoHeaderUdp);
+    offset = overlayHeaderUdp.write(data, offset, userPacket.getLength(), 100, dstPort);
+    System.out.println(overlayHeaderUdp);
 
     System.arraycopy(userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
     p.setLength(offset + userPacket.getLength());

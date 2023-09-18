@@ -77,7 +77,7 @@ public class HeaderParserTest {
   public void testParse() throws IOException {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
-    PseudoHeader pseudoHeaderUdp = new PseudoHeader();
+    OverlayHeader overlayHeaderUdp = new OverlayHeader();
     byte[] data = packetBytes;
 
     int offset = scionHeader.read(data, 0);
@@ -88,8 +88,8 @@ public class HeaderParserTest {
     offset = pathHeaderScion.read(data, offset);
 
     // Pseudo header
-    offset = pseudoHeaderUdp.read(data, offset);
-    System.out.println(pseudoHeaderUdp);
+    offset = overlayHeaderUdp.read(data, offset);
+    System.out.println(overlayHeaderUdp);
 
     byte[] payload = new byte[data.length - offset];
     System.arraycopy(data, offset, payload, 0, payload.length);
@@ -104,7 +104,7 @@ public class HeaderParserTest {
         scionHeader.write(
             newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
-    writeOffset = pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
+    writeOffset = overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
 
     // payload
     System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
@@ -123,7 +123,7 @@ public class HeaderParserTest {
         scionHeader.write(
             newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
-    pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
+    overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
     assertFalse(Arrays.equals(data, newData));
 
     // Reversing again -> equal again!
@@ -134,7 +134,7 @@ public class HeaderParserTest {
         scionHeader.write(
             newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
-    pseudoHeaderUdp.write(newData, writeOffset, userInput.getLength());
+    overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
     // Fix CurrInf which is "1" in the sample packet:
     newData[48] = 1;
     assertArrayEquals(data, newData);

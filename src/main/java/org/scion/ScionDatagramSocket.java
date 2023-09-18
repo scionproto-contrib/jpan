@@ -21,7 +21,7 @@ import java.util.List;
 import org.scion.internal.Constants;
 import org.scion.internal.PathHeaderOneHopPath;
 import org.scion.internal.PathHeaderScion;
-import org.scion.internal.PseudoHeader;
+import org.scion.internal.OverlayHeader;
 import org.scion.internal.ScionEndToEndExtensionHeader;
 import org.scion.internal.ScionHeader;
 import org.scion.internal.ScionSCMPHeader;
@@ -42,7 +42,7 @@ public class ScionDatagramSocket {
   private final ScionHeader scionHeader = new ScionHeader();
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion();
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
-  private final PseudoHeader pseudoHeaderUdp = new PseudoHeader();
+  private final OverlayHeader overlayHeaderUdp = new OverlayHeader();
   private int underlayPort;
   private InetAddress underlayAddress;
   private PathState pathState = PathState.NO_PATH;
@@ -153,7 +153,7 @@ public class ScionDatagramSocket {
                   path.getRaw().size(),
                   Constants.PathTypes.SCION);
           offset = pathHeaderScion.writePath(outgoing.getData(), offset, path);
-          offset = pseudoHeaderUdp.write(outgoing.getData(), offset, packet.getLength(), socket.getLocalPort(), packet.getPort());
+          offset = overlayHeaderUdp.write(outgoing.getData(), offset, packet.getLength(), socket.getLocalPort(), packet.getPort());
           pathState = PathState.SEND_PATH;
           break;
         }
@@ -161,7 +161,7 @@ public class ScionDatagramSocket {
         {
           scionHeader.reverse();
           pathHeaderScion.reverse();
-          pseudoHeaderUdp.reverse();
+          overlayHeaderUdp.reverse();
           offset = writeScionHeader(outgoing, packet.getLength());
           pathState = PathState.SEND_PATH;
           underlayPort =
@@ -245,8 +245,8 @@ public class ScionDatagramSocket {
         return false;
       }
       printHeaders();
-      offset = pseudoHeaderUdp.read(data, offset);
-      System.out.println(pseudoHeaderUdp);
+      offset = overlayHeaderUdp.read(data, offset);
+      System.out.println(overlayHeaderUdp);
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");
       return false;
@@ -274,7 +274,7 @@ public class ScionDatagramSocket {
     int length = (p.getLength() - offset);
     System.arraycopy(p.getData(), offset, userPacket.getData(), userPacket.getOffset(), length);
     userPacket.setLength(length);
-    userPacket.setPort(pseudoHeaderUdp.getSrcPort());
+    userPacket.setPort(overlayHeaderUdp.getSrcPort());
     userPacket.setAddress(scionHeader.getSrcHostAddress(data));
     pathState = PathState.RCV_PATH;
     return true;
@@ -291,7 +291,7 @@ public class ScionDatagramSocket {
         scionHeader.write(
             p.getData(), userPacketLength, pathHeaderScion.length(), Constants.PathTypes.SCION);
     offset = pathHeaderScion.write(p.getData(), offset);
-    offset = pseudoHeaderUdp.write(p.getData(), offset, userPacketLength);
+    offset = overlayHeaderUdp.write(p.getData(), offset, userPacketLength);
     return offset;
   }
 
