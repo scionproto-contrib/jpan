@@ -26,7 +26,7 @@ public class DemoFactory {
 
     // API for PathService
     // TODO rename
-    DaemonClient pathService;
+    ScionPathService pathService;
 
     // TODO -- TCP
 

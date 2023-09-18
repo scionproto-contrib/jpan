@@ -19,9 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.scion.DaemonClient;
-import org.scion.Util;
+import org.scion.ScionPathService;
+import org.scion.PathServiceHelper;
+import org.scion.ScionUtil;
 import org.scion.proto.daemon.Daemon;
 
 public class HeaderComposerTest {
@@ -39,6 +41,21 @@ public class HeaderComposerTest {
     0, 19, -15, -27, 72, 101, 108, 108, // 96
     111, 32, 115, 99, 105, 111, 110, // 103
   };
+
+  private ScionPathService pathService = null;
+
+  @AfterEach
+  public void afterEach() {
+    // path service
+    if (pathService != null) {
+      try {
+        pathService.close();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      pathService = null;
+    }
+  }
 
   /**
    * Parse and re-serialize the packet. The generated content should be identical to the original
@@ -60,15 +77,15 @@ public class HeaderComposerTest {
     //        srcAddr, err := net.ResolveUDPAddr("udp", "127.0.0.2:100")
     //        dstAddr, err := net.ResolveUDPAddr("udp", "[::1]:8080")
     InetAddress address = InetAddress.getByName(hostname);
-    long dstIA = Util.ParseIA("1-ff00:0:112");
+    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
     String msg = "Hello scion";
     byte[] sendBuf = msg.getBytes();
     DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, dstPort);
 
     // Socket internal - compose header data
-    DaemonClient pathService = DaemonClient.create();
+    pathService = ScionPathService.create();
     long srcIA = pathService.getLocalIsdAs();
-    Daemon.Path path = pathService.getPath(srcIA, dstIA).get(0);
+    Daemon.Path path = PathServiceHelper.getPathList(pathService, srcIA, dstIA).get(0);
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.2");

@@ -15,13 +15,9 @@
 package org.scion.internal;
 
 import com.google.protobuf.ByteString;
-import org.scion.Util;
 import org.scion.proto.daemon.Daemon;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.List;
 
 import static org.scion.internal.ByteUtil.*;
 

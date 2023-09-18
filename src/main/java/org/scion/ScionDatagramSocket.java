@@ -14,6 +14,7 @@
 
 package org.scion;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
@@ -27,7 +28,7 @@ import org.scion.internal.ScionHeader;
 import org.scion.internal.ScionSCMPHeader;
 import org.scion.proto.daemon.Daemon;
 
-public class ScionDatagramSocket {
+public class ScionDatagramSocket implements Closeable {
   /*
    * Design:
    * We use delegation rather than inheritance. Inheritance is more difficult to handle if future version of
@@ -48,7 +49,7 @@ public class ScionDatagramSocket {
   private PathState pathState = PathState.NO_PATH;
   // TODO provide ports etc?  Allow separate instances for different sockets?
   // TODO create lazily to prevent network connections before we create any actual DatagramSocket?
-  private DaemonClient pathService;
+  private ScionPathService pathService;
   // TODO remove?
   private InetAddress localAddress;
   private int localPort;
@@ -88,7 +89,7 @@ public class ScionDatagramSocket {
               // constructor
   public void setDstIsdAs(String dstIA) {
     // TODO rename ParseIA to parseIA
-    this.dstIA = Util.ParseIA(dstIA);
+    this.dstIA = ScionUtil.ParseIA(dstIA);
   }
 
   public void bind(SocketAddress address) throws SocketException {
@@ -123,7 +124,7 @@ public class ScionDatagramSocket {
         {
           // TODO request path from daemon
           if (pathService == null) {
-            pathService = DaemonClient.create();
+            pathService = ScionPathService.create();
           }
           if (srcIA == 0) {
             srcIA = pathService.getLocalIsdAs();
@@ -133,10 +134,10 @@ public class ScionDatagramSocket {
           if (srcIA == 0 || dstIA == 0) {
             throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
           }
-          List<Daemon.Path> paths = pathService.getPath(srcIA, dstIA);
+          List<Daemon.Path> paths = pathService.getPathList(srcIA, dstIA);
           if (paths.isEmpty()) {
             throw new IOException(
-                "No path found from " + Util.toStringIA(srcIA) + " to " + Util.toStringIA(dstIA));
+                "No path found from " + ScionUtil.toStringIA(srcIA) + " to " + ScionUtil.toStringIA(dstIA));
           }
           Daemon.Path path = paths.get(0); // Just pick the first path for now. // TODO
 
@@ -328,7 +329,7 @@ public class ScionDatagramSocket {
                 + " "
                 + pathIf.getIsdAs()
                 + "  "
-                + Util.toStringIA(pathIf.getIsdAs()));
+                + ScionUtil.toStringIA(pathIf.getIsdAs()));
       }
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
@@ -367,5 +368,13 @@ public class ScionDatagramSocket {
       throw new RuntimeException(e);
     }
     System.out.println("Setting IP-underlay=" + underlayAddress + "   " + underlayPort);
+  }
+
+
+  public void close() throws IOException {
+    socket.close();
+    if (pathService != null) {
+      pathService.close();
+    }
   }
 }

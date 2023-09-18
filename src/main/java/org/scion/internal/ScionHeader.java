@@ -14,7 +14,7 @@
 
 package org.scion.internal;
 
-import org.scion.Util;
+import org.scion.ScionUtil;
 
 import java.io.IOException;
 import java.net.*;
@@ -288,23 +288,23 @@ public class ScionHeader {
         //            sb.append("  SrcISD=" + srcISD);
         //            sb.append("  SrcAS =" + srcAS);
         //            System.out.println(sb);
-        sb.append("  dstIsdAs=").append(Util.toStringIA(dstIsdAs));
-        sb.append("  srcIsdAs=").append(Util.toStringIA(srcIsdAs));
+        sb.append("  dstIsdAs=").append(ScionUtil.toStringIA(dstIsdAs));
+        sb.append("  srcIsdAs=").append(ScionUtil.toStringIA(srcIsdAs));
         sb.append("  dstHost=").append(dt).append("/");
         if (dl == 0) {
-            sb.append(Util.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
+            sb.append(ScionUtil.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
         } else if (dl == 3) {
-            sb.append(Util.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            sb.append(ScionUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         } else {
-            sb.append("Format not recognized: ").append(Util.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            sb.append("Format not recognized: ").append(ScionUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         }
         sb.append("  srcHost=").append(st).append("/");
         if (sl == 0) {
-            sb.append(Util.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
+            sb.append(ScionUtil.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
         } else if (sl == 3) {
-            sb.append(Util.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            sb.append(ScionUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         } else {
-            sb.append("Format not recognized: ").append(Util.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            sb.append("Format not recognized: ").append(ScionUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         }
         return sb.toString();
     }

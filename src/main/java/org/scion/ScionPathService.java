@@ -24,15 +24,15 @@ import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DaemonClient implements AutoCloseable {
+public class ScionPathService implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DaemonClient.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(ScionPathService.class.getName());
 
   // from 110-topo
   private static final String DAEMON_HOST =
-      Util.getPropertyOrEnv("org.scion.daemon.host", "SCION_DAEMON_HOST", "127.0.0.12");
+      ScionUtil.getPropertyOrEnv("org.scion.daemon.host", "SCION_DAEMON_HOST", "127.0.0.12");
   private static final String DAEMON_PORT =
-      Util.getPropertyOrEnv("org.scion.daemon.port", "SCION_DAEMON_PORT", "30255");
+      ScionUtil.getPropertyOrEnv("org.scion.daemon.port", "SCION_DAEMON_PORT", "30255");
 
   private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
   //  private final DaemonServiceGrpc.DaemonServiceStub asyncStub;
@@ -40,27 +40,27 @@ public class DaemonClient implements AutoCloseable {
 
   private final ManagedChannel channel;
 
-  private DaemonClient(String daemonAddress) {
+  private ScionPathService(String daemonAddress) {
     // ManagedChannelBuilder.forAddress(daemonAddress, 1223);
     // ManagedChannelBuilder.forTarget().
     channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
     blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
   }
 
-  private static DaemonClient create(String daemonHost, int daemonPort) {
+  private static ScionPathService create(String daemonHost, int daemonPort) {
     return create(daemonHost + ":" + daemonPort);
   }
 
-  public static DaemonClient create(String daemonAddress) {
-    return new DaemonClient(daemonAddress);
+  public static ScionPathService create(String daemonAddress) {
+    return new ScionPathService(daemonAddress);
   }
 
-  public static DaemonClient create() {
+  public static ScionPathService create() {
     return create(DAEMON_HOST + ":" + DAEMON_PORT);
   }
 
   public static void main(String[] args) {
-    try (DaemonClient client = DaemonClient.create()) {
+    try (ScionPathService client = ScionPathService.create()) {
       client.testAsInfo();
       client.testInterfaces();
       client.testServices();
@@ -68,7 +68,6 @@ public class DaemonClient implements AutoCloseable {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-
   }
 
   private void testAsInfo() {
@@ -77,7 +76,7 @@ public class DaemonClient implements AutoCloseable {
         "ASInfo found: "
             + asInfo.getIsdAs()
             + " "
-            + Util.toStringIA(asInfo.getIsdAs())
+            + ScionUtil.toStringIA(asInfo.getIsdAs())
             + "  core="
             + asInfo.getCore()
             + "  mtu="
@@ -93,10 +92,10 @@ public class DaemonClient implements AutoCloseable {
   }
 
   private void testPaths() {
-    long srcIA = Util.ParseIA("1-ff00:0:110");
-    long dstIA = Util.ParseIA("1-ff00:0:112");
+    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
 
-    List<Daemon.Path> paths = getPath(srcIA, dstIA);
+    List<Daemon.Path> paths = getPathList(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
@@ -111,7 +110,7 @@ public class DaemonClient implements AutoCloseable {
                         + " "
                         + pathIf.getIsdAs()
                         + "  "
-                        + Util.toStringIA(pathIf.getIsdAs()));
+                        + ScionUtil.toStringIA(pathIf.getIsdAs()));
       }
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
@@ -130,7 +129,7 @@ public class DaemonClient implements AutoCloseable {
     }
   }
 
-  public Daemon.ASResponse getASInfo() {
+  Daemon.ASResponse getASInfo() {
     LOG.info("*** GetASInfo ***");
 
     Daemon.ASRequest request =
@@ -146,7 +145,7 @@ public class DaemonClient implements AutoCloseable {
     return response;
   }
 
-  public Map<Long, Daemon.Interface> getInterfaces() {
+  Map<Long, Daemon.Interface> getInterfaces() {
     LOG.info("*** GetInterfaces ***");
 
     Daemon.InterfacesRequest request =
@@ -163,7 +162,7 @@ public class DaemonClient implements AutoCloseable {
   }
 
   // TODO do not expose proto types
-  public List<Daemon.Path> getPath(long srcIsdAs, long dstIsdAs) {
+  List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
     LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
     Daemon.PathsRequest request =
@@ -182,9 +181,21 @@ public class DaemonClient implements AutoCloseable {
     return response.getPathsList();
   }
 
-  // TODO do not expose proto types
+  /**
+   * Request and return a path from srcIsdAs to dstIsdAs.
+   * @param srcIsdAs Source ISD + AS
+   * @param dstIsdAs Destination ISD + AS
+   * @return The first path is returned by the path service.
+   */
+  public ScionPath getPath(long srcIsdAs, long dstIsdAs) {
+    List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
+    if (paths.isEmpty()) {
+      throw new ScionException("No path found from " + ScionUtil.toStringIA(srcIsdAs) + " to " + ScionUtil.toStringIA(dstIsdAs));
+    }
+    return new ScionPath(paths.get(0));
+  }
 
-  public Map<String, Daemon.ListService> getServices() {
+  Map<String, Daemon.ListService> getServices() {
     LOG.info("*** GetServices ***");
 
     Daemon.ServicesRequest request =

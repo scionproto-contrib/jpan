@@ -4,14 +4,12 @@ import org.scion.ScionDatagramSocket;
 
 import java.io.*;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.*;
 
 public class ScionPingPongServer {
     private final ScionDatagramSocket socket;
-    private final List<String> listData = new ArrayList<>();
 
     public ScionPingPongServer(int port) throws SocketException {
         socket = new ScionDatagramSocket(port);

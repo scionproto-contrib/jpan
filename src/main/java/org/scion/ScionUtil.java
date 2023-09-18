@@ -14,11 +14,9 @@
 
 package org.scion;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.net.InetSocketAddress;
 
-public class Util {
+public class ScionUtil {
 
   //  const (
   //  IABytes       = 8

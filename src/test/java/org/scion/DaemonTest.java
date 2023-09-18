@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
@@ -35,9 +37,9 @@ public class DaemonTest {
             ScionException.class,
             () -> {
               String daemonAddr = "127.0.0.112:65432"; // 30255";
-              long srcIA = Util.ParseIA("1-ff00:0:110");
-              long dstIA = Util.ParseIA("1-ff00:0:112");
-              try (DaemonClient client = DaemonClient.create(daemonAddr)) {
+              long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
+              long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+              try (ScionPathService client = ScionPathService.create(daemonAddr)) {
                 client.getPath(srcIA, dstIA);
               }
             });
@@ -50,12 +52,12 @@ public class DaemonTest {
     MockDaemon mock = MockDaemon.create(MOCK_DAEMON_ADDRESS).start();
 
     // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-    String daemonAddr = Util.toHostAddrPort(MOCK_DAEMON_ADDRESS);
+    String daemonAddr = ScionUtil.toHostAddrPort(MOCK_DAEMON_ADDRESS);
     List<Daemon.Path> paths;
-    long srcIA = Util.ParseIA("1-ff00:0:110");
-    long dstIA = Util.ParseIA("1-ff00:0:112");
-    try (DaemonClient client = DaemonClient.create(daemonAddr)) {
-      paths = client.getPath(srcIA, dstIA);
+    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    try (ScionPathService client = ScionPathService.create(daemonAddr)) {
+      paths = client.getPathList(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
