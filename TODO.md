@@ -1,6 +1,13 @@
 # TODO
 
+- Fix ping-pong client
+- Inherit DatagramSocket 
+- Extract path info from server socket in order to support multiple clients
+- NIO
+- DatagramChannel
+- MulticastChannel (?)
 - CI
+
 
 ## Style
 

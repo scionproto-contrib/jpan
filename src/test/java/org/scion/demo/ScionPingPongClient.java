@@ -1,8 +1,8 @@
-package org.scion.testutil;
+package org.scion.demo;
 
 import java.io.*;
 import java.net.*;
-import java.util.*;
+
 import org.scion.ScionDatagramSocket;
 
 public class ScionPingPongClient {

@@ -1,4 +1,4 @@
-package org.scion.testutil;
+package org.scion.demo;
 
 import java.io.*;
 import java.net.DatagramPacket;

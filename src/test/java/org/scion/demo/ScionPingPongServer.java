@@ -1,4 +1,4 @@
-package org.scion.testutil;
+package org.scion.demo;
 
 import org.scion.ScionDatagramSocket;
 
@@ -6,7 +6,6 @@ import java.io.*;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.*;
 
 public class ScionPingPongServer {
     private final ScionDatagramSocket socket;
