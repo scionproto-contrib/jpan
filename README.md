@@ -2,6 +2,13 @@
 
 A Java client for [SCION](https://scion.org).
 
+## Configuration
+
+| Option             | Java property                 | Environment variable | Default value |
+|--------------------|-------------------------------|----------------------|---------------|
+| Path service host  | `org.scion.daemon.host`       | `SCION_DAEMON_HOST`  | 127.0.0.12    |
+| Path service port  | `org.scion.daemon.port`       | `SCION_DAEMON_PORT`  | 30255         | 
+| Enable UDP overlay | `org.scion.socket.udpOverlay` | `SCION_UDP_OVERLAY`  | true          | 
 
 ## FAQ / Trouble shooting
 
@@ -16,9 +23,4 @@ Compilation failure: Compilation failure:
 
 This can be fixed by building with Java JDK 1.8.
 
-
-
-### TODO
-- Where to place generated files? Currently in `target` but could be in `scr/java`...
-- 
 

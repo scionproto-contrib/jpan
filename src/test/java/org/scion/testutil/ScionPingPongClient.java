@@ -7,12 +7,12 @@ import org.scion.ScionDatagramSocket;
 
 public class ScionPingPongClient {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         ScionPingPongClient client = new ScionPingPongClient();
         client.run();
     }
 
-    private void run() {
+    private void run() throws IOException {
         String hostname = "::1";
         int port = 8080;
 
@@ -49,9 +49,9 @@ public class ScionPingPongClient {
         } catch (SocketTimeoutException e) {
             System.out.println("Timeout error: " + e.getMessage());
             throw new RuntimeException(e);
-        } catch (IOException e) {
-            System.out.println("Client error: " + e.getMessage());
-            throw new RuntimeException(e);
+//        } catch (IOException e) {
+//            System.out.println("Client error: " + e.getMessage());
+//            throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

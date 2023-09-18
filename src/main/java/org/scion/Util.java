@@ -14,6 +14,8 @@
 
 package org.scion;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.net.InetSocketAddress;
 
 public class Util {
@@ -217,10 +219,19 @@ public class Util {
   }
 
 
-  public static String getPropertyOrEnv(String propertyName, String envName, String defaultValue) {
+  private static String getPropertyOrEnv(String propertyName, String envName) {
     String value = System.getProperty(propertyName);
-    value = value != null ? value : System.getenv(envName);
+    return value != null ? value : System.getenv(envName);
+  }
+
+  public static String getPropertyOrEnv(String propertyName, String envName, String defaultValue) {
+    String value = getPropertyOrEnv( propertyName, envName);
     return value != null ? value : defaultValue;
+  }
+
+  public static boolean getPropertyOrEnv(String propertyName, String envName, boolean defaultValue) {
+    String value = getPropertyOrEnv( propertyName, envName);
+    return value != null ? Boolean.parseBoolean(value) : defaultValue;
   }
 
   // TODO Return ScionException????
