@@ -99,7 +99,7 @@ public class HeaderComposerTest {
 
     // Pseudo header
     offset = overlayHeaderUdp.write(data, offset, userPacket.getLength(), 100, dstPort);
-    System.out.println(overlayHeaderUdp);
+    // System.out.println(overlayHeaderUdp);
 
     System.arraycopy(userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
     p.setLength(offset + userPacket.getLength());
@@ -113,20 +113,17 @@ public class HeaderComposerTest {
     p.setPort(
         31012); // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
     p.setAddress(underlayAddress);
-    System.out.println("Sending to underlay: " + underlayAddress + " : " + underlayPort);
+    // System.out.println("Sending to underlay: " + underlayAddress + " : " + underlayPort);
 
     // assertEquals(offset, writeOffset);
     for (int i = 0; i < p.getLength(); i++) {
-      System.out.println(
-          "i="
-              + i
-              + ":  "
-              + Integer.toHexString(Byte.toUnsignedInt(packetBytes[i]))
-              + " - "
-              + Integer.toHexString(Byte.toUnsignedInt(data[i])));
-      if (i == 5) {
-     //   continue; // TODO remove
-      }
+      //      System.out.println(
+      //          "i="
+      //              + i
+      //              + ":  "
+      //              + Integer.toHexString(Byte.toUnsignedInt(packetBytes[i]))
+      //              + " - "
+      //              + Integer.toHexString(Byte.toUnsignedInt(data[i])));
       if (i >= 54 && i <= 59) {
         // ignore segID field and timestamp.
         // TODO test if timestamp is useful!
