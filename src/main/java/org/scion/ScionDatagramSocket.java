@@ -27,7 +27,6 @@ import org.scion.internal.ScionHeader;
 import org.scion.internal.ScionSCMPHeader;
 import org.scion.proto.daemon.Daemon;
 
-
 public class ScionDatagramSocket {
   /*
    * Design:
@@ -64,10 +63,12 @@ public class ScionDatagramSocket {
 
   public ScionDatagramSocket() throws SocketException {
     // TODO consider extending DatagramSocket. See also deprecation mote here:
-    //      https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+    //
+    // https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
 
     this.socket = new DatagramSocket();
-    System.out.println("Creating socket with src = " + socket.getLocalAddress() + " : " + socket.getLocalPort());
+    System.out.println(
+        "Creating socket with src = " + socket.getLocalAddress() + " : " + socket.getLocalPort());
   }
 
   public ScionDatagramSocket(int port) throws SocketException {
@@ -83,11 +84,13 @@ public class ScionDatagramSocket {
             + socket.getPort());
   }
 
-  @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via constructor
+  @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via
+              // constructor
   public void setDstIsdAs(String dstIA) {
     // TODO rename ParseIA to parseIA
     this.dstIA = Util.ParseIA(dstIA);
   }
+
   public void bind(SocketAddress address) throws SocketException {
     this.socket.bind(address);
   }
@@ -131,6 +134,10 @@ public class ScionDatagramSocket {
             throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
           }
           List<Daemon.Path> paths = pathService.getPath(srcIA, dstIA);
+          if (paths.isEmpty()) {
+            throw new IOException(
+                "No path found from " + Util.toStringIA(srcIA) + " to " + Util.toStringIA(dstIA));
+          }
           Daemon.Path path = paths.get(0); // Just pick the first path for now. // TODO
 
           scionHeader.setSrcIA(srcIA);
@@ -139,9 +146,14 @@ public class ScionDatagramSocket {
           scionHeader.setDstHostAddress(packet.getAddress());
           setUnderlayAddress(path);
 
-          offset = scionHeader.write(outgoing.getData(),  packet.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
+          offset =
+              scionHeader.write(
+                  outgoing.getData(),
+                  packet.getLength(),
+                  path.getRaw().size(),
+                  Constants.PathTypes.SCION);
           offset = pathHeaderScion.writePath(outgoing.getData(), offset, path);
-          offset = pseudoHeaderUdp.write(outgoing.getData(), offset,  packet.getLength());
+          offset = pseudoHeaderUdp.write(outgoing.getData(), offset, packet.getLength(), socket.getLocalPort(), packet.getPort());
           pathState = PathState.SEND_PATH;
           break;
         }
@@ -152,7 +164,9 @@ public class ScionDatagramSocket {
           pseudoHeaderUdp.reverse();
           offset = writeScionHeader(outgoing, packet.getLength());
           pathState = PathState.SEND_PATH;
-          underlayPort = 31012;  // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
+          underlayPort =
+              31012; // TODO
+                     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
           break;
         }
       case SEND_PATH:
@@ -166,7 +180,15 @@ public class ScionDatagramSocket {
 
     // TODO rename & split? writePayload() + sendPacket() ?
     sendScionPacket(offset, outgoing, packet);
-    System.out.println("Sending packet: " + outgoing.getSocketAddress() + " : " + outgoing.getLength() + "/" + outgoing.getOffset() + "/" + outgoing.getData().length);
+    System.out.println(
+        "Sending packet: "
+            + outgoing.getSocketAddress()
+            + " : "
+            + outgoing.getLength()
+            + "/"
+            + outgoing.getOffset()
+            + "/"
+            + outgoing.getData().length);
 
     socket.send(outgoing);
   }
@@ -215,14 +237,14 @@ public class ScionDatagramSocket {
     // Pseudo header
     if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
       // TODO ! How can we properly filter out unwanted packets???
-      // These are probably answers to polling/keep-alive packets sent from the dispatcher, but the dispatcher
+      // These are probably answers to polling/keep-alive packets sent from the dispatcher, but the
+      // dispatcher
       // can´t receive them due to pert forwarding to 40041 so the dispatcher keeps requesting them.
       if (!scionHeader.getDstHostAddress().isLoopbackAddress()) {
         System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
         return false;
       }
       printHeaders();
-
       offset = pseudoHeaderUdp.read(data, offset);
       System.out.println(pseudoHeaderUdp);
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
@@ -248,9 +270,6 @@ public class ScionDatagramSocket {
       return false;
     }
 
-    // TODO handle MAC in HopField?
-    // TODO Handle checksum in PseudoHeader?
-
     // build packet
     int length = (p.getLength() - offset);
     System.arraycopy(p.getData(), offset, userPacket.getData(), userPacket.getOffset(), length);
@@ -266,8 +285,11 @@ public class ScionDatagramSocket {
     if (p.getOffset() != 0) {
       throw new IllegalStateException("of=" + p.getOffset());
     }
-    // System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" + socket.getLocalAddress());
-    int offset = scionHeader.write(p.getData(), userPacketLength, pathHeaderScion.length(), Constants.PathTypes.SCION);
+    // System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" +
+    // socket.getLocalAddress());
+    int offset =
+        scionHeader.write(
+            p.getData(), userPacketLength, pathHeaderScion.length(), Constants.PathTypes.SCION);
     offset = pathHeaderScion.write(p.getData(), offset);
     offset = pseudoHeaderUdp.write(p.getData(), offset, userPacketLength);
     return offset;
@@ -278,9 +300,9 @@ public class ScionDatagramSocket {
     System.arraycopy(
         userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
     p.setLength(offset + userPacket.getLength());
-//    System.out.println(
-//            "length: " + offset + " + " + userPacket.getLength() + "   vs  " + p.getData().length + "  -> " + p.getLength());
-
+    //    System.out.println(
+    //            "length: " + offset + " + " + userPacket.getLength() + "   vs  " +
+    // p.getData().length + "  -> " + p.getLength());
 
     // First hop
     // TODO ?!?!?!?!?!
@@ -289,8 +311,6 @@ public class ScionDatagramSocket {
     pathState = PathState.RCV_PATH;
     System.out.println("Sending to underlay: " + underlayAddress + " : " + underlayPort);
   }
-
-
 
   // TODO move somewhere else or remove
   private void printPath(List<Daemon.Path> paths) {
@@ -301,20 +321,19 @@ public class ScionDatagramSocket {
       int i = 0;
       for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
         System.out.println(
-                "    pathIf: "
-                        + i
-                        + ": "
-                        + pathIf.getId()
-                        + " "
-                        + pathIf.getIsdAs()
-                        + "  "
-                        + Util.toStringIA(pathIf.getIsdAs()));
+            "    pathIf: "
+                + i
+                + ": "
+                + pathIf.getId()
+                + " "
+                + pathIf.getIsdAs()
+                + "  "
+                + Util.toStringIA(pathIf.getIsdAs()));
       }
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
       }
     }
-
 
     int selectedPathId = 0; // TODO allow configuration!
     Daemon.Path selectedPath = paths.get(selectedPathId);
@@ -332,14 +351,13 @@ public class ScionDatagramSocket {
       throw new RuntimeException(e);
     }
     System.out.println("IP-underlay=" + underlayAddress + "   " + underlayPort);
-
   }
 
   private void setUnderlayAddress(Daemon.Path path) {
     // first router
     String underlayAddressString = path.getInterface().getAddress().getAddress();
-    //InetAddress underlayAddress;
-    //int underlayPort;
+    // InetAddress underlayAddress;
+    // int underlayPort;
     try {
       int splitIndex = underlayAddressString.indexOf(':');
       underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
