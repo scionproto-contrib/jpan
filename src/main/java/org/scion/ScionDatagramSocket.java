@@ -75,14 +75,19 @@ public class ScionDatagramSocket implements Closeable {
   public ScionDatagramSocket(int port) throws SocketException {
     this.socket = new DatagramSocket(port);
     System.out.println(
-        "Socket created: local="
-            + socket.getLocalAddress()
-            + " : "
-            + socket.getLocalPort()
-            + "   remote="
-            + socket.getInetAddress()
-            + " : "
-            + socket.getPort());
+            "Socket created for port: "
+                    + socket.getLocalAddress()
+                    + " : "
+                    + socket.getLocalPort());
+  }
+
+  public ScionDatagramSocket(int port, InetAddress address) throws SocketException {
+    this.socket = new DatagramSocket(port, address);
+    System.out.println(
+            "Socket created for port/address: "
+                    + socket.getLocalAddress()
+                    + " : "
+                    + socket.getLocalPort());
   }
 
   @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via
@@ -243,7 +248,7 @@ public class ScionDatagramSocket implements Closeable {
       // can´t receive them due to pert forwarding to 40041 so the dispatcher keeps requesting them.
       if (!scionHeader.getDstHostAddress().isLoopbackAddress()) {
         System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
-        return false;
+        // return false;
       }
       printHeaders();
       offset = overlayHeaderUdp.read(data, offset);

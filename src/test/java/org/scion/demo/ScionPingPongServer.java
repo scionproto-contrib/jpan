@@ -3,15 +3,17 @@ package org.scion.demo;
 import org.scion.ScionDatagramSocket;
 
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 
 public class ScionPingPongServer {
     private final ScionDatagramSocket socket;
 
     public ScionPingPongServer(int port) throws SocketException {
         socket = new ScionDatagramSocket(port);
+    }
+
+    public ScionPingPongServer(int port, InetAddress localAddress) throws SocketException {
+        socket = new ScionDatagramSocket(port, localAddress);
     }
 
     //TODO FIX PATH to go 1.20 -> Reinstall update-alternatives
@@ -22,13 +24,20 @@ public class ScionPingPongServer {
     // start Java scion server
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnknownHostException {
         //int port = 30255;
         //int port = 30041;
-        int port = 40041;
+        //int port = 40043;
+        int port = 44444;
 
+        InetAddress localAddress = InetAddress.getByName("::1");
+        //InetAddress localAddress = InetAddress.getByName("127.0.0.1");
+        //InetAddress localAddress = InetAddress.getByName("127.0.0.10");
+        //System.out.println("IPv4: " + (localAddress instanceof Inet4Address));
+        //InetAddress localAddress = InetAddress.getByName("fd00:f00d:cafe::7f00:c");
         try {
-            ScionPingPongServer server = new ScionPingPongServer(port);
+            ScionPingPongServer server = new ScionPingPongServer(port, localAddress);
+            //ScionPingPongServer server = new ScionPingPongServer(port);
             server.service();
         } catch (SocketException ex) {
             System.out.println("Socket error: " + ex.getMessage());

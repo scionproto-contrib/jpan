@@ -13,8 +13,9 @@ public class ScionPingPongClient {
     }
 
     private void run() throws IOException {
-        String hostname = "::1";
-        int port = 8080;
+        String serverHostname = "::1";
+        // int port = 8080;
+        int serverPort = 44444;
 
         //        dstIA, err := addr.ParseIA("1-ff00:0:112")
         //        srcIA, err := addr.ParseIA("1-ff00:0:110")
@@ -22,22 +23,28 @@ public class ScionPingPongClient {
         //        dstAddr, err := net.ResolveUDPAddr("udp", "[::1]:8080")
 
         try {
-            InetAddress address = InetAddress.getByName(hostname);
-            ScionDatagramSocket socket = new ScionDatagramSocket();
-            socket.setDstIsdAs( "1-ff00:0:112");
+            InetAddress serverAddress = InetAddress.getByName(serverHostname);
+            ScionDatagramSocket socketSend = new ScionDatagramSocket();
+            socketSend.setDstIsdAs("1-ff00:0:112");
+            // TODO remove this! We need a socket that directly listens on 40041 for incoming traffic because we
+            //      do not use the dispatcher.
+            //ScionDatagramSocket socketReceive = new ScionDatagramSocket(40041);
+            //InetAddress rcvAddress = InetAddress.getByName("127.0.0.10");
+            //ScionDatagramSocket socketReceive = new ScionDatagramSocket(rcvAddress, 55555);
 
             while (true) {
 
                 String msg = "Hello there!";
                 byte[] sendBuf = msg.getBytes();
-                DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, address, port);
-                socket.send(request);
+                DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress, serverPort);
+                socketSend.send(request);
                 System.out.println("Sent!");
 
                 System.out.println("Receiving ...");
                 byte[] buffer = new byte[512];
                 DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-                socket.receive(response);
+                //socketReceive.receive(response);
+                socketSend.receive(response);
 
                 String pong = new String(buffer, 0, response.getLength());
 
