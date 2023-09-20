@@ -1,6 +1,6 @@
 # TODO
 
-- Fix ping-pong client
+- Fix client using 0.0.0.0 as local host
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
 - NIO
