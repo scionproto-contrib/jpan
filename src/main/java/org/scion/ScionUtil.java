@@ -14,7 +14,9 @@
 
 package org.scion;
 
-public class Util {
+import java.net.InetSocketAddress;
+
+public class ScionUtil {
 
   //  const (
   //  IABytes       = 8
@@ -157,7 +159,79 @@ public class Util {
     s +=  Long.toString(ia & mask, 16);
     return s;
   }
-  // TODO check all ParseUint to use correct bit width  16/32/64 (48??)
+
+  public static String toStringIA(long isd, long as) {
+    long ia = (isd << 48) | as;
+    long mask = 0xFFFFL << 48;
+    String s = "";
+    s +=  Long.toString((ia & mask) >>> 48, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString((ia & mask) >>> 16, 16) + ":";
+    mask >>>= 16;
+    s +=  Long.toString(ia & mask, 16);
+    return s;
+  }
+
+  public static String toStringIPv4(int ip) {
+    int mask = 0xFF000000;
+    String s = "";
+    s += ((ip & mask) >>> 24) + ".";
+    s += ((ip & (mask >>> 8)) >>> 16) + ".";
+    s += ((ip & (mask >>> 16)) >>> 8) + ".";
+    s += (ip & (mask >>> 24));
+    return s;
+  }
+
+  public static String toStringIPv6(int len, int ... ips) {
+    String s = "";
+    for (int i = 0; i < len; i++) {
+      String s2 = Integer.toHexString(ips[i] >>> 16);
+      String s3 = Integer.toHexString(ips[i] & 0xFFFF);
+      s += s2 + ":" + s3;
+      if (i < len -1) {
+        s += ":";
+      }
+    }
+    // TODO not quite correct, we should replace the LONGEST sequence of 0:0 instead of the FIRST one.
+    int pos = s.indexOf("0:0:");
+    if (pos >= 0) {
+      int pos2 = pos + 4;
+      for (; pos2 + 1 < s.length(); pos2 += 2) {
+        if (s.charAt(pos2) != '0' || s.charAt(pos2 + 1) != ':') {
+          break;
+        }
+      }
+      s = s.substring(0, pos) + s.substring(pos2 - 1);
+      if (pos == 0) {
+        s = ":" + s;
+      }
+    }
+    return s;
+  }
+
+  // TODO Isn´t this supported by the InetSocketClass????
+  public static String toHostAddrPort(InetSocketAddress address) {
+    return address.getAddress().getHostAddress() + ":" + address.getPort();
+  }
+
+
+  private static String getPropertyOrEnv(String propertyName, String envName) {
+    String value = System.getProperty(propertyName);
+    return value != null ? value : System.getenv(envName);
+  }
+
+  public static String getPropertyOrEnv(String propertyName, String envName, String defaultValue) {
+    String value = getPropertyOrEnv( propertyName, envName);
+    return value != null ? value : defaultValue;
+  }
+
+  public static boolean getPropertyOrEnv(String propertyName, String envName, boolean defaultValue) {
+    String value = getPropertyOrEnv( propertyName, envName);
+    return value != null ? Boolean.parseBoolean(value) : defaultValue;
+  }
+
   // TODO Return ScionException????
   // TODO
 }
