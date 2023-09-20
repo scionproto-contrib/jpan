@@ -1,6 +1,6 @@
 # TODO
 
-- Fix ping-pong client
+- send-IP should NOT be 0.0.0.0 
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
 - NIO
