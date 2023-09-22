@@ -93,7 +93,7 @@ public class HeaderComposerTest {
     scionHeader.setDstHostAddress(userPacket.getAddress());
 
     // Socket internal = write header
-    int offset = scionHeader.write(data, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
+    int offset = scionHeader.write(data, userPacket.getLength(), path.getRaw().size(), 0, Constants.PathTypes.SCION);
     assertEquals(1, scionHeader.pathType().code());
     offset = pathHeaderScion.writePath(data, offset, path);
 

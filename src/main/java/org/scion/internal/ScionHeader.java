@@ -193,9 +193,8 @@ public class ScionHeader {
         dstHost3 = d;
     }
 
-    public int write(byte[] data, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
+    public int write(byte[] data, int offset, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
         this.pathType = pathType.code();
-        int offset = 0;
         int i0 = 0;
         int i1 = 0;
         int i2 = 0;
@@ -388,6 +387,21 @@ public class ScionHeader {
             // This really should not happen
             throw new RuntimeException(e);
         }
+    }
+
+    public InetAddress getSrcHostAddress() throws IOException {
+        byte[] bytes = new byte[(sl + 1) * 4];
+        if (sl == 0 && (st == 0 || st == 1)) {
+            writeInt(bytes, 0, srcHost0);
+        } else if (sl == 3 && st == 0) {
+            writeInt(bytes, 0, srcHost0);
+            writeInt(bytes, 4, srcHost1);
+            writeInt(bytes, 8, srcHost2);
+            writeInt(bytes, 12, srcHost3);
+        } else {
+            throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
+        }
+        return InetAddress.getByAddress(bytes);
     }
 
     public InetAddress getDstHostAddress() throws IOException {

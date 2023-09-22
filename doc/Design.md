@@ -31,6 +31,7 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
     - Inheritance without supplying `DatagramSocketImpl` is not possible because DatagramSocketImpl calls `bind()` on
       itself. However, we need to overwrite `bind()` to intercept external API calls because internally we need to bind
       to the border router.
+      **TODO This makes no sense. bind() should always map to the local port. Only connect() would cause a problem...** 
     - Inheritance with `DatagramSocketImpl` is not straight forward. **TBD**
 
 - **Copy buffers?** We copy a packet's data array do a new DataGramPacket for the user.
