@@ -70,6 +70,7 @@ public class ScionPingPongServer {
             //DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
             // IPv6 border router port???
             System.out.println("--- USER - Sending packet ----------------------");
+            // TODO fix this, we should not specify the daemon port here!!
             DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 31012);
             socket.send(response);
         }

@@ -27,6 +27,11 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
     Otherwise we can (as proposed in JEP 373) wrap around an old DatagramSocket and use
     the nio implementation only when it is available (running on JDK 15 or later).
     See also deprecation note: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+    **UPDATE**
+    - Inheritance without supplying `DatagramSocketImpl` is not possible because DatagramSocketImpl calls `bind()` on
+      itself. However, we need to overwrite `bind()` to intercept external API calls because internally we need to bind
+      to the border router.
+    - Inheritance with `DatagramSocketImpl` is not straight forward. **TBD**
 
 - **Copy buffers?** We copy a packet's data array do a new DataGramPacket for the user.
   The alternative would be to use offset/length, however, this would not be really
