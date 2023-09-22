@@ -23,28 +23,24 @@ public class ScionPingPongClient {
         //        dstAddr, err := net.ResolveUDPAddr("udp", "[::1]:8080")
 
         try {
+            InetAddress localAddress = InetAddress.getByName("127.0.0.1");
             InetAddress serverAddress = InetAddress.getByName(serverHostname);
-            ScionDatagramSocket socketSend = new ScionDatagramSocket();
-            socketSend.setDstIsdAs("1-ff00:0:112");
-            // TODO remove this! We need a socket that directly listens on 40041 for incoming traffic because we
-            //      do not use the dispatcher.
-            //ScionDatagramSocket socketReceive = new ScionDatagramSocket(40041);
-            //InetAddress rcvAddress = InetAddress.getByName("127.0.0.10");
-            //ScionDatagramSocket socketReceive = new ScionDatagramSocket(rcvAddress, 55555);
+            ScionDatagramSocket socket = new ScionDatagramSocket(40507, localAddress);
+            socket.setDstIsdAs("1-ff00:0:112");
 
             while (true) {
 
                 String msg = "Hello there!";
                 byte[] sendBuf = msg.getBytes();
                 DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress, serverPort);
-                socketSend.send(request);
+                socket.connect(serverAddress, serverPort);
+                socket.send(request);
                 System.out.println("Sent!");
 
-                System.out.println("Receiving ...");
+                System.out.println("Receiving ... (" + socket.getLocalSocketAddress() + ")");
                 byte[] buffer = new byte[512];
                 DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-                //socketReceive.receive(response);
-                socketSend.receive(response);
+                socket.receive(response);
 
                 String pong = new String(buffer, 0, response.getLength());
 

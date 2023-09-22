@@ -4,16 +4,24 @@
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
 - NIO
-- DatagramChannel
-- MulticastChannel (?)
+- DatagramChannel ?
+- MulticastSocket / MulticastChannel (?)
 - CI
+
+# Open Questions
+
+- Add ISD/AS lookup to daemon API ?!?
+- How to determine the srcIP ? It depends on the interface....
+
+
+# General TODO
 
 
 ## Style
 
 - Use puppycrawl checkstyle plugin
   - to verify style in CI
-  - for auto formatting in IntelliJ (if possible). How about other tools, e.g. MS code?
+  - for auto formatting in IntelliJ (if possible). How about other IDEs, e.g. MS code?
 
 - Change line length to 120 
 

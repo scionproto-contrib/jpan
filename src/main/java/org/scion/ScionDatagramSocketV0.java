@@ -14,25 +14,20 @@
 
 package org.scion;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
-
 import org.scion.internal.Constants;
 import org.scion.internal.OverlayHeader;
 import org.scion.internal.PathHeaderOneHopPath;
 import org.scion.internal.PathHeaderScion;
-import org.scion.internal.ScionDatagramSocketImpl;
 import org.scion.internal.ScionEndToEndExtensionHeader;
 import org.scion.internal.ScionHeader;
 import org.scion.internal.ScionSCMPHeader;
 import org.scion.proto.daemon.Daemon;
 
-/**
- * We are extending DatagramSocket as recommended here:
- * https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
- */
-public class ScionDatagramSocket extends DatagramSocket {
+public class ScionDatagramSocketV0 implements Closeable {
   /*
    * Design:
    * We use delegation rather than inheritance. Inheritance is more difficult to handle if future version of
@@ -40,6 +35,7 @@ public class ScionDatagramSocket extends DatagramSocket {
    * behave incorrectly until adapted, and, once adapted, would not compile anymore with earlier Java releases.
    */
 
+  private final DatagramSocket socket;
   // TODO respect MTU; report MTU to user (?); test!!!
   // TODO use ByteBuffer to manage offset etc?
   private final byte[] buf = new byte[65535 - 28]; // -28 for 8 byte UDP + 20 byte IP header
@@ -54,9 +50,10 @@ public class ScionDatagramSocket extends DatagramSocket {
   // TODO create lazily to prevent network connections before we create any actual DatagramSocket?
   private ScionPathService pathService;
   // TODO remove?
+  private InetAddress localAddress;
+  private int localPort;
   private long srcIA;
   private long dstIA;
-  private final Object closeLock = new Object();
 
   private enum PathState {
     NO_PATH,
@@ -64,31 +61,43 @@ public class ScionDatagramSocket extends DatagramSocket {
     SEND_PATH
   }
 
-  public ScionDatagramSocket() throws SocketException {
-    super();
+  public ScionDatagramSocketV0() throws SocketException {
+    // TODO consider extending DatagramSocket. See also deprecation mote here:
+    //
+    // https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+
+    this.socket = new DatagramSocket();
     System.out.println(
-            "Creating socket: " + super.getLocalAddress() + " : " + super.getLocalPort());
+        "Creating socket with src = " + socket.getLocalAddress() + " : " + socket.getLocalPort());
   }
 
-  public ScionDatagramSocket(SocketAddress addr) throws SocketException {
-    super(addr);
+  public ScionDatagramSocketV0(int port) throws SocketException {
+    this.socket = new DatagramSocket(port);
     System.out.println(
-            "Creating socket with address: " + super.getLocalAddress() + " : " + super.getLocalPort());
+            "Socket created for port: "
+                    + socket.getLocalAddress()
+                    + " : "
+                    + socket.getLocalPort());
   }
 
-  public ScionDatagramSocket(int port) throws SocketException {
-    this(port, (InetAddress)null);
-  }
-
-  public ScionDatagramSocket(int port, InetAddress addr) throws SocketException {
-    this(new InetSocketAddress(addr, port));
+  public ScionDatagramSocketV0(int port, InetAddress address) throws SocketException {
+    this.socket = new DatagramSocket(port, address);
+    System.out.println(
+            "Socket created for port/address: "
+                    + socket.getLocalAddress()
+                    + " : "
+                    + socket.getLocalPort());
   }
 
   @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via
-  // constructor
+              // constructor
   public void setDstIsdAs(String dstIA) {
     // TODO rename ParseIA to parseIA
     this.dstIA = ScionUtil.ParseIA(dstIA);
+  }
+
+  public void bind(SocketAddress address) throws SocketException {
+    this.socket.bind(address);
   }
 
   public synchronized void receive(DatagramPacket packet) throws IOException {
@@ -96,8 +105,7 @@ public class ScionDatagramSocket extends DatagramSocket {
     while (true) {
       // TODO reuse incoming packet
       DatagramPacket incoming = new DatagramPacket(buf, buf.length);
-      System.out.println("waiting to receive: "); // TODO
-      super.receive(incoming);
+      socket.receive(incoming);
       underlayPort = incoming.getPort();
       underlayAddress = incoming.getAddress();
       System.out.println("received: len=" + incoming.getLength()); // TODO
@@ -117,60 +125,60 @@ public class ScionDatagramSocket extends DatagramSocket {
 
     switch (pathState) {
       case NO_PATH:
-      {
-        // TODO request path from daemon
-        if (pathService == null) {
-          pathService = ScionPathService.create();
-        }
-        if (srcIA == 0) {
-          srcIA = pathService.getLocalIsdAs();
-        }
-        System.out.println("Getting path from " + getSrcAddress() + " : " + getLocalPort());
-        System.out.println("               to " + packet.getAddress() + " : " + packet.getPort());
-        if (srcIA == 0 || dstIA == 0) {
-          throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
-        }
-        List<Daemon.Path> paths = pathService.getPathList(srcIA, dstIA);
-        if (paths.isEmpty()) {
-          throw new IOException(
-                  "No path found from " + ScionUtil.toStringIA(srcIA) + " to " + ScionUtil.toStringIA(dstIA));
-        }
-        Daemon.Path path = paths.get(0); // Just pick the first path for now. // TODO
+        {
+          // TODO request path from daemon
+          if (pathService == null) {
+            pathService = ScionPathService.create();
+          }
+          if (srcIA == 0) {
+            srcIA = pathService.getLocalIsdAs();
+          }
+          System.out.println("Getting path from " + localAddress + " : " + localPort);
+          System.out.println("               to " + packet.getAddress() + " : " + packet.getPort());
+          if (srcIA == 0 || dstIA == 0) {
+            throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
+          }
+          List<Daemon.Path> paths = pathService.getPathList(srcIA, dstIA);
+          if (paths.isEmpty()) {
+            throw new IOException(
+                "No path found from " + ScionUtil.toStringIA(srcIA) + " to " + ScionUtil.toStringIA(dstIA));
+          }
+          Daemon.Path path = paths.get(0); // Just pick the first path for now. // TODO
 
-        scionHeader.setSrcIA(srcIA);
-        scionHeader.setDstIA(dstIA);
-        scionHeader.setSrcHostAddress(getSrcAddress());
-        scionHeader.setDstHostAddress(packet.getAddress());
-        setUnderlayAddress(path);
+          scionHeader.setSrcIA(srcIA);
+          scionHeader.setDstIA(dstIA);
+          scionHeader.setSrcHostAddress(socket.getLocalAddress());
+          scionHeader.setDstHostAddress(packet.getAddress());
+          setUnderlayAddress(path);
 
-        offset =
-                scionHeader.write(
-                        outgoing.getData(),
-                        packet.getLength(),
-                        path.getRaw().size(),
-                        Constants.PathTypes.SCION);
-        offset = pathHeaderScion.writePath(outgoing.getData(), offset, path);
-        offset = overlayHeaderUdp.write(outgoing.getData(), offset, packet.getLength(), getLocalPort(), packet.getPort());
-        pathState = PathState.SEND_PATH;
-        break;
-      }
+          offset =
+              scionHeader.write(
+                  outgoing.getData(),
+                  packet.getLength(),
+                  path.getRaw().size(),
+                  Constants.PathTypes.SCION);
+          offset = pathHeaderScion.writePath(outgoing.getData(), offset, path);
+          offset = overlayHeaderUdp.write(outgoing.getData(), offset, packet.getLength(), socket.getLocalPort(), packet.getPort());
+          pathState = PathState.SEND_PATH;
+          break;
+        }
       case RCV_PATH:
-      {
-        scionHeader.reverse();
-        pathHeaderScion.reverse();
-        overlayHeaderUdp.reverse();
-        offset = writeScionHeader(outgoing, packet.getLength());
-        pathState = PathState.SEND_PATH;
-        underlayPort =
-                31012; // TODO
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
-        break;
-      }
+        {
+          scionHeader.reverse();
+          pathHeaderScion.reverse();
+          overlayHeaderUdp.reverse();
+          offset = writeScionHeader(outgoing, packet.getLength());
+          pathState = PathState.SEND_PATH;
+          underlayPort =
+              31012; // TODO
+                     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
+          break;
+        }
       case SEND_PATH:
-      {
-        offset = writeScionHeader(outgoing, packet.getLength());
-        break;
-      }
+        {
+          offset = writeScionHeader(outgoing, packet.getLength());
+          break;
+        }
       default:
         throw new IllegalStateException(pathState.name());
     }
@@ -178,54 +186,24 @@ public class ScionDatagramSocket extends DatagramSocket {
     // TODO rename & split? writePayload() + sendPacket() ?
     sendScionPacket(offset, outgoing, packet);
     System.out.println(
-            "Sending packet: "
-                    + outgoing.getSocketAddress()
-                    + " : "
-                    + outgoing.getLength()
-                    + "/"
-                    + outgoing.getOffset()
-                    + "/"
-                    + outgoing.getData().length);
+        "Sending packet: "
+            + outgoing.getSocketAddress()
+            + " : "
+            + outgoing.getLength()
+            + "/"
+            + outgoing.getOffset()
+            + "/"
+            + outgoing.getData().length);
 
-    super.send(outgoing);
+    socket.send(outgoing);
   }
 
-
-  @Override
-  public void connect(InetAddress addr, int port) {
-    // TODO set destination address
-    throw new UnsupportedOperationException();
-    // We do NOT call super.connect() here!
+  public int getLocalPort() {
+    return socket.getLocalPort();
   }
 
-  @Override
-  public void connect(SocketAddress addr) {
-    // TODO set destination address
-    throw new UnsupportedOperationException();
-    // We do NOT call super.connect() here!
-  }
-
-  @Override
-  public void bind(SocketAddress addr) {
-    // TODO set destination address
-    throw new UnsupportedOperationException();
-    // We do NOT call super.bind() here!
-  }
-
-
-
-  private InetAddress getSrcAddress() throws UnknownHostException {
-    InetAddress addr  = getLocalAddress();
-    if (addr instanceof Inet4Address) {
-      byte[] bytes = addr.getAddress();
-      for (int i = 0; i < bytes.length; i++) {
-        if (bytes[i] != 0) {
-          return addr;
-        }
-      }
-      return InetAddress.getLocalHost();
-    }
-    return addr;
+  public int getPort() {
+    return socket.getPort();
   }
 
   private void printHeaders() {
@@ -245,18 +223,10 @@ public class ScionDatagramSocket extends DatagramSocket {
     int offset = scionHeader.read(data, 0);
     if (scionHeader.getDT() != 0) {
       System.out.println(
-              "PACKET DROPPED: service address="
-                      + scionHeader.getDstHostAddress()
-                      + "  DT="
-                      + scionHeader.getDT());
-      return false;
-    }
-    if (p.getLength() > 1000) {
-      System.out.println(
-              "PACKET DROPPED: service address="
-                      + scionHeader.getDstHostAddress()
-                      + "  length="
-                      + p.getLength());
+          "PACKET DROPPED: service address="
+              + scionHeader.getDstHostAddress()
+              + "  DT="
+              + scionHeader.getDT());
       return false;
     }
 
@@ -323,8 +293,8 @@ public class ScionDatagramSocket extends DatagramSocket {
     // System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" +
     // socket.getLocalAddress());
     int offset =
-            scionHeader.write(
-                    p.getData(), userPacketLength, pathHeaderScion.length(), Constants.PathTypes.SCION);
+        scionHeader.write(
+            p.getData(), userPacketLength, pathHeaderScion.length(), Constants.PathTypes.SCION);
     offset = pathHeaderScion.write(p.getData(), offset);
     offset = overlayHeaderUdp.write(p.getData(), offset, userPacketLength);
     return offset;
@@ -333,7 +303,7 @@ public class ScionDatagramSocket extends DatagramSocket {
   private void sendScionPacket(int offset, DatagramPacket p, DatagramPacket userPacket) {
     // build packet
     System.arraycopy(
-            userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
+        userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
     p.setLength(offset + userPacket.getLength());
     //    System.out.println(
     //            "length: " + offset + " + " + userPacket.getLength() + "   vs  " +
@@ -356,14 +326,14 @@ public class ScionDatagramSocket extends DatagramSocket {
       int i = 0;
       for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
         System.out.println(
-                "    pathIf: "
-                        + i
-                        + ": "
-                        + pathIf.getId()
-                        + " "
-                        + pathIf.getIsdAs()
-                        + "  "
-                        + ScionUtil.toStringIA(pathIf.getIsdAs()));
+            "    pathIf: "
+                + i
+                + ": "
+                + pathIf.getId()
+                + " "
+                + pathIf.getIsdAs()
+                + "  "
+                + ScionUtil.toStringIA(pathIf.getIsdAs()));
       }
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
@@ -404,25 +374,11 @@ public class ScionDatagramSocket extends DatagramSocket {
     System.out.println("Setting IP-underlay=" + underlayAddress + "   " + underlayPort);
   }
 
-  @Override
-  public void close() {
-    synchronized (closeLock) {
-      super.close();
-      if (pathService != null) {
-        try {
-          pathService.close();
-          pathService = null;
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
+
+  public void close() throws IOException {
+    socket.close();
+    if (pathService != null) {
+      pathService.close();
     }
   }
-
-//  @Override
-//  public boolean isClosed() {
-//    synchronized (closeLock) {
-//      return super.isClosed();
-//    }
-//  }
 }
