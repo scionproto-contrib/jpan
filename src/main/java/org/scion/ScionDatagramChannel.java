@@ -22,61 +22,113 @@ import java.nio.channels.DatagramChannel;
 
 public class ScionDatagramChannel {
 
-    private final DatagramChannel channel;
-    private final ScionPacketHelper helper = new ScionPacketHelper();
-    private ScionPacketHelper.PathState pathState = ScionPacketHelper.PathState.NO_PATH;
+  private final DatagramChannel channel;
+  private final ScionPacketHelper helper = new ScionPacketHelper();
+  private ScionPacketHelper.PathState pathState = ScionPacketHelper.PathState.NO_PATH;
+  private InetSocketAddress localAddress = null;
+  private InetSocketAddress routerAddress = null;
 
-    public static ScionDatagramChannel open() throws IOException {
-        return new ScionDatagramChannel();
+  public static ScionDatagramChannel open() throws IOException {
+    return new ScionDatagramChannel();
+  }
+
+  protected ScionDatagramChannel() throws IOException {
+    channel = DatagramChannel.open();
+  }
+
+  public synchronized SocketAddress receive(ByteBuffer userBuffer) throws IOException {
+    byte[] bytes = new byte[65536];
+    ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
+    SocketAddress srcAddr = channel.receive(buffer);
+    if (srcAddr == null) {
+      // this indicates nothing is available
+      return null;
     }
+    routerAddress = (InetSocketAddress) srcAddr;
+    buffer.flip();
 
-    protected ScionDatagramChannel() throws IOException {
-        channel = DatagramChannel.open();
+    int headerLength = helper.readScionHeader(bytes);
+    userBuffer.put(bytes, headerLength, helper.getPayloadLength());
+    pathState = ScionPacketHelper.PathState.RCV_PATH;
+    return helper.getReceivedSrcAddress();
+  }
+
+  public synchronized void send(ByteBuffer buffer, InetSocketAddress destinationAddress)
+      throws IOException {
+    ScionPath path = null;
+    System.out.println(
+        "remote1 = " + destinationAddress + "    remote2 = " + helper.getSourceAddress());
+    if (destinationAddress.getAddress().equals(helper.getSourceAddress())) {
+      // We are just sending back to last IP. We can use the reversed path. No need to lookup a
+      // path.
+      // path = helper.getLastIncomingPath(destinationAddress);
+      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
+        throw new IllegalStateException(
+            "state=" + pathState); // TODO remove this check and possibly the path state alltogether
+      }
+    } else {
+      // find a path
+      path = helper.getDefaultPath(destinationAddress);
+      routerAddress = null;
     }
+    send(buffer, destinationAddress, path);
+  }
 
-    public synchronized SocketAddress receive(ByteBuffer userBuffer) throws IOException {
-        byte[] bytes = new byte[65536];
-        ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
-        SocketAddress srcAddr = null;
-        srcAddr = channel.receive(buffer);
-        if (srcAddr == null) {
-            // this indicates nothing is available
-            return null;
-        }
-        buffer.flip();
+  public synchronized void send(
+      ByteBuffer buffer, InetSocketAddress destinationAddress, ScionPath path) throws IOException {
+    // TODO do we need to create separate channels for each border router or can we "connect" to
+    // different ones
+    //  from a single channel? Do we need to connect explicitly?
+    //  What happens if, for the same path, we suddenly get a different border router recommended,
+    // do we need to
+    //  create a new channel and reconnect?
 
-        int headerLength = helper.readScionHeader(bytes);
-        userBuffer.put(bytes, headerLength, helper.getPayloadLength());
-        pathState = ScionPacketHelper.PathState.RCV_PATH;
-        return helper.getReceivedSrcAddress();
+    // get local IP
+    //        InetSocketAddress localAddress = null;
+    if (!channel.isConnected() && localAddress == null) {
+      InetSocketAddress borderRouterAddr = helper.getFirstHopAddress(path);
+      channel.connect(borderRouterAddr);
+      localAddress = (InetSocketAddress) channel.getLocalAddress();
     }
+    //        localAddress = (InetSocketAddress) channel.getLocalAddress();
 
-    public synchronized void send(ByteBuffer buffer, InetSocketAddress destinationAddress) throws IOException {
-        byte[] buf = new byte[1000]; /// TODO ????  1000?
-        InetSocketAddress localAddress = (InetSocketAddress) channel.getLocalAddress(); // TODO check type?
-        int payloadLength = buffer.limit() - buffer.position();
-        int headerLength = helper.writeHeader(buf, pathState, localAddress, destinationAddress, payloadLength);
+    byte[] buf = new byte[1000]; // / TODO ????  1000?
+    int payloadLength = buffer.limit() - buffer.position();
+    int headerLength =
+        helper.writeHeader(buf, pathState, localAddress, destinationAddress, payloadLength);
 
-        ByteBuffer buffer2 = ByteBuffer.allocate(payloadLength + headerLength); // TODO allocate direct??? Capacity?
-        System.arraycopy(buf, 0, buffer2.array(), buffer2.arrayOffset(), headerLength);
-        // TODO arrayOffset vs position() ?
-        System.arraycopy(buffer.array(), buffer.arrayOffset(), buffer2.array(), buffer2.arrayOffset() + headerLength, payloadLength);
-        SocketAddress dstAddress = helper.getFirstHopAddress();
-        channel.send(buffer2, dstAddress);
-        buffer.position(buffer.limit());
+    ByteBuffer buffer2 =
+        ByteBuffer.allocate(payloadLength + headerLength); // TODO allocate direct??? Capacity?
+    System.arraycopy(buf, 0, buffer2.array(), buffer2.arrayOffset(), headerLength);
+    System.arraycopy(
+        buffer.array(),
+        buffer.arrayOffset() + buffer.position(),
+        buffer2.array(),
+        buffer2.arrayOffset() + headerLength,
+        payloadLength);
+    SocketAddress firstHopAddress = null;
+    if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
+      firstHopAddress = routerAddress;
+    } else {
+      firstHopAddress = helper.getFirstHopAddress();
+      // TODO routerAddress = firstHopAddress?
     }
+    channel.send(buffer2, firstHopAddress);
+    buffer.position(buffer.limit());
+  }
 
-    public ScionDatagramChannel bind(InetSocketAddress address) throws IOException {
-        channel.bind(address);
-        return this;
-    }
+  public ScionDatagramChannel bind(InetSocketAddress address) throws IOException {
+    localAddress = address; // `address` may be `null`.
+    channel.bind(address);
+    return this;
+  }
 
-    public void configureBlocking(boolean block) throws IOException {
-        channel.configureBlocking(block);
-    }
+  public void configureBlocking(boolean block) throws IOException {
+    channel.configureBlocking(block);
+  }
 
-    @Deprecated
-    public void setDstIsdAs(String isdAs) {
-        helper.setDstIsdAs(isdAs);
-    }
+  @Deprecated
+  public void setDstIsdAs(String isdAs) {
+    helper.setDstIsdAs(isdAs);
+  }
 }

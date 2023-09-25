@@ -10,14 +10,15 @@
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
 - MulticastSocket / MulticastChannel (?)
--
+- Abuse socket/channel.setOption() to set path policies?
+
 ## After that
 - CI
 - Integrate with bazel -> Simplifies integration of go testing topology.
 
 ## Finally
 
-- SPAO end-to-end option -> LAter, not used at the moment
+- SPAO end-to-end option -> Later, not used at the moment
 
 
 # Open Questions
@@ -27,7 +28,6 @@
 
 
 # General TODO
-
 
 ## Style
 

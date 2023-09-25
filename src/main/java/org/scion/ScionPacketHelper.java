@@ -58,17 +58,15 @@ public class ScionPacketHelper implements Closeable {
   private final Object closeLock = new Object();
   private boolean isClosed = false;
 
-  public SocketAddress getReceivedSrcAddress() throws IOException {
-    return new InetSocketAddress(scionHeader.getSrcHostAddress(), overlayHeaderUdp.getSrcPort());
+  public InetAddress getSourceAddress() throws IOException {
+    return scionHeader.getSrcHostAddress();
   }
 
-  public SocketAddress getFirstHopAddress() {
-    return new InetSocketAddress(underlayAddress, underlayPort);
-  }
-
-  public int getPayloadLength() {
-    return scionHeader.getPayloadLength() - overlayHeaderUdp.length();
-  }
+//  public ScionPath getLastIncomingPath(InetSocketAddress remoteAddress) throws IOException {
+//    if (remoteAddress != null && remoteAddress.equals(scionHeader.getSrcHostAddress()) {
+//      return
+//    }
+//  }
 
   public enum PathState {
     NO_PATH,
@@ -78,6 +76,45 @@ public class ScionPacketHelper implements Closeable {
 
   public ScionPacketHelper() {
 
+  }
+
+  public InetSocketAddress getReceivedSrcAddress() throws IOException {
+    return new InetSocketAddress(scionHeader.getSrcHostAddress(), overlayHeaderUdp.getSrcPort());
+  }
+
+  // TODO deprecate this?
+  public InetSocketAddress getFirstHopAddress() {
+    return new InetSocketAddress(underlayAddress, underlayPort);
+  }
+
+  public InetSocketAddress getFirstHopAddress(ScionPath path) {
+    Daemon.Path internalPath = path.getPathInternal();
+    String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
+    try {
+      int splitIndex = underlayAddressString.indexOf(':');
+      InetAddress underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+      int underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+      System.out.println("Getting IP-underlay=" + underlayAddress + "   " + underlayPort);
+      return new InetSocketAddress(underlayAddress, underlayPort);
+    } catch (UnknownHostException e) {
+      // TODO throw IOException?
+      throw new RuntimeException(e);
+    }
+  }
+
+  public int getPayloadLength() {
+    return scionHeader.getPayloadLength() - overlayHeaderUdp.length();
+  }
+
+  public ScionPath getDefaultPath(InetSocketAddress destinationAddress) {
+    if (srcIA == 0) {
+      srcIA = getPathService().getLocalIsdAs();
+    }
+    if (dstIA == 0) {
+      // TODO implement IA lookup
+      throw new UnsupportedOperationException("TODO: implement Isd/As lookup");
+    }
+    return getPathService().getPath(srcIA, dstIA);
   }
 
   @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via
@@ -98,19 +135,15 @@ public class ScionPacketHelper implements Closeable {
     switch (pathState) {
       case NO_PATH:
       {
-        // TODO request path from daemon
-        if (pathService == null) {
-          pathService = ScionPathService.create();
-        }
         if (srcIA == 0) {
-          srcIA = pathService.getLocalIsdAs();
+          srcIA = getPathService().getLocalIsdAs();
         }
         System.out.println("Getting path from " + srcAddress);
         System.out.println("               to " + dstAddress);
         if (srcIA == 0 || dstIA == 0) {
           throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
         }
-        List<Daemon.Path> paths = pathService.getPathList(srcIA, dstIA);
+        List<Daemon.Path> paths = getPathService().getPathList(srcIA, dstIA);
         if (paths.isEmpty()) {
           throw new IOException(
                   "No path found from " + ScionUtil.toStringIA(srcIA) + " to " + ScionUtil.toStringIA(dstIA));
@@ -155,6 +188,13 @@ public class ScionPacketHelper implements Closeable {
         throw new IllegalStateException(pathState.name());
     }
     return offset;
+  }
+
+  private ScionPathService getPathService() {
+    if (pathService == null) {
+      pathService = ScionPathService.create();
+    }
+    return pathService;
   }
 
   private void printHeaders() {
