@@ -34,22 +34,19 @@ public class ScionDatagramChannel {
         channel = DatagramChannel.open();
     }
 
-    public synchronized SocketAddress receive(ByteBuffer buffer) throws IOException {
-        channel.receive(buffer);
-        byte[] buf;
-        // TODO use array i.o. allocate + copy (if possible)
-//        int offset = 0;
-//        if (buffer.hasArray()) {
-//            buf = buffer.array();
-//            offset = buffer.arrayOffset();
-//              buffer.position(xyz);
-//        }
-        buf = new byte[buffer.remaining()]; // TODO reuse buffer !?!?!?
-        int pos = buffer.position();
-        buffer.get(buf);
-        int headerLength = helper.readScionHeader(buf);
+    public synchronized SocketAddress receive(ByteBuffer userBuffer) throws IOException {
+        byte[] bytes = new byte[65536];
+        ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
+        SocketAddress srcAddr = null;
+        srcAddr = channel.receive(buffer);
+        if (srcAddr == null) {
+            // this indicates nothing is available
+            return null;
+        }
+        buffer.flip();
 
-        buffer.position(pos + headerLength);
+        int headerLength = helper.readScionHeader(bytes);
+        userBuffer.put(bytes, headerLength, helper.getPayloadLength());
         pathState = ScionPacketHelper.PathState.RCV_PATH;
         return helper.getReceivedSrcAddress();
     }

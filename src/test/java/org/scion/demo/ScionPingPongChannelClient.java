@@ -30,27 +30,29 @@ public class ScionPingPongChannelClient {
 
   public static String receiveMessage(ScionDatagramChannel channel) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
-    System.out.println("Waiting ...");
     SocketAddress remoteAddress = channel.receive(buffer);
+    if (remoteAddress == null) {
+      return null;
+    }
     String message = extractMessage(buffer);
-
     System.out.println("Received from server at: " + remoteAddress + "  message: " + message);
-
     return message;
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
     ScionDatagramChannel channel = startClient();
     String msg = "Hello scion";
-    InetSocketAddress serverAddress = new InetSocketAddress("localhost", 44444);
+    //InetSocketAddress serverAddress = new InetSocketAddress("localhost", 44444);
+    InetSocketAddress serverAddress = new InetSocketAddress("::1", 44444);
     channel.setDstIsdAs("1-ff00:0:112");
 
     sendMessage(channel, msg, serverAddress);
 
     boolean finished = false;
+    System.out.println("Waiting ...");
     while (!finished) {
       String msg2 = receiveMessage(channel);
-      if (!msg2.isEmpty()) {
+      if (msg2 != null && !msg2.isEmpty()) {
         finished = true;
       }
       Thread.sleep(100);

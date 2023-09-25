@@ -1,12 +1,24 @@
 # TODO
+## Now
+- Refactor ScionSocket to use ScionHelper
+- Rename ScionHelper to PacketBuilder?
+- Implement DNS
+
+## Then
 
 - Fix client using 0.0.0.0 as local host
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
-- NIO
-- DatagramChannel ?
 - MulticastSocket / MulticastChannel (?)
+-
+## After that
 - CI
+- Integrate with bazel -> Simplifies integration of go testing topology.
+
+## Finally
+
+- SPAO end-to-end option -> LAter, not used at the moment
+
 
 # Open Questions
 

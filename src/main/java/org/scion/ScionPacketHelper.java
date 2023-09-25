@@ -66,6 +66,10 @@ public class ScionPacketHelper implements Closeable {
     return new InetSocketAddress(underlayAddress, underlayPort);
   }
 
+  public int getPayloadLength() {
+    return scionHeader.getPayloadLength() - overlayHeaderUdp.length();
+  }
+
   public enum PathState {
     NO_PATH,
     RCV_PATH,

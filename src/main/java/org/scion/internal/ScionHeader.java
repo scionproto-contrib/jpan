@@ -419,6 +419,10 @@ public class ScionHeader {
         return InetAddress.getByAddress(bytes);
     }
 
+    public int getPayloadLength() {
+        return payLoadLen;
+    }
+
     public Constants.HdrTypes nextHeader() {
         return Constants.HdrTypes.parse(nextHeader);
     }

@@ -8,7 +8,8 @@ import java.nio.ByteBuffer;
 
 public class ScionPingPongChannelServer {
   public static ScionDatagramChannel startServer() throws IOException {
-    InetSocketAddress address = new InetSocketAddress("localhost", 44444);
+    //InetSocketAddress address = new InetSocketAddress("localhost", 44444);
+    InetSocketAddress address = new InetSocketAddress("::1", 44444);
     ScionDatagramChannel server = ScionDatagramChannel.open().bind(address);
 
     System.out.println("Server started at: " + address);
@@ -27,6 +28,7 @@ public class ScionPingPongChannelServer {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     System.out.println("Waiting ...");
     InetSocketAddress remoteAddress = (InetSocketAddress) server.receive(buffer);
+    System.out.println("Received from client at: limit=" + buffer.limit() + " pos=" + buffer.position());
     String message = extractMessage(buffer);
 
     System.out.println("Received from client at: " + remoteAddress + "  message: " + message);
