@@ -56,8 +56,6 @@ public class ScionDatagramChannel {
   public synchronized void send(ByteBuffer buffer, InetSocketAddress destinationAddress)
       throws IOException {
     ScionPath path = null;
-    System.out.println(
-        "remote1 = " + destinationAddress + "    remote2 = " + helper.getSourceAddress());
     if (destinationAddress.getAddress().equals(helper.getSourceAddress())) {
       // We are just sending back to last IP. We can use the reversed path. No need to lookup a
       // path.
@@ -84,13 +82,11 @@ public class ScionDatagramChannel {
     //  create a new channel and reconnect?
 
     // get local IP
-    //        InetSocketAddress localAddress = null;
     if (!channel.isConnected() && localAddress == null) {
       InetSocketAddress borderRouterAddr = helper.getFirstHopAddress(path);
       channel.connect(borderRouterAddr);
       localAddress = (InetSocketAddress) channel.getLocalAddress();
     }
-    //        localAddress = (InetSocketAddress) channel.getLocalAddress();
 
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
