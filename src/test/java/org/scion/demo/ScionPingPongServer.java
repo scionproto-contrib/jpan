@@ -16,14 +16,6 @@ public class ScionPingPongServer {
         socket = new ScionDatagramSocket(port, localAddress);
     }
 
-    //TODO FIX PATH to go 1.20 -> Reinstall update-alternatives
-    // TODO Run shion.sh run
-    // - ps -ef | grep dispatcher
-    // lsof -ni | grep 63972
-    // kill -15 63972
-    // start Java scion server
-
-
     public static void main(String[] args) throws UnknownHostException {
         //int port = 30255;
         //int port = 30041;

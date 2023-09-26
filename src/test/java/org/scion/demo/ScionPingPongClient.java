@@ -25,7 +25,8 @@ public class ScionPingPongClient {
         try {
             InetAddress localAddress = InetAddress.getByName("127.0.0.1");
             InetAddress serverAddress = InetAddress.getByName(serverHostname);
-            ScionDatagramSocket socket = new ScionDatagramSocket(40507, localAddress);
+            //ScionDatagramSocket socket = new ScionDatagramSocket(40507, localAddress);
+            ScionDatagramSocket socket = new ScionDatagramSocket(null);
             socket.setDstIsdAs("1-ff00:0:112");
 
             while (true) {

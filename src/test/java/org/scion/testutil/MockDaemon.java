@@ -18,6 +18,7 @@ import io.grpc.*;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.scion.proto.daemon.Daemon;
@@ -30,17 +31,30 @@ public class MockDaemon implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
     private final InetSocketAddress address;
     private Server server;
+    private InetSocketAddress borderRouter;
 
     public MockDaemon(InetSocketAddress address) {
         this.address = address;
+        this.borderRouter = new InetSocketAddress("127.0.0.10", 31004);
+    }
+    public MockDaemon(InetSocketAddress address, InetSocketAddress borderRouter) {
+        this.address = address;
+        this.borderRouter = borderRouter;
     }
 
     public static MockDaemon create(InetSocketAddress address) {
         return new MockDaemon(address);
     }
 
+    public static MockDaemon create(InetSocketAddress address, InetSocketAddress borderRouter) {
+        return new MockDaemon(address, borderRouter);
+    }
+
     public MockDaemon start() throws IOException {
-    server = NettyServerBuilder.forAddress(address).addService(new DaemonImpl()).build().start();
+         String br = "127.0.0.10:31004";
+         br = borderRouter.toString().substring(1);
+         System.out.println("BR++++ " + br);
+    server = NettyServerBuilder.forAddress(address).addService(new DaemonImpl(br)).build().start();
         //server = ServerBuilder.forPort(port).addService(new DaemonImpl()).build().start();
 
         logger.info("Server started, listening on " + address);
@@ -71,14 +85,20 @@ public class MockDaemon implements AutoCloseable {
 
 
     static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
+        String borderRouter = "127.0.0.10:31004";
+
+        DaemonImpl(String borderRouter) {
+            this.borderRouter = borderRouter;
+        }
         @Override
         public void paths(Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
             logger.info("Got request from client: " + req);
+            System.err.println("Got request from client: " + req);
             Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
             if (req.getSourceIsdAs() == 561850441793808L && req.getDestinationIsdAs() == 561850441793810L) {
                 Daemon.Path p0 = Daemon.Path.newBuilder()
                         .setInterface(Daemon.Interface.newBuilder().setAddress(
-                                Daemon.Underlay.newBuilder().setAddress("127.0.0.10:31004").build()).build())
+                                Daemon.Underlay.newBuilder().setAddress(borderRouter).build()).build())
                         .addInterfaces(Daemon.PathInterface.newBuilder().setId(2).setIsdAs(561850441793808L).build())
                         .addInterfaces(Daemon.PathInterface.newBuilder().setId(1).setIsdAs(561850441793810L).build())
                         .build();

@@ -1,6 +1,5 @@
 # TODO
 ## Now
-- Refactor ScionSocket to use ScionHelper
 - socket. connect() + write() vs send()
 - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
 - Rename ScionHelper to PacketBuilder?
