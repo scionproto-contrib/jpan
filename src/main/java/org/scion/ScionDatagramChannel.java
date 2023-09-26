@@ -97,14 +97,14 @@ public class ScionDatagramChannel {
     int headerLength =
         helper.writeHeader(buf, pathState, localAddress, destinationAddress, payloadLength);
 
-    ByteBuffer buffer2 =
-        ByteBuffer.allocate(payloadLength + headerLength); // TODO allocate direct??? Capacity?
-    System.arraycopy(buf, 0, buffer2.array(), buffer2.arrayOffset(), headerLength);
+    ByteBuffer output =
+        ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
+    System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
     System.arraycopy(
         buffer.array(),
         buffer.arrayOffset() + buffer.position(),
-        buffer2.array(),
-        buffer2.arrayOffset() + headerLength,
+        output.array(),
+        output.arrayOffset() + headerLength,
         payloadLength);
     SocketAddress firstHopAddress = null;
     if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
@@ -113,7 +113,7 @@ public class ScionDatagramChannel {
       firstHopAddress = helper.getFirstHopAddress();
       // TODO routerAddress = firstHopAddress?
     }
-    channel.send(buffer2, firstHopAddress);
+    channel.send(output, firstHopAddress);
     buffer.position(buffer.limit());
   }
 

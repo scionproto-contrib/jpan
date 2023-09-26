@@ -1,8 +1,13 @@
 # TODO
 ## Now
 - Refactor ScionSocket to use ScionHelper
+- Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
 - Rename ScionHelper to PacketBuilder?
 - Implement DNS
+- Implement SocketExceptions: 
+  BindException(?), ConnectException, NoRouteToHostException, PortUnreachableException
+- Add channel.send(packet, dstAddr, dstIsdAs); 
+- Add socket.send(packet, dstIsdAs);
 
 ## Then
 
@@ -10,6 +15,7 @@
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
 - MulticastSocket / MulticastChannel (?)
+- Send SCMP on error?
 - Abuse socket/channel.setOption() to set path policies?
 
 ## After that

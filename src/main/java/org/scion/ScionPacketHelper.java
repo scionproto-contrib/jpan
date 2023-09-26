@@ -31,7 +31,14 @@ import org.scion.proto.daemon.Daemon;
  * We are extending DatagramSocket as recommended here:
  * https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
  */
-public class ScionPacketHelper implements Closeable {
+class ScionPacketHelper implements Closeable {
+  // TODO refactor to remove this code from public API
+  //  - put logic into a static interface methods
+  //  - put the state into a ScionSessionContext; move this class into the interface.
+  //  - implement the interface in ScionDatagramChannel and ScionDatagramSocket
+  //  - move Interface into "internal"
+  //  OR: just make this helper-class non-public -> done.
+
   /*
    * Design:
    * We use delegation rather than inheritance. Inheritance is more difficult to handle if future version of
