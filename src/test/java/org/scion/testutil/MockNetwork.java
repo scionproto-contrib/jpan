@@ -35,8 +35,8 @@ public class MockNetwork {
   private static MockDaemon daemon = null;
 
   /**
-   * Start a network with one daemon and a border router. The border router
-   * connects "1-ff00:0:110" (considered local) with "1-ff00:0:112" (remote).
+   * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
+   * (considered local) with "1-ff00:0:112" (remote).
    */
   public static synchronized void startTiny() {
     if (pool != null) {
@@ -84,8 +84,6 @@ class MockBorderRouter implements Runnable {
   private final String name;
   private final int port1;
   private final int port2;
-  private DatagramChannel in;
-  private DatagramChannel out;
 
   MockBorderRouter(String name, int port1, int port2) {
     this.name = name;
@@ -96,27 +94,28 @@ class MockBorderRouter implements Runnable {
   @Override
   public void run() {
     System.out.println("Running " + name + " on ports " + port1 + " -> " + port2);
-    try {
-      in = DatagramChannel.open().bind(new InetSocketAddress("localhost", port1));
-      out = DatagramChannel.open().bind(new InetSocketAddress("localhost", port2));
-      in.configureBlocking(false);
-      out.configureBlocking(false);
+    InetSocketAddress bind1 = new InetSocketAddress("localhost", port1);
+    InetSocketAddress bind2 = new InetSocketAddress("localhost", port2);
+    try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
+        DatagramChannel chnRemote = DatagramChannel.open().bind(bind2)) {
+      chnLocal.configureBlocking(false);
+      chnRemote.configureBlocking(false);
       // TODO use selectors, see e.g. https://www.baeldung.com/java-nio-selector
       while (true) {
         ByteBuffer bb = ByteBuffer.allocate(65000);
-        SocketAddress a1 = in.receive(bb);
+        SocketAddress a1 = chnLocal.receive(bb);
         if (a1 != null) {
-          InetSocketAddress dst = getDstAddressx(bb);
+          InetSocketAddress dst = getDstAddress(bb);
           logger.info("Service " + name + " sending to " + dst + "... ");
           bb.flip();
-          out.send(bb, dst);
+          chnRemote.send(bb, dst);
         }
-        SocketAddress a2 = out.receive(bb);
+        SocketAddress a2 = chnRemote.receive(bb);
         if (a2 != null) {
-          InetSocketAddress dst = getDstAddressx(bb);
+          InetSocketAddress dst = getDstAddress(bb);
           logger.info("Service " + name + " sending to " + dst + "... ");
           bb.flip();
-          in.send(bb, dst);
+          chnLocal.send(bb, dst);
         }
         Thread.sleep(100); // TODO use selector
       }
@@ -124,25 +123,10 @@ class MockBorderRouter implements Runnable {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-    } finally {
-      if (in != null) {
-        try {
-          in.close();
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-      if (out != null) {
-        try {
-          out.close();
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
     }
   }
 
-  private InetSocketAddress getDstAddressx(ByteBuffer bb) {
+  private InetSocketAddress getDstAddress(ByteBuffer bb) {
     return PackageVisibilityHelper.getDstAddress(bb.array());
   }
 
