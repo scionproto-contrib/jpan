@@ -14,6 +14,7 @@
 
         <scion.google-java-format.version>1.16.0</scion.google-java-format.version>
         <scion.junit.version>5.10.0</scion.junit.version>
+        <scion.junit-platform.version>1.10.0</scion.junit-platform.version>
         <scion.protobuf.version>3.23.0</scion.protobuf.version>
         <scion.slf4j.version>2.0.7</scion.slf4j.version>
 
@@ -76,6 +77,19 @@
             <artifactId>junit-jupiter-api</artifactId>
             <version>${scion.junit.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${scion.junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-engine</artifactId>
+            <version>${scion.junit-platform.version}</version>
         </dependency>
 
         <dependency>
@@ -239,6 +253,12 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <!-- JUnit 5 requires Surefire version 2.22.0 or higher -->
+                <version>3.1.2</version>
             </plugin>
         </plugins>
     </build>

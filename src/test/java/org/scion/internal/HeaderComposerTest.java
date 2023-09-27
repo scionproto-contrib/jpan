@@ -51,7 +51,7 @@ public class HeaderComposerTest {
 
 
   @BeforeAll
-  public static void beforeAll() throws IOException {
+  public static void beforeAll2() throws IOException {
     daemon = MockDaemon.create().start();
   }
 
