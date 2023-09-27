@@ -24,7 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.ScionPathService;
-import org.scion.PathServiceHelper;
+import org.scion.PackageVisibilityHelper;
 import org.scion.ScionUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
@@ -103,7 +103,7 @@ public class HeaderComposerTest {
     // Socket internal - compose header data
     pathService = ScionPathService.create(MockDaemon.DEFAULT_ADDRESS);
     long srcIA = pathService.getLocalIsdAs();
-    Daemon.Path path = PathServiceHelper.getPathList(pathService, srcIA, dstIA).get(0);
+    Daemon.Path path = PackageVisibilityHelper.getPathList(pathService, srcIA, dstIA).get(0);
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.2");

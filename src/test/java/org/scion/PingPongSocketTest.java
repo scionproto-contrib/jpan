@@ -32,10 +32,9 @@ public class PingPongSocketTest {
 
   @Test
   public void testPingPong() throws InterruptedException {
+    MockNetwork.startTiny();
+
     InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.1", 22233);
-
-    MockNetwork.startTiny(serverAddress);
-
     Thread server = new Thread(() -> server(serverAddress), "Server-thread");
     server.start();
     Thread client = new Thread(() -> client(serverAddress), "Client-thread");

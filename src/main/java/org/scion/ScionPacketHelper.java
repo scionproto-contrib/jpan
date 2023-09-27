@@ -89,6 +89,10 @@ class ScionPacketHelper implements Closeable {
     return new InetSocketAddress(scionHeader.getSrcHostAddress(), overlayHeaderUdp.getSrcPort());
   }
 
+  public InetSocketAddress getReceivedDstAddress() throws IOException {
+    return new InetSocketAddress(scionHeader.getDstHostAddress(), overlayHeaderUdp.getDstPort());
+  }
+
   // TODO deprecate this?
   public InetSocketAddress getFirstHopAddress() {
     return new InetSocketAddress(underlayAddress, underlayPort);

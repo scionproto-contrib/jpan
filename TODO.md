@@ -1,6 +1,8 @@
 # TODO
 
 ## Now
+- Write test for ScionDatagramChannel
+- Look into Selectors:  https://www.baeldung.com/java-nio-selector
 - socket. connect() + write() vs send()
 - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
 - Rename ScionHelper to PacketBuilder?

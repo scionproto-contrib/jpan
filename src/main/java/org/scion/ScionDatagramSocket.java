@@ -82,7 +82,6 @@ public class ScionDatagramSocket implements Closeable {
       // TODO reuse incoming packet
     // TODO rename to bytes to buffer
       DatagramPacket incoming = new DatagramPacket(bytes, bytes.length);
-      System.out.println("waiting to receive: "); // TODO
       socket.receive(incoming);
       underlayPort = incoming.getPort();
       underlayAddress = incoming.getAddress();

@@ -14,6 +14,7 @@
 
 package org.scion.testutil;
 
+import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,15 +37,14 @@ public class MockNetwork {
   /**
    * Start a network with one daemon and a border router. The border router
    * connects "1-ff00:0:110" (considered local) with "1-ff00:0:112" (remote).
-   * @param br1Dst
    */
-  public static synchronized void startTiny(InetSocketAddress br1Dst) {
+  public static synchronized void startTiny() {
     if (pool != null) {
       throw new IllegalStateException();
     }
     pool = Executors.newSingleThreadExecutor();
 
-    MockBorderRouter router = new MockBorderRouter("BorderRouter-1", 30555, 30556, br1Dst);
+    MockBorderRouter router = new MockBorderRouter("BorderRouter-1", 30555, 30556);
     pool.execute(router);
 
     InetSocketAddress brAddr = new InetSocketAddress("127.0.0.1", router.getPort1());
@@ -84,23 +84,18 @@ class MockBorderRouter implements Runnable {
   private final String name;
   private final int port1;
   private final int port2;
-  private final InetSocketAddress dstAddr1;
-  private InetSocketAddress dstAddr2;
   private DatagramChannel in;
   private DatagramChannel out;
 
-  MockBorderRouter(
-      String name, int port1, int port2, InetSocketAddress dstAddr1) {
+  MockBorderRouter(String name, int port1, int port2) {
     this.name = name;
     this.port1 = port1;
     this.port2 = port2;
-    this.dstAddr1 = dstAddr1;
   }
 
   @Override
   public void run() {
-    System.out.println("Running " + name + " on port " + port1 + " -> " + dstAddr1);
-    System.out.println("    and " + name + " on port " + port2 + " -> " + dstAddr2);
+    System.out.println("Running " + name + " on ports " + port1 + " -> " + port2);
     try {
       in = DatagramChannel.open().bind(new InetSocketAddress("localhost", port1));
       out = DatagramChannel.open().bind(new InetSocketAddress("localhost", port2));
@@ -108,19 +103,20 @@ class MockBorderRouter implements Runnable {
       out.configureBlocking(false);
       // TODO use selectors, see e.g. https://www.baeldung.com/java-nio-selector
       while (true) {
-        ByteBuffer bb = ByteBuffer.allocateDirect(65000);
+        ByteBuffer bb = ByteBuffer.allocate(65000);
         SocketAddress a1 = in.receive(bb);
         if (a1 != null) {
-          logger.info("Service " + name + " sending to " + dstAddr1 + "... ");
+          InetSocketAddress dst = getDstAddressx(bb);
+          logger.info("Service " + name + " sending to " + dst + "... ");
           bb.flip();
-          out.send(bb, dstAddr1);
-          dstAddr2 = (InetSocketAddress) a1;
+          out.send(bb, dst);
         }
         SocketAddress a2 = out.receive(bb);
         if (a2 != null) {
-          logger.info("Service " + name + " sending to " + dstAddr2 + "... ");
+          InetSocketAddress dst = getDstAddressx(bb);
+          logger.info("Service " + name + " sending to " + dst + "... ");
           bb.flip();
-          in.send(bb, dstAddr2);
+          in.send(bb, dst);
         }
         Thread.sleep(100); // TODO use selector
       }
@@ -144,6 +140,10 @@ class MockBorderRouter implements Runnable {
         }
       }
     }
+  }
+
+  private InetSocketAddress getDstAddressx(ByteBuffer bb) {
+    return PackageVisibilityHelper.getDstAddress(bb.array());
   }
 
   public int getPort1() {
