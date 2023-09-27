@@ -30,10 +30,9 @@ public class PackageVisibilityHelper {
         return service.getPathList(srcIsdAs, dstIsdAs);
     }
 
-    public static InetSocketAddress getSrcAddress(DatagramPacket packet) {
-        ScionPacketHelper helper = new ScionPacketHelper();
-        try {
-            helper.readScionHeader(packet.getData());
+    public static InetSocketAddress getSrcAddress(byte[] packet) {
+        try (ScionPacketHelper helper = new ScionPacketHelper()) {
+            helper.readScionHeader(packet);
             return helper.getReceivedSrcAddress();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -41,8 +40,7 @@ public class PackageVisibilityHelper {
     }
 
     public static InetSocketAddress getDstAddress(byte[] packet) {
-        ScionPacketHelper helper = new ScionPacketHelper();
-        try {
+        try (ScionPacketHelper helper = new ScionPacketHelper()) {
             helper.readScionHeader(packet);
             return helper.getReceivedDstAddress();
         } catch (IOException e) {
