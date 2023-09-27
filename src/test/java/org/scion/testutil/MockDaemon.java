@@ -20,6 +20,8 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+
+import org.scion.ScionConstants;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -28,42 +30,49 @@ import org.slf4j.LoggerFactory;
 public class MockDaemon implements AutoCloseable {
 
   private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
+
+  public static final InetSocketAddress DEFAULT_ADDRESS =
+          new InetSocketAddress("127.0.0.15", 30255);
+
   private final InetSocketAddress address;
   private Server server;
   private final InetSocketAddress borderRouter;
 
   private static final byte[] PATH_RAW_TINY_110_112 = {
-0x0, 0x0, 0x20, 0x0, 0x1, 0x0, (byte) 0xb4, (byte) 0xab,
-          0x65, 0x14, 0x8, (byte) 0xde, 0x0, 0x3f, 0x0, 0x0,
-          0x0, 0x2, 0x66, 0x62, 0x3e, (byte) 0xba, 0x31, (byte) 0xc6,
-          0x0, 0x3f, 0x0, 0x1, 0x0, 0x0, 0x51, (byte) 0xc1,
+          0x00, 0x00, 0x20, 0x00, 0x01, 0x00, (byte) 0xb4, (byte) 0xab,
+          0x65, 0x14, 0x08, (byte) 0xde, 0x00, 0x3f, 0x00, 0x00,
+          0x00, 0x02, 0x66, 0x62, 0x3e, (byte) 0xba, 0x31, (byte) 0xc6,
+          0x00, 0x3f, 0x00, 0x01, 0x00, 0x00, 0x51, (byte) 0xc1,
           (byte) 0xfd, (byte) 0xed, 0x27, 0x60, };
-  public MockDaemon(InetSocketAddress address) {
+
+  private static void setEnvironment() {
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_ADDRESS.getHostName());
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_ADDRESS.getPort());
+  }
+  public static MockDaemon create() {
+    setEnvironment();
+    return new MockDaemon(DEFAULT_ADDRESS);
+  }
+
+  public static MockDaemon createForBorderRouter(InetSocketAddress borderRouter) {
+    setEnvironment();
+    return new MockDaemon(DEFAULT_ADDRESS, borderRouter);
+  }
+
+  private MockDaemon(InetSocketAddress address) {
     this.address = address;
     this.borderRouter = new InetSocketAddress("127.0.0.10", 31004);
   }
 
-  public MockDaemon(InetSocketAddress address, InetSocketAddress borderRouter) {
+  private MockDaemon(InetSocketAddress address, InetSocketAddress borderRouter) {
     this.address = address;
     this.borderRouter = borderRouter;
-  }
-
-  public static MockDaemon create(InetSocketAddress address) {
-    return new MockDaemon(address);
-  }
-
-  public static MockDaemon create(InetSocketAddress address, InetSocketAddress borderRouter) {
-    return new MockDaemon(address, borderRouter);
   }
 
   public MockDaemon start() throws IOException {
     String br = "127.0.0.10:31004";
     br = borderRouter.toString().substring(1);
-    System.out.println("BR++++ " + br);
     int port = address.getPort();
-    //        server = NettyServerBuilder.forAddress(address).addService(new
-    // DaemonImpl(br)).build().start();
-    // server = ServerBuilder.forPort(port).addService(new DaemonImpl()).build().start();
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
             .addService(new MockDaemon.DaemonImpl(br))
@@ -75,9 +84,8 @@ public class MockDaemon implements AutoCloseable {
         .addShutdownHook(
             new Thread(
                 () -> {
-                  System.err.println("Shutting down daemon server");
                   try {
-                    server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+                    server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
                   } catch (InterruptedException e) {
                     e.printStackTrace(System.err);
                   }
@@ -88,16 +96,14 @@ public class MockDaemon implements AutoCloseable {
   @Override
   public void close() throws IOException {
     try {
-      logger.warn("Shutting down daemon");
       server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-      logger.warn("Daemon shut down");
     } catch (InterruptedException e) {
       throw new IOException(e);
     }
   }
 
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
-    String borderRouter = "127.0.0.10:31004";
+    final String borderRouter;
 
     DaemonImpl(String borderRouter) {
       this.borderRouter = borderRouter;

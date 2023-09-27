@@ -12,7 +12,6 @@
 
 ## Then
 
-- Fix client using 0.0.0.0 as local host
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
 - MulticastSocket / MulticastChannel (?)
@@ -20,6 +19,7 @@
   extension headers (which are only processed ayt end-hosts)
 - Abuse socket/channel.setOption() to set path policies?
 - PathService: extend API
+- Remove PathHeaderOneHop
 
 ## After that
 - CI

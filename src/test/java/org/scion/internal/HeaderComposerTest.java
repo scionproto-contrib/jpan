@@ -19,12 +19,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.ScionPathService;
 import org.scion.PathServiceHelper;
 import org.scion.ScionUtil;
 import org.scion.proto.daemon.Daemon;
+import org.scion.testutil.MockDaemon;
 
 public class HeaderComposerTest {
 
@@ -42,7 +45,22 @@ public class HeaderComposerTest {
     111, 32, 115, 99, 105, 111, 110, // 103
   };
 
+  private static MockDaemon daemon;
+
   private ScionPathService pathService = null;
+
+
+  @BeforeAll
+  public static void beforeAll() throws IOException {
+    daemon = MockDaemon.create().start();
+  }
+
+  @AfterAll
+  public static void afterAll() throws IOException {
+    if (daemon != null) {
+      daemon.close();
+    }
+  }
 
   @AfterEach
   public void afterEach() {
@@ -83,7 +101,7 @@ public class HeaderComposerTest {
     DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, dstPort);
 
     // Socket internal - compose header data
-    pathService = ScionPathService.create();
+    pathService = ScionPathService.create(MockDaemon.DEFAULT_ADDRESS);
     long srcIA = pathService.getLocalIsdAs();
     Daemon.Path path = PathServiceHelper.getPathList(pathService, srcIA, dstIA).get(0);
     scionHeader.setSrcIA(srcIA);
@@ -93,7 +111,7 @@ public class HeaderComposerTest {
     scionHeader.setDstHostAddress(userPacket.getAddress());
 
     // Socket internal = write header
-    int offset = scionHeader.write(data, userPacket.getLength(), path.getRaw().size(), 0, Constants.PathTypes.SCION);
+    int offset = scionHeader.write(data, 0, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
     assertEquals(1, scionHeader.pathType().code());
     offset = pathHeaderScion.writePath(data, offset, path);
 
@@ -115,15 +133,7 @@ public class HeaderComposerTest {
     p.setAddress(underlayAddress);
     // System.out.println("Sending to underlay: " + underlayAddress + " : " + underlayPort);
 
-    // assertEquals(offset, writeOffset);
     for (int i = 0; i < p.getLength(); i++) {
-      //      System.out.println(
-      //          "i="
-      //              + i
-      //              + ":  "
-      //              + Integer.toHexString(Byte.toUnsignedInt(packetBytes[i]))
-      //              + " - "
-      //              + Integer.toHexString(Byte.toUnsignedInt(data[i])));
       if (i >= 54 && i <= 59) {
         // ignore segID field and timestamp.
         // TODO test if timestamp is useful!
@@ -141,7 +151,7 @@ public class HeaderComposerTest {
         // ignore UDP checksum
         continue;
       }
-      assertEquals(packetBytes[i], data[i]);
+      assertEquals(packetBytes[i], data[i], "Mismatch at position " + i);
     }
   }
 }

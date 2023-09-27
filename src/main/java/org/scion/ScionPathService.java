@@ -16,6 +16,7 @@ package org.scion;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +25,12 @@ import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.scion.ScionConstants.*;
+import static org.scion.ScionConstants.DEFAULT_DAEMON_HOST;
+import static org.scion.ScionConstants.DEFAULT_DAEMON_PORT;
+import static org.scion.ScionConstants.ENV_DAEMON_HOST;
+import static org.scion.ScionConstants.ENV_DAEMON_PORT;
+import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
+import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
 public class ScionPathService implements AutoCloseable {
 
@@ -50,6 +56,10 @@ public class ScionPathService implements AutoCloseable {
 
   public static ScionPathService create(String daemonAddress) {
     return new ScionPathService(daemonAddress);
+  }
+
+  public static ScionPathService create(InetSocketAddress address) {
+    return create(address.getHostName(), address.getPort());
   }
 
   public static ScionPathService create() {

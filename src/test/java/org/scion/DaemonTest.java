@@ -17,18 +17,13 @@ package org.scion;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
 
 public class DaemonTest {
-
-  private static final InetSocketAddress MOCK_DAEMON_ADDRESS =
-      new InetSocketAddress("127.0.0.15", 30255);
 
   @Test
   public void testWrongDaemonAddress() {
@@ -49,10 +44,10 @@ public class DaemonTest {
 
   @Test
   public void getPath() throws IOException {
-    MockDaemon mock = MockDaemon.create(MOCK_DAEMON_ADDRESS).start();
+    MockDaemon mock = MockDaemon.create().start();
 
     // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-    String daemonAddr = ScionUtil.toHostAddrPort(MOCK_DAEMON_ADDRESS);
+    String daemonAddr = ScionUtil.toHostAddrPort(MockDaemon.DEFAULT_ADDRESS);
     List<Daemon.Path> paths;
     long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
     long dstIA = ScionUtil.ParseIA("1-ff00:0:112");

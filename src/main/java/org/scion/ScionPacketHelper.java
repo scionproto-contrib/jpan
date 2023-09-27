@@ -191,7 +191,6 @@ class ScionPacketHelper implements Closeable {
       default:
         throw new IllegalStateException(pathState.name());
     }
-    printHeaders(); // TODO
     return offset;
   }
 
@@ -202,15 +201,18 @@ class ScionPacketHelper implements Closeable {
     return pathService;
   }
 
-  private void printHeaders() {
-    System.out.println("Scion header: " + scionHeader);
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(scionHeader).append("\n");
     if (scionHeader.pathType() == Constants.PathTypes.SCION) {
-      System.out.println("Path header: " + pathHeaderScion);
+      sb.append(pathHeaderScion).append("\n");
     } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
-      System.out.println("OneHop header: " + pathHeaderOneHop);
+      sb.append(pathHeaderOneHop).append("\n");
     } else {
       throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
     }
+    return sb.toString();
   }
 
   public int readScionHeader(byte[] data) throws IOException {
@@ -240,13 +242,12 @@ class ScionPacketHelper implements Closeable {
       // These are probably answers to polling/keep-alive packets sent from the dispatcher, but the
       // dispatcher
       // can´t receive them due to pert forwarding to 40041 so the dispatcher keeps requesting them.
-      if (!scionHeader.getDstHostAddress().isLoopbackAddress()) {
-        System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
-        // return false;
-      }
-      printHeaders();
+//      if (!scionHeader.getDstHostAddress().isLoopbackAddress()) {
+//        System.out.println("PACKET DROPPED: dstHost=" + scionHeader.getDstHostAddress());
+//        // return false;
+//      }
+
       offset = overlayHeaderUdp.read(data, offset);
-      System.out.println(overlayHeaderUdp);
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");
       return -1;

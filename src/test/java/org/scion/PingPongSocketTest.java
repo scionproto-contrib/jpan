@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.List;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,12 +26,11 @@ import org.scion.testutil.MockNetwork;
 
 public class PingPongSocketTest {
 
-  private static final InetSocketAddress MOCK_DAEMON_ADDRESS =
-      new InetSocketAddress("127.0.0.15", 30255);
   private static final InetSocketAddress MOCK_BR1_ADDRESS =
           new InetSocketAddress("127.0.0.1", 30333);
 
   private static final int N_REPEAT = 5;
+  private static final String MSG = "Hello world!";
 
   private int nClient = 0;
   private int nServer = 0;
@@ -40,17 +38,9 @@ public class PingPongSocketTest {
   @Deprecated // TODO remove
   private static final int CLIENT_PORT = 33345;
 
-  @BeforeAll
-  public static void beforeAll() {
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, MOCK_DAEMON_ADDRESS.getHostName());
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + MOCK_DAEMON_ADDRESS.getPort());
-  }
-
   @Test
-  public void getPath() throws IOException, InterruptedException {
-    MockDaemon daemon = MockDaemon.create(MOCK_DAEMON_ADDRESS, MOCK_BR1_ADDRESS).start();
-
-    //Thread.sleep(500); // TODO ?
+  public void testPingPong() throws IOException, InterruptedException {
+    MockDaemon daemon = MockDaemon.createForBorderRouter(MOCK_BR1_ADDRESS).start();
 
     InetSocketAddress br1Dst = new InetSocketAddress("127.0.0.1", 12200);
     InetSocketAddress br2Dst = new InetSocketAddress("127.0.0.1", CLIENT_PORT);
@@ -88,23 +78,21 @@ public class PingPongSocketTest {
       socket.setDstIsdAs("1-ff00:0:112");
 
       for (int i = 0; i < N_REPEAT; i++) {
-        String msg = "Hello there!";
-        byte[] sendBuf = msg.getBytes();
+          byte[] sendBuf = MSG.getBytes();
         DatagramPacket request =
             new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
-        // TODO fix
-        //  socket.connect(serverAddress, serverPort);
         socket.send(request);
-        System.out.println("CLIENT: Sent!");
+        // System.out.println("CLIENT: Sent!");
 
-        System.out.println("CLIENT: Receiving ... (" + socket.getLocalSocketAddress() + ")");
+        // System.out.println("CLIENT: Receiving ... (" + socket.getLocalSocketAddress() + ")");
         byte[] buffer = new byte[512];
         DatagramPacket response = new DatagramPacket(buffer, buffer.length);
         socket.receive(response);
 
         String pong = new String(buffer, 0, response.getLength());
+        assertEquals(MSG, pong);
 
-        System.out.println(pong);
+        // System.out.println(pong);
 
         nClient++;
       }
@@ -129,19 +117,19 @@ public class PingPongSocketTest {
   private void service(ScionDatagramSocket socket) throws IOException {
     for (int i = 0; i < N_REPEAT; i++) {
       DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
-      System.out.println("SERVER: --- USER - Waiting for packet ---------------------- " + socket.getLocalSocketAddress());
+      // System.out.println("SERVER: --- USER - Waiting for packet ---------------------- " + socket.getLocalSocketAddress());
       socket.receive(request);
 
       String msg = new String(request.getData(), request.getOffset(), request.getLength());
-      System.out.println("SERVER: Received (from " + request.getSocketAddress() + "): " + msg);
+      // System.out.println("SERVER: Received (from " + request.getSocketAddress() + "): " + msg);
+      assertEquals(MSG, msg);
 
-      byte[] buffer = ("Re: " + msg).getBytes();
-
+      byte[] buffer = msg.getBytes();
       InetAddress clientAddress = request.getAddress();
       int clientPort = request.getPort();
       assertEquals(clientPort, CLIENT_PORT);
 
-      System.out.println("SERVER: --- USER - Sending packet ----------------------");
+      // System.out.println("SERVER: --- USER - Sending packet ----------------------");
       // TODO fix this, we should not specify the daemon port here!!
       DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 23232);
       socket.send(response);
