@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.scion.demo.ScionPingPongServer;
-import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockNetwork;
 
@@ -32,17 +32,27 @@ public class PingPongSocketTest {
   private static final InetSocketAddress MOCK_BR1_ADDRESS =
           new InetSocketAddress("127.0.0.1", 30333);
 
+  @BeforeAll
+  public static void beforeAll() {
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, MOCK_DAEMON_ADDRESS.getHostName());
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + MOCK_DAEMON_ADDRESS.getPort());
+  }
+
   @Test
   public void getPath() throws IOException, InterruptedException {
     MockDaemon daemon = MockDaemon.create(MOCK_DAEMON_ADDRESS, MOCK_BR1_ADDRESS).start();
+
+    //Thread.sleep(500); // TODO ?
+
     SocketAddress br1Dst = new InetSocketAddress("127.0.0.1", 12200);
     SocketAddress br2Dst = new InetSocketAddress("127.0.0.1", 12201);
-    MockNetwork.startTiny(MOCK_BR1_ADDRESS.getPort(), 30444, br1Dst, br2Dst);
-
     InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.1", 22233);
-    Thread server = new Thread(() -> server(serverAddress));
+
+    MockNetwork.startTiny(MOCK_BR1_ADDRESS.getPort(), 30444, serverAddress, br2Dst);
+
+    Thread server = new Thread(() -> server(serverAddress), "Server-thread");
     server.start();
-    Thread client = new Thread(() -> client(serverAddress));
+    Thread client = new Thread(() -> client(serverAddress), "Client-thread");
     client.start();
 
     client.join();
@@ -90,7 +100,6 @@ public class PingPongSocketTest {
       socket.setDstIsdAs("1-ff00:0:112");
 
       while (true) {
-
         String msg = "Hello there!";
         byte[] sendBuf = msg.getBytes();
         DatagramPacket request =
@@ -115,9 +124,6 @@ public class PingPongSocketTest {
     } catch (SocketTimeoutException e) {
       System.out.println("CLIENT: Timeout error: " + e.getMessage());
       throw new RuntimeException(e);
-      //        } catch (IOException e) {
-      //            System.out.println("Client error: " + e.getMessage());
-      //            throw new RuntimeException(e);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -142,7 +148,7 @@ public class PingPongSocketTest {
       //      -> Copy is alright, but high performance user may want a a way to avoid the copy....
       //      -> Make this configurable via OPTIONS?
       DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
-      System.out.println("SERVER: --- USER - Waiting for packet ----------------------");
+      System.out.println("SERVER: --- USER - Waiting for packet ---------------------- " + socket.getLocalSocketAddress());
       socket.receive(request);
       //            for (int i = 0; i < request.getLength(); i++) {
       //

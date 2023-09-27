@@ -5,6 +5,17 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 * https://github.com/trensetim/quic
 * https://kachayev.github.io/quiche4j/
 
+## Dispatcher 
+
+**TODO Remove this section once dispatcher is removed**
+
+This library does not work with the dispatcher. For one, the dispatcher will
+likely be removed soon(ish). Also, the dispatcher uses UNix sockets, which are
+less easy to use in Java.
+
+If we decide we need dispatcher support, it may be easiest to
+adapt the dispatcher to allow connection via a normal port on local host, basically acting as
+a kind of reverse proxy.
 
 ## Library dependencies etc
 

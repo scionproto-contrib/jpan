@@ -10,6 +10,8 @@
 
 A Java client for [SCION](https://scion.org).
 
+This client can directly connect to SCION without a dispatcher.
+
 ## Demo application - ping pong
 
 There is a simple ping pong client-server application in `src/test/demo`.

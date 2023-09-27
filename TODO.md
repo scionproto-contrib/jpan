@@ -1,4 +1,5 @@
 # TODO
+
 ## Now
 - socket. connect() + write() vs send()
 - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
@@ -18,6 +19,7 @@
 - Send SCMP on error? Probably yes, e.g. "Parameter Problem" when processing
   extension headers (which are only processed ayt end-hosts)
 - Abuse socket/channel.setOption() to set path policies?
+- PathService: extend API
 
 ## After that
 - CI
@@ -69,4 +71,4 @@
 - Path selection & path policies
 
 - Where to place generated proto files? They are currently in `target` but could be in `scr/java`...
- 
+- Should PathService be a singleton?

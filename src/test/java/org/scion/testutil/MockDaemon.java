@@ -15,10 +15,8 @@
 package org.scion.testutil;
 
 import io.grpc.*;
-import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.scion.proto.daemon.Daemon;
@@ -28,85 +26,112 @@ import org.slf4j.LoggerFactory;
 
 public class MockDaemon implements AutoCloseable {
 
-    private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
-    private final InetSocketAddress address;
-    private Server server;
-    private InetSocketAddress borderRouter;
+  private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
+  private final InetSocketAddress address;
+  private Server server;
+  private final InetSocketAddress borderRouter;
 
-    public MockDaemon(InetSocketAddress address) {
-        this.address = address;
-        this.borderRouter = new InetSocketAddress("127.0.0.10", 31004);
+  public MockDaemon(InetSocketAddress address) {
+    this.address = address;
+    this.borderRouter = new InetSocketAddress("127.0.0.10", 31004);
+  }
+
+  public MockDaemon(InetSocketAddress address, InetSocketAddress borderRouter) {
+    this.address = address;
+    this.borderRouter = borderRouter;
+  }
+
+  public static MockDaemon create(InetSocketAddress address) {
+    return new MockDaemon(address);
+  }
+
+  public static MockDaemon create(InetSocketAddress address, InetSocketAddress borderRouter) {
+    return new MockDaemon(address, borderRouter);
+  }
+
+  public MockDaemon start() throws IOException {
+    String br = "127.0.0.10:31004";
+    br = borderRouter.toString().substring(1);
+    System.out.println("BR++++ " + br);
+    int port = address.getPort();
+    //        server = NettyServerBuilder.forAddress(address).addService(new
+    // DaemonImpl(br)).build().start();
+    // server = ServerBuilder.forPort(port).addService(new DaemonImpl()).build().start();
+    server =
+        Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
+            .addService(new MockDaemon.DaemonImpl(br))
+            .build()
+            .start();
+    logger.info("Server started, listening on " + address);
+
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(
+                () -> {
+                  System.err.println("Shutting down daemon server");
+                  try {
+                    server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+                  } catch (InterruptedException e) {
+                    e.printStackTrace(System.err);
+                  }
+                }));
+    return this;
+  }
+
+  @Override
+  public void close() throws IOException {
+    try {
+      logger.warn("Shutting down daemon");
+      server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+      logger.warn("Daemon shut down");
+    } catch (InterruptedException e) {
+      throw new IOException(e);
     }
-    public MockDaemon(InetSocketAddress address, InetSocketAddress borderRouter) {
-        this.address = address;
-        this.borderRouter = borderRouter;
-    }
+  }
 
-    public static MockDaemon create(InetSocketAddress address) {
-        return new MockDaemon(address);
-    }
+  static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
+    String borderRouter = "127.0.0.10:31004";
 
-    public static MockDaemon create(InetSocketAddress address, InetSocketAddress borderRouter) {
-        return new MockDaemon(address, borderRouter);
-    }
-
-    public MockDaemon start() throws IOException {
-         String br = "127.0.0.10:31004";
-         br = borderRouter.toString().substring(1);
-         System.out.println("BR++++ " + br);
-    server = NettyServerBuilder.forAddress(address).addService(new DaemonImpl(br)).build().start();
-        //server = ServerBuilder.forPort(port).addService(new DaemonImpl()).build().start();
-
-        logger.info("Server started, listening on " + address);
-
-        // TODO remove?
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.err.println("Shutting down daemon server");
-            try {
-                server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace(System.err);
-            }
-        }));
-        return this;
+    DaemonImpl(String borderRouter) {
+      this.borderRouter = borderRouter;
     }
 
     @Override
-    public void close() throws IOException {
-        try {
-            //channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-            logger.warn("Shutting down daemon");
-            server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-            logger.warn("Daemon shut down");
-        } catch (InterruptedException e) {
-            throw new IOException(e);
-        }
+    public void paths(
+        Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
+      logger.info(
+          "Got request from client: " + req.getSourceIsdAs() + " / " + req.getDestinationIsdAs());
+      Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
+      if (req.getSourceIsdAs() == 561850441793808L
+          && req.getDestinationIsdAs() == 561850441793810L) {
+        Daemon.Path p0 =
+            Daemon.Path.newBuilder()
+                .setInterface(
+                    Daemon.Interface.newBuilder()
+                        .setAddress(Daemon.Underlay.newBuilder().setAddress(borderRouter).build())
+                        .build())
+                .addInterfaces(
+                    Daemon.PathInterface.newBuilder().setId(2).setIsdAs(561850441793808L).build())
+                .addInterfaces(
+                    Daemon.PathInterface.newBuilder().setId(1).setIsdAs(561850441793810L).build())
+                .build();
+        replyBuilder.addPaths(p0);
+      }
+      responseObserver.onNext(replyBuilder.build());
+      responseObserver.onCompleted();
     }
 
-
-    static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
-        String borderRouter = "127.0.0.10:31004";
-
-        DaemonImpl(String borderRouter) {
-            this.borderRouter = borderRouter;
-        }
-        @Override
-        public void paths(Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
-            logger.info("Got request from client: " + req);
-            System.err.println("Got request from client: " + req);
-            Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
-            if (req.getSourceIsdAs() == 561850441793808L && req.getDestinationIsdAs() == 561850441793810L) {
-                Daemon.Path p0 = Daemon.Path.newBuilder()
-                        .setInterface(Daemon.Interface.newBuilder().setAddress(
-                                Daemon.Underlay.newBuilder().setAddress(borderRouter).build()).build())
-                        .addInterfaces(Daemon.PathInterface.newBuilder().setId(2).setIsdAs(561850441793808L).build())
-                        .addInterfaces(Daemon.PathInterface.newBuilder().setId(1).setIsdAs(561850441793810L).build())
-                        .build();
-                replyBuilder.addPaths(p0);
-            }
-            responseObserver.onNext(replyBuilder.build());
-            responseObserver.onCompleted();
-        }
+    @Override
+    public void aS(Daemon.ASRequest req, StreamObserver<Daemon.ASResponse> responseObserver) {
+      logger.info("Got AS request from client: " + req.getIsdAs());
+      Daemon.ASResponse.Builder replyBuilder = Daemon.ASResponse.newBuilder();
+      if (req.getIsdAs() == 0) { // 0 -> local AS
+        replyBuilder.setCore(true);
+        replyBuilder.setIsdAs(561850441793808L);
+        replyBuilder.setMtu(1400);
+      }
+      responseObserver.onNext(replyBuilder.build());
+      responseObserver.onCompleted();
     }
-
+  }
 }
