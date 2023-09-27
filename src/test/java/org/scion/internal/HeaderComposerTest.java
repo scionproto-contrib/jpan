@@ -117,21 +117,9 @@ public class HeaderComposerTest {
 
     // Pseudo header
     offset = overlayHeaderUdp.write(data, offset, userPacket.getLength(), 100, dstPort);
-    // System.out.println(overlayHeaderUdp);
 
     System.arraycopy(userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
     p.setLength(offset + userPacket.getLength());
-
-    // Socket internal - prepare send
-    int underlayPort = -1;
-    InetAddress underlayAddress = InetAddress.getByName("127.0.0.1"); // TODO ????????????
-    // First hop
-    // TODO ?!?!?!?!?!
-    // p.setPort(underlayPort);
-    p.setPort(
-        31012); // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
-    p.setAddress(underlayAddress);
-    // System.out.println("Sending to underlay: " + underlayAddress + " : " + underlayPort);
 
     for (int i = 0; i < p.getLength(); i++) {
       if (i >= 54 && i <= 59) {

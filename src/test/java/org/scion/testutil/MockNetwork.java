@@ -31,18 +31,40 @@ public class MockNetwork {
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
 
   private static ExecutorService pool = null;
+  private static MockDaemon daemon = null;
 
-  public static synchronized void startTiny(
-      int br1Port, int br2Port, InetSocketAddress br1Dst, InetSocketAddress br2Dst) {
+  /**
+   * Start a network with one daemon and a border router. The border router
+   * connects "1-ff00:0:110" (considered local) with "1-ff00:0:112" (remote).
+   * @param br1Dst
+   */
+  public static synchronized void startTiny(InetSocketAddress br1Dst) {
     if (pool != null) {
       throw new IllegalStateException();
     }
     pool = Executors.newSingleThreadExecutor();
 
-    pool.execute(new MockBorderRouter("Bridge-1", br1Port, br2Port, br1Dst, br2Dst));
+    MockBorderRouter router = new MockBorderRouter("BorderRouter-1", 30555, 30556, br1Dst);
+    pool.execute(router);
+
+    InetSocketAddress brAddr = new InetSocketAddress("127.0.0.1", router.getPort1());
+    try {
+      daemon = MockDaemon.createForBorderRouter(brAddr).start();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static synchronized void stopTiny() {
+    if (daemon != null) {
+      try {
+        daemon.close();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      daemon = null;
+    }
+
     try {
       pool.shutdownNow();
       if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -63,17 +85,16 @@ class MockBorderRouter implements Runnable {
   private final int port1;
   private final int port2;
   private final InetSocketAddress dstAddr1;
-  private final InetSocketAddress dstAddr2;
+  private InetSocketAddress dstAddr2;
   private DatagramChannel in;
   private DatagramChannel out;
 
   MockBorderRouter(
-      String name, int port1, int port2, InetSocketAddress dstAddr1, InetSocketAddress dstAddr2) {
+      String name, int port1, int port2, InetSocketAddress dstAddr1) {
     this.name = name;
     this.port1 = port1;
     this.port2 = port2;
     this.dstAddr1 = dstAddr1;
-    this.dstAddr2 = dstAddr2;
   }
 
   @Override
@@ -93,6 +114,7 @@ class MockBorderRouter implements Runnable {
           logger.info("Service " + name + " sending to " + dstAddr1 + "... ");
           bb.flip();
           out.send(bb, dstAddr1);
+          dstAddr2 = (InetSocketAddress) a1;
         }
         SocketAddress a2 = out.receive(bb);
         if (a2 != null) {
@@ -122,5 +144,9 @@ class MockBorderRouter implements Runnable {
         }
       }
     }
+  }
+
+  public int getPort1() {
+    return port1;
   }
 }
