@@ -136,7 +136,6 @@ class ScionPacketHelper implements Closeable {
     // TODO request new path after a while?
 
     // TODO use local field Datagram Packer?!
-    DatagramPacket outgoing2 = new DatagramPacket(buf, buf.length);
     int offset = 0;
 
     switch (pathState) {
@@ -172,7 +171,6 @@ class ScionPacketHelper implements Closeable {
                         Constants.PathTypes.SCION);
         offset = pathHeaderScion.writePath(data, offset, path);
         offset = overlayHeaderUdp.write(data, offset, payloadLength, srcAddress.getPort(), dstAddress.getPort());
-        pathState = PathState.SEND_PATH;
         break;
       }
       case RCV_PATH:
@@ -181,7 +179,6 @@ class ScionPacketHelper implements Closeable {
         pathHeaderScion.reverse();
         overlayHeaderUdp.reverse();
         offset = writeScionHeader(data, offset, payloadLength);
-        pathState = PathState.SEND_PATH;
         // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
         underlayPort = 31012;
         break;
@@ -194,6 +191,7 @@ class ScionPacketHelper implements Closeable {
       default:
         throw new IllegalStateException(pathState.name());
     }
+    printHeaders(); // TODO
     return offset;
   }
 

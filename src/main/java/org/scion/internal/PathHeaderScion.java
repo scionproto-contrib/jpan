@@ -226,33 +226,6 @@ public class PathHeaderScion {
         currINF = 0;
         currHF = 0;
 
-
-
-        // TODO Can we get the Underlay from  path.getInterface().getAddress().getAddress(), see above?
-        //     otherwise, see next TODO
-
-        // TODO we get the Underlay via daemon.getInterfaces().getInterface(id).getAddress();
-        // TODO we get "id" from the pathInterfaces?
-
-        // TODO is this correct? Max path size == 3?
-//        if (paths.size() >= 1) {
-//            info0.set(paths.get(0));
-//            seg0Len = paths.get(0).getInternalHopsCount();
-//            nHops = paths.get(0).getInterfacesCount(); // TODO what about internalHops?
-//        }
-//        if (paths.size() >= 2) {
-//            info0.set(paths.get(1));
-//            seg0Len = paths.get(1).getInternalHopsCount();
-//            nHops += paths.get(1).getInterfacesCount();
-//        }
-//        if (paths.size() >= 3) {
-//            info0.set(paths.get(2));
-//            seg0Len = paths.get(2).getInternalHopsCount();
-//            nHops += paths.get(2).getInterfacesCount();
-//        }
-
-
-
         // write
         ByteString bytes = path.getRaw();
         for (int i = 0; i < bytes.size(); i++) {
@@ -261,26 +234,4 @@ public class PathHeaderScion {
 
         return offsetStart + bytes.size();
     }
-
-//    private void setHopFIelds(Daemon.Path path, int hopOffset) {
-//        int i = 0;
-//        for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
-//            hops[hopOffset].set(pathIf);
-//            hopOffset++;
-//            System.out.println(
-//                    "    pathIf: "
-//                            + i
-//                            + ": "
-//                            + pathIf.getId()
-//                            + " "
-//                            + pathIf.getIsdAs()
-//                            + "  "
-//                            + Util.toStringIA(pathIf.getIsdAs()));
-//        }
-//        for (int hop : path.getInternalHopsList()) {
-//            System.out.println("    hop: " + i + ": " + hop);
-//        }
-//
-//        hops[hopOffset].set(pathIf);
-//    }
 }

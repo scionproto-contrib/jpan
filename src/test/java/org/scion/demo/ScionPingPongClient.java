@@ -3,11 +3,14 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 
+import org.scion.ScionConstants;
 import org.scion.ScionDatagramSocket;
 
 public class ScionPingPongClient {
 
     public static void main(String[] args) throws IOException {
+        System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, "127.0.0.12");
+        System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "30255");
         ScionPingPongClient client = new ScionPingPongClient();
         client.run();
     }

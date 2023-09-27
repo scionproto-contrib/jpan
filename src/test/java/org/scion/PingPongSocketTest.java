@@ -32,6 +32,14 @@ public class PingPongSocketTest {
   private static final InetSocketAddress MOCK_BR1_ADDRESS =
           new InetSocketAddress("127.0.0.1", 30333);
 
+  private static final int N_REPEAT = 5;
+
+  private int nClient = 0;
+  private int nServer = 0;
+
+  @Deprecated // TODO remove
+  private static final int CLIENT_PORT = 33345;
+
   @BeforeAll
   public static void beforeAll() {
     System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, MOCK_DAEMON_ADDRESS.getHostName());
@@ -44,8 +52,8 @@ public class PingPongSocketTest {
 
     //Thread.sleep(500); // TODO ?
 
-    SocketAddress br1Dst = new InetSocketAddress("127.0.0.1", 12200);
-    SocketAddress br2Dst = new InetSocketAddress("127.0.0.1", 12201);
+    InetSocketAddress br1Dst = new InetSocketAddress("127.0.0.1", 12200);
+    InetSocketAddress br2Dst = new InetSocketAddress("127.0.0.1", CLIENT_PORT);
     InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.1", 22233);
 
     MockNetwork.startTiny(MOCK_BR1_ADDRESS.getPort(), 30444, serverAddress, br2Dst);
@@ -61,29 +69,8 @@ public class PingPongSocketTest {
     MockNetwork.stopTiny();
     daemon.close();
 
-
-
-//    // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-//    String daemonAddr = ScionUtil.toHostAddrPort(MOCK_DAEMON_ADDRESS);
-//    List<Daemon.Path> paths;
-//    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-//    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
-//    try (ScionPathService client = ScionPathService.create(daemonAddr)) {
-//      paths = client.getPathList(srcIA, dstIA);
-//    } catch (IOException e) {
-//      throw new RuntimeException(e);
-//    }
-
-    // Expected:
-    //    Paths found: 1
-    //    Path: first hop = 127.0.0.10:31004
-    //    0: 2 561850441793808
-    //    0: 1 561850441793810
-
-//    assertEquals(1, paths.size());
-//    Daemon.Path path0 = paths.get(0);
-//    assertEquals("127.0.0.10:31004", path0.getInterface().getAddress().getAddress());
-
+    assertEquals(N_REPEAT, nClient);
+    assertEquals(N_REPEAT, nServer);
   }
 
   private void client(SocketAddress serverAddress) {
@@ -96,10 +83,11 @@ public class PingPongSocketTest {
 
   private void client2(SocketAddress serverAddress) throws IOException {
     try {
-      ScionDatagramSocket socket = new ScionDatagramSocket(null);
+      //ScionDatagramSocket socket = new ScionDatagramSocket(null);
+      ScionDatagramSocket socket  = new ScionDatagramSocket(CLIENT_PORT);
       socket.setDstIsdAs("1-ff00:0:112");
 
-      while (true) {
+      for (int i = 0; i < N_REPEAT; i++) {
         String msg = "Hello there!";
         byte[] sendBuf = msg.getBytes();
         DatagramPacket request =
@@ -118,13 +106,11 @@ public class PingPongSocketTest {
 
         System.out.println(pong);
 
-        Thread.sleep(1000);
+        nClient++;
       }
 
     } catch (SocketTimeoutException e) {
       System.out.println("CLIENT: Timeout error: " + e.getMessage());
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
@@ -141,20 +127,11 @@ public class PingPongSocketTest {
   }
 
   private void service(ScionDatagramSocket socket) throws IOException {
-    while (true) {
-      // TODO avoid byte[]? Or use byte[] internally?  --> May be to small!!!  -> Not transparently
-      // plugable!
-      //      -> users need to adapt array size. Without adaptation: requires copy.....
-      //      -> Copy is alright, but high performance user may want a a way to avoid the copy....
-      //      -> Make this configurable via OPTIONS?
+    for (int i = 0; i < N_REPEAT; i++) {
       DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
       System.out.println("SERVER: --- USER - Waiting for packet ---------------------- " + socket.getLocalSocketAddress());
       socket.receive(request);
-      //            for (int i = 0; i < request.getLength(); i++) {
-      //
-      // System.out.print(Integer.toHexString(Byte.toUnsignedInt(request.getData()[request.getOffset() + i])) + ", ");
-      //            }
-      //            System.out.println();
+
       String msg = new String(request.getData(), request.getOffset(), request.getLength());
       System.out.println("SERVER: Received (from " + request.getSocketAddress() + "): " + msg);
 
@@ -162,14 +139,13 @@ public class PingPongSocketTest {
 
       InetAddress clientAddress = request.getAddress();
       int clientPort = request.getPort();
+      assertEquals(clientPort, CLIENT_PORT);
 
-      // DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress,
-      // clientPort);
-      // IPv6 border router port???
       System.out.println("SERVER: --- USER - Sending packet ----------------------");
       // TODO fix this, we should not specify the daemon port here!!
-      DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 31012);
+      DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 23232);
       socket.send(response);
+      nServer++;
     }
   }
 }

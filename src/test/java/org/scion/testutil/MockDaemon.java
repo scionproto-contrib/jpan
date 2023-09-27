@@ -14,6 +14,7 @@
 
 package org.scion.testutil;
 
+import com.google.protobuf.ByteString;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
@@ -31,6 +32,12 @@ public class MockDaemon implements AutoCloseable {
   private Server server;
   private final InetSocketAddress borderRouter;
 
+  private static final byte[] PATH_RAW_TINY_110_112 = {
+0x0, 0x0, 0x20, 0x0, 0x1, 0x0, (byte) 0xb4, (byte) 0xab,
+          0x65, 0x14, 0x8, (byte) 0xde, 0x0, 0x3f, 0x0, 0x0,
+          0x0, 0x2, 0x66, 0x62, 0x3e, (byte) 0xba, 0x31, (byte) 0xc6,
+          0x0, 0x3f, 0x0, 0x1, 0x0, 0x0, 0x51, (byte) 0xc1,
+          (byte) 0xfd, (byte) 0xed, 0x27, 0x60, };
   public MockDaemon(InetSocketAddress address) {
     this.address = address;
     this.borderRouter = new InetSocketAddress("127.0.0.10", 31004);
@@ -101,6 +108,7 @@ public class MockDaemon implements AutoCloseable {
         Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
       logger.info(
           "Got request from client: " + req.getSourceIsdAs() + " / " + req.getDestinationIsdAs());
+      ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
       if (req.getSourceIsdAs() == 561850441793808L
           && req.getDestinationIsdAs() == 561850441793810L) {
@@ -114,6 +122,7 @@ public class MockDaemon implements AutoCloseable {
                     Daemon.PathInterface.newBuilder().setId(2).setIsdAs(561850441793808L).build())
                 .addInterfaces(
                     Daemon.PathInterface.newBuilder().setId(1).setIsdAs(561850441793810L).build())
+                .setRaw(rawPath)
                 .build();
         replyBuilder.addPaths(p0);
       }
