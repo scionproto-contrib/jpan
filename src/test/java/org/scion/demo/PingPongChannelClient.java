@@ -51,7 +51,8 @@ public class PingPongChannelClient {
       if (!msg2.isEmpty()) {
         finished = true;
       }
-      Thread.sleep(100);
+      Thread.sleep(10);
     }
+    channel.disconnect();
   }
 }

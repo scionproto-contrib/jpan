@@ -14,15 +14,28 @@
 
 package org.scion;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 
 public class DatagramChannelApiTest {
+
+  @Test
+  public void getLocalAddress_withBind() throws IOException {
+    InetSocketAddress addr = new InetSocketAddress("localhost", 44444);
+    ScionDatagramChannel channel = ScionDatagramChannel.open().bind(addr);
+    assertEquals(addr, channel.getLocalAddress());
+  }
+
+  @Test
+  public void getLocalAddress_withoutBind() throws IOException {
+    ScionDatagramChannel channel = ScionDatagramChannel.open();
+    assertNull(channel.getLocalAddress());
+  }
 
   @Test
   public void send_RequiresInetSocketAddress() throws IOException {
@@ -36,10 +49,7 @@ public class DatagramChannelApiTest {
         };
     Exception exception =
         assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              channel.send(ByteBuffer.allocate(10), addr);
-            });
+            IllegalArgumentException.class, () -> channel.send(ByteBuffer.allocate(10), addr));
 
     String expectedMessage = "must be of type InetSocketAddress";
     String actualMessage = exception.getMessage();
@@ -60,9 +70,7 @@ public class DatagramChannelApiTest {
     Exception exception =
         assertThrows(
             IllegalArgumentException.class,
-            () -> {
-              channel.send(ByteBuffer.allocate(10), addr, null);
-            });
+            () -> channel.send(ByteBuffer.allocate(10), addr, null));
 
     String expectedMessage = "must be of type InetSocketAddress";
     String actualMessage = exception.getMessage();

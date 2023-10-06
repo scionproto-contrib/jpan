@@ -11,7 +11,7 @@ public class PingPongChannelServer {
     InetSocketAddress address = new InetSocketAddress("localhost", 44444);
     DatagramChannel server = DatagramChannel.open().bind(address);
 
-    System.out.println("Server started at: " + address);
+    System.out.println("Server started at: " + server.getLocalAddress());
 
     return server;
   }
@@ -47,5 +47,6 @@ public class PingPongChannelServer {
     DatagramChannel channel = startServer();
     SocketAddress remoteAddress = receiveMessage(channel);
     sendMessage(channel, "Re: Hello scion", remoteAddress);
+    channel.disconnect();
   }
 }

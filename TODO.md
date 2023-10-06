@@ -1,12 +1,13 @@
 # TODO
 
 ## Now
-- Write test for ScionDatagramChannel
+- Change demo/examples/tests from 110->112 to 111->112
+- Implement DNS
+- SocketImpl. -> Then replace byte[] with ByteBuffer in Helper? 
 - Look into Selectors:  https://www.baeldung.com/java-nio-selector
 - socket. connect() + write() vs send()
 - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
 - Rename ScionHelper to PacketBuilder?
-- Implement DNS
 - Implement SocketExceptions: 
   BindException(?), ConnectException, NoRouteToHostException, PortUnreachableException
 - Add channel.send(packet, dstAddr, dstIsdAs); 
@@ -14,6 +15,7 @@
 
 ## Then
 
+- Multipathing???
 - Inherit DatagramSocket 
 - Extract path info from server socket in order to support multiple clients
 - MulticastSocket / MulticastChannel (?)

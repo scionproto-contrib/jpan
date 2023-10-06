@@ -74,8 +74,7 @@ public class DatagramSocketPingPongTest {
   }
 
   public void server(InetSocketAddress localAddress) {
-    try {
-      ScionDatagramSocket socket = new ScionDatagramSocket(localAddress);
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(localAddress)) {
       service(socket);
     } catch (IOException ex) {
       System.out.println("SERVER: I/O error: " + ex.getMessage());

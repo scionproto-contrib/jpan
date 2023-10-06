@@ -40,6 +40,7 @@ public class ScionPingPongChannelClient {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
+    DemoTopology.configureMock();//Tiny111_112();
     ScionDatagramChannel channel = startClient();
     String msg = "Hello scion";
     //InetSocketAddress serverAddress = new InetSocketAddress("localhost", 44444);
@@ -55,7 +56,8 @@ public class ScionPingPongChannelClient {
       if (msg2 != null && !msg2.isEmpty()) {
         finished = true;
       }
-      Thread.sleep(100);
+      Thread.sleep(10);
     }
+    channel.disconnect();
   }
 }

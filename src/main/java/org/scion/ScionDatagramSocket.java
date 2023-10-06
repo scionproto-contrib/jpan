@@ -162,7 +162,7 @@ public class ScionDatagramSocket implements Closeable {
     }
     outgoing.setLength(headerLength + payloadLength);
 
-    System.out.println("Sending to: " + outgoing.getSocketAddress());
+    // System.out.println("Sending to: " + outgoing.getSocketAddress());
     socket.send(outgoing);
 
     pathState = ScionPacketHelper.PathState.SEND_PATH;

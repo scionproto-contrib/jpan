@@ -49,5 +49,6 @@ public class ScionPingPongChannelServer {
     ScionDatagramChannel channel = startServer();
     InetSocketAddress remoteAddress = receiveMessage(channel);
     sendMessage(channel, "Re: Hello scion", remoteAddress);
+    channel.disconnect();
   }
 }

@@ -139,6 +139,10 @@ public class ScionDatagramChannel {
     return localAddress;
   }
 
+  public DatagramChannel disconnect() throws IOException {
+    return channel.disconnect();
+  }
+
 //  public SocketAddress getRemoteAddress() {
 //    return helper.get;
 //  }
