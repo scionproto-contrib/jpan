@@ -16,14 +16,23 @@ package org.scion;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.InitialDirContext;
 
 import static org.scion.ScionConstants.DEFAULT_DAEMON_HOST;
 import static org.scion.ScionConstants.DEFAULT_DAEMON_PORT;
@@ -159,5 +168,48 @@ public class ScionPathService implements AutoCloseable {
     } catch (InterruptedException e) {
       throw new IOException(e);
     }
+  }
+
+  public ScionAddress getScionAddress(InetAddress addr) {
+    // $ dig +short TXT ethz.ch | grep "scion="
+    // "scion=64-2:0:9,129.132.230.98"
+
+    System.out.println("Getting ScionAddress for: " + addr.getHostName() + " / " + addr.getCanonicalHostName());
+    addr.getHostName();
+    addr.getCanonicalHostName();
+
+    String hostname = addr.getHostName();
+    String dnsServer = "8.8.8.8";
+
+    final String ADDR_ATTRIB = "A";
+    final String[] ADDR_ATTRIBS = {ADDR_ATTRIB, "TXT"};
+    final Properties env = new Properties();
+    // TODOs
+    env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+    InitialDirContext idc = null;
+    try {
+      idc = new InitialDirContext(env);
+      env.put(javax.naming.Context.PROVIDER_URL, "dns://"+dnsServer);
+      final List<String> ipAddresses = new LinkedList<>();
+      final Attributes attrs = idc.getAttributes(hostname, ADDR_ATTRIBS);
+      final Attribute attrA = attrs.get(ADDR_ATTRIB);
+      if (attrA != null) {
+        for (int i = 0; i < attrA.size(); i++)  {
+          ipAddresses.add((String) attrA.get(i));
+          System.out.println((String) attrA.get(i));
+        }
+      }
+      final Attribute attrT = attrs.get("TXT");
+      if (attrT != null) {
+        for (int i = 0; i < attrT.size(); i++)  {
+          ipAddresses.add((String) attrT.get(i));
+          System.out.println((String) attrT.get(i));
+        }
+      }
+    } catch (NamingException e) {
+      throw new RuntimeException(e);
+    }
+
+    return new ScionAddress();
   }
 }
