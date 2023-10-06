@@ -18,11 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
-
 import org.junit.jupiter.api.Test;
 import org.scion.testutil.MockNetwork;
 
-public class PingPongSocketTest {
+public class DatagramSocketPingPongTest {
 
   private static final int N_REPEAT = 5;
   private static final String MSG = "Hello world!";
@@ -98,7 +97,8 @@ public class PingPongSocketTest {
 
       // System.out.println("SERVER: --- USER - Sending packet ----------------------");
       // TODO test that the port is NOT ignored.
-      DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
+      DatagramPacket response =
+          new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
       socket.send(response);
       nServer++;
     }

@@ -53,10 +53,18 @@ public class ScionDatagramChannel {
     return helper.getReceivedSrcAddress();
   }
 
-  public synchronized void send(ByteBuffer buffer, InetSocketAddress destinationAddress)
+  private InetSocketAddress checkAddress(SocketAddress address) {
+    if (!(address instanceof InetSocketAddress)) {
+      throw new IllegalArgumentException("Address must be of type InetSocketAddress");
+    }
+    return (InetSocketAddress) address;
+  }
+
+  public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress)
       throws IOException {
+    InetSocketAddress dstAddress = checkAddress(destinationAddress);
     ScionPath path = null;
-    if (destinationAddress.getAddress().equals(helper.getSourceAddress())) {
+    if (dstAddress.getAddress().equals(helper.getSourceAddress())) {
       // We are just sending back to last IP. We can use the reversed path. No need to lookup a
       // path.
       // path = helper.getLastIncomingPath(destinationAddress);
@@ -66,20 +74,19 @@ public class ScionDatagramChannel {
       }
     } else {
       // find a path
-      path = helper.getDefaultPath(destinationAddress);
+      path = helper.getDefaultPath(dstAddress);
       routerAddress = null;
     }
     send(buffer, destinationAddress, path);
   }
 
   public synchronized void send(
-      ByteBuffer buffer, InetSocketAddress destinationAddress, ScionPath path) throws IOException {
+      ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path) throws IOException {
+    InetSocketAddress dstAddress = checkAddress(destinationAddress);
     // TODO do we need to create separate channels for each border router or can we "connect" to
-    // different ones
-    //  from a single channel? Do we need to connect explicitly?
+    //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
-    // do we need to
-    //  create a new channel and reconnect?
+    //  do we need to create a new channel and reconnect?
 
     // get local IP
     if (!channel.isConnected() && localAddress == null) {
@@ -91,7 +98,7 @@ public class ScionDatagramChannel {
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
     int headerLength =
-        helper.writeHeader(buf, pathState, localAddress, destinationAddress, payloadLength);
+        helper.writeHeader(buf, pathState, localAddress, dstAddress, payloadLength);
 
     ByteBuffer output =
         ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
@@ -102,7 +109,7 @@ public class ScionDatagramChannel {
         output.array(),
         output.arrayOffset() + headerLength,
         payloadLength);
-    SocketAddress firstHopAddress = null;
+    SocketAddress firstHopAddress;
     if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
       firstHopAddress = routerAddress;
     } else {
@@ -127,4 +134,12 @@ public class ScionDatagramChannel {
   public void setDstIsdAs(String isdAs) {
     helper.setDstIsdAs(isdAs);
   }
+
+  public SocketAddress getLocalAddress() {
+    return localAddress;
+  }
+
+//  public SocketAddress getRemoteAddress() {
+//    return helper.get;
+//  }
 }

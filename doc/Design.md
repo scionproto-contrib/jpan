@@ -22,7 +22,8 @@ a kind of reverse proxy.
 - Use Maven (instead of Gradle or something else): Maven is still the most used framework and arguable the best (
   convention over configuration)
 - Use Java 8: Still the most used JDK (TODO provide reference).
-  Main problem: no module support
+  - Main problem: no module support
+  - E.g. **netty** is on Java 8 (distributed libraries are JDK 6), **jetty** is on 11/17
 - Logging:
     - Do not use special log classes for JDK plugin classes (DatagramSocket etc)
     - Consider using `slfj4` logging framework for other classes: widely used ond flexible.
