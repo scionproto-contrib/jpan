@@ -18,21 +18,16 @@ import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.LinkedList;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.naming.Context;
-import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.InitialDirContext;
+import org.xbill.DNS.*;
+import org.xbill.DNS.Record;
 
 import static org.scion.ScionConstants.DEFAULT_DAEMON_HOST;
 import static org.scion.ScionConstants.DEFAULT_DAEMON_PORT;
@@ -170,46 +165,75 @@ public class ScionPathService implements AutoCloseable {
     }
   }
 
-  public ScionAddress getScionAddress(InetAddress addr) {
+  /**
+   * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
+   *    class.
+   *
+   * @param addr IP address of the host to resolve
+   * @return A ScionAddress
+   * @throws UnknownHostException if the URL could not be resolved.
+   * @throws ScionException if the URL did not return a SCION address.
+   */
+  public ScionAddress getScionAddress(InetAddress addr) throws UnknownHostException {
     // $ dig +short TXT ethz.ch | grep "scion="
     // "scion=64-2:0:9,129.132.230.98"
-
-    System.out.println("Getting ScionAddress for: " + addr.getHostName() + " / " + addr.getCanonicalHostName());
-    addr.getHostName();
-    addr.getCanonicalHostName();
-
     String hostname = addr.getHostName();
-    String dnsServer = "8.8.8.8";
-
-    final String ADDR_ATTRIB = "A";
-    final String[] ADDR_ATTRIBS = {ADDR_ATTRIB, "TXT"};
-    final Properties env = new Properties();
-    // TODOs
-    env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
-    InitialDirContext idc = null;
     try {
-      idc = new InitialDirContext(env);
-      env.put(javax.naming.Context.PROVIDER_URL, "dns://"+dnsServer);
-      final List<String> ipAddresses = new LinkedList<>();
-      final Attributes attrs = idc.getAttributes(hostname, ADDR_ATTRIBS);
-      final Attribute attrA = attrs.get(ADDR_ATTRIB);
-      if (attrA != null) {
-        for (int i = 0; i < attrA.size(); i++)  {
-          ipAddresses.add((String) attrA.get(i));
-          System.out.println((String) attrA.get(i));
+      Record[] records = new Lookup(hostname, Type.TXT).run();
+      for (int i = 0; i < records.length; i++) {
+        TXTRecord txt = (TXTRecord) records[i];
+        String entry = txt.rdataToString();
+        if (entry.startsWith("\"scion=")) {
+          // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
+          int posComma = entry.indexOf(',');
+          long isdAs = ScionUtil.ParseIA(entry.substring(7, posComma));
+          System.out.println("Name: " + txt.getName());
+          return ScionAddress.fromDnsEntry(hostname, isdAs, entry.substring(posComma + 1, entry.length() - 1));
         }
       }
-      final Attribute attrT = attrs.get("TXT");
-      if (attrT != null) {
-        for (int i = 0; i < attrT.size(); i++)  {
-          ipAddresses.add((String) attrT.get(i));
-          System.out.println((String) attrT.get(i));
-        }
-      }
-    } catch (NamingException e) {
-      throw new RuntimeException(e);
+    } catch (TextParseException e) {
+      throw new ScionException(e.getMessage());
     }
 
-    return new ScionAddress();
+    // Java 8
+    //    List nameServers = ResolverConfiguration.open().nameservers();
+    //    List searchNames = ResolverConfiguration.open().searchlist();
+    //    System.out.println("NS: ");
+    //    nameServers.forEach((dns)->System.out.println(dns));
+    //    System.out.println("SL: ");
+    //    searchNames.forEach((dns)->System.out.println(dns));
+    //    System.out.println("DNS: ");
+
+    //    // Java 9+
+    //    java.net.InetAddress.NameService;
+    //
+    //    // Java 18+
+    //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
+    //    InetAddressResolver r = new InetAddressResolver();
+
+//    final String TXT_ATTR = "TXT";
+//    final Properties env = new Properties();
+//    // TODO add /etc/scion-hosts or /etc/scion/hosts
+//    env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+//    try {
+//      InitialDirContext idc = new InitialDirContext(env);
+//      // TODO add /etc/scion-hosts or /etc/scion/hosts
+//      //env.put(javax.naming.Context.PROVIDER_URL, "dns://"+dnsServer);
+//      final Attributes attrs = idc.getAttributes(hostname, new String[]{TXT_ATTR});
+//      final Attribute attrT = attrs.get(TXT_ATTR);
+//      if (attrT != null) {
+//        for (int i = 0; i < attrT.size(); i++)  {
+//          String entry = (String) attrT.get(i);
+//          System.out.println("TXT: " + attrT.get(i));
+//          if (entry.startsWith("scion=")) {
+//            return ScionAddress.fromDnsEntry(hostname, entry);
+//          }
+//        }
+//      }
+//    } catch (NamingException e) {
+//      throw new RuntimeException(e);
+//    }
+
+    throw new ScionException("Host has no SCION entry: " + hostname); // TODO test
   }
 }

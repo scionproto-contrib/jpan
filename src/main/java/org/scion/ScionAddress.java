@@ -14,11 +14,30 @@
 
 package org.scion;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class ScionAddress {
-    private long isdAs;
-    private InetAddress ipAddress;
+  private final long isdAs;
+  private final String hostName;
+  private final InetAddress ipAddress;
 
+  public ScionAddress(String hostname, InetAddress ip, long isdAs) {
+    this.hostName = hostname;
+    this.ipAddress = ip;
+    this.isdAs = isdAs;
+  }
 
+  static ScionAddress fromDnsEntry(String hostname, long isdAs, String ipString) throws UnknownHostException {
+    InetAddress ip;
+    if (ipString.indexOf('.') > 0) {
+      ip = Inet4Address.getByName(ipString);
+    } else {
+      // Must be IPv6 or invalid
+      ip = Inet6Address.getByName(hostname);
+    }
+    return new ScionAddress(hostname, ip, isdAs);
+  }
 }

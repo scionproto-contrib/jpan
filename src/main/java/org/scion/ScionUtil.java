@@ -174,6 +174,7 @@ public class ScionUtil {
     return s;
   }
 
+  // TODO non-public
   public static String toStringIPv4(int ip) {
     int mask = 0xFF000000;
     String s = "";
@@ -184,6 +185,7 @@ public class ScionUtil {
     return s;
   }
 
+  // TODO non-public
   public static String toStringIPv6(int len, int ... ips) {
     String s = "";
     for (int i = 0; i < len; i++) {
@@ -211,12 +213,6 @@ public class ScionUtil {
     return s;
   }
 
-  // TODO Isn´t this supported by the InetSocketClass????
-  public static String toHostAddrPort(InetSocketAddress address) {
-    return address.getAddress().getHostAddress() + ":" + address.getPort();
-  }
-
-
   private static String getPropertyOrEnv(String propertyName, String envName) {
     String value = System.getProperty(propertyName);
     return value != null ? value : System.getenv(envName);
@@ -231,7 +227,4 @@ public class ScionUtil {
     String value = getPropertyOrEnv( propertyName, envName);
     return value != null ? Boolean.parseBoolean(value) : defaultValue;
   }
-
-  // TODO Return ScionException????
-  // TODO
 }
