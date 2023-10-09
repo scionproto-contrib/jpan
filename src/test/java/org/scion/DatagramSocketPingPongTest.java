@@ -50,6 +50,14 @@ public class DatagramSocketPingPongTest {
 
   private void client(SocketAddress serverAddress) {
     try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
+      ScionPathService pathService = ScionPathService.create();
+      // TODO questions:
+      //  - Should we allow IsdAs look-up by IP? Then would should provide getScionAddress(InetAddress)
+      //  - how does PANAPI do it?
+      //  - Keep debug-framework open to multiple servers in same Destination AS
+      ScionAddress scionAddress = pathService.getScionAddress(((InetSocketAddress)serverAddress).getHostName());
+      socket.setDstIsdAs();  // TODO <-- Should should be done implicitly by the Channel/Socket -> Avoid additional API calls unless users really want to.
+
       socket.setDstIsdAs("1-ff00:0:112");
 
       for (int i = 0; i < N_REPEAT; i++) {
