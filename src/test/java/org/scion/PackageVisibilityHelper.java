@@ -26,6 +26,8 @@ import java.util.List;
  */
 public class PackageVisibilityHelper {
 
+    public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_DNS_MOCK;
+
     public static List<Daemon.Path> getPathList(ScionPathService service, long srcIsdAs, long dstIsdAs) {
         return service.getPathList(srcIsdAs, dstIsdAs);
     }
