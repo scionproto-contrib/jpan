@@ -22,4 +22,6 @@ public final class ScionConstants {
     public static final String ENV_DAEMON_PORT = "SCION_DAEMON_PORT";
     public static final String DEFAULT_DAEMON_PORT = "30255";
 
+    public static final String DEBUG_PROPERTY_DNS_MOCK = "DEBUG_SCION_DNS_MOCK";
+
 }

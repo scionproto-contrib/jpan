@@ -150,7 +150,7 @@ public class ScionUtil {
   public static String toStringIA(long ia) {
     long mask = 0xFFFFL << 48;
     String s = "";
-    s +=  Long.toString((ia & mask) >>> 48, 16) + ":";
+    s +=  Long.toString((ia & mask) >>> 48) + "-";
     mask >>>= 16;
     s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
     mask >>>= 16;
@@ -160,11 +160,11 @@ public class ScionUtil {
     return s;
   }
 
-  public static String toStringIA(long isd, long as) {
+  static String toStringIA(long isd, long as) {
     long ia = (isd << 48) | as;
     long mask = 0xFFFFL << 48;
     String s = "";
-    s +=  Long.toString((ia & mask) >>> 48, 16) + ":";
+    s +=  Long.toString((ia & mask) >>> 48) + "-";
     mask >>>= 16;
     s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
     mask >>>= 16;
@@ -226,5 +226,9 @@ public class ScionUtil {
   public static boolean getPropertyOrEnv(String propertyName, String envName, boolean defaultValue) {
     String value = getPropertyOrEnv( propertyName, envName);
     return value != null ? Boolean.parseBoolean(value) : defaultValue;
+  }
+
+  public static int extractIsd(long isdAs) {
+    return (int) (isdAs >>> ASBits);
   }
 }

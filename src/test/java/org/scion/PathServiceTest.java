@@ -17,33 +17,42 @@ package org.scion;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
-import org.xbill.DNS.*;
-import org.xbill.DNS.tools.update;
-import org.xbill.DNS.utils.base64;
 
 public class PathServiceTest {
+
+  private static final String SCION_HOST = "as110.test";
+  private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
+
+  @BeforeAll
+  public static void beforeAll() {
+    System.setProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + ";" + SCION_TXT);
+  }
+
+  @AfterAll
+  public static void afterAll() {
+    System.clearProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
+  }
 
   @Test
   public void testWrongDaemonAddress() {
     ScionException thrown =
-            assertThrows(
-                    ScionException.class,
-                    () -> {
-                      String daemonAddr = "127.0.0.112:65432"; // 30255";
-                      long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-                      long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
-                      try (ScionPathService client = ScionPathService.create(daemonAddr)) {
-                        client.getPath(srcIA, dstIA);
-                      }
-                    });
+        assertThrows(
+            ScionException.class,
+            () -> {
+              String daemonAddr = "127.0.0.112:65432"; // 30255";
+              long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
+              long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+              try (ScionPathService client = ScionPathService.create(daemonAddr)) {
+                client.getPath(srcIA, dstIA);
+              }
+            });
 
     assertEquals("io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
   }
@@ -84,55 +93,58 @@ public class PathServiceTest {
 
     mock.close();
   }
+
   @Test
   public void getScionAddress() throws IOException {
-    //prepareDns();
-
-    ScionPathService pathService = ScionPathService.create();
-    // InetAddress addr = Inet4Address.getByName("localhost");
-    InetAddress addr = Inet4Address.getByName("ethz.ch");
-    //InetAddress addr = Inet4Address.getByName("til-X1");
-    ScionAddress sAddr = pathService.getScionAddress(addr);
-    assertNotNull(sAddr);
-    //assertEquals();
+    // TODO this test makes a DNS call _and_ it depends on ETH having a specific ISD/AS/IP
+    try (ScionPathService pathService = ScionPathService.create()) {
+      // TXT entry: "scion=64-2:0:9,129.132.230.98"
+      ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
+      assertNotNull(sAddr);
+      assertEquals(64, sAddr.getIsd());
+      assertEquals("64-2:0:9", ScionUtil.toStringIA(sAddr.getIsdAs()));
+      assertEquals("/129.132.230.98", sAddr.getInetAddress().toString());
+      assertEquals("ethz.ch", sAddr.getHostName());
+    }
   }
 
-  private static void prepareDns() {
-    try {
+  @Test
+  public void getScionAddress_Mock() throws IOException {
+    // Test that DNS injection via properties works
+    // TODO do injection here instead of @BeforeAll
+    try (ScionPathService pathService = ScionPathService.create()) {
       // TXT entry: "scion=64-2:0:9,129.132.230.98"
-    String data = "\"scion=64-2:0:9,129.132.230.98\"";
-    String dummyHost = "my.test.dummy";
-    Name zone = Name.fromString("dyn.test.example.");
-    Name host = Name.fromString("host", zone);
-    System.out.println("Zone: " + host);
+      ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
+      assertNotNull(sAddr);
+      assertEquals(1, sAddr.getIsd());
+      assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
+      assertEquals("/127.0.0.1", sAddr.getInetAddress().toString());
+      assertEquals(SCION_HOST, sAddr.getHostName());
+    }
+  }
 
-      update.main(new String[]{"add"});
-      Message msg = new Message();
-      msg.getHeader().setOpcode(Opcode.UPDATE);
+  @Test
+  public void getScionAddress_Failure_IpOnly() {
+    try (ScionPathService pathService = ScionPathService.create()) {
+      // TXT entry: "scion=64-2:0:9,129.132.230.98"
+      pathService.getScionAddress("127.12.12.12");
+      fail();
+    } catch (ScionException e) {
+      assertTrue(e.getMessage().contains("No DNS"), e.getMessage());
+    } catch (Throwable t) {
+      fail();
+    }
+  }
 
-    Update update = new Update(zone);
-    //update.replace(host, Type.A, 3600, "127.0.0.35");
-
-    TXTRecord rec = new TXTRecord(host, DClass.ANY, 3600, data);
-//    update.replace(rec);
-
-    update.add(host, Type.TXT, 3600, data);
-    update.addRecord(rec, Section.UPDATE);
-    //Record rec = Record.newRecord(host, Type.TXT, DClass.ANY, 60, data.getBytes());
-
-    //Resolver res = new SimpleResolver("10.0.0.1");
-      Resolver res = new SimpleResolver("127.0.0.53");
-    //res.setTSIGKey(new TSIG(host, base64.fromString("1234")));
-    res.setTCP(true);
-
-    Message response = res.send(update);
-    System.out.println("Response: " + response);
-    } catch (UnknownHostException e) {
-        throw new RuntimeException(e);
-    } catch (TextParseException e) {
-        throw new RuntimeException(e);
-    } catch (IOException e) {
-        throw new RuntimeException(e);
+  @Test
+  public void getScionAddress_Failure_NoScion() {
+    try (ScionPathService pathService = ScionPathService.create()) {
+      pathService.getScionAddress("google.com"); // TODO this may fail if google supports SCION...
+      fail();
+    } catch (ScionException e) {
+      assertTrue(e.getMessage().contains("Host has no SCION"), e.getMessage());
+    } catch (Throwable t) {
+      fail();
     }
   }
 }

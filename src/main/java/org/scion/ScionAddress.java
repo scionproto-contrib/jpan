@@ -30,14 +30,35 @@ public class ScionAddress {
     this.isdAs = isdAs;
   }
 
-  static ScionAddress fromDnsEntry(String hostname, long isdAs, String ipString) throws UnknownHostException {
+  static ScionAddress create(String hostname, long isdAs, String ipString) {
     InetAddress ip;
+    try {
     if (ipString.indexOf('.') > 0) {
       ip = Inet4Address.getByName(ipString);
     } else {
       // Must be IPv6 or invalid
-      ip = Inet6Address.getByName(hostname);
+      ip = Inet6Address.getByName(ipString);
     }
-    return new ScionAddress(hostname, ip, isdAs);
+    } catch (UnknownHostException e) {
+      // This should never happen because we always call getByName() with an IP address
+      throw new RuntimeException(e);
+    }
+      return new ScionAddress(hostname, ip, isdAs);
+  }
+
+    public long getIsdAs() {
+      return isdAs;
+    }
+
+  public String getHostName() {
+    return hostName;
+  }
+
+  public InetAddress getInetAddress() {
+    return ipAddress;
+  }
+
+  public int getIsd() {
+    return ScionUtil.extractIsd(isdAs);
   }
 }

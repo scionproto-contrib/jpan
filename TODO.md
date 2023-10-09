@@ -36,6 +36,7 @@
 ## After that
 - CI
 - Integrate with bazel -> Simplifies integration of go testing topology.
+- Add OWASP dependency/vulnerability checker (or is this done bu GitHub nowadays?)
 
 ## Finally
 

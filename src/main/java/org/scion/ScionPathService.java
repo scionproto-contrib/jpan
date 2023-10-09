@@ -16,9 +16,7 @@ package org.scion;
 
 import io.grpc.*;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -169,31 +167,48 @@ public class ScionPathService implements AutoCloseable {
    * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
    *    class.
    *
-   * @param addr IP address of the host to resolve
+   * @param hostName hostName of the host to resolve
    * @return A ScionAddress
-   * @throws UnknownHostException if the URL could not be resolved.
    * @throws ScionException if the URL did not return a SCION address.
    */
-  public ScionAddress getScionAddress(InetAddress addr) throws UnknownHostException {
+  public ScionAddress getScionAddress(String hostName) {
     // $ dig +short TXT ethz.ch | grep "scion="
     // "scion=64-2:0:9,129.132.230.98"
-    String hostname = addr.getHostName();
+
+    String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
+    if (props != null) {
+      int posHost = props.indexOf(hostName);
+      if (posHost >= 0) {
+        int posStart = props.indexOf(';', posHost + 1);
+        int posEnd = props.indexOf(';', posStart + 1);
+        String txtRecord;
+        if (posEnd > 0) {
+          txtRecord = props.substring(posStart + 1, posEnd);
+        } else {
+          txtRecord = props.substring(posStart + 1);
+        }
+        // No more checking here, we assume that properties are save
+        return parse(txtRecord, hostName);
+      }
+    }
+
     try {
-      Record[] records = new Lookup(hostname, Type.TXT).run();
+      Record[] records = new Lookup(hostName, Type.TXT).run();
+      if (records == null) {
+        //throw new UnknownHostException("No DNS entry found for host: " + hostname); // TODO ?
+        throw new ScionException("No DNS entry found for host: " + hostName);
+      }
       for (int i = 0; i < records.length; i++) {
         TXTRecord txt = (TXTRecord) records[i];
         String entry = txt.rdataToString();
         if (entry.startsWith("\"scion=")) {
-          // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
-          int posComma = entry.indexOf(',');
-          long isdAs = ScionUtil.ParseIA(entry.substring(7, posComma));
-          System.out.println("Name: " + txt.getName());
-          return ScionAddress.fromDnsEntry(hostname, isdAs, entry.substring(posComma + 1, entry.length() - 1));
+          return parse(entry, hostName);
         }
       }
     } catch (TextParseException e) {
       throw new ScionException(e.getMessage());
     }
+    // TODO add /etc/scion-hosts or /etc/scion/hosts
 
     // Java 8
     //    List nameServers = ResolverConfiguration.open().nameservers();
@@ -211,29 +226,13 @@ public class ScionPathService implements AutoCloseable {
     //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
     //    InetAddressResolver r = new InetAddressResolver();
 
-//    final String TXT_ATTR = "TXT";
-//    final Properties env = new Properties();
-//    // TODO add /etc/scion-hosts or /etc/scion/hosts
-//    env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
-//    try {
-//      InitialDirContext idc = new InitialDirContext(env);
-//      // TODO add /etc/scion-hosts or /etc/scion/hosts
-//      //env.put(javax.naming.Context.PROVIDER_URL, "dns://"+dnsServer);
-//      final Attributes attrs = idc.getAttributes(hostname, new String[]{TXT_ATTR});
-//      final Attribute attrT = attrs.get(TXT_ATTR);
-//      if (attrT != null) {
-//        for (int i = 0; i < attrT.size(); i++)  {
-//          String entry = (String) attrT.get(i);
-//          System.out.println("TXT: " + attrT.get(i));
-//          if (entry.startsWith("scion=")) {
-//            return ScionAddress.fromDnsEntry(hostname, entry);
-//          }
-//        }
-//      }
-//    } catch (NamingException e) {
-//      throw new RuntimeException(e);
-//    }
+    throw new ScionException("Host has no SCION entry: " + hostName); // TODO test
+  }
 
-    throw new ScionException("Host has no SCION entry: " + hostname); // TODO test
+  private ScionAddress parse(String txtEntry, String hostName) {
+    // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
+    int posComma = txtEntry.indexOf(',');
+    long isdAs = ScionUtil.ParseIA(txtEntry.substring(7, posComma));
+    return ScionAddress.create(hostName, isdAs, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }
 }
