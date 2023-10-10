@@ -89,7 +89,7 @@ public class HeaderParserTest {
 
     // Pseudo header
     offset = overlayHeaderUdp.read(data, offset);
-    System.out.println(overlayHeaderUdp);
+    // System.out.println(overlayHeaderUdp);
 
     byte[] payload = new byte[data.length - offset];
     System.arraycopy(data, offset, payload, 0, payload.length);
@@ -102,7 +102,7 @@ public class HeaderParserTest {
     scionHeader.setSrcHostAddress(srcAddress);
     int writeOffset =
         scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     writeOffset = overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
 
@@ -121,7 +121,7 @@ public class HeaderParserTest {
     // write
     writeOffset =
         scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
     assertFalse(Arrays.equals(data, newData));
@@ -132,7 +132,7 @@ public class HeaderParserTest {
     // write
     writeOffset =
         scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
     // Fix CurrInf which is "1" in the sample packet:

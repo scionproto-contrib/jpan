@@ -86,4 +86,8 @@ public class OverlayHeader {
     public int getSrcPort() {
         return srcPort;
     }
+
+    public int getDstPort() {
+        return dstPort;
+    }
 }

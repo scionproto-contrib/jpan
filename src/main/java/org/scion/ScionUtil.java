@@ -150,7 +150,7 @@ public class ScionUtil {
   public static String toStringIA(long ia) {
     long mask = 0xFFFFL << 48;
     String s = "";
-    s +=  Long.toString((ia & mask) >>> 48, 16) + ":";
+    s +=  Long.toString((ia & mask) >>> 48) + "-";
     mask >>>= 16;
     s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
     mask >>>= 16;
@@ -160,11 +160,11 @@ public class ScionUtil {
     return s;
   }
 
-  public static String toStringIA(long isd, long as) {
+  static String toStringIA(long isd, long as) {
     long ia = (isd << 48) | as;
     long mask = 0xFFFFL << 48;
     String s = "";
-    s +=  Long.toString((ia & mask) >>> 48, 16) + ":";
+    s +=  Long.toString((ia & mask) >>> 48) + "-";
     mask >>>= 16;
     s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
     mask >>>= 16;
@@ -174,6 +174,7 @@ public class ScionUtil {
     return s;
   }
 
+  // TODO non-public
   public static String toStringIPv4(int ip) {
     int mask = 0xFF000000;
     String s = "";
@@ -184,6 +185,7 @@ public class ScionUtil {
     return s;
   }
 
+  // TODO non-public
   public static String toStringIPv6(int len, int ... ips) {
     String s = "";
     for (int i = 0; i < len; i++) {
@@ -211,12 +213,6 @@ public class ScionUtil {
     return s;
   }
 
-  // TODO Isn´t this supported by the InetSocketClass????
-  public static String toHostAddrPort(InetSocketAddress address) {
-    return address.getAddress().getHostAddress() + ":" + address.getPort();
-  }
-
-
   private static String getPropertyOrEnv(String propertyName, String envName) {
     String value = System.getProperty(propertyName);
     return value != null ? value : System.getenv(envName);
@@ -232,6 +228,7 @@ public class ScionUtil {
     return value != null ? Boolean.parseBoolean(value) : defaultValue;
   }
 
-  // TODO Return ScionException????
-  // TODO
+  public static int extractIsd(long isdAs) {
+    return (int) (isdAs >>> ASBits);
+  }
 }

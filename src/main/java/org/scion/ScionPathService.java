@@ -16,6 +16,7 @@ package org.scion;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -23,31 +24,35 @@ import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xbill.DNS.*;
+import org.xbill.DNS.Record;
+
+import static org.scion.ScionConstants.DEFAULT_DAEMON_HOST;
+import static org.scion.ScionConstants.DEFAULT_DAEMON_PORT;
+import static org.scion.ScionConstants.ENV_DAEMON_HOST;
+import static org.scion.ScionConstants.ENV_DAEMON_PORT;
+import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
+import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
 public class ScionPathService implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionPathService.class.getName());
-
-  // from 110-topo
   private static final String DAEMON_HOST =
-      ScionUtil.getPropertyOrEnv("org.scion.daemon.host", "SCION_DAEMON_HOST", "127.0.0.12");
+      ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
   private static final String DAEMON_PORT =
-      ScionUtil.getPropertyOrEnv("org.scion.daemon.port", "SCION_DAEMON_PORT", "30255");
+      ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
 
   private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
-  //  private final DaemonServiceGrpc.DaemonServiceStub asyncStub;
-  //  private final DaemonServiceGrpc.DaemonServiceFutureStub futureStub;
 
   private final ManagedChannel channel;
 
   private ScionPathService(String daemonAddress) {
-    // ManagedChannelBuilder.forAddress(daemonAddress, 1223);
-    // ManagedChannelBuilder.forTarget().
     channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
     blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
+    LOG.info("Path service started on " + channel.toString() + " " + daemonAddress);
   }
 
-  private static ScionPathService create(String daemonHost, int daemonPort) {
+  public static ScionPathService create(String daemonHost, int daemonPort) {
     return create(daemonHost + ":" + daemonPort);
   }
 
@@ -55,78 +60,12 @@ public class ScionPathService implements AutoCloseable {
     return new ScionPathService(daemonAddress);
   }
 
+  public static ScionPathService create(InetSocketAddress address) {
+    return create(address.getHostName(), address.getPort());
+  }
+
   public static ScionPathService create() {
     return create(DAEMON_HOST + ":" + DAEMON_PORT);
-  }
-
-  public static void main(String[] args) {
-    try (ScionPathService client = ScionPathService.create()) {
-      client.testAsInfo();
-      client.testInterfaces();
-      client.testServices();
-      client.testPaths();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private void testAsInfo() {
-    Daemon.ASResponse asInfo = getASInfo();
-    System.out.println(
-        "ASInfo found: "
-            + asInfo.getIsdAs()
-            + " "
-            + ScionUtil.toStringIA(asInfo.getIsdAs())
-            + "  core="
-            + asInfo.getCore()
-            + "  mtu="
-            + asInfo.getMtu());
-  }
-
-  private void testInterfaces() {
-    Map<Long, Daemon.Interface> interfaces = getInterfaces();
-    System.out.println("Interfaces found: " + interfaces.size());
-    for (Map.Entry<Long, Daemon.Interface> entry : interfaces.entrySet()) {
-      System.out.print("    Interface: " + entry.getKey() + " -> " + entry.getValue().getAddress());
-    }
-  }
-
-  private void testPaths() {
-    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
-
-    List<Daemon.Path> paths = getPathList(srcIA, dstIA);
-    System.out.println("Paths found: " + paths.size());
-    for (Daemon.Path path : paths) {
-      System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
-      System.out.println("Path: interfaces = " + path.getInterface().getAddress().getAddress());
-      System.out.println("Path: first hop(?) = " + path.getInterface().getAddress().getAddress());
-      int i = 0;
-      for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
-        System.out.println("    pathIf: "
-                        + i
-                        + ": "
-                        + pathIf.getId()
-                        + " "
-                        + pathIf.getIsdAs()
-                        + "  "
-                        + ScionUtil.toStringIA(pathIf.getIsdAs()));
-      }
-      for (int hop : path.getInternalHopsList()) {
-        System.out.println("    hop: " + i + ": " + hop);
-      }
-    }
-  }
-
-  private void testServices() {
-    Map<String, Daemon.ListService> services = getServices();
-    System.out.println("Services found: " + services.size());
-    for (Map.Entry<String, Daemon.ListService> entry : services.entrySet()) {
-      System.out.println("ListService: " + entry.getKey());
-      for (Daemon.Service service : entry.getValue().getServicesList()) {
-        System.out.println("    Service: " + service.getUri());
-      }
-    }
   }
 
   Daemon.ASResponse getASInfo() {
@@ -222,5 +161,89 @@ public class ScionPathService implements AutoCloseable {
     } catch (InterruptedException e) {
       throw new IOException(e);
     }
+  }
+
+  /**
+   * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
+   *    class.
+   *
+   * @param hostName hostName of the host to resolve
+   * @return A ScionAddress
+   * @throws ScionException if the URL did not return a SCION address.
+   */
+  public ScionAddress getScionAddress(String hostName) {
+    // $ dig +short TXT ethz.ch | grep "scion="
+    // "scion=64-2:0:9,129.132.230.98"
+
+    String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
+    if (props != null) {
+      int posHost = props.indexOf(hostName);
+      if (posHost >= 0) {
+        // host found (for now we are too lazy to check against substring matching)
+        int posStart;
+        int posEnd;
+        if (posHost > 0 && props.charAt(posHost - 1) == ',') {
+          // This is an IP match, not a host match
+          posStart = props.substring(0, posHost).lastIndexOf(';');
+          posEnd = props.indexOf(';', posHost);
+        } else {
+          // normal case: hostname match
+          posStart = props.indexOf(';', posHost + 1);
+          posEnd = props.indexOf(';', posStart + 1);
+        }
+
+        String txtRecord;
+        if (posEnd > 0) {
+          txtRecord = props.substring(posStart + 1, posEnd);
+        } else {
+          txtRecord = props.substring(posStart + 1);
+        }
+        // No more checking here, we assume that properties are save
+        return parse(txtRecord, hostName);
+      }
+    }
+
+    try {
+      Record[] records = new Lookup(hostName, Type.TXT).run();
+      if (records == null) {
+        //throw new UnknownHostException("No DNS entry found for host: " + hostname); // TODO ?
+        throw new ScionException("No DNS entry found for host: " + hostName);
+      }
+      for (int i = 0; i < records.length; i++) {
+        TXTRecord txt = (TXTRecord) records[i];
+        String entry = txt.rdataToString();
+        if (entry.startsWith("\"scion=")) {
+          return parse(entry, hostName);
+        }
+      }
+    } catch (TextParseException e) {
+      throw new ScionException(e.getMessage());
+    }
+    // TODO add /etc/scion-hosts or /etc/scion/hosts
+
+    // Java 8
+    //    List nameServers = ResolverConfiguration.open().nameservers();
+    //    List searchNames = ResolverConfiguration.open().searchlist();
+    //    System.out.println("NS: ");
+    //    nameServers.forEach((dns)->System.out.println(dns));
+    //    System.out.println("SL: ");
+    //    searchNames.forEach((dns)->System.out.println(dns));
+    //    System.out.println("DNS: ");
+
+    //    // Java 9+
+    //    java.net.InetAddress.NameService;
+    //
+    //    // Java 18+
+    //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
+    //    InetAddressResolver r = new InetAddressResolver();
+
+    throw new ScionException("Host has no SCION entry: " + hostName); // TODO test
+  }
+
+  private ScionAddress parse(String txtEntry, String hostName) {
+    // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
+    int posComma = txtEntry.indexOf(',');
+    long isdAs = ScionUtil.ParseIA(txtEntry.substring(7, posComma));
+    return ScionAddress.create(hostName, isdAs, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }
 }
