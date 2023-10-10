@@ -14,16 +14,14 @@
 
 package org.scion;
 
-import org.scion.proto.daemon.Daemon;
+public final class ScionConstants {
+    public static final String PROPERTY_DAEMON_HOST = "org.scion.daemon.host";
+    public static final String ENV_DAEMON_HOST = "SCION_DAEMON_HOST";
+    public static final String DEFAULT_DAEMON_HOST = "localhost";
+    public static final String PROPERTY_DAEMON_PORT = "org.scion.daemon.port";
+    public static final String ENV_DAEMON_PORT = "SCION_DAEMON_PORT";
+    public static final String DEFAULT_DAEMON_PORT = "30255";
 
-import java.util.List;
+    static final String DEBUG_PROPERTY_DNS_MOCK = "DEBUG_SCION_DNS_MOCK";
 
-/**
- * Helper class to access package private methods in org.scion.PathService.
- */
-public class PathServiceHelper {
-
-    public static List<Daemon.Path> getPathList(ScionPathService service, long srcIsdAs, long dstIsdAs) {
-        return service.getPathList(srcIsdAs, dstIsdAs);
-    }
 }
