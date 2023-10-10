@@ -27,19 +27,19 @@ public class DatagramChannelApiTest {
   @Test
   public void getLocalAddress_withBind() throws IOException {
     InetSocketAddress addr = new InetSocketAddress("localhost", 44444);
-    ScionDatagramChannel channel = ScionDatagramChannel.open().bind(addr);
+    DatagramChannel channel = DatagramChannel.open().bind(addr);
     assertEquals(addr, channel.getLocalAddress());
   }
 
   @Test
   public void getLocalAddress_withoutBind() throws IOException {
-    ScionDatagramChannel channel = ScionDatagramChannel.open();
+    DatagramChannel channel = DatagramChannel.open();
     assertNull(channel.getLocalAddress());
   }
 
   @Test
   public void send_RequiresInetSocketAddress() throws IOException {
-    ScionDatagramChannel channel = new ScionDatagramChannel();
+    DatagramChannel channel = new DatagramChannel();
     SocketAddress addr =
         new SocketAddress() {
           @Override
@@ -59,7 +59,7 @@ public class DatagramChannelApiTest {
 
   @Test
   public void sendPath_RequiresInetSocketAddress() throws IOException {
-    ScionDatagramChannel channel = new ScionDatagramChannel();
+    DatagramChannel channel = new DatagramChannel();
     SocketAddress addr =
         new SocketAddress() {
           @Override

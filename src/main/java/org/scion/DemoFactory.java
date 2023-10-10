@@ -36,7 +36,7 @@ public class DemoFactory {
     registerSocketFactory();
 
     // API for UDP
-    ScionDatagramSocket socket;
+    DatagramSocket socket;
 
     // API for PathService
     // TODO rename
@@ -52,7 +52,7 @@ public class DemoFactory {
   // http://www.java2s.com/example/java-src/pkg/org/jboss/as/capedwarf/extension/capedwarfsubsystemadd-c4d5a.html
   protected static void registerSocketFactory() throws IOException {
     Socket.setSocketImplFactory(SCIONSocketFactory.INSTANCE);
-    DatagramSocket.setDatagramSocketImplFactory(SCIONSocketFactory.INSTANCE);
+    java.net.DatagramSocket.setDatagramSocketImplFactory(SCIONSocketFactory.INSTANCE);
   }
  }
 

@@ -17,7 +17,7 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 
-import org.scion.ScionDatagramSocket;
+import org.scion.DatagramSocket;
 
 public class ScionPingPongClient {
 
@@ -33,7 +33,7 @@ public class ScionPingPongClient {
 
     try {
       InetAddress serverAddress = InetAddress.getByName(serverHostname);
-      ScionDatagramSocket socket = new ScionDatagramSocket(null);
+      DatagramSocket socket = new DatagramSocket(null);
       socket.setDstIsdAs("1-ff00:0:112");
 
       while (true) {

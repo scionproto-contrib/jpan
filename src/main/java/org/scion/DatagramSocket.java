@@ -22,7 +22,7 @@ import java.net.*;
  * We are extending DatagramSocket as recommended here:
  * https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
  */
-public class ScionDatagramSocket implements Closeable {
+public class DatagramSocket implements Closeable {
   /*
    * Design:
    * We use delegation rather than inheritance. Inheritance is more difficult to handle if future version of
@@ -31,7 +31,7 @@ public class ScionDatagramSocket implements Closeable {
    */
 
 
-  private final DatagramSocket socket;
+  private final java.net.DatagramSocket socket;
   private final ScionPacketHelper helper = new ScionPacketHelper();
   private InetSocketAddress localAddress = null;
 
@@ -49,24 +49,24 @@ public class ScionDatagramSocket implements Closeable {
   private boolean isClosed = false;
 
 
-  public ScionDatagramSocket() throws SocketException {
-    socket = new DatagramSocket();
+  public DatagramSocket() throws SocketException {
+    socket = new java.net.DatagramSocket();
     System.out.println(
             "Creating socket: " + socket.getLocalAddress() + " : " + socket.getLocalPort());
   }
 
-  public ScionDatagramSocket(SocketAddress addr) throws SocketException {
-    socket = new DatagramSocket(addr);
+  public DatagramSocket(SocketAddress addr) throws SocketException {
+    socket = new java.net.DatagramSocket(addr);
     localAddress = (InetSocketAddress) addr;
     System.out.println(
             "Creating socket with address: " + socket.getLocalAddress() + " : " + socket.getLocalPort());
   }
 
-  public ScionDatagramSocket(int port) throws SocketException {
+  public DatagramSocket(int port) throws SocketException {
     this(port, (InetAddress)null);
   }
 
-  public ScionDatagramSocket(int port, InetAddress addr) throws SocketException {
+  public DatagramSocket(int port, InetAddress addr) throws SocketException {
     this(new InetSocketAddress(addr, port));
   }
 

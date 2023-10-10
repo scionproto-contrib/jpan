@@ -14,16 +14,16 @@
 
 package org.scion.demo;
 
-import org.scion.ScionDatagramSocket;
+import org.scion.DatagramSocket;
 
 import java.io.*;
 import java.net.*;
 
 public class ScionPingPongServer {
-  private final ScionDatagramSocket socket;
+  private final DatagramSocket socket;
 
   public ScionPingPongServer(int port, InetAddress localAddress) throws SocketException {
-    socket = new ScionDatagramSocket(port, localAddress);
+    socket = new DatagramSocket(port, localAddress);
   }
 
   public static void main(String[] args) throws UnknownHostException {

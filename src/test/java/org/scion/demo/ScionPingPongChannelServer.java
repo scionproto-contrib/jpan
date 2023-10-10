@@ -14,31 +14,31 @@
 
 package org.scion.demo;
 
-import org.scion.ScionDatagramChannel;
+import org.scion.DatagramChannel;
 
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 
 public class ScionPingPongChannelServer {
-  public static ScionDatagramChannel startServer() throws IOException {
+  public static DatagramChannel startServer() throws IOException {
     //InetSocketAddress address = new InetSocketAddress("localhost", 44444);
     InetSocketAddress address = new InetSocketAddress("::1", 44444);
-    ScionDatagramChannel server = ScionDatagramChannel.open().bind(address);
+    DatagramChannel server = DatagramChannel.open().bind(address);
 
     System.out.println("Server started at: " + address);
 
     return server;
   }
 
-  public static void sendMessage(ScionDatagramChannel channel, String msg, InetSocketAddress serverAddress)
+  public static void sendMessage(DatagramChannel channel, String msg, InetSocketAddress serverAddress)
       throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     channel.send(buffer, serverAddress);
     System.out.println("Sent to client at: " + serverAddress + "  message: " + msg);
   }
 
-  public static InetSocketAddress receiveMessage(ScionDatagramChannel server) throws IOException {
+  public static InetSocketAddress receiveMessage(DatagramChannel server) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     System.out.println("Waiting ...");
     InetSocketAddress remoteAddress = (InetSocketAddress) server.receive(buffer);
@@ -60,7 +60,7 @@ public class ScionPingPongChannelServer {
   }
 
   public static void main(String[] args) throws IOException {
-    ScionDatagramChannel channel = startServer();
+    DatagramChannel channel = startServer();
     InetSocketAddress remoteAddress = receiveMessage(channel);
     sendMessage(channel, "Re: Hello scion", remoteAddress);
     channel.disconnect();

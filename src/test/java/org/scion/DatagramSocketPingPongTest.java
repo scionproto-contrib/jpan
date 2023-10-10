@@ -49,7 +49,7 @@ public class DatagramSocketPingPongTest {
   }
 
   private void client(SocketAddress serverAddress) {
-    try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
+    try (DatagramSocket socket = new DatagramSocket(null)) {
       for (int i = 0; i < N_REPEAT; i++) {
         byte[] sendBuf = MSG.getBytes();
         DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
@@ -72,14 +72,14 @@ public class DatagramSocketPingPongTest {
   }
 
   public void server(InetSocketAddress localAddress) {
-    try (ScionDatagramSocket socket = new ScionDatagramSocket(localAddress)) {
+    try (DatagramSocket socket = new DatagramSocket(localAddress)) {
       service(socket);
     } catch (IOException ex) {
       System.out.println("SERVER: I/O error: " + ex.getMessage());
     }
   }
 
-  private void service(ScionDatagramSocket socket) throws IOException {
+  private void service(DatagramSocket socket) throws IOException {
     for (int i = 0; i < N_REPEAT; i++) {
       DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
       // System.out.println("SERVER: --- USER - Waiting for packet ---------------------- " +

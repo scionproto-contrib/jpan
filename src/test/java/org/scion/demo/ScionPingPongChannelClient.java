@@ -14,7 +14,7 @@
 
 package org.scion.demo;
 
-import org.scion.ScionDatagramChannel;
+import org.scion.DatagramChannel;
 
 import java.io.*;
 import java.net.*;
@@ -29,20 +29,20 @@ public class ScionPingPongChannelClient {
     return new String(bytes);
   }
 
-  public static ScionDatagramChannel startClient() throws IOException {
-    ScionDatagramChannel client = ScionDatagramChannel.open().bind(null);
+  public static DatagramChannel startClient() throws IOException {
+    DatagramChannel client = DatagramChannel.open().bind(null);
     client.configureBlocking(false);
     return client;
   }
 
-  public static void sendMessage(ScionDatagramChannel client, String msg, InetSocketAddress serverAddress)
+  public static void sendMessage(DatagramChannel client, String msg, InetSocketAddress serverAddress)
       throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     client.send(buffer, serverAddress);
     System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
   }
 
-  public static String receiveMessage(ScionDatagramChannel channel) throws IOException {
+  public static String receiveMessage(DatagramChannel channel) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     SocketAddress remoteAddress = channel.receive(buffer);
     if (remoteAddress == null) {
@@ -55,7 +55,7 @@ public class ScionPingPongChannelClient {
 
   public static void main(String[] args) throws IOException, InterruptedException {
     DemoTopology.configureMock();//Tiny111_112();
-    ScionDatagramChannel channel = startClient();
+    DatagramChannel channel = startClient();
     String msg = "Hello scion";
     //InetSocketAddress serverAddress = new InetSocketAddress("localhost", 44444);
     InetSocketAddress serverAddress = new InetSocketAddress("::1", 44444);

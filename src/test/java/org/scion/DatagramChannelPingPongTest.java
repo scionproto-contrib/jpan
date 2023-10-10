@@ -52,7 +52,7 @@ public class DatagramChannelPingPongTest {
 
   private void client(SocketAddress serverAddress) {
     try {
-      ScionDatagramChannel channel = new ScionDatagramChannel();
+      DatagramChannel channel = new DatagramChannel();
 
       for (int i = 0; i < N_REPEAT; i++) {
         ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
@@ -82,7 +82,7 @@ public class DatagramChannelPingPongTest {
 
   public void server(InetSocketAddress localAddress) {
     try {
-      ScionDatagramChannel channel = new ScionDatagramChannel().bind(localAddress);
+      DatagramChannel channel = new DatagramChannel().bind(localAddress);
       assertEquals(localAddress, channel.getLocalAddress());
       service(channel);
     } catch (IOException ex) {
@@ -92,7 +92,7 @@ public class DatagramChannelPingPongTest {
     }
   }
 
-  private void service(ScionDatagramChannel channel) throws IOException, InterruptedException {
+  private void service(DatagramChannel channel) throws IOException, InterruptedException {
     for (int i = 0; i < N_REPEAT; i++) {
       ByteBuffer request = ByteBuffer.allocate(512);
       // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " +

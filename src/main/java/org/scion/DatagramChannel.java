@@ -18,22 +18,21 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 
-public class ScionDatagramChannel {
+public class DatagramChannel {
 
-  private final DatagramChannel channel;
+  private final java.nio.channels.DatagramChannel channel;
   private final ScionPacketHelper helper = new ScionPacketHelper();
   private ScionPacketHelper.PathState pathState = ScionPacketHelper.PathState.NO_PATH;
   private InetSocketAddress localAddress = null;
   private InetSocketAddress routerAddress = null;
 
-  public static ScionDatagramChannel open() throws IOException {
-    return new ScionDatagramChannel();
+  public static DatagramChannel open() throws IOException {
+    return new DatagramChannel();
   }
 
-  protected ScionDatagramChannel() throws IOException {
-    channel = DatagramChannel.open();
+  protected DatagramChannel() throws IOException {
+    channel = java.nio.channels.DatagramChannel.open();
   }
 
   public synchronized SocketAddress receive(ByteBuffer userBuffer) throws IOException {
@@ -120,7 +119,7 @@ public class ScionDatagramChannel {
     buffer.position(buffer.limit());
   }
 
-  public ScionDatagramChannel bind(InetSocketAddress address) throws IOException {
+  public DatagramChannel bind(InetSocketAddress address) throws IOException {
     localAddress = address; // `address` may be `null`.
     channel.bind(address);
     return this;
@@ -139,7 +138,7 @@ public class ScionDatagramChannel {
     return localAddress;
   }
 
-  public DatagramChannel disconnect() throws IOException {
+  public java.nio.channels.DatagramChannel disconnect() throws IOException {
     return channel.disconnect();
   }
 

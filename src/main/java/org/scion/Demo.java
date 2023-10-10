@@ -36,7 +36,7 @@ public class Demo {
         }
 
         // API for UDP
-        ScionDatagramSocket socket;
+        DatagramSocket socket;
 
         // API for PathService
         // TODO rename
