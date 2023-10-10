@@ -176,6 +176,9 @@ public class PathHeaderScion {
         }
     }
 
+    boolean hasConstructionDirection() {
+        return info0.hasConstructionDirection();
+    }
 
     @Override
     public String toString() {

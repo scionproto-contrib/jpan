@@ -107,8 +107,8 @@ public class HeaderComposerTest {
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.2");
-    scionHeader.setSrcHostAddress(srcAddress);
-    scionHeader.setDstHostAddress(userPacket.getAddress());
+    scionHeader.setSrcHostAddress(srcAddress.getAddress());
+    scionHeader.setDstHostAddress(userPacket.getAddress().getAddress());
 
     // Socket internal = write header
     int offset = scionHeader.write(data, 0, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);

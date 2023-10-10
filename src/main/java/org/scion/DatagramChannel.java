@@ -35,7 +35,7 @@ public class DatagramChannel {
     channel = java.nio.channels.DatagramChannel.open();
   }
 
-  public synchronized SocketAddress receive(ByteBuffer userBuffer) throws IOException {
+  public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
     byte[] bytes = new byte[65536];
     ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
     SocketAddress srcAddr = channel.receive(buffer);
@@ -70,7 +70,7 @@ public class DatagramChannel {
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
   public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress)
-      throws IOException {
+          throws IOException {
     InetSocketAddress dstAddress = checkAddress(destinationAddress);
     ScionPath path = null;
     if (dstAddress.getAddress().equals(helper.getSourceAddress())) {
@@ -79,7 +79,7 @@ public class DatagramChannel {
       // path = helper.getLastIncomingPath(destinationAddress);
       if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
         throw new IllegalStateException(
-            "state=" + pathState); // TODO remove this check and possibly the path state alltogether
+                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
       }
     } else {
       // find a path
@@ -89,9 +89,32 @@ public class DatagramChannel {
     send(buffer, destinationAddress, path);
   }
 
+  public synchronized void send(ByteBuffer buffer, ScionSocketAddress destinationAddress)
+          throws IOException {
+    ScionPath path = null;
+    if (destinationAddress.hasPath()) {
+      // We are just sending back to last IP. We can use the reversed path. No need to lookup a
+      // path.
+      // path = helper.getLastIncomingPath(destinationAddress);
+      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
+        throw new IllegalStateException(
+                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
+      }
+    } else {
+      // find a path
+      path = helper.getDefaultPath(destinationAddress.getHostName());
+      routerAddress = null;
+    }
+    send(buffer, destinationAddress.getAddress().getAddress(), destinationAddress.getPort(), path);
+  }
+
   public synchronized void send(
       ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path) throws IOException {
     InetSocketAddress dstAddress = checkAddress(destinationAddress);
+    send(buffer, dstAddress.getAddress().getAddress(), dstAddress.getPort(), path);
+  }
+
+  private void send(ByteBuffer buffer, byte[] dstAddress, int dstPort, ScionPath path) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
@@ -107,7 +130,9 @@ public class DatagramChannel {
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
     int headerLength =
-        helper.writeHeader(buf, pathState, localAddress, dstAddress, payloadLength);
+        helper.writeHeader(
+            buf, pathState, localAddress.getAddress().getAddress(), localAddress.getPort(),
+                dstAddress, dstPort, payloadLength);
 
     ByteBuffer output =
         ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?

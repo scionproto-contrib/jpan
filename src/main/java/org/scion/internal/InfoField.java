@@ -124,4 +124,8 @@ public class InfoField {
         this.timestamp = path.getExpiration().getSeconds();
         this.segID = 12345; // TODO !!!!!
     }
+
+    boolean hasConstructionDirection() {
+        return c;
+    }
 }

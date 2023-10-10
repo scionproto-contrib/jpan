@@ -98,8 +98,7 @@ public class HeaderParserTest {
     byte[] newData = new byte[data.length];
 
     DatagramPacket userInput = new DatagramPacket(payload, payload.length);
-    InetAddress srcAddress = Inet6Address.getByAddress(new byte[] {127, 0, 0, 2});
-    scionHeader.setSrcHostAddress(srcAddress);
+    scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 2});
     int writeOffset =
         scionHeader.write(
             newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);

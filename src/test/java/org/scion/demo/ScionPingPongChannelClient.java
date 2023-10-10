@@ -15,6 +15,8 @@
 package org.scion.demo;
 
 import org.scion.DatagramChannel;
+import org.scion.ScionAddress;
+import org.scion.ScionSocketAddress;
 
 import java.io.*;
 import java.net.*;
@@ -60,6 +62,7 @@ public class ScionPingPongChannelClient {
     //InetSocketAddress serverAddress = new InetSocketAddress("localhost", 44444);
     InetSocketAddress serverAddress = new InetSocketAddress("::1", 44444);
     channel.setDstIsdAs("1-ff00:0:112");
+    ScionSocketAddress scionAddress = ScionSocketAddress.create("1-ff00:0:112", "::1", 44444);
 
     sendMessage(channel, msg, serverAddress);
 

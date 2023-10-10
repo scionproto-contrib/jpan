@@ -244,6 +244,6 @@ public class ScionPathService implements AutoCloseable {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
     long isdAs = ScionUtil.ParseIA(txtEntry.substring(7, posComma));
-    return ScionAddress.create(hostName, isdAs, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
+    return ScionAddress.create(isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }
 }

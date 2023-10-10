@@ -85,8 +85,8 @@ class ScionPacketHelper implements Closeable {
 
   }
 
-  public InetSocketAddress getReceivedSrcAddress() throws IOException {
-    return new InetSocketAddress(scionHeader.getSrcHostAddress(), overlayHeaderUdp.getSrcPort());
+  public ScionSocketAddress getReceivedSrcAddress() throws IOException {
+    return ScionSocketAddress.create(srcIA, scionHeader.getSrcHostAddress().getHostName(), overlayHeaderUdp.getSrcPort(), pathHeaderScion);
   }
 
   public InetSocketAddress getReceivedDstAddress() throws IOException {
@@ -128,6 +128,17 @@ class ScionPacketHelper implements Closeable {
     return getPathService().getPath(srcIA, dstIA);
   }
 
+  public ScionPath getDefaultPath(String hostName) {
+    // TODO this is bad, this is a GETTER that changes state!
+    if (srcIA == 0) {
+      srcIA = getPathService().getLocalIsdAs();
+    }
+    if (dstIA == 0) {
+      dstIA = pathService.getScionAddress(hostName).getIsdAs();
+    }
+    return getPathService().getPath(srcIA, dstIA);
+  }
+
   @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via
   //                 constructor
   public void setDstIsdAs(String dstIA) {
@@ -135,7 +146,8 @@ class ScionPacketHelper implements Closeable {
     this.dstIA = ScionUtil.ParseIA(dstIA);
   }
 
-  public int writeHeader(byte[] data, PathState pathState, InetSocketAddress srcAddress, InetSocketAddress dstAddress, int payloadLength) throws IOException {
+  public int writeHeader(byte[] data, PathState pathState, byte[] srcAddress, int srcPort,
+                         byte[] dstAddress, int dstPort, int payloadLength) throws IOException {
     // synchronized because we use `buffer`
     // TODO request new path after a while?
 
@@ -162,8 +174,8 @@ class ScionPacketHelper implements Closeable {
 
         scionHeader.setSrcIA(srcIA);
         scionHeader.setDstIA(dstIA);
-        scionHeader.setSrcHostAddress(srcAddress.getAddress());
-        scionHeader.setDstHostAddress(dstAddress.getAddress());
+        scionHeader.setSrcHostAddress(srcAddress);
+        scionHeader.setDstHostAddress(dstAddress);
         setUnderlayAddress(path);
 
         offset =
@@ -174,7 +186,7 @@ class ScionPacketHelper implements Closeable {
                         path.getRaw().size(),
                         Constants.PathTypes.SCION);
         offset = pathHeaderScion.writePath(data, offset, path);
-        offset = overlayHeaderUdp.write(data, offset, payloadLength, srcAddress.getPort(), dstAddress.getPort());
+        offset = overlayHeaderUdp.write(data, offset, payloadLength, srcPort, dstPort);
         break;
       }
       case RCV_PATH:
@@ -221,7 +233,8 @@ class ScionPacketHelper implements Closeable {
 
   public int readScionHeader(byte[] data) throws IOException {
     // TODO See which checks we have to perform from the list in the book p118 (BR ingress)
-    int offset = scionHeader.read(data, 0);
+    int headerOffset = 0;
+    int offset = scionHeader.read(data, headerOffset);
     if (scionHeader.getDT() != 0) {
       System.out.println(
               "PACKET DROPPED: service address="
@@ -252,6 +265,12 @@ class ScionPacketHelper implements Closeable {
 //      }
 
       offset = overlayHeaderUdp.read(data, offset);
+
+      // Create a copy for returning data
+      byte[] copyHeader = new byte[offset];
+      System.arraycopy(data, headerOffset, copyHeader, 0, offset - headerOffset);
+      dfsf
+
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");
       return -1;

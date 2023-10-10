@@ -193,6 +193,59 @@ public class ScionHeader {
         dstHost3 = d;
     }
 
+    private static void swap(byte[] data, int p1, int p2) {
+        byte b = data[p1];
+        data[p1] = data[p2];
+        data[p2] = b;
+    }
+    public static void reverse(byte[] data) {
+        int offset = 0;
+//        int dummy = dt;
+//        dt = st;
+//        st = dummy;
+//        dummy = dl;
+//        dl = sl;
+//        sl = dummy;
+        // byte 9: dt/dl/st/sl
+        byte b9 = data[offset + 9];
+        int DL = (b9 >>> 4) & 0x3;
+        int SL = b9 & 0x3;
+        DL = (DL + 1) * 4;
+        SL = (SL + 1) * 4;
+        int b9_d = b9 >>> 4;
+        int b9_s = (b9 & 0x0F) << 4;
+        data[offset + 9] = (byte)(b9_s | b9_d);
+
+        int p = offset + 12 + 16;
+        for (int i = 0; i < 4; i++) {
+            swap(data, p + i, p + i + DL);
+        }
+// TODO
+        throw new UnsupportedOperationException();
+
+        // Address header
+        long dummyLong = srcIsdAs;
+        srcIsdAs = dstIsdAs;
+        dstIsdAs = dummyLong;
+
+        int d;
+        d = srcHost0;
+        srcHost0 = dstHost0;
+        dstHost0 = d;
+
+        d = srcHost1;
+        srcHost1 = dstHost1;
+        dstHost1 = d;
+
+        d = srcHost2;
+        srcHost2 = dstHost2;
+        dstHost2 = d;
+
+        d = srcHost3;
+        srcHost3 = dstHost3;
+        dstHost3 = d;
+    }
+
     public int write(byte[] data, int offset, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
         this.pathType = pathType.code();
         int i0 = 0;
@@ -332,60 +385,43 @@ public class ScionHeader {
         this.dstIsdAs = dstIsdAs;
     }
 
-    public void setDstHostAddress(InetAddress address) {
-        if (address instanceof Inet4Address) {
+    public void setDstHostAddress(byte[] address) {
+        if (address.length == 4) {
             dt = 0;
             dl = 0;
-            byte[] bytes = address.getAddress();
-            dstHost0 = readInt(bytes, 0);
+            dstHost0 = readInt(address, 0);
             dstHost1 = 0;
             dstHost2 = 0;
             dstHost3 = 0;
-        } else if (address instanceof Inet6Address) {
+        } else if (address.length == 16) {
             dt = 0;
             dl = 3;
-            byte[] bytes = address.getAddress();
-            dstHost0 = readInt(bytes, 0);
-            dstHost1 = readInt(bytes, 4);
-            dstHost2 = readInt(bytes, 8);
-            dstHost3 = readInt(bytes, 12);
+            dstHost0 = readInt(address, 0);
+            dstHost1 = readInt(address, 4);
+            dstHost2 = readInt(address, 8);
+            dstHost3 = readInt(address, 12);
         } else {
-            throw new UnsupportedOperationException("Dst address class not supported: " + address.getClass().getName());
+            throw new UnsupportedOperationException("Dst address class not supported: length=" + address.length);
         }
     }
 
-    public void setSrcHostAddress(InetAddress address) {
-        if (address instanceof Inet4Address) {
+    public void setSrcHostAddress(byte[] address) {
+        if (address.length == 4) {
             st = 0;
             sl = 0;
-            byte[] bytes = address.getAddress();
-            srcHost0 = readInt(bytes, 0);
+            srcHost0 = readInt(address, 0);
             srcHost1 = 0;
             srcHost2 = 0;
             srcHost3 = 0;
-        } else if (address instanceof Inet6Address) {
+        } else if (address.length == 16) {
             st = 0;
             sl = 3;
-            byte[] bytes = address.getAddress();
-            srcHost0 = readInt(bytes, 0);
-            srcHost1 = readInt(bytes, 4);
-            srcHost2 = readInt(bytes, 8);
-            srcHost3 = readInt(bytes, 12);
+            srcHost0 = readInt(address, 0);
+            srcHost1 = readInt(address, 4);
+            srcHost2 = readInt(address, 8);
+            srcHost3 = readInt(address, 12);
         } else {
             throw new UnsupportedOperationException("Dst address class not supported: " + address.getClass().getName());
-        }
-    }
-
-    public InetAddress getSrcHostAddress(byte[] data) {
-        // TODO this is awkward, we should not pass in data[] here. (Or we should do it everywhere)
-        byte[] bytes = new byte[(sl + 1) * 4];
-        int offset = 16 + (dl + 1) * 4;
-        System.arraycopy(data, length() + offset, bytes, 0, bytes.length);
-        try {
-            return InetAddress.getByAddress(bytes);
-        } catch (UnknownHostException e) {
-            // This really should not happen
-            throw new RuntimeException(e);
         }
     }
 

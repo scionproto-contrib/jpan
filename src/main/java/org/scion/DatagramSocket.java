@@ -145,7 +145,9 @@ public class DatagramSocket implements Closeable {
     // New stuff...
     int payloadLength = userPacket.getLength();
     int headerLength =
-            helper.writeHeader(dataOut, pathState, localAddress, dstAddress, payloadLength);
+            helper.writeHeader(dataOut, pathState, localAddress.getAddress().getAddress(),
+                    localAddress.getPort(), dstAddress.getAddress().getAddress(),
+                    dstAddress.getPort(), payloadLength);
 
     System.arraycopy(userPacket.getData(), 0, dataOut, headerLength, payloadLength);
     InetSocketAddress firstHopAddress = null;
