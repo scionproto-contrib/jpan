@@ -118,18 +118,18 @@ class ScionPacketHelper implements Closeable {
   }
 
   public ScionPath getDefaultPath(InetSocketAddress destinationAddress) {
+    // TODO this is bad, this is a GETTER that changes state!
     if (srcIA == 0) {
       srcIA = getPathService().getLocalIsdAs();
     }
     if (dstIA == 0) {
-      // TODO implement IA lookup
-      throw new UnsupportedOperationException("TODO: implement Isd/As lookup");
+      dstIA = pathService.getScionAddress(destinationAddress.getHostName()).getIsdAs();
     }
     return getPathService().getPath(srcIA, dstIA);
   }
 
   @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via
-  // constructor
+  //                 constructor
   public void setDstIsdAs(String dstIA) {
     // TODO rename ParseIA to parseIA
     this.dstIA = ScionUtil.ParseIA(dstIA);

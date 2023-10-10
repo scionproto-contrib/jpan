@@ -113,12 +113,11 @@ public class ScionDatagramSocket implements Closeable {
       // path = helper.getLastIncomingPath(destinationAddress);
       if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
         throw new IllegalStateException(
-                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
+                "state=" + pathState); // TODO remove this check and possibly the path state altogether
       }
     } else {
       // find a path
       path = helper.getDefaultPath(dstAddress);
-      // routerAddress = null;
       underlayAddress = null;
       underlayPort = -1;
     }

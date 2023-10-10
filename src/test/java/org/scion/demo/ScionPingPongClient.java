@@ -37,7 +37,6 @@ public class ScionPingPongClient {
       socket.setDstIsdAs("1-ff00:0:112");
 
       while (true) {
-
         String msg = "Hello there!";
         byte[] sendBuf = msg.getBytes();
         DatagramPacket request =

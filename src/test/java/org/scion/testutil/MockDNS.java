@@ -18,12 +18,14 @@ import org.scion.PackageVisibilityHelper;
 
 public class MockDNS {
 
-  private static final String HOST_112 = "server.as112.test";
-  private static final String HOST_112_TXT = "\"scion=1-ff00:0:112,127.0.0.1\"";
-
-  public static void install(String ip) {
-    String entry112 = HOST_112 + ";" + HOST_112_TXT;
-    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, entry112);
+  public static void install(String isdAs, String hostName, String address) {
+    String entry = System.getProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "");
+    if (!entry.isEmpty()) {
+      entry += ";";
+    }
+    entry += hostName + ";";
+    entry += "\"scion=" + isdAs + "," + address + "\"";
+    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, entry);
   }
 
   public static void clear() {

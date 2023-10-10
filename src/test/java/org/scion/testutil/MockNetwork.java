@@ -37,10 +37,16 @@ public class MockNetwork {
   public static final int BORDER_ROUTER_PORT1 = 30555;
   public static final int BORDER_ROUTER_PORT2 = 30556;
 
+  public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
+  public static final int TINY_SRV_PORT_1 = 22233;
+  public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
+  public static final String TINY_SRV_NAME_1 = "server.as112.test";
+
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
    * (considered local) with "1-ff00:0:112" (remote).
+   * This also installs a DNS TXT record for resolving the SRV-address to "1-ff00:0:112".
    */
   public static synchronized void startTiny() {
     startTiny(true, true);
@@ -62,9 +68,13 @@ public class MockNetwork {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+
+    MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
   }
 
   public static synchronized void stopTiny() {
+    MockDNS.clear();
+
     if (daemon != null) {
       try {
         daemon.close();
@@ -83,6 +93,10 @@ public class MockNetwork {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static InetSocketAddress getTinyServerAddress() {
+    return new InetSocketAddress(TINY_SRV_ADDR_1, TINY_SRV_PORT_1);
   }
 }
 

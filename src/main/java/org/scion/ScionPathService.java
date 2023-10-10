@@ -179,8 +179,19 @@ public class ScionPathService implements AutoCloseable {
     if (props != null) {
       int posHost = props.indexOf(hostName);
       if (posHost >= 0) {
-        int posStart = props.indexOf(';', posHost + 1);
-        int posEnd = props.indexOf(';', posStart + 1);
+        // host found (for now we are too lazy to check against substring matching)
+        int posStart;
+        int posEnd;
+        if (posHost > 0 && props.charAt(posHost - 1) == ',') {
+          // This is an IP match, not a host match
+          posStart = props.substring(0, posHost).lastIndexOf(';');
+          posEnd = props.indexOf(';', posHost);
+        } else {
+          // normal case: hostname match
+          posStart = props.indexOf(';', posHost + 1);
+          posEnd = props.indexOf(';', posStart + 1);
+        }
+
         String txtRecord;
         if (posEnd > 0) {
           txtRecord = props.substring(posStart + 1, posEnd);

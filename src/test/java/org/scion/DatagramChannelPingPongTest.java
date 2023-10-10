@@ -35,7 +35,7 @@ public class DatagramChannelPingPongTest {
   public void testPingPong() throws InterruptedException {
     MockNetwork.startTiny();
 
-    InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.1", 22233);
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
     Thread server = new Thread(() -> server(serverAddress), "Server-thread");
     server.start();
     Thread client = new Thread(() -> client(serverAddress), "Client-thread");
@@ -53,7 +53,6 @@ public class DatagramChannelPingPongTest {
   private void client(SocketAddress serverAddress) {
     try {
       ScionDatagramChannel channel = new ScionDatagramChannel();
-      channel.setDstIsdAs("1-ff00:0:112");
 
       for (int i = 0; i < N_REPEAT; i++) {
         ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
