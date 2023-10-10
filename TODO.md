@@ -1,12 +1,9 @@
 # TODO
 
 ## Now
+- Test Server with multiple clients
 - Implement DNS
-  - DNS lookup works only by NAME
-  - Reverse lookup may provide some IP addresses, but not all
   - Entries can go into local /etc/host or /etc/scion-hosts(?)
-  - For JUnit: Implement command line argument to specify custom host file location
-    e.g. in tests/resources 
   - For SCION there is RHINE as a DNS equivalent but it is deprecated
 - SocketImpl. -> Then replace byte[] with ByteBuffer in Helper? 
 - Look into Selectors:  https://www.baeldung.com/java-nio-selector
@@ -24,7 +21,7 @@
   many different ways, it may be difficult to design a one-size-fits-all API.
   E.g. "Hercules" uses a round-robin fashion with multiple path to fire UDP packets. 
   
-- Inherit DatagramSocket 
+- Inherit DatagramSocket? 
 - Extract path info from server socket in order to support multiple clients
 - MulticastSocket / MulticastChannel (?)
 - Send SCMP on error? Probably yes, e.g. "Parameter Problem" when processing

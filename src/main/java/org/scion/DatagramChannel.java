@@ -59,6 +59,16 @@ public class DatagramChannel {
     return (InetSocketAddress) address;
   }
 
+  /**
+   * Attempts to send the content of the buffer to the destinationAddress.
+   *
+   * @param buffer Data to send
+   * @param destinationAddress Destination address. This should contain a host name known to the DNS so that
+   *                           the ISD/AS information can be retrieved.
+   * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that cannot be resolved
+   * to an ISD/AS. TODO test this
+   * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
+   */
   public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress)
       throws IOException {
     InetSocketAddress dstAddress = checkAddress(destinationAddress);
