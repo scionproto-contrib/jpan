@@ -96,12 +96,6 @@ public class MockDaemon implements AutoCloseable {
 
   @Override
   public void close() throws IOException {
-    try {
-      server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
-
     server.shutdown(); // Disable new tasks from being submitted
     try {
       // Wait a while for existing tasks to terminate
