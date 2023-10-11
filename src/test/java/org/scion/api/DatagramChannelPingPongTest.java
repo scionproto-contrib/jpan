@@ -53,7 +53,7 @@ class DatagramChannelPingPongTest {
 
   private void client(SocketAddress serverAddress) {
     try {
-      DatagramChannel channel = DatagramChannel.open();
+      DatagramChannel channel = DatagramChannel.open().configureBlocking(true);
 
       for (int i = 0; i < N_REPEAT; i++) {
         ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
@@ -64,7 +64,6 @@ class DatagramChannelPingPongTest {
         SocketAddress addr;
         do {
           addr = channel.receive(response);
-          Thread.sleep(10); // TODO use Selector
         } while (addr == null);
 
         response.flip();
@@ -76,24 +75,21 @@ class DatagramChannelPingPongTest {
     } catch (IOException e) {
       System.out.println("CLIENT: I/O error: " + e.getMessage());
       throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     }
   }
 
   private void server(InetSocketAddress localAddress) {
     try {
       DatagramChannel channel = DatagramChannel.open().bind(localAddress);
+      channel.configureBlocking(true);
       assertEquals(localAddress, channel.getLocalAddress());
       service(channel);
     } catch (IOException ex) {
       System.out.println("SERVER: I/O error: " + ex.getMessage());
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     }
   }
 
-  private void service(DatagramChannel channel) throws IOException, InterruptedException {
+  private void service(DatagramChannel channel) throws IOException {
     for (int i = 0; i < N_REPEAT; i++) {
       ByteBuffer request = ByteBuffer.allocate(512);
       // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " +
@@ -102,7 +98,6 @@ class DatagramChannelPingPongTest {
       do {
         // TODO what does JDK channel do here if bind() was not called?
         addr = channel.receive(request);
-        Thread.sleep(10); // TODO use Selector
       } while (addr == null);
 
       request.flip();

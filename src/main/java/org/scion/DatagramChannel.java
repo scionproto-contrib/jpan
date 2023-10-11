@@ -160,8 +160,9 @@ public class DatagramChannel {
     return this;
   }
 
-  public void configureBlocking(boolean block) throws IOException {
+  public DatagramChannel configureBlocking(boolean block) throws IOException {
     channel.configureBlocking(block);
+    return this;
   }
 
   @Deprecated
