@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion;
+package org.scion.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,25 +21,26 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
+import org.scion.DatagramChannel;
 
-public class DatagramChannelApiTest {
+class DatagramChannelApiTest {
 
   @Test
-  public void getLocalAddress_withBind() throws IOException {
+  void getLocalAddress_withBind() throws IOException {
     InetSocketAddress addr = new InetSocketAddress("localhost", 44444);
     DatagramChannel channel = DatagramChannel.open().bind(addr);
     assertEquals(addr, channel.getLocalAddress());
   }
 
   @Test
-  public void getLocalAddress_withoutBind() throws IOException {
+  void getLocalAddress_withoutBind() throws IOException {
     DatagramChannel channel = DatagramChannel.open();
     assertNull(channel.getLocalAddress());
   }
 
   @Test
-  public void send_RequiresInetSocketAddress() throws IOException {
-    DatagramChannel channel = new DatagramChannel();
+  void send_RequiresInetSocketAddress() throws IOException {
+    DatagramChannel channel = DatagramChannel.open();
     SocketAddress addr =
         new SocketAddress() {
           @Override
@@ -47,9 +48,9 @@ public class DatagramChannelApiTest {
             return super.hashCode();
           }
         };
+    ByteBuffer bb = ByteBuffer.allocate(100);
     Exception exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> channel.send(ByteBuffer.allocate(10), addr));
+        assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr));
 
     String expectedMessage = "must be of type InetSocketAddress";
     String actualMessage = exception.getMessage();
@@ -58,8 +59,8 @@ public class DatagramChannelApiTest {
   }
 
   @Test
-  public void sendPath_RequiresInetSocketAddress() throws IOException {
-    DatagramChannel channel = new DatagramChannel();
+  void sendPath_RequiresInetSocketAddress() throws IOException {
+    DatagramChannel channel = DatagramChannel.open();
     SocketAddress addr =
         new SocketAddress() {
           @Override
@@ -67,10 +68,9 @@ public class DatagramChannelApiTest {
             return super.hashCode();
           }
         };
+    ByteBuffer bb = ByteBuffer.allocate(100);
     Exception exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> channel.send(ByteBuffer.allocate(10), addr, null));
+        assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr, null));
 
     String expectedMessage = "must be of type InetSocketAddress";
     String actualMessage = exception.getMessage();

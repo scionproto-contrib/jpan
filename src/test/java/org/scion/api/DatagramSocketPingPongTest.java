@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion;
+package org.scion.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
 import org.junit.jupiter.api.Test;
+import org.scion.DatagramSocket;
 import org.scion.testutil.MockNetwork;
 
-public class DatagramSocketPingPongTest {
+class DatagramSocketPingPongTest {
 
   private static final int N_REPEAT = 5;
   private static final String MSG = "Hello world!";
@@ -30,7 +31,7 @@ public class DatagramSocketPingPongTest {
   private int nServer = 0;
 
   @Test
-  public void testPingPong() throws InterruptedException {
+  void testPingPong() throws InterruptedException {
     MockNetwork.startTiny();
 
     InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
@@ -49,7 +50,7 @@ public class DatagramSocketPingPongTest {
   }
 
   private void client(SocketAddress serverAddress) {
-    try (DatagramSocket socket = new DatagramSocket(null)) {
+    try (org.scion.DatagramSocket socket = new org.scion.DatagramSocket(null)) {
       for (int i = 0; i < N_REPEAT; i++) {
         byte[] sendBuf = MSG.getBytes();
         DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
@@ -71,8 +72,8 @@ public class DatagramSocketPingPongTest {
     }
   }
 
-  public void server(InetSocketAddress localAddress) {
-    try (DatagramSocket socket = new DatagramSocket(localAddress)) {
+  private void server(InetSocketAddress localAddress) {
+    try (org.scion.DatagramSocket socket = new org.scion.DatagramSocket(localAddress)) {
       service(socket);
     } catch (IOException ex) {
       System.out.println("SERVER: I/O error: " + ex.getMessage());

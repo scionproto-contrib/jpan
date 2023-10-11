@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion;
+package org.scion.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,9 +21,10 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
+import org.scion.DatagramChannel;
 import org.scion.testutil.MockNetwork;
 
-public class DatagramChannelPingPongTest {
+class DatagramChannelPingPongTest {
 
   private static final int N_REPEAT = 5;
   private static final String MSG = "Hello world!";
@@ -32,7 +33,7 @@ public class DatagramChannelPingPongTest {
   private int nServer = 0;
 
   @Test
-  public void testPingPong() throws InterruptedException {
+  void testPingPong() throws InterruptedException {
     MockNetwork.startTiny();
 
     InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
@@ -52,7 +53,7 @@ public class DatagramChannelPingPongTest {
 
   private void client(SocketAddress serverAddress) {
     try {
-      DatagramChannel channel = new DatagramChannel();
+      DatagramChannel channel = DatagramChannel.open();
 
       for (int i = 0; i < N_REPEAT; i++) {
         ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
@@ -80,9 +81,9 @@ public class DatagramChannelPingPongTest {
     }
   }
 
-  public void server(InetSocketAddress localAddress) {
+  private void server(InetSocketAddress localAddress) {
     try {
-      DatagramChannel channel = new DatagramChannel().bind(localAddress);
+      DatagramChannel channel = DatagramChannel.open().bind(localAddress);
       assertEquals(localAddress, channel.getLocalAddress());
       service(channel);
     } catch (IOException ex) {
