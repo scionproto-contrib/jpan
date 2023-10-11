@@ -33,6 +33,8 @@ public class MockDaemon implements AutoCloseable {
 
   public static final InetSocketAddress DEFAULT_ADDRESS =
           new InetSocketAddress("127.0.0.15", 30255);
+  public static final String DEFAULT_IP = "127.0.0.15";
+  public static final int DEFAULT_PORT = 30255;
 
   private final InetSocketAddress address;
   private Server server;
@@ -46,8 +48,8 @@ public class MockDaemon implements AutoCloseable {
           (byte) 0xfd, (byte) 0xed, 0x27, 0x60, };
 
   private static void setEnvironment() {
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_ADDRESS.getHostName());
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_ADDRESS.getPort());
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
   }
   public static MockDaemon create() {
     setEnvironment();
@@ -70,8 +72,7 @@ public class MockDaemon implements AutoCloseable {
   }
 
   public MockDaemon start() throws IOException {
-    String br = "127.0.0.10:31004";
-    br = borderRouter.toString().substring(1);
+    String br = borderRouter.toString().substring(1);
     int port = address.getPort();
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
@@ -99,6 +100,24 @@ public class MockDaemon implements AutoCloseable {
       server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
       throw new IOException(e);
+    }
+
+    server.shutdown(); // Disable new tasks from being submitted
+    try {
+      // Wait a while for existing tasks to terminate
+      if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
+        server.shutdownNow(); // Cancel currently executing tasks
+        // Wait a while for tasks to respond to being cancelled
+        if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
+          logger.error("Daemon server did not terminate");
+        }
+      }
+      logger.info("Daemon server shut down (or not?)");
+    } catch (InterruptedException ie) {
+      // (Re-)Cancel if current thread also interrupted
+      server.shutdownNow();
+      // Preserve interrupt status
+      Thread.currentThread().interrupt();
     }
   }
 

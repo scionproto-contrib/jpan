@@ -28,53 +28,55 @@ class DatagramChannelApiTest {
   @Test
   void getLocalAddress_withBind() throws IOException {
     InetSocketAddress addr = new InetSocketAddress("localhost", 44444);
-    DatagramChannel channel = DatagramChannel.open().bind(addr);
-    assertEquals(addr, channel.getLocalAddress());
+    try (DatagramChannel channel = DatagramChannel.open().bind(addr)) {
+      assertEquals(addr, channel.getLocalAddress());
+    }
   }
 
   @Test
   void getLocalAddress_withoutBind() throws IOException {
-    DatagramChannel channel = DatagramChannel.open();
-    assertNull(channel.getLocalAddress());
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertNull(channel.getLocalAddress());
+    }
   }
 
   @Test
   void send_RequiresInetSocketAddress() throws IOException {
-    DatagramChannel channel = DatagramChannel.open();
-    SocketAddress addr =
-        new SocketAddress() {
-          @Override
-          public int hashCode() {
-            return super.hashCode();
-          }
-        };
     ByteBuffer bb = ByteBuffer.allocate(100);
-    Exception exception =
-        assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr));
+    Exception exception;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      SocketAddress addr =
+          new SocketAddress() {
+            @Override
+            public int hashCode() {
+              return super.hashCode();
+            }
+          };
+      exception = assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr));
+    }
 
     String expectedMessage = "must be of type InetSocketAddress";
     String actualMessage = exception.getMessage();
-
     assertTrue(actualMessage.contains(expectedMessage));
   }
 
   @Test
   void sendPath_RequiresInetSocketAddress() throws IOException {
-    DatagramChannel channel = DatagramChannel.open();
-    SocketAddress addr =
-        new SocketAddress() {
-          @Override
-          public int hashCode() {
-            return super.hashCode();
-          }
-        };
     ByteBuffer bb = ByteBuffer.allocate(100);
-    Exception exception =
-        assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr, null));
+    Exception exception;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      SocketAddress addr =
+          new SocketAddress() {
+            @Override
+            public int hashCode() {
+              return super.hashCode();
+            }
+          };
+      exception = assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr, null));
+    }
 
     String expectedMessage = "must be of type InetSocketAddress";
     String actualMessage = exception.getMessage();
-
     assertTrue(actualMessage.contains(expectedMessage));
   }
 }

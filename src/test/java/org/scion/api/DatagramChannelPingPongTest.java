@@ -52,8 +52,7 @@ class DatagramChannelPingPongTest {
   }
 
   private void client(SocketAddress serverAddress) {
-    try {
-      DatagramChannel channel = DatagramChannel.open().configureBlocking(true);
+    try (DatagramChannel channel = DatagramChannel.open().configureBlocking(true)) {
 
       for (int i = 0; i < N_REPEAT; i++) {
         ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
@@ -79,8 +78,7 @@ class DatagramChannelPingPongTest {
   }
 
   private void server(InetSocketAddress localAddress) {
-    try {
-      DatagramChannel channel = DatagramChannel.open().bind(localAddress);
+    try (DatagramChannel channel = DatagramChannel.open().bind(localAddress)) {
       channel.configureBlocking(true);
       assertEquals(localAddress, channel.getLocalAddress());
       service(channel);

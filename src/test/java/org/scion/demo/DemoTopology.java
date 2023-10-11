@@ -31,7 +31,7 @@ class DemoTopology {
         cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.12", 30255);
         //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
         cfg.clientBorderRouter = new InetSocketAddress("127.0.0.9", 31002);
-        configurePathService(cfg.clientDaemonAddress);
+        configurePathService("127.0.0.12", 30255);
         return cfg;
     }
 
@@ -40,7 +40,7 @@ class DemoTopology {
         cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.19", 30255);
         //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
         cfg.clientBorderRouter = new InetSocketAddress("127.0.0.17", 31008);
-        configurePathService(cfg.clientDaemonAddress);
+        configurePathService("127.0.0.19", 30255);
         return cfg;
     }
 
@@ -54,8 +54,8 @@ class DemoTopology {
     }
 
 
-    private static void configurePathService(InetSocketAddress addr) {
-        System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, addr.getAddress().toString().substring(1));
-        System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, String.valueOf(addr.getPort()));
+    private static void configurePathService(String address, int port) {
+        System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, address);//.substring(1)); // TODO
+        System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, String.valueOf(port));
     }
 }

@@ -2,7 +2,17 @@
 
 Remove 31012 !!!!
 
+- RAC (Routing Algorithm Container)/Jelte
+  - Attack vector:
+    - Flood with need algorithms
+    - -> This is a network multiplier: Send a simple algorithm, cause a PCB flood
+  - How do we know the algorithm terminates? Turing? 
+  - Why is WASM so much slower?
+  - Why do we need additional beacons????
+    - Why can normal beacons not aggregate all information?  
+
 ## Now
+- Implement interfaces from nio.DatagramChannel
 - Test Server with multiple clients
 - Implement DNS
   - Entries can go into local /etc/host or /etc/scion-hosts(?)

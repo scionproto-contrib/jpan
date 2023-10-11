@@ -47,6 +47,7 @@ public class ScionPathService implements AutoCloseable {
   private final ManagedChannel channel;
 
   private ScionPathService(String daemonAddress) {
+    // TODO InsecureChannelCredentials?
     channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
     blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
     LOG.info("Path service started on " + channel.toString() + " " + daemonAddress);

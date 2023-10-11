@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
+
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramSocket;
 import org.scion.testutil.MockNetwork;
@@ -26,6 +27,7 @@ class DatagramSocketPingPongTest {
 
   private static final int N_REPEAT = 5;
   private static final String MSG = "Hello world!";
+  private static final Object barrier = new Object();
 
   private int nClient = 0;
   private int nServer = 0;
@@ -39,6 +41,17 @@ class DatagramSocketPingPongTest {
     server.start();
     Thread client = new Thread(() -> client(serverAddress), "Client-thread");
     client.start();
+
+    // This enables shutdown in case of an error
+    synchronized (barrier) {
+      barrier.wait(60_000);
+    }
+    // Wait some more to allow normal shutdown
+    synchronized (barrier) {
+      barrier.wait(100);
+    }
+    client.interrupt();
+    server.interrupt();
 
     client.join();
     server.join();
@@ -63,12 +76,15 @@ class DatagramSocketPingPongTest {
 
         String pong = new String(buffer, 0, response.getLength());
         assertEquals(MSG, pong);
-
         nClient++;
       }
     } catch (IOException e) {
       System.out.println("CLIENT: I/O error: " + e.getMessage());
       throw new RuntimeException(e);
+    } finally {
+      synchronized (barrier) {
+        barrier.notifyAll();
+      }
     }
   }
 
@@ -77,6 +93,10 @@ class DatagramSocketPingPongTest {
       service(socket);
     } catch (IOException ex) {
       System.out.println("SERVER: I/O error: " + ex.getMessage());
+    } finally {
+      synchronized (barrier) {
+        barrier.notifyAll();
+        }
     }
   }
 

@@ -224,26 +224,26 @@ public class ScionHeader {
         throw new UnsupportedOperationException();
 
         // Address header
-        long dummyLong = srcIsdAs;
-        srcIsdAs = dstIsdAs;
-        dstIsdAs = dummyLong;
-
-        int d;
-        d = srcHost0;
-        srcHost0 = dstHost0;
-        dstHost0 = d;
-
-        d = srcHost1;
-        srcHost1 = dstHost1;
-        dstHost1 = d;
-
-        d = srcHost2;
-        srcHost2 = dstHost2;
-        dstHost2 = d;
-
-        d = srcHost3;
-        srcHost3 = dstHost3;
-        dstHost3 = d;
+//        long dummyLong = srcIsdAs;
+//        srcIsdAs = dstIsdAs;
+//        dstIsdAs = dummyLong;
+//
+//        int d;
+//        d = srcHost0;
+//        srcHost0 = dstHost0;
+//        dstHost0 = d;
+//
+//        d = srcHost1;
+//        srcHost1 = dstHost1;
+//        dstHost1 = d;
+//
+//        d = srcHost2;
+//        srcHost2 = dstHost2;
+//        dstHost2 = d;
+//
+//        d = srcHost3;
+//        srcHost3 = dstHost3;
+//        dstHost3 = d;
     }
 
     public int write(byte[] data, int offset, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {

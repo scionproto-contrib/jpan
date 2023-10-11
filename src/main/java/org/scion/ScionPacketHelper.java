@@ -86,6 +86,7 @@ class ScionPacketHelper implements Closeable {
   }
 
   public ScionSocketAddress getReceivedSrcAddress() throws IOException {
+    // TODO this is extremely slow, find another solution! -> getHostName()
     return ScionSocketAddress.create(srcIA, scionHeader.getSrcHostAddress().getHostName(), overlayHeaderUdp.getSrcPort(), pathHeaderScion);
   }
 
@@ -160,8 +161,6 @@ class ScionPacketHelper implements Closeable {
         if (srcIA == 0) {
           srcIA = getPathService().getLocalIsdAs();
         }
-        System.out.println("Getting path from " + srcAddress);
-        System.out.println("               to " + dstAddress);
         if (srcIA == 0 || dstIA == 0) {
           throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
         }
@@ -269,7 +268,7 @@ class ScionPacketHelper implements Closeable {
       // Create a copy for returning data
       byte[] copyHeader = new byte[offset];
       System.arraycopy(data, headerOffset, copyHeader, 0, offset - headerOffset);
-      dfsf
+      // TODO use copied header
 
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");

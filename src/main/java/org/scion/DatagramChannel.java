@@ -14,12 +14,13 @@
 
 package org.scion;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
-public class DatagramChannel {
+public class DatagramChannel implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
   private final ScionPacketHelper helper = new ScionPacketHelper();
@@ -176,6 +177,11 @@ public class DatagramChannel {
 
   public java.nio.channels.DatagramChannel disconnect() throws IOException {
     return channel.disconnect();
+  }
+
+  @Override
+  public void close() throws IOException {
+    channel.close();
   }
 
 //  public SocketAddress getRemoteAddress() {
