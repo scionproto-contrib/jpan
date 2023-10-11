@@ -1,6 +1,9 @@
 # TODO
 
-Remove 31012 !!!!
+- Remove 31012 !!!!
+- Replace all getHostName with getHostString() where possible!
+  - Check that it works with normal network...?
+- check exceptions in "mvn test"
 
 - RAC (Routing Algorithm Container)/Jelte
   - Attack vector:

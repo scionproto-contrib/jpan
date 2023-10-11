@@ -62,7 +62,7 @@ public class ScionPathService implements AutoCloseable {
   }
 
   public static ScionPathService create(InetSocketAddress address) {
-    return create(address.getHostName(), address.getPort());
+    return create(address.getHostString(), address.getPort());
   }
 
   public static ScionPathService create() {

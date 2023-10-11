@@ -87,7 +87,7 @@ class ScionPacketHelper implements Closeable {
 
   public ScionSocketAddress getReceivedSrcAddress() throws IOException {
     // TODO this is extremely slow, find another solution! -> getHostName()
-    return ScionSocketAddress.create(srcIA, scionHeader.getSrcHostAddress().getHostName(), overlayHeaderUdp.getSrcPort(), pathHeaderScion);
+    return ScionSocketAddress.create(srcIA, scionHeader.getSrcHostName(), overlayHeaderUdp.getSrcPort(), pathHeaderScion);
   }
 
   public InetSocketAddress getReceivedDstAddress() throws IOException {
@@ -124,7 +124,7 @@ class ScionPacketHelper implements Closeable {
       srcIA = getPathService().getLocalIsdAs();
     }
     if (dstIA == 0) {
-      dstIA = pathService.getScionAddress(destinationAddress.getHostName()).getIsdAs();
+      dstIA = pathService.getScionAddress(destinationAddress.getHostString()).getIsdAs();
     }
     return getPathService().getPath(srcIA, dstIA);
   }

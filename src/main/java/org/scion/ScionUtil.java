@@ -14,8 +14,6 @@
 
 package org.scion;
 
-import java.net.InetSocketAddress;
-
 public class ScionUtil {
 
   //  const (
@@ -45,44 +43,31 @@ public class ScionUtil {
   private static final int asParts = ASBits / asPartBits;
 
   // ParseIA parses an IA from a string of the format 'isd-as'.
-  public static long ParseIA(String ia) { // (IA, error) {
+  public static long ParseIA(String ia) {
     String[] parts = ia.split("-"); // TODO regex
     if (parts.length != 2) {
-      // return 0, serrors.New("invalid ISD-AS", "value", ia)
       throw new ScionException("invalid ISD-AS: value=" + ia);
     }
     int isd = ParseISD(parts[0]);
-    //    if err != nil {
-    //      return 0, err
-    //    }
     long as = ParseAS(parts[1]);
-    //    if err != nil {
-    //      return 0, err
-    //    }
     return MustIAFrom(isd, as);
   }
   // )
 
   // ParseISD parses an ISD from a decimal string. Note that ISD 0 is parsed
   // without any errors.
-  private static int ParseISD(String s) { // (ISD, error) {
+  private static int ParseISD(String s) {
     // int isd = strconv.ParseUint(s, 10, ISDBits);
     int isd = Integer.parseUnsignedInt(s, 10); // , ISDBits);
-    //    if err != nil {
-    //      return 0, serrors.WrapStr("parsing ISD", err) // TODO
-    //    }
     return isd;
   }
 
   // MustIAFrom creates an IA from the ISD and AS number. It panics if any error
   // is encountered. Callers must ensure that the values passed to this function
   // are valid.
-  private static long MustIAFrom(int isd, long as) { // IA {
-    long ia = IAFrom(isd, as);
-    //    if err != nil {
-    //      panic(fmt.Sprintf("parsing ISD-AS: %s", err)) // TODO
-    //    }
-    return ia;
+  private static long MustIAFrom(int isd, long as) {
+    // TODO remove method?
+    return IAFrom(isd, as);
   }
 
   private static boolean inRange(long as) {
@@ -101,11 +86,11 @@ public class ScionUtil {
 
   // ParseAS parses an AS from a decimal (in the case of the 32bit BGP AS number
   // space) or ipv6-style hex (in the case of SCION-only AS numbers) string.
-  private static long ParseAS(String as) { // (AS, error) {
+  private static long ParseAS(String as) {
     return parseAS(as, ":");
   }
 
-  private static long parseAS(String as, String sep) { // (AS, error) {
+  private static long parseAS(String as, String sep) {
     String[] parts = as.split(sep);
     if (parts.length == 1) {
       // Must be a BGP AS, parse as 32-bit decimal number
@@ -113,37 +98,25 @@ public class ScionUtil {
     }
 
     if (parts.length != asParts) {
-      // return 0, serrors.New("wrong number of separators", "sep", sep, "value", as)
       throw new ScionException("wrong number of separators: sep=" + sep + "; value=" + as);
     }
     long parsed = 0; // AS
     for (int i = 0; i < asParts; i++) {
       parsed <<= asPartBits;
-      // long v = strconv.ParseUint(parts[i], asPartBase, asPartBits); // TODO long??
       int v32 = Integer.parseUnsignedInt(parts[i], asPartBase) & 0xFFFF; // TODO long??
-      long v = Integer.toUnsignedLong(v32);
-      //      if err != nil {
-      //        return 0, serrors.WrapStr("parsing AS part", err, "index", i, "value", as) // TODO
-      //      }
-      parsed |= v; // AS(v)
+      parsed |= Integer.toUnsignedLong(v32);
     }
     // This should not be reachable. However, we leave it here to protect
     // against future refactor mistakes.
     if (!inRange(parsed)) {
-      // return 0, serrors.New("AS out of range", "max", MaxAS, "value", as)
       throw new ScionException(
           "AS out of range: max=" + MaxAS + "; value=" + as + "; parsed=" + parsed);
     }
     return parsed;
   }
 
-  private static long asParseBGP(String s) { // (AS, error) {
-    // long as = strconv.ParseUint(s, 10, BGPASBits)
-    long as = Integer.parseUnsignedInt(s, 10);
-    //    if err != nil {
-    //      return 0, serrors.WrapStr("parsing BGP AS", err) // TODO ?
-    //    }
-    return as;
+  private static long asParseBGP(String s) {
+    return Integer.parseUnsignedInt(s, 10);
   }
 
 
@@ -210,6 +183,45 @@ public class ScionUtil {
         s = ":" + s;
       }
     }
+    return s;
+  }
+
+  // TODO hide from API
+  public static String toStringIPv4(byte[] bytes) {
+    return bytes[0] + "." + bytes[1] + "." + bytes[2] + "." + bytes[3];
+  }
+
+  // TODO hide from API
+  public static String toStringIPv6(byte[] b) {
+    // TODO use custom fix-length builder with loop
+    Integer[] ints = new Integer[8];
+    for (int i = 0; i < ints.length; i++) {
+      ints[i] = b[i * 2] * 256 + b[i*2+1];
+    }
+    String s = String.format("%x:%x:%x:%x:%x:%x:%x:%x", ints);
+//    String s = String.format("%x%02x:%x%02x:%x%02x:%x%02x:%x%02x:%x%02x:%x%02x:%x%02x",
+//            b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+//            b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]);
+//    String s = Integer.toHexString(bytes[0]) + Integer.toHexString(bytes[1]) + ":" +
+//                    Integer.toHexString(bytes[2]) + Integer.toHexString(bytes[3]) + ":" +
+//                    Integer.toHexString(bytes[4]) + Integer.toHexString(bytes[5]) + ":" +
+//                    Integer.toHexString(bytes[6]) + Integer.toHexString(bytes[7]) + ":" +
+//                    Integer.toHexString(bytes[8]) + Integer.toHexString(bytes[9]) + ":" +
+//                    Integer.toHexString(bytes[10]) + Integer.toHexString(bytes[11]) + ":" +
+//                    Integer.toHexString(bytes[12]) + Integer.toHexString(bytes[13]) + ":" +
+//                    Integer.toHexString(bytes[14]) + Integer.toHexString(bytes[15]);
+    // TODO not quite correct, we should replace the LONGEST sequence of 0:0 instead of the FIRST one.
+//    int pos = s.indexOf(":0:");
+//    if (pos >= 0) {
+//      int pos2 = pos + 2;
+//      while (pos2 + 2 < s.length() && s.charAt(pos2 + 1) == '0' && s.charAt(pos2 + 2) == ':') {
+//        pos2 += 2;
+//      }
+//      s = s.substring(0, pos + 1) + s.substring(pos2);
+//      if (s.startsWith("0:")) {
+//        // TODO
+//      }
+//    }
     return s;
   }
 

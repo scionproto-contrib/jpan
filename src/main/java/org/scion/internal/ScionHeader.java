@@ -425,6 +425,23 @@ public class ScionHeader {
         }
     }
 
+    // TODO rename to HostString or similar?
+    public String getSrcHostName() {
+        byte[] bytes = new byte[(sl + 1) * 4];
+        if (sl == 0 && (st == 0 || st == 1)) {
+            writeInt(bytes, 0, srcHost0);
+            return ScionUtil.toStringIPv4(bytes);
+        } else if (sl == 3 && st == 0) {
+            writeInt(bytes, 0, srcHost0);
+            writeInt(bytes, 4, srcHost1);
+            writeInt(bytes, 8, srcHost2);
+            writeInt(bytes, 12, srcHost3);
+            return ScionUtil.toStringIPv6(bytes);
+        } else {
+            throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
+        }
+    }
+
     public InetAddress getSrcHostAddress() throws IOException {
         byte[] bytes = new byte[(sl + 1) * 4];
         if (sl == 0 && (st == 0 || st == 1)) {
