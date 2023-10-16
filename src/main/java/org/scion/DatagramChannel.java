@@ -156,8 +156,11 @@ public class DatagramChannel implements Closeable {
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
-    localAddress = address; // `address` may be `null`.
-    channel.bind(address);
+    // bind() is called java.net.DatagramSocket even for clients (with 0.0.0.0:0). We need to avoid this.
+    if (address.getPort() != 0) {
+      channel.bind(address);
+      localAddress = (InetSocketAddress) channel.getLocalAddress();
+    }
     return this;
   }
 
@@ -175,8 +178,8 @@ public class DatagramChannel implements Closeable {
     return localAddress;
   }
 
-  public java.nio.channels.DatagramChannel disconnect() throws IOException {
-    return channel.disconnect();
+  public void disconnect() throws IOException {
+    channel.disconnect();
   }
 
   @Override

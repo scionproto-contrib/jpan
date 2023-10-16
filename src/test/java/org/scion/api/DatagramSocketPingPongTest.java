@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramSocket;
@@ -31,6 +32,7 @@ class DatagramSocketPingPongTest {
 
   private int nClient = 0;
   private int nServer = 0;
+  private final ArrayList<Throwable> exceptions = new ArrayList<>();
 
   @Test
   void testPingPong() throws InterruptedException {
@@ -58,8 +60,18 @@ class DatagramSocketPingPongTest {
 
     MockNetwork.stopTiny();
 
+    checkExceptions();
+
     assertEquals(N_REPEAT, nClient);
     assertEquals(N_REPEAT, nServer);
+  }
+
+  private void checkExceptions() {
+    for (Throwable e : exceptions) {
+      e.printStackTrace();
+    }
+    assertEquals(0, exceptions.size());
+    exceptions.clear();
   }
 
   private void client(SocketAddress serverAddress) {
@@ -80,7 +92,10 @@ class DatagramSocketPingPongTest {
       }
     } catch (IOException e) {
       System.out.println("CLIENT: I/O error: " + e.getMessage());
+      exceptions.add(e);
       throw new RuntimeException(e);
+    } catch (Exception e) {
+      exceptions.add(e);
     } finally {
       synchronized (barrier) {
         barrier.notifyAll();
@@ -91,8 +106,11 @@ class DatagramSocketPingPongTest {
   private void server(InetSocketAddress localAddress) {
     try (org.scion.DatagramSocket socket = new org.scion.DatagramSocket(localAddress)) {
       service(socket);
-    } catch (IOException ex) {
-      System.out.println("SERVER: I/O error: " + ex.getMessage());
+    } catch (IOException e) {
+      System.out.println("SERVER: I/O error: " + e.getMessage());
+      exceptions.add(e);
+    } catch (Exception e) {
+      exceptions.add(e);
     } finally {
       synchronized (barrier) {
         barrier.notifyAll();

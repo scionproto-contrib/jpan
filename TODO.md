@@ -5,6 +5,8 @@
   - Check that it works with normal network...?
 - check exceptions in "mvn test"
 
+- Lookup FlowID -> mandatory - MTU?
+
 - RAC (Routing Algorithm Container)/Jelte
   - Attack vector:
     - Flood with need algorithms
@@ -48,7 +50,11 @@
 ## After that
 - CI
 - Integrate with bazel -> Simplifies integration of go testing topology.
-- Add OWASP dependency/vulnerability checker (or is this done bu GitHub nowadays?)
+- Add OWASP dependency/vulnerability checker (or is this done by GitHub nowadays?)
+- SECURITY: java.net.AbstractPlainDatagramSocketImpl contains a lot of 
+  Security checks (see also class javadoc). Do weed need these? Isn't this
+  handled by the underlying DatagramChannel? Isn't this deprecated in Java 17?
+  -> Simply declare that we only siupport JDK 17+ for this reason?
 
 ## Finally
 
