@@ -106,7 +106,7 @@ public class MockDaemon implements AutoCloseable {
           logger.error("Daemon server did not terminate");
         }
       }
-      logger.info("Daemon server shut down (or not?)");
+      logger.info("Daemon server shut down");
     } catch (InterruptedException ie) {
       // (Re-)Cancel if current thread also interrupted
       server.shutdownNow();

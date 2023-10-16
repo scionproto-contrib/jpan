@@ -24,7 +24,9 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
 import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +58,13 @@ public class MockNetwork {
       throw new IllegalStateException();
     }
 
-    routers = Executors.newSingleThreadExecutor();
+    routers = Executors.newSingleThreadExecutor(new ThreadFactory() {
+      int id = 0;
+      @Override
+      public Thread newThread(Runnable r) {
+        return new Thread(r, "MockNetwork-" + (id++));
+      }
+    });
 
     MockBorderRouter routerInstance =
         new MockBorderRouter("BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4);
@@ -95,7 +103,7 @@ public class MockNetwork {
             logger.error("Router did not terminate");
           }
         }
-        logger.info("Router shut down (or not?)");
+        logger.info("Router shut down");
       } catch (InterruptedException ie) {
         // (Re-)Cancel if current thread also interrupted
         routers.shutdownNow();
@@ -139,8 +147,8 @@ class MockBorderRouter implements Runnable {
         Selector selector = Selector.open()) {
       chnLocal.configureBlocking(false);
       chnRemote.configureBlocking(false);
-      SelectionKey keyLocal = chnLocal.register(selector, SelectionKey.OP_READ, chnRemote);
-      SelectionKey keyRemote = chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
+      chnLocal.register(selector, SelectionKey.OP_READ, chnRemote);
+      chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
 
       while (true) {
@@ -161,11 +169,11 @@ class MockBorderRouter implements Runnable {
               throw new IllegalStateException();
             }
 
-            InetSocketAddress dstAddr = getDstAddress(buffer);
-            logger.info("Service " + name + " sending to " + dstAddr + "... ");
+            InetSocketAddress dstAddress = getDstAddress(buffer);
+            logger.info("Service " + name + " sending to " + dstAddress + "... ");
 
             buffer.flip();
-            outgoing.send(buffer, dstAddr);
+            outgoing.send(buffer, dstAddress);
             buffer.clear();
           }
           iter.remove();

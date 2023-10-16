@@ -198,7 +198,7 @@ public class ScionUtil {
     for (int i = 0; i < ints.length; i++) {
       ints[i] = b[i * 2] * 256 + b[i*2+1];
     }
-    String s = String.format("%x:%x:%x:%x:%x:%x:%x:%x", ints);
+    String s = String.format("%x:%x:%x:%x:%x:%x:%x:%x", (Object[]) ints);
 //    String s = String.format("%x%02x:%x%02x:%x%02x:%x%02x:%x%02x:%x%02x:%x%02x:%x%02x",
 //            b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
 //            b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]);
