@@ -132,7 +132,7 @@ public class ScionPathService implements AutoCloseable {
     if (paths.isEmpty()) {
       throw new ScionException("No path found from " + ScionUtil.toStringIA(srcIsdAs) + " to " + ScionUtil.toStringIA(dstIsdAs));
     }
-    return new ScionPath(paths.get(0));
+    return new ScionPath(paths.get(0), srcIsdAs, dstIsdAs);
   }
 
   Map<String, Daemon.ListService> getServices() {

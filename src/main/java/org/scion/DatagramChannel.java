@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 public class DatagramChannel implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  private final ScionPacketHelper helper = new ScionPacketHelper();
+  // private final ScionPacketHelper helper = new ScionPacketHelper();
   private ScionPacketHelper.PathState pathState = ScionPacketHelper.PathState.NO_PATH;
   private InetSocketAddress localAddress = null;
   private InetSocketAddress routerAddress = null;
@@ -37,6 +37,9 @@ public class DatagramChannel implements Closeable {
   }
 
   public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
+    // We cannot read directly into the user buffer because the user buffer may be too small.
+    // TODO However, we may want to use read() i.o. receive(),
+    //      this may allow us to use a smaller buffer here
     byte[] bytes = new byte[65536];
     ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
     SocketAddress srcAddr = channel.receive(buffer);
@@ -47,6 +50,7 @@ public class DatagramChannel implements Closeable {
     routerAddress = (InetSocketAddress) srcAddr;
     buffer.flip();
 
+    ScionPacketHelper helper = new ScionPacketHelper();
     int headerLength = helper.readScionHeader(bytes);
     userBuffer.put(bytes, headerLength, helper.getPayloadLength());
     pathState = ScionPacketHelper.PathState.RCV_PATH;
@@ -72,50 +76,107 @@ public class DatagramChannel implements Closeable {
    */
   public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress)
           throws IOException {
-    InetSocketAddress dstAddress = checkAddress(destinationAddress);
-    ScionPath path = null;
-    if (dstAddress.getAddress().equals(helper.getSourceAddress())) {
-      // We are just sending back to last IP. We can use the reversed path. No need to lookup a
-      // path.
-      // path = helper.getLastIncomingPath(destinationAddress);
-      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
-        throw new IllegalStateException(
-                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
-      }
+    if (destinationAddress instanceof ScionSocketAddress) {
+      send(buffer, (ScionSocketAddress) destinationAddress); // This is weird, clean up with additional internal method
     } else {
+      InetSocketAddress dstAddress = checkAddress(destinationAddress);
+      ScionPacketHelper helper = new ScionPacketHelper();
       // find a path
-      path = helper.getDefaultPath(dstAddress);
+      ScionPath path = helper.getDefaultPath(dstAddress);
       routerAddress = null;
+      pathState = ScionPacketHelper.PathState.NO_PATH; // TODO this is weird, why do we look up a path and then ignore it?
+      ScionSocketAddress addr = ScionSocketAddress.create(helper, path.getDestinationCode(), dstAddress.getHostString(), dstAddress.getPort());
+      addr.setPath(path); // TODO this is awkward
+      send(buffer, addr);
     }
-    send(buffer, destinationAddress, path);
+//    ScionPath path = null;
+//    if (dstAddress.getAddress().equals(helper.getSourceAddress())) {
+//      // We are just sending back to last IP. We can use the reversed path. No need to lookup a
+//      // path.
+//      // path = helper.getLastIncomingPath(destinationAddress);
+//      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
+//        throw new IllegalStateException(
+//                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
+//      }
+//    } else {
+//      // find a path
+//      path = helper.getDefaultPath(dstAddress);
+//      routerAddress = null;
+//    }
+//    send(buffer, destinationAddress, path);
   }
 
-  public synchronized void send(ByteBuffer buffer, ScionSocketAddress destinationAddress)
-          throws IOException {
-    ScionPath path = null;
-    if (destinationAddress.hasPath()) {
-      // We are just sending back to last IP. We can use the reversed path. No need to lookup a
-      // path.
-      // path = helper.getLastIncomingPath(destinationAddress);
-      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
-        throw new IllegalStateException(
-                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
-      }
-    } else {
-      // find a path
-      path = helper.getDefaultPath(destinationAddress.getHostName());
-      routerAddress = null;
-    }
-    send(buffer, destinationAddress.getAddress().getAddress(), destinationAddress.getPort(), path);
-  }
+//  public synchronized void send(ByteBuffer buffer, ScionSocketAddress destinationAddress)
+//          throws IOException {
+//    ScionPath path = null;
+//    if (destinationAddress.hasPath()) {
+//      // We are just sending back to last IP. We can use the reversed path. No need to look up a
+//      // path.
+//      // path = helper.getLastIncomingPath(destinationAddress);
+//      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
+//        throw new IllegalStateException(
+//                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
+//      }
+//    } else {
+//      // find a path
+//      path = helper.getDefaultPath(destinationAddress.getHostName());
+//      routerAddress = null;
+//    }
+//    send(buffer, destinationAddress.getAddress().getAddress(), destinationAddress.getPort(), path);
+//  }
 
   public synchronized void send(
       ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path) throws IOException {
+    if (destinationAddress instanceof ScionSocketAddress) {
+      throw new IllegalArgumentException(); // TODO should we handle this and set the path?
+    }
     InetSocketAddress dstAddress = checkAddress(destinationAddress);
-    send(buffer, dstAddress.getAddress().getAddress(), dstAddress.getPort(), path);
+    ScionSocketAddress addr = ScionSocketAddress.create(dstAddress.getHostString(), dstAddress.getPort(), path);
+    //send(buffer, dstAddress.getAddress().getAddress(), dstAddress.getPort(), path);
+    send(buffer, addr);
   }
 
-  private void send(ByteBuffer buffer, byte[] dstAddress, int dstPort, ScionPath path) throws IOException {
+//  private void send(ByteBuffer buffer, byte[] dstAddress, int dstPort, ScionPath path) throws IOException {
+//    // TODO do we need to create separate channels for each border router or can we "connect" to
+//    //  different ones from a single channel? Do we need to connect explicitly?
+//    //  What happens if, for the same path, we suddenly get a different border router recommended,
+//    //  do we need to create a new channel and reconnect?
+//
+//    // get local IP
+//    if (!channel.isConnected() && localAddress == null) {
+//      InetSocketAddress borderRouterAddr = helper.getFirstHopAddress(path);
+//      channel.connect(borderRouterAddr);
+//      localAddress = (InetSocketAddress) channel.getLocalAddress();
+//    }
+//
+//    byte[] buf = new byte[1000]; // / TODO ????  1000?
+//    int payloadLength = buffer.limit() - buffer.position();
+//    int headerLength =
+//        helper.writeHeader(
+//            buf, pathState, localAddress.getAddress().getAddress(), localAddress.getPort(),
+//                dstAddress, dstPort, payloadLength);
+//
+//    ByteBuffer output =
+//        ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
+//    System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
+//    System.arraycopy(
+//        buffer.array(),
+//        buffer.arrayOffset() + buffer.position(),
+//        output.array(),
+//        output.arrayOffset() + headerLength,
+//        payloadLength);
+//    SocketAddress firstHopAddress;
+//    if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
+//      firstHopAddress = routerAddress;
+//    } else {
+//      firstHopAddress = helper.getFirstHopAddress();
+//      // TODO routerAddress = firstHopAddress?
+//    }
+//    channel.send(output, firstHopAddress);
+//    buffer.position(buffer.limit());
+//  }
+
+  public synchronized void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
@@ -123,7 +184,8 @@ public class DatagramChannel implements Closeable {
 
     // get local IP
     if (!channel.isConnected() && localAddress == null) {
-      InetSocketAddress borderRouterAddr = helper.getFirstHopAddress(path);
+      // TODO ? dstAddress.setHelper(new ScionPacketHelper()); // TODO createHelper()?
+      InetSocketAddress borderRouterAddr = dstAddress.getHelper().getFirstHopAddress(dstAddress.getPath());
       channel.connect(borderRouterAddr);
       localAddress = (InetSocketAddress) channel.getLocalAddress();
     }
@@ -131,24 +193,25 @@ public class DatagramChannel implements Closeable {
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
     int headerLength =
-        helper.writeHeader(
-            buf, pathState, localAddress.getAddress().getAddress(), localAddress.getPort(),
-                dstAddress, dstPort, payloadLength);
+            dstAddress.getHelper().writeHeader(
+                    buf, pathState, localAddress.getAddress().getAddress(), localAddress.getPort(),
+                    // TODO dstAddress.getAddress().getAddress() -> store bytes in ScionAddress
+                    dstAddress.getAddress().getAddress(), dstAddress.getPort(), payloadLength);
 
     ByteBuffer output =
-        ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
+            ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
     System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
     System.arraycopy(
-        buffer.array(),
-        buffer.arrayOffset() + buffer.position(),
-        output.array(),
-        output.arrayOffset() + headerLength,
-        payloadLength);
+            buffer.array(),
+            buffer.arrayOffset() + buffer.position(),
+            output.array(),
+            output.arrayOffset() + headerLength,
+            payloadLength);
     SocketAddress firstHopAddress;
     if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
       firstHopAddress = routerAddress;
     } else {
-      firstHopAddress = helper.getFirstHopAddress();
+      firstHopAddress = dstAddress.getHelper().getFirstHopAddress();
       // TODO routerAddress = firstHopAddress?
     }
     channel.send(output, firstHopAddress);
@@ -171,7 +234,7 @@ public class DatagramChannel implements Closeable {
 
   @Deprecated
   public void setDstIsdAs(String isdAs) {
-    helper.setDstIsdAs(isdAs);
+    throw new UnsupportedOperationException();
   }
 
   public SocketAddress getLocalAddress() {

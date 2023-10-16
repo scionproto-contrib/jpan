@@ -20,30 +20,41 @@ import java.net.*;
 
 public class ScionSocketAddress extends InetSocketAddress {
   private final long isdAs;
-  private final ScionPath path;
-  private final PathHeaderScion pathHeader;
-  private boolean isOwnedBySocket = false;
+  private ScionPath path;
+  //private final PathHeaderScion pathHeader;
+  private ScionPacketHelper helper;
 
-  private ScionSocketAddress(long isdAs, String hostName, int port, ScionPath path, PathHeaderScion pathHeader) {
+  private ScionSocketAddress(ScionPacketHelper scionPacketHelper, long isdAs,
+                             String hostName, int port, ScionPath path) {
     // TODO this probably causes a DNS lookup, can we avoid that? Check!
     super(hostName, port);
     this.isdAs = isdAs;
     this.path = path;
-    this.pathHeader = pathHeader;
+    //this.pathHeader = pathHeader;
+    this.helper = scionPacketHelper;
   }
 
-  public static ScionSocketAddress create(String isdAs, String hostName, int port) {
+  public static ScionSocketAddress create(String isdAs, String hostName,
+                                          int port) {
     long isdAsCode = ScionUtil.ParseIA(isdAs);
-    return new ScionSocketAddress(isdAsCode, hostName, port, null, null);
+    return new ScionSocketAddress(null, isdAsCode, hostName, port, null);
   }
 
-  public static ScionSocketAddress create(String isdAs, String hostName, int port, ScionPath path) {
+  @Deprecated // get isdAs from path
+  public static ScionSocketAddress create(String isdAs, String hostName,
+                                          int port, ScionPath path) {
     long isdAsCode = ScionUtil.ParseIA(isdAs);
-    return new ScionSocketAddress(isdAsCode, hostName, port, path, null);
+    return new ScionSocketAddress(null, isdAsCode, hostName, port, path);
   }
 
-  static ScionSocketAddress create(long isdAs, String hostName, int port, PathHeaderScion pathHeader) {
-    return new ScionSocketAddress(isdAs, hostName, port, null, pathHeader);
+  public static ScionSocketAddress create(String hostName,
+                                          int port, ScionPath path) {
+    return new ScionSocketAddress(null, path.getDestinationCode(), hostName, port, path);
+  }
+
+  static ScionSocketAddress create(ScionPacketHelper scionPacketHelper,
+                                   long isdAs, String hostName, int port) {
+    return new ScionSocketAddress(scionPacketHelper, isdAs, hostName, port, null);
   }
 
   public long getIsdAs() {
@@ -54,25 +65,26 @@ public class ScionSocketAddress extends InetSocketAddress {
     return ScionUtil.extractIsd(isdAs);
   }
 
-  public boolean hasPath() {
-    return path != null || pathHeader != null;
+//  public boolean hasPath() {
+//    return path != null || pathHeader != null;
+//  }
+
+  void setHelper(ScionPacketHelper scionPacketHelper) {
+    if (this.helper != null) {
+      throw new IllegalStateException();
+    }
+    this.helper = scionPacketHelper;
   }
 
-  /**
-   * @param flag Indicating whether this instance is currently "owned" by a DatagramChannel.
-   *             If it is owned, then the owner can do as they like with the instance, e.g. reverse it.
-   *             If it is owned by another DatagramChannel then it must be copied before it can be modified.
-   *             // TODO reverse it defensively when received -> can be used by all Channels
-   *             //     or by a single channel
-   *             //     -> Potentially problematic: Timestamp/timeout and varying TTL
-   *             //        -> Can be written during send()
-   */
-  @Deprecated // See TODO -> remove this if possible
-  synchronized void setOwnedBySocket(boolean flag) {
-    isOwnedBySocket = flag;
+  ScionPacketHelper getHelper() {
+    return helper;
   }
 
-  synchronized boolean getOwnedBySocket() {
-    return isOwnedBySocket;
+  public ScionPath getPath() {
+    return path;
+  }
+
+  public void setPath(ScionPath path) {
+    this.path = path;
   }
 }

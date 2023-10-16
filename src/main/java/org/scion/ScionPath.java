@@ -22,14 +22,22 @@ import org.scion.proto.daemon.Daemon;
  */
 public class ScionPath {
     private final Daemon.Path path;
+    private final long srcIsdAs;
+    private final long dstIsdAs;
 
 
-    ScionPath(Daemon.Path path) {
+    ScionPath(Daemon.Path path, long srcIsdAs, long dstIsdAs) {
         this.path = path;
+        this.srcIsdAs = srcIsdAs;
+        this.dstIsdAs = dstIsdAs;
     }
 
     Daemon.Path getPathInternal() {
         return path;
+    }
+
+    public long getDestinationCode() {
+        return dstIsdAs;
     }
 
 }

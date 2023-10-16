@@ -87,7 +87,7 @@ class ScionPacketHelper implements Closeable {
 
   public ScionSocketAddress getReceivedSrcAddress() throws IOException {
     // TODO this is extremely slow, find another solution! -> getHostName()
-    return ScionSocketAddress.create(srcIA, scionHeader.getSrcHostName(), overlayHeaderUdp.getSrcPort(), pathHeaderScion);
+    return ScionSocketAddress.create(this, srcIA, scionHeader.getSrcHostName(), overlayHeaderUdp.getSrcPort());
   }
 
   public InetSocketAddress getReceivedDstAddress() throws IOException {
@@ -370,6 +370,7 @@ class ScionPacketHelper implements Closeable {
 
   @Override
   public void close() {
+    // TODO remove all this and make PathService a singleton.
     synchronized (closeLock) {
       if (pathService != null) {
         try {

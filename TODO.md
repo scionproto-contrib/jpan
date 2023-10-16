@@ -1,5 +1,6 @@
 # TODO
 
+- Change Header-ops to use ByteBuffer i.o. byte[]
 - Remove 31012 !!!!
 - Replace all getHostName with getHostString() where possible!
   - Check that it works with normal network...?
