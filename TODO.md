@@ -10,6 +10,7 @@
 
 # TODO
 
+- Singleton Daemon
 - Change Header-ops to use ByteBuffer i.o. byte[]
 - Replace all getHostName with getHostString() where possible!
   - Check that it works with normal network...?

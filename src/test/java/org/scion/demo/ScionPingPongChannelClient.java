@@ -14,13 +14,11 @@
 
 package org.scion.demo;
 
-import org.scion.DatagramChannel;
-import org.scion.ScionAddress;
-import org.scion.ScionSocketAddress;
-
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import org.scion.DatagramChannel;
+import org.scion.testutil.MockDNS;
 
 public class ScionPingPongChannelClient {
 
@@ -33,48 +31,45 @@ public class ScionPingPongChannelClient {
 
   public static DatagramChannel startClient() throws IOException {
     DatagramChannel client = DatagramChannel.open().bind(null);
-    client.configureBlocking(false);
+    client.configureBlocking(true);
     return client;
   }
 
-  public static void sendMessage(DatagramChannel client, String msg, InetSocketAddress serverAddress)
-      throws IOException {
+  public static void sendMessage(
+      DatagramChannel client, String msg, InetSocketAddress serverAddress) throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     client.send(buffer, serverAddress);
     System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
   }
 
-  public static String receiveMessage(DatagramChannel channel) throws IOException {
+  public static void receiveMessage(DatagramChannel channel) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     SocketAddress remoteAddress = channel.receive(buffer);
-    if (remoteAddress == null) {
-      return null;
-    }
     String message = extractMessage(buffer);
     System.out.println("Received from server at: " + remoteAddress + "  message: " + message);
-    return message;
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    DemoTopology.configureMock();//Tiny111_112();
+    // Demo setup
+    DemoTopology.configureMock(); // Tiny111_112();
+    MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+
+    doClientStuff();
+
+    DemoTopology.shutDown();
+  }
+
+  private static void doClientStuff() throws IOException {
     DatagramChannel channel = startClient();
     String msg = "Hello scion";
-    //InetSocketAddress serverAddress = new InetSocketAddress("localhost", 44444);
     InetSocketAddress serverAddress = new InetSocketAddress("::1", 44444);
-    channel.setDstIsdAs("1-ff00:0:112");
-    ScionSocketAddress scionAddress = ScionSocketAddress.create("1-ff00:0:112", "::1", 44444);
+    // ScionSocketAddress serverAddress = ScionSocketAddress.create("1-ff00:0:112", "::1", 44444);
 
     sendMessage(channel, msg, serverAddress);
 
-    boolean finished = false;
     System.out.println("Waiting ...");
-    while (!finished) {
-      String msg2 = receiveMessage(channel);
-      if (msg2 != null && !msg2.isEmpty()) {
-        finished = true;
-      }
-      Thread.sleep(10);
-    }
+    receiveMessage(channel);
+
     channel.disconnect();
   }
 }

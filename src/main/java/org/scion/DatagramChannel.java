@@ -85,21 +85,6 @@ public class DatagramChannel implements Closeable {
       addr.setPath(path); // TODO this is awkward
       send(buffer, addr);
     }
-//    ScionPath path = null;
-//    if (dstAddress.getAddress().equals(helper.getSourceAddress())) {
-//      // We are just sending back to last IP. We can use the reversed path. No need to lookup a
-//      // path.
-//      // path = helper.getLastIncomingPath(destinationAddress);
-//      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
-//        throw new IllegalStateException(
-//                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
-//      }
-//    } else {
-//      // find a path
-//      path = helper.getDefaultPath(dstAddress);
-//      routerAddress = null;
-//    }
-//    send(buffer, destinationAddress, path);
   }
 
   public synchronized void send(
@@ -164,11 +149,6 @@ public class DatagramChannel implements Closeable {
     return this;
   }
 
-  @Deprecated
-  public void setDstIsdAs(String isdAs) {
-    throw new UnsupportedOperationException(); // TODO remove
-  }
-
   public SocketAddress getLocalAddress() {
     return localAddress;
   }
@@ -181,8 +161,4 @@ public class DatagramChannel implements Closeable {
   public void close() throws IOException {
     channel.close();
   }
-
-//  public SocketAddress getRemoteAddress() {
-//    return helper.get;
-//  }
 }

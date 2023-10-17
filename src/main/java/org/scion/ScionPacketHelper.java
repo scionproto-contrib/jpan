@@ -144,16 +144,6 @@ class ScionPacketHelper implements Closeable {
 
   public int writeHeader(byte[] data, InetSocketAddress srcAddress, ScionSocketAddress dstAddress,
                          int payloadLength) throws IOException {
-    // TODO alternative:
-    // If underlayAddress == 0 -> NO_PATH -> getPath() now.
-//    pathHeaderScion.hasPath();
-//    if (dstAddress.hasRawPath()) {
-//      pathState = PathState.RCV_PATH;
-//    } else if (dstAddress.hasPath()) {
-//      pathState = PathState.SEND_PATH;
-//    } else {
-//      pathState = PathState.NO_PATH;
-//    }
     return writeHeader(data, srcAddress.getAddress().getAddress(), srcAddress.getPort(),
             dstAddress.getAddress().getAddress(), dstAddress.getPort(), payloadLength);
   }
@@ -197,17 +187,6 @@ class ScionPacketHelper implements Closeable {
                         Constants.PathTypes.SCION);
         offset = pathHeaderScion.writePath(data, offset, path);
         offset = overlayHeaderUdp.write(data, offset, payloadLength, srcPort, dstPort);
-
-
-//        offset =
-//                scionHeader.write(
-//                        data,
-//                        offset,
-//                        payloadLength,
-//                        pathHeaderScion.length(), // TODO difference
-//                        Constants.PathTypes.SCION);
-//        offset = pathHeaderScion.write(data, offset); // TODO diff
-//        offset = overlayHeaderUdp.write(data, offset, payloadLength); // TODO diff
 
         pathState = PathState.SEND_PATH;
         break;
@@ -322,8 +301,6 @@ class ScionPacketHelper implements Closeable {
     if (offset2 != 0) {
       throw new IllegalStateException("of=" + offset2);
     }
-    // System.out.println("Sending: dst=" + userPacket.getAddress() + " / src=" +
-    // socket.getLocalAddress());
     int offset =
             scionHeader.write(
                     data, offset2, userPacketLength, pathHeaderScion.length(), Constants.PathTypes.SCION);
@@ -371,13 +348,12 @@ class ScionPacketHelper implements Closeable {
       // TODO throw IOException?
       throw new RuntimeException(e);
     }
+    System.out.println("IP-Underlay: " + underlayAddress + ":" + underlayPort);
   }
 
   private void setUnderlayAddress(Daemon.Path path) {
     // first router
     String underlayAddressString = path.getInterface().getAddress().getAddress();
-    // InetAddress underlayAddress;
-    // int underlayPort;
     try {
       int splitIndex = underlayAddressString.indexOf(':');
       underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));

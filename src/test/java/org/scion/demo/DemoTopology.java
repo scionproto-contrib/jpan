@@ -53,6 +53,9 @@ class DemoTopology {
         return cfg;
     }
 
+    static void shutDown() {
+        MockNetwork.stopTiny();
+    }
 
     private static void configurePathService(String address, int port) {
         System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, address);//.substring(1)); // TODO
