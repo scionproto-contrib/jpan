@@ -3,7 +3,7 @@
 - How do I get the local external IP? Make it configurable?
 - DNS calls are awkward, outsource to Daemon?!?
 - How to get the address of the first hop?
-  - Client: Ask daemon?
+  - Client: Raw path contains underlay address.
   - Server: Ask daemon? Simply return to where it came from? 
 
 # TODO
