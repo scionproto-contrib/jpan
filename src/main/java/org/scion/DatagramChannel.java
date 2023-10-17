@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 public class DatagramChannel implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  private ScionPacketHelper.PathState pathState = ScionPacketHelper.PathState.NO_PATH;
   private InetSocketAddress localAddress = null;
 
   public static DatagramChannel open() throws IOException {
@@ -47,10 +46,9 @@ public class DatagramChannel implements Closeable {
     }
     buffer.flip();
 
-    ScionPacketHelper helper = new ScionPacketHelper();
+    ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.RCV_PATH);
     int headerLength = helper.readScionHeader(bytes);
     userBuffer.put(bytes, headerLength, helper.getPayloadLength());
-    pathState = ScionPacketHelper.PathState.RCV_PATH;
     // We assume the outgoing router will be the same as the incoming router
     helper.setUnderlayAddress((InetSocketAddress) srcAddr);
     return helper.getReceivedSrcAddress();
@@ -79,10 +77,10 @@ public class DatagramChannel implements Closeable {
       send(buffer, (ScionSocketAddress) destinationAddress); // This is weird, clean up with additional internal method
     } else {
       InetSocketAddress dstAddress = checkAddress(destinationAddress);
-      ScionPacketHelper helper = new ScionPacketHelper();
+      ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH);
       // find a path
       ScionPath path = helper.getDefaultPath(dstAddress);
-      pathState = ScionPacketHelper.PathState.NO_PATH; // TODO this is weird, why do we look up a path and then ignore it?
+      // TODO this is weird, why do we look up a path and then ignore it?
       ScionSocketAddress addr = ScionSocketAddress.create(helper, path.getDestinationCode(), dstAddress.getHostString(), dstAddress.getPort());
       addr.setPath(path); // TODO this is awkward
       send(buffer, addr);
@@ -120,22 +118,18 @@ public class DatagramChannel implements Closeable {
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
     //  do we need to create a new channel and reconnect?
+    ScionPacketHelper context = dstAddress.getHelper();
 
     // get local IP
     if (!channel.isConnected() && localAddress == null) {
-      // TODO ? dstAddress.setHelper(new ScionPacketHelper()); // TODO createHelper()?
-      InetSocketAddress borderRouterAddr = dstAddress.getHelper().getFirstHopAddress(dstAddress.getPath());
+      InetSocketAddress borderRouterAddr = context.getFirstHopAddress(dstAddress.getPath());
       channel.connect(borderRouterAddr);
       localAddress = (InetSocketAddress) channel.getLocalAddress();
     }
 
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
-    int headerLength =
-            dstAddress.getHelper().writeHeader(
-                    buf, pathState, localAddress.getAddress().getAddress(), localAddress.getPort(),
-                    // TODO dstAddress.getAddress().getAddress() -> store bytes in ScionAddress
-                    dstAddress.getAddress().getAddress(), dstAddress.getPort(), payloadLength);
+    int headerLength = context.writeHeader(buf, localAddress, dstAddress, payloadLength);
 
     ByteBuffer output =
             ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
@@ -153,10 +147,14 @@ public class DatagramChannel implements Closeable {
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
-    // bind() is called java.net.DatagramSocket even for clients (with 0.0.0.0:0). We need to avoid this.
-    if (address.getPort() != 0) {
+    // bind() is called by java.net.DatagramSocket even for clients (with 0.0.0.0:0).
+    // We need to avoid this.
+    if (address != null && address.getPort() != 0) {
       channel.bind(address);
       localAddress = (InetSocketAddress) channel.getLocalAddress();
+    } else {
+      channel.bind(null);
+      localAddress = null;
     }
     return this;
   }
@@ -168,7 +166,7 @@ public class DatagramChannel implements Closeable {
 
   @Deprecated
   public void setDstIsdAs(String isdAs) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(); // TODO remove
   }
 
   public SocketAddress getLocalAddress() {

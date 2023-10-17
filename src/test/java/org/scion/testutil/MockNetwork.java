@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
 import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +45,8 @@ public class MockNetwork {
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
-   * (considered local) with "1-ff00:0:112" (remote).
-   * This also installs a DNS TXT record for resolving the SRV-address to "1-ff00:0:112".
+   * (considered local) with "1-ff00:0:112" (remote). This also installs a DNS TXT record for
+   * resolving the SRV-address to "1-ff00:0:112".
    */
   public static synchronized void startTiny() {
     startTiny(true, true);
@@ -58,16 +57,20 @@ public class MockNetwork {
       throw new IllegalStateException();
     }
 
-    routers = Executors.newSingleThreadExecutor(new ThreadFactory() {
-      int id = 0;
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "MockNetwork-" + (id++));
-      }
-    });
+    routers =
+        Executors.newSingleThreadExecutor(
+            new ThreadFactory() {
+              int id = 0;
+
+              @Override
+              public Thread newThread(Runnable r) {
+                return new Thread(r, "MockNetwork-" + (id++ - 1));
+              }
+            });
 
     MockBorderRouter routerInstance =
-        new MockBorderRouter("BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4);
+        new MockBorderRouter(
+            "BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4);
     routers.execute(routerInstance);
 
     InetSocketAddress brAddr = new InetSocketAddress(BORDER_ROUTER_HOST, routerInstance.getPort1());
@@ -139,7 +142,6 @@ class MockBorderRouter implements Runnable {
 
   @Override
   public void run() {
-    System.out.println("Running " + name + " on ports " + port1 + " -> " + port2);
     InetSocketAddress bind1 = new InetSocketAddress(ipv4_1 ? "localhost" : "::1", port1);
     InetSocketAddress bind2 = new InetSocketAddress(ipv4_2 ? "localhost" : "::1", port2);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
@@ -150,6 +152,7 @@ class MockBorderRouter implements Runnable {
       chnLocal.register(selector, SelectionKey.OP_READ, chnRemote);
       chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
+      logger.info(name + " started on ports " + bind1 + " <-> " + bind2);
 
       while (true) {
         if (selector.select() == 0) {
@@ -170,7 +173,7 @@ class MockBorderRouter implements Runnable {
             }
 
             InetSocketAddress dstAddress = getDstAddress(buffer);
-            logger.info("Service " + name + " sending to " + dstAddress + "... ");
+            logger.info(name + " forwarding " + buffer.position() + " bytes to " + dstAddress);
 
             buffer.flip();
             outgoing.send(buffer, dstAddress);

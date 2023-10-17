@@ -17,7 +17,6 @@ package org.scion;
 import org.scion.proto.daemon.Daemon;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.util.List;
 
@@ -33,7 +32,7 @@ public class PackageVisibilityHelper {
     }
 
     public static InetSocketAddress getSrcAddress(byte[] packet) {
-        try (ScionPacketHelper helper = new ScionPacketHelper()) {
+        try (ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH)) {
             helper.readScionHeader(packet);
             return helper.getReceivedSrcAddress();
         } catch (IOException e) {
@@ -42,7 +41,7 @@ public class PackageVisibilityHelper {
     }
 
     public static InetSocketAddress getDstAddress(byte[] packet) {
-        try (ScionPacketHelper helper = new ScionPacketHelper()) {
+        try (ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH)) {
             helper.readScionHeader(packet);
             return helper.getReceivedDstAddress();
         } catch (IOException e) {

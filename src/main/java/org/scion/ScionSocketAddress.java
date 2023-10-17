@@ -14,14 +14,12 @@
 
 package org.scion;
 
-import org.scion.internal.PathHeaderScion;
 
 import java.net.*;
 
 public class ScionSocketAddress extends InetSocketAddress {
   private final long isdAs;
   private ScionPath path;
-  //private final PathHeaderScion pathHeader;
   private ScionPacketHelper helper;
 
   private ScionSocketAddress(ScionPacketHelper scionPacketHelper, long isdAs,
@@ -30,7 +28,6 @@ public class ScionSocketAddress extends InetSocketAddress {
     super(hostName, port);
     this.isdAs = isdAs;
     this.path = path;
-    //this.pathHeader = pathHeader;
     this.helper = scionPacketHelper;
   }
 
@@ -65,10 +62,6 @@ public class ScionSocketAddress extends InetSocketAddress {
     return ScionUtil.extractIsd(isdAs);
   }
 
-//  public boolean hasPath() {
-//    return path != null || pathHeader != null;
-//  }
-
   void setHelper(ScionPacketHelper scionPacketHelper) {
     if (this.helper != null) {
       throw new IllegalStateException();
@@ -86,5 +79,9 @@ public class ScionSocketAddress extends InetSocketAddress {
 
   public void setPath(ScionPath path) {
     this.path = path;
+  }
+
+  public boolean hasPath() {
+    return path != null;
   }
 }

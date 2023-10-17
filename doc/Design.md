@@ -64,6 +64,23 @@ a kind of reverse proxy.
       a `ScionDatagramSocket`.
 
 
+## Paths
+
+### Path & Header retainment
+- Paths & Headers are retained for:
+  - efficiency (when sending multiple times to the same destination)
+  - reversing the path
+- Path are associated with ScionAddresses, not with DatagramChannels. That means:
+  - They can be reused in other Channels -> TODO they need to be thread-safe / immutable
+  - An incoming path may be used to create a separate outgoing channel
+  - When a new ScionAddress instance is used, the path needs to be looked up again. 
+  
+**Questions - TODO:**
+- Should a channel separately retain paths, as form of cache?
+- Should the PathService retain paths, as a form of cache?
+- WHen a client receives a packet and wants to send another one, should it reuse the original 
+  path or revert the incoming path? 
+
 # TODO
 
 ## DataGramSocket

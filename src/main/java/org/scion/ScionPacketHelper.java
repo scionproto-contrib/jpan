@@ -65,6 +65,8 @@ class ScionPacketHelper implements Closeable {
   private final Object closeLock = new Object();
   private boolean isClosed = false;
 
+  private PathState pathState;
+
   public InetAddress getSourceAddress() throws IOException {
     return scionHeader.getSrcHostAddress();
   }
@@ -75,8 +77,8 @@ class ScionPacketHelper implements Closeable {
     SEND_PATH
   }
 
-  public ScionPacketHelper() {
-
+  public ScionPacketHelper(PathState pathState) {
+    this.pathState = pathState;
   }
 
   public ScionSocketAddress getReceivedSrcAddress() throws IOException {
@@ -100,7 +102,6 @@ class ScionPacketHelper implements Closeable {
       int splitIndex = underlayAddressString.indexOf(':');
       InetAddress underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
       int underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
-      System.out.println("Getting IP-underlay=" + underlayAddress + "   " + underlayPort);
       return new InetSocketAddress(underlayAddress, underlayPort);
     } catch (UnknownHostException e) {
       // TODO throw IOException?
@@ -141,7 +142,23 @@ class ScionPacketHelper implements Closeable {
     this.dstIA = ScionUtil.ParseIA(dstIA);
   }
 
-  public int writeHeader(byte[] data, PathState pathState, byte[] srcAddress, int srcPort,
+  public int writeHeader(byte[] data, InetSocketAddress srcAddress, ScionSocketAddress dstAddress,
+                         int payloadLength) throws IOException {
+    // TODO alternative:
+    // If underlayAddress == 0 -> NO_PATH -> getPath() now.
+//    pathHeaderScion.hasPath();
+//    if (dstAddress.hasRawPath()) {
+//      pathState = PathState.RCV_PATH;
+//    } else if (dstAddress.hasPath()) {
+//      pathState = PathState.SEND_PATH;
+//    } else {
+//      pathState = PathState.NO_PATH;
+//    }
+    return writeHeader(data, srcAddress.getAddress().getAddress(), srcAddress.getPort(),
+            dstAddress.getAddress().getAddress(), dstAddress.getPort(), payloadLength);
+  }
+
+  public int writeHeader(byte[] data, byte[] srcAddress, int srcPort,
                          byte[] dstAddress, int dstPort, int payloadLength) throws IOException {
     // synchronized because we use `buffer`
     // TODO request new path after a while?
@@ -180,6 +197,19 @@ class ScionPacketHelper implements Closeable {
                         Constants.PathTypes.SCION);
         offset = pathHeaderScion.writePath(data, offset, path);
         offset = overlayHeaderUdp.write(data, offset, payloadLength, srcPort, dstPort);
+
+
+//        offset =
+//                scionHeader.write(
+//                        data,
+//                        offset,
+//                        payloadLength,
+//                        pathHeaderScion.length(), // TODO difference
+//                        Constants.PathTypes.SCION);
+//        offset = pathHeaderScion.write(data, offset); // TODO diff
+//        offset = overlayHeaderUdp.write(data, offset, payloadLength); // TODO diff
+
+        pathState = PathState.SEND_PATH;
         break;
       }
       case RCV_PATH:
@@ -341,7 +371,6 @@ class ScionPacketHelper implements Closeable {
       // TODO throw IOException?
       throw new RuntimeException(e);
     }
-    System.out.println("IP-underlay=" + underlayAddress + "   " + underlayPort);
   }
 
   private void setUnderlayAddress(Daemon.Path path) {
@@ -357,7 +386,6 @@ class ScionPacketHelper implements Closeable {
       // TODO throw IOException?
       throw new RuntimeException(e);
     }
-    System.out.println("Setting IP-underlay=" + underlayAddress + "   " + underlayPort);
   }
 
   public void setUnderlayAddress(InetSocketAddress addr) {

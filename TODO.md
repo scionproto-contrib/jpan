@@ -5,6 +5,8 @@
 - How to get the address of the first hop?
   - Client: Raw path contains underlay address.
   - Server: Ask daemon? Simply return to where it came from? 
+- Client: Should we keep sending with the same path? Or should we revert()
+  the path from any packet that we receive?
 
 # TODO
 
