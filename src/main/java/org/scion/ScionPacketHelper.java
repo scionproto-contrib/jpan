@@ -69,12 +69,6 @@ class ScionPacketHelper implements Closeable {
     return scionHeader.getSrcHostAddress();
   }
 
-//  public ScionPath getLastIncomingPath(InetSocketAddress remoteAddress) throws IOException {
-//    if (remoteAddress != null && remoteAddress.equals(scionHeader.getSrcHostAddress()) {
-//      return
-//    }
-//  }
-
   public enum PathState {
     NO_PATH,
     RCV_PATH,
@@ -194,8 +188,6 @@ class ScionPacketHelper implements Closeable {
         pathHeaderScion.reverse();
         overlayHeaderUdp.reverse();
         offset = writeScionHeader(data, offset, payloadLength);
-        // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????????????//????????????????????????
-        underlayPort = 31012;
         break;
       }
       case SEND_PATH:
@@ -368,6 +360,11 @@ class ScionPacketHelper implements Closeable {
     System.out.println("Setting IP-underlay=" + underlayAddress + "   " + underlayPort);
   }
 
+  public void setUnderlayAddress(InetSocketAddress addr) {
+    underlayAddress = addr.getAddress();
+    underlayPort = addr.getPort();
+  }
+
   @Override
   public void close() {
     // TODO remove all this and make PathService a singleton.
@@ -380,6 +377,7 @@ class ScionPacketHelper implements Closeable {
           throw new RuntimeException(e);
         }
       }
+      isClosed = true;
     }
   }
 

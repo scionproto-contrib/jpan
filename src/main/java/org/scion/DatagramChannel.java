@@ -23,10 +23,8 @@ import java.nio.ByteBuffer;
 public class DatagramChannel implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  // private final ScionPacketHelper helper = new ScionPacketHelper();
   private ScionPacketHelper.PathState pathState = ScionPacketHelper.PathState.NO_PATH;
   private InetSocketAddress localAddress = null;
-  private InetSocketAddress routerAddress = null;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -47,13 +45,14 @@ public class DatagramChannel implements Closeable {
       // this indicates nothing is available
       return null;
     }
-    routerAddress = (InetSocketAddress) srcAddr;
     buffer.flip();
 
     ScionPacketHelper helper = new ScionPacketHelper();
     int headerLength = helper.readScionHeader(bytes);
     userBuffer.put(bytes, headerLength, helper.getPayloadLength());
     pathState = ScionPacketHelper.PathState.RCV_PATH;
+    // We assume the outgoing router will be the same as the incoming router
+    helper.setUnderlayAddress((InetSocketAddress) srcAddr);
     return helper.getReceivedSrcAddress();
   }
 
@@ -83,7 +82,6 @@ public class DatagramChannel implements Closeable {
       ScionPacketHelper helper = new ScionPacketHelper();
       // find a path
       ScionPath path = helper.getDefaultPath(dstAddress);
-      routerAddress = null;
       pathState = ScionPacketHelper.PathState.NO_PATH; // TODO this is weird, why do we look up a path and then ignore it?
       ScionSocketAddress addr = ScionSocketAddress.create(helper, path.getDestinationCode(), dstAddress.getHostString(), dstAddress.getPort());
       addr.setPath(path); // TODO this is awkward
@@ -106,25 +104,6 @@ public class DatagramChannel implements Closeable {
 //    send(buffer, destinationAddress, path);
   }
 
-//  public synchronized void send(ByteBuffer buffer, ScionSocketAddress destinationAddress)
-//          throws IOException {
-//    ScionPath path = null;
-//    if (destinationAddress.hasPath()) {
-//      // We are just sending back to last IP. We can use the reversed path. No need to look up a
-//      // path.
-//      // path = helper.getLastIncomingPath(destinationAddress);
-//      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
-//        throw new IllegalStateException(
-//                "state=" + pathState); // TODO remove this check and possibly the path state alltogether
-//      }
-//    } else {
-//      // find a path
-//      path = helper.getDefaultPath(destinationAddress.getHostName());
-//      routerAddress = null;
-//    }
-//    send(buffer, destinationAddress.getAddress().getAddress(), destinationAddress.getPort(), path);
-//  }
-
   public synchronized void send(
       ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path) throws IOException {
     if (destinationAddress instanceof ScionSocketAddress) {
@@ -135,46 +114,6 @@ public class DatagramChannel implements Closeable {
     //send(buffer, dstAddress.getAddress().getAddress(), dstAddress.getPort(), path);
     send(buffer, addr);
   }
-
-//  private void send(ByteBuffer buffer, byte[] dstAddress, int dstPort, ScionPath path) throws IOException {
-//    // TODO do we need to create separate channels for each border router or can we "connect" to
-//    //  different ones from a single channel? Do we need to connect explicitly?
-//    //  What happens if, for the same path, we suddenly get a different border router recommended,
-//    //  do we need to create a new channel and reconnect?
-//
-//    // get local IP
-//    if (!channel.isConnected() && localAddress == null) {
-//      InetSocketAddress borderRouterAddr = helper.getFirstHopAddress(path);
-//      channel.connect(borderRouterAddr);
-//      localAddress = (InetSocketAddress) channel.getLocalAddress();
-//    }
-//
-//    byte[] buf = new byte[1000]; // / TODO ????  1000?
-//    int payloadLength = buffer.limit() - buffer.position();
-//    int headerLength =
-//        helper.writeHeader(
-//            buf, pathState, localAddress.getAddress().getAddress(), localAddress.getPort(),
-//                dstAddress, dstPort, payloadLength);
-//
-//    ByteBuffer output =
-//        ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
-//    System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
-//    System.arraycopy(
-//        buffer.array(),
-//        buffer.arrayOffset() + buffer.position(),
-//        output.array(),
-//        output.arrayOffset() + headerLength,
-//        payloadLength);
-//    SocketAddress firstHopAddress;
-//    if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
-//      firstHopAddress = routerAddress;
-//    } else {
-//      firstHopAddress = helper.getFirstHopAddress();
-//      // TODO routerAddress = firstHopAddress?
-//    }
-//    channel.send(output, firstHopAddress);
-//    buffer.position(buffer.limit());
-//  }
 
   public synchronized void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
@@ -207,14 +146,9 @@ public class DatagramChannel implements Closeable {
             output.array(),
             output.arrayOffset() + headerLength,
             payloadLength);
-    SocketAddress firstHopAddress;
-    if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
-      firstHopAddress = routerAddress;
-    } else {
-      firstHopAddress = dstAddress.getHelper().getFirstHopAddress();
-      // TODO routerAddress = firstHopAddress?
-    }
-    channel.send(output, firstHopAddress);
+
+    // send packet
+    channel.send(output, dstAddress.getHelper().getFirstHopAddress());
     buffer.position(buffer.limit());
   }
 

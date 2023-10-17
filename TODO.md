@@ -1,7 +1,14 @@
+# Problems
+
+- How do I get the local external IP? Make it configurable?
+- DNS calls are awkward, outsource to Daemon?!?
+- How to get the address of the first hop?
+  - Client: Ask daemon?
+  - Server: Ask daemon? Simply return to where it came from? 
+
 # TODO
 
 - Change Header-ops to use ByteBuffer i.o. byte[]
-- Remove 31012 !!!!
 - Replace all getHostName with getHostString() where possible!
   - Check that it works with normal network...?
 - check exceptions in "mvn test"
