@@ -18,7 +18,7 @@ import org.scion.proto.daemon.Daemon;
 
 /**
  * A SCION path represents a single path from a source to a destination.
- * Paths can be retrieved from the ScionPathService.
+ * Paths can be retrieved from the ScionService.
  */
 public class ScionPath {
     private final Daemon.Path path;

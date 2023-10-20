@@ -16,7 +16,6 @@ package org.scion;
 
 import io.grpc.*;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -34,39 +33,61 @@ import static org.scion.ScionConstants.ENV_DAEMON_PORT;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
-public class ScionPathService implements AutoCloseable {
+/**
+ * The ScionService provides information such as:
+ * - Paths from A to B
+ * - The local ISD/AS numbers
+ * - Lookup op ISD/AS for host names via DNS.
+ * <p>
+ * The ScionService is intended as singleton. There should usually be only one instance that is
+ * shared by all users. However, it may sometimes be desirable to have multiple instances,
+ * e.g. for connecting to a different daemon or for better concurrency.
+ * <p>
+ * The default instance is of type ScionService. All other ScionService are of type
+ * {@code Scion.CloseableService} which extends {@code AutoCloseable}.
+ * @see Scion.CloseableService
+ */
+public class ScionService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ScionPathService.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(ScionService.class.getName());
   private static final String DAEMON_HOST =
       ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
   private static final String DAEMON_PORT =
       ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
 
+  private static ScionService DEFAULT;
+
   private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
 
   private final ManagedChannel channel;
 
-  private ScionPathService(String daemonAddress) {
+  protected ScionService(String daemonAddress) {
     // TODO InsecureChannelCredentials?
     channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
     blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
     LOG.info("Path service started on " + channel.toString() + " " + daemonAddress);
   }
 
-  public static ScionPathService create(String daemonHost, int daemonPort) {
-    return create(daemonHost + ":" + daemonPort);
-  }
-
-  public static ScionPathService create(String daemonAddress) {
-    return new ScionPathService(daemonAddress);
-  }
-
-  public static ScionPathService create(InetSocketAddress address) {
-    return create(address.getHostString(), address.getPort());
-  }
-
-  public static ScionPathService create() {
-    return create(DAEMON_HOST + ":" + DAEMON_PORT);
+  /**
+   * Returns the default instance of the ScionService. The default instance is connected to
+   * the daemon that is specified by the default properties or environment variables.
+   * @return default instance
+   */
+  public static synchronized ScionService defaultService() {
+    if (DEFAULT == null) {
+      DEFAULT = new ScionService(DAEMON_HOST + ":" + DAEMON_PORT);
+      Runtime.getRuntime()
+          .addShutdownHook(
+              new Thread(
+                  () -> {
+                    try {
+                      DEFAULT.close();
+                    } catch (IOException e) {
+                      e.printStackTrace(System.err);
+                    }
+                  }));
+    }
+    return DEFAULT;
   }
 
   Daemon.ASResponse getASInfo() {
@@ -122,7 +143,18 @@ public class ScionPathService implements AutoCloseable {
   }
 
   /**
+   * Request and return a path from the local ISD/AS to dstIsdAs.
+   *
+   * @param dstIsdAs Destination ISD + AS
+   * @return The first path is returned by the path service.
+   */
+  public ScionPath getPath(long dstIsdAs) {
+    return getPath(getLocalIsdAs(), dstIsdAs);
+  }
+
+  /**
    * Request and return a path from srcIsdAs to dstIsdAs.
+   *
    * @param srcIsdAs Source ISD + AS
    * @param dstIsdAs Destination ISD + AS
    * @return The first path is returned by the path service.
@@ -130,7 +162,11 @@ public class ScionPathService implements AutoCloseable {
   public ScionPath getPath(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
-      throw new ScionException("No path found from " + ScionUtil.toStringIA(srcIsdAs) + " to " + ScionUtil.toStringIA(dstIsdAs));
+      throw new ScionException(
+          "No path found from "
+              + ScionUtil.toStringIA(srcIsdAs)
+              + " to "
+              + ScionUtil.toStringIA(dstIsdAs));
     }
     return new ScionPath(paths.get(0), srcIsdAs, dstIsdAs);
   }
@@ -155,8 +191,7 @@ public class ScionPathService implements AutoCloseable {
     return getASInfo().getIsdAs();
   }
 
-  @Override
-  public void close() throws IOException {
+  protected void close() throws IOException {
     try {
       channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
@@ -166,7 +201,7 @@ public class ScionPathService implements AutoCloseable {
 
   /**
    * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
-   *    class.
+   * class.
    *
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
@@ -207,7 +242,7 @@ public class ScionPathService implements AutoCloseable {
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
-        //throw new UnknownHostException("No DNS entry found for host: " + hostname); // TODO ?
+        // throw new UnknownHostException("No DNS entry found for host: " + hostname); // TODO ?
         throw new ScionException("No DNS entry found for host: " + hostName);
       }
       for (int i = 0; i < records.length; i++) {
@@ -245,6 +280,7 @@ public class ScionPathService implements AutoCloseable {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
     long isdAs = ScionUtil.ParseIA(txtEntry.substring(7, posComma));
-    return ScionAddress.create(isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
+    return ScionAddress.create(
+        isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }
 }

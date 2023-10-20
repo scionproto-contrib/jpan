@@ -64,7 +64,7 @@ public class MockNetwork {
 
               @Override
               public Thread newThread(Runnable r) {
-                return new Thread(r, "MockNetwork-" + (id++ - 1));
+                return new Thread(r, "MockNetwork-" + id++);
               }
             });
 
@@ -96,21 +96,14 @@ public class MockNetwork {
     }
 
     if (routers != null) {
-      routers.shutdown(); // Disable new tasks from being submitted
       try {
-        // Wait a while for existing tasks to terminate
+        routers.shutdownNow();
+        // Wait a while for tasks to respond to being cancelled
         if (!routers.awaitTermination(5, TimeUnit.SECONDS)) {
-          routers.shutdownNow(); // Cancel currently executing tasks
-          // Wait a while for tasks to respond to being cancelled
-          if (!routers.awaitTermination(5, TimeUnit.SECONDS)) {
-            logger.error("Router did not terminate");
-          }
+          logger.error("Router did not terminate");
         }
         logger.info("Router shut down");
       } catch (InterruptedException ie) {
-        // (Re-)Cancel if current thread also interrupted
-        routers.shutdownNow();
-        // Preserve interrupt status
         Thread.currentThread().interrupt();
       }
       routers = null;

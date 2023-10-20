@@ -40,7 +40,7 @@ public class Demo {
 
         // API for PathService
         // TODO rename
-        ScionPathService pathService;
+        ScionService pathService;
 
 
         // TODO -- TCP

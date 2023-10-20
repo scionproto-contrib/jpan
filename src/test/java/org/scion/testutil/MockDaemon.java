@@ -20,6 +20,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.scion.ScionConstants;
 import org.scion.proto.daemon.Daemon;
@@ -33,12 +34,15 @@ public class MockDaemon implements AutoCloseable {
 
   public static final InetSocketAddress DEFAULT_ADDRESS =
           new InetSocketAddress("127.0.0.15", 30255);
+  public static final String DEFAULT_ADDRESS_STR =
+          DEFAULT_ADDRESS.toString().substring(1);
   public static final String DEFAULT_IP = "127.0.0.15";
   public static final int DEFAULT_PORT = 30255;
 
   private final InetSocketAddress address;
   private Server server;
   private final InetSocketAddress borderRouter;
+  private static final AtomicInteger callCount = new AtomicInteger();
 
   private static final byte[] PATH_RAW_TINY_110_112 = {
           0x00, 0x00, 0x20, 0x00, 0x01, 0x00, (byte) 0xb4, (byte) 0xab,
@@ -115,6 +119,10 @@ public class MockDaemon implements AutoCloseable {
     }
   }
 
+  public static int getAndResetCallCount() {
+    return callCount.getAndSet(0);
+  }
+
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
     final String borderRouter;
 
@@ -127,6 +135,7 @@ public class MockDaemon implements AutoCloseable {
         Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
       logger.info(
           "Got request from client: " + req.getSourceIsdAs() + " / " + req.getDestinationIsdAs());
+      callCount.incrementAndGet();
       ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
       if (req.getSourceIsdAs() == 561850441793808L
@@ -152,6 +161,7 @@ public class MockDaemon implements AutoCloseable {
     @Override
     public void aS(Daemon.ASRequest req, StreamObserver<Daemon.ASResponse> responseObserver) {
       logger.info("Got AS request from client: " + req.getIsdAs());
+      callCount.incrementAndGet();
       Daemon.ASResponse.Builder replyBuilder = Daemon.ASResponse.newBuilder();
       if (req.getIsdAs() == 0) { // 0 -> local AS
         replyBuilder.setCore(true);

@@ -10,7 +10,7 @@
 
 # TODO
 
-- Singleton Daemon
+- Design: ScionSocketAddress has a path but ScionAddress has not. This is inconsistent!
 - Change Header-ops to use ByteBuffer i.o. byte[]
 - Replace all getHostName with getHostString() where possible!
   - Check that it works with normal network...?
@@ -55,7 +55,7 @@
 - Send SCMP on error? Probably yes, e.g. "Parameter Problem" when processing
   extension headers (which are only processed ayt end-hosts)
 - Abuse socket/channel.setOption() to set path policies?
-- PathService: extend API
+- ScionService: extend API
 - Remove PathHeaderOneHop
 
 ## After that
@@ -113,4 +113,3 @@
 - Path selection & path policies
 
 - Where to place generated proto files? They are currently in `target` but could be in `scr/java`...
-- Should PathService be a singleton?

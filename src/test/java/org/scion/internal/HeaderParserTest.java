@@ -18,11 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.Inet6Address;
-import java.net.InetAddress;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
+import org.scion.testutil.MockDaemon;
 
 public class HeaderParserTest {
 
@@ -74,7 +73,7 @@ public class HeaderParserTest {
    * content
    */
   @Test
-  public void testParse() throws IOException {
+  public void testParse() {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();

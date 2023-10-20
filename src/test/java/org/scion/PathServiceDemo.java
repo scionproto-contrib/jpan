@@ -20,15 +20,15 @@ import java.util.Map;
 import org.scion.proto.daemon.Daemon;
 
 /**
- * Small demo that requests and prints information from the path service daemon.
- * This arguments are tailored to with with the "tiny" topology.
+ * Small demo that requests and prints information from the path service daemon. This arguments are
+ * tailored to with with the "tiny" topology.
  */
 public class PathServiceDemo {
 
-  private final ScionPathService daemon;
+  private final ScionService daemon;
 
   public static void main(String[] args) {
-    try (ScionPathService daemon = ScionPathService.create("127.0.0.12", 30255)) {
+    try (Scion.CloseableService daemon = Scion.newServiceForAddress("127.0.0.12", 30255)) {
       PathServiceDemo demo = new PathServiceDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
@@ -39,7 +39,7 @@ public class PathServiceDemo {
     }
   }
 
-  public PathServiceDemo(ScionPathService daemon) {
+  public PathServiceDemo(ScionService daemon) {
     this.daemon = daemon;
   }
 
@@ -76,14 +76,15 @@ public class PathServiceDemo {
       System.out.println("Path: first hop(?) = " + path.getInterface().getAddress().getAddress());
       int i = 0;
       for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
-        System.out.println("    pathIf: "
-                        + i
-                        + ": "
-                        + pathIf.getId()
-                        + " "
-                        + pathIf.getIsdAs()
-                        + "  "
-                        + ScionUtil.toStringIA(pathIf.getIsdAs()));
+        System.out.println(
+            "    pathIf: "
+                + i
+                + ": "
+                + pathIf.getId()
+                + " "
+                + pathIf.getIsdAs()
+                + "  "
+                + ScionUtil.toStringIA(pathIf.getIsdAs()));
       }
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);

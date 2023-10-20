@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 public class DatagramChannel implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
+  @Deprecated // TODO remove!
   private InetSocketAddress localAddress = null;
 
   public static DatagramChannel open() throws IOException {
@@ -94,11 +95,10 @@ public class DatagramChannel implements Closeable {
     }
     InetSocketAddress dstAddress = checkAddress(destinationAddress);
     ScionSocketAddress addr = ScionSocketAddress.create(dstAddress.getHostString(), dstAddress.getPort(), path);
-    //send(buffer, dstAddress.getAddress().getAddress(), dstAddress.getPort(), path);
     send(buffer, addr);
   }
 
-  public synchronized void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
+  private void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
@@ -107,8 +107,8 @@ public class DatagramChannel implements Closeable {
 
     // get local IP
     if (!channel.isConnected() && localAddress == null) {
-      InetSocketAddress borderRouterAddr = context.getFirstHopAddress(dstAddress.getPath());
-      channel.connect(borderRouterAddr);
+      InetSocketAddress underlayAddress = context.getFirstHopAddress(dstAddress.getPath());
+      channel.connect(underlayAddress);
       localAddress = (InetSocketAddress) channel.getLocalAddress();
     }
 

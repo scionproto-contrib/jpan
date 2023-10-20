@@ -23,6 +23,8 @@ public class ScionAddress {
   private final long isdAs;
   private final String hostName;
   private final InetAddress ipAddress;
+  // TODO set this path!
+  private ScionPath path = null;
 
   ScionAddress(long isdAs, String hostName, InetAddress ip) {
     this.hostName = hostName;
@@ -60,5 +62,19 @@ public class ScionAddress {
 
   public int getIsd() {
     return ScionUtil.extractIsd(isdAs);
+  }
+
+  /**
+   * Return a path to the address represented by this object. If no path is associated it will try
+   * to create one.
+   *
+   * @return The path associated with this address. If no path is associated, this method will first
+   *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
+   */
+  public ScionPath getPath() {
+    if (path == null) {
+      path = ScionService.defaultService().getPath(isdAs);
+    }
+    return path;
   }
 }

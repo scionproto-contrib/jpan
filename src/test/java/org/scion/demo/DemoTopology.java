@@ -20,6 +20,9 @@ import org.scion.testutil.MockNetwork;
 
 import java.net.InetSocketAddress;
 
+/**
+ * Helper class for setting up a demo topology.
+ */
 class DemoTopology {
 
     InetSocketAddress clientDaemonAddress;

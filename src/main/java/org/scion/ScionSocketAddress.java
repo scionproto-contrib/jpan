@@ -54,6 +54,17 @@ public class ScionSocketAddress extends InetSocketAddress {
     return new ScionSocketAddress(scionPacketHelper, isdAs, hostName, port, null);
   }
 
+  private static ScionSocketAddress createUnresolved() {
+    // We hide the public static method from InetSocketAddress
+    throw new UnsupportedOperationException();
+  }
+
+  public static ScionSocketAddress create(InetSocketAddress address) {
+    ScionAddress addr = ScionService.defaultService().getScionAddress(address.getHostString());
+    return new ScionSocketAddress(null, addr.getIsdAs(), addr.getHostName(), address.getPort(), addr.getPath());
+
+  }
+
   public long getIsdAs() {
     return isdAs;
   }
@@ -70,6 +81,9 @@ public class ScionSocketAddress extends InetSocketAddress {
   }
 
   ScionPacketHelper getHelper() {
+    if (helper == null) {
+      helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH); // TODO this is weird...
+    }
     return helper;
   }
 

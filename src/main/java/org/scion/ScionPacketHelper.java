@@ -14,7 +14,6 @@
 
 package org.scion;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
@@ -31,7 +30,7 @@ import org.scion.proto.daemon.Daemon;
  * We are extending DatagramSocket as recommended here:
  * https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
  */
-class ScionPacketHelper implements Closeable {
+class ScionPacketHelper {
   // TODO refactor to remove this code from public API
   //  - put logic into a static interface methods
   //  - put the state into a ScionSessionContext; move this class into the interface.
@@ -56,15 +55,9 @@ class ScionPacketHelper implements Closeable {
   private final OverlayHeader overlayHeaderUdp = new OverlayHeader();
   private int underlayPort;
   private InetAddress underlayAddress;
-  // TODO provide ports etc?  Allow separate instances for different sockets?
-  // TODO create lazily to prevent network connections before we create any actual DatagramSocket?
-  private ScionPathService pathService;
   // TODO remove?
   private long srcIA;
   private long dstIA;
-  private final Object closeLock = new Object();
-  private boolean isClosed = false;
-
   private PathState pathState;
 
   public InetAddress getSourceAddress() throws IOException {
@@ -119,7 +112,7 @@ class ScionPacketHelper implements Closeable {
       srcIA = getPathService().getLocalIsdAs();
     }
     if (dstIA == 0) {
-      dstIA = pathService.getScionAddress(destinationAddress.getHostString()).getIsdAs();
+      dstIA = getPathService().getScionAddress(destinationAddress.getHostString()).getIsdAs();
     }
     return getPathService().getPath(srcIA, dstIA);
   }
@@ -130,7 +123,7 @@ class ScionPacketHelper implements Closeable {
       srcIA = getPathService().getLocalIsdAs();
     }
     if (dstIA == 0) {
-      dstIA = pathService.getScionAddress(hostName).getIsdAs();
+      dstIA = getPathService().getScionAddress(hostName).getIsdAs();
     }
     return getPathService().getPath(srcIA, dstIA);
   }
@@ -144,12 +137,7 @@ class ScionPacketHelper implements Closeable {
 
   public int writeHeader(byte[] data, InetSocketAddress srcAddress, ScionSocketAddress dstAddress,
                          int payloadLength) throws IOException {
-    return writeHeader(data, srcAddress.getAddress().getAddress(), srcAddress.getPort(),
-            dstAddress.getAddress().getAddress(), dstAddress.getPort(), payloadLength);
-  }
 
-  public int writeHeader(byte[] data, byte[] srcAddress, int srcPort,
-                         byte[] dstAddress, int dstPort, int payloadLength) throws IOException {
     // synchronized because we use `buffer`
     // TODO request new path after a while?
 
@@ -162,21 +150,33 @@ class ScionPacketHelper implements Closeable {
         if (srcIA == 0) {
           srcIA = getPathService().getLocalIsdAs();
         }
-        if (srcIA == 0 || dstIA == 0) {
-          throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
+        ScionPath scionPath = dstAddress.getPath();
+        Daemon.Path path;
+        if (scionPath != null) {
+          path = scionPath.getPathInternal();
+          dstIA = scionPath.getDestinationCode();
+        } else {
+          if (srcIA == 0 || dstIA == 0) {
+            throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
+          }
+          List<Daemon.Path> paths = getPathService().getPathList(srcIA, dstIA);
+          if (paths.isEmpty()) {
+            throw new IOException(
+                "No path found from "
+                    + ScionUtil.toStringIA(srcIA)
+                    + " to "
+                    + ScionUtil.toStringIA(dstIA));
+          }
+          path = paths.get(0); // Just pick the first path for now. // TODO
         }
-        List<Daemon.Path> paths = getPathService().getPathList(srcIA, dstIA);
-        if (paths.isEmpty()) {
-          throw new IOException(
-                  "No path found from " + ScionUtil.toStringIA(srcIA) + " to " + ScionUtil.toStringIA(dstIA));
-        }
-        Daemon.Path path = paths.get(0); // Just pick the first path for now. // TODO
 
         scionHeader.setSrcIA(srcIA);
         scionHeader.setDstIA(dstIA);
-        scionHeader.setSrcHostAddress(srcAddress);
-        scionHeader.setDstHostAddress(dstAddress);
+        scionHeader.setSrcHostAddress(srcAddress.getAddress().getAddress());
+        scionHeader.setDstHostAddress(dstAddress.getAddress().getAddress());
         setUnderlayAddress(path);
+        int srcPort = srcAddress.getPort();
+        int dstPort = dstAddress.getPort();
 
         offset =
                 scionHeader.write(
@@ -188,7 +188,7 @@ class ScionPacketHelper implements Closeable {
         offset = pathHeaderScion.writePath(data, offset, path);
         offset = overlayHeaderUdp.write(data, offset, payloadLength, srcPort, dstPort);
 
-        pathState = PathState.SEND_PATH;
+   // TODO     pathState = PathState.SEND_PATH;
         break;
       }
       case RCV_PATH:
@@ -210,11 +210,9 @@ class ScionPacketHelper implements Closeable {
     return offset;
   }
 
-  private ScionPathService getPathService() {
-    if (pathService == null) {
-      pathService = ScionPathService.create();
-    }
-    return pathService;
+  @Deprecated // TODO this should probably all be done in ScionAddress
+  private ScionService getPathService() {
+    return ScionService.defaultService();
   }
 
   @Override
@@ -367,27 +365,5 @@ class ScionPacketHelper implements Closeable {
   public void setUnderlayAddress(InetSocketAddress addr) {
     underlayAddress = addr.getAddress();
     underlayPort = addr.getPort();
-  }
-
-  @Override
-  public void close() {
-    // TODO remove all this and make PathService a singleton.
-    synchronized (closeLock) {
-      if (pathService != null) {
-        try {
-          pathService.close();
-          pathService = null;
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-      isClosed = true;
-    }
-  }
-
-  public boolean isClosed() {
-    synchronized (closeLock) {
-      return isClosed;
-    }
   }
 }

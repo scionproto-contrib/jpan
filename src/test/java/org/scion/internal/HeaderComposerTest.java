@@ -18,13 +18,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.scion.ScionPathService;
 import org.scion.PackageVisibilityHelper;
+import org.scion.Scion;
 import org.scion.ScionUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
@@ -47,7 +46,7 @@ public class HeaderComposerTest {
 
   private static MockDaemon daemon;
 
-  private ScionPathService pathService = null;
+  private Scion.CloseableService pathService = null;
 
 
   @BeforeAll
@@ -81,6 +80,7 @@ public class HeaderComposerTest {
    */
   @Test
   public void testCompose() throws IOException {
+    MockDaemon.getAndResetCallCount(); // reset counter
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
@@ -101,7 +101,7 @@ public class HeaderComposerTest {
     DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, dstPort);
 
     // Socket internal - compose header data
-    pathService = ScionPathService.create(MockDaemon.DEFAULT_ADDRESS);
+    pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
     Daemon.Path path = PackageVisibilityHelper.getPathList(pathService, srcIA, dstIA).get(0);
     scionHeader.setSrcIA(srcIA);
@@ -141,5 +141,6 @@ public class HeaderComposerTest {
       }
       assertEquals(packetBytes[i], data[i], "Mismatch at position " + i);
     }
+    assertEquals(2, MockDaemon.getAndResetCallCount());
   }
 }
