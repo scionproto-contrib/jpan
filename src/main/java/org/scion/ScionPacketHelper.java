@@ -53,8 +53,7 @@ class ScionPacketHelper {
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion();
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
   private final OverlayHeader overlayHeaderUdp = new OverlayHeader();
-  private int underlayPort;
-  private InetAddress underlayAddress;
+  private InetSocketAddress underlayAddress;
   // TODO remove?
   private long srcIA;
   private long dstIA;
@@ -85,7 +84,7 @@ class ScionPacketHelper {
 
   // TODO deprecate this?
   public InetSocketAddress getFirstHopAddress() {
-    return new InetSocketAddress(underlayAddress, underlayPort);
+    return underlayAddress;
   }
 
   public InetSocketAddress getFirstHopAddress(ScionPath path) {
@@ -340,16 +339,16 @@ class ScionPacketHelper {
     String underlayAddressString = path.getInterface().getAddress().getAddress();
     try {
       int splitIndex = underlayAddressString.indexOf(':');
-      underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
-      underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+      InetAddress addr = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+      int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+      underlayAddress = new InetSocketAddress(addr, port);
     } catch (UnknownHostException e) {
       // TODO throw IOException?
       throw new RuntimeException(e);
     }
   }
 
-  public void setUnderlayAddress(InetSocketAddress addr) {
-    underlayAddress = addr.getAddress();
-    underlayPort = addr.getPort();
+  public void setUnderlayAddress(InetSocketAddress underlayAddress) {
+    this.underlayAddress = underlayAddress;
   }
 }
