@@ -16,12 +16,9 @@ package org.scion.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.util.Arrays;
-
 import org.junit.jupiter.api.Test;
-import org.scion.testutil.MockDaemon;
 
 public class HeaderParserTest {
 

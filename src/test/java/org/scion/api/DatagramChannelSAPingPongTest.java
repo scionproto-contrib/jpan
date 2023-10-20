@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
-import org.scion.ScionAddress;
 import org.scion.ScionSocketAddress;
 import org.scion.testutil.MockNetwork;
 
