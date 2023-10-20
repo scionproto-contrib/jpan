@@ -251,7 +251,7 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
     return super.getLocalPort();
   }
 
-  protected SocketAddress getLocalAddress() {
+  protected SocketAddress getLocalAddress() throws IOException {
     return channel.getLocalAddress();
   }
 

@@ -23,8 +23,7 @@ import java.nio.ByteBuffer;
 public class DatagramChannel implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  @Deprecated // TODO remove!
-  private InetSocketAddress localAddress = null;
+  boolean isBound = false;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -66,35 +65,41 @@ public class DatagramChannel implements Closeable {
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param buffer Data to send
-   * @param destinationAddress Destination address. This should contain a host name known to the DNS so that
-   *                           the ISD/AS information can be retrieved.
-   * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that cannot be resolved
-   * to an ISD/AS. TODO test this
+   * @param destinationAddress Destination address. This should contain a host name known to the DNS
+   *     so that the ISD/AS information can be retrieved.
+   * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
+   *     cannot be resolved to an ISD/AS. TODO test this
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
   public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress)
-          throws IOException {
+      throws IOException {
     if (destinationAddress instanceof ScionSocketAddress) {
-      send(buffer, (ScionSocketAddress) destinationAddress); // This is weird, clean up with additional internal method
+      send(
+          buffer,
+          (ScionSocketAddress)
+              destinationAddress); // This is weird, clean up with additional internal method
     } else {
       InetSocketAddress dstAddress = checkAddress(destinationAddress);
       ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH);
       // find a path
       ScionPath path = helper.getDefaultPath(dstAddress);
       // TODO this is weird, why do we look up a path and then ignore it?
-      ScionSocketAddress addr = ScionSocketAddress.create(helper, path.getDestinationCode(), dstAddress.getHostString(), dstAddress.getPort());
+      ScionSocketAddress addr =
+          ScionSocketAddress.create(
+              helper, path.getDestinationCode(), dstAddress.getHostString(), dstAddress.getPort());
       addr.setPath(path); // TODO this is awkward
       send(buffer, addr);
     }
   }
 
-  public synchronized void send(
-      ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path) throws IOException {
+  public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path)
+      throws IOException {
     if (destinationAddress instanceof ScionSocketAddress) {
       throw new IllegalArgumentException(); // TODO should we handle this and set the path?
     }
     InetSocketAddress dstAddress = checkAddress(destinationAddress);
-    ScionSocketAddress addr = ScionSocketAddress.create(dstAddress.getHostString(), dstAddress.getPort(), path);
+    ScionSocketAddress addr =
+        ScionSocketAddress.create(dstAddress.getHostString(), dstAddress.getPort(), path);
     send(buffer, addr);
   }
 
@@ -106,25 +111,27 @@ public class DatagramChannel implements Closeable {
     ScionPacketHelper context = dstAddress.getHelper();
 
     // get local IP
-    if (!channel.isConnected() && localAddress == null) {
+    if (!channel.isConnected() && !isBound) {
       InetSocketAddress underlayAddress = context.getFirstHopAddress(dstAddress.getPath());
       channel.connect(underlayAddress);
-      localAddress = (InetSocketAddress) channel.getLocalAddress();
     }
 
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
-    int headerLength = context.writeHeader(buf, localAddress, dstAddress, payloadLength);
+    int headerLength =
+        context.writeHeader(
+            buf, (InetSocketAddress) channel.getLocalAddress(), dstAddress, payloadLength);
 
     ByteBuffer output =
-            ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
+        ByteBuffer.allocate(
+            payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
     System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
     System.arraycopy(
-            buffer.array(),
-            buffer.arrayOffset() + buffer.position(),
-            output.array(),
-            output.arrayOffset() + headerLength,
-            payloadLength);
+        buffer.array(),
+        buffer.arrayOffset() + buffer.position(),
+        output.array(),
+        output.arrayOffset() + headerLength,
+        payloadLength);
 
     // send packet
     channel.send(output, dstAddress.getHelper().getFirstHopAddress());
@@ -136,10 +143,9 @@ public class DatagramChannel implements Closeable {
     // We need to avoid this.
     if (address != null && address.getPort() != 0) {
       channel.bind(address);
-      localAddress = (InetSocketAddress) channel.getLocalAddress();
+      isBound = true;
     } else {
       channel.bind(null);
-      localAddress = null;
     }
     return this;
   }
@@ -149,8 +155,8 @@ public class DatagramChannel implements Closeable {
     return this;
   }
 
-  public SocketAddress getLocalAddress() {
-    return localAddress;
+  public SocketAddress getLocalAddress() throws IOException {
+    return channel.getLocalAddress(); // TODO solve with inheritance
   }
 
   public void disconnect() throws IOException {

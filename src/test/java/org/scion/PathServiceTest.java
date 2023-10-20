@@ -49,16 +49,12 @@ public class PathServiceTest {
 
   @Test
   void testWrongDaemonAddress() throws IOException {
-    String daemonAddr = "127.0.0.112:65432"; // 30255";
+    String daemonAddr = "127.0.0.112:12345";
     long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
     long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
       ScionException thrown =
-          assertThrows(
-              ScionException.class,
-              () -> {
-                client.getPath(srcIA, dstIA);
-              });
+          assertThrows(ScionException.class, () -> client.getPath(srcIA, dstIA));
       assertEquals(
           "io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
     }
