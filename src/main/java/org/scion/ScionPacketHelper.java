@@ -112,27 +112,13 @@ class ScionPacketHelper {
       srcIA = getPathService().getLocalIsdAs();
     }
     if (dstIA == 0) {
-      dstIA = getPathService().getScionAddress(destinationAddress.getHostString()).getIsdAs();
+      if (destinationAddress instanceof ScionSocketAddress) {
+        dstIA = ((ScionSocketAddress)destinationAddress).getIsd();
+      } else {
+        dstIA = getPathService().getScionAddress(destinationAddress.getHostString()).getIsdAs();
+        }
     }
     return getPathService().getPath(srcIA, dstIA);
-  }
-
-  public ScionPath getDefaultPath(String hostName) {
-    // TODO this is bad, this is a GETTER that changes state!
-    if (srcIA == 0) {
-      srcIA = getPathService().getLocalIsdAs();
-    }
-    if (dstIA == 0) {
-      dstIA = getPathService().getScionAddress(hostName).getIsdAs();
-    }
-    return getPathService().getPath(srcIA, dstIA);
-  }
-
-  @Deprecated // TODO This  is not how we should do it. Find IA automatically or require it via
-  //                 constructor
-  public void setDstIsdAs(String dstIA) {
-    // TODO rename ParseIA to parseIA
-    this.dstIA = ScionUtil.ParseIA(dstIA);
   }
 
   public int writeHeader(byte[] data, InetSocketAddress srcAddress, ScionSocketAddress dstAddress,

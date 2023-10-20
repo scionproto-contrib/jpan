@@ -34,6 +34,20 @@ a kind of reverse proxy.
 
 ## DatagramSocket
 
+**DatagramSocket is not really supported, please use DatagramChannel instead.**
+
+Some problems with DatagramSocket:
+- It is not possible to associate a ScionAddress or ScionSocketAddress with a Datagram.
+  This is problematic when seding a datagram, especially on the server side, because 
+  we cannot associate a path with a datagram. The Socket will have to remember **all** incoming
+  paths so that it has a path when returning a datagram to a client.
+  This may improve somewhat in future if we get reverse lookup for IP addresses -> ISD/AS; 
+  this would allows the socket to forget paths and get new ones from the reverse lookup.
+- It is not possible to subclass InetAddress which is the address type that is store inside 
+  DatagramPackets.
+
+
+Datagram Socket design considerations:
 - Java 15 has a new Implementation based on NIO, see https://openjdk.org/jeps/373
   - If Java 8's NIO is sufficient, we can follow the same approach as Java 15.
     Otherwise we can (as proposed in JEP 373) wrap around an old DatagramSocket and use

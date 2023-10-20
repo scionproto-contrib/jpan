@@ -19,6 +19,7 @@ import org.scion.DatagramSocket;
 import java.io.*;
 import java.net.*;
 
+@Deprecated // This does not work.
 public class ScionPingPongServer {
   private final DatagramSocket socket;
 

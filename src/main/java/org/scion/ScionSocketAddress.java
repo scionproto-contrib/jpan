@@ -37,13 +37,6 @@ public class ScionSocketAddress extends InetSocketAddress {
     return new ScionSocketAddress(null, isdAsCode, hostName, port, null);
   }
 
-  @Deprecated // get isdAs from path
-  public static ScionSocketAddress create(String isdAs, String hostName,
-                                          int port, ScionPath path) {
-    long isdAsCode = ScionUtil.ParseIA(isdAs);
-    return new ScionSocketAddress(null, isdAsCode, hostName, port, path);
-  }
-
   public static ScionSocketAddress create(String hostName,
                                           int port, ScionPath path) {
     return new ScionSocketAddress(null, path.getDestinationCode(), hostName, port, path);
@@ -98,4 +91,5 @@ public class ScionSocketAddress extends InetSocketAddress {
   public boolean hasPath() {
     return path != null;
   }
+
 }

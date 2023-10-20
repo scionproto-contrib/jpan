@@ -18,31 +18,35 @@ import java.io.*;
 import java.net.*;
 
 import org.scion.DatagramSocket;
+import org.scion.ScionSocketAddress;
+import org.scion.testutil.MockDNS;
+import org.scion.testutil.MockDaemon;
 
+@Deprecated // This does not work.
 public class ScionPingPongClient {
 
   public static void main(String[] args) throws IOException {
     DemoTopology.configureMock(); // Tiny111_112();
+    MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
     ScionPingPongClient client = new ScionPingPongClient();
     client.run();
   }
 
   private void run() throws IOException {
-    String serverHostname = "::1";
+    //String serverHostname = "::1";
+    String serverHostname = "0:0:0:0:0:0:0:1";
     int serverPort = 44444;
 
     try {
-      InetAddress serverAddress = InetAddress.getByName(serverHostname);
+      // InetAddress serverAddress2 = InetAddress.getByName(serverHostname);
+      ScionSocketAddress serverAddress = ScionSocketAddress.create("1-ff00:0:112", serverHostname, serverPort);
       DatagramSocket socket = new DatagramSocket(null);
-      socket.setDstIsdAs("1-ff00:0:112");
 
       while (true) {
         String msg = "Hello there!";
         byte[] sendBuf = msg.getBytes();
         DatagramPacket request =
-            new DatagramPacket(sendBuf, sendBuf.length, serverAddress, serverPort);
-        // TODO fix
-        //  socket.connect(serverAddress, serverPort);
+            new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
         socket.send(request);
         System.out.println("Sent!");
 

@@ -42,10 +42,6 @@ public class DatagramSocket extends java.net.DatagramSocket {
     super(new DatagramSocketImpl(true));
     super.bind(new InetSocketAddress(localAddress, port));
   }
-
-  public void setDstIsdAs(String s) {
-    throw new UnsupportedOperationException(); // TODO
-  }
 }
 
 //public class DatagramSocket implements Closeable {
