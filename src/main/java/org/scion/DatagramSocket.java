@@ -21,7 +21,7 @@ import java.net.*;
 
 /**
  * We are extending DatagramSocket as recommended here:
- * https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+ * <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)">...</a>
  *
  * @deprecated Please do not use this. It does not really work and will be removed in a future release.
  */

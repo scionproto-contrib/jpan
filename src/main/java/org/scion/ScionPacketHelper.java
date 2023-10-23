@@ -26,10 +26,6 @@ import org.scion.internal.ScionHeader;
 import org.scion.internal.ScionSCMPHeader;
 import org.scion.proto.daemon.Daemon;
 
-/**
- * We are extending DatagramSocket as recommended here:
- * https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
- */
 class ScionPacketHelper {
   // TODO refactor to remove this code from public API
   //  - put logic into a static interface methods
