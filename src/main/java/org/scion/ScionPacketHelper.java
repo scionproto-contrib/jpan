@@ -76,7 +76,7 @@ class ScionPacketHelper {
     this.owner = owner;
   }
 
-  public ScionSocketAddress getReceivedSrcAddress() throws IOException {
+  public ScionSocketAddress getReceivedSrcAddress() {
     if (owner == null) {
       // TODO this is extremely slow, find another solution! -> getHostName()
       owner =
@@ -112,21 +112,6 @@ class ScionPacketHelper {
 
   public int getPayloadLength() {
     return scionHeader.getPayloadLength() - overlayHeaderUdp.length();
-  }
-
-  public ScionPath getDefaultPath(InetSocketAddress destinationAddress) {
-    // TODO this is bad, this is a GETTER that changes state!
-    if (srcIA == 0) {
-      srcIA = getPathService().getLocalIsdAs();
-    }
-    if (dstIA == 0) {
-      if (destinationAddress instanceof ScionSocketAddress) {
-        dstIA = ((ScionSocketAddress)destinationAddress).getIsd();
-      } else {
-        dstIA = getPathService().getScionAddress(destinationAddress.getHostString()).getIsdAs();
-      }
-    }
-    return getPathService().getPath(srcIA, dstIA);
   }
 
   public int writeHeader(byte[] data, InetSocketAddress srcAddress, ScionSocketAddress dstAddress,

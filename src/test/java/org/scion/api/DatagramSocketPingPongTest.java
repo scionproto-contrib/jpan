@@ -30,7 +30,7 @@ class DatagramSocketPingPongTest {
 
   private static final int N_REPEAT = 5;
   private static final String MSG = "Hello world!";
-  private static final Object barrier = new Object();
+  private static final Object BARRIER = new Object();
 
   private int nClient = 0;
   private int nServer = 0;
@@ -47,12 +47,12 @@ class DatagramSocketPingPongTest {
     client.start();
 
     // This enables shutdown in case of an error
-    synchronized (barrier) {
-      barrier.wait(60_000);
+    synchronized (BARRIER) {
+      BARRIER.wait(60_000);
     }
     // Wait some more to allow normal shutdown
-    synchronized (barrier) {
-      barrier.wait(100);
+    synchronized (BARRIER) {
+      BARRIER.wait(100);
     }
     client.interrupt();
     server.interrupt();
@@ -99,8 +99,8 @@ class DatagramSocketPingPongTest {
     } catch (Exception e) {
       exceptions.add(e);
     } finally {
-      synchronized (barrier) {
-        barrier.notifyAll();
+      synchronized (BARRIER) {
+        BARRIER.notifyAll();
       }
     }
   }
@@ -114,9 +114,9 @@ class DatagramSocketPingPongTest {
     } catch (Exception e) {
       exceptions.add(e);
     } finally {
-      synchronized (barrier) {
-        barrier.notifyAll();
-        }
+      synchronized (BARRIER) {
+        BARRIER.notifyAll();
+      }
     }
   }
 

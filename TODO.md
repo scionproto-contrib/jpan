@@ -9,11 +9,14 @@
   the path from any packet that we receive?
 
 # TODO
-- FIX Why is getFirstHop(path) not setting the underlay? Why are we setting it multiple times? 
+- FIX Why is getFirstHop(path) not setting the underlay? Why are we setting it multiple times?
+- FIX ScionSocketAddress MUST BE IMMUTABLE!! -> May be used by different Channels concurrently!
+  - getPath mus happen inside SSA constructor
 - FIX: "new byte[1000]"
 - TEST: getMtu + large packets 
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
+- CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
 
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.

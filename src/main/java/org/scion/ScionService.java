@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -34,17 +36,17 @@ import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
 /**
- * The ScionService provides information such as:
- * - Paths from A to B
- * - The local ISD/AS numbers
- * - Lookup op ISD/AS for host names via DNS.
- * <p>
- * The ScionService is intended as singleton. There should usually be only one instance that is
- * shared by all users. However, it may sometimes be desirable to have multiple instances,
- * e.g. for connecting to a different daemon or for better concurrency.
- * <p>
- * The default instance is of type ScionService. All other ScionService are of type
- * {@code Scion.CloseableService} which extends {@code AutoCloseable}.
+ * The ScionService provides information such as: <br>
+ * - Paths from A to B - The local ISD/AS numbers <br>
+ * - Lookup op ISD/AS for host names via DNS. <br>
+ *
+ * <p>The ScionService is intended as singleton. There should usually be only one instance that is
+ * shared by all users. However, it may sometimes be desirable to have multiple instances, e.g. for
+ * connecting to a different daemon or for better concurrency.
+ *
+ * <p>The default instance is of type ScionService. All other ScionService are of type {@code
+ * Scion.CloseableService} which extends {@code AutoCloseable}.
+ *
  * @see Scion.CloseableService
  */
 public class ScionService {
@@ -60,6 +62,7 @@ public class ScionService {
   private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
 
   private final ManagedChannel channel;
+  private final AtomicLong localIsdAs = new AtomicLong(0);
 
   protected ScionService(String daemonAddress) {
     // TODO InsecureChannelCredentials?
@@ -69,8 +72,9 @@ public class ScionService {
   }
 
   /**
-   * Returns the default instance of the ScionService. The default instance is connected to
-   * the daemon that is specified by the default properties or environment variables.
+   * Returns the default instance of the ScionService. The default instance is connected to the
+   * daemon that is specified by the default properties or environment variables.
+   *
    * @return default instance
    */
   public static synchronized ScionService defaultService() {
@@ -188,7 +192,12 @@ public class ScionService {
   }
 
   public long getLocalIsdAs() {
-    return getASInfo().getIsdAs();
+    if (localIsdAs.get() == 0) {
+      // Yes, this may be called multiple time by different threads, but it should be
+      // faster than `synchronize`.
+      localIsdAs.set(getASInfo().getIsdAs());
+    }
+    return localIsdAs.get();
   }
 
   protected void close() throws IOException {
