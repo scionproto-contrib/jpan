@@ -17,6 +17,7 @@
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
+- TEST concurrent path/as/DNS lookup
 
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.
