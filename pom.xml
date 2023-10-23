@@ -16,6 +16,7 @@
         <scion.junit.version>5.10.0</scion.junit.version>
         <scion.junit-platform.version>1.10.0</scion.junit-platform.version>
         <scion.protobuf.version>3.23.0</scion.protobuf.version>
+        <scion.os72-protoc.version>3.11.4</scion.os72-protoc.version>
         <scion.slf4j.version>2.0.7</scion.slf4j.version>
 
         <scion.bnd-maven-plugin.version>6.4.0</scion.bnd-maven-plugin.version>
@@ -176,7 +177,7 @@
             <plugin>
                 <groupId>com.github.os72</groupId>
                 <artifactId>protoc-jar-maven-plugin</artifactId>
-                <version>3.11.4</version>
+                <version>${scion.os72-protoc.version}</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>
@@ -205,7 +206,7 @@
                                 <outputTarget>
                                     <type>grpc-java</type>
                                     <!--                                    <outputDirectory>src/main/java</outputDirectory>-->
-                                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.57.1</pluginArtifact>
+                                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.59.0</pluginArtifact>
                                 </outputTarget>
                             </outputTargets>
                         </configuration>

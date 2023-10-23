@@ -93,19 +93,13 @@ class DatagramChannelSAPingPongTest {
     for (int i = 0; i < N_REPEAT; i++) {
       ByteBuffer request = ByteBuffer.allocate(512);
       // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " +
-      // channel.getLocalAddress());
-      SocketAddress addr;
-      do {
-        // TODO what does JDK channel do here if bind() was not called?
-        addr = channel.receive(request);
-      } while (addr == null);
+      SocketAddress addr = channel.receive(request);
 
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();
       assertEquals(MSG, msg);
 
       // System.out.println("SERVER: --- USER - Sending packet ----------------------");
-      // TODO test that the port is NOT ignored.
       request.flip();
       channel.send(request, addr);
       nServer++;
