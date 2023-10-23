@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
@@ -31,8 +33,8 @@ class DatagramChannelMultiPingPongTest {
   private static final int N_CLIENTS = 10;
   private static final String MSG = "Hello world!";
 
-  private int nClient = 0;
-  private int nServer = 0;
+  private final AtomicInteger nClient = new AtomicInteger();
+  private final AtomicInteger nServer = new AtomicInteger();
 
   @Test
   void testPingPong() throws InterruptedException {
@@ -56,8 +58,9 @@ class DatagramChannelMultiPingPongTest {
 
     MockNetwork.stopTiny();
 
-    assertEquals(N_REPEAT * N_CLIENTS, nClient);
-    assertEquals(N_REPEAT * N_CLIENTS, nServer);
+    assertEquals(N_REPEAT * N_CLIENTS * 2, MockNetwork.getAndResetForwardCount());
+    assertEquals(N_REPEAT * N_CLIENTS, nClient.get());
+    assertEquals(N_REPEAT * N_CLIENTS, nServer.get());
   }
 
   private void client(SocketAddress serverAddress, int id) {
@@ -71,7 +74,7 @@ class DatagramChannelMultiPingPongTest {
         // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
         ByteBuffer response = ByteBuffer.allocate(512);
         SocketAddress addr;
-        do {
+        do { // TODO
           addr = channel.receive(response);
         } while (addr == null);
 
@@ -79,7 +82,7 @@ class DatagramChannelMultiPingPongTest {
         String pong = Charset.defaultCharset().decode(response).toString();
         assertEquals(message, pong);
 
-        nClient++;
+        nClient.incrementAndGet();
       }
     } catch (IOException e) {
       System.out.println("CLIENT: I/O error: " + e.getMessage());
@@ -106,11 +109,12 @@ class DatagramChannelMultiPingPongTest {
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();
       assertTrue(msg.startsWith(MSG));
+      assertEquals(MSG.length() + 2, msg.length());
 
       // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
       request.flip();
       channel.send(request, addr);
-      nServer++;
+      nServer.incrementAndGet();
     }
   }
 }

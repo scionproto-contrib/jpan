@@ -58,6 +58,8 @@ class ScionPacketHelper {
   private long srcIA;
   private long dstIA;
   private PathState pathState;
+  // TODO make final
+  private ScionSocketAddress owner;
 
   public InetAddress getSourceAddress() throws IOException {
     return scionHeader.getSrcHostAddress();
@@ -69,13 +71,19 @@ class ScionPacketHelper {
     SEND_PATH
   }
 
-  public ScionPacketHelper(PathState pathState) {
+  public ScionPacketHelper(ScionSocketAddress owner, PathState pathState) {
     this.pathState = pathState;
+    this.owner = owner;
   }
 
   public ScionSocketAddress getReceivedSrcAddress() throws IOException {
-    // TODO this is extremely slow, find another solution! -> getHostName()
-    return ScionSocketAddress.create(this, srcIA, scionHeader.getSrcHostName(), overlayHeaderUdp.getSrcPort());
+    if (owner == null) {
+      // TODO this is extremely slow, find another solution! -> getHostName()
+      owner =
+          ScionSocketAddress.create(
+              this, srcIA, scionHeader.getSrcHostName(), overlayHeaderUdp.getSrcPort());
+    }
+    return owner;
   }
 
   public InetSocketAddress getReceivedDstAddress() throws IOException {
@@ -84,6 +92,7 @@ class ScionPacketHelper {
 
   // TODO deprecate this?
   public InetSocketAddress getFirstHopAddress() {
+    System.out.println(Thread.currentThread().getName() + " getting underlay: " + underlayAddress + "    " + this);
     return underlayAddress;
   }
 
@@ -115,7 +124,7 @@ class ScionPacketHelper {
         dstIA = ((ScionSocketAddress)destinationAddress).getIsd();
       } else {
         dstIA = getPathService().getScionAddress(destinationAddress.getHostString()).getIsdAs();
-        }
+      }
     }
     return getPathService().getPath(srcIA, dstIA);
   }
@@ -159,6 +168,7 @@ class ScionPacketHelper {
         scionHeader.setDstIA(dstIA);
         scionHeader.setSrcHostAddress(srcAddress.getAddress().getAddress());
         scionHeader.setDstHostAddress(dstAddress.getAddress().getAddress());
+        System.out.println(Thread.currentThread().getName() + " is setting: mtu=" + path.getMtu() + "    " + this); // TODO
         setUnderlayAddress(path);
         int srcPort = srcAddress.getPort();
         int dstPort = dstAddress.getPort();
@@ -200,19 +210,19 @@ class ScionPacketHelper {
     return ScionService.defaultService();
   }
 
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(scionHeader).append("\n");
-    if (scionHeader.pathType() == Constants.PathTypes.SCION) {
-      sb.append(pathHeaderScion).append("\n");
-    } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
-      sb.append(pathHeaderOneHop).append("\n");
-    } else {
-      throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
-    }
-    return sb.toString();
-  }
+//  @Override
+//  public String toString() {
+//    StringBuilder sb = new StringBuilder();
+//    sb.append(scionHeader).append("\n");
+//    if (scionHeader.pathType() == Constants.PathTypes.SCION) {
+//      sb.append(pathHeaderScion).append("\n");
+//    } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
+//      sb.append(pathHeaderOneHop).append("\n");
+//    } else {
+//      throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
+//    }
+//    return sb.toString();
+//  }
 
   public int readScionHeader(byte[] data) throws IOException {
     // TODO See which checks we have to perform from the list in the book p118 (BR ingress)
@@ -342,6 +352,7 @@ class ScionPacketHelper {
       InetAddress addr = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
       int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
       underlayAddress = new InetSocketAddress(addr, port);
+      System.out.println(Thread.currentThread().getName() + " is setting: " + underlayAddress + "    " + this); // TODO
     } catch (UnknownHostException e) {
       // TODO throw IOException?
       throw new RuntimeException(e);

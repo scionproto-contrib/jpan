@@ -22,9 +22,10 @@ import java.net.*;
 /**
  * We are extending DatagramSocket as recommended here:
  * https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+ *
+ * @deprecated Please do not use this. It does not really work and will be removed in a future release.
  */
-
-
+@Deprecated
 public class DatagramSocket extends java.net.DatagramSocket {
 
   public DatagramSocket(int port) throws SocketException {

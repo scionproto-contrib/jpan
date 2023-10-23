@@ -42,6 +42,7 @@ public class ScionSocketAddress extends InetSocketAddress {
     return new ScionSocketAddress(null, path.getDestinationCode(), hostName, port, path);
   }
 
+  @Deprecated
   static ScionSocketAddress create(ScionPacketHelper scionPacketHelper,
                                    long isdAs, String hostName, int port) {
     return new ScionSocketAddress(scionPacketHelper, isdAs, hostName, port, null);
@@ -75,7 +76,7 @@ public class ScionSocketAddress extends InetSocketAddress {
 
   ScionPacketHelper getHelper() {
     if (helper == null) {
-      helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH); // TODO this is weird...
+      helper = new ScionPacketHelper(this, ScionPacketHelper.PathState.NO_PATH); // TODO this is weird...
     }
     return helper;
   }

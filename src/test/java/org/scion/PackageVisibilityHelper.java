@@ -32,19 +32,9 @@ public class PackageVisibilityHelper {
     return service.getPathList(srcIsdAs, dstIsdAs);
   }
 
-  public static InetSocketAddress getSrcAddress(byte[] packet) {
-    try {
-      ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH);
-      helper.readScionHeader(packet);
-      return helper.getReceivedSrcAddress();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public static InetSocketAddress getDstAddress(byte[] packet) {
     try {
-      ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH);
+      ScionPacketHelper helper = new ScionPacketHelper(null, ScionPacketHelper.PathState.NO_PATH);
       helper.readScionHeader(packet);
       return helper.getReceivedDstAddress();
     } catch (IOException e) {

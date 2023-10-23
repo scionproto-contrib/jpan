@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ public class MockNetwork {
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
+  static final AtomicInteger nForward = new AtomicInteger();
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
@@ -113,6 +116,10 @@ public class MockNetwork {
   public static InetSocketAddress getTinyServerAddress() {
     return new InetSocketAddress(TINY_SRV_ADDR_1, TINY_SRV_PORT_1);
   }
+
+  public static int getAndResetForwardCount(){
+    return nForward.getAndSet(0);
+  }
 }
 
 class MockBorderRouter implements Runnable {
@@ -166,11 +173,12 @@ class MockBorderRouter implements Runnable {
             }
 
             InetSocketAddress dstAddress = getDstAddress(buffer);
-            logger.info(name + " forwarding " + buffer.position() + " bytes to " + dstAddress);
+            // logger.info(name + " forwarding " + buffer.position() + " bytes to " + dstAddress);
 
             buffer.flip();
             outgoing.send(buffer, dstAddress);
             buffer.clear();
+            MockNetwork.nForward.incrementAndGet();
           }
           iter.remove();
         }

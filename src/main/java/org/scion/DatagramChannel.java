@@ -37,20 +37,27 @@ public class DatagramChannel implements Closeable {
     // We cannot read directly into the user buffer because the user buffer may be too small.
     // TODO However, we may want to use read() i.o. receive(),
     //      this may allow us to use a smaller buffer here
-    byte[] bytes = new byte[65536];
+    byte[] bytes = new byte[65536]; // Do not allocate here...? -> part of ScionSocketAddress/Helper?
+    // TODO Is it okay to use the user-buffer here and later "move" the payload forward?
+    //    Probably not, the user may not have enough byte allocated. Check API!
+    //    -> TODO make configurable: USE_USER_BUFFER_FOR_DECODING
     ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
-    SocketAddress srcAddr = channel.receive(buffer);
-    if (srcAddr == null) {
+    SocketAddress srcAddress = channel.receive(buffer);
+    if (srcAddress == null) {
       // this indicates nothing is available
+      // TODO test this.
       return null;
     }
     buffer.flip();
 
-    ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.RCV_PATH);
+    // TODO pass bytes{} instead of remoteAddress -> make ScionPacketHelper.remoteAddress final
+    ScionPacketHelper helper = new ScionPacketHelper(null, ScionPacketHelper.PathState.RCV_PATH);
     int headerLength = helper.readScionHeader(bytes);
     userBuffer.put(bytes, headerLength, helper.getPayloadLength());
     // We assume the outgoing router will be the same as the incoming router
-    helper.setUnderlayAddress((InetSocketAddress) srcAddr);
+    System.out.println(
+        Thread.currentThread().getName() + " is setting: " + srcAddress + "    " + this); // TODO
+    helper.setUnderlayAddress((InetSocketAddress) srcAddress);
     return helper.getReceivedSrcAddress();
   }
 
@@ -65,30 +72,18 @@ public class DatagramChannel implements Closeable {
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param buffer Data to send
-   * @param destinationAddress Destination address. This should contain a host name known to the DNS
-   *     so that the ISD/AS information can be retrieved.
+   * @param destination Destination address. This should contain a host name known to the DNS so
+   *     that the ISD/AS information can be retrieved.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS. TODO test this
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress)
-      throws IOException {
-    if (destinationAddress instanceof ScionSocketAddress) {
-      send(
-          buffer,
-          (ScionSocketAddress)
-              destinationAddress); // This is weird, clean up with additional internal method
+  public synchronized void send(ByteBuffer buffer, SocketAddress destination) throws IOException {
+    if (destination instanceof ScionSocketAddress) {
+      send(buffer, (ScionSocketAddress) destination);
     } else {
-      InetSocketAddress dstAddress = checkAddress(destinationAddress);
-      ScionPacketHelper helper = new ScionPacketHelper(ScionPacketHelper.PathState.NO_PATH);
-      // find a path
-      ScionPath path = helper.getDefaultPath(dstAddress);
-      // TODO this is weird, why do we look up a path and then ignore it?
-      ScionSocketAddress addr =
-          ScionSocketAddress.create(
-              helper, path.getDestinationCode(), dstAddress.getHostString(), dstAddress.getPort());
-      addr.setPath(path); // TODO this is awkward
-      send(buffer, addr);
+      InetSocketAddress dstAddress = checkAddress(destination);
+      send(buffer, ScionSocketAddress.create(dstAddress));
     }
   }
 
@@ -112,6 +107,7 @@ public class DatagramChannel implements Closeable {
 
     // get local IP
     if (!channel.isConnected() && !isBound) {
+      // TODO why are we not setting the underlay here?
       InetSocketAddress underlayAddress = context.getFirstHopAddress(dstAddress.getPath());
       channel.connect(underlayAddress);
     }
@@ -134,6 +130,9 @@ public class DatagramChannel implements Closeable {
         payloadLength);
 
     // send packet
+    if (dstAddress.getHelper().getFirstHopAddress() == null) {
+      throw new IllegalStateException(Thread.currentThread().getName() + "  FAILED"); // TODO remove
+    }
     channel.send(output, dstAddress.getHelper().getFirstHopAddress());
     buffer.position(buffer.limit());
   }

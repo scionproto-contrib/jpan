@@ -9,7 +9,14 @@
   the path from any packet that we receive?
 
 # TODO
+- FIX Why is getFirstHop(path) not setting the underlay? Why are we setting it multiple times? 
+- FIX: "new byte[1000]"
+- TEST: getMtu + large packets 
+- TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
+- MOVE Channel to ".channel"
 
+- Daemon on mobile? Java?
+- Make configurable: client uses own path vs reversed server path.
 - Design: ScionSocketAddress has a path but ScionAddress has not. This is inconsistent!
 - Change Header-ops to use ByteBuffer i.o. byte[]
 - Replace all getHostName with getHostString() where possible!
