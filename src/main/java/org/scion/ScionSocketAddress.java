@@ -31,6 +31,14 @@ public class ScionSocketAddress extends InetSocketAddress {
     this.helper = scionPacketHelper;
   }
 
+  private ScionSocketAddress(ScionPacketHelper scionPacketHelper, long isdAs,
+                             InetAddress inetAddresse, int port, ScionPath path) {
+    super(inetAddresse, port);
+    this.isdAs = isdAs;
+    this.path = path;
+    this.helper = scionPacketHelper;
+  }
+
   public static ScionSocketAddress create(String isdAs, String hostName,
                                           int port) {
     long isdAsCode = ScionUtil.ParseIA(isdAs);
@@ -55,8 +63,13 @@ public class ScionSocketAddress extends InetSocketAddress {
 
   public static ScionSocketAddress create(InetSocketAddress address) {
     ScionAddress addr = ScionService.defaultService().getScionAddress(address.getHostString());
+    // TODO address.getHostName() vs addr.getHostName()?
     return new ScionSocketAddress(null, addr.getIsdAs(), addr.getHostName(), address.getPort(), addr.getPath());
 
+  }
+
+  public static ScionSocketAddress create(long isdAs, InetAddress addr, int port, ScionPath path) {
+    return new ScionSocketAddress(null, isdAs, addr, port, path);
   }
 
   public long getIsdAs() {
@@ -93,4 +106,7 @@ public class ScionSocketAddress extends InetSocketAddress {
     return path != null;
   }
 
+  public ScionAddress getScionAddress() {
+    return new ScionAddress(isdAs, getHostName(), super.getAddress());
+  }
 }

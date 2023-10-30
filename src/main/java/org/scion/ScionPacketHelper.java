@@ -88,22 +88,8 @@ class ScionPacketHelper {
 
   // TODO deprecate this?
   public InetSocketAddress getFirstHopAddress() {
-    System.out.println(Thread.currentThread().getName() + " getting underlay: " + underlayAddress + "    " + this);
+    // TODO System.out.println(Thread.currentThread().getName() + " getting underlay: " + underlayAddress + "    " + this);
     return underlayAddress;
-  }
-
-  public InetSocketAddress getFirstHopAddress(ScionPath path) {
-    Daemon.Path internalPath = path.getPathInternal();
-    String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
-    try {
-      int splitIndex = underlayAddressString.indexOf(':');
-      InetAddress underlayAddress = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
-      int underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
-      return new InetSocketAddress(underlayAddress, underlayPort);
-    } catch (UnknownHostException e) {
-      // TODO throw IOException?
-      throw new RuntimeException(e);
-    }
   }
 
   public int getPayloadLength() {
@@ -149,7 +135,6 @@ class ScionPacketHelper {
         scionHeader.setDstIA(dstIA);
         scionHeader.setSrcHostAddress(srcAddress.getAddress().getAddress());
         scionHeader.setDstHostAddress(dstAddress.getAddress().getAddress());
-        System.out.println(Thread.currentThread().getName() + " is setting: mtu=" + path.getMtu() + "    " + this); // TODO
         setUnderlayAddress(path);
         int srcPort = srcAddress.getPort();
         int dstPort = dstAddress.getPort();
@@ -333,7 +318,6 @@ class ScionPacketHelper {
       InetAddress addr = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
       int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
       underlayAddress = new InetSocketAddress(addr, port);
-      System.out.println(Thread.currentThread().getName() + " is setting: " + underlayAddress + "    " + this); // TODO
     } catch (UnknownHostException e) {
       // TODO throw IOException?
       throw new RuntimeException(e);

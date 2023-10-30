@@ -23,7 +23,8 @@ import java.nio.ByteBuffer;
 public class DatagramChannel implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  boolean isBound = false;
+  private boolean isBound = false;
+  private ScionSocketAddress localScionAddress;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -51,14 +52,15 @@ public class DatagramChannel implements Closeable {
     buffer.flip();
 
     // TODO pass bytes{} instead of remoteAddress -> make ScionPacketHelper.remoteAddress final
-    ScionPacketHelper helper = new ScionPacketHelper(null, ScionPacketHelper.PathState.RCV_PATH);
-    int headerLength = helper.readScionHeader(bytes);
-    userBuffer.put(bytes, headerLength, helper.getPayloadLength());
-    // We assume the outgoing router will be the same as the incoming router
-    System.out.println(
-        Thread.currentThread().getName() + " is setting: " + srcAddress + "    " + this); // TODO
-    helper.setUnderlayAddress((InetSocketAddress) srcAddress);
-    return helper.getReceivedSrcAddress();
+//    ScionPacketHelper helper = new ScionPacketHelper(null, ScionPacketHelper.PathState.RCV_PATH);
+//    int headerLength = helper.readScionHeader(bytes);
+//    userBuffer.put(bytes, headerLength, helper.getPayloadLength());
+//    // We assume the outgoing router will be the same as the incoming router
+//    helper.setUnderlayAddress((InetSocketAddress) srcAddress);
+//    return helper.getReceivedSrcAddress();
+    ScionPacketHelper2 helper = new ScionPacketHelper2(null);
+    helper.getUserData(buffer, userBuffer);
+    return helper.getRemoteAddress(buffer);
   }
 
   private InetSocketAddress checkAddress(SocketAddress address) {
@@ -108,26 +110,28 @@ public class DatagramChannel implements Closeable {
     // get local IP
     if (!channel.isConnected() && !isBound) {
       // TODO why are we not setting the underlay here?
-      InetSocketAddress underlayAddress = context.getFirstHopAddress(dstAddress.getPath());
+      InetSocketAddress underlayAddress = dstAddress.getPath().getFirstHopAddress();
       channel.connect(underlayAddress);
     }
 
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
     int headerLength =
-        context.writeHeader(
-            buf, (InetSocketAddress) channel.getLocalAddress(), dstAddress, payloadLength);
+        context.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
 
     ByteBuffer output =
         ByteBuffer.allocate(
             payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
     System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
+    // TODO output.put(buf, 0, headerLength);
     System.arraycopy(
         buffer.array(),
         buffer.arrayOffset() + buffer.position(),
         output.array(),
         output.arrayOffset() + headerLength,
         payloadLength);
+    // TODO output.put(buffer);
+    // TODO output.flip
 
     // send packet
     if (dstAddress.getHelper().getFirstHopAddress() == null) {
@@ -135,6 +139,14 @@ public class DatagramChannel implements Closeable {
     }
     channel.send(output, dstAddress.getHelper().getFirstHopAddress());
     buffer.position(buffer.limit());
+  }
+
+  private InetSocketAddress getLocalScionAddress() throws IOException {
+    if (localScionAddress == null) {
+      localScionAddress = ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
+    }
+    return localScionAddress;
+//    return ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
