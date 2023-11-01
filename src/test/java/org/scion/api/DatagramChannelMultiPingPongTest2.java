@@ -81,7 +81,7 @@ class DatagramChannelMultiPingPongTest2 {
     exceptions.clear();
   }
 
-  private void client(SocketAddress serverAddress, int id) {
+  private void client(InetSocketAddress serverAddress, int id) {
     String message = MSG + "-" + id;
     try (DatagramChannel channel = DatagramChannel.open().configureBlocking(true)) {
 
@@ -91,9 +91,10 @@ class DatagramChannelMultiPingPongTest2 {
 
         // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
         ByteBuffer response = ByteBuffer.allocate(512);
-        SocketAddress addr = channel.receive(response);
+        InetSocketAddress addr = channel.receive(response);
         assertNotNull(addr);
-        assertEquals(serverAddress, addr);
+        assertEquals(serverAddress.getAddress(), addr.getAddress());
+        assertEquals(serverAddress.getPort(), addr.getPort());
 
         response.flip();
         String pong = Charset.defaultCharset().decode(response).toString();

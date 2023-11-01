@@ -47,7 +47,7 @@ public class ScionSocketAddress extends InetSocketAddress {
 
   public static ScionSocketAddress create(String hostName,
                                           int port, ScionPath path) {
-    return new ScionSocketAddress(null, path.getDestinationCode(), hostName, port, path);
+    return new ScionSocketAddress(null, path.getDestinationIsdAs(), hostName, port, path);
   }
 
   @Deprecated

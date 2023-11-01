@@ -100,7 +100,13 @@ class ScionPacketHelper {
                          int payloadLength) throws IOException {
 
     // synchronized because we use `buffer`
-    // TODO request new path after a while?
+    // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
+
+    if (dstAddress.getPath().getRawPath() != null) {
+      pathState = PathState.RCV_PATH;
+      underlayAddress = dstAddress.getPath().getFirstHopAddress(); // TODO remove 'underlayAddress'
+    }
+
 
     // TODO use local field Datagram Packer?!
     int offset = 0;
@@ -115,7 +121,7 @@ class ScionPacketHelper {
         Daemon.Path path;
         if (scionPath != null) {
           path = scionPath.getPathInternal();
-          dstIA = scionPath.getDestinationCode();
+          dstIA = scionPath.getDestinationIsdAs();
         } else {
           if (srcIA == 0 || dstIA == 0) {
             throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
@@ -131,8 +137,8 @@ class ScionPacketHelper {
           path = paths.get(0); // Just pick the first path for now. // TODO
         }
 
-        scionHeader.setSrcIA(srcIA);
-        scionHeader.setDstIA(dstIA);
+        scionHeader.setSrcIA(dstAddress.getPath().getSourceIsdAs());
+        scionHeader.setDstIA(dstAddress.getIsdAs());
         scionHeader.setSrcHostAddress(srcAddress.getAddress().getAddress());
         scionHeader.setDstHostAddress(dstAddress.getAddress().getAddress());
         setUnderlayAddress(path);
@@ -154,10 +160,26 @@ class ScionPacketHelper {
       }
       case RCV_PATH:
       {
-        scionHeader.reverse();
-        pathHeaderScion.reverse();
-        overlayHeaderUdp.reverse();
-        offset = writeScionHeader(data, offset, payloadLength);
+        scionHeader.setSrcIA(srcIA);
+        scionHeader.setDstIA(dstIA);
+        scionHeader.setSrcHostAddress(srcAddress.getAddress().getAddress());
+        scionHeader.setDstHostAddress(dstAddress.getAddress().getAddress());
+//        scionHeader.reverse();
+//        pathHeaderScion.reverse();
+//        overlayHeaderUdp.reverse();
+//        offset = writeScionHeader(data, offset, payloadLength);
+        int srcPort = srcAddress.getPort();
+        int dstPort = dstAddress.getPort();
+        byte[] path = dstAddress.getPath().getRawPath();
+        offset =
+                scionHeader.write(
+                        data,
+                        offset,
+                        payloadLength,
+                        path.length,
+                        Constants.PathTypes.SCION);
+        offset = pathHeaderScion.writePath(data, offset, path);
+        offset = overlayHeaderUdp.write(data, offset, payloadLength, srcPort, dstPort);
         break;
       }
       case SEND_PATH:

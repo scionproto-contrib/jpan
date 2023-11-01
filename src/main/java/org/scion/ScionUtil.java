@@ -120,6 +120,7 @@ public class ScionUtil {
   }
 
 
+  // TODO rename toStringIsdAs() ?!??
   public static String toStringIA(long ia) {
     long mask = 0xFFFFL << 48;
     String s = "";
@@ -133,6 +134,8 @@ public class ScionUtil {
     return s;
   }
 
+  // TODO rename toStringIsdAs() ?!??
+  // TODO unit test
   static String toStringIA(long isd, long as) {
     long ia = (isd << 48) | as;
     long mask = 0xFFFFL << 48;

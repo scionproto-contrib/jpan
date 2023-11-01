@@ -29,6 +29,7 @@ public class ScionPath {
     private final byte[] pathRaw;
     private final long srcIsdAs;
     private final long dstIsdAs;
+    private final InetSocketAddress firstHopAddress;
 
 
     ScionPath(Daemon.Path path, long srcIsdAs, long dstIsdAs) {
@@ -36,29 +37,39 @@ public class ScionPath {
         this.pathRaw = null;
         this.srcIsdAs = srcIsdAs;
         this.dstIsdAs = dstIsdAs;
+        this.firstHopAddress = getFirstHopAddress(path);
     }
 
-    ScionPath(byte[] path, long srcIsdAs, long dstIsdAs) {
+    ScionPath(byte[] path, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
         this.pathProtoc = null;
         this.pathRaw = path;
         this.srcIsdAs = srcIsdAs;
         this.dstIsdAs = dstIsdAs;
+        this.firstHopAddress = firstHopAddress;
     }
 
-    public static ScionPath create(byte[] rawPath, long srcIsdAs, long dstIsdAs) {
-        return new ScionPath(rawPath, srcIsdAs, dstIsdAs);
+    public static ScionPath create(byte[] rawPath, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
+        return new ScionPath(rawPath, srcIsdAs, dstIsdAs, firstHopAddress);
     }
 
     Daemon.Path getPathInternal() {
         return pathProtoc;
     }
 
-    public long getDestinationCode() {
+    public long getDestinationIsdAs() {
         return dstIsdAs;
     }
 
-    InetSocketAddress getFirstHopAddress() {
-        Daemon.Path internalPath = pathProtoc;
+    // TODO naming: Source vs Src?
+    public long getSourceIsdAs() {
+        return srcIsdAs;
+    }
+
+    public InetSocketAddress getFirstHopAddress() {
+        return firstHopAddress;
+    }
+
+    private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
         String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
         try {
             int splitIndex = underlayAddressString.indexOf(':');
@@ -70,4 +81,9 @@ public class ScionPath {
             throw new RuntimeException(e);
         }
     }
+
+    public byte[] getRawPath() {
+        return pathRaw;
+    }
+
 }

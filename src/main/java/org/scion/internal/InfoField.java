@@ -18,6 +18,7 @@ import org.scion.proto.daemon.Daemon;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
 import static org.scion.internal.ByteUtil.*;
 
@@ -63,6 +64,16 @@ public class InfoField {
         timestamp = Integer.toUnsignedLong(i1);  // TODO test this, does it work correctly with signed/unsigned?
     }
 
+    public void read(ByteBuffer data) {
+        int i0 = data.getInt();
+        int i1 = data.getInt();
+        p = readBoolean(i0, 6);
+        c = readBoolean(i0, 7);
+        reserved = readInt(i0, 8, 8);
+        segID = readInt(i0, 16, 16);
+        timestamp = Integer.toUnsignedLong(i1);  // TODO test this, does it work correctly with signed/unsigned?
+    }
+
     public int write(byte[] data, int offsetStart) {
         int offset = offsetStart;
         int i0 = 0;
@@ -75,6 +86,17 @@ public class InfoField {
         offset = writeInt(data, offset, i0);
         offset = writeUnsignedInt(data, offset, timestamp);
         return offset;
+    }
+
+    public void write(ByteBuffer data) {
+        int i0 = 0;
+        i0 = writeInt(i0, 0, 6, 0);
+        i0 = writeBool(i0, 6, p);
+        i0 = writeBool(i0, 7, c);
+        i0 = writeInt(i0, 8, 8, 0); // RSV
+        i0 = writeInt(i0, 16, 16, segID);
+        data.putInt(i0);
+        data.putLong(timestamp);
     }
 
     public void reverse() {

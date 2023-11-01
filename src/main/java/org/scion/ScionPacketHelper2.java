@@ -19,7 +19,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import org.scion.internal.*;
+import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 
 class ScionPacketHelper2 {
@@ -58,8 +58,8 @@ class ScionPacketHelper2 {
     ScionHeaderParser.readUserData(buffer, userBuffer);
   }
 
-  public ScionSocketAddress getRemoteAddress(ByteBuffer buffer) {
-    return ScionHeaderParser.readRemoteSocketAddress(buffer);
+  public ScionSocketAddress getRemoteAddressAndPath(ByteBuffer buffer, InetSocketAddress firstHopAddress) {
+    return ScionHeaderParser.readRemoteSocketAddress(buffer, firstHopAddress);
   }
 
   public enum PathState {

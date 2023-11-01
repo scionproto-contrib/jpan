@@ -237,4 +237,17 @@ public class PathHeaderScion {
 
         return offsetStart + bytes.size();
     }
+
+    public int writePath(byte[] data, int offsetStart, byte[] path) {
+        // TODO reset() necessary??? -> info fields !??!?!?
+        currINF = 0;
+        currHF = 0;
+
+        // write
+        for (int i = 0; i < path.length; i++) {
+            data[offsetStart + i] = path[i];  // TODO arraycopy
+        }
+
+        return offsetStart + path.length;
+    }
 }

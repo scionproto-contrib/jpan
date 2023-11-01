@@ -60,7 +60,7 @@ public class DatagramChannel implements Closeable {
 //    return helper.getReceivedSrcAddress();
     ScionPacketHelper2 helper = new ScionPacketHelper2(null);
     helper.getUserData(buffer, userBuffer);
-    return helper.getRemoteAddress(buffer);
+    return helper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
   }
 
   private InetSocketAddress checkAddress(SocketAddress address) {
@@ -116,8 +116,7 @@ public class DatagramChannel implements Closeable {
 
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
-    int headerLength =
-        context.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
+    int headerLength = context.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
 
     ByteBuffer output =
         ByteBuffer.allocate(
@@ -134,10 +133,10 @@ public class DatagramChannel implements Closeable {
     // TODO output.flip
 
     // send packet
-    if (dstAddress.getHelper().getFirstHopAddress() == null) {
+    if (dstAddress.getPath().getFirstHopAddress() == null) {
       throw new IllegalStateException(Thread.currentThread().getName() + "  FAILED"); // TODO remove
     }
-    channel.send(output, dstAddress.getHelper().getFirstHopAddress());
+    channel.send(output, dstAddress.getPath().getFirstHopAddress());
     buffer.position(buffer.limit());
   }
 

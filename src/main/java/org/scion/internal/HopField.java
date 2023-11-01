@@ -14,7 +14,7 @@
 
 package org.scion.internal;
 
-import org.scion.proto.daemon.Daemon;
+import java.nio.ByteBuffer;
 
 import static org.scion.internal.ByteUtil.*;
 public class HopField {
@@ -67,6 +67,25 @@ public class HopField {
         mac = readLong(l1, 16, 48);
     }
 
+    public void read(ByteBuffer data) {
+        reset(); // TODO this is duplicate effort.....
+        int i0 = data.getInt();
+        long l1 = data.getLong();
+        r0 = readBoolean(i0, 0);
+        r1 = readBoolean(i0, 0);
+        r2 = readBoolean(i0, 0);
+        r3 = readBoolean(i0, 0);
+        r4 = readBoolean(i0, 0);
+        r5 = readBoolean(i0, 0);
+        r6 = readBoolean(i0, 0);
+        flagI = readBoolean(i0, 0);
+        flagE = readBoolean(i0, 0);
+        expiryTime = readInt(i0, 8, 8);
+        consIngress = readInt(i0, 16, 16);
+        consEgress = (int) readLong(l1, 0, 16);
+        mac = readLong(l1, 16, 48);
+    }
+
     public int write(byte[] data, int offsetStart) {
         int offset = offsetStart;
         int i0 = 0;
@@ -81,6 +100,20 @@ public class HopField {
         offset = writeInt(data, offset, i0);
         offset = writeLong(data, offset, l1);
         return offset;
+    }
+
+    public void write(ByteBuffer data) {
+        int i0 = 0;
+        long l1 = 0;
+        i0 = writeInt(i0, 0, 6, 0);
+        i0 = writeBool(i0, 6, flagI);
+        i0 = writeBool(i0, 7, flagE);
+        i0 = writeInt(i0, 8, 8, expiryTime);
+        i0 = writeInt(i0, 16, 16, consIngress);
+        l1 = writeLong(l1, 0, 16, consEgress);
+        l1 = writeLong(l1, 16, 48, mac);
+        data.putInt(i0);
+        data.putLong(l1);
     }
 
     @Override

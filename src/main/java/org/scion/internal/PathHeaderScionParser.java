@@ -54,13 +54,25 @@ public class PathHeaderScionParser {
         Arrays.setAll(hops, value -> new HopField());
     }
 
-    public boolean reversePath(ByteBuffer data) {
+    public static boolean reversePath(byte[] data) {
+        PathHeaderScion parser = new PathHeaderScion();
+        parser.read(data, 0);
+        parser.reverse();
+        parser.write(data, 0);
         // TODO
         return true;
     }
 
-    public int read(byte[] data, int headerOffset) {
-        reset();
+    public static boolean reversePath(ByteBuffer data) {
+        PathHeaderScionParser parser = new PathHeaderScionParser();
+        parser.read(data);
+        parser.reverse();
+        parser.write(data);
+        // TODO
+        return true;
+    }
+
+    public void read(ByteBuffer data) {
         // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
         // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
         // 6 bit : RSV
@@ -70,9 +82,10 @@ public class PathHeaderScionParser {
         // 6 bit : Seg1Len
         // 6 bit : Seg2Len
 
-        int offset = headerOffset;
+        int pos = data.position();
+        int offset = 0;
 
-        int i0 = readInt(data, offset);
+        int i0 = data.getInt();
         offset += 4;
         currINF = readInt(i0, 0, 2);
         currHF = readInt(i0, 2, 6);
@@ -82,40 +95,79 @@ public class PathHeaderScionParser {
         seg2Len = readInt(i0, 26, 6);
 
         if (seg0Len > 0) {
-            info0.read(data, offset);
+            info0.read(data);
             offset += info0.length();
             if (seg1Len > 0) {
-                info1.read(data, offset);
+                info1.read(data);
                 offset += info1.length();
                 if (seg2Len > 0) {
-                    info2.read(data, offset);
+                    info2.read(data);
                     offset += info2.length();
                 }
             }
         }
 
         for (int i = 0; i < seg0Len; i++) {
-            hops[nHops].read(data, offset);
+            hops[nHops].read(data);
             offset += hops[nHops].length();
             nHops++;
         }
         for (int i = 0; i < seg1Len; i++) {
-            hops[nHops].read(data, offset);
+            hops[nHops].read(data);
             offset += hops[nHops].length();
             nHops++;
         }
         for (int i = 0; i < seg2Len; i++) {
-            hops[nHops].read(data, offset);
+            hops[nHops].read(data);
             offset += hops[nHops].length();
             nHops++;
         }
 
-        len = offset - headerOffset;
-        return offset;
+        len = offset;
+        data.position(pos);
     }
 
-    public int write(byte[] data, int offsetStart) {
-        int offset = offsetStart;
+//    public int write(byte[] data, int offsetStart) {
+//        int offset = offsetStart;
+//        int i0 = 0;
+//
+//        // TODO simplify
+//        i0 = writeInt(i0, 0, 2, 0); // CurrINF = 0
+//        i0 = writeInt(i0, 2, 6, 0); // CurrHF = 0
+//        i0 = writeInt(i0, 8, 6, 0); // RSV = 0
+//        if (seg2Len > 0) {
+//            i0 = writeInt(i0, 14, 6, seg0Len);
+//            i0 = writeInt(i0, 20, 6, seg1Len);
+//            i0 = writeInt(i0, 26, 6, seg2Len);
+//            offset = writeInt(data, offset, i0);
+//            offset = info0.write(data, offset);
+//            offset = info1.write(data, offset);
+//            offset = info2.write(data, offset);
+//        } else if (seg1Len > 0) {
+//            i0 = writeInt(i0, 14, 6, seg0Len);
+//            i0 = writeInt(i0, 20, 6, seg1Len);
+//            i0 = writeInt(i0, 26, 6, 0);
+//            offset = writeInt(data, offset, i0);
+//            offset = info0.write(data, offset);
+//            offset = info1.write(data, offset);
+//        } else {
+//            i0 = writeInt(i0, 14, 6, seg0Len);
+//            i0 = writeInt(i0, 20, 6, 0);
+//            i0 = writeInt(i0, 26, 6, 0);
+//            offset = writeInt(data, offset, i0);
+//            offset = info0.write(data, offset);
+//        }
+//
+//        for (int i = 0; i < seg0Len + seg1Len + seg2Len; i++) {
+//            offset = hops[i].write(data, offset);
+//        }
+//
+//        return offset;
+//    }
+
+
+    public void write(ByteBuffer data) {
+        int pos = data.position();
         int i0 = 0;
 
         // TODO simplify
@@ -126,32 +178,31 @@ public class PathHeaderScionParser {
             i0 = writeInt(i0, 14, 6, seg0Len);
             i0 = writeInt(i0, 20, 6, seg1Len);
             i0 = writeInt(i0, 26, 6, seg2Len);
-            offset = writeInt(data, offset, i0);
-            offset = info0.write(data, offset);
-            offset = info1.write(data, offset);
-            offset = info2.write(data, offset);
+            data.putInt(i0);
+            info0.write(data);
+            info1.write(data);
+            info2.write(data);
         } else if (seg1Len > 0) {
             i0 = writeInt(i0, 14, 6, seg0Len);
             i0 = writeInt(i0, 20, 6, seg1Len);
             i0 = writeInt(i0, 26, 6, 0);
-            offset = writeInt(data, offset, i0);
-            offset = info0.write(data, offset);
-            offset = info1.write(data, offset);
+            data.putInt(i0);
+            info0.write(data);
+            info1.write(data);
         } else {
             i0 = writeInt(i0, 14, 6, seg0Len);
             i0 = writeInt(i0, 20, 6, 0);
             i0 = writeInt(i0, 26, 6, 0);
-            offset = writeInt(data, offset, i0);
-            offset = info0.write(data, offset);
+            data.putInt(i0);
+            info0.write(data);
         }
 
         for (int i = 0; i < seg0Len + seg1Len + seg2Len; i++) {
-            offset = hops[i].write(data, offset);
+            hops[i].write(data);
         }
 
-        return offset;
+        data.position(pos);
     }
-
 
     public void reverse() {
         currINF = 0;
