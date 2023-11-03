@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +34,13 @@ import org.scion.testutil.MockNetwork;
 class DatagramChannelMultiPingPongTest {
 
   private static final int N_REPEAT = 50;
-  private static final int N_CLIENTS = 10;
+  private static final int N_CLIENTS = 20;
   private static final String MSG = "Hello world!";
+  private static final CountDownLatch BARRIER = new CountDownLatch(N_CLIENTS + 1);
 
   private final AtomicInteger nClient = new AtomicInteger();
   private final AtomicInteger nServer = new AtomicInteger();
+  private final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
 
   @BeforeEach
   public void beforeEach() {
@@ -57,16 +62,33 @@ class DatagramChannelMultiPingPongTest {
       clients[i].start();
     }
 
-    for (Thread client : clients) {
-      client.join();
+    // This enables shutdown in case of an error.
+    // Wait for all threads to finish.
+    if (!BARRIER.await(10, TimeUnit.SECONDS)) {
+      for (Thread client : clients) {
+        client.interrupt();
+      }
+      server.interrupt();
+      if (!BARRIER.await(1, TimeUnit.SECONDS)) {
+        checkExceptions();
+        fail();
+      }
     }
-    server.join();
 
     MockNetwork.stopTiny();
 
+    checkExceptions();
     assertEquals(N_REPEAT * N_CLIENTS * 2, MockNetwork.getAndResetForwardCount());
     assertEquals(N_REPEAT * N_CLIENTS, nClient.get());
     assertEquals(N_REPEAT * N_CLIENTS, nServer.get());
+  }
+
+  private void checkExceptions() {
+    for (Throwable e : exceptions) {
+      e.printStackTrace();
+    }
+    assertEquals(0, exceptions.size());
+    exceptions.clear();
   }
 
   private void client(ScionSocketAddress serverAddress, int id) {
@@ -92,7 +114,12 @@ class DatagramChannelMultiPingPongTest {
       }
     } catch (IOException e) {
       System.out.println("CLIENT: I/O error: " + e.getMessage());
+      exceptions.add(e);
       throw new RuntimeException(e);
+    } catch (Exception e) {
+      exceptions.add(e);
+    } finally {
+      BARRIER.countDown();
     }
   }
 
@@ -103,6 +130,11 @@ class DatagramChannelMultiPingPongTest {
       service(channel);
     } catch (IOException e) {
       System.out.println("SERVER: I/O error: " + e.getMessage());
+      exceptions.add(e);
+    } catch (Exception e) {
+      exceptions.add(e);
+    } finally {
+      BARRIER.countDown();
     }
   }
 
@@ -115,7 +147,7 @@ class DatagramChannelMultiPingPongTest {
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();
       assertTrue(msg.startsWith(MSG));
-      assertEquals(MSG.length() + 2, msg.length());
+      assertTrue(MSG.length() + 3 >= msg.length());
 
       // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
       request.flip();
