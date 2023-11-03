@@ -28,7 +28,6 @@ import org.scion.ScionSocketAddress;
  */
 public class ScionHeaderParser {
     public static boolean REPORT_ERROR = true;
-    private static final int BYTES = 3 * 4;
 
     public static boolean readUserData(ByteBuffer data, ByteBuffer userBuffer) {
         int pos = data.position();
@@ -97,14 +96,12 @@ public class ScionHeaderParser {
         int hdrLenBytes = hdrLen * 4;
         int payLoadLen = readInt(i1, 16, 16);
         int pathType = readInt(i2, 0, 8);
+        // TODO assert dl/ds == 0 || == 3  && (ds == 0 || == 1)
         int dt = readInt(i2, 8, 2);
         int dl = readInt(i2, 10, 2);
         int st = readInt(i2, 12, 2);
         int sl = readInt(i2, 14, 2);
         int reserved = readInt(i2, 16, 16);
-
-        int offset = BYTES;
-
 
         // Address header
         //  8 bit: DstISD
@@ -114,55 +111,16 @@ public class ScionHeaderParser {
         //  ? bit: DstHostAddr
         //  ? bit: SrcHostAddr
 
-//        long l0 = readLong(data, offset);
         long dstIsdAs = data.getLong();
-        offset += 8;
-//        long l1 = readLong(data, offset);
         long srcIsdAs = data.getLong();
-        offset += 8;
-//        dstISD = (int) readLong(l0, 0, 16);
-//        dstAS = readLong(l0, 16, 48);
-//        srcISD = (int) readLong(l1, 0, 16);
-//        srcAS = readLong(l1, 16, 48);
 
-        // TODO skip this, with equation fro srcHost below.
-        int dstHost0 = data.getInt();
-        offset += 4;
-        if (dl >= 1) {
-            int dstHost1 = data.getInt();
-            offset += 4;
-        }
-        if (dl >= 2) {
-            int dstHost2 = data.getInt();
-            offset += 4;
-        }
-        if (dl >= 3) {
-            int dstHost3 = data.getInt();
-            offset += 4;
-        }
-
-//        int srcHost0 = data.getInt();
-//        int srcHost1 = 0;
-//        int srcHost2 = 0;
-//        int srcHost3 = 0;
-//        offset += 4;
-//        if (sl >= 1) {
-//            srcHost1 = data.getInt();
-//            offset += 4;
-//        }
-//        if (sl >= 2) {
-//            srcHost2 = data.getInt();
-//            offset += 4;
-//        }
-//        if (sl >= 3) {
-//            srcHost3 = data.getInt();
-//            offset += 4;
-//        }
-
+        // skip dstAddress
+        int skip = (dl + 1) * 4;
+        data.position(data.position() + skip);
 
         // remote address
-        byte[] bytes = new byte[(sl + 1) * 4];
-        data.get(bytes);
+        byte[] bytesSrc = new byte[(sl + 1) * 4];
+        data.get(bytesSrc);
         if (sl == 0 && (st == 0 || st == 1)) {
             // IPv4
         } else if (sl == 3 && st == 0) {
@@ -172,7 +130,7 @@ public class ScionHeaderParser {
         }
         InetAddress addr = null;
         try {
-            addr = InetAddress.getByAddress(bytes);
+            addr = InetAddress.getByAddress(bytesSrc);
         } catch (UnknownHostException e) {
             if (REPORT_ERROR) {
                 throw new ScionException(e);

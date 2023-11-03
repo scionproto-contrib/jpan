@@ -14,46 +14,37 @@
 
 package org.scion;
 
-
 import java.net.*;
 
 public class ScionSocketAddress extends InetSocketAddress {
   private final long isdAs;
   private ScionPath path;
-  private ScionPacketHelper helper;
 
-  private ScionSocketAddress(ScionPacketHelper scionPacketHelper, long isdAs,
-                             String hostName, int port, ScionPath path) {
+  private ScionSocketAddress(long isdAs, String hostName, int port, ScionPath path) {
     // TODO this probably causes a DNS lookup, can we avoid that? Check!
     super(hostName, port);
     this.isdAs = isdAs;
     this.path = path;
-    this.helper = scionPacketHelper;
   }
 
-  private ScionSocketAddress(ScionPacketHelper scionPacketHelper, long isdAs,
-                             InetAddress inetAddresse, int port, ScionPath path) {
+  private ScionSocketAddress(long isdAs, InetAddress inetAddresse, int port, ScionPath path) {
     super(inetAddresse, port);
     this.isdAs = isdAs;
     this.path = path;
-    this.helper = scionPacketHelper;
   }
 
-  public static ScionSocketAddress create(String isdAs, String hostName,
-                                          int port) {
+  public static ScionSocketAddress create(String isdAs, String hostName, int port) {
     long isdAsCode = ScionUtil.ParseIA(isdAs);
-    return new ScionSocketAddress(null, isdAsCode, hostName, port, null);
+    return new ScionSocketAddress(isdAsCode, hostName, port, null);
   }
 
-  public static ScionSocketAddress create(String hostName,
-                                          int port, ScionPath path) {
-    return new ScionSocketAddress(null, path.getDestinationIsdAs(), hostName, port, path);
+  public static ScionSocketAddress create(String hostName, int port, ScionPath path) {
+    return new ScionSocketAddress(path.getDestinationIsdAs(), hostName, port, path);
   }
 
   @Deprecated
-  static ScionSocketAddress create(ScionPacketHelper scionPacketHelper,
-                                   long isdAs, String hostName, int port) {
-    return new ScionSocketAddress(scionPacketHelper, isdAs, hostName, port, null);
+  static ScionSocketAddress create(long isdAs, String hostName, int port) {
+    return new ScionSocketAddress(isdAs, hostName, port, null);
   }
 
   private static ScionSocketAddress createUnresolved() {
@@ -64,12 +55,12 @@ public class ScionSocketAddress extends InetSocketAddress {
   public static ScionSocketAddress create(InetSocketAddress address) {
     ScionAddress addr = ScionService.defaultService().getScionAddress(address.getHostString());
     // TODO address.getHostName() vs addr.getHostName()?
-    return new ScionSocketAddress(null, addr.getIsdAs(), addr.getHostName(), address.getPort(), addr.getPath());
-
+    return new ScionSocketAddress(
+        addr.getIsdAs(), addr.getHostName(), address.getPort(), addr.getPath());
   }
 
   public static ScionSocketAddress create(long isdAs, InetAddress addr, int port, ScionPath path) {
-    return new ScionSocketAddress(null, isdAs, addr, port, path);
+    return new ScionSocketAddress(isdAs, addr, port, path);
   }
 
   public long getIsdAs() {
@@ -78,20 +69,6 @@ public class ScionSocketAddress extends InetSocketAddress {
 
   public int getIsd() {
     return ScionUtil.extractIsd(isdAs);
-  }
-
-  void setHelper(ScionPacketHelper scionPacketHelper) {
-    if (this.helper != null) {
-      throw new IllegalStateException();
-    }
-    this.helper = scionPacketHelper;
-  }
-
-  ScionPacketHelper getHelper() {
-    if (helper == null) {
-      helper = new ScionPacketHelper(this, ScionPacketHelper.PathState.NO_PATH); // TODO this is weird...
-    }
-    return helper;
   }
 
   public ScionPath getPath() {

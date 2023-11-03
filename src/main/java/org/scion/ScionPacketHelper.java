@@ -72,16 +72,6 @@ class ScionPacketHelper {
     this.owner = owner;
   }
 
-  public ScionSocketAddress getReceivedSrcAddress() {
-    if (owner == null) {
-      // TODO this is extremely slow, find another solution! -> getHostName()
-      owner =
-          ScionSocketAddress.create(
-              this, srcIA, scionHeader.getSrcHostName(), overlayHeaderUdp.getSrcPort());
-    }
-    return owner;
-  }
-
   public InetSocketAddress getReceivedDstAddress() throws IOException {
     return new InetSocketAddress(scionHeader.getDstHostAddress(), overlayHeaderUdp.getDstPort());
   }

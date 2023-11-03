@@ -99,7 +99,6 @@ public class DatagramChannel implements Closeable {
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
     //  do we need to create a new channel and reconnect?
-    ScionPacketHelper context = dstAddress.getHelper();
 
     // get local IP
     if (!channel.isConnected() && !isBound) {
