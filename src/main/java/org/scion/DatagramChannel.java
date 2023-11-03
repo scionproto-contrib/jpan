@@ -52,12 +52,6 @@ public class DatagramChannel implements Closeable {
     buffer.flip();
 
     // TODO pass bytes{} instead of remoteAddress -> make ScionPacketHelper.remoteAddress final
-//    ScionPacketHelper helper = new ScionPacketHelper(null, ScionPacketHelper.PathState.RCV_PATH);
-//    int headerLength = helper.readScionHeader(bytes);
-//    userBuffer.put(bytes, headerLength, helper.getPayloadLength());
-//    // We assume the outgoing router will be the same as the incoming router
-//    helper.setUnderlayAddress((InetSocketAddress) srcAddress);
-//    return helper.getReceivedSrcAddress();
     // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
     ScionPacketHelper2.getUserData(buffer, userBuffer);
     return ScionPacketHelper2.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
