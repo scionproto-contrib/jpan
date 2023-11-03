@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
@@ -39,6 +41,11 @@ class DatagramChannelMultiPingPongTest2 {
   private final AtomicInteger nClient = new AtomicInteger();
   private final AtomicInteger nServer = new AtomicInteger();
   private final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
+
+  @BeforeEach
+  public void beforeEach() {
+    MockNetwork.getAndResetForwardCount();
+  }
 
   @Test
   void testPingPong() throws InterruptedException {

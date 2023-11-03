@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
@@ -35,6 +36,11 @@ class DatagramChannelMultiPingPongTest {
 
   private final AtomicInteger nClient = new AtomicInteger();
   private final AtomicInteger nServer = new AtomicInteger();
+
+  @BeforeEach
+  public void beforeEach() {
+    MockNetwork.getAndResetForwardCount();
+  }
 
   @Test
   void testPingPong() throws InterruptedException {
