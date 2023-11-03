@@ -58,10 +58,9 @@ public class DatagramChannel implements Closeable {
 //    // We assume the outgoing router will be the same as the incoming router
 //    helper.setUnderlayAddress((InetSocketAddress) srcAddress);
 //    return helper.getReceivedSrcAddress();
-    ScionPacketHelper2 helper = new ScionPacketHelper2(null);
-    // TODO helper.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
-    helper.getUserData(buffer, userBuffer);
-    return helper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
+    // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
+    ScionPacketHelper2.getUserData(buffer, userBuffer);
+    return ScionPacketHelper2.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
   }
 
   private InetSocketAddress checkAddress(SocketAddress address) {
@@ -117,7 +116,10 @@ public class DatagramChannel implements Closeable {
 
     byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
-    int headerLength = context.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
+    //int headerLength = context.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
+    // TODO avoid using buf?!?!
+    //int headerLength = ScionPacketHelper2.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
+    int headerLength = ScionPacketHelper2.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
 
     ByteBuffer output =
         ByteBuffer.allocate(

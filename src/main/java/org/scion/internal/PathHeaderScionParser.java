@@ -281,17 +281,17 @@ public class PathHeaderScionParser {
     nHops = 0;
   }
 
-    public int writePath(byte[] data, int offsetStart, Daemon.Path path) {
-        // TODO reset() necessary??? -> info fields !??!?!?
-        currINF = 0;
-        currHF = 0;
-
-        // write
-        ByteString bytes = path.getRaw();
-        for (int i = 0; i < bytes.size(); i++) {
-            data[offsetStart + i] = bytes.byteAt(i);
+    public static int writePath(byte[] data, int offsetStart, ByteString path) {
+        for (int i = 0; i < path.size(); i++) {
+            data[offsetStart + i] = path.byteAt(i);
         }
+        return offsetStart + path.size();
+    }
 
-        return offsetStart + bytes.size();
+    public static int writePath(byte[] data, int offsetStart, byte[] path) {
+        for (int i = 0; i < path.length; i++) {
+            data[offsetStart + i] = path[i]; // TODO System.arrayCopy()
+        }
+        return offsetStart + path.length;
     }
 }
