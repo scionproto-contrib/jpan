@@ -175,8 +175,6 @@ public class ScionHeaderParser {
 //        dstAS = readLong(l0, 16, 48);
 //        srcISD = (int) readLong(l1, 0, 16);
 //        srcAS = readLong(l1, 16, 48);
-        System.out.println("dstIsdAs=" + ScionUtil.toStringIA(dstIsdAs));
-        System.out.println("srcIsdAs=" + ScionUtil.toStringIA(srcIsdAs));
 
         // TODO skip this, with equation fro srcHost below.
         int dstHost0 = data.getInt();
@@ -237,10 +235,6 @@ public class ScionHeaderParser {
         byte[] path = new byte[pos + hdrLenBytes - data.position()];
         data.get(path);
         PathHeaderScionParser.reversePath(path);
-        // TODO !!!
-        System.out.println("TODO: reverse path!");
-        //reverse(path);
-        //PathHeaderScionParser.reversePath(data);
 
         // get remote port from UDP overlay
         data.position(pos + hdrLenBytes);

@@ -63,7 +63,7 @@ class DatagramChannelMultiPingPongTest {
     assertEquals(N_REPEAT * N_CLIENTS, nServer.get());
   }
 
-  private void client(SocketAddress serverAddress, int id) {
+  private void client(ScionSocketAddress serverAddress, int id) {
     String message = MSG + "-" + id;
     try (DatagramChannel channel = DatagramChannel.open().configureBlocking(true)) {
 
@@ -73,10 +73,10 @@ class DatagramChannelMultiPingPongTest {
 
         // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
         ByteBuffer response = ByteBuffer.allocate(512);
-        SocketAddress addr;
-        do { // TODO
-          addr = channel.receive(response);
-        } while (addr == null);
+        ScionSocketAddress addr = channel.receive(response);
+        assertNotNull(addr);
+        assertEquals(serverAddress.getAddress(), addr.getAddress());
+        assertEquals(serverAddress.getPort(), addr.getPort());
 
         response.flip();
         String pong = Charset.defaultCharset().decode(response).toString();
@@ -95,8 +95,8 @@ class DatagramChannelMultiPingPongTest {
       channel.configureBlocking(true);
       assertEquals(localAddress, channel.getLocalAddress());
       service(channel);
-    } catch (IOException ex) {
-      System.out.println("SERVER: I/O error: " + ex.getMessage());
+    } catch (IOException e) {
+      System.out.println("SERVER: I/O error: " + e.getMessage());
     }
   }
 

@@ -59,6 +59,7 @@ public class DatagramChannel implements Closeable {
 //    helper.setUnderlayAddress((InetSocketAddress) srcAddress);
 //    return helper.getReceivedSrcAddress();
     ScionPacketHelper2 helper = new ScionPacketHelper2(null);
+    // TODO helper.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
     helper.getUserData(buffer, userBuffer);
     return helper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
   }
