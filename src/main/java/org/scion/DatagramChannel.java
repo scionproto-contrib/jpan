@@ -109,36 +109,18 @@ public class DatagramChannel implements Closeable {
 
     // get local IP
     if (!channel.isConnected() && !isBound) {
-      // TODO why are we not setting the underlay here?
       InetSocketAddress underlayAddress = dstAddress.getPath().getFirstHopAddress();
       channel.connect(underlayAddress);
     }
 
-    byte[] buf = new byte[1000]; // / TODO ????  1000?
     int payloadLength = buffer.limit() - buffer.position();
-    //int headerLength = context.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
-    // TODO avoid using buf?!?!
-    //int headerLength = ScionPacketHelper2.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
-    int headerLength = ScionPacketHelper2.writeHeader(buf, getLocalScionAddress(), dstAddress, payloadLength);
-
-    ByteBuffer output =
-        ByteBuffer.allocate(
-            payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
-    System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
-    // TODO output.put(buf, 0, headerLength);
-    System.arraycopy(
-        buffer.array(),
-        buffer.arrayOffset() + buffer.position(),
-        output.array(),
-        output.arrayOffset() + headerLength,
-        payloadLength);
-    // TODO output.put(buffer);
-    // TODO output.flip
+    // TODO reuse, or allocate direct??? Capacity?
+    ByteBuffer output = ByteBuffer.allocate(payloadLength + 1000);
+    ScionPacketHelper2.writeHeader(output, getLocalScionAddress(), dstAddress, payloadLength);
+    output.put(buffer);
+    output.flip();
 
     // send packet
-    if (dstAddress.getPath().getFirstHopAddress() == null) {
-      throw new IllegalStateException(Thread.currentThread().getName() + "  FAILED"); // TODO remove
-    }
     channel.send(output, dstAddress.getPath().getFirstHopAddress());
     buffer.position(buffer.limit());
   }

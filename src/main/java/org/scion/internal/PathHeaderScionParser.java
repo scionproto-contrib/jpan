@@ -294,4 +294,14 @@ public class PathHeaderScionParser {
         }
         return offsetStart + path.length;
     }
+
+    public static void writePath(ByteBuffer data, ByteString path) {
+        for (int i = 0; i < path.size(); i++) {
+            data.put(path.byteAt(i));
+        }
+    }
+
+    public static void writePath(ByteBuffer data, byte[] path) {
+        data.put(path);
+    }
 }

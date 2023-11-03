@@ -236,6 +236,41 @@ public class ScionHeaderParser {
         return offset;
     }
 
+    public static void write(ByteBuffer data, int userPacketLength, int pathHeaderLength, long srcIsdAs, InetAddress srcAddress, long dstIsdAs, InetAddress dstAddress) {
+        int sl = srcAddress instanceof Inet4Address ? 0 : 3;
+        int dl = dstAddress instanceof Inet4Address ? 0 : 3;
+
+        int i0 = 0;
+        int i1 = 0;
+        int i2 = 0;
+        i0 = writeInt(i0, 0, 4, 0); // version = 0
+        i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
+        i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
+        data.putInt(i0);
+        i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP PseudoHeader
+        int newHdrLen = (calcLen(pathHeaderLength, dl, sl) - 1) / 4 + 1;
+        i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
+        i1 = writeInt(i1, 16, 16, userPacketLength + 8 ); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
+        data.putInt(i1);
+        i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
+        i2 = writeInt(i2, 8, 2, 0); // DT
+        i2 = writeInt(i2, 10, 2, dl); // DL
+        i2 = writeInt(i2, 12, 2, 0); // ST
+        i2 = writeInt(i2, 14, 2, sl); // SL
+        i2 = writeInt(i2, 16, 16, 0x0); // RSV
+        data.putInt(i2);
+
+        // Address header
+        data.putLong(dstIsdAs);
+        data.putLong(srcIsdAs);
+
+        // HostAddr
+        byte[] dstBytes = dstAddress.getAddress();
+        data.put(dstBytes);
+        byte[] srcBytes = srcAddress.getAddress();
+        data.put(srcBytes);
+    }
+
     private static int calcLen(int pathHeaderLength, int sl, int dl) {
         // Common header
         int len = 12;

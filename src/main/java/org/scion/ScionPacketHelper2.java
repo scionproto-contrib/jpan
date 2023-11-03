@@ -48,14 +48,13 @@ class ScionPacketHelper2 {
 
   private ScionPacketHelper2() { }
 
-  public static int writeHeader(byte[] data, InetSocketAddress srcAddress, ScionSocketAddress dstAddress,
-                         int payloadLength) throws IOException {
-
-    // synchronized because we use `buffer`
+  public static void writeHeader(ByteBuffer data, InetSocketAddress srcSocketAddress,
+                                ScionSocketAddress dstSocketAddress,
+                                int payloadLength) throws IOException {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
 
     PathState pathState;
-    if (dstAddress.getPath().getRawPath() != null) {
+    if (dstSocketAddress.getPath().getRawPath() != null) {
       pathState = ScionPacketHelper2.PathState.RCV_PATH;
     } else {//if dstAddress.getPath(){ // TODO/
       pathState = PathState.NO_PATH;
@@ -63,28 +62,23 @@ class ScionPacketHelper2 {
 
     long srcIA = ScionService.defaultService().getLocalIsdAs();
     // TODO ? srcIA = dstAddress.getPath().getSourceIsdAs();
-    long dstIA = dstAddress.getIsdAs();
-    int srcPort = srcAddress.getPort();
-    int dstPort = dstAddress.getPort();
+    long dstIA = dstSocketAddress.getIsdAs();
+    int srcPort = srcSocketAddress.getPort();
+    int dstPort = dstSocketAddress.getPort();
+    InetAddress srcAddress = srcSocketAddress.getAddress();
+    InetAddress dstAddress = dstSocketAddress.getAddress();
 
-    // TODO use local field Datagram Packer?!
-    int offset = 0;
-
+    // TODO cleanup
     switch (pathState) {
       case NO_PATH:
       {
-//        if (srcIA == 0) {
-//          srcIA = ScionService.defaultService().getLocalIsdAs();
-//        }
-        ScionPath scionPath = dstAddress.getPath();
+        // TODO clean up
+        ScionPath scionPath = dstSocketAddress.getPath();
         Daemon.Path path;
         if (scionPath != null) {
           path = scionPath.getPathInternal();
           dstIA = scionPath.getDestinationIsdAs();
         } else {
-//          if (srcIA == 0 || dstIA == 0) {
-//            throw new IllegalStateException("srcIA/dstIA not set!"); // TODO fix / remove
-//          }
           // TODO there should already be a path, or not?
           List<Daemon.Path> paths = ScionService.defaultService().getPathList(srcIA, dstIA);
           if (paths.isEmpty()) {
@@ -97,49 +91,42 @@ class ScionPacketHelper2 {
           path = paths.get(0); // Just pick the first path for now. // TODO
         }
 
-        offset =
-                ScionHeaderParser.write(
+        ScionHeaderParser.write(
                         data,
-                        offset,
                         payloadLength,
                         path.getRaw().size(),
                         srcIA, srcAddress, dstIA, dstAddress);
-        offset = PathHeaderScionParser.writePath(data, offset, path.getRaw());
-        offset = OverlayHeader.write2(data, offset, payloadLength, srcPort, dstPort);
+        PathHeaderScionParser.writePath(data, path.getRaw());
+        OverlayHeader.write2(data, payloadLength, srcPort, dstPort);
         break;
       }
       case RCV_PATH:
       {
-        byte[] path = dstAddress.getPath().getRawPath();
-        offset =
+        byte[] path = dstSocketAddress.getPath().getRawPath();
                 ScionHeaderParser.write(
                         data,
-                        offset,
                         payloadLength,
                         path.length,
                         srcIA, srcAddress, dstIA, dstAddress);
-        offset = PathHeaderScionParser.writePath(data, offset, path);
-        offset = OverlayHeader.write2(data, offset, payloadLength, srcPort, dstPort);
+        PathHeaderScionParser.writePath(data, path);
+        OverlayHeader.write2(data, payloadLength, srcPort, dstPort);
         break;
       }
       case SEND_PATH:
       {
-        Daemon.Path path = dstAddress.getPath().getPathInternal();
-        offset =
+        Daemon.Path path = dstSocketAddress.getPath().getPathInternal();
                 ScionHeaderParser.write(
                         data,
-                        offset,
                         payloadLength,
                         path.getRaw().size(),
                         srcIA, srcAddress, dstIA, dstAddress);
-        offset = PathHeaderScionParser.writePath(data, offset, path.getRaw());
-        offset = OverlayHeader.write2(data, offset, payloadLength, srcPort, dstPort);
+        PathHeaderScionParser.writePath(data, path.getRaw());
+        OverlayHeader.write2(data, payloadLength, srcPort, dstPort);
         break;
       }
       default:
         throw new IllegalStateException(pathState.name());
     }
-    return offset;
   }
 
   // TODO move somewhere else or remove
@@ -182,5 +169,4 @@ class ScionPacketHelper2 {
     }
     System.out.println("IP-Underlay: " + underlayAddress + ":" + underlayPort);
   }
-
 }

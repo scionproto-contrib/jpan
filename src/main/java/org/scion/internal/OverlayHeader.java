@@ -14,6 +14,8 @@
 
 package org.scion.internal;
 
+import java.nio.ByteBuffer;
+
 import static org.scion.internal.ByteUtil.*;
 
 public class OverlayHeader {
@@ -69,7 +71,6 @@ public class OverlayHeader {
         return offset;
     }
 
-
     public static int write2(byte[] data, int offset, int packetLength, int srcPort, int dstPort) {
         int i0 = 0;
         int i1 = 0;
@@ -81,6 +82,18 @@ public class OverlayHeader {
         offset = writeInt(data, offset, i0);
         offset = writeInt(data, offset, i1);
         return offset;
+    }
+
+    public static void write2(ByteBuffer data, int packetLength, int srcPort, int dstPort) {
+        int i0 = 0;
+        int i1 = 0;
+        i0 = writeInt(i0, 0, 16, srcPort);
+        i0 = writeInt(i0, 16, 16, dstPort);
+        i1 = writeInt(i1, 0, 16, packetLength + 8);
+        int checkSum = 0; // We do not check it.
+        i1 = write16(i1, 16, checkSum);
+        data.putInt(i0);
+        data.putInt(i1);
     }
 
     @Override
