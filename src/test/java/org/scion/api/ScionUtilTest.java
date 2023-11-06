@@ -31,6 +31,7 @@ class ScionUtilTest {
     assertEquals(0xfedcL << 16, ScionUtil.parseIA("0-0:fedc:0"));
     assertEquals(0xfedcL, ScionUtil.parseIA("0-0:0:fedc"));
     assertEquals(42L << 48 | 0xfedcba987654L, ScionUtil.parseIA("42-fedc:ba98:7654"));
+    assertEquals(65000L << 48 | 0xfedcba987654L, ScionUtil.parseIA("65000-fedc:ba98:7654"));
   }
 
   @Test
@@ -41,6 +42,7 @@ class ScionUtilTest {
     assertEquals("0-0:fedc:0", ScionUtil.toStringIA(0xfedcL << 16));
     assertEquals("0-0:0:fedc", ScionUtil.toStringIA(0xfedcL));
     assertEquals("42-fedc:ba98:7654", ScionUtil.toStringIA(42L << 48 | 0xfedcba987654L));
+    assertEquals("65000-fedc:ba98:7654", ScionUtil.toStringIA(65000L << 48 | 0xfedcba987654L));
   }
 
   @Test
@@ -51,6 +53,7 @@ class ScionUtilTest {
     assertEquals("0-0:fedc:0", ScionUtil.toStringIA(0, 0xfedcL << 16));
     assertEquals("0-0:0:fedc", ScionUtil.toStringIA(0, 0xfedcL));
     assertEquals("42-fedc:ba98:7654", ScionUtil.toStringIA(42, 0xfedcba987654L));
+    assertEquals("65000-fedc:ba98:7654", ScionUtil.toStringIA(65000, 0xfedcba987654L));
   }
 
   @Test
@@ -73,6 +76,7 @@ class ScionUtilTest {
     assertEquals(0L, ScionUtil.extractAs(0));
     assertEquals(0L, ScionUtil.extractAs((42L << 48)));
     assertEquals(0xfedcba987654L, ScionUtil.extractAs((42L << 48) + 0xfedcba987654L));
+    assertEquals(0xfedcba987654L, ScionUtil.extractAs((65000L << 48) + 0xfedcba987654L));
   }
 
   @Test
@@ -80,5 +84,6 @@ class ScionUtilTest {
     assertEquals(0, ScionUtil.extractIsd(0));
     assertEquals(42, ScionUtil.extractIsd((42L << 48)));
     assertEquals(42, ScionUtil.extractIsd((42L << 48) | 0xfedcba987654L));
+    assertEquals(65000, ScionUtil.extractIsd((65000L << 48) | 0xfedcba987654L));
   }
 }

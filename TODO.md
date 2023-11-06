@@ -9,7 +9,6 @@
   the path from any packet that we receive?
 
 # TODO
-- FIX Why is getFirstHop(path) not setting the underlay? Why are we setting it multiple times?
 - FIX ScionSocketAddress MUST BE IMMUTABLE!! -> May be used by different Channels concurrently!
   - getPath mus happen inside SSA constructor
 - FIX: "new byte[1000]"
@@ -22,10 +21,6 @@
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.
 - Design: ScionSocketAddress has a path but ScionAddress has not. This is inconsistent!
-- Change Header-ops to use ByteBuffer i.o. byte[]
-- Replace all getHostName with getHostString() where possible!
-  - Check that it works with normal network...?
-- check exceptions in "mvn test"
 
 - Lookup FlowID -> mandatory - MTU?
 
