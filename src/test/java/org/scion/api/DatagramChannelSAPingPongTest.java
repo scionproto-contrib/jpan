@@ -54,7 +54,8 @@ class DatagramChannelSAPingPongTest {
   }
 
   private void client(SocketAddress serverAddress) {
-    try (DatagramChannel channel = DatagramChannel.open().configureBlocking(true)) {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.configureBlocking(true);
 
       for (int i = 0; i < N_REPEAT; i++) {
         ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());

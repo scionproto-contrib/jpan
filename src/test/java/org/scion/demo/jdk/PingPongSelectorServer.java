@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
- * Same as PingPongChannelServer but uses a Selector.
+ * Same as PingPongChannelServer but uses a Selector. It can be used with the PingPongChannelClient.
  */
 public class PingPongSelectorServer {
 

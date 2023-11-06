@@ -45,7 +45,8 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   @Override
   protected void create() throws SocketException {
     try {
-      channel = DatagramChannel.open().configureBlocking(true);
+      channel = DatagramChannel.open();
+      channel.configureBlocking(true);
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }
