@@ -80,7 +80,7 @@ public class ScionUtil {
     return s;
   }
 
-  static String toStringIA(int isd, long as) {
+  public static String toStringIA(int isd, long as) {
     checkLimits(isd, as);
     long ia = ((long) (isd) << 48) | as;
     long mask = 0xFFFFL << 48;

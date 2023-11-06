@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion;
+package org.scion.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,6 +22,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.scion.*;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
 
@@ -33,12 +34,13 @@ public class PathServiceTest {
 
   @BeforeAll
   public static void beforeAll() {
-    System.setProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + ";" + SCION_TXT);
+    System.setProperty(
+        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + ";" + SCION_TXT);
   }
 
   @AfterAll
   public static void afterAll() {
-    System.clearProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
+    System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
   }
 
   @BeforeEach
@@ -102,7 +104,7 @@ public class PathServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client =
         Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
-      paths = client.getPathList(srcIA, dstIA);
+      paths = PackageVisibilityHelper.getPathList(client, srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

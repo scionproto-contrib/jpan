@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion;
+package org.scion.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionUtil;
 
 class ScionUtilTest {
 
   @Test
   void testParseIA() {
-    assertEquals(0, ScionUtil.parseIA("0-0"));
+    Assertions.assertEquals(0, ScionUtil.parseIA("0-0"));
     assertEquals(0, ScionUtil.parseIA("0-0:0:0"));
     assertEquals(42L << 48, ScionUtil.parseIA("42-0:0:0"));
     assertEquals(0xfedcL << 32, ScionUtil.parseIA("0-fedc:0:0"));
