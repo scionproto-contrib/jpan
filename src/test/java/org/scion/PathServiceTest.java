@@ -50,8 +50,8 @@ public class PathServiceTest {
   @Test
   void testWrongDaemonAddress() throws IOException {
     String daemonAddr = "127.0.0.112:12345";
-    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
       ScionException thrown =
           assertThrows(ScionException.class, () -> client.getPath(srcIA, dstIA));
@@ -65,8 +65,8 @@ public class PathServiceTest {
     MockDaemon daemon = MockDaemon.create();
     daemon.start();
     String daemonAddr = "[::1]:" + DEFAULT_PORT;
-    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
       ScionPath path = client.getPath(srcIA, dstIA);
       assertNotNull(path);
@@ -81,8 +81,8 @@ public class PathServiceTest {
     MockDaemon daemon = MockDaemon.create();
     daemon.start();
     String daemonAddr = "127.0.0.1:" + DEFAULT_PORT;
-    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
       ScionPath path = client.getPath(srcIA, dstIA);
       assertNotNull(path);
@@ -98,8 +98,8 @@ public class PathServiceTest {
 
     // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
     List<Daemon.Path> paths;
-    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client =
         Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
       paths = client.getPathList(srcIA, dstIA);

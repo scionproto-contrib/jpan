@@ -65,8 +65,8 @@ public class PathServiceDemo {
   }
 
   private void testPaths() {
-    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
 
     List<Daemon.Path> paths = daemon.getPathList(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());

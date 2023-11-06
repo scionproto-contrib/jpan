@@ -288,7 +288,7 @@ public class ScionService {
   private ScionAddress parse(String txtEntry, String hostName) {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
-    long isdAs = ScionUtil.ParseIA(txtEntry.substring(7, posComma));
+    long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));
     return ScionAddress.create(
         isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }

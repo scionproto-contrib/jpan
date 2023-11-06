@@ -91,7 +91,7 @@ public class HeaderComposer2Test {
     //        srcIA, err := addr.ParseIA("1-ff00:0:110")
     //        srcAddr, err := net.ResolveUDPAddr("udp", "127.0.0.2:100")
     //        dstAddr, err := net.ResolveUDPAddr("udp", "[::1]:8080")
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
     ByteBuffer userPacket = ByteBuffer.allocate(msg.length());
     userPacket.put(msg.getBytes());

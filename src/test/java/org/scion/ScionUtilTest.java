@@ -21,32 +21,62 @@ import org.junit.jupiter.api.Test;
 class ScionUtilTest {
 
   @Test
-  void testIPv4_fromBytes() {
-    byte[] bytes1 = new byte[] {127, 0, 15, 23};
-    String ip1 = ScionUtil.toStringIPv4(bytes1);
-    assertEquals("127.0.15.23", ip1);
+  void testParseIA() {
+    assertEquals(0, ScionUtil.parseIA("0-0"));
+    assertEquals(0, ScionUtil.parseIA("0-0:0:0"));
+    assertEquals(42L << 48, ScionUtil.parseIA("42-0:0:0"));
+    assertEquals(0xfedcL << 32, ScionUtil.parseIA("0-fedc:0:0"));
+    assertEquals(0xfedcL << 16, ScionUtil.parseIA("0-0:fedc:0"));
+    assertEquals(0xfedcL, ScionUtil.parseIA("0-0:0:fedc"));
+    assertEquals(42L << 48 | 0xfedcba987654L, ScionUtil.parseIA("42-fedc:ba98:7654"));
   }
-    @Test
-  void testIPv6_fromBytes() {
-    // For now without :: substitution
-    byte[] bytes1 = new byte[]{1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,2};
-    String ip1 = ScionUtil.toStringIPv6(bytes1);
-    assertEquals("100:0:100:0:100:0:100:2", ip1);
 
-    //    byte[] bytes1 = new byte[]{1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,2};
-    //    String ip1 = ScionUtil.toStringIPv6(bytes1);
-    //    assertEquals("100::100:0:100:0:100:2", ip1);
-    //
-    //    byte[] bytes2 = new byte[]{1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,2};
-    //    String ip2 = ScionUtil.toStringIPv6(bytes2);
-    //    assertEquals("100::100:2", ip2);
-    //
-    //    byte[] bytes3 = new byte[]{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
-    //    String ip3 = ScionUtil.toStringIPv6(bytes3);
-    //    assertEquals("::1", ip3);
-    //
-    //    byte[] bytes4 = new byte[]{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    //    String ip4 = ScionUtil.toStringIPv6(bytes4);
-    //    assertEquals("::", ip4);
+  @Test
+  void testToStringIA() {
+    assertEquals("0-0:0:0", ScionUtil.toStringIA(0));
+    assertEquals("42-0:0:0", ScionUtil.toStringIA(42L << 48));
+    assertEquals("0-fedc:0:0", ScionUtil.toStringIA(0xfedcL << 32));
+    assertEquals("0-0:fedc:0", ScionUtil.toStringIA(0xfedcL << 16));
+    assertEquals("0-0:0:fedc", ScionUtil.toStringIA(0xfedcL));
+    assertEquals("42-fedc:ba98:7654", ScionUtil.toStringIA(42L << 48 | 0xfedcba987654L));
+  }
+
+  @Test
+  void testToStringIA2() {
+    assertEquals("0-0:0:0", ScionUtil.toStringIA(0, 0));
+    assertEquals("42-0:0:0", ScionUtil.toStringIA(42, 0));
+    assertEquals("0-fedc:0:0", ScionUtil.toStringIA(0, 0xfedcL << 32));
+    assertEquals("0-0:fedc:0", ScionUtil.toStringIA(0, 0xfedcL << 16));
+    assertEquals("0-0:0:fedc", ScionUtil.toStringIA(0, 0xfedcL));
+    assertEquals("42-fedc:ba98:7654", ScionUtil.toStringIA(42, 0xfedcba987654L));
+  }
+
+  @Test
+  void testToStringIA2_fails() {
+    Exception exception;
+    exception = assertThrows(IllegalArgumentException.class, () -> ScionUtil.toStringIA(-1, 0));
+    assertTrue(exception.getMessage().contains("ISD out of range"));
+    exception = assertThrows(IllegalArgumentException.class, () -> ScionUtil.toStringIA(66000, 0));
+    assertTrue(exception.getMessage().contains("ISD out of range"));
+    exception = assertThrows(IllegalArgumentException.class, () -> ScionUtil.toStringIA(45, -1));
+    assertTrue(exception.getMessage().contains("AS out of range"));
+    exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> ScionUtil.toStringIA(45, 0x1FFFFFFFFFFFFL));
+    assertTrue(exception.getMessage().contains("AS out of range"));
+  }
+
+  @Test
+  void testExtractAS() {
+    assertEquals(0L, ScionUtil.extractAs(0));
+    assertEquals(0L, ScionUtil.extractAs((42L << 48)));
+    assertEquals(0xfedcba987654L, ScionUtil.extractAs((42L << 48) + 0xfedcba987654L));
+  }
+
+  @Test
+  void testExtractISD() {
+    assertEquals(0, ScionUtil.extractIsd(0));
+    assertEquals(42, ScionUtil.extractIsd((42L << 48)));
+    assertEquals(42, ScionUtil.extractIsd((42L << 48) | 0xfedcba987654L));
   }
 }

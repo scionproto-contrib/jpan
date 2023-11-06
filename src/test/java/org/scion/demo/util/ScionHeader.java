@@ -345,19 +345,19 @@ public class ScionHeader {
         sb.append("  srcIsdAs=").append(ScionUtil.toStringIA(srcIsdAs));
         sb.append("  dstHost=").append(dt).append("/");
         if (dl == 0) {
-            sb.append(ScionUtil.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
+            sb.append(ToStringUtil.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
         } else if (dl == 3) {
-            sb.append(ScionUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            sb.append(ToStringUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         } else {
-            sb.append("Format not recognized: ").append(ScionUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+            sb.append("Format not recognized: ").append(ToStringUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
         }
         sb.append("  srcHost=").append(st).append("/");
         if (sl == 0) {
-            sb.append(ScionUtil.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
+            sb.append(ToStringUtil.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
         } else if (sl == 3) {
-            sb.append(ScionUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            sb.append(ToStringUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         } else {
-            sb.append("Format not recognized: ").append(ScionUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+            sb.append("Format not recognized: ").append(ToStringUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
         }
         return sb.toString();
     }
@@ -431,13 +431,13 @@ public class ScionHeader {
         byte[] bytes = new byte[(sl + 1) * 4];
         if (sl == 0 && (st == 0 || st == 1)) {
             writeInt(bytes, 0, srcHost0);
-            return ScionUtil.toStringIPv4(bytes);
+            return ToStringUtil.toStringIPv4(bytes);
         } else if (sl == 3 && st == 0) {
             writeInt(bytes, 0, srcHost0);
             writeInt(bytes, 4, srcHost1);
             writeInt(bytes, 8, srcHost2);
             writeInt(bytes, 12, srcHost3);
-            return ScionUtil.toStringIPv6(bytes);
+            return ToStringUtil.toStringIPv6(bytes);
         } else {
             throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
         }

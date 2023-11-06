@@ -34,7 +34,7 @@ public class ScionSocketAddress extends InetSocketAddress {
   }
 
   public static ScionSocketAddress create(String isdAs, String hostName, int port) {
-    long isdAsCode = ScionUtil.ParseIA(isdAs);
+    long isdAsCode = ScionUtil.parseIA(isdAs);
     return new ScionSocketAddress(isdAsCode, hostName, port, null);
   }
 

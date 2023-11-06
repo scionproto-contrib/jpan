@@ -97,7 +97,7 @@ public class HeaderComposerTest {
     //        srcAddr, err := net.ResolveUDPAddr("udp", "127.0.0.2:100")
     //        dstAddr, err := net.ResolveUDPAddr("udp", "[::1]:8080")
     InetAddress address = InetAddress.getByName(hostname);
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
     byte[] sendBuf = msg.getBytes();
     DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, dstPort);
