@@ -2,11 +2,14 @@
 
 - How do I get the local external IP? Make it configurable?
 - DNS calls are awkward, outsource to Daemon?!?
-- How to get the address of the first hop?
-  - Client: Raw path contains underlay address.
-  - Server: Ask daemon? Simply return to where it came from? 
-- Client: Should we keep sending with the same path? Or should we revert()
-  the path from any packet that we receive?
+  -> Android: We may not have a daemon -> do everything inside JVM 
+- Expired path, what to do?
+  - Server side: just keep using it? -> problematic with write() which may be reused infinitely
+  - Client side: 
+    - try to automatically get a new path? Concurrently to avoid hickups?
+    - Define callback for user?
+    - throw exception????  -> probably not a good idea
+
 
 # TODO
 - FIX ScionSocketAddress MUST BE IMMUTABLE!! -> May be used by different Channels concurrently!
