@@ -66,12 +66,12 @@ class DatagramChannelApiTest {
     Exception exception;
     try (DatagramChannel channel = DatagramChannel.open()) {
       SocketAddress addr =
-          new SocketAddress() {
-            @Override
-            public int hashCode() {
-              return super.hashCode();
-            }
-          };
+              new SocketAddress() {
+                @Override
+                public int hashCode() {
+                  return super.hashCode();
+                }
+              };
       exception = assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr, null));
     }
 
@@ -79,4 +79,22 @@ class DatagramChannelApiTest {
     String actualMessage = exception.getMessage();
     assertTrue(actualMessage.contains(expectedMessage));
   }
+
+  @Test
+  void isOpen() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertTrue(channel.isOpen());
+      channel.close();
+      assertFalse(channel.isOpen());
+    }
+  }
+
+//  @Test
+//  void isBlocking() throws IOException {
+//    try (DatagramChannel channel = DatagramChannel.open()) {
+//      assertTrue(channel.isOpen());
+//      channel.close();
+//      assertFalse(channel.isOpen());
+//    }
+//  }
 }

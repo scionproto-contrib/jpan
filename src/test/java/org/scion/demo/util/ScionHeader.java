@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
+package org.scion.demo.util;
 
 import org.scion.ScionUtil;
+import org.scion.internal.Constants;
 
 import java.io.IOException;
 import java.net.*;
 
-import static org.scion.internal.ByteUtil.*;
+import static org.scion.demo.util.ByteUtil.*;
 
 /**
  * Class for reading, writing and storing the Common Header and Address Header.

@@ -20,6 +20,7 @@ import java.net.DatagramPacket;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.scion.demo.util.PathHeaderScion;
+import org.scion.demo.util.ScionHeader;
 
 public class HeaderParserTest {
 

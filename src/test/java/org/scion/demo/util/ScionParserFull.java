@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.*;
 import org.scion.internal.Constants;
 import org.scion.internal.OverlayHeader;
-import org.scion.internal.ScionHeader;
 import org.scion.internal.ScionSCMPHeader;
 
 public class ScionParserFull {

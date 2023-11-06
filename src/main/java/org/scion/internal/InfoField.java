@@ -46,26 +46,6 @@ public class InfoField {
 
     }
 
-//    private InfoField(byte[] data, int offset) {
-//        int i0 = ByteUtil.readInt(data, offset);
-//        int i1 = ByteUtil.readInt(data, offset + 4);
-//        p = ByteUtil.readBoolean(i0, 6);
-//        c = ByteUtil.readBoolean(i0, 7);
-//        reserved = ByteUtil.readInt(i0, 8, 8);
-//        segID = ByteUtil.readInt(i0, 16, 16);
-//        timestamp = i1;
-//    }
-
-    public void read(byte[] data, int offset) {
-        int i0 = readInt(data, offset);
-        int i1 = readInt(data, offset + 4);
-        p = readBoolean(i0, 6);
-        c = readBoolean(i0, 7);
-        reserved = readInt(i0, 8, 8);
-        segID = readInt(i0, 16, 16);
-        timestamp = Integer.toUnsignedLong(i1);  // TODO test this, does it work correctly with signed/unsigned?
-    }
-
     public void read(ByteBuffer data) {
         int i0 = data.getInt();
         int i1 = data.getInt();
@@ -74,20 +54,6 @@ public class InfoField {
         reserved = readInt(i0, 8, 8);
         segID = readInt(i0, 16, 16);
         timestampRaw = i1;
-    }
-
-    public int write(byte[] data, int offsetStart) {
-        int offset = offsetStart;
-        int i0 = 0;
-
-        i0 = writeInt(i0, 0, 6, 0);
-        i0 = writeBool(i0, 6, p);
-        i0 = writeBool(i0, 7, c);
-        i0 = writeInt(i0, 8, 8, 0); // RSV
-        i0 = writeInt(i0, 16, 16, segID);
-        offset = writeInt(data, offset, i0);
-        offset = writeUnsignedInt(data, offset, timestamp);
-        return offset;
     }
 
     public void write(ByteBuffer data) {
@@ -125,31 +91,5 @@ public class InfoField {
                 ", segID=" + segID +
                 ", timestamp=" + Long.toUnsignedString(timestamp) +
                 '}';
-    }
-
-    public void reset() {
-        r0 = false;
-        r1 = false;
-        r2 = false;
-        r3 = false;
-        r4 = false;
-        r5 = false;
-        r6 = false;
-        p = false;
-        c = false;
-        reserved = 0;
-        segID = 0;
-        timestamp = 0;
-    }
-
-    public void set(Daemon.Path path) {
-        p = false; // TODO
-        c = true; // TODO
-        this.timestamp = path.getExpiration().getSeconds();
-        this.segID = 12345; // TODO !!!!!
-    }
-
-    boolean hasConstructionDirection() {
-        return c;
     }
 }

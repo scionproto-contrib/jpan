@@ -35,24 +35,6 @@ public class ScionSCMPHeader {
     return offset + 4;
   }
 
-  //    public void reverse() {
-  //        int dummy = srcPort;
-  //        srcPort = dstPort;
-  //        dstPort = dummy;
-  //    }
-  //
-  //    public int write(byte[] data, int offset, int packetLength) {
-  //        int i0 = 0;
-  //        int i1 = 0;
-  //        i0 = writeInt(i0, 0, 16, srcPort);
-  //        i0 = writeInt(i0, 16, 16, dstPort);
-  //        i1 = writeInt(i1, 0, 16, packetLength + 8);
-  //        i1 = writeInt(i1, 16, 16, checkSum);
-  //        offset = writeInt(data, offset, i0);
-  //        offset = writeInt(data, offset, i1);
-  //        return offset;
-  //    }
-
   @Override
   public String toString() {
     return "ScionSCMPHeader{"
@@ -72,16 +54,6 @@ public class ScionSCMPHeader {
   public String getCode() {
     return "" + code;
   }
-
-  //    @Override
-  //    public String toString() {
-  //        return "UdpPseudoHeader{" +
-  //                "srcPort=" + srcPort +
-  //                ", dstPort=" + dstPort +
-  //                ", length=" + packetLength +
-  //                ", checkSum=" + checkSum +
-  //                '}';
-  //    }
 
   public enum ScmpType implements Constants.ParseEnum {
     // SCMP error messages:

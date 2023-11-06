@@ -19,8 +19,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 
-public class DatagramChannel implements Closeable {
+public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
   private boolean isBound = false;
@@ -152,7 +153,22 @@ public class DatagramChannel implements Closeable {
   }
 
   @Override
+  public boolean isOpen() {
+    return channel.isOpen();
+  }
+
+  @Override
   public void close() throws IOException {
     channel.close();
+  }
+
+  @Override
+  public int read(ByteBuffer dst) throws IOException {
+    return 0;
+  }
+
+  @Override
+  public int write(ByteBuffer src) throws IOException {
+    return 0;
   }
 }

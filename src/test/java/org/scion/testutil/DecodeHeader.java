@@ -18,7 +18,7 @@ import java.net.DatagramPacket;
 import org.scion.internal.Constants;
 import org.scion.internal.OverlayHeader;
 import org.scion.demo.util.PathHeaderScion;
-import org.scion.internal.ScionHeader;
+import org.scion.demo.util.ScionHeader;
 
 /** This is a tool to decode and print out a ScionHeader. */
 public class DecodeHeader {
