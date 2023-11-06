@@ -26,6 +26,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   private final java.nio.channels.DatagramChannel channel;
   private boolean isBound = false;
   private ScionSocketAddress localScionAddress;
+  private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -37,13 +38,10 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
     // We cannot read directly into the user buffer because the user buffer may be too small.
-    // TODO However, we may want to use read() i.o. receive(),
-    //      this may allow us to use a smaller buffer here
-    byte[] bytes = new byte[65536]; // Do not allocate here...? -> part of ScionSocketAddress/Helper?
     // TODO Is it okay to use the user-buffer here and later "move" the payload forward?
     //    Probably not, the user may not have enough byte allocated. Check API!
     //    -> TODO make configurable: USE_USER_BUFFER_FOR_DECODING
-    ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
+    buffer.clear();
     SocketAddress srcAddress = channel.receive(buffer);
     if (srcAddress == null) {
       // this indicates nothing is available
@@ -52,10 +50,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
     buffer.flip();
 
-    // TODO pass bytes{} instead of remoteAddress -> make ScionPacketHelper.remoteAddress final
     // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
     ScionPacketHelper.getUserData(buffer, userBuffer);
-    return ScionPacketHelper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
+    ScionSocketAddress addr = ScionPacketHelper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
+    buffer.clear();
+    return addr;
   }
 
   private InetSocketAddress checkAddress(SocketAddress address) {
@@ -164,11 +163,19 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   @Override
   public int read(ByteBuffer dst) throws IOException {
-    return 0;
+    //    if (channel.isOpen()) {
+    //      throw new IllegalStateException("Channel must be bound when calling read().");
+    //    }
+    throw new UnsupportedOperationException();
+    // return 0; // TODO
   }
 
   @Override
   public int write(ByteBuffer src) throws IOException {
-    return 0;
+    if (channel.isConnected()) {
+      throw new IllegalStateException("Channel must be connected when calling write().");
+    }
+    throw new UnsupportedOperationException();
+    // return 0; // TODO
   }
 }

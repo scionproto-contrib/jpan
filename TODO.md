@@ -9,7 +9,7 @@
     - try to automatically get a new path? Concurrently to avoid hickups?
     - Define callback for user?
     - throw exception????  -> probably not a good idea
-
+- We cannot really use "connect()" because the first hop may change if the path changes...? 
 
 # TODO
 - FIX ScionSocketAddress MUST BE IMMUTABLE!! -> May be used by different Channels concurrently!

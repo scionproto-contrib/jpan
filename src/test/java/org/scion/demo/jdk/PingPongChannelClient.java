@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.demo;
+package org.scion.demo.jdk;
 
 import java.io.*;
 import java.net.*;
@@ -30,7 +30,7 @@ public class PingPongChannelClient {
 
   public static DatagramChannel startClient() throws IOException {
     DatagramChannel client = DatagramChannel.open().bind(null);
-    client.configureBlocking(false);
+    client.configureBlocking(true);
     return client;
   }
 

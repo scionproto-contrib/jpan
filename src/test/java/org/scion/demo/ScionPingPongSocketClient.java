@@ -20,15 +20,14 @@ import java.net.*;
 import org.scion.DatagramSocket;
 import org.scion.ScionSocketAddress;
 import org.scion.testutil.MockDNS;
-import org.scion.testutil.MockDaemon;
 
 @Deprecated // This does not work.
-public class ScionPingPongClient {
+public class ScionPingPongSocketClient {
 
   public static void main(String[] args) throws IOException {
     DemoTopology.configureMock(); // Tiny111_112();
     MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-    ScionPingPongClient client = new ScionPingPongClient();
+    ScionPingPongSocketClient client = new ScionPingPongSocketClient();
     client.run();
   }
 

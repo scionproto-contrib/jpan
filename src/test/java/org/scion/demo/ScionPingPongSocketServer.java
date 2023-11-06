@@ -20,10 +20,10 @@ import java.io.*;
 import java.net.*;
 
 @Deprecated // This does not work.
-public class ScionPingPongServer {
+public class ScionPingPongSocketServer {
   private final DatagramSocket socket;
 
-  public ScionPingPongServer(int port, InetAddress localAddress) throws SocketException {
+  public ScionPingPongSocketServer(int port, InetAddress localAddress) throws SocketException {
     socket = new DatagramSocket(port, localAddress);
   }
 
@@ -36,7 +36,7 @@ public class ScionPingPongServer {
     // System.out.println("IPv4: " + (localAddress instanceof Inet4Address));
     // InetAddress localAddress = InetAddress.getByName("fd00:f00d:cafe::7f00:c");
     try {
-      ScionPingPongServer server = new ScionPingPongServer(port, localAddress);
+      ScionPingPongSocketServer server = new ScionPingPongSocketServer(port, localAddress);
       server.service();
     } catch (SocketException ex) {
       System.out.println("Socket error: " + ex.getMessage());

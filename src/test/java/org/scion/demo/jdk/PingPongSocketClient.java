@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.demo;
+package org.scion.demo.jdk;
 
 import java.io.*;
 import java.net.DatagramPacket;
@@ -20,7 +20,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 
-public class PingPongClient {
+public class PingPongSocketClient {
 
     public static void main(String[] args) {
         String hostname = "127.0.0.1";
