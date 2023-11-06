@@ -53,11 +53,15 @@ public class PathHeaderScionParser {
         Arrays.setAll(hops, value -> new HopField());
     }
 
-    public static boolean reversePath(byte[] data) {
-        PathHeaderScion parser = new PathHeaderScion();
-        parser.read(data, 0);
+    public static boolean reversePath(ByteBuffer data) {
+        PathHeaderScionParser parser = new PathHeaderScionParser();
+        int pos = data.position();
+        parser.read(data);
+
         parser.reverse();
-        parser.write(data, 0);
+
+        data.position(pos);
+        parser.write(data);
         // TODO
         return true;
     }
@@ -184,10 +188,6 @@ public class PathHeaderScionParser {
         }
     }
 
-    boolean hasConstructionDirection() {
-        return info0.hasConstructionDirection();
-    }
-
     @Override
     public String toString() {
         String s = "SCION path header: " +
@@ -215,22 +215,6 @@ public class PathHeaderScionParser {
     public int length() {
         return len;
     }
-
-  private void reset() {
-    currINF = 0;
-    currHF = 0;
-    reserved = 0;
-    seg0Len = 0;
-    seg1Len = 0;
-    seg2Len = 0;
-    info0.reset();
-    info1.reset();
-    info2.reset();
-    for (int i = 0; i < hops.length; i++) {
-      hops[i].reset();
-    }
-    nHops = 0;
-  }
 
     public static void writePath(ByteBuffer data, ByteString path) {
         for (int i = 0; i < path.size(); i++) {

@@ -39,6 +39,8 @@ public class InfoField {
     private int segID;
     // 32 bits : timestamp (unsigned int)
     private long timestamp;
+    // THis is an unsigned 'int' stored in a signed integer.
+    private int timestampRaw;
 
     InfoField() {
 
@@ -71,7 +73,7 @@ public class InfoField {
         c = readBoolean(i0, 7);
         reserved = readInt(i0, 8, 8);
         segID = readInt(i0, 16, 16);
-        timestamp = Integer.toUnsignedLong(i1);  // TODO test this, does it work correctly with signed/unsigned?
+        timestampRaw = i1;
     }
 
     public int write(byte[] data, int offsetStart) {
@@ -96,7 +98,7 @@ public class InfoField {
         i0 = writeInt(i0, 8, 8, 0); // RSV
         i0 = writeInt(i0, 16, 16, segID);
         data.putInt(i0);
-        data.putLong(timestamp);
+        data.putInt(timestampRaw);
     }
 
     public void reverse() {

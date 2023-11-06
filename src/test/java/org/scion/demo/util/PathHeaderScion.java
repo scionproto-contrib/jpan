@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
+package org.scion.demo.util;
 
 import com.google.protobuf.ByteString;
+import org.scion.demo.util.HopField;
+import org.scion.demo.util.InfoField;
 import org.scion.proto.daemon.Daemon;
 
 import java.util.Arrays;
 
-import static org.scion.internal.ByteUtil.*;
+import static org.scion.demo.util.ByteUtil.*;
 
 public class PathHeaderScion {
 

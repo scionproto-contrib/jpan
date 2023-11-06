@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.DatagramPacket;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
+import org.scion.demo.util.PathHeaderScion;
 
 public class HeaderParserTest {
 

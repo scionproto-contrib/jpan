@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
 import org.scion.ScionUtil;
+import org.scion.demo.util.PathHeaderScion;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
 

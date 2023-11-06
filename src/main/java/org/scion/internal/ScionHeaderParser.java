@@ -141,7 +141,7 @@ public class ScionHeaderParser {
         // raw path
         byte[] path = new byte[pos + hdrLenBytes - data.position()];
         data.get(path);
-        PathHeaderScionParser.reversePath(path);
+        PathHeaderScionParser.reversePath(ByteBuffer.wrap(path));
 
         // get remote port from UDP overlay
         data.position(pos + hdrLenBytes);
