@@ -15,8 +15,6 @@
 package org.scion.demo.util;
 
 import com.google.protobuf.ByteString;
-import org.scion.demo.util.HopField;
-import org.scion.demo.util.InfoField;
 import org.scion.proto.daemon.Daemon;
 
 import java.util.Arrays;
@@ -178,10 +176,6 @@ public class PathHeaderScion {
         }
     }
 
-    boolean hasConstructionDirection() {
-        return info0.hasConstructionDirection();
-    }
-
     @Override
     public String toString() {
         String s = "SCION path header: " +
@@ -238,18 +232,5 @@ public class PathHeaderScion {
         }
 
         return offsetStart + bytes.size();
-    }
-
-    public int writePath(byte[] data, int offsetStart, byte[] path) {
-        // TODO reset() necessary??? -> info fields !??!?!?
-        currINF = 0;
-        currHF = 0;
-
-        // write
-        for (int i = 0; i < path.length; i++) {
-            data[offsetStart + i] = path[i];  // TODO arraycopy
-        }
-
-        return offsetStart + path.length;
     }
 }
