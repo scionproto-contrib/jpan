@@ -55,7 +55,7 @@ public class ScionSCMPHeader {
 
   @Override
   public String toString() {
-    return "ScionEndToEndExtensionHeader{"
+    return "ScionSCMPHeader{"
         + "type="
         + type
         + ", code="

@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
+package org.scion.demo.util;
+
+import org.scion.demo.util.HopField;
+import org.scion.demo.util.InfoField;
 
 public class PathHeaderOneHopPath {
     // A OneHopPath has exactly one info field and two hop fields

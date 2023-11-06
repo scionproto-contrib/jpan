@@ -152,6 +152,75 @@ public class ScionHeaderParser {
         return ScionSocketAddress.create(srcIsdAs, addr, srcPort, ScionPath.create(path, dstIsdAs, srcIsdAs, firstHopAddress));
     }
 
+    public static InetSocketAddress readDestinationSocketAddress(ByteBuffer data) {
+        int pos = data.position();
+
+        int i0 = data.getInt();
+        int i1 = data.getInt();
+        int i2 = data.getInt();
+        int version = readInt(i0, 0, 4);
+        int trafficLClass = readInt(i0, 4, 8);
+        int flowId = readInt(i0, 12, 20);
+        int nextHeader = readInt(i1, 0, 8);
+        int hdrLen = readInt(i1, 8, 8);
+        int hdrLenBytes = hdrLen * 4;
+        int payLoadLen = readInt(i1, 16, 16);
+        int pathType = readInt(i2, 0, 8);
+        // TODO assert dl/ds == 0 || == 3  && (ds == 0 || == 1)
+        int dt = readInt(i2, 8, 2);
+        int dl = readInt(i2, 10, 2);
+        int st = readInt(i2, 12, 2);
+        int sl = readInt(i2, 14, 2);
+        int reserved = readInt(i2, 16, 16);
+
+        // Address header
+        //  8 bit: DstISD
+        // 48 bit: DstAS
+        //  8 bit: SrcISD
+        // 48 bit: SrcAS
+        //  ? bit: DstHostAddr
+        //  ? bit: SrcHostAddr
+
+        long dstIsdAs = data.getLong();
+        long srcIsdAs = data.getLong();
+
+        byte[] bytesDst = new byte[(dl + 1) * 4];
+        data.get(bytesDst);
+
+
+        // skip dstAddress
+        int skip = (dl + 1) * 4;
+        data.position(data.position() + skip);
+
+        // remote address
+        byte[] bytesSrc = new byte[(sl + 1) * 4];
+        data.get(bytesSrc);
+
+        InetAddress dstIP = null;
+        try {
+            dstIP = InetAddress.getByAddress(bytesDst);
+        } catch (UnknownHostException e) {
+            if (REPORT_ERROR) {
+                throw new ScionException(e);
+            }
+            return null;
+        }
+
+        // raw path
+        byte[] path = new byte[pos + hdrLenBytes - data.position()];
+        data.get(path);
+        //PathHeaderScionParser.reversePath(path);
+
+        // get remote port from UDP overlay
+        data.position(pos + hdrLenBytes);
+        int srcPort = Short.toUnsignedInt(data.getShort());
+        int dstPort = Short.toUnsignedInt(data.getShort());
+
+        // rewind to original offset
+        data.position(pos);
+        return new InetSocketAddress(dstIP, dstPort);
+    }
+
     public static void write(ByteBuffer data, int userPacketLength, int pathHeaderLength, long srcIsdAs, InetAddress srcAddress, long dstIsdAs, InetAddress dstAddress) {
         int sl = srcAddress instanceof Inet4Address ? 0 : 3;
         int dl = dstAddress instanceof Inet4Address ? 0 : 3;

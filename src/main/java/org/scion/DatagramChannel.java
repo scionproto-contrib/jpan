@@ -53,8 +53,8 @@ public class DatagramChannel implements Closeable {
 
     // TODO pass bytes{} instead of remoteAddress -> make ScionPacketHelper.remoteAddress final
     // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
-    ScionPacketHelper2.getUserData(buffer, userBuffer);
-    return ScionPacketHelper2.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
+    ScionPacketHelper.getUserData(buffer, userBuffer);
+    return ScionPacketHelper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
   }
 
   private InetSocketAddress checkAddress(SocketAddress address) {
@@ -109,7 +109,7 @@ public class DatagramChannel implements Closeable {
     int payloadLength = buffer.limit() - buffer.position();
     // TODO reuse, or allocate direct??? Capacity?
     ByteBuffer output = ByteBuffer.allocate(payloadLength + 1000);
-    ScionPacketHelper2.writeHeader(output, getLocalScionAddress(), dstAddress, payloadLength);
+    ScionPacketHelper.writeHeader(output, getLocalScionAddress(), dstAddress, payloadLength);
     output.put(buffer);
     output.flip();
 

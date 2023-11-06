@@ -14,10 +14,12 @@
 
 package org.scion;
 
+import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 /**
@@ -32,13 +34,7 @@ public class PackageVisibilityHelper {
     return service.getPathList(srcIsdAs, dstIsdAs);
   }
 
-  public static InetSocketAddress getDstAddress(byte[] packet) {
-    try {
-      ScionPacketHelper helper = new ScionPacketHelper(null, ScionPacketHelper.PathState.NO_PATH);
-      helper.readScionHeader(packet);
-      return helper.getReceivedDstAddress();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  public static InetSocketAddress getDstAddress(ByteBuffer packet) {
+      return ScionHeaderParser.readDestinationSocketAddress(packet);
   }
 }

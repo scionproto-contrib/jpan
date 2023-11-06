@@ -172,10 +172,10 @@ class MockBorderRouter implements Runnable {
               throw new IllegalStateException();
             }
 
-            InetSocketAddress dstAddress = getDstAddress(buffer);
+            buffer.flip();
+            InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
             // logger.info(name + " forwarding " + buffer.position() + " bytes to " + dstAddress);
 
-            buffer.flip();
             outgoing.send(buffer, dstAddress);
             buffer.clear();
             MockNetwork.nForward.incrementAndGet();
@@ -188,10 +188,6 @@ class MockBorderRouter implements Runnable {
     } finally {
       logger.info("Shutting down router");
     }
-  }
-
-  private InetSocketAddress getDstAddress(ByteBuffer bb) {
-    return PackageVisibilityHelper.getDstAddress(bb.array());
   }
 
   public int getPort1() {
