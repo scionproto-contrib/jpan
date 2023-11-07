@@ -12,6 +12,19 @@ A Java client for [SCION](https://scion.org).
 
 This client can directly connect to SCION without a dispatcher.
 
+## API
+
+The central classes of the API are:
+
+- `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`, except it does 
+  not currently support selectors.
+- `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
+- `ScionPacketHelper`: A utility class to work with SCION packet headers
+- `ScionPacketInspector`: A packet inspector and builder.
+- `ScionService`: Provides methods to request paths and get ISD/AS information.
+- `Scion`, `ScionUtil`, `ScionAddress`, `ScionPath`, `ScionSocketAddress`.
+
+
 ## Demo application - ping pong
 
 There is a simple ping pong client-server application in `src/test/demo`.
