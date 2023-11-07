@@ -10,6 +10,10 @@
     - Define callback for user?
     - throw exception????  -> probably not a good idea
 - We cannot really use "connect()" because the first hop may change if the path changes...? 
+- It seems we cannot use DatagramSocketImpl for implementing a Scion DatagramSocket.
+  Instead we may simply implement a class that is *similar* to DatagramSocket, e.g.
+  with enforcing bind()/connect() before send()/receive() and enforcing that connect() uses
+  ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
 - FIX ScionSocketAddress MUST BE IMMUTABLE!! -> May be used by different Channels concurrently!
@@ -20,6 +24,7 @@
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
 - TEST concurrent path/as/DNS lookup
+- Add ScionPacketInspector! (based on ScionHeaderParser).
 
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.

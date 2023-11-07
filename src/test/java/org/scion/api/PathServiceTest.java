@@ -22,7 +22,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.*;
+import org.scion.PackageVisibilityHelper;
+import org.scion.Scion;
+import org.scion.ScionAddress;
+import org.scion.ScionException;
+import org.scion.ScionPath;
+import org.scion.ScionService;
+import org.scion.ScionUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
 

@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
+import java.nio.channels.SelectableChannel;
 
 public class DatagramChannel implements ByteChannel, Closeable {
 
@@ -138,9 +139,10 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
-  public DatagramChannel configureBlocking(boolean block) throws IOException {
+  // TODO we return `void` here. If we implement SelectableChannel
+  //  this can be changed to return SelectableChannel.
+  public void configureBlocking(boolean block) throws IOException {
     channel.configureBlocking(block);
-    return this;
   }
 
   public SocketAddress getLocalAddress() throws IOException {

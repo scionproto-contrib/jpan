@@ -17,6 +17,10 @@ If we decide we need dispatcher support, it may be easiest to
 adapt the dispatcher to allow connection via a normal port on local host, basically acting as
 a kind of reverse proxy.
 
+## Daemon
+The implementation can (currently) use the daemon. However, since daemon installation may
+be cumbersome on platforms such as Android, we could directly connect to a path service.
+
 ## Library dependencies etc
 
 - Use Maven (instead of Gradle or something else): Maven is still the most used framework and arguable the best (
@@ -38,7 +42,7 @@ a kind of reverse proxy.
 
 Some problems with DatagramSocket:
 - It is not possible to associate a ScionAddress or ScionSocketAddress with a Datagram.
-  This is problematic when seding a datagram, especially on the server side, because 
+  This is problematic when sending a datagram, especially on the server side, because 
   we cannot associate a path with a datagram. The Socket will have to remember **all** incoming
   paths so that it has a path when returning a datagram to a client.
   This may improve somewhat in future if we get reverse lookup for IP addresses -> ISD/AS; 
@@ -53,12 +57,6 @@ Datagram Socket design considerations:
     Otherwise we can (as proposed in JEP 373) wrap around an old DatagramSocket and use
     the nio implementation only when it is available (running on JDK 15 or later).
     See also deprecation note: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
-    **UPDATE**
-    - Inheritance without supplying `DatagramSocketImpl` is not possible because DatagramSocketImpl calls `bind()` on
-      itself. However, we need to overwrite `bind()` to intercept external API calls because internally we need to bind
-      to the border router.
-      **TODO This makes no sense. bind() should always map to the local port. Only connect() would cause a problem...** 
-    - Inheritance with `DatagramSocketImpl` is not straight forward. **TBD**
 
 - **Copy buffers?** We copy a packet's data array do a new DataGramPacket for the user.
   The alternative would be to use offset/length, however, this would not be really
@@ -97,7 +95,18 @@ Datagram Socket design considerations:
 
 # TODO
 
-## DataGramSocket
+## DatagramChannel
+
+### Comments
+* Selectors: Implementing a selectable Channel intentionally requires reimplementing
+  the whole Selector infrastructure, see also https://bugs.openjdk.org/browse/JDK-8191884.
+
+## DatagramSocket
+
+**DatagramSockets are currently not supported and may never be supported**. 
+DatagramSockets have no means of handling paths transparently (see discussion above).
+That means we would need additional functions for sending/receiving Scion packets.
+This is possible but usage is not transparent and inconvenient. 
 
 * [ ] Multicast support, check
   e.g. [javadoc](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html)
