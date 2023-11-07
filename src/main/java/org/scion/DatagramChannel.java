@@ -20,13 +20,13 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
-import java.nio.channels.SelectableChannel;
 
 public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
   private boolean isBound = false;
   private ScionSocketAddress localScionAddress;
+  private ScionSocketAddress remoteScionAddress;
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
 
   public static DatagramChannel open() throws IOException {
@@ -163,21 +163,76 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.close();
   }
 
+  @Deprecated // TODO currently only used for read()
+  public DatagramChannel connect(SocketAddress addr) throws IOException {
+    if (addr instanceof ScionSocketAddress) {
+      remoteScionAddress = (ScionSocketAddress) addr;
+    } else if (addr instanceof InetSocketAddress){
+      InetSocketAddress inetAddress = (InetSocketAddress) addr;
+      remoteScionAddress = ScionSocketAddress.create(inetAddress);
+    } else {
+      throw new IllegalArgumentException("connect() requires an InetSocketAddress or a ScionSocketAddress.");
+    }
+    channel.connect(remoteScionAddress.getPath().getFirstHopAddress());
+    return this;
+  }
+
+  /**
+   *
+   * @param dst
+   * @return
+   * @throws IOException
+   * @see java.nio.channels.DatagramChannel#read(ByteBuffer)
+   */
   @Override
   public int read(ByteBuffer dst) throws IOException {
-    //    if (channel.isOpen()) {
-    //      throw new IllegalStateException("Channel must be bound when calling read().");
-    //    }
-    throw new UnsupportedOperationException();
-    // return 0; // TODO
+    // TODO why mut it be connected? The remote address is not even used during this call....?!
+//    if (!channel.isConnected()) {
+//      throw new IllegalStateException("Channel must be connected when calling read().");
+//    }
+
+    // TODO test these
+    // If there are more bytes in the datagram than remain in the given buffer then the
+    // remainder of the datagram is silently discarded. Otherwise this method behaves exactly
+    // as specified in the ReadableByteChannel interface.
+
+    // TODO test these
+    // Returns:
+    // The number of bytes read, possibly zero, or -1 if the channel has reached end-of-stream
+
+    buffer.clear();
+    channel.read(buffer);
+    int len = buffer.position();
+    ScionPacketHelper.getUserData(buffer, dst);
+    buffer.clear();
+    return len;
   }
 
   @Override
   public int write(ByteBuffer src) throws IOException {
-    if (channel.isConnected()) {
+    if (!channel.isConnected()) {
       throw new IllegalStateException("Channel must be connected when calling write().");
     }
-    throw new UnsupportedOperationException();
-    // return 0; // TODO
+    if (localScionAddress == null) {
+      localScionAddress = ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
+    }
+
+    buffer.clear();
+    //buffer.reset();
+    int len = src.limit() - src.position();
+    ScionPacketHelper.writeHeader(buffer, localScionAddress, remoteScionAddress, len);
+    buffer.put(src);
+    buffer.flip();
+
+    channel.write(buffer);
+
+    // TODO ? What is this function? Can we use it?       channel.socket();
+
+    buffer.clear();
+    return len; // TODO verify API
+  }
+
+  public boolean isConnected() {
+    return channel.isConnected();
   }
 }
