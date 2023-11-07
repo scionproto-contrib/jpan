@@ -63,10 +63,8 @@ class DatagramChannelSAPingPongTest {
 
         // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
         ByteBuffer response = ByteBuffer.allocate(512);
-        SocketAddress addr;
-        do {
-          addr = channel.receive(response);
-        } while (addr == null);
+        SocketAddress address = channel.receive(response);
+        assertNotNull(address);
 
         response.flip();
         String pong = Charset.defaultCharset().decode(response).toString();

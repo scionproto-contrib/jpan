@@ -24,7 +24,10 @@
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
 - TEST concurrent path/as/DNS lookup
-- Add ScionPacketInspector! (based on ScionHeaderParser).
+- Add ScionPacketInspector! (based on ScionHeaderParser).  
+- ScionPacketParser.strip()/augment(): 
+  - strip(buffer) sets position() and returns address/path
+  - augment(buffer, address+path) inserts scionHeader 
 
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.

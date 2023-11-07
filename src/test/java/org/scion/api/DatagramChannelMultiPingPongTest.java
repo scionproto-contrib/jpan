@@ -20,140 +20,52 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
-import org.scion.testutil.MockNetwork;
 
 class DatagramChannelMultiPingPongTest {
 
-  private static final int N_REPEAT = 50;
-  private static final int N_CLIENTS = 20;
   private static final String MSG = "Hello world!";
-  private static final CountDownLatch BARRIER = new CountDownLatch(N_CLIENTS + 1);
-
-  private final AtomicInteger nClient = new AtomicInteger();
-  private final AtomicInteger nServer = new AtomicInteger();
-  private final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
-
-  @BeforeEach
-  public void beforeEach() {
-    MockNetwork.getAndResetForwardCount();
-  }
 
   @Test
-  void testPingPong() throws InterruptedException {
-    MockNetwork.startTiny();
-
-    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
-    Thread server = new Thread(() -> server(serverAddress), "Server-thread");
-    server.start();
-    ScionSocketAddress scionAddress = ScionSocketAddress.create(serverAddress);
-    Thread[] clients = new Thread[N_CLIENTS];
-    for (int i = 0; i < clients.length; i++) {
-      int id = i;
-      clients[i] = new Thread(() -> client(scionAddress, id), "Client-thread-" + i);
-      clients[i].start();
-    }
-
-    // This enables shutdown in case of an error.
-    // Wait for all threads to finish.
-    if (!BARRIER.await(10, TimeUnit.SECONDS)) {
-      for (Thread client : clients) {
-        client.interrupt();
-      }
-      server.interrupt();
-      if (!BARRIER.await(1, TimeUnit.SECONDS)) {
-        checkExceptions();
-        fail();
-      }
-    }
-
-    MockNetwork.stopTiny();
-
-    checkExceptions();
-    assertEquals(N_REPEAT * N_CLIENTS * 2, MockNetwork.getAndResetForwardCount());
-    assertEquals(N_REPEAT * N_CLIENTS, nClient.get());
-    assertEquals(N_REPEAT * N_CLIENTS, nServer.get());
+  public void test() {
+    PingPongHelper.ServerEndPoint serverFn = this::server;
+    PingPongHelper.ClientEndPoint clientFn = this::client;
+    PingPongHelper pph = new PingPongHelper(1, 20, 50);
+    pph.runPingPong(serverFn, clientFn);
   }
 
-  private void checkExceptions() {
-    for (Throwable e : exceptions) {
-      e.printStackTrace();
-    }
-    assertEquals(0, exceptions.size());
-    exceptions.clear();
-  }
-
-  private void client(ScionSocketAddress serverAddress, int id) {
+  private void client(DatagramChannel channel, ScionSocketAddress serverAddress, int id)
+      throws IOException {
     String message = MSG + "-" + id;
-    try (DatagramChannel channel = DatagramChannel.open()) {
-      channel.configureBlocking(true);
+    ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+    channel.send(sendBuf, serverAddress);
 
-      for (int i = 0; i < N_REPEAT; i++) {
-        ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-        channel.send(sendBuf, serverAddress);
+    // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+    ByteBuffer response = ByteBuffer.allocate(512);
+    ScionSocketAddress address = channel.receive(response);
+    assertNotNull(address);
+    assertEquals(serverAddress.getAddress(), address.getAddress());
+    assertEquals(serverAddress.getPort(), address.getPort());
 
-        // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-        ByteBuffer response = ByteBuffer.allocate(512);
-        ScionSocketAddress addr = channel.receive(response);
-        assertNotNull(addr);
-        assertEquals(serverAddress.getAddress(), addr.getAddress());
-        assertEquals(serverAddress.getPort(), addr.getPort());
-
-        response.flip();
-        String pong = Charset.defaultCharset().decode(response).toString();
-        assertEquals(message, pong);
-
-        nClient.incrementAndGet();
-      }
-    } catch (IOException e) {
-      System.out.println("CLIENT: I/O error: " + e.getMessage());
-      exceptions.add(e);
-      throw new RuntimeException(e);
-    } catch (Exception e) {
-      exceptions.add(e);
-    } finally {
-      BARRIER.countDown();
-    }
+    response.flip();
+    String pong = Charset.defaultCharset().decode(response).toString();
+    assertEquals(message, pong);
   }
 
-  private void server(InetSocketAddress localAddress) {
-    try (DatagramChannel channel = DatagramChannel.open().bind(localAddress)) {
-      channel.configureBlocking(true);
-      assertEquals(localAddress, channel.getLocalAddress());
-      service(channel);
-    } catch (IOException e) {
-      System.out.println("SERVER: I/O error: " + e.getMessage());
-      exceptions.add(e);
-    } catch (Exception e) {
-      exceptions.add(e);
-    } finally {
-      BARRIER.countDown();
-    }
-  }
+  private void server(DatagramChannel channel) throws IOException {
+    ByteBuffer request = ByteBuffer.allocate(512);
+    // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
+    SocketAddress address = channel.receive(request);
 
-  private void service(DatagramChannel channel) throws IOException {
-    for (int i = 0; i < N_REPEAT * N_CLIENTS; i++) {
-      ByteBuffer request = ByteBuffer.allocate(512);
-      // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
-      SocketAddress addr = channel.receive(request);
+    request.flip();
+    String msg = Charset.defaultCharset().decode(request).toString();
+    assertTrue(msg.startsWith(MSG));
+    assertTrue(MSG.length() + 3 >= msg.length());
 
-      request.flip();
-      String msg = Charset.defaultCharset().decode(request).toString();
-      assertTrue(msg.startsWith(MSG));
-      assertTrue(MSG.length() + 3 >= msg.length());
-
-      // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
-      request.flip();
-      channel.send(request, addr);
-      nServer.incrementAndGet();
-    }
+    // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
+    request.flip();
+    channel.send(request, address);
   }
 }
