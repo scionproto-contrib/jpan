@@ -14,9 +14,6 @@
 
 package org.scion.demo.util;
 
-import org.scion.demo.util.HopField;
-import org.scion.demo.util.InfoField;
-
 public class PathHeaderOneHopPath {
     // A OneHopPath has exactly one info field and two hop fields
     private final InfoField info;

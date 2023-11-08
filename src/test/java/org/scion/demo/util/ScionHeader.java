@@ -74,7 +74,7 @@ public class ScionHeader {
     private int srcHost2;
     private int srcHost3;
 
-    private int len = 3 * 4;
+    private final int len = 3 * 4;
 
     public int read(byte[] data, int headerOffset) {
         int offset = headerOffset;

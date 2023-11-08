@@ -14,10 +14,6 @@
 
 package org.scion.internal;
 
-import org.scion.proto.daemon.Daemon;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
 import static org.scion.internal.ByteUtil.*;

@@ -46,14 +46,6 @@ class PingPongHelper {
     MockNetwork.getAndResetForwardCount();
   }
 
-  public PingPongHelper() {
-    this.nClients = 10;
-    this.nServers = 1;
-    this.nRounds = 20;
-    BARRIER = new CountDownLatch(nClients + nServers);
-    MockNetwork.getAndResetForwardCount();
-  }
-
   private class Endpoint implements Runnable {
 
     private final ServerEndPoint server;
