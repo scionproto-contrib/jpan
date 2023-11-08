@@ -17,7 +17,6 @@ package org.scion;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.internal.OverlayHeader;
-import org.scion.internal.PathHeaderScionParser;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 
@@ -57,12 +56,12 @@ class ScionPacketHelper {
       Daemon.Path path = dstSocketAddress.getPath().getPathInternal();
       ScionHeaderParser.write(
           data, payloadLength, path.getRaw().size(), srcIA, srcAddress, dstIA, dstAddress);
-      PathHeaderScionParser.writePath(data, path.getRaw());
+      ScionHeaderParser.writePath(data, path.getRaw());
     } else {
       byte[] path = dstSocketAddress.getPath().getRawPath();
       ScionHeaderParser.write(
           data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
-      PathHeaderScionParser.writePath(data, path);
+      ScionHeaderParser.writePath(data, path);
     }
     OverlayHeader.write2(data, payloadLength, srcPort, dstPort);
   }

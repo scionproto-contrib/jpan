@@ -106,7 +106,7 @@ public class HeaderComposer2Test {
 
     // Socket internal = write header
     ScionHeaderParser.write(p, userPacket.limit(), path.getRaw().size(), srcIA, srcAddress, dstIA, dstAddress);
-    PathHeaderScionParser.writePath(p, path.getRaw());
+    ScionHeaderParser.writePath(p, path.getRaw());
 
     // Pseudo header
     OverlayHeader.write2(p, userPacket.limit(), 100, dstPort);
