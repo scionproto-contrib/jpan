@@ -35,7 +35,7 @@ public class InfoField {
     // 16 bits : segID
     private int segID;
     // 32 bits : timestamp (unsigned int)
-    private long timestamp;
+    private long timestamp; // TODO timestamp raw?
 
     InfoField() {
 

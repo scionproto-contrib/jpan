@@ -112,31 +112,19 @@ public class PathHeaderScion {
         int offset = offsetStart;
         int i0 = 0;
 
-        // TODO simplify
         i0 = writeInt(i0, 0, 2, 0); // CurrINF = 0
         i0 = writeInt(i0, 2, 6, 0); // CurrHF = 0
         i0 = writeInt(i0, 8, 6, 0); // RSV = 0
+        i0 = writeInt(i0, 14, 6, seg0Len);
+        i0 = writeInt(i0, 20, 6, seg1Len);
+        i0 = writeInt(i0, 26, 6, seg2Len);
+        offset = writeInt(data, offset, i0);
+        offset = info0.write(data, offset);
         if (seg2Len > 0) {
-            i0 = writeInt(i0, 14, 6, seg0Len);
-            i0 = writeInt(i0, 20, 6, seg1Len);
-            i0 = writeInt(i0, 26, 6, seg2Len);
-            offset = writeInt(data, offset, i0);
-            offset = info0.write(data, offset);
             offset = info1.write(data, offset);
             offset = info2.write(data, offset);
         } else if (seg1Len > 0) {
-            i0 = writeInt(i0, 14, 6, seg0Len);
-            i0 = writeInt(i0, 20, 6, seg1Len);
-            i0 = writeInt(i0, 26, 6, 0);
-            offset = writeInt(data, offset, i0);
-            offset = info0.write(data, offset);
             offset = info1.write(data, offset);
-        } else {
-            i0 = writeInt(i0, 14, 6, seg0Len);
-            i0 = writeInt(i0, 20, 6, 0);
-            i0 = writeInt(i0, 26, 6, 0);
-            offset = writeInt(data, offset, i0);
-            offset = info0.write(data, offset);
         }
 
         for (int i = 0; i < seg0Len + seg1Len + seg2Len; i++) {
@@ -145,7 +133,6 @@ public class PathHeaderScion {
 
         return offset;
     }
-
 
     public void reverse() {
         currINF = 0;

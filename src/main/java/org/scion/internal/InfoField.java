@@ -34,8 +34,7 @@ public class InfoField {
     // 16 bits : segID
     private int segID;
     // 32 bits : timestamp (unsigned int)
-    private long timestamp;
-    // THis is an unsigned 'int' stored in a signed integer.
+    // This is an unsigned 'int' stored in a signed integer.
     private int timestampRaw;
 
     InfoField() {
@@ -63,14 +62,6 @@ public class InfoField {
         data.putInt(timestampRaw);
     }
 
-    public void reverse() {
-        c = !c;
-    }
-
-    public int length() {
-        return 8;
-    }
-
     @Override
     public String toString() {
         return "InfoField{" +
@@ -85,7 +76,7 @@ public class InfoField {
                 ", C=" + c +
                 ", reserved=" + reserved +
                 ", segID=" + segID +
-                ", timestamp=" + Long.toUnsignedString(timestamp) +
+                ", timestamp=" + Integer.toUnsignedString(timestampRaw) +
                 '}';
     }
 }

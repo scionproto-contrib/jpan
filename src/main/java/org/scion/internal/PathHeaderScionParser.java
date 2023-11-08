@@ -37,23 +37,18 @@ public class PathHeaderScionParser {
     private int seg1Len;
     // 6 bit : Seg2Len
     private int seg2Len;
-    private InfoField info0;
-    private InfoField info1;
-    private InfoField info2;
+    private long info0;
+    private long info1;
+    private long info2;
 
     private final HopField[] hops = new HopField[64];
     private int nHops;
 
-    private int len;
-
     public PathHeaderScionParser() {
-        this.info0 = new InfoField();
-        this.info1 = new InfoField();
-        this.info2 = new InfoField();
         Arrays.setAll(hops, value -> new HopField());
     }
 
-    public static boolean reversePath(ByteBuffer data) {
+    public static void reversePath(ByteBuffer data) {
         PathHeaderScionParser parser = new PathHeaderScionParser();
         int pos = data.position();
         parser.read(data);
@@ -62,8 +57,6 @@ public class PathHeaderScionParser {
 
         data.position(pos);
         parser.write(data);
-        // TODO
-        return true;
     }
 
     private void read(ByteBuffer data) {
@@ -77,10 +70,8 @@ public class PathHeaderScionParser {
         // 6 bit : Seg2Len
 
         int pos = data.position();
-        int offset = 0;
 
         int i0 = data.getInt();
-        offset += 4;
         currINF = readInt(i0, 0, 2);
         currHF = readInt(i0, 2, 6);
         reserved = readInt(i0, 8, 6);
@@ -89,35 +80,28 @@ public class PathHeaderScionParser {
         seg2Len = readInt(i0, 26, 6);
 
         if (seg0Len > 0) {
-            info0.read(data);
-            offset += info0.length();
+            info0 = data.getLong();
             if (seg1Len > 0) {
-                info1.read(data);
-                offset += info1.length();
+                info1 = data.getLong();
                 if (seg2Len > 0) {
-                    info2.read(data);
-                    offset += info2.length();
+                    info2 = data.getLong();
                 }
             }
         }
 
         for (int i = 0; i < seg0Len; i++) {
             hops[nHops].read(data);
-            offset += hops[nHops].length();
             nHops++;
         }
         for (int i = 0; i < seg1Len; i++) {
             hops[nHops].read(data);
-            offset += hops[nHops].length();
             nHops++;
         }
         for (int i = 0; i < seg2Len; i++) {
             hops[nHops].read(data);
-            offset += hops[nHops].length();
             nHops++;
         }
 
-        len = offset;
         data.position(pos);
     }
 
@@ -125,33 +109,20 @@ public class PathHeaderScionParser {
         int pos = data.position();
         int i0 = 0;
 
-        // TODO simplify
         i0 = writeInt(i0, 0, 2, 0); // CurrINF = 0
         i0 = writeInt(i0, 2, 6, 0); // CurrHF = 0
         i0 = writeInt(i0, 8, 6, 0); // RSV = 0
+        i0 = writeInt(i0, 14, 6, seg0Len);
+        i0 = writeInt(i0, 20, 6, seg1Len);
+        i0 = writeInt(i0, 26, 6, seg2Len);
+        data.putInt(i0);
+        data.putLong(info0);
         if (seg2Len > 0) {
-            i0 = writeInt(i0, 14, 6, seg0Len);
-            i0 = writeInt(i0, 20, 6, seg1Len);
-            i0 = writeInt(i0, 26, 6, seg2Len);
-            data.putInt(i0);
-            info0.write(data);
-            info1.write(data);
-            info2.write(data);
+            data.putLong(info1);
+            data.putLong(info2);
         } else if (seg1Len > 0) {
-            i0 = writeInt(i0, 14, 6, seg0Len);
-            i0 = writeInt(i0, 20, 6, seg1Len);
-            i0 = writeInt(i0, 26, 6, 0);
-            data.putInt(i0);
-            info0.write(data);
-            info1.write(data);
-        } else {
-            i0 = writeInt(i0, 14, 6, seg0Len);
-            i0 = writeInt(i0, 20, 6, 0);
-            i0 = writeInt(i0, 26, 6, 0);
-            data.putInt(i0);
-            info0.write(data);
+            data.putLong(info1);
         }
-
         for (int i = 0; i < seg0Len + seg1Len + seg2Len; i++) {
             hops[i].write(data);
         }
@@ -162,24 +133,31 @@ public class PathHeaderScionParser {
     private void reverse() {
         currINF = 0;
         currHF = 0;
+        // reverse order
         if (seg2Len > 0) {
             int dummySegLen = seg0Len;
             seg0Len = seg2Len;
             seg2Len = dummySegLen;
-            InfoField dummyInfo = info0;
+            long dummyInfo = info0;
             info0 = info2;
             info2 = dummyInfo;
         } else if (seg1Len > 0) {
             int dummySegLen = seg0Len;
             seg0Len = seg1Len;
             seg1Len = dummySegLen;
-            InfoField dummyInfo = info0;
+            long dummyInfo = info0;
             info0 = info1;
             info1 = dummyInfo;
         }
-        info0.reverse();
-        info1.reverse();
-        info2.reverse();
+        // reverse direction
+        long currDirMask = 1L << 56;
+        info0 ^= currDirMask;
+        if (seg1Len > 0) {
+            info1 ^= currDirMask;
+        }
+        if (seg2Len > 0) {
+            info2 ^= currDirMask;
+        }
 
         for (int i = 0, j = nHops - 1; i < j; i++, j--) {
             HopField dummy = hops[i];
@@ -210,10 +188,6 @@ public class PathHeaderScionParser {
             s += "\n    hop=" + hops[i];
         }
         return s;
-    }
-
-    public int length() {
-        return len;
     }
 
     public static void writePath(ByteBuffer data, ByteString path) {
