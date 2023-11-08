@@ -17,7 +17,6 @@ package org.scion.internal;
 import static org.scion.internal.ByteUtil.*;
 
 import com.google.protobuf.ByteString;
-
 import java.nio.ByteBuffer;
 
 public class PathHeaderScionParser {

@@ -14,12 +14,11 @@
 
 package org.scion.demo.util;
 
-import com.google.protobuf.ByteString;
-import org.scion.proto.daemon.Daemon;
-
-import java.util.Arrays;
-
 import static org.scion.demo.util.ByteUtil.*;
+
+import com.google.protobuf.ByteString;
+import java.util.Arrays;
+import org.scion.proto.daemon.Daemon;
 
 public class PathHeaderScion {
 
