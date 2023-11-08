@@ -20,7 +20,7 @@ import org.scion.demo.util.ToStringUtil;
 import java.io.IOException;
 import java.net.*;
 
-import static org.scion.demo.util.ByteUtil.*;
+import static org.scion.demo.inspector.ByteUtil.*;
 
 /**
  * Class for reading, writing and storing the Common Header and Address Header.

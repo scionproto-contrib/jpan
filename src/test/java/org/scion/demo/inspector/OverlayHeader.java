@@ -14,9 +14,9 @@
 
 package org.scion.demo.inspector;
 
-import static org.scion.demo.util.ByteUtil.readInt;
-import static org.scion.demo.util.ByteUtil.write16;
-import static org.scion.demo.util.ByteUtil.writeInt;
+import static org.scion.demo.inspector.ByteUtil.readInt;
+import static org.scion.demo.inspector.ByteUtil.write16;
+import static org.scion.demo.inspector.ByteUtil.writeInt;
 
 import java.nio.ByteBuffer;
 

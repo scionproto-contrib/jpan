@@ -14,9 +14,7 @@
 
 package org.scion.demo.inspector;
 
-import org.scion.demo.util.ByteUtil;
-
-import static org.scion.demo.util.ByteUtil.*;
+import static org.scion.demo.inspector.ByteUtil.*;
 
 import java.nio.ByteBuffer;
 
@@ -53,8 +51,8 @@ public class HopField {
     }
     public void read(byte[] data, int offset) {
         reset(); // TODO this is duplicate effort.....
-        int i0 = ByteUtil.readInt(data, offset);
-        long l1 = ByteUtil.readLong(data, offset + 4);
+        int i0 = readInt(data, offset);
+        long l1 = readLong(data, offset + 4);
         r0 = readBoolean(i0, 0);
         r1 = readBoolean(i0, 0);
         r2 = readBoolean(i0, 0);

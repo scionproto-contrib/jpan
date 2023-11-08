@@ -14,7 +14,7 @@
 
 package org.scion.demo.inspector;
 
-import static org.scion.demo.util.ByteUtil.*;
+import static org.scion.demo.inspector.ByteUtil.*;
 
 import com.google.protobuf.ByteString;
 import java.util.Arrays;
