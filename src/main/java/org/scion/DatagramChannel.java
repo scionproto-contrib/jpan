@@ -20,6 +20,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.NotYetConnectedException;
 
 public class DatagramChannel implements ByteChannel, Closeable {
 
@@ -178,19 +180,18 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   /**
-   *
-   * @param dst
-   * @return
-   * @throws IOException
+   * Read data from the connected stream.
+   * @param dst The ByteBuffer that should contain data from the stream.
+   * @return The number of bytes that were read into the buffer or -1 if end of stream was reached.
+   * @throws NotYetConnectedException If the channel is not connected.
+   * @throws java.nio.channels.ClosedChannelException If the channel is closed.
+   * @throws IOException If some IOError occurs.
    * @see java.nio.channels.DatagramChannel#read(ByteBuffer)
    */
   @Override
   public int read(ByteBuffer dst) throws IOException {
-    // TODO why mut it be connected? The remote address is not even used during this call....?!
-//    if (!channel.isConnected()) {
-//      throw new IllegalStateException("Channel must be connected when calling read().");
-//    }
-
+    checkOpen();
+    checkConnected();
     // TODO test these
     // If there are more bytes in the datagram than remain in the given buffer then the
     // remainder of the datagram is silently discarded. Otherwise this method behaves exactly
@@ -212,11 +213,19 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return dst.position() - len;
   }
 
+  /**
+   * Write the content of a ByteBuffer to a connection.
+   * @param src The data to send
+   * @return The number of bytes written.
+   * @throws NotYetConnectedException If the channel is not connected.
+   * @throws java.nio.channels.ClosedChannelException If the channel is closed.
+   * @throws IOException If some IOError occurs.
+   * @see java.nio.channels.DatagramChannel#write(ByteBuffer[])
+   */
   @Override
   public int write(ByteBuffer src) throws IOException {
-    if (!channel.isConnected()) {
-      throw new IllegalStateException("Channel must be connected when calling write().");
-    }
+    checkOpen();
+    checkConnected();
     if (localScionAddress == null) {
       localScionAddress = ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
     }
@@ -233,7 +242,19 @@ public class DatagramChannel implements ByteChannel, Closeable {
     //    We have to overwrite it if it is in one of the interfaces!
 
     buffer.clear();
-    return len; // TODO verify API
+    return len;
+  }
+
+  private void checkOpen() throws ClosedChannelException {
+    if (!channel.isOpen()) {
+      throw new ClosedChannelException();
+    }
+  }
+
+  private void checkConnected() {
+    if (!channel.isConnected()) {
+      throw new NotYetConnectedException();
+    }
   }
 
   public boolean isConnected() {

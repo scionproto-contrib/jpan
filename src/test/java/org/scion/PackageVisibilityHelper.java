@@ -14,13 +14,13 @@
 
 package org.scion;
 
-import org.scion.internal.ScionHeaderParser;
-import org.scion.proto.daemon.Daemon;
-
-import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.scion.internal.ScionHeaderParser;
+import org.scion.proto.daemon.Daemon;
 
 /**
  * Helper class to access package private methods in org.scion.ScionService and ScionPacketHelper.
@@ -36,5 +36,14 @@ public class PackageVisibilityHelper {
 
   public static InetSocketAddress getDstAddress(ByteBuffer packet) {
       return ScionHeaderParser.readDestinationSocketAddress(packet);
+  }
+
+  public static ScionSocketAddress createDummyAddress() {
+    ScionPath path = ScionPath.create(new byte[0], 0, 0, new InetSocketAddress(44444));
+    try {
+      return ScionSocketAddress.create(0, Inet4Address.getLocalHost(), 55555, path);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

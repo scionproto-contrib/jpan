@@ -209,8 +209,8 @@ public class ScionService {
   }
 
   /**
-   * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
-   * class.
+   * TODO Have a Daemon singleton + Move this method into ScionAddress +
+   *    Create ScionSocketAddress class.
    *
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
@@ -244,21 +244,21 @@ public class ScionService {
           txtRecord = props.substring(posStart + 1);
         }
         // No more checking here, we assume that properties are save
-        return parse(txtRecord, hostName);
+        return parseTxtRecord(txtRecord, hostName);
       }
     }
 
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
-        // throw new UnknownHostException("No DNS entry found for host: " + hostname); // TODO ?
-        throw new ScionException("No DNS entry found for host: " + hostName);
+        //throw new UnknownHostException("No DNS entry found for host: " + hostName); // TODO ?
+        throw new ScionException("No DNS entry found for host: " + hostName); // TODO test
       }
       for (int i = 0; i < records.length; i++) {
         TXTRecord txt = (TXTRecord) records[i];
         String entry = txt.rdataToString();
         if (entry.startsWith("\"scion=")) {
-          return parse(entry, hostName);
+          return parseTxtRecord(entry, hostName);
         }
       }
     } catch (TextParseException e) {
@@ -282,10 +282,10 @@ public class ScionService {
     //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
     //    InetAddressResolver r = new InetAddressResolver();
 
-    throw new ScionException("Host has no SCION entry: " + hostName); // TODO test
+    throw new ScionException("Host has no SCION TXT entry: " + hostName); // TODO test
   }
 
-  private ScionAddress parse(String txtEntry, String hostName) {
+  private ScionAddress parseTxtRecord(String txtEntry, String hostName) {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
     long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));

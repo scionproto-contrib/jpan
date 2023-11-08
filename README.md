@@ -10,15 +10,17 @@
 
 A Java client for [SCION](https://scion.org).
 
-This client can directly connect to SCION without a dispatcher.
+This client can directly connect to SCION **without dispatcher**.
 
 ## API
 
 The central classes of the API are:
 
-- `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`, except it does 
-  not currently support selectors.
+- `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
+  `Channel` and `ByteChannel`. Scattering. gathering, multicast and selectors are currently not
+  supported.
 - `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
+  This is currently deprecated because it does not work well.
 - `ScionPacketHelper`: A utility class to work with SCION packet headers
 - `ScionPacketInspector`: A packet inspector and builder.
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
