@@ -35,7 +35,7 @@ class DatagramChannelMultiPingPongRWTest {
   public void test() {
     PingPongHelper.ServerEndPoint serverFn = this::server;
     PingPongHelper.ClientEndPoint clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 1, 1);
+    PingPongHelper pph = new PingPongHelper(1, 10, 10);
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -52,7 +52,7 @@ class DatagramChannelMultiPingPongRWTest {
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
     int len = channel.read(response);
-    assertEquals(0, len);
+    assertEquals(14, len);
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();

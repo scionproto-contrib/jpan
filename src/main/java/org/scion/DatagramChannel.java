@@ -201,11 +201,15 @@ public class DatagramChannel implements ByteChannel, Closeable {
     // The number of bytes read, possibly zero, or -1 if the channel has reached end-of-stream
 
     buffer.clear();
-    channel.read(buffer);
-    int len = buffer.position();
+    int bytesRead = channel.read(buffer);
+    if (bytesRead == -1) {
+      return -1;
+    }
+    int len = dst.position();
+    buffer.flip();
     ScionPacketHelper.getUserData(buffer, dst);
     buffer.clear();
-    return len;
+    return dst.position() - len;
   }
 
   @Override
@@ -218,7 +222,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
 
     buffer.clear();
-    //buffer.reset();
     int len = src.limit() - src.position();
     ScionPacketHelper.writeHeader(buffer, localScionAddress, remoteScionAddress, len);
     buffer.put(src);
@@ -227,6 +230,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.write(buffer);
 
     // TODO ? What is this function? Can we use it?       channel.socket();
+    //    We have to overwrite it if it is in one of the interfaces!
 
     buffer.clear();
     return len; // TODO verify API
