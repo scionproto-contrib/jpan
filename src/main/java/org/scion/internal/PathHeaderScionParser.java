@@ -14,180 +14,77 @@
 
 package org.scion.internal;
 
-import static org.scion.internal.ByteUtil.*;
+import static org.scion.internal.ByteUtil.readInt;
+import static org.scion.internal.ByteUtil.writeInt;
 
 import com.google.protobuf.ByteString;
 import java.nio.ByteBuffer;
 
 public class PathHeaderScionParser {
 
-    // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
-    private int currINF;
-    // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
-    private int currHF;
-    // 6 bit : RSV
-    private int reserved;
-    // Up to 3 Info fields and up to 64 Hop fields
-    // The number of hop fields in a given segment. Seg,Len > 0 implies the existence of info field i.
-    // 6 bit : Seg0Len
-    private int seg0Len;
-    // 6 bit : Seg1Len
-    private int seg1Len;
-    // 6 bit : Seg2Len
-    private int seg2Len;
-    private long info0;
-    private long info1;
-    private long info2;
-    private final int[] hops = new int[64 * 3];  // 3 integer per field
-    private int nHops;
+  public static void reversePathInPlace(ByteBuffer data) {
+    int pos = data.position();
+    int i0 = data.getInt();
+    int seg0Len = readInt(i0, 14, 6);
+    int seg1Len = readInt(i0, 20, 6);
+    int seg2Len = readInt(i0, 26, 6);
 
-    public PathHeaderScionParser() {
+    // set CurrINF=0; CurrHF=0; RSV=0
+    int i0R = 0;
+    i0R = writeInt(i0R, 0, 2, 0); // CurrINF = 0
+    i0R = writeInt(i0R, 2, 6, 0); // CurrHF = 0
+    i0R = writeInt(i0R, 8, 6, 0); // RSV = 0
+    // reverse segLen
+    int seg0LenR = seg2Len > 0 ? seg2Len : seg1Len > 0 ? seg1Len : seg0Len;
+    int seg1LenR = seg2Len > 0 ? seg1Len : seg1Len > 0 ? seg0Len : seg1Len;
+    int seg2LenR = seg2Len > 0 ? seg0Len : seg2Len;
+    i0R = writeInt(i0R, 14, 6, seg0LenR);
+    i0R = writeInt(i0R, 20, 6, seg1LenR);
+    i0R = writeInt(i0R, 26, 6, seg2LenR);
+    data.putInt(pos, i0R);
 
+    // info fields
+    int posInfo = data.position();
+    long info0 = data.getLong();
+    long info1 = seg1Len > 0 ? data.getLong() : 0;
+    long info2 = seg2Len > 0 ? data.getLong() : 0;
+    long info0R = seg2Len > 0 ? info2 : seg1Len > 0 ? info1 : info0;
+    long info1R = seg2Len > 0 ? info1 : seg1Len > 0 ? info0 : info1;
+    long info2R = seg2Len > 0 ? info0 : info2;
+
+    data.position(posInfo);
+    long currDirMask = 1L << 56; // For inverting the CurrDir flag.
+    data.putLong(info0R ^ currDirMask);
+    if (seg1LenR > 0) {
+      data.putLong(info1R ^ currDirMask);
+    }
+    if (seg1LenR > 0) {
+      data.putLong(info2R ^ currDirMask);
     }
 
-    public static void reversePath(ByteBuffer data) {
-        PathHeaderScionParser parser = new PathHeaderScionParser();
-        int pos = data.position();
-        parser.read(data);
-
-        parser.reverse();
-
-        data.position(pos);
-        parser.write(data);
+    // hop fields
+    int posHops = data.position();
+    int nHops = seg0Len + seg1Len + seg2Len;
+    for (int i = 0, j = nHops - 1; i < j; i++, j--) {
+      int posI = posHops + i * 3 * 4; // 3 int per HopField and 4 bytes per int
+      int posJ = posHops + j * 3 * 4;
+      for (int x = 0; x < 3; x++) {
+        int dummy = data.getInt(posI + x * 4);
+        data.putInt(posI + x * 4, data.getInt(posJ + x * 4));
+        data.putInt(posJ + x * 4, dummy);
+      }
     }
 
-    private void read(ByteBuffer data) {
-        // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
-        // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
-        // 6 bit : RSV
-        // Up to 3 Info fields and up to 64 Hop fields
-        // The number of hop fields in a given segment. Seg,Len > 0 implies the existence of info field i.
-        // 6 bit : Seg0Len
-        // 6 bit : Seg1Len
-        // 6 bit : Seg2Len
+    data.position(pos);
+  }
 
-        int pos = data.position();
-
-        int i0 = data.getInt();
-        currINF = readInt(i0, 0, 2);
-        currHF = readInt(i0, 2, 6);
-        reserved = readInt(i0, 8, 6);
-        seg0Len = readInt(i0, 14, 6);
-        seg1Len = readInt(i0, 20, 6);
-        seg2Len = readInt(i0, 26, 6);
-
-        if (seg0Len > 0) {
-            info0 = data.getLong();
-            if (seg1Len > 0) {
-                info1 = data.getLong();
-                if (seg2Len > 0) {
-                    info2 = data.getLong();
-                }
-            }
-        }
-
-        nHops = seg0Len + seg1Len + seg2Len;
-        for (int i = 0; i < nHops * 3; i++) {
-            hops[i] = data.getInt();
-        }
-
-        data.position(pos);
+  public static void writePath(ByteBuffer data, ByteString path) {
+    for (int i = 0; i < path.size(); i++) {
+      data.put(path.byteAt(i));
     }
+  }
 
-    private void write(ByteBuffer data) {
-        int pos = data.position();
-        int i0 = 0;
-
-        i0 = writeInt(i0, 0, 2, 0); // CurrINF = 0
-        i0 = writeInt(i0, 2, 6, 0); // CurrHF = 0
-        i0 = writeInt(i0, 8, 6, 0); // RSV = 0
-        i0 = writeInt(i0, 14, 6, seg0Len);
-        i0 = writeInt(i0, 20, 6, seg1Len);
-        i0 = writeInt(i0, 26, 6, seg2Len);
-        data.putInt(i0);
-        data.putLong(info0);
-        if (seg2Len > 0) {
-            data.putLong(info1);
-            data.putLong(info2);
-        } else if (seg1Len > 0) {
-            data.putLong(info1);
-        }
-        for (int i = 0; i < nHops * 3; i++) {
-            data.putInt(hops[i]);
-        }
-
-        data.position(pos);
-    }
-
-    private void reverse() {
-        currINF = 0;
-        currHF = 0;
-        // reverse order
-        if (seg2Len > 0) {
-            int dummySegLen = seg0Len;
-            seg0Len = seg2Len;
-            seg2Len = dummySegLen;
-            long dummyInfo = info0;
-            info0 = info2;
-            info2 = dummyInfo;
-        } else if (seg1Len > 0) {
-            int dummySegLen = seg0Len;
-            seg0Len = seg1Len;
-            seg1Len = dummySegLen;
-            long dummyInfo = info0;
-            info0 = info1;
-            info1 = dummyInfo;
-        }
-        // reverse direction
-        long currDirMask = 1L << 56;
-        info0 ^= currDirMask;
-        if (seg1Len > 0) {
-            info1 ^= currDirMask;
-        }
-        if (seg2Len > 0) {
-            info2 ^= currDirMask;
-        }
-
-        for (int i = 0, j = nHops - 1; i < j; i++, j--) {
-          for (int x = 0; x < 3; x++) {
-            int dummy = hops[i * 3 + x];
-            hops[i * 3 + x] = hops[j * 3 + x];
-            hops[j * 3 + x] = dummy;
-          }
-        }
-    }
-
-    @Override
-    public String toString() {
-        String s = "SCION path header: " +
-                "  currINF=" + currINF +
-                "  currHP=" + currHF +
-                "  reserved=" + reserved +
-                "  seg0Len=" + seg0Len +
-                "  seg1Len=" + seg1Len +
-                "  seg2Len=" + seg2Len;
-        if (seg0Len > 0) {
-            s += "\n  info0=" + info0;
-        }
-        if (seg1Len > 0) {
-            s += "\n  info1=" + info1;
-        }
-        if (seg2Len > 0) {
-            s += "\n  info2=" + info2;
-        }
-        for (int i = 0; i < nHops; i++) {
-            s += "\n    hop=" + hops[i];
-        }
-        return s;
-    }
-
-    public static void writePath(ByteBuffer data, ByteString path) {
-        for (int i = 0; i < path.size(); i++) {
-            data.put(path.byteAt(i));
-        }
-    }
-
-    public static void writePath(ByteBuffer data, byte[] path) {
-        data.put(path);
-    }
+  public static void writePath(ByteBuffer data, byte[] path) {
+    data.put(path);
+  }
 }
