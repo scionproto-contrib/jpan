@@ -14,8 +14,6 @@
 
 package org.scion.demo.inspector;
 
-import org.scion.internal.Constants;
-
 import static org.scion.demo.util.ByteUtil.*;
 
 public class ScionEndToEndExtensionHeader {

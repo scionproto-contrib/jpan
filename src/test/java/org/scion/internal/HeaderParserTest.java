@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.DatagramPacket;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
+import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
 import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;

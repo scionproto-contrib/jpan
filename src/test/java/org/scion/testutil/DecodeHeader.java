@@ -15,7 +15,7 @@
 package org.scion.testutil;
 
 import java.net.DatagramPacket;
-import org.scion.internal.Constants;
+import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
 import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;

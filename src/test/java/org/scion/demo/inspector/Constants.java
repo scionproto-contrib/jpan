@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
+package org.scion.demo.inspector;
 
 public interface Constants {
 
@@ -47,7 +47,7 @@ public interface Constants {
     }
 
       public static PathTypes parse(int code) {
-          return Constants.ParseEnum.parse(PathTypes.class, code);
+          return ParseEnum.parse(PathTypes.class, code);
       }
 
       @Override
@@ -69,7 +69,7 @@ public interface Constants {
     }
 
       public static AddrTypes parse(int code) {
-          return Constants.ParseEnum.parse(AddrTypes.class, code);
+          return ParseEnum.parse(AddrTypes.class, code);
       }
 
       @Override
@@ -92,7 +92,7 @@ public interface Constants {
     }
 
       public static HdrTypes parse(int code) {
-        return Constants.ParseEnum.parse(HdrTypes.class, code);
+        return ParseEnum.parse(HdrTypes.class, code);
       }
 
       @Override

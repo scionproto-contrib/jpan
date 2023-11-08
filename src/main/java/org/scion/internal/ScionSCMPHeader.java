@@ -55,7 +55,23 @@ public class ScionSCMPHeader {
     return "" + code;
   }
 
-  public enum ScmpType implements Constants.ParseEnum {
+  interface ParseEnum {
+
+    int code();
+
+    static <E extends ParseEnum> E parse(Class<E> e, int code) {
+      E[] values = e.getEnumConstants();
+      for (int i = 0; i < values.length; i++) {
+        E pe = values[i];
+        if (pe.code() == code) {
+          return pe;
+        }
+      }
+      throw new IllegalArgumentException("Unknown code: " + code);
+    }
+
+  }
+  public enum ScmpType implements ParseEnum {
     // SCMP error messages:
 
     E1(1,"Destination Unreachable"),
@@ -86,7 +102,7 @@ public class ScionSCMPHeader {
     }
 
     public static ScmpType parse(int code) {
-      return Constants.ParseEnum.parse(ScmpType.class, code);
+      return ParseEnum.parse(ScmpType.class, code);
     }
 
     @Override
@@ -100,7 +116,7 @@ public class ScionSCMPHeader {
   }
 
 
-  public enum ScmpType1Code implements Constants.ParseEnum {
+  public enum ScmpType1Code implements ParseEnum {
     // SCMP type 1 messages:
 
     E1(1,"Destination Unreachable"),
@@ -131,7 +147,7 @@ public class ScionSCMPHeader {
     }
 
     public static ScmpType1Code parse(int code) {
-      return Constants.ParseEnum.parse(ScmpType1Code.class, code);
+      return ParseEnum.parse(ScmpType1Code.class, code);
     }
 
     @Override

@@ -16,8 +16,6 @@ package org.scion.demo.inspector;
 
 import static org.scion.demo.util.ByteUtil.*;
 
-import org.scion.internal.Constants;
-
 public class ScionSCMPHeader {
 
   // 8 bit

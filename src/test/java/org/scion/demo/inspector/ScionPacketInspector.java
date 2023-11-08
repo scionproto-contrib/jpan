@@ -16,7 +16,6 @@ package org.scion.demo.inspector;
 
 import java.io.IOException;
 import java.net.*;
-import org.scion.internal.Constants;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();

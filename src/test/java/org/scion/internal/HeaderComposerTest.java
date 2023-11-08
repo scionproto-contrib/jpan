@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
 import org.scion.ScionUtil;
+import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
 import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;
