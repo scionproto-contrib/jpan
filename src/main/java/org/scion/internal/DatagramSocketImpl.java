@@ -56,7 +56,7 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
    *
    * @param port the local port
    * @param inetAddress the local address
-   * @throws SocketException
+   * @throws SocketException in case of a problem with the underlying protocol
    * @see java.net.DatagramSocketImpl#bind(int, InetAddress)
    */
   @Override

@@ -14,6 +14,8 @@
 
 package org.scion;
 
+import org.scion.internal.ScionHeaderParser;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -52,6 +54,12 @@ public class DatagramChannel implements ByteChannel, Closeable {
       return null;
     }
     buffer.flip();
+
+    String result = ScionHeaderParser.validate(buffer);
+//    if (result != null) { // TODO make configurable
+//      // throw new ScionException(result);
+//      System.out.println("ERROR: ----------------------------------------------- " + result);
+//    }
 
     // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
     ScionPacketHelper.getUserData(buffer, userBuffer);

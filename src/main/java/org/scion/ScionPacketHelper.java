@@ -19,9 +19,6 @@ import java.nio.ByteBuffer;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 
-import static org.scion.internal.ByteUtil.write16;
-import static org.scion.internal.ByteUtil.writeInt;
-
 class ScionPacketHelper {
   // TODO move into DatagramChannel?
   // TODO respect MTU; report MTU to user (?); test!!!
@@ -67,5 +64,4 @@ class ScionPacketHelper {
     }
     ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
   }
-
 }
