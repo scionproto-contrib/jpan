@@ -61,8 +61,17 @@ public class ScionHeaderParser {
         int udpHeaderLength = 8;
         // TODO assert UDP payload_length + 8 = payloadLength = limit()-pos-headerLengthBytes-8
         data.position(pos + hdrLenBytes + udpHeaderLength);
-        userBuffer.put(data);
+        int maxUserLen = userBuffer.limit() - userBuffer.position();
+        if (data.limit() - data.position() <= maxUserLen) {
+            userBuffer.put(data);
+        } else {
+            int oldLimit = data.limit();
+            data.limit(data.position() + maxUserLen);
+            userBuffer.put(data);
+            data.limit(oldLimit);
+        }
         data.position(pos);
+        // TODO return void?
         return true;
     }
 

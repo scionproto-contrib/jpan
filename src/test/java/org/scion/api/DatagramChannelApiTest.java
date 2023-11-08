@@ -22,6 +22,8 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
+import java.nio.charset.Charset;
+
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.PackageVisibilityHelper;
@@ -30,6 +32,8 @@ import org.scion.ScionSocketAddress;
 class DatagramChannelApiTest {
 
   private static final int dummyPort = 44444;
+  private static String MSG = "Hello scion!";
+
 
   @Test
   void getLocalAddress_withBind() throws IOException {
@@ -121,26 +125,69 @@ class DatagramChannelApiTest {
     }
   }
 
+  @Test
+  public void receive_bufferToSmall() throws IOException {
+    PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
+    PingPongHelper.ClientEndPoint clientFn = new PingPongHelper.ClientEndPoint() {
+      @Override
+      public void run(DatagramChannel channel, ScionSocketAddress serverAddress, int id) throws IOException {
+        String message = MSG + "-" + id;
+        ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+        channel.send(sendBuf, serverAddress);
+
+        // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+        ByteBuffer response = ByteBuffer.allocate(5);
+        channel.receive(response);
+
+        response.flip();
+        assertEquals(5, response.limit());
+        String pong = Charset.defaultCharset().decode(response).toString();
+        assertEquals(message.substring(0, 5), pong);
+      }
+    };
+    PingPongHelper pph = new PingPongHelper(1, 1, 1);
+    pph.runPingPong(serverFn, clientFn);
+  }
+
 
   @Test
   public void read_bufferToSmall() throws IOException {
+    PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
+    PingPongHelper.ClientEndPoint clientFn = new PingPongHelper.ClientEndPoint() {
+      @Override
+      public void run(DatagramChannel channel, ScionSocketAddress serverAddress, int id) throws IOException {
+        String message = MSG + "-" + id;
+        ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+        channel.connect(serverAddress);
+        channel.write(sendBuf);
 
+        // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+        ByteBuffer response = ByteBuffer.allocate(5);
+        int len = channel.read(response);
+        assertEquals(5, len);
 
+        response.flip();
+        String pong = Charset.defaultCharset().decode(response).toString();
+        assertEquals(message.substring(0, 5), pong);
+      }
+    };
+    PingPongHelper pph = new PingPongHelper(1, 1, 1);
+    pph.runPingPong(serverFn, clientFn);
+  }
 
+  private void defaultServer(DatagramChannel channel) throws IOException {
+    ByteBuffer request = ByteBuffer.allocate(512);
+    // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
+    SocketAddress address = channel.receive(request);
 
-    ScionSocketAddress address = PackageVisibilityHelper.createDummyAddress();
-    try (DatagramChannel channel = DatagramChannel.open()) {
-      assertFalse(channel.isConnected());
-      channel.connect(address);
-      assertTrue(channel.isConnected());
-      channel.disconnect();
-      assertFalse(channel.isConnected());
+    request.flip();
+    String msg = Charset.defaultCharset().decode(request).toString();
+    assertTrue(msg.startsWith(MSG), msg);
+    assertTrue(MSG.length() + 3 >= msg.length());
 
-      channel.connect(address);
-      assertTrue(channel.isConnected());
-      channel.close();
-      assertFalse(channel.isConnected());
-    }
+    // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
+    request.flip();
+    channel.send(request, address);
   }
 
   @Test
