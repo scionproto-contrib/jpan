@@ -19,7 +19,6 @@ import static org.scion.internal.ByteUtil.*;
 import com.google.protobuf.ByteString;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class PathHeaderScionParser {
 
@@ -40,12 +39,11 @@ public class PathHeaderScionParser {
     private long info0;
     private long info1;
     private long info2;
-
-    private final HopField[] hops = new HopField[64];
+    private final int[] hops = new int[64 * 3];  // 3 integer per field
     private int nHops;
 
     public PathHeaderScionParser() {
-        Arrays.setAll(hops, value -> new HopField());
+
     }
 
     public static void reversePath(ByteBuffer data) {
@@ -89,17 +87,9 @@ public class PathHeaderScionParser {
             }
         }
 
-        for (int i = 0; i < seg0Len; i++) {
-            hops[nHops].read(data);
-            nHops++;
-        }
-        for (int i = 0; i < seg1Len; i++) {
-            hops[nHops].read(data);
-            nHops++;
-        }
-        for (int i = 0; i < seg2Len; i++) {
-            hops[nHops].read(data);
-            nHops++;
+        nHops = seg0Len + seg1Len + seg2Len;
+        for (int i = 0; i < nHops * 3; i++) {
+            hops[i] = data.getInt();
         }
 
         data.position(pos);
@@ -123,8 +113,8 @@ public class PathHeaderScionParser {
         } else if (seg1Len > 0) {
             data.putLong(info1);
         }
-        for (int i = 0; i < seg0Len + seg1Len + seg2Len; i++) {
-            hops[i].write(data);
+        for (int i = 0; i < nHops * 3; i++) {
+            data.putInt(hops[i]);
         }
 
         data.position(pos);
@@ -160,9 +150,11 @@ public class PathHeaderScionParser {
         }
 
         for (int i = 0, j = nHops - 1; i < j; i++, j--) {
-            HopField dummy = hops[i];
-            hops[i] = hops[j];
-            hops[j] = dummy;
+          for (int x = 0; x < 3; x++) {
+            int dummy = hops[i * 3 + x];
+            hops[i * 3 + x] = hops[j * 3 + x];
+            hops[j * 3 + x] = dummy;
+          }
         }
     }
 

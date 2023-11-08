@@ -88,20 +88,10 @@ public class PathHeaderScion {
             }
         }
 
-        for (int i = 0; i < seg0Len; i++) {
-            hops[nHops].read(data, offset);
-            offset += hops[nHops].length();
-            nHops++;
-        }
-        for (int i = 0; i < seg1Len; i++) {
-            hops[nHops].read(data, offset);
-            offset += hops[nHops].length();
-            nHops++;
-        }
-        for (int i = 0; i < seg2Len; i++) {
-            hops[nHops].read(data, offset);
-            offset += hops[nHops].length();
-            nHops++;
+        nHops = seg0Len + seg1Len + seg2Len;
+        for (int i = 0; i < nHops; i++) {
+            hops[i].read(data, offset);
+            offset += hops[i].length();
         }
 
         len = offset - headerOffset;
