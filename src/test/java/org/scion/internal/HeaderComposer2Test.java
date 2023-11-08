@@ -109,7 +109,7 @@ public class HeaderComposer2Test {
     ScionHeaderParser.writePath(p, path.getRaw());
 
     // Pseudo header
-    OverlayHeader.write2(p, userPacket.limit(), 100, dstPort);
+    ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 100, dstPort);
 
     // add payload
     p.put(userPacket);

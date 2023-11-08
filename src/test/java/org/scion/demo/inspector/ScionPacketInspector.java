@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.demo.util;
+package org.scion.demo.inspector;
 
 import java.io.IOException;
 import java.net.*;
 import org.scion.internal.Constants;
-import org.scion.internal.OverlayHeader;
-import org.scion.internal.ScionSCMPHeader;
 
-public class ScionParserFull {
+public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion();
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
   private final OverlayHeader overlayHeaderUdp = new OverlayHeader();
 
-  public ScionParserFull() {}
+  public ScionPacketInspector() {}
 
   public InetAddress getSourceAddress() throws IOException {
     return scionHeader.getSrcHostAddress();

@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
+package org.scion.demo.inspector;
+
+import static org.scion.demo.util.ByteUtil.readInt;
+import static org.scion.demo.util.ByteUtil.write16;
+import static org.scion.demo.util.ByteUtil.writeInt;
 
 import java.nio.ByteBuffer;
-
-import static org.scion.internal.ByteUtil.*;
 
 public class OverlayHeader {
 

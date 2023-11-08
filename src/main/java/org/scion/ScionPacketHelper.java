@@ -16,9 +16,11 @@ package org.scion;
 
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.internal.OverlayHeader;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
+
+import static org.scion.internal.ByteUtil.write16;
+import static org.scion.internal.ByteUtil.writeInt;
 
 class ScionPacketHelper {
   // TODO move into DatagramChannel?
@@ -63,6 +65,7 @@ class ScionPacketHelper {
           data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
       ScionHeaderParser.writePath(data, path);
     }
-    OverlayHeader.write2(data, payloadLength, srcPort, dstPort);
+    ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
   }
+
 }

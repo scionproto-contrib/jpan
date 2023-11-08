@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.demo.util;
+package org.scion.demo.inspector;
 
 import static org.scion.demo.util.ByteUtil.*;
 
