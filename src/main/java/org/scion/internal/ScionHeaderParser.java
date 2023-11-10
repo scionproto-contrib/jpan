@@ -139,8 +139,15 @@ public class ScionHeaderParser {
   }
 
   public static String validate(ByteBuffer data) {
+    // TODO this approach to error handling is not ideal.
+    //   Flooding a receiver with bad packets may cause unnecessary CPU and
+    //   garbage collection cost due to creation of error messages.
+    //   --> return isDropBadPackets ? "" : report(String ... args);
     final String PRE = "SCION packet validation failed: ";
     int start = data.position();
+    if (data.limit() - start < 12 + 16 + 8) {
+      return PRE + "Invalid packet length: packet too short: " + (data.limit() - start);
+    }
 
     int i0 = data.getInt();
     int i1 = data.getInt();
@@ -186,6 +193,9 @@ public class ScionHeaderParser {
           + Integer.toBinaryString(dtdl);
     }
     int reserved = readInt(i2, 16, 16);
+    if (reserved != 0) {
+      return PRE + "Invalid reserved field: expected '0b0000_0000_0000_0000', got " + Integer.toBinaryString(reserved);
+    }
 
     // Address header
     //  8 bit: DstISD
@@ -195,7 +205,7 @@ public class ScionHeaderParser {
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr
 
-    long dstIsdAs = data.getLong();
+    long dstIsdAs = data.getLong(); // TODO compare to local IsdAs?
     long srcIsdAs = data.getLong();
 
     byte[] bytesDst = new byte[(dl + 1) * 4];
@@ -225,7 +235,12 @@ public class ScionHeaderParser {
     data.position(start + hdrLenBytes);
     int srcPort = Short.toUnsignedInt(data.getShort());
     int dstPort = Short.toUnsignedInt(data.getShort());
-    // TODO check port != 0?
+    if (srcPort == 0) {
+      return PRE + "Invalid source port: " + srcPort;
+    }
+    if (dstPort == 0) {
+      return PRE + "Invalid destination port: " + dstPort; // can this happen?
+    }
 
     // rewind to original offset
     data.position(start);

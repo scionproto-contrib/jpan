@@ -14,16 +14,14 @@
 
 package org.scion;
 
-import org.scion.internal.ScionHeaderParser;
-
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
+import org.scion.internal.ScionHeaderParser;
 
 public class DatagramChannel implements ByteChannel, Closeable {
 
@@ -32,7 +30,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   private ScionSocketAddress localScionAddress;
   private ScionSocketAddress remoteScionAddress;
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
-  private boolean cfgReportFailedValidation = false; // TODO configurable
+  private boolean cfgReportFailedValidation = false;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -62,13 +60,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
       validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
       if (validationResult != null && cfgReportFailedValidation) {
-          throw new ScionException(validationResult);
+        throw new ScionException(validationResult);
       }
     } while (validationResult != null);
 
     // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
     ScionPacketHelper.getUserData(buffer, userBuffer);
-    ScionSocketAddress addr = ScionPacketHelper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
+    ScionSocketAddress addr =
+        ScionPacketHelper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
     buffer.clear();
     return addr;
   }
@@ -139,7 +138,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
       localScionAddress = ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
     }
     return localScionAddress;
-//    return ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
+    //    return ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
@@ -181,11 +180,12 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public DatagramChannel connect(SocketAddress addr) throws IOException {
     if (addr instanceof ScionSocketAddress) {
       remoteScionAddress = (ScionSocketAddress) addr;
-    } else if (addr instanceof InetSocketAddress){
+    } else if (addr instanceof InetSocketAddress) {
       InetSocketAddress inetAddress = (InetSocketAddress) addr;
       remoteScionAddress = ScionSocketAddress.create(inetAddress);
     } else {
-      throw new IllegalArgumentException("connect() requires an InetSocketAddress or a ScionSocketAddress.");
+      throw new IllegalArgumentException(
+          "connect() requires an InetSocketAddress or a ScionSocketAddress.");
     }
     channel.connect(remoteScionAddress.getPath().getFirstHopAddress());
     return this;
@@ -193,6 +193,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   /**
    * Read data from the connected stream.
+   *
    * @param dst The ByteBuffer that should contain data from the stream.
    * @return The number of bytes that were read into the buffer or -1 if end of stream was reached.
    * @throws NotYetConnectedException If the channel is not connected.
@@ -227,6 +228,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   /**
    * Write the content of a ByteBuffer to a connection.
+   *
    * @param src The data to send
    * @return The number of bytes written.
    * @throws NotYetConnectedException If the channel is not connected.
@@ -271,5 +273,18 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public boolean isConnected() {
     return channel.isConnected();
+  }
+
+  public <T> DatagramChannel setOption(SocketOption<T> option, T t) throws IOException {
+    if (option instanceof ScionSocketOptions.SciSocketOption) {
+      if (ScionSocketOptions.SO_THROW_PARSER_FAILURE.equals(option)) {
+        cfgReportFailedValidation = (Boolean) t;
+      } else if (ScionSocketOptions.SO_WRITE_TO_USER_BUFFER.equals(option)) {
+        throw new UnsupportedOperationException(); // TODO
+      }
+    } else {
+      channel.setOption(option, t);
+    }
+    return this;
   }
 }
