@@ -25,8 +25,8 @@ public final class ScionSocketOptions {
    * If set to 'false', problematic packets are silently dropped.
    * Default is 'false'
    */
-  public static final SocketOption<Boolean> SO_THROW_PARSER_FAILURE =
-      new SciSocketOption<>("SO_THROW_PARSER_FAILURE", Boolean.class);
+  public static final SocketOption<Boolean> SSO_THROW_PARSER_FAILURE =
+      new SciSocketOption<>("SSO_THROW_PARSER_FAILURE", Boolean.class);
 
   /**
    * TODO not yet implemented.
@@ -41,22 +41,22 @@ public final class ScionSocketOptions {
    * Default is 'false'
    */
   @Deprecated // TODO implement
-  public static final SocketOption<Boolean> SO_WRITE_TO_USER_BUFFER =
-      new SciSocketOption<>("SO_WRITE_TO_USER_BUFFER", Boolean.class);
+  public static final SocketOption<Boolean> SSO_WRITE_TO_USER_BUFFER =
+      new SciSocketOption<>("SSO_WRITE_TO_USER_BUFFER", Boolean.class);
 
   // TODO can we use this size for the ByteBuffer in the channel? In the original socket
   //   they probably refer to a different type of byffer, i.e. if packets are generated
   //   faster than they can be sent.
   //   -> The Channel only has *one* buffer....
 //  /**  	The size of the socket send buffer. Default is 2000. */
-//  public static final SocketOption<Integer> SO_SNDBUF = new SciSocketOption<>("SO_SNDBUF", Integer.class);;
+//  public static final SocketOption<Integer> SSO_SNDBUF = new SciSocketOption<>("SSO_SNDBUF", Integer.class);;
 //
 //  /**  	The size of the socket receive buffer. Default is 2000. */
-//  public static final SocketOption<Integer> SO_RCVBUF = new SciSocketOption<>("SO_RCVBUF", Integer.class);;
+//  public static final SocketOption<Integer> SSO_RCVBUF = new SciSocketOption<>("SSO_RCVBUF", Integer.class);;
 
   /**  	Re-use address. */
   @Deprecated // TODO implement
-  public static final SocketOption<Boolean> SO_REUSEADDR = new SciSocketOption<>("SO_REUSEADDR", Boolean.class);
+  public static final SocketOption<Boolean> SSO_REUSEADDR = new SciSocketOption<>("SSO_REUSEADDR", Boolean.class);
 
   private ScionSocketOptions() {}
 

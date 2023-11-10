@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
+import org.scion.ScionSocketOptions;
 import org.scion.internal.ScionHeaderParser;
 
 class DatagramChannelPacketValidationTest {
@@ -35,24 +36,25 @@ class DatagramChannelPacketValidationTest {
   private final String PRE = "SCION packet validation failed: ";
   private final AtomicReference<SocketAddress> localAddress = new AtomicReference<>();
   private final AtomicInteger receiveCount = new AtomicInteger();
+  private final AtomicInteger receiveBadCount = new AtomicInteger();
   private final AtomicReference<Exception> failure = new AtomicReference<>();
   private CountDownLatch barrier;
 
-
   private static final byte[] packetBytes = {
-          0, 0, 0, 1, 17, 21, 0, 19, 1, 48, 0, 0, 0, 1, -1, 0,
-          0, 0, 1, 18, 0, 1, -1, 0, 0, 0, 1, 16, 0, 0, 0, 0,
-          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 127, 0, 0, 2,
-          1, 0, 32, 0, 1, 0, -103, -90, 100, -20, 100, -13, 0, 63, 0, 0,
-          0, 2, 62, 57, -82, 1, -16, 51, 0, 63, 0, 1, 0, 0, -104, 77,
-          -24, 2, -64, -11, 0, 100, 31, -112, 0, 19, -15, -27, 72, 101, 108, 108,
-          111, 32, 115, 99, 105, 111, 110,
+    0, 0, 0, 1, 17, 21, 0, 19, 1, 48, 0, 0, 0, 1, -1, 0,
+    0, 0, 1, 18, 0, 1, -1, 0, 0, 0, 1, 16, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 127, 0, 0, 2,
+    1, 0, 32, 0, 1, 0, -103, -90, 100, -20, 100, -13, 0, 63, 0, 0,
+    0, 2, 62, 57, -82, 1, -16, 51, 0, 63, 0, 1, 0, 0, -104, 77,
+    -24, 2, -64, -11, 0, 100, 31, -112, 0, 19, -15, -27, 72, 101, 108, 108,
+    111, 32, 115, 99, 105, 111, 110,
   };
 
   @BeforeEach
   public void beforeEach() {
     localAddress.set(null);
     receiveCount.set(0);
+    receiveBadCount.set(0);
     failure.set(null);
     barrier = null;
   }
@@ -87,9 +89,22 @@ class DatagramChannelPacketValidationTest {
   }
 
   @Test
-  public void receive_validationFails_isBlocking_noThrow() throws IOException, InterruptedException {
+  public void receive_validationFails_isBlocking_noThrow()
+      throws IOException, InterruptedException {
+    // silently drop bad packets
+    receive_validationFails_isBlocking_noThrow(false);
+  }
+
+  @Test
+  public void receive_validationFails_isBlocking_throw() throws IOException, InterruptedException {
+    // throw exception when receiving bad packet
+    receive_validationFails_isBlocking_noThrow(true);
+  }
+
+  private void receive_validationFails_isBlocking_noThrow(boolean throwBad)
+      throws IOException, InterruptedException {
     barrier = new CountDownLatch(1);
-    Thread serverThread = startServer();
+    Thread serverThread = startServer(throwBad);
     barrier.await(); // Wait for thread to start
 
     // client - send bad message
@@ -113,31 +128,46 @@ class DatagramChannelPacketValidationTest {
     assertEquals(1, receiveCount.get());
   }
 
-  private Thread startServer() {
-    Thread serverThread = new Thread(() -> {
-      try {
-        try (DatagramChannel server = DatagramChannel.open()) {
-          server.configureBlocking(true);
-          server.bind(null);
-          localAddress.set(server.getLocalAddress());
-          barrier.countDown();
+  private Thread startServer(boolean openThrowOnBadPacket) {
+    Thread serverThread =
+        new Thread(
+            () -> {
+              try {
+                try (DatagramChannel channel = DatagramChannel.open()) {
+                  channel.configureBlocking(true);
+                  if (openThrowOnBadPacket) {
+                    channel.setOption(ScionSocketOptions.SSO_THROW_PARSER_FAILURE, true);
+                  }
+                  channel.bind(null);
+                  localAddress.set(channel.getLocalAddress());
+                  barrier.countDown();
 
-          ByteBuffer response = ByteBuffer.allocate(500);
-          assertNotNull(server.receive(response));
+                  ByteBuffer response = ByteBuffer.allocate(500);
+                  // repeat until we get no exception
+                  boolean failed;
+                  do {
+                    failed = false;
+                    try {
+                      assertNotNull(channel.receive(response));
+                    } catch (Exception e) {
+                      receiveBadCount.incrementAndGet();
+                      failed = true;
+                    }
+                  } while (failed);
 
-          // make sure we receive exactly one message
-          receiveCount.incrementAndGet();
+                  // make sure we receive exactly one message
+                  receiveCount.incrementAndGet();
 
-          response.flip();
-          String pong = Charset.defaultCharset().decode(response).toString();
-          if (!MSG.equals(pong)) {
-            failure.set(new IllegalStateException(pong));
-          }
-        }
-      } catch (IOException e) {
-        failure.set(e);
-      }
-    });
+                  response.flip();
+                  String pong = Charset.defaultCharset().decode(response).toString();
+                  if (!MSG.equals(pong)) {
+                    failure.set(new IllegalStateException(pong));
+                  }
+                }
+              } catch (IOException e) {
+                failure.set(e);
+              }
+            });
     serverThread.start();
     return serverThread;
   }
