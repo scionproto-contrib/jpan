@@ -27,31 +27,20 @@ import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
 import org.scion.ScionUtil;
 import org.scion.proto.daemon.Daemon;
+import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDaemon;
 
 public class HeaderComposer2Test {
 
   // Recorded before sending a packet
-  private static final byte[] packetBytes = {
-    0, 0, 0, 1, 17, 21, 0, 19, // 8
-    1, 48, 0, 0, 0, 1, -1, 0, // 16
-    0, 0, 1, 18, 0, 1, -1, 0, 0, 0, 1, 16, 0, 0, 0, 0, // 32
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 127, 0, 0, 2, // 48
-    0, 0, 32, 0, 1, 0, 95, (129 - 256), 101, 0, 88, (226 - 256), 0, 63, 0, 0, // 64
-    0, 2, (215 - 256), 5, (252 - 256), (177 - 256), 118, 33, // 72
-    0, 63, 0, 1, 0, 0, (137 - 256), 66, // 80
-    (193 - 256), (157 - 256), (193 - 256), 106, 0, 100, 31, -112, // 88
-    0, 19, -15, -27, 72, 101, 108, 108, // 96
-    111, 32, 115, 99, 105, 111, 110, // 103
-  };
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_2;
 
   private static MockDaemon daemon;
-
   private Scion.CloseableService pathService = null;
 
 
   @BeforeAll
-  public static void beforeAll2() throws IOException {
+  public static void beforeAll() throws IOException {
     daemon = MockDaemon.create().start();
   }
 

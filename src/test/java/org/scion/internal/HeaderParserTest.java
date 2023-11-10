@@ -23,51 +23,10 @@ import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
 import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;
+import org.scion.testutil.ExamplePacket;
 
 public class HeaderParserTest {
-
-  private static final byte[] packetBytes = {
-    0, 0, 0, 1, 17, 21, 0, 19, 1, 48, 0, 0, 0, 1, -1, 0,
-    0, 0, 1, 18, 0, 1, -1, 0, 0, 0, 1, 16, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 127, 0, 0, 2,
-    1, 0, 32, 0, 1, 0, -103, -90, 100, -20, 100, -13, 0, 63, 0, 0,
-    0, 2, 62, 57, -82, 1, -16, 51, 0, 63, 0, 1, 0, 0, -104, 77,
-    -24, 2, -64, -11, 0, 100, 31, -112, 0, 19, -15, -27, 72, 101, 108, 108,
-    111, 32, 115, 99, 105, 111, 110,
-  };
-
-  // 00 00 00 00 00 00 00 00 00 00 00 00 86 dd 60 09
-  // 02 48 00 73 11 40 fd 00 f0 0d ca fe 00 00 00 00
-  // 00 00 7f 00 00 09 fd 00 f0 0d ca fe 00 00 00 00
-  // 00 00 7f 00 00 09 75 59 79 24 00 73 6e b2
-  //             00 00
-  //            00 01 11 15 00 17 01 03 00 00 00 01 ff 00 00 00
-  //            01 10 00 01 ff 00 00 00 01 12 7f 00 00 02 00 00
-  //            0060   00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00
-  //            0070   20 00 00 00 cf 8d 64 ef 1d 56 00 3f 00 01 00 00
-  //            0080   41 99 96 80 e6 17 00 3f 00 00 00 02 39 55 e0 37
-  //            0090   36 a2 1f 90 00 64 00 17 65 58 52 65 3a 20 48 65
-  //            00a0   6c 6c 6f 20 73 63 69 6f 6e
-
-  // 0000   00 00 00 00 00 00 00 00 00 00 00 00 86 dd 60 0c   ..............`.
-  // 0010   c0 78 00 73 11 40 fd 00 f0 0d ca fe 00 00 00 00   .x.s.@..........
-  // 0020   00 00 7f 00 00 09 fd 00 f0 0d ca fe 00 00 00 00   ................
-  // 0030   00 00 7f 00 00 09 9c 69 79 24 00 73 6e b2 00 00   .......iy$.sn...
-  //  private static final byte[] packetBytes2 = {
-  //    0x00, 0x00, 0x00, 0x01, 0x11, 0x15, 0x00, 0x17, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff,
-  // 0x00,
-  //    0x00, 0x00, 0x01, 0x10, 0x00, 0x01, 0xff, 0x00, 0x00, 0x00, 0x01, 0x12, 0x7f, 0x00, 0x00,
-  // 0x02,
-  //    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  // 0x01,
-  //    0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0xcf, 0x8d, 0x64, 0xef, 0x1d, 0x56, 0x00, 0x00, 0x00,
-  // 0x00,
-  //    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  // 0x00,
-  //    0x00, 0x00, 0x00, 0x00, 0x1f, 0x90, 0x00, 0x64, 0x00, 0x0f, 0xf1, 0xe5, 0x52, 0x65, 0x3a,
-  // 0x20,
-  //    0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x73, 0x63, 0x69, 0x6f, 0x6e
-  //  };
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES;
 
   /**
    * Parse and re-serialize the packet. The generated content should be identical to the original

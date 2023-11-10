@@ -154,7 +154,7 @@ public class PathHeaderScion {
 
     @Override
     public String toString() {
-        String s = "SCION path header: " +
+        String s = "Path header: " +
                 "  currINF=" + currINF +
                 "  currHP=" + currHF +
                 "  reserved=" + reserved +

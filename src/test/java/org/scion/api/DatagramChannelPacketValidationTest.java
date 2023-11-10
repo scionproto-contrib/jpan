@@ -24,31 +24,23 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketOptions;
 import org.scion.internal.ScionHeaderParser;
+import org.scion.testutil.ExamplePacket;
 
 class DatagramChannelPacketValidationTest {
 
-  // TODO put MSG and packetBytes into separate class, they are dependent.
-  private static final String MSG = "Hello scion";
   private final String PRE = "SCION packet validation failed: ";
   private final AtomicReference<SocketAddress> localAddress = new AtomicReference<>();
   private final AtomicInteger receiveCount = new AtomicInteger();
   private final AtomicInteger receiveBadCount = new AtomicInteger();
   private final AtomicReference<Exception> failure = new AtomicReference<>();
   private CountDownLatch barrier;
-
-  private static final byte[] packetBytes = {
-    0, 0, 0, 1, 17, 21, 0, 19, 1, 48, 0, 0, 0, 1, -1, 0,
-    0, 0, 1, 18, 0, 1, -1, 0, 0, 0, 1, 16, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 127, 0, 0, 2,
-    1, 0, 32, 0, 1, 0, -103, -90, 100, -20, 100, -13, 0, 63, 0, 0,
-    0, 2, 62, 57, -82, 1, -16, 51, 0, 63, 0, 1, 0, 0, -104, 77,
-    -24, 2, -64, -11, 0, 100, 31, -112, 0, 19, -15, -27, 72, 101, 108, 108,
-    111, 32, 115, 99, 105, 111, 110,
-  };
+  private static final String MSG = ExamplePacket.MSG;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES;
 
   @BeforeEach
   public void beforeEach() {
@@ -88,9 +80,24 @@ class DatagramChannelPacketValidationTest {
     }
   }
 
+  @Disabled
+  @Test
+  public void receive_validationFails_nonBlocking_noThrow()
+          throws IOException, InterruptedException {
+    // silently drop bad packets
+    //receive_validationFails_isBlocking_noThrow(false);
+  }
+
+  @Disabled
+  @Test
+  public void receive_validationFails_nonBlocking_throw() throws IOException, InterruptedException {
+    // throw exception when receiving bad packet
+    //receive_validationFails_isBlocking_noThrow(true);
+  }
+
   @Test
   public void receive_validationFails_isBlocking_noThrow()
-      throws IOException, InterruptedException {
+          throws IOException, InterruptedException {
     // silently drop bad packets
     receive_validationFails_isBlocking_noThrow(false);
   }

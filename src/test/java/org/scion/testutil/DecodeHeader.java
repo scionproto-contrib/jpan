@@ -23,12 +23,7 @@ import org.scion.demo.inspector.ScionHeader;
 /** This is a tool to decode and print out a ScionHeader. */
 public class DecodeHeader {
 
-  private static final byte[] packetBytes = {
-    0, 0, 0, 1, 17, 18, 0, 23, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, -76, -85, 101, 20, 8, -34, 0, 63, 0, 1, 0, 0, 81, -63, -3,
-    -19, 39, 96, 0, 63, 0, 0, 0, 2, 102, 98, 62, -70, 49, -58, 86, -39, -124, 111, 0, 23, 0, 0, 72,
-    101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33, 45, 49, 51, 0, 0, 0, 0, 0
-  };
+  private static final byte[] example = ExamplePacket.PACKET_BYTES_2;
 
   public static void main(String[] args) {
     testParse();
@@ -38,7 +33,7 @@ public class DecodeHeader {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
-    byte[] data = packetBytes;
+    byte[] data = example;
 
     int offset = scionHeader.read(data, 0);
     // System.out.println("Common header: " + commonHeader);
@@ -68,10 +63,10 @@ public class DecodeHeader {
     System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
 
     // print
-    System.out.println("SH: " + scionHeader);
-    System.out.println("PH: " + pathHeaderScion);
-    System.out.println("OH: " + overlayHeaderUdp);
+    System.out.println(scionHeader);
+    System.out.println(pathHeaderScion);
+    System.out.println(overlayHeaderUdp);
 
-    System.out.println("PL: " + new String(payload));
+    System.out.println("Payload: " + new String(payload));
   }
 }
