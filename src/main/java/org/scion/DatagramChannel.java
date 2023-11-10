@@ -48,8 +48,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     //    Probably not, the user may not have enough byte allocated. Check API!
     //    -> TODO make configurable: USE_USER_BUFFER_FOR_DECODING
 
-    SocketAddress srcAddress = null;
-    String validationResult = null;
+    SocketAddress srcAddress;
+    String validationResult;
     do {
       buffer.clear();
       srcAddress = channel.receive(buffer);
@@ -178,7 +178,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.close();
   }
 
-  @Deprecated // TODO currently only used for read()
   public DatagramChannel connect(SocketAddress addr) throws IOException {
     if (addr instanceof ScionSocketAddress) {
       remoteScionAddress = (ScionSocketAddress) addr;
