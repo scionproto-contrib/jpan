@@ -32,6 +32,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   private ScionSocketAddress localScionAddress;
   private ScionSocketAddress remoteScionAddress;
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
+  private boolean cfgReportFailedValidation = false; // TODO configurable
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -46,20 +47,24 @@ public class DatagramChannel implements ByteChannel, Closeable {
     // TODO Is it okay to use the user-buffer here and later "move" the payload forward?
     //    Probably not, the user may not have enough byte allocated. Check API!
     //    -> TODO make configurable: USE_USER_BUFFER_FOR_DECODING
-    buffer.clear();
-    SocketAddress srcAddress = channel.receive(buffer);
-    if (srcAddress == null) {
-      // this indicates nothing is available
-      // TODO test this.
-      return null;
-    }
-    buffer.flip();
 
-    String result = ScionHeaderParser.validate(buffer);
-//    if (result != null) { // TODO make configurable
-//      // throw new ScionException(result);
-//      System.out.println("ERROR: ----------------------------------------------- " + result);
-//    }
+    SocketAddress srcAddress = null;
+    String validationResult = null;
+    do {
+      buffer.clear();
+      srcAddress = channel.receive(buffer);
+      if (srcAddress == null) {
+        // this indicates nothing is available
+        // TODO test this.
+        return null;
+      }
+      buffer.flip();
+
+      validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null && cfgReportFailedValidation) {
+          throw new ScionException(validationResult);
+      }
+    } while (validationResult != null);
 
     // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
     ScionPacketHelper.getUserData(buffer, userBuffer);

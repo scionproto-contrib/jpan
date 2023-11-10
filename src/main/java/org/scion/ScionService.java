@@ -126,7 +126,7 @@ public class ScionService {
     return response.getInterfacesMap();
   }
 
-  // TODO do not expose proto types
+  // TODO do not expose proto types on API
   List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
     LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
