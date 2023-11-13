@@ -228,7 +228,6 @@ public class ScionService {
     // Use local ISD/AS for localhost addresses
     if (hostName.startsWith("127.0.0.") || "::1".equals(hostName) || "0:0:0:0:0:0:0:1".equals(hostName)) {
       long isdAs = ScionService.defaultService().getLocalIsdAs();
-      System.out.println("DNS: local ISD/AS = " + ScionUtil.toStringIA(isdAs));
       return ScionAddress.create(isdAs, hostName, hostName);
     }
 
