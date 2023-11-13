@@ -277,9 +277,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public <T> DatagramChannel setOption(SocketOption<T> option, T t) throws IOException {
     if (option instanceof ScionSocketOptions.SciSocketOption) {
-      if (ScionSocketOptions.SSO_THROW_PARSER_FAILURE.equals(option)) {
+      if (ScionSocketOptions.API_THROW_PARSER_FAILURE.equals(option)) {
         cfgReportFailedValidation = (Boolean) t;
-      } else if (ScionSocketOptions.SSO_WRITE_TO_USER_BUFFER.equals(option)) {
+      } else if (ScionSocketOptions.API_WRITE_TO_USER_BUFFER.equals(option)) {
         throw new UnsupportedOperationException(); // TODO
       }
     } else {

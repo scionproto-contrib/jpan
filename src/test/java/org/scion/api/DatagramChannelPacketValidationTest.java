@@ -143,7 +143,7 @@ class DatagramChannelPacketValidationTest {
                 try (DatagramChannel channel = DatagramChannel.open()) {
                   channel.configureBlocking(true);
                   if (openThrowOnBadPacket) {
-                    channel.setOption(ScionSocketOptions.SSO_THROW_PARSER_FAILURE, true);
+                    channel.setOption(ScionSocketOptions.API_THROW_PARSER_FAILURE, true);
                   }
                   channel.bind(null);
                   localAddress.set(channel.getLocalAddress());

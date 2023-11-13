@@ -27,11 +27,13 @@ public class ScionSocketAddress extends InetSocketAddress {
     this.path = path;
   }
 
-  private ScionSocketAddress(long isdAs, InetAddress inetAddresse, int port, ScionPath path) {
-    super(inetAddresse, port);
+  private ScionSocketAddress(long isdAs, InetAddress inetAddress, int port, ScionPath path) {
+    super(inetAddress, port);
     this.isdAs = isdAs;
     this.path = path;
   }
+
+  // TODO clean up create() methods: which ones are needed/useful? Order of arguments?
 
   public static ScionSocketAddress create(String isdAs, String hostName, int port) {
     long isdAsCode = ScionUtil.parseIA(isdAs);

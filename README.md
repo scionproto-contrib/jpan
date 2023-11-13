@@ -19,13 +19,25 @@ The central classes of the API are:
 - `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
   `Channel` and `ByteChannel`. Scattering. gathering, multicast and selectors are currently not
   supported.
-- `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
+- **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
   This is currently deprecated because it does not work well.
 - `ScionPacketHelper`: A utility class to work with SCION packet headers
-- `ScionPacketInspector`: A packet inspector and builder.
+- **TODO** `ScionPacketInspector`: A packet inspector and builder.
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
 - `Scion`, `ScionUtil`, `ScionAddress`, `ScionPath`, `ScionSocketAddress`.
+  - `ScionAddress` and `ScionSocketAddress` contain ISD/AS information on top of a 
+    `InetAddress`/`InetSocketAddress`
+  - `ScionSocketAddress` can contain a `ScionPath`
 
+## DatagramChannel
+
+### Options
+
+Options are defined in `ScionSocketOptions`, see javadoc for details.
+
+| Option            | Default    | Short description         |
+|-------------------|------------|---------------------------|
+| `API_THROW_PARSER_FAILURE` | `false` | Throw exception when reading invalid packet | 
 
 ## Demo application - ping pong
 

@@ -17,6 +17,7 @@ package org.scion;
 import java.net.SocketOption;
 
 public final class ScionSocketOptions {
+  // TODO rename to ScionChannelOptions?
   // TODO options for Daemon/BorderRouter ports/IPs?
 
   /**
@@ -25,8 +26,8 @@ public final class ScionSocketOptions {
    * If set to 'false', problematic packets are silently dropped.
    * Default is 'false'
    */
-  public static final SocketOption<Boolean> SSO_THROW_PARSER_FAILURE =
-      new SciSocketOption<>("SSO_THROW_PARSER_FAILURE", Boolean.class);
+  public static final SocketOption<Boolean> API_THROW_PARSER_FAILURE =
+      new SciSocketOption<>("API_THROW_PARSER_FAILURE", Boolean.class);
 
   /**
    * TODO not yet implemented.
@@ -41,8 +42,8 @@ public final class ScionSocketOptions {
    * Default is 'false'
    */
   @Deprecated // TODO implement
-  public static final SocketOption<Boolean> SSO_WRITE_TO_USER_BUFFER =
-      new SciSocketOption<>("SSO_WRITE_TO_USER_BUFFER", Boolean.class);
+  public static final SocketOption<Boolean> API_WRITE_TO_USER_BUFFER =
+      new SciSocketOption<>("API_WRITE_TO_USER_BUFFER", Boolean.class);
 
   // TODO can we use this size for the ByteBuffer in the channel? In the original socket
   //   they probably refer to a different type of byffer, i.e. if packets are generated
