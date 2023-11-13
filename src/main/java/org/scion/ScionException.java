@@ -14,8 +14,6 @@
 
 package org.scion;
 
-import io.grpc.StatusRuntimeException;
-
 public class ScionException extends RuntimeException {
 
     public ScionException(String s) {

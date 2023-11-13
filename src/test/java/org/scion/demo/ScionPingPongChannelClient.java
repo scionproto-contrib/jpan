@@ -50,19 +50,27 @@ public class ScionPingPongChannelClient {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
+    // True: connect to ScionPingPongChannelServer via Java mock topology
+    // False: connect to any service via ScionProto "tiny" topology
+    boolean useMockTopology = true;
     // Demo setup
-    DemoTopology.configureMock(); // Tiny111_112();
-    MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-
-    doClientStuff();
-
-    DemoTopology.shutDown();
+    if (useMockTopology) {
+        DemoTopology.configureMock();
+        MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+        doClientStuff(44444);
+        DemoTopology.shutDown();
+      } else {
+        DemoTopology.configureTiny110_112();
+        MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+        doClientStuff(8080);
+        DemoTopology.shutDown();
+    }
   }
 
-  private static void doClientStuff() throws IOException {
+  private static void doClientStuff(int port) throws IOException {
     DatagramChannel channel = startClient();
     String msg = "Hello scion";
-    InetSocketAddress serverAddress = new InetSocketAddress("::1", 44444);
+    InetSocketAddress serverAddress = new InetSocketAddress("::1", port);
     // ScionSocketAddress serverAddress = ScionSocketAddress.create("1-ff00:0:112", "::1", 44444);
 
     sendMessage(channel, msg, serverAddress);
