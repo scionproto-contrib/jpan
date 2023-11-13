@@ -14,26 +14,25 @@
 
 package org.scion;
 
-import io.grpc.*;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.scion.proto.daemon.Daemon;
-import org.scion.proto.daemon.DaemonServiceGrpc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xbill.DNS.*;
-import org.xbill.DNS.Record;
-
 import static org.scion.ScionConstants.DEFAULT_DAEMON_HOST;
 import static org.scion.ScionConstants.DEFAULT_DAEMON_PORT;
 import static org.scion.ScionConstants.ENV_DAEMON_HOST;
 import static org.scion.ScionConstants.ENV_DAEMON_PORT;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
+
+import io.grpc.*;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import org.scion.proto.daemon.Daemon;
+import org.scion.proto.daemon.DaemonServiceGrpc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xbill.DNS.*;
+import org.xbill.DNS.Record;
 
 /**
  * The ScionService provides information such as: <br>
@@ -220,43 +219,20 @@ public class ScionService {
     // $ dig +short TXT ethz.ch | grep "scion="
     // "scion=64-2:0:9,129.132.230.98"
 
-    String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
-    if (props != null) {
-      int posHost = props.indexOf(hostName);
-      char nextChar = props.charAt(posHost + hostName.length());
-      char prevChar = posHost <= 0 ? ';' : props.charAt(posHost - 1);
-      if (posHost >= 0
-          && (nextChar == '=' || nextChar == '"')
-          && (prevChar == ';' || prevChar == ',')) {
-        int posStart;
-        int posEnd;
-        if (prevChar == ',') {
-          // This is an IP match, not a host match
-          posStart = props.substring(0, posHost).lastIndexOf("=\"");
-          posEnd = props.indexOf(';', posHost);
-        } else {
-          // normal case: hostname match
-          posStart = props.indexOf('=', posHost + 1);
-          posEnd = props.indexOf(';', posStart + 1);
-        }
-
-        String txtRecord;
-        if (posEnd > 0) {
-          txtRecord = props.substring(posStart + 1, posEnd);
-        } else {
-          txtRecord = props.substring(posStart + 1);
-        }
-        // No more checking here, we assume that properties are save
-        return parseTxtRecord(txtRecord, hostName);
-      }
+    // Look for TXT in properties
+    String txtFromProperties = findTxtRecordInProperties(hostName);
+    if (txtFromProperties != null) {
+      return parseTxtRecord(txtFromProperties, hostName);
     }
 
+    // Use local ISD/AS for localhost addresses
     if (hostName.startsWith("127.0.0.") || "::1".equals(hostName) || "0:0:0:0:0:0:0:1".equals(hostName)) {
       long isdAs = ScionService.defaultService().getLocalIsdAs();
       System.out.println("DNS: local ISD/AS = " + ScionUtil.toStringIA(isdAs));
       return ScionAddress.create(isdAs, hostName, hostName);
     }
 
+    // DNS lookup
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
@@ -292,6 +268,41 @@ public class ScionService {
     //    InetAddressResolver r = new InetAddressResolver();
 
     throw new ScionException("Host has no SCION TXT entry: " + hostName); // TODO test
+  }
+
+  private String findTxtRecordInProperties(String hostName) {
+    String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
+    if (props == null) {
+      return null;
+    }
+    int posHost = props.indexOf(hostName);
+    char nextChar = props.charAt(posHost + hostName.length());
+    char prevChar = posHost <= 0 ? ';' : props.charAt(posHost - 1);
+    if (posHost >= 0
+            && (nextChar == '=' || nextChar == '"')
+            && (prevChar == ';' || prevChar == ',')) {
+      int posStart;
+      int posEnd;
+      if (prevChar == ',') {
+        // This is an IP match, not a host match
+        posStart = props.substring(0, posHost).lastIndexOf("=\"");
+        posEnd = props.indexOf(';', posHost);
+      } else {
+        // normal case: hostname match
+        posStart = props.indexOf('=', posHost + 1);
+        posEnd = props.indexOf(';', posStart + 1);
+      }
+
+      String txtRecord;
+      if (posEnd > 0) {
+        txtRecord = props.substring(posStart + 1, posEnd);
+      } else {
+        txtRecord = props.substring(posStart + 1);
+      }
+      // No more checking here, we assume that properties are save
+      return txtRecord;
+    }
+    return null;
   }
 
   private ScionAddress parseTxtRecord(String txtEntry, String hostName) {
