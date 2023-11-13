@@ -23,7 +23,7 @@ import org.scion.demo.inspector.ScionHeader;
 /** This is a tool to decode and print out a ScionHeader. */
 public class DecodeHeader {
 
-  private static final byte[] example = ExamplePacket.PACKET_BYTES_2;
+  private static final byte[] example = ExamplePacket.PACKET_BYTES_SERVER_E2E;
 
   public static void main(String[] args) {
     testParse();
