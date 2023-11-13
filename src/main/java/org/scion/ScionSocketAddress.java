@@ -58,7 +58,7 @@ public class ScionSocketAddress extends InetSocketAddress {
     ScionAddress addr = ScionService.defaultService().getScionAddress(address.getHostString());
     // TODO address.getHostName() vs addr.getHostName()?
     return new ScionSocketAddress(
-        addr.getIsdAs(), addr.getHostName(), address.getPort(), addr.getPath());
+        addr.getIsdAs(), addr.getHostName(), address.getPort(), null);
   }
 
   public static ScionSocketAddress create(long isdAs, InetAddress addr, int port, ScionPath path) {
@@ -73,7 +73,17 @@ public class ScionSocketAddress extends InetSocketAddress {
     return ScionUtil.extractIsd(isdAs);
   }
 
+  /**
+   * Return a path to the address represented by this object. If no path is associated it will try
+   * to create one.
+   *
+   * @return The path associated with this address. If no path is associated, this method will first
+   *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
+   */
   public ScionPath getPath() {
+    if (path == null) {
+      path = ScionService.defaultService().getPath(isdAs);
+    }
     return path;
   }
 

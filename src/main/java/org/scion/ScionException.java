@@ -25,4 +25,8 @@ public class ScionException extends RuntimeException {
     public ScionException(Throwable t) {
         super(t);
     }
+
+    public ScionException(String msg, Throwable e) {
+        super(msg, e);
+    }
 }

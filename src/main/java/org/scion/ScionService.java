@@ -104,7 +104,7 @@ public class ScionService {
     try {
       response = blockingStub.aS(request);
     } catch (StatusRuntimeException e) {
-      throw new ScionException(e);
+      throw new ScionException("Error while getting AS info", e);
     }
 
     return response;
@@ -209,8 +209,8 @@ public class ScionService {
   }
 
   /**
-   * TODO Have a Daemon singleton + Move this method into ScionAddress +
-   *    Create ScionSocketAddress class.
+   * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
+   * class.
    *
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
@@ -223,17 +223,20 @@ public class ScionService {
     String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
     if (props != null) {
       int posHost = props.indexOf(hostName);
-      if (posHost >= 0) {
-        // host found (for now we are too lazy to check against substring matching)
+      char nextChar = props.charAt(posHost + hostName.length());
+      char prevChar = posHost <= 0 ? ';' : props.charAt(posHost - 1);
+      if (posHost >= 0
+          && (nextChar == '=' || nextChar == '"')
+          && (prevChar == ';' || prevChar == ',')) {
         int posStart;
         int posEnd;
-        if (posHost > 0 && props.charAt(posHost - 1) == ',') {
+        if (prevChar == ',') {
           // This is an IP match, not a host match
-          posStart = props.substring(0, posHost).lastIndexOf(';');
+          posStart = props.substring(0, posHost).lastIndexOf("=\"");
           posEnd = props.indexOf(';', posHost);
         } else {
           // normal case: hostname match
-          posStart = props.indexOf(';', posHost + 1);
+          posStart = props.indexOf('=', posHost + 1);
           posEnd = props.indexOf(';', posStart + 1);
         }
 
@@ -248,10 +251,16 @@ public class ScionService {
       }
     }
 
+    if (hostName.startsWith("127.0.0.") || "::1".equals(hostName) || "0:0:0:0:0:0:0:1".equals(hostName)) {
+      long isdAs = ScionService.defaultService().getLocalIsdAs();
+      System.out.println("DNS: local ISD/AS = " + ScionUtil.toStringIA(isdAs));
+      return ScionAddress.create(isdAs, hostName, hostName);
+    }
+
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
-        //throw new UnknownHostException("No DNS entry found for host: " + hostName); // TODO ?
+        // throw new UnknownHostException("No DNS entry found for host: " + hostName); // TODO ?
         throw new ScionException("No DNS entry found for host: " + hostName); // TODO test
       }
       for (int i = 0; i < records.length; i++) {

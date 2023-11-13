@@ -41,7 +41,7 @@ public class PathServiceTest {
   @BeforeAll
   public static void beforeAll() {
     System.setProperty(
-        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + ";" + SCION_TXT);
+        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
   }
 
   @AfterAll
