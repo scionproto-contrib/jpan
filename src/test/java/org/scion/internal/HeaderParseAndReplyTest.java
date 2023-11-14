@@ -23,7 +23,7 @@ import org.scion.ScionSocketAddress;
 import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
 
-public class HeaderParser2Test {
+public class HeaderParseAndReplyTest {
 
   // Original incoming packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
@@ -35,7 +35,7 @@ public class HeaderParser2Test {
    * Parse a packet and create a response packet with reversed path.
    */
   @Test
-  public void testParse() {
+  public void testParseAndReply() {
     ByteBuffer buffer = ByteBuffer.wrap(packetBytes);
     InetSocketAddress firstHop = new InetSocketAddress("127.0.0.42", 23456); // TODO test
 

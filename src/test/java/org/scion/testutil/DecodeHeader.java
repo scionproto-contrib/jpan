@@ -100,6 +100,7 @@ public class DecodeHeader {
     // reverse path etc
     scionHeader.reverse();
     pathHeaderScion.reverse();
+    overlayHeaderUdp.reverse();
 
     byte[] newData = new byte[data.length];
     int writeOffset =

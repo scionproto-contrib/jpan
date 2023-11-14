@@ -17,7 +17,6 @@ package org.scion.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.DatagramPacket;
-import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
@@ -25,31 +24,25 @@ import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;
 import org.scion.testutil.ExamplePacket;
 
-public class HeaderParserTest {
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
+public class InspectorParseAndReplyTest {
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
+  private static final byte[] responseBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
 
   /**
-   * Parse a packet and create a duplicate from the parse packet. The generated content should be
-   * identical to the original content.
-   * This is not a common use case but is meant to test the inspector.
+   * Parse a packet and create a reply packet.
    */
   @Test
-  public void testParseAndReverse() {
+  public void testParseAndReply() {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
     byte[] data = packetBytes;
 
     int offset = scionHeader.read(data, 0);
-    // System.out.println("Common header: " + commonHeader);
     assertEquals(1, scionHeader.pathType().code());
-
-    // System.out.println("Address header: " + addressHeader);
     offset = pathHeaderScion.read(data, offset);
-
     // Pseudo header
     offset = overlayHeaderUdp.read(data, offset);
-    // System.out.println(overlayHeaderUdp);
 
     byte[] payload = new byte[data.length - offset];
     System.arraycopy(data, offset, payload, 0, payload.length);
@@ -58,39 +51,17 @@ public class HeaderParserTest {
     byte[] newData = new byte[data.length];
 
     DatagramPacket userInput = new DatagramPacket(payload, payload.length);
-    scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 1});
+    scionHeader.reverse();
+    pathHeaderScion.reverse();
+    overlayHeaderUdp.reverse();
     int writeOffset =
         scionHeader.write(
             newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     writeOffset = overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
-
-    // payload
     System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
 
     assertEquals(offset, writeOffset);
-    assertArrayEquals(data, newData);
-
-    // After reversing, they should not be equal
-    scionHeader.reverse();
-    pathHeaderScion.reverse();
-    // write
-    writeOffset =
-        scionHeader.write(
-            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.write(newData, writeOffset);
-    overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
-    assertFalse(Arrays.equals(data, newData));
-
-    // Reversing again -> equal again!
-    scionHeader.reverse();
-    pathHeaderScion.reverse();
-    // write
-    writeOffset =
-        scionHeader.write(
-            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.write(newData, writeOffset);
-    overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
-    assertArrayEquals(data, newData);
+    assertArrayEquals(responseBytes, newData);
   }
 }

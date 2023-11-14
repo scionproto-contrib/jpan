@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
-import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,18 +25,22 @@ import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
 import org.scion.ScionUtil;
+import org.scion.demo.inspector.Constants;
+import org.scion.demo.inspector.OverlayHeader;
+import org.scion.demo.inspector.PathHeaderScion;
+import org.scion.demo.inspector.ScionHeader;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDaemon;
 
-public class HeaderComposer2Test {
+public class InspectorComposeTest {
 
   // Recorded before sending a packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
 
   private static MockDaemon daemon;
-  private Scion.CloseableService pathService = null;
 
+  private Scion.CloseableService pathService = null;
 
   @BeforeAll
   public static void beforeAll() throws IOException {
@@ -64,61 +67,70 @@ public class HeaderComposer2Test {
     }
   }
 
-  /**
-   * Compose a packet from scratch.
-   */
+  /** Compose a packet from scratch using the inspector classes. */
   @Test
   public void testCompose() throws IOException {
     MockDaemon.getAndResetCallCount(); // reset counter
-    ByteBuffer p = ByteBuffer.allocate(500);
+    ScionHeader scionHeader = new ScionHeader();
+    PathHeaderScion pathHeaderScion = new PathHeaderScion();
+    OverlayHeader overlayHeaderUdp = new OverlayHeader();
+    byte[] data = new byte[500];
+    DatagramPacket p = new DatagramPacket(data, data.length);
 
     // User side
     String hostname = "::1";
     int dstPort = 8080;
+    InetAddress address = InetAddress.getByName(hostname);
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
-    ByteBuffer userPacket = ByteBuffer.allocate(msg.length());
-    userPacket.put(msg.getBytes());
+    byte[] sendBuf = msg.getBytes();
+    DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, dstPort);
 
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
     Daemon.Path path = PackageVisibilityHelper.getPathList(pathService, srcIA, dstIA).get(0);
-
+    scionHeader.setSrcIA(srcIA);
+    scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
-    InetAddress dstAddress = InetAddress.getByName(hostname);
+    scionHeader.setSrcHostAddress(srcAddress.getAddress());
+    scionHeader.setDstHostAddress(userPacket.getAddress().getAddress());
 
     // Socket internal = write header
-    ScionHeaderParser.write(p, userPacket.limit(), path.getRaw().size(), srcIA, srcAddress, dstIA, dstAddress);
-    ScionHeaderParser.writePath(p, path.getRaw());
+    int offset =
+        scionHeader.write(
+            data, 0, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
+    assertEquals(1, scionHeader.pathType().code());
+    offset = pathHeaderScion.writePath(data, offset, path);
 
     // Pseudo header
-    ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 44444, dstPort);
+    offset = overlayHeaderUdp.write(data, offset, userPacket.getLength(), 44444, dstPort);
 
-    // add payload
-    p.put(userPacket);
-    p.flip();
+    System.arraycopy(
+        userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
+    p.setLength(offset + userPacket.getLength());
 
-    assertTrue(p.limit() > 50);
-    for (int i = 0; i < p.limit(); i++) {
-      if (i >= 54 && i <= 59) {
-        // ignore segID field and timestamp.
-        // TODO test if timestamp is useful!
-        continue;
-      }
-      if (i >= 66 && i <= 71) {
-        // ignore MAC #1
-        continue;
-      }
-      if (i >= 78 && i <= 83) {
-        // ignore MAC #2
-        continue;
-      }
+    // NB: We expect everything to match here, including timestamp and MAC.
+    //     This is because our mock-daemon has a fixed stored (correct) path.
+    //     Only the UDP checksum will differ.
+    for (int i = 0; i < p.getLength(); i++) {
+      //      if (i >= 54 && i <= 59) {
+      //        // ignore segID field and timestamp.
+      //        continue;
+      //      }
+      //      if (i >= 66 && i <= 71) {
+      //        // ignore MAC #1
+      //        continue;
+      //      }
+      //      if (i >= 78 && i <= 83) {
+      //        // ignore MAC #2
+      //        continue;
+      //      }
       if (i >= 90 && i <= 91) {
         // ignore UDP checksum
         continue;
       }
-      assertEquals(packetBytes[i], p.get(i), "Mismatch at position " + i);
+      assertEquals(packetBytes[i], data[i], "Mismatch at position " + i);
     }
     assertEquals(2, MockDaemon.getAndResetCallCount());
   }
