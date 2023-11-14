@@ -67,7 +67,7 @@ public class HeaderComposerTest {
     }
   }
 
-  /** Compose a packet from scratch. */
+  /** Compose a packet from scratch using the inspector classes. */
   @Test
   public void testCompose() throws IOException {
     MockDaemon.getAndResetCallCount(); // reset counter

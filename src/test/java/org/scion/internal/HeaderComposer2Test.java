@@ -33,7 +33,7 @@ import org.scion.testutil.MockDaemon;
 public class HeaderComposer2Test {
 
   // Recorded before sending a packet
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_2;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
 
   private static MockDaemon daemon;
   private Scion.CloseableService pathService = null;
@@ -65,8 +65,7 @@ public class HeaderComposer2Test {
   }
 
   /**
-   * Parse and re-serialize the packet. The generated content should be identical to the original
-   * content
+   * Compose a packet from scratch.
    */
   @Test
   public void testCompose() throws IOException {
@@ -76,10 +75,6 @@ public class HeaderComposer2Test {
     // User side
     String hostname = "::1";
     int dstPort = 8080;
-    //        dstIA, err := addr.ParseIA("1-ff00:0:112")
-    //        srcIA, err := addr.ParseIA("1-ff00:0:110")
-    //        srcAddr, err := net.ResolveUDPAddr("udp", "127.0.0.2:100")
-    //        dstAddr, err := net.ResolveUDPAddr("udp", "[::1]:8080")
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
     ByteBuffer userPacket = ByteBuffer.allocate(msg.length());
@@ -90,7 +85,7 @@ public class HeaderComposer2Test {
     long srcIA = pathService.getLocalIsdAs();
     Daemon.Path path = PackageVisibilityHelper.getPathList(pathService, srcIA, dstIA).get(0);
 
-    InetAddress srcAddress = InetAddress.getByName("127.0.0.2");
+    InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
     InetAddress dstAddress = InetAddress.getByName(hostname);
 
     // Socket internal = write header
@@ -98,7 +93,7 @@ public class HeaderComposer2Test {
     ScionHeaderParser.writePath(p, path.getRaw());
 
     // Pseudo header
-    ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 100, dstPort);
+    ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 44444, dstPort);
 
     // add payload
     p.put(userPacket);

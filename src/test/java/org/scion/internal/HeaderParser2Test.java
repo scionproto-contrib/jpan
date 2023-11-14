@@ -32,8 +32,7 @@ public class HeaderParser2Test {
   private static final byte[] reversedBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
 
   /**
-   * Parse and re-serialize the packet. The generated content should be identical to the original
-   * content
+   * Parse a packet and create a response packet with reversed path.
    */
   @Test
   public void testParse() {
