@@ -25,7 +25,6 @@ import org.scion.demo.inspector.ScionHeader;
 public class DecodeHeader {
 
   public static void main(String[] args) {
-    printHeader(ExamplePacket.PACKET_BYTES);
     printHeader(ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING);
     printHeader(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
     printHeader(ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG);

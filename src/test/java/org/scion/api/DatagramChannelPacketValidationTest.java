@@ -40,7 +40,7 @@ class DatagramChannelPacketValidationTest {
   private final AtomicReference<Exception> failure = new AtomicReference<>();
   private CountDownLatch barrier;
   private static final String MSG = ExamplePacket.MSG;
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
 
   @BeforeEach
   public void beforeEach() {
