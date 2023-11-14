@@ -199,53 +199,6 @@ public class ScionHeader {
         data[p1] = data[p2];
         data[p2] = b;
     }
-    public static void reverse(byte[] data) {
-        int offset = 0;
-//        int dummy = dt;
-//        dt = st;
-//        st = dummy;
-//        dummy = dl;
-//        dl = sl;
-//        sl = dummy;
-        // byte 9: dt/dl/st/sl
-        byte b9 = data[offset + 9];
-        int DL = (b9 >>> 4) & 0x3;
-        int SL = b9 & 0x3;
-        DL = (DL + 1) * 4;
-        SL = (SL + 1) * 4;
-        int b9_d = b9 >>> 4;
-        int b9_s = (b9 & 0x0F) << 4;
-        data[offset + 9] = (byte)(b9_s | b9_d);
-
-        int p = offset + 12 + 16;
-        for (int i = 0; i < 4; i++) {
-            swap(data, p + i, p + i + DL);
-        }
-// TODO
-        throw new UnsupportedOperationException();
-
-        // Address header
-//        long dummyLong = srcIsdAs;
-//        srcIsdAs = dstIsdAs;
-//        dstIsdAs = dummyLong;
-//
-//        int d;
-//        d = srcHost0;
-//        srcHost0 = dstHost0;
-//        dstHost0 = d;
-//
-//        d = srcHost1;
-//        srcHost1 = dstHost1;
-//        dstHost1 = d;
-//
-//        d = srcHost2;
-//        srcHost2 = dstHost2;
-//        dstHost2 = d;
-//
-//        d = srcHost3;
-//        srcHost3 = dstHost3;
-//        dstHost3 = d;
-    }
 
     public int write(byte[] data, int offset, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
         this.pathType = pathType.code();
@@ -298,7 +251,6 @@ public class ScionHeader {
 
         return offset;
     }
-
 
     private int calcLen(int pathHeaderLength) {
         // Common header

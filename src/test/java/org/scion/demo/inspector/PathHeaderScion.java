@@ -196,6 +196,7 @@ public class PathHeaderScion {
     nHops = 0;
   }
 
+  @Deprecated
     public int writePath(byte[] data, int offsetStart, Daemon.Path path) {
         // TODO reset() necessary??? -> info fields !??!?!?
         currINF = 0;
@@ -208,5 +209,14 @@ public class PathHeaderScion {
         }
 
         return offsetStart + bytes.size();
+    }
+
+    public int writePath(byte[] data, int offsetStart, byte[] path) {
+        currINF = 0;
+        currHF = 0;
+        for (int i = 0; i < path.length; i++) {
+            data[offsetStart + i] = path[i];
+        }
+        return offsetStart + path.length;
     }
 }

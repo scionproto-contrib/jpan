@@ -15,14 +15,16 @@
 package org.scion;
 
 public final class ScionConstants {
-    public static final String PROPERTY_DAEMON_HOST = "org.scion.daemon.host";
-    public static final String ENV_DAEMON_HOST = "SCION_DAEMON_HOST";
-    public static final String DEFAULT_DAEMON_HOST = "localhost";
-    public static final String PROPERTY_DAEMON_PORT = "org.scion.daemon.port";
-    public static final String ENV_DAEMON_PORT = "SCION_DAEMON_PORT";
-    public static final String DEFAULT_DAEMON_PORT = "30255";
+  public static final String PROPERTY_DAEMON_HOST = "org.scion.daemon.host";
+  public static final String ENV_DAEMON_HOST = "SCION_DAEMON_HOST";
+  public static final String DEFAULT_DAEMON_HOST = "localhost";
+  public static final String PROPERTY_DAEMON_PORT = "org.scion.daemon.port";
+  public static final String ENV_DAEMON_PORT = "SCION_DAEMON_PORT";
+  public static final String DEFAULT_DAEMON_PORT = "30255";
 
-    // Non-public property that allows specifying DNS entries for debugging
-    static final String DEBUG_PROPERTY_DNS_MOCK = "DEBUG_SCION_DNS_MOCK";
-
+  /**
+   * Non-public property that allows specifying DNS entries for debugging Example with two entries:
+   * server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
+   */
+  static final String DEBUG_PROPERTY_DNS_MOCK = "DEBUG_SCION_DNS_MOCK";
 }
