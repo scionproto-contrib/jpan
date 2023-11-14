@@ -36,12 +36,11 @@ import org.scion.testutil.MockDaemon;
 public class HeaderComposerTest {
 
   // Recorded before sending a packet
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_2;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
 
   private static MockDaemon daemon;
 
   private Scion.CloseableService pathService = null;
-
 
   @BeforeAll
   public static void beforeAll() throws IOException {
@@ -68,10 +67,7 @@ public class HeaderComposerTest {
     }
   }
 
-  /**
-   * Parse and re-serialize the packet. The generated content should be identical to the original
-   * content
-   */
+  /** Compose a packet from scratch. */
   @Test
   public void testCompose() throws IOException {
     MockDaemon.getAndResetCallCount(); // reset counter
@@ -84,10 +80,6 @@ public class HeaderComposerTest {
     // User side
     String hostname = "::1";
     int dstPort = 8080;
-    //        dstIA, err := addr.ParseIA("1-ff00:0:112")
-    //        srcIA, err := addr.ParseIA("1-ff00:0:110")
-    //        srcAddr, err := net.ResolveUDPAddr("udp", "127.0.0.2:100")
-    //        dstAddr, err := net.ResolveUDPAddr("udp", "[::1]:8080")
     InetAddress address = InetAddress.getByName(hostname);
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
@@ -100,35 +92,40 @@ public class HeaderComposerTest {
     Daemon.Path path = PackageVisibilityHelper.getPathList(pathService, srcIA, dstIA).get(0);
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
-    InetAddress srcAddress = InetAddress.getByName("127.0.0.2");
+    InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
     scionHeader.setSrcHostAddress(srcAddress.getAddress());
     scionHeader.setDstHostAddress(userPacket.getAddress().getAddress());
 
     // Socket internal = write header
-    int offset = scionHeader.write(data, 0, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
+    int offset =
+        scionHeader.write(
+            data, 0, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
     assertEquals(1, scionHeader.pathType().code());
     offset = pathHeaderScion.writePath(data, offset, path);
 
     // Pseudo header
-    offset = overlayHeaderUdp.write(data, offset, userPacket.getLength(), 100, dstPort);
+    offset = overlayHeaderUdp.write(data, offset, userPacket.getLength(), 44444, dstPort);
 
-    System.arraycopy(userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
+    System.arraycopy(
+        userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
     p.setLength(offset + userPacket.getLength());
 
+    // NB: We expect everything to match here, including timestamp and MAC.
+    //     This is because our mock-daemon has a fixed stored (correct) path.
+    //     Only the UDP checksum will differ.
     for (int i = 0; i < p.getLength(); i++) {
-      if (i >= 54 && i <= 59) {
-        // ignore segID field and timestamp.
-        // TODO test if timestamp is useful!
-        continue;
-      }
-      if (i >= 66 && i <= 71) {
-        // ignore MAC #1
-        continue;
-      }
-      if (i >= 78 && i <= 83) {
-        // ignore MAC #2
-        continue;
-      }
+      //      if (i >= 54 && i <= 59) {
+      //        // ignore segID field and timestamp.
+      //        continue;
+      //      }
+      //      if (i >= 66 && i <= 71) {
+      //        // ignore MAC #1
+      //        continue;
+      //      }
+      //      if (i >= 78 && i <= 83) {
+      //        // ignore MAC #2
+      //        continue;
+      //      }
       if (i >= 90 && i <= 91) {
         // ignore UDP checksum
         continue;

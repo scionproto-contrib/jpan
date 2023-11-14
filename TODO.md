@@ -59,6 +59,8 @@
   BindException(?), ConnectException, NoRouteToHostException, PortUnreachableException
 - Add channel.send(packet, dstAddr, dstIsdAs); 
 - Add socket.send(packet, dstIsdAs);
+- UDP checksum for overlay packet?
+
 
 ## Then
 

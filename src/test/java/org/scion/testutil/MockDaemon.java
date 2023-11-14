@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.scion.ScionConstants;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
@@ -33,9 +32,8 @@ public class MockDaemon implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
 
   public static final InetSocketAddress DEFAULT_ADDRESS =
-          new InetSocketAddress("127.0.0.15", 30255);
-  public static final String DEFAULT_ADDRESS_STR =
-          DEFAULT_ADDRESS.toString().substring(1);
+      new InetSocketAddress("127.0.0.15", 30255);
+  public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
   public static final String DEFAULT_IP = "127.0.0.15";
   public static final int DEFAULT_PORT = 30255;
 
@@ -43,18 +41,19 @@ public class MockDaemon implements AutoCloseable {
   private Server server;
   private final InetSocketAddress borderRouter;
   private static final AtomicInteger callCount = new AtomicInteger();
-
   private static final byte[] PATH_RAW_TINY_110_112 = {
-          0x00, 0x00, 0x20, 0x00, 0x01, 0x00, (byte) 0xb4, (byte) 0xab,
-          0x65, 0x14, 0x08, (byte) 0xde, 0x00, 0x3f, 0x00, 0x00,
-          0x00, 0x02, 0x66, 0x62, 0x3e, (byte) 0xba, 0x31, (byte) 0xc6,
-          0x00, 0x3f, 0x00, 0x01, 0x00, 0x00, 0x51, (byte) 0xc1,
-          (byte) 0xfd, (byte) 0xed, 0x27, 0x60, };
+    0, 0, 32, 0, 1, 0, 11, 16,
+    101, 83, 118, -81, 0, 63, 0, 0,
+    0, 2, 118, -21, 86, -46, 89, 0,
+    0, 63, 0, 1, 0, 0, -8, 2,
+    -114, 25, 76, -122,
+  };
 
   private static void setEnvironment() {
     System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
     System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
   }
+
   public static MockDaemon create() {
     setEnvironment();
     return new MockDaemon(DEFAULT_ADDRESS);

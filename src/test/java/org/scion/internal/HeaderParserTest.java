@@ -31,6 +31,7 @@ public class HeaderParserTest {
   /**
    * Parse a packet and create a duplicate from the parse packet. The generated content should be
    * identical to the original content.
+   * This is not a common use case but is meant to test the inspector.
    */
   @Test
   public void testParseAndReverse() {
