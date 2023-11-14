@@ -287,12 +287,6 @@ public class ScionHeader {
         sb.append("\n");
 
         sb.append("Address Header: ");
-        //            sb.append("  DstISD=" + dstISD);
-        //            sb.append("  DstAS =" + dstAS);
-        //            //sb.append("\n");
-        //            sb.append("  SrcISD=" + srcISD);
-        //            sb.append("  SrcAS =" + srcAS);
-        //            System.out.println(sb);
         sb.append("  dstIsdAs=").append(ScionUtil.toStringIA(dstIsdAs));
         sb.append("  srcIsdAs=").append(ScionUtil.toStringIA(srcIsdAs));
         sb.append("  dstHost=").append(dt).append("/");
