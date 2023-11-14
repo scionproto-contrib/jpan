@@ -122,8 +122,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
 
     int payloadLength = buffer.limit() - buffer.position();
-    // TODO reuse, or allocate direct??? Capacity?
-    ByteBuffer output = ByteBuffer.allocate(payloadLength + 1000);
+    ByteBuffer output = this.buffer;
+    output.clear();
     ScionPacketHelper.writeHeader(output, getLocalScionAddress(), dstAddress, payloadLength);
     output.put(buffer);
     output.flip();

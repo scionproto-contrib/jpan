@@ -19,6 +19,11 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+/**
+ * ScionAddress is an InetAddress + ISD/AS information.
+ * <p>
+ * This class is threadsafe.
+ */
 public class ScionAddress {
   private final long isdAs;
   private final String hostName;

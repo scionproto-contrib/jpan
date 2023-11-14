@@ -16,9 +16,17 @@ package org.scion;
 
 import java.net.*;
 
+/**
+ * ScionSocketAddress is an InetSocketAddress + ISD/AS information.
+ * <p>
+ * A ScionPath may be assigned at construction of dynamically requested from
+ * the PathService when calling getPath().
+ * <p>
+ * This class is threadsafe.
+ */
 public class ScionSocketAddress extends InetSocketAddress {
   private final long isdAs;
-  private ScionPath path;
+  private volatile ScionPath path;
 
   private ScionSocketAddress(long isdAs, String hostName, int port, ScionPath path) {
     // TODO this probably causes a DNS lookup, can we avoid that? Check!
@@ -85,10 +93,6 @@ public class ScionSocketAddress extends InetSocketAddress {
       path = ScionService.defaultService().getPath(isdAs);
     }
     return path;
-  }
-
-  public void setPath(ScionPath path) {
-    this.path = path;
   }
 
   public boolean hasPath() {

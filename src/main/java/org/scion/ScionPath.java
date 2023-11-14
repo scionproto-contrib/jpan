@@ -23,10 +23,13 @@ import org.scion.proto.daemon.Daemon;
 /**
  * A SCION path represents a single path from a source to a destination.
  * Paths can be retrieved from the ScionService.
+ * <p>
+ * This class is threadsafe.
  */
 public class ScionPath {
     private final Daemon.Path pathProtoc;
-    private byte[] pathRaw;
+    // ScionPath ois basically immutable, it may be accessed in multiple thread concurrently.
+    private volatile byte[] pathRaw;
     private final long srcIsdAs;
     private final long dstIsdAs;
     private final InetSocketAddress firstHopAddress;

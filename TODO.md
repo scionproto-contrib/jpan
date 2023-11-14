@@ -16,9 +16,6 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
-- FIX ScionSocketAddress MUST BE IMMUTABLE!! -> May be used by different Channels concurrently!
-  - getPath mus happen inside SSA constructor
-- FIX: "new byte[1000]"
 - TEST: getMtu + large packets 
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
