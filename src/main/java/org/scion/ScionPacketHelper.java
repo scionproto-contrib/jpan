@@ -41,8 +41,6 @@ class ScionPacketHelper {
       int payloadLength) {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
 
-    boolean isClient = dstSocketAddress.getPath().getRawPath() == null;
-
     long srcIA = ScionService.defaultService().getLocalIsdAs();
     // TODO ? srcIA = dstAddress.getPath().getSourceIsdAs();
     long dstIA = dstSocketAddress.getIsdAs();
@@ -51,17 +49,10 @@ class ScionPacketHelper {
     InetAddress srcAddress = srcSocketAddress.getAddress();
     InetAddress dstAddress = dstSocketAddress.getAddress();
 
-    if (isClient) {
-      Daemon.Path path = dstSocketAddress.getPath().getPathInternal();
-      ScionHeaderParser.write(
-          data, payloadLength, path.getRaw().size(), srcIA, srcAddress, dstIA, dstAddress);
-      ScionHeaderParser.writePath(data, path.getRaw());
-    } else {
-      byte[] path = dstSocketAddress.getPath().getRawPath();
-      ScionHeaderParser.write(
-          data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
-      ScionHeaderParser.writePath(data, path);
-    }
+    byte[] path = dstSocketAddress.getPath().getRawPath();
+    ScionHeaderParser.write(
+        data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.writePath(data, path);
     ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
   }
 }

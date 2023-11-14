@@ -18,8 +18,6 @@ import static org.scion.demo.inspector.ByteUtil.readInt;
 import static org.scion.demo.inspector.ByteUtil.write16;
 import static org.scion.demo.inspector.ByteUtil.writeInt;
 
-import java.nio.ByteBuffer;
-
 public class OverlayHeader {
 
     // 16 bit

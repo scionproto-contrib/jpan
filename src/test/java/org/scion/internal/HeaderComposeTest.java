@@ -23,10 +23,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
-import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDaemon;
 
@@ -83,14 +82,14 @@ public class HeaderComposeTest {
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    Daemon.Path path = PackageVisibilityHelper.getPathList(pathService, srcIA, dstIA).get(0);
+    byte[] path = ScionService.defaultService().getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
 
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
     InetAddress dstAddress = InetAddress.getByName(hostname);
 
     // Socket internal = write header
-    ScionHeaderParser.write(p, userPacket.limit(), path.getRaw().size(), srcIA, srcAddress, dstIA, dstAddress);
-    ScionHeaderParser.writePath(p, path.getRaw());
+    ScionHeaderParser.write(p, userPacket.limit(), path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.writePath(p, path);
 
     // Pseudo header
     ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 44444, dstPort);

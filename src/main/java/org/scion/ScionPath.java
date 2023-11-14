@@ -14,11 +14,11 @@
 
 package org.scion;
 
-import org.scion.proto.daemon.Daemon;
-
+import com.google.protobuf.ByteString;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import org.scion.proto.daemon.Daemon;
 
 /**
  * A SCION path represents a single path from a source to a destination.
@@ -26,7 +26,7 @@ import java.net.UnknownHostException;
  */
 public class ScionPath {
     private final Daemon.Path pathProtoc;
-    private final byte[] pathRaw;
+    private byte[] pathRaw;
     private final long srcIsdAs;
     private final long dstIsdAs;
     private final InetSocketAddress firstHopAddress;
@@ -83,7 +83,14 @@ public class ScionPath {
     }
 
     public byte[] getRawPath() {
+        if (pathRaw == null) {
+            ByteString bs  = pathProtoc.getRaw();
+            pathRaw = new byte[bs.size()];
+            for (int i = 0; i < bs.size(); i++) {
+                pathRaw[i] = bs.byteAt(i);
+            }
+
+        }
         return pathRaw;
     }
-
 }

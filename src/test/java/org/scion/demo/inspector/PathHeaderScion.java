@@ -16,9 +16,7 @@ package org.scion.demo.inspector;
 
 import static org.scion.demo.inspector.ByteUtil.*;
 
-import com.google.protobuf.ByteString;
 import java.util.Arrays;
-import org.scion.proto.daemon.Daemon;
 
 public class PathHeaderScion {
 
@@ -196,27 +194,10 @@ public class PathHeaderScion {
     nHops = 0;
   }
 
-  @Deprecated
-    public int writePath(byte[] data, int offsetStart, Daemon.Path path) {
-        // TODO reset() necessary??? -> info fields !??!?!?
-        currINF = 0;
-        currHF = 0;
-
-        // write
-        ByteString bytes = path.getRaw();
-        for (int i = 0; i < bytes.size(); i++) {
-            data[offsetStart + i] = bytes.byteAt(i);
-        }
-
-        return offsetStart + bytes.size();
-    }
-
-    public int writePath(byte[] data, int offsetStart, byte[] path) {
-        currINF = 0;
-        currHF = 0;
-        for (int i = 0; i < path.length; i++) {
-            data[offsetStart + i] = path[i];
-        }
-        return offsetStart + path.length;
-    }
+  public int writePath(byte[] data, int offsetStart, byte[] path) {
+    currINF = 0;
+    currHF = 0;
+    System.arraycopy(path, 0, data, offsetStart, path.length);
+    return offsetStart + path.length;
+  }
 }

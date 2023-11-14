@@ -22,14 +22,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
 import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;
-import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDaemon;
 
@@ -89,7 +88,7 @@ public class InspectorComposeTest {
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    Daemon.Path path = PackageVisibilityHelper.getPathList(pathService, srcIA, dstIA).get(0);
+    byte[] path = ScionService.defaultService().getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
@@ -99,7 +98,7 @@ public class InspectorComposeTest {
     // Socket internal = write header
     int offset =
         scionHeader.write(
-            data, 0, userPacket.getLength(), path.getRaw().size(), Constants.PathTypes.SCION);
+            data, 0, userPacket.getLength(), path.length, Constants.PathTypes.SCION);
     assertEquals(1, scionHeader.pathType().code());
     offset = pathHeaderScion.writePath(data, offset, path);
 
