@@ -26,10 +26,10 @@ import org.scion.testutil.ExamplePacket;
 public class HeaderParser2Test {
 
   // Original incoming packet
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
 
   // reversed packet
-  private static final byte[] reversedBytes = ExamplePacket.PACKET_BYTES_RESPONSE;
+  private static final byte[] reversedBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
 
   /**
    * Parse and re-serialize the packet. The generated content should be identical to the original
@@ -52,8 +52,8 @@ public class HeaderParser2Test {
     assertEquals("Hello scion", payload);
 
     // remote address
-    assertEquals(100, remoteAddr.getPort());
-    assertEquals("127.0.0.2", remoteAddr.getHostName());
+    assertEquals(44444, remoteAddr.getPort());
+    assertEquals("localhost", remoteAddr.getHostName());
     assertEquals("1-ff00:0:110", ScionUtil.toStringIA(remoteAddr.getIsdAs()));
     assertEquals(firstHop, remoteAddr.getPath().getFirstHopAddress());
 
@@ -61,7 +61,7 @@ public class HeaderParser2Test {
     byte[] path = remoteAddr.getPath().getRawPath();
     assertEquals(36, path.length);
     for (int i = 0; i < path.length; i++) {
-      assertEquals(reversedBytes[i + 48], path[i]);
+      assertEquals(reversedBytes[i + 48], path[i], "At position:" + i);
     }
   }
 }

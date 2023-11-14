@@ -26,7 +26,7 @@ import org.scion.demo.inspector.ScionHeader;
 import org.scion.testutil.ExamplePacket;
 
 public class HeaderParserTest {
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
 
   /**
    * Parse and re-serialize the packet. The generated content should be identical to the original
@@ -57,7 +57,7 @@ public class HeaderParserTest {
     byte[] newData = new byte[data.length];
 
     DatagramPacket userInput = new DatagramPacket(payload, payload.length);
-    scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 2});
+    scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 1});
     int writeOffset =
         scionHeader.write(
             newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);

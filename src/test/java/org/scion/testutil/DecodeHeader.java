@@ -24,10 +24,12 @@ import org.scion.demo.inspector.ScionHeader;
 /** This is a tool to decode and print out a ScionHeader. */
 public class DecodeHeader {
 
-  private static final byte[] example = ExamplePacket.PACKET_BYTES_CLIENT_E2E;
-
   public static void main(String[] args) {
-    printHeader(example);
+    printHeader(ExamplePacket.PACKET_BYTES);
+    printHeader(ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING);
+    printHeader(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
+    printHeader(ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG);
+    printHeader(ExamplePacket.PACKET_BYTES_CLIENT_E2E_PONG);
 
     // client
     byte[] composed = compose("Hello SCION".getBytes());
