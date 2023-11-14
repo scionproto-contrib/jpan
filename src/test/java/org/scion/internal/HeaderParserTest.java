@@ -26,14 +26,14 @@ import org.scion.demo.inspector.ScionHeader;
 import org.scion.testutil.ExamplePacket;
 
 public class HeaderParserTest {
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
 
   /**
-   * Parse and re-serialize the packet. The generated content should be identical to the original
-   * content
+   * Parse a packet and create a duplicate from the parse packet. The generated content should be
+   * identical to the original content.
    */
   @Test
-  public void testParse() {
+  public void testParseAndReverse() {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
@@ -67,9 +67,6 @@ public class HeaderParserTest {
     // payload
     System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
 
-    // Fix CurrInf which is "1" in the sample packet:
-    newData[48] = 1;
-
     assertEquals(offset, writeOffset);
     assertArrayEquals(data, newData);
 
@@ -93,8 +90,6 @@ public class HeaderParserTest {
             newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
-    // Fix CurrInf which is "1" in the sample packet:
-    newData[48] = 1;
     assertArrayEquals(data, newData);
   }
 }
