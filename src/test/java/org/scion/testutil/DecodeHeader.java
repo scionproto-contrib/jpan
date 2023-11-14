@@ -93,18 +93,17 @@ public class DecodeHeader {
     int readOffset = scionHeader.read(data, 0);
     readOffset = pathHeaderScion.read(data, readOffset);
     readOffset = overlayHeaderUdp.read(data, readOffset);
-    byte[] payload = new byte[data.length - readOffset];
-    System.arraycopy(data, readOffset, payload, 0, payload.length);
+    // byte[] payload = new byte[data.length - readOffset];
+    // System.arraycopy(data, readOffset, payload, 0, payload.length);
 
     // reverse path etc
     scionHeader.reverse();
     pathHeaderScion.reverse();
 
     byte[] newData = new byte[data.length];
-    int writeOffset = 0;
-    writeOffset =
+    int writeOffset =
         scionHeader.write(
-            newData, 0, payload.length, pathHeaderScion.length(), Constants.PathTypes.SCION);
+            newData, 0, userData.length, pathHeaderScion.length(), Constants.PathTypes.SCION);
     writeOffset = pathHeaderScion.write(newData, writeOffset);
     writeOffset = overlayHeaderUdp.write(newData, writeOffset, userData.length);
     System.arraycopy(userData, 0, newData, writeOffset, userData.length);
