@@ -102,7 +102,6 @@ public class HeaderComposeTest {
     for (int i = 0; i < p.limit(); i++) {
       if (i >= 54 && i <= 59) {
         // ignore segID field and timestamp.
-        // TODO test if timestamp is useful!
         continue;
       }
       if (i >= 66 && i <= 71) {

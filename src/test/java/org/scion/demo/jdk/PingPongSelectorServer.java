@@ -21,7 +21,6 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
-import java.util.Set;
 
 /**
  * Same as PingPongChannelServer but uses a Selector. It can be used with the PingPongChannelClient.
@@ -50,8 +49,8 @@ public class PingPongSelectorServer {
           selector.close();
           return;
         }
-        Set<SelectionKey> selectedKeys = selector.selectedKeys();
-        Iterator<SelectionKey> iter = selectedKeys.iterator(); // TODO condense
+
+        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {
           SelectionKey key = iter.next();
           if (key.isReadable()) {

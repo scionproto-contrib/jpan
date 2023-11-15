@@ -21,7 +21,6 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -160,8 +159,8 @@ class MockBorderRouter implements Runnable {
           selector.close();
           return;
         }
-        Set<SelectionKey> selectedKeys = selector.selectedKeys();
-        Iterator<SelectionKey> iter = selectedKeys.iterator(); // TODO condense
+
+        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {
           SelectionKey key = iter.next();
           if (key.isReadable()) {

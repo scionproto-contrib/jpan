@@ -82,12 +82,6 @@ public class ScionPacketInspector {
     // Pseudo header
     if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
       overlayHeaderUdp.read(data);
-
-      // Create a copy for returning data
-      //byte[] copyHeader = new byte[offset];
-      //System.arraycopy(data, headerOffset, copyHeader, 0, offset - headerOffset);
-      // TODO use copied header
-
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");
       return false;

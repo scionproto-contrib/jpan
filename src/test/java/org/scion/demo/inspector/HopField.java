@@ -51,7 +51,7 @@ public class HopField {
     }
 
     public void read(ByteBuffer data) {
-        reset(); // TODO this is duplicate effort.....
+        reset();
         int i0 = data.getInt();
         long l1 = data.getLong();
         r0 = readBoolean(i0, 0);
