@@ -16,7 +16,6 @@ package org.scion.internal;
 
 import static org.scion.internal.ByteUtil.*;
 
-import com.google.protobuf.ByteString;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.ScionException;
@@ -362,12 +361,6 @@ public class ScionHeaderParser {
     }
 
     data.position(pos);
-  }
-
-  public static void writePath(ByteBuffer data, ByteString path) {
-    for (int i = 0; i < path.size(); i++) {
-      data.put(path.byteAt(i));
-    }
   }
 
   public static void writePath(ByteBuffer data, byte[] path) {

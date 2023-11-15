@@ -14,6 +14,8 @@
 
 package org.scion.demo.inspector;
 
+import java.nio.ByteBuffer;
+
 import static org.scion.demo.inspector.ByteUtil.*;
 
 public class ScionSCMPHeader {
@@ -25,14 +27,13 @@ public class ScionSCMPHeader {
   // 48 bit
   private int checksum;
 
-  public int read(byte[] data, int offset) {
-    int i0 = readInt(data, offset);
+  public void read(ByteBuffer data) {
+    int i0 = data.getInt();
     type = readInt(i0, 0, 8);
     code = readInt(i0, 8, 8);
     checksum = readInt(i0, 16, 16);
     // TODO validate checksum
     // TODO read InfoBlock/DataBlock
-    return offset + 4;
   }
 
   @Override

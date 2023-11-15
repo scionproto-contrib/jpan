@@ -16,6 +16,7 @@ package org.scion.demo.inspector;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
@@ -51,58 +52,64 @@ public class ScionPacketInspector {
     return sb.toString();
   }
 
-  public int readScionHeader(byte[] data) throws IOException {
+  /**
+   * Read a SCION header.
+   * @param data A ButeBuffer containing the header data.
+   * @return "true" iff the header could be read successfully.
+   * @throws IOException if an IO error occurs.
+   */
+  public boolean readScionHeader(ByteBuffer data) throws IOException {
     int headerOffset = 0;
-    int offset = scionHeader.read(data, headerOffset);
+    scionHeader.read(data);
     if (scionHeader.getDT() != 0) {
       System.out.println(
           "PACKET DROPPED: service address="
               + scionHeader.getDstHostAddress()
               + "  DT="
               + scionHeader.getDT());
-      return -1;
+      return false;
     }
 
     if (scionHeader.pathType() == Constants.PathTypes.SCION) {
-      offset = pathHeaderScion.read(data, offset);
+      pathHeaderScion.read(data);
     } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
-      offset = pathHeaderOneHop.read(data, offset);
-      return -1;
+      pathHeaderOneHop.read(data);
+      return false;
     } else {
       throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
     }
 
     // Pseudo header
     if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
-      offset = overlayHeaderUdp.read(data, offset);
+      overlayHeaderUdp.read(data);
 
       // Create a copy for returning data
-      byte[] copyHeader = new byte[offset];
-      System.arraycopy(data, headerOffset, copyHeader, 0, offset - headerOffset);
+      //byte[] copyHeader = new byte[offset];
+      //System.arraycopy(data, headerOffset, copyHeader, 0, offset - headerOffset);
       // TODO use copied header
 
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       System.out.println("Packet: DROPPED: SCMP");
-      return -1;
+      return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
       System.out.println("Packet EndToEnd");
       ScionEndToEndExtensionHeader e2eHeader = new ScionEndToEndExtensionHeader();
-      offset = e2eHeader.read(data, offset);
+      e2eHeader.read(data);
       if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
         ScionSCMPHeader scmpHdr = new ScionSCMPHeader();
-        offset = scmpHdr.read(data, offset);
+        scmpHdr.read(data);
         System.out.println("SCMP:");
         System.out.println("    type: " + scmpHdr.getType().getText());
         System.out.println("    code: " + scmpHdr.getCode());
       } else {
         System.out.println("Packet: DROPPED not implemented: " + scionHeader.nextHeader().name());
-        return -1;
+        return false;
       }
-      return -1;
+      return false;
     } else {
       System.out.println("Packet: DROPPED unknown: " + scionHeader.nextHeader().name());
-      return -1;
+      return false;
     }
-    return offset;
+    return true;
   }
 }

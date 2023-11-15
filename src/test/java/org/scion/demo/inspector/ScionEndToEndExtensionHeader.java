@@ -16,6 +16,8 @@ package org.scion.demo.inspector;
 
 import static org.scion.demo.inspector.ByteUtil.*;
 
+import java.nio.ByteBuffer;
+
 public class ScionEndToEndExtensionHeader {
 
   // 8 bit
@@ -26,33 +28,14 @@ public class ScionEndToEndExtensionHeader {
   // 48 bit
   private long options;
 
-  public int read(byte[] data, int offset) {
-    long l0 = readLong(data, offset);
+  public void read(ByteBuffer data) {
+    long l0 = data.getInt();
     nextHdr = (int) readLong(l0, 0, 8);
     extLen = (int) readLong(l0, 8, 8);
     extLenBytes = (extLen + 1) * 4;
     options = readLong(l0, 16, 48);
     // TODO validate checksum
-    return offset + extLenBytes;
   }
-
-  //    public void reverse() {
-  //        int dummy = srcPort;
-  //        srcPort = dstPort;
-  //        dstPort = dummy;
-  //    }
-  //
-  //    public int write(byte[] data, int offset, int packetLength) {
-  //        int i0 = 0;
-  //        int i1 = 0;
-  //        i0 = writeInt(i0, 0, 16, srcPort);
-  //        i0 = writeInt(i0, 16, 16, dstPort);
-  //        i1 = writeInt(i1, 0, 16, packetLength + 8);
-  //        i1 = writeInt(i1, 16, 16, checkSum);
-  //        offset = writeInt(data, offset, i0);
-  //        offset = writeInt(data, offset, i1);
-  //        return offset;
-  //    }
 
   @Override
   public String toString() {
@@ -70,16 +53,4 @@ public class ScionEndToEndExtensionHeader {
   public int getExtLenBytes() {
     return extLenBytes;
   }
-
-
-  //    @Override
-  //    public String toString() {
-  //        return "UdpPseudoHeader{" +
-  //                "srcPort=" + srcPort +
-  //                ", dstPort=" + dstPort +
-  //                ", length=" + packetLength +
-  //                ", checkSum=" + checkSum +
-  //                '}';
-  //    }
-
 }

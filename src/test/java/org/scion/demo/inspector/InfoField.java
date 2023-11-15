@@ -17,7 +17,6 @@ package org.scion.demo.inspector;
 import static org.scion.demo.inspector.ByteUtil.*;
 
 import java.nio.ByteBuffer;
-import org.scion.proto.daemon.Daemon;
 
 public class InfoField {
 
@@ -35,30 +34,10 @@ public class InfoField {
     // 16 bits : segID
     private int segID;
     // 32 bits : timestamp (unsigned int)
-    private long timestamp; // TODO timestamp raw?
+    private int timestampRaw; // "raw" because field type is "signed int"
 
     InfoField() {
 
-    }
-
-//    private InfoField(byte[] data, int offset) {
-//        int i0 = ByteUtil.readInt(data, offset);
-//        int i1 = ByteUtil.readInt(data, offset + 4);
-//        p = ByteUtil.readBoolean(i0, 6);
-//        c = ByteUtil.readBoolean(i0, 7);
-//        reserved = ByteUtil.readInt(i0, 8, 8);
-//        segID = ByteUtil.readInt(i0, 16, 16);
-//        timestamp = i1;
-//    }
-
-    public void read(byte[] data, int offset) {
-        int i0 = readInt(data, offset);
-        int i1 = readInt(data, offset + 4);
-        p = readBoolean(i0, 6);
-        c = readBoolean(i0, 7);
-        reserved = readInt(i0, 8, 8);
-        segID = readInt(i0, 16, 16);
-        timestamp = Integer.toUnsignedLong(i1);  // TODO test this, does it work correctly with signed/unsigned?
     }
 
     public void read(ByteBuffer data) {
@@ -68,21 +47,7 @@ public class InfoField {
         c = readBoolean(i0, 7);
         reserved = readInt(i0, 8, 8);
         segID = readInt(i0, 16, 16);
-        timestamp = Integer.toUnsignedLong(i1);  // TODO test this, does it work correctly with signed/unsigned?
-    }
-
-    public int write(byte[] data, int offsetStart) {
-        int offset = offsetStart;
-        int i0 = 0;
-
-        i0 = writeInt(i0, 0, 6, 0);
-        i0 = writeBool(i0, 6, p);
-        i0 = writeBool(i0, 7, c);
-        i0 = writeInt(i0, 8, 8, 0); // RSV
-        i0 = writeInt(i0, 16, 16, segID);
-        offset = writeInt(data, offset, i0);
-        offset = writeUnsignedInt(data, offset, timestamp);
-        return offset;
+        timestampRaw = i1;
     }
 
     public void write(ByteBuffer data) {
@@ -93,7 +58,7 @@ public class InfoField {
         i0 = writeInt(i0, 8, 8, 0); // RSV
         i0 = writeInt(i0, 16, 16, segID);
         data.putInt(i0);
-        data.putLong(timestamp);
+        data.putInt(timestampRaw);
     }
 
     public void reverse() {
@@ -118,7 +83,7 @@ public class InfoField {
                 ", C=" + c +
                 ", reserved=" + reserved +
                 ", segID=" + segID +
-                ", timestamp=" + Long.toUnsignedString(timestamp) +
+                ", timestamp=" + Integer.toUnsignedLong(timestampRaw) +
                 '}';
     }
 
@@ -134,17 +99,14 @@ public class InfoField {
         c = false;
         reserved = 0;
         segID = 0;
-        timestamp = 0;
+        timestampRaw = 0;
     }
 
-    public void set(Daemon.Path path) {
-        p = false; // TODO
-        c = true; // TODO
-        this.timestamp = path.getExpiration().getSeconds();
-        this.segID = 12345; // TODO !!!!!
+    public long getTimestamp() {
+        return Integer.toUnsignedLong(timestampRaw);
     }
 
-    boolean hasConstructionDirection() {
+    public boolean hasConstructionDirection() {
         return c;
     }
 }

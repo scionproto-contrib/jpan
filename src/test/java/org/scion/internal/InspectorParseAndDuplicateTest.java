@@ -17,6 +17,7 @@ package org.scion.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.DatagramPacket;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.scion.demo.inspector.Constants;
@@ -30,69 +31,63 @@ public class InspectorParseAndDuplicateTest {
 
   /**
    * Parse a packet and create a duplicate from the parse packet. The generated content should be
-   * identical to the original content.
-   * This is not a common use case but is meant to test the inspector.
+   * identical to the original content. This is not a common use case but is meant to test the
+   * inspector.
    */
   @Test
-  public void testParseAndUplicate() {
+  public void testParseAndDuplicate() {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
-    byte[] data = packetBytes;
+    ByteBuffer data = ByteBuffer.wrap(packetBytes).asReadOnlyBuffer();
 
-    int offset = scionHeader.read(data, 0);
-    // System.out.println("Common header: " + commonHeader);
+    scionHeader.read(data);
     assertEquals(1, scionHeader.pathType().code());
-
-    // System.out.println("Address header: " + addressHeader);
-    offset = pathHeaderScion.read(data, offset);
-
+    pathHeaderScion.read(data);
     // Pseudo header
-    offset = overlayHeaderUdp.read(data, offset);
-    // System.out.println(overlayHeaderUdp);
+    overlayHeaderUdp.read(data);
 
-    byte[] payload = new byte[data.length - offset];
-    System.arraycopy(data, offset, payload, 0, payload.length);
+    byte[] payload = new byte[data.remaining()];
+    data.get(payload);
 
     // Send packet
-    byte[] newData = new byte[data.length];
+    ByteBuffer newData = ByteBuffer.allocate(data.limit());
 
     DatagramPacket userInput = new DatagramPacket(payload, payload.length);
     scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 1});
-    int writeOffset =
-        scionHeader.write(
-            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.write(newData, writeOffset);
-    writeOffset = overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
+    scionHeader.write(
+        newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+    pathHeaderScion.write(newData);
+    overlayHeaderUdp.write(newData, userInput.getLength());
 
     // payload
-    System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
+    newData.put(userInput.getData());
 
-    assertEquals(offset, writeOffset);
-    assertArrayEquals(data, newData);
+    assertEquals(data.position(), newData.position());
+    assertArrayEquals(packetBytes, newData.array());
 
     // After reversing, they should not be equal
     scionHeader.reverse();
     pathHeaderScion.reverse();
     overlayHeaderUdp.reverse();
     // write
-    writeOffset =
-        scionHeader.write(
-            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.write(newData, writeOffset);
-    overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
-    assertFalse(Arrays.equals(data, newData));
+    newData.clear();
+    scionHeader.write(
+        newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+    pathHeaderScion.write(newData);
+    overlayHeaderUdp.write(newData, userInput.getLength());
+    assertFalse(Arrays.equals(packetBytes, newData.array()));
 
     // Reversing again -> equal again!
     scionHeader.reverse();
     pathHeaderScion.reverse();
     overlayHeaderUdp.reverse();
     // write
-    writeOffset =
-        scionHeader.write(
-            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.write(newData, writeOffset);
-    overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
-    assertArrayEquals(data, newData);
+    newData.clear();
+    scionHeader.write(
+        newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+    pathHeaderScion.write(newData);
+    overlayHeaderUdp.write(newData, userInput.getLength());
+    assertArrayEquals(packetBytes, newData.array());
   }
 }

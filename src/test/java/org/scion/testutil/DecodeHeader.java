@@ -15,6 +15,7 @@
 package org.scion.testutil;
 
 import java.net.DatagramPacket;
+import java.nio.ByteBuffer;
 
 import org.scion.ScionUtil;
 import org.scion.demo.inspector.Constants;
@@ -32,24 +33,29 @@ public class DecodeHeader {
     printHeader(ExamplePacket.PACKET_BYTES_CLIENT_E2E_PONG);
 
     // client
-    byte[] composed = compose("Hello SCION".getBytes());
+    ByteBuffer composed = compose("Hello SCION".getBytes());
     System.out.println("------- Composed header: -------");
     printHeader(composed);
     // server
     System.out.println("------- Reply header: -------");
-    byte[] reply = composeReply(composed, "Re: Hello SCION".getBytes());
+    composed.flip();
+    ByteBuffer reply = composeReply(composed, "Re: Hello SCION".getBytes());
     printHeader(reply);
   }
 
   public static void printHeader(byte[] data) {
+    printHeader(ByteBuffer.wrap(data));
+  }
+
+  public static void printHeader(ByteBuffer data) {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
-    int offset = scionHeader.read(data, 0);
-    offset = pathHeaderScion.read(data, offset);
-    offset = overlayHeaderUdp.read(data, offset);
-    byte[] payload = new byte[data.length - offset];
-    System.arraycopy(data, offset, payload, 0, payload.length);
+    scionHeader.read(data);
+    pathHeaderScion.read(data);
+    overlayHeaderUdp.read(data);
+    byte[] payload = new byte[data.remaining()];
+    data.get(payload);
 
     // print
     System.out.println(scionHeader);
@@ -58,9 +64,9 @@ public class DecodeHeader {
     System.out.println("Payload: " + new String(payload));
   }
 
-  private static byte[] compose(byte[] payload) {
+  private static ByteBuffer compose(byte[] payload) {
     // Send packet
-    byte[] newData = new byte[10000];
+    ByteBuffer newData = ByteBuffer.allocate(10000);
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
@@ -76,40 +82,36 @@ public class DecodeHeader {
     // ScionService.defaultService().getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
     byte[] path = ExamplePacket.PATH_RAW_TINY_110_112;
 
-    int writeOffset =
-        scionHeader.write(
-            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.writePath(newData, writeOffset, path);
-    writeOffset = overlayHeaderUdp.write(newData, writeOffset, userInput.getLength(), 33333, 44444);
+    scionHeader.write(
+            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+    pathHeaderScion.writePath(newData, path);
+    overlayHeaderUdp.write(newData, userInput.getLength(), 33333, 44444);
 
     // payload
-    System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
+    newData.put(userInput.getData(), userInput.getOffset(), userInput.getLength());
 
     return newData;
   }
 
-  public static byte[] composeReply(byte[] data, byte[] userData) {
+  public static ByteBuffer composeReply(ByteBuffer data, byte[] userData) {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
-    int readOffset = scionHeader.read(data, 0);
-    readOffset = pathHeaderScion.read(data, readOffset);
-    readOffset = overlayHeaderUdp.read(data, readOffset);
-    // byte[] payload = new byte[data.length - readOffset];
-    // System.arraycopy(data, readOffset, payload, 0, payload.length);
+    scionHeader.read(data);
+    pathHeaderScion.read(data);
+    overlayHeaderUdp.read(data);
 
     // reverse path etc
     scionHeader.reverse();
     pathHeaderScion.reverse();
     overlayHeaderUdp.reverse();
 
-    byte[] newData = new byte[data.length];
-    int writeOffset =
-        scionHeader.write(
-            newData, 0, userData.length, pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.write(newData, writeOffset);
-    writeOffset = overlayHeaderUdp.write(newData, writeOffset, userData.length);
-    System.arraycopy(userData, 0, newData, writeOffset, userData.length);
+    ByteBuffer newData = ByteBuffer.allocate(data.limit());
+    scionHeader.write(
+            newData, userData.length, pathHeaderScion.length(), Constants.PathTypes.SCION);
+    pathHeaderScion.write(newData);
+    overlayHeaderUdp.write(newData, userData.length);
+    newData.put(userData);
 
     return newData;
   }

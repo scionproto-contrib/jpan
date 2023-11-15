@@ -17,6 +17,7 @@ package org.scion.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.DatagramPacket;
+import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
@@ -36,32 +37,31 @@ public class InspectorParseAndReplyTest {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
-    byte[] data = packetBytes;
+    ByteBuffer data = ByteBuffer.wrap(packetBytes);
 
-    int offset = scionHeader.read(data, 0);
+    scionHeader.read(data);
     assertEquals(1, scionHeader.pathType().code());
-    offset = pathHeaderScion.read(data, offset);
+    pathHeaderScion.read(data);
     // Pseudo header
-    offset = overlayHeaderUdp.read(data, offset);
+    overlayHeaderUdp.read(data);
 
-    byte[] payload = new byte[data.length - offset];
-    System.arraycopy(data, offset, payload, 0, payload.length);
+    byte[] payload = new byte[data.remaining()];
+    data.get(payload);
 
     // Send packet
-    byte[] newData = new byte[data.length];
+    ByteBuffer newData = ByteBuffer.allocate(data.limit());
 
     DatagramPacket userInput = new DatagramPacket(payload, payload.length);
     scionHeader.reverse();
     pathHeaderScion.reverse();
     overlayHeaderUdp.reverse();
-    int writeOffset =
-        scionHeader.write(
-            newData, 0, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
-    writeOffset = pathHeaderScion.write(newData, writeOffset);
-    writeOffset = overlayHeaderUdp.write(newData, writeOffset, userInput.getLength());
-    System.arraycopy(userInput.getData(), 0, newData, writeOffset, userInput.getLength());
+    scionHeader.write(
+            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+    pathHeaderScion.write(newData);
+    overlayHeaderUdp.write(newData, userInput.getLength());
+    newData.put(userInput.getData(), 0, userInput.getLength());
 
-    assertEquals(offset, writeOffset);
-    assertArrayEquals(responseBytes, newData);
+    assertEquals(data.position(), newData.position());
+    assertArrayEquals(responseBytes, newData.array());
   }
 }

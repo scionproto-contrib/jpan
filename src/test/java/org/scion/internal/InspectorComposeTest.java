@@ -18,12 +18,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.Scion;
-import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
@@ -73,8 +74,9 @@ public class InspectorComposeTest {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();
-    byte[] data = new byte[500];
-    DatagramPacket p = new DatagramPacket(data, data.length);
+    byte[] dataBytes = new byte[500];
+    ByteBuffer data = ByteBuffer.wrap(dataBytes);
+    DatagramPacket p = new DatagramPacket(dataBytes, dataBytes.length);
 
     // User side
     String hostname = "::1";
@@ -88,7 +90,7 @@ public class InspectorComposeTest {
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path = ScionService.defaultService().getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
+    byte[] path = pathService.getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
@@ -96,18 +98,16 @@ public class InspectorComposeTest {
     scionHeader.setDstHostAddress(userPacket.getAddress().getAddress());
 
     // Socket internal = write header
-    int offset =
-        scionHeader.write(
-            data, 0, userPacket.getLength(), path.length, Constants.PathTypes.SCION);
+    scionHeader.write(
+            data, userPacket.getLength(), path.length, Constants.PathTypes.SCION);
     assertEquals(1, scionHeader.pathType().code());
-    offset = pathHeaderScion.writePath(data, offset, path);
+    pathHeaderScion.writePath(data, path);
 
     // Pseudo header
-    offset = overlayHeaderUdp.write(data, offset, userPacket.getLength(), 44444, dstPort);
+    overlayHeaderUdp.write(data, userPacket.getLength(), 44444, dstPort);
 
-    System.arraycopy(
-        userPacket.getData(), userPacket.getOffset(), p.getData(), offset, userPacket.getLength());
-    p.setLength(offset + userPacket.getLength());
+    data.put(userPacket.getData(), 0, userPacket.getLength());
+    p.setLength(data.position());
 
     // NB: We expect everything to match here, including timestamp and MAC.
     //     This is because our mock-daemon has a fixed stored (correct) path.
@@ -129,7 +129,7 @@ public class InspectorComposeTest {
         // ignore UDP checksum
         continue;
       }
-      assertEquals(packetBytes[i], data[i], "Mismatch at position " + i);
+      assertEquals(packetBytes[i], data.get(i), "Mismatch at position " + i);
     }
     assertEquals(2, MockDaemon.getAndResetCallCount());
   }

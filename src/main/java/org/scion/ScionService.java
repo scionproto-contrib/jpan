@@ -61,7 +61,8 @@ public class ScionService {
   private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
 
   private final ManagedChannel channel;
-  private final AtomicLong localIsdAs = new AtomicLong(0);
+  private static final long ISD_AS_NOT_SET = -1;
+  private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
 
   protected ScionService(String daemonAddress) {
     // TODO InsecureChannelCredentials?
@@ -191,7 +192,7 @@ public class ScionService {
   }
 
   public long getLocalIsdAs() {
-    if (localIsdAs.get() == 0) {
+    if (localIsdAs.get() == ISD_AS_NOT_SET) {
       // Yes, this may be called multiple time by different threads, but it should be
       // faster than `synchronize`.
       localIsdAs.set(getASInfo().getIsdAs());

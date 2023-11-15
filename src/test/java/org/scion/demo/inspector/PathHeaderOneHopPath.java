@@ -14,55 +14,51 @@
 
 package org.scion.demo.inspector;
 
+import java.nio.ByteBuffer;
+
 public class PathHeaderOneHopPath {
-    // A OneHopPath has exactly one info field and two hop fields
-    private final InfoField info;
-    private final HopField hop0;
-    private final HopField hop1;
+  // A OneHopPath has exactly one info field and two hop fields
+  private final InfoField info;
+  private final HopField hop0;
+  private final HopField hop1;
 
-    public PathHeaderOneHopPath() {
-        info = new InfoField();
-        hop0 = new HopField();
-        hop1 = new HopField();
-    }
+  public PathHeaderOneHopPath() {
+    info = new InfoField();
+    hop0 = new HopField();
+    hop1 = new HopField();
+  }
 
-    public int read(byte[] data, int headerOffset) {
-        reset();
-        // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset calculations below).
-        // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset calculations below).
-        // 6 bit : RSV
-        // Up to 3 Info fields and up to 64 Hop fields
-        // The number of hop fields in a given segment. Seg,Len > 0 implies the existence of info field i.
-        // 6 bit : Seg0Len
-        // 6 bit : Seg1Len
-        // 6 bit : Seg2Len
+  public void read(ByteBuffer data) {
+    reset();
+    // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset
+    // calculations below).
+    // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset
+    // calculations below).
+    // 6 bit : RSV
+    // Up to 3 Info fields and up to 64 Hop fields
+    // The number of hop fields in a given segment. Seg,Len > 0 implies the existence of info field
+    // i.
+    // 6 bit : Seg0Len
+    // 6 bit : Seg1Len
+    // 6 bit : Seg2Len
 
-        int offset = headerOffset;
+    info.read(data);
+    hop0.read(data);
+    hop1.read(data);
+  }
 
-        info.read(data, offset);
-        offset += info.length();
-        hop0.read(data, offset);
-        offset += hop0.length();
-        hop1.read(data, offset);
-        offset += hop1.length();
-        return offset;
-    }
+  public void reset() {
+    info.reset();
+    hop0.reset();
+    hop1.reset();
+  }
 
-    public void reset() {
-        info.reset();
-        hop0.reset();
-        hop1.reset();
-    }
+  @Override
+  public String toString() {
+    return "OneHopPath header: " + "\n  info=" + info + "\n    hop0=" + hop0 + "\n    hop1=" + hop1;
+  }
 
-    @Override
-    public String toString() {
-        return "OneHopPath header: " +
-                "\n  info=" + info +
-                "\n    hop0=" + hop0 +
-                "\n    hop1=" + hop1;
-    }
-
-    public int length() {
+  public int length() {
     return info.length() + hop0.length() + hop1.length();
-    }
+  }
 }
