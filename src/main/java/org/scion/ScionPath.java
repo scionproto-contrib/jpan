@@ -55,10 +55,6 @@ public class ScionPath {
         return new ScionPath(rawPath, srcIsdAs, dstIsdAs, firstHopAddress);
     }
 
-    Daemon.Path getPathInternal() {
-        return pathProtoc;
-    }
-
     public long getDestinationIsdAs() {
         return dstIsdAs;
     }

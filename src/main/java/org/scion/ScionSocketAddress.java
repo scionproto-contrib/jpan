@@ -95,10 +95,6 @@ public class ScionSocketAddress extends InetSocketAddress {
     return path;
   }
 
-  public boolean hasPath() {
-    return path != null;
-  }
-
   public ScionAddress getScionAddress() {
     return new ScionAddress(isdAs, getHostName(), super.getAddress());
   }
