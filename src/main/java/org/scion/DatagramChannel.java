@@ -109,7 +109,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
       channel.connect(underlayAddress);
     }
 
-    int payloadLength = buffer.limit() - buffer.position();
+    int payloadLength = buffer.remaining();
     ByteBuffer output = this.buffer;
     output.clear();
     ScionPacketHelper.writeHeader(output, getLocalAddress(), dstAddress, payloadLength);
@@ -222,7 +222,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     checkConnected();
 
     buffer.clear();
-    int len = src.limit() - src.position();
+    int len = src.remaining();
     ScionPacketHelper.writeHeader(buffer, getLocalAddress(), remoteScionAddress, len);
     buffer.put(src);
     buffer.flip();

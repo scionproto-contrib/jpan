@@ -71,8 +71,6 @@ public class ScionHeader {
   private int srcHost2;
   private int srcHost3;
 
-  private final int len = 3 * 4;
-
   public void read(ByteBuffer data) {
     //  4 bit: Version
     //  8 bit: TrafficClass
@@ -303,10 +301,6 @@ public class ScionHeader {
           .append(ToStringUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
     }
     return sb.toString();
-  }
-
-  public int length() {
-    return len;
   }
 
   public int hdrLenBytes() {

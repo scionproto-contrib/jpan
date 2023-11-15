@@ -33,7 +33,7 @@ public class ScionHeaderParser {
     int udpHeaderLength = 8;
     int payLoadStart = start + hdrLenBytes + udpHeaderLength;
     data.position(payLoadStart);
-    int maxUserLen = userBuffer.limit() - userBuffer.position();
+    int maxUserLen = userBuffer.remaining();
     if (data.limit() - payLoadStart <= maxUserLen) {
       userBuffer.put(data);
     } else {
@@ -79,7 +79,7 @@ public class ScionHeaderParser {
     // remote address
     byte[] bytesSrc = new byte[(sl + 1) * 4];
     data.get(bytesSrc);
-    InetAddress addr = null;
+    InetAddress addr;
     try {
       addr = InetAddress.getByAddress(bytesSrc);
     } catch (UnknownHostException e) {
@@ -121,7 +121,7 @@ public class ScionHeaderParser {
     data.position(start + 28);
     byte[] bytesDst = new byte[(dl + 1) * 4];
     data.get(bytesDst);
-    InetAddress dstIP = null;
+    InetAddress dstIP;
     try {
       dstIP = InetAddress.getByAddress(bytesDst);
     } catch (UnknownHostException e) {
@@ -155,8 +155,8 @@ public class ScionHeaderParser {
     if (version != 0) {
       return PRE + "version: expected 0, got " + version;
     }
-    int trafficLClass = readInt(i0, 4, 8);
-    int flowId = readInt(i0, 12, 20);
+    // int trafficLClass = readInt(i0, 4, 8);
+    // int flowId = readInt(i0, 12, 20);
     int nextHeader = readInt(i1, 0, 8);
     if (nextHeader != 17) {
       return PRE + "nextHeader: expected 17, got " + nextHeader;
