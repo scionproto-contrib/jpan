@@ -28,6 +28,7 @@ import org.scion.DatagramChannel;
 import org.scion.PackageVisibilityHelper;
 import org.scion.ScionSocketAddress;
 import org.scion.testutil.ExamplePacket;
+import org.scion.testutil.PingPongHelper;
 
 class DatagramChannelApiTest {
 

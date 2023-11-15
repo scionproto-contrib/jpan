@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.api;
+package org.scion.testutil;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,9 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
-import org.scion.testutil.MockNetwork;
 
-class PingPongHelper {
+public class PingPongHelper {
 
   private final CountDownLatch BARRIER;
 
@@ -101,10 +100,10 @@ class PingPongHelper {
     }
   }
 
-  interface ClientEndPoint {
+  public interface ClientEndPoint {
     void run(DatagramChannel channel, ScionSocketAddress serverAddress, int id) throws IOException;
   }
-  interface ServerEndPoint {
+  public interface ServerEndPoint {
     void run(DatagramChannel channel) throws IOException;
   }
 

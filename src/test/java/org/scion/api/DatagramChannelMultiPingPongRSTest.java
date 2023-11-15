@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
+import org.scion.testutil.PingPongHelper;
 
 /**
  * Tess receive()/send() operations on DatagramChannel.
