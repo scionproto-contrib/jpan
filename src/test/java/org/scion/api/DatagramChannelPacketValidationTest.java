@@ -33,7 +33,6 @@ import org.scion.testutil.ExamplePacket;
 
 class DatagramChannelPacketValidationTest {
 
-  private final String PRE = "SCION packet validation failed: ";
   private final AtomicReference<SocketAddress> localAddress = new AtomicReference<>();
   private final AtomicInteger receiveCount = new AtomicInteger();
   private final AtomicInteger receiveBadCount = new AtomicInteger();
@@ -53,6 +52,7 @@ class DatagramChannelPacketValidationTest {
 
   @Test
   void validate_length() {
+    String PRE = "SCION packet validation failed: ";
     // packet too short
     for (int i = 0; i < packetBytes.length; i++) {
       ByteBuffer bb = ByteBuffer.allocate(i);
@@ -83,35 +83,35 @@ class DatagramChannelPacketValidationTest {
   @Disabled
   @Test
   public void receive_validationFails_nonBlocking_noThrow()
-          throws IOException, InterruptedException {
+      throws IOException, InterruptedException {
     // silently drop bad packets
-    //receive_validationFails_isBlocking_noThrow(false);
+    receive_validationFails_isBlocking_noThrow(false, false);
   }
 
   @Disabled
   @Test
   public void receive_validationFails_nonBlocking_throw() throws IOException, InterruptedException {
     // throw exception when receiving bad packet
-    //receive_validationFails_isBlocking_noThrow(true);
+    receive_validationFails_isBlocking_noThrow(true, false);
   }
 
   @Test
   public void receive_validationFails_isBlocking_noThrow()
-          throws IOException, InterruptedException {
+      throws IOException, InterruptedException {
     // silently drop bad packets
-    receive_validationFails_isBlocking_noThrow(false);
+    receive_validationFails_isBlocking_noThrow(false, true);
   }
 
   @Test
   public void receive_validationFails_isBlocking_throw() throws IOException, InterruptedException {
     // throw exception when receiving bad packet
-    receive_validationFails_isBlocking_noThrow(true);
+    receive_validationFails_isBlocking_noThrow(true, true);
   }
 
-  private void receive_validationFails_isBlocking_noThrow(boolean throwBad)
+  private void receive_validationFails_isBlocking_noThrow(boolean throwBad, boolean isBlocking)
       throws IOException, InterruptedException {
     barrier = new CountDownLatch(1);
-    Thread serverThread = startServer(throwBad);
+    Thread serverThread = startServer(throwBad, isBlocking);
     barrier.await(); // Wait for thread to start
 
     // client - send bad message
@@ -135,13 +135,13 @@ class DatagramChannelPacketValidationTest {
     assertEquals(1, receiveCount.get());
   }
 
-  private Thread startServer(boolean openThrowOnBadPacket) {
+  private Thread startServer(boolean openThrowOnBadPacket, boolean isBlocking) {
     Thread serverThread =
         new Thread(
             () -> {
               try {
                 try (DatagramChannel channel = DatagramChannel.open()) {
-                  channel.configureBlocking(true);
+                  channel.configureBlocking(isBlocking);
                   if (openThrowOnBadPacket) {
                     channel.setOption(ScionSocketOptions.API_THROW_PARSER_FAILURE, true);
                   }
