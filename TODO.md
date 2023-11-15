@@ -1,5 +1,9 @@
 # Problems
 
+- Download server / Streaming server. What happens if path breaks?
+  How does server get a new path? Is it common for a client to 
+  keep sending requests with the latest (working) path?
+
 - How do I get the local external IP? Make it configurable?
 - DNS calls are awkward, outsource to Daemon?!?
   -> Android: We may not have a daemon -> do everything inside JVM 
@@ -21,7 +25,6 @@
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
 - TEST concurrent path/as/DNS lookup
-- Add ScionPacketInspector! (based on ScionHeaderParser).  
 - ScionPacketParser.strip()/augment(): 
   - strip(buffer) sets position() and returns address/path
   - augment(buffer, address+path) inserts scionHeader 
@@ -73,6 +76,7 @@
 - Abuse socket/channel.setOption() to set path policies?
 - ScionService: extend API
 - Remove PathHeaderOneHop
+- SCMP ping, traceroute?
 
 ## After that
 - CI

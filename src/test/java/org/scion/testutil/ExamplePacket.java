@@ -14,9 +14,25 @@
 
 package org.scion.testutil;
 
+import org.scion.ScionPath;
+import org.scion.ScionUtil;
+
+import java.net.InetSocketAddress;
+
 public class ExamplePacket {
 
   public static final String MSG = "Hello scion";
+  public static final long SRC_IA = ScionUtil.parseIA("1-ff00:0:110");
+  public static final long DST_IA = ScionUtil.parseIA("1-ff00:0:112");
+  public static final InetSocketAddress FIRST_HOP = new InetSocketAddress("127.0.0.1", 23456);
+  public static final byte[] PATH_RAW_TINY_110_112 = {
+          0, 0, 32, 0, 1, 0, 11, 16,
+          101, 83, 118, -81, 0, 63, 0, 0,
+          0, 2, 118, -21, 86, -46, 89, 0,
+          0, 63, 0, 1, 0, 0, -8, 2,
+          -114, 25, 76, -122,
+  };
+  public static final ScionPath PATH = ScionPath.create(PATH_RAW_TINY_110_112, SRC_IA, DST_IA, FIRST_HOP);
 
   /**
    * Packet bytes for a message sent in the "tiny"network config in scionproto.
@@ -76,13 +92,5 @@ public class ExamplePacket {
     0, 0, -8, 2, -114, 25, 76, -122, 0, 63, 0, 0, 0, 2, 118, -21,
     86, -46, 89, 0, 31, -112, -83, -100, 0, 19, 68, -82, 72, 101, 108, 108,
     111, 32, 115, 99, 105, 111, 110,
-  };
-
-  public static final byte[] PATH_RAW_TINY_110_112 = {
-    0, 0, 32, 0, 1, 0, 11, 16,
-    101, 83, 118, -81, 0, 63, 0, 0,
-    0, 2, 118, -21, 86, -46, 89, 0,
-    0, 63, 0, 1, 0, 0, -8, 2,
-    -114, 25, 76, -122,
   };
 }

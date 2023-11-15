@@ -23,17 +23,16 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.Charset;
-
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.PackageVisibilityHelper;
 import org.scion.ScionSocketAddress;
+import org.scion.testutil.ExamplePacket;
 
 class DatagramChannelApiTest {
 
   private static final int dummyPort = 44444;
   private static final String MSG = "Hello scion!";
-
 
   @Test
   void getLocalAddress_withBind() throws IOException {
@@ -76,13 +75,13 @@ class DatagramChannelApiTest {
     Exception exception;
     try (DatagramChannel channel = DatagramChannel.open()) {
       SocketAddress addr =
-              new SocketAddress() {
-                @Override
-                public int hashCode() {
-                  return super.hashCode();
-                }
-              };
-      exception = assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr, null));
+          new SocketAddress() {
+            @Override
+            public int hashCode() {
+              return super.hashCode();
+            }
+          };
+      exception = assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr));
     }
 
     String expectedMessage = "must be of type InetSocketAddress";
@@ -126,45 +125,46 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void receive_bufferToSmall() {
+  public void receive_bufferTooSmall() {
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
-    PingPongHelper.ClientEndPoint clientFn = (channel, serverAddress, id) -> {
-      String message = MSG + "-" + id;
-      ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-      channel.send(sendBuf, serverAddress);
+    PingPongHelper.ClientEndPoint clientFn =
+        (channel, serverAddress, id) -> {
+          String message = MSG + "-" + id;
+          ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+          channel.send(sendBuf, serverAddress);
 
-      // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-      ByteBuffer response = ByteBuffer.allocate(5);
-      channel.receive(response);
+          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+          ByteBuffer response = ByteBuffer.allocate(5);
+          channel.receive(response);
 
-      response.flip();
-      assertEquals(5, response.limit());
-      String pong = Charset.defaultCharset().decode(response).toString();
-      assertEquals(message.substring(0, 5), pong);
-    };
+          response.flip();
+          assertEquals(5, response.limit());
+          String pong = Charset.defaultCharset().decode(response).toString();
+          assertEquals(message.substring(0, 5), pong);
+        };
     PingPongHelper pph = new PingPongHelper(1, 1, 1);
     pph.runPingPong(serverFn, clientFn);
   }
 
-
   @Test
-  public void read_bufferToSmall() {
+  public void read_bufferTooSmall() {
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
-    PingPongHelper.ClientEndPoint clientFn = (channel, serverAddress, id) -> {
-      String message = MSG + "-" + id;
-      ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-      channel.connect(serverAddress);
-      channel.write(sendBuf);
+    PingPongHelper.ClientEndPoint clientFn =
+        (channel, serverAddress, id) -> {
+          String message = MSG + "-" + id;
+          ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+          channel.connect(serverAddress);
+          channel.write(sendBuf);
 
-      // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-      ByteBuffer response = ByteBuffer.allocate(5);
-      int len = channel.read(response);
-      assertEquals(5, len);
+          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+          ByteBuffer response = ByteBuffer.allocate(5);
+          int len = channel.read(response);
+          assertEquals(5, len);
 
-      response.flip();
-      String pong = Charset.defaultCharset().decode(response).toString();
-      assertEquals(message.substring(0, 5), pong);
-    };
+          response.flip();
+          String pong = Charset.defaultCharset().decode(response).toString();
+          assertEquals(message.substring(0, 5), pong);
+        };
     PingPongHelper pph = new PingPongHelper(1, 1, 1);
     pph.runPingPong(serverFn, clientFn);
   }
@@ -182,6 +182,33 @@ class DatagramChannelApiTest {
     // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
     request.flip();
     channel.send(request, address);
+  }
+
+  @Test
+  public void send_bufferTooLarge() {
+    ScionSocketAddress addr = ScionSocketAddress.create("127.0.0.1", dummyPort, ExamplePacket.PATH);
+    ByteBuffer buffer = ByteBuffer.allocate(65500);
+    buffer.limit(buffer.capacity());
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
+      assertTrue(ex.getMessage().contains("Message too long"));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  public void write_bufferToLarge() {
+    ScionSocketAddress addr = ScionSocketAddress.create("127.0.0.1", dummyPort, ExamplePacket.PATH);
+    ByteBuffer buffer = ByteBuffer.allocate(65500);
+    buffer.limit(buffer.capacity());
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.connect(addr);
+      Exception ex = assertThrows(IOException.class, () -> channel.write(buffer));
+      assertTrue(ex.getMessage().contains("Message too long"));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test

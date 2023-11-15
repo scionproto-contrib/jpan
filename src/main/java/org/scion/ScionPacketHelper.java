@@ -17,11 +17,9 @@ package org.scion;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.internal.ScionHeaderParser;
-import org.scion.proto.daemon.Daemon;
 
 class ScionPacketHelper {
   // TODO move into DatagramChannel?
-  // TODO respect MTU; report MTU to user (?); test!!!
 
   public static void getUserData(ByteBuffer buffer, ByteBuffer userBuffer) {
     ScionHeaderParser.readUserData(buffer, userBuffer);
@@ -41,8 +39,7 @@ class ScionPacketHelper {
       int payloadLength) {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
 
-    long srcIA = ScionService.defaultService().getLocalIsdAs();
-    // TODO ? srcIA = dstAddress.getPath().getSourceIsdAs();
+    long srcIA = dstSocketAddress.getPath().getSourceIsdAs();
     long dstIA = dstSocketAddress.getIsdAs();
     int srcPort = srcSocketAddress.getPort();
     int dstPort = dstSocketAddress.getPort();

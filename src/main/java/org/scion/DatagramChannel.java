@@ -27,7 +27,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
   private boolean isBound = false;
-  private ScionSocketAddress localScionAddress;
   private ScionSocketAddress remoteScionAddress;
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
   private boolean cfgReportFailedValidation = false;
@@ -98,17 +97,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
   }
 
-  public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path)
-      throws IOException {
-    if (destinationAddress instanceof ScionSocketAddress) {
-      throw new IllegalArgumentException(); // TODO should we handle this and set the path?
-    }
-    InetSocketAddress dstAddress = checkAddress(destinationAddress);
-    ScionSocketAddress addr =
-        ScionSocketAddress.create(dstAddress.getHostString(), dstAddress.getPort(), path);
-    send(buffer, addr);
-  }
-
   private void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
@@ -124,21 +112,13 @@ public class DatagramChannel implements ByteChannel, Closeable {
     int payloadLength = buffer.limit() - buffer.position();
     ByteBuffer output = this.buffer;
     output.clear();
-    ScionPacketHelper.writeHeader(output, getLocalScionAddress(), dstAddress, payloadLength);
+    ScionPacketHelper.writeHeader(output, getLocalAddress(), dstAddress, payloadLength);
     output.put(buffer);
     output.flip();
 
     // send packet
     channel.send(output, dstAddress.getPath().getFirstHopAddress());
     buffer.position(buffer.limit());
-  }
-
-  private InetSocketAddress getLocalScionAddress() throws IOException {
-    if (localScionAddress == null) {
-      localScionAddress = ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
-    }
-    return localScionAddress;
-    //    return ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
@@ -159,8 +139,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.configureBlocking(block);
   }
 
-  public SocketAddress getLocalAddress() throws IOException {
-    return channel.getLocalAddress(); // TODO solve with inheritance
+  public InetSocketAddress getLocalAddress() throws IOException {
+    return (InetSocketAddress) channel.getLocalAddress();
   }
 
   public void disconnect() throws IOException {
@@ -240,13 +220,10 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public int write(ByteBuffer src) throws IOException {
     checkOpen();
     checkConnected();
-    if (localScionAddress == null) {
-      localScionAddress = ScionSocketAddress.create((InetSocketAddress) channel.getLocalAddress());
-    }
 
     buffer.clear();
     int len = src.limit() - src.position();
-    ScionPacketHelper.writeHeader(buffer, localScionAddress, remoteScionAddress, len);
+    ScionPacketHelper.writeHeader(buffer, getLocalAddress(), remoteScionAddress, len);
     buffer.put(src);
     buffer.flip();
 
