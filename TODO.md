@@ -1,5 +1,7 @@
 # Problems
 
+- How do we handle Interface switchover (e.g. WLAN -> 5G)?
+  Is it enough to always call getLocalAddress() ?
 - Download server / Streaming server. What happens if path breaks?
   How does server get a new path? Is it common for a client to 
   keep sending requests with the latest (working) path?
@@ -82,12 +84,13 @@
 - SECURITY: java.net.AbstractPlainDatagramSocketImpl contains a lot of 
   Security checks (see also class javadoc). Do weed need these? Isn't this
   handled by the underlying DatagramChannel? Isn't this deprecated in Java 17?
-  -> Simply declare that we only siupport JDK 17+ for this reason?
+  -> Simply declare that we only support JDK 17+ for this reason?
+- UDP Checksum validation? UDP checksum creation?
 
 ## Finally
 
 - SPAO end-to-end option -> Later, not used at the moment
-
+- MAC validation?
 
 # Open Questions
 
