@@ -150,7 +150,7 @@ public class PingPongHelper {
       throw new RuntimeException(e);
     } catch (ScionException e) {
       exceptions.add(e);
-        throw new RuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       MockNetwork.stopTiny();
       checkExceptions();

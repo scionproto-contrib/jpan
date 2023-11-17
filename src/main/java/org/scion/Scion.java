@@ -15,7 +15,6 @@
 package org.scion;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 
 public final class Scion {
 
