@@ -59,7 +59,6 @@ public class ScionPath {
     return dstIsdAs;
   }
 
-  // TODO naming: Source vs Src?
   public long getSourceIsdAs() {
     return srcIsdAs;
   }
