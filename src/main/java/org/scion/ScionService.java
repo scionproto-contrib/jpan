@@ -143,9 +143,9 @@ public class ScionService {
    *
    * @param dstIsdAs Destination ISD + AS
    * @return The first path is returned by the path service.
-   * @throws ScionException if an errors occurs while querying paths.
+   * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long dstIsdAs) throws ScionException {
+  public ScionPath getPath(long dstIsdAs) throws IOException {
     return getPath(getLocalIsdAs(), dstIsdAs);
   }
 
@@ -155,9 +155,9 @@ public class ScionService {
    * @param srcIsdAs Source ISD + AS
    * @param dstIsdAs Destination ISD + AS
    * @return The first path is returned by the path service or 'null' if no path could be found.
-   * @throws ScionException if an errors occurs while querying paths.
+   * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long srcIsdAs, long dstIsdAs) throws ScionException {
+  public ScionPath getPath(long srcIsdAs, long dstIsdAs) throws IOException {
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
       return null;

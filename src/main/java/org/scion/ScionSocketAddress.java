@@ -14,6 +14,7 @@
 
 package org.scion;
 
+import java.io.IOException;
 import java.net.*;
 
 /**
@@ -88,7 +89,7 @@ public class ScionSocketAddress extends InetSocketAddress {
    *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
    * @throws ScionException if an errors occurs while querying paths.
    */
-  public ScionPath getPath() throws ScionException {
+  public ScionPath getPath() throws IOException {
     if (path == null) {
       path = ScionService.defaultService().getPath(isdAs);
     }

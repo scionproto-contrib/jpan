@@ -84,7 +84,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @param destination Destination address. This should contain a host name known to the DNS so
    *     that the ISD/AS information can be retrieved.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
-   *     cannot be resolved to an ISD/AS. TODO test this
+   *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
   public synchronized void send(ByteBuffer buffer, SocketAddress destination) throws IOException {
@@ -264,7 +264,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
       InetSocketAddress srcSocketAddress,
       ScionSocketAddress dstSocketAddress,
       int payloadLength)
-      throws ScionException {
+      throws IOException {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
 
     long srcIA = dstSocketAddress.getPath().getSourceIsdAs();

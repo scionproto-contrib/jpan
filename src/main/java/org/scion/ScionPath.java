@@ -34,7 +34,7 @@ public class ScionPath {
   private final long dstIsdAs;
   private final InetSocketAddress firstHopAddress;
 
-  ScionPath(Daemon.Path path, long srcIsdAs, long dstIsdAs) {
+  ScionPath(Daemon.Path path, long srcIsdAs, long dstIsdAs) throws UnknownHostException {
     this.pathProtoc = path;
     this.pathRaw = null;
     this.srcIsdAs = srcIsdAs;
@@ -42,7 +42,7 @@ public class ScionPath {
     this.firstHopAddress = getFirstHopAddress(path);
   }
 
-  ScionPath(byte[] path, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
+  private ScionPath(byte[] path, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
     this.pathProtoc = null;
     this.pathRaw = path;
     this.srcIsdAs = srcIsdAs;
@@ -51,7 +51,7 @@ public class ScionPath {
   }
 
   public static ScionPath create(
-      byte[] rawPath, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
+          byte[] rawPath, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
     return new ScionPath(rawPath, srcIsdAs, dstIsdAs, firstHopAddress);
   }
 
@@ -68,18 +68,13 @@ public class ScionPath {
     return firstHopAddress;
   }
 
-  private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
+  private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) throws UnknownHostException {
     String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
-    try {
-      int splitIndex = underlayAddressString.indexOf(':');
-      InetAddress underlayAddress =
-          InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
-      int underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
-      return new InetSocketAddress(underlayAddress, underlayPort);
-    } catch (UnknownHostException e) {
-      // TODO throw IOException?
-      throw new RuntimeException(e);
-    }
+    int splitIndex = underlayAddressString.indexOf(':');
+    InetAddress underlayAddress =
+        InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+    int underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+    return new InetSocketAddress(underlayAddress, underlayPort);
   }
 
   public byte[] getRawPath() {
