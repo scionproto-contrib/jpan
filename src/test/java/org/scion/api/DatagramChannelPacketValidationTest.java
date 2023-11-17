@@ -24,7 +24,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketOptions;
@@ -80,7 +79,6 @@ class DatagramChannelPacketValidationTest {
     }
   }
 
-  @Disabled
   @Test
   public void receive_validationFails_nonBlocking_noThrow()
       throws IOException, InterruptedException {
@@ -88,7 +86,6 @@ class DatagramChannelPacketValidationTest {
     receive_validationFails_isBlocking_noThrow(false, false);
   }
 
-  @Disabled
   @Test
   public void receive_validationFails_nonBlocking_throw() throws IOException, InterruptedException {
     // throw exception when receiving bad packet
@@ -155,7 +152,13 @@ class DatagramChannelPacketValidationTest {
                   do {
                     failed = false;
                     try {
-                      assertNotNull(channel.receive(response));
+                      if (isBlocking) {
+                        assertNotNull(channel.receive(response));
+                      } else {
+                        while (channel.receive(response) == null) {
+                          Thread.sleep(10);
+                        }
+                      }
                     } catch (Exception e) {
                       receiveBadCount.incrementAndGet();
                       failed = true;

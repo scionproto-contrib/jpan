@@ -32,7 +32,7 @@ import org.scion.ScionUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
 
-public class PathServiceTest {
+public class ScionServiceTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
