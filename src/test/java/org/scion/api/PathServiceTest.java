@@ -185,4 +185,25 @@ public class PathServiceTest {
     String actualMessage = exception.getMessage();
     assertTrue(actualMessage.contains("Host has no SCION"));
   }
+
+  @Test
+  void getScionAddress_Failure_InvalidTXT() {
+    testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55\"");
+    testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55");
+    testInvalidTxtEntry("\"XXXscion=1-xxxx:0:110,127.0.0.55\"");
+    testInvalidTxtEntry("\"XXXscion=1-ff:00:0:110,127.0.0.55\"");
+    testInvalidTxtEntry("\"XXXscion=1-ff:00:0:110,127.55\"");
+  }
+
+  private void testInvalidTxtEntry(String txtEntry) {
+    ScionService pathService = ScionService.defaultService();
+    String host = "127.0.0.55";
+    try {
+      System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);
+      Exception ex = assertThrows(ScionException.class, () -> pathService.getScionAddress(host));
+      assertTrue(ex.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
+    } finally {
+      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+    }
+  }
 }

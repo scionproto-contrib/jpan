@@ -200,7 +200,7 @@ public class ScionService {
    *
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
-   * @throws ScionException if the URL did not return a SCION address.
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public ScionAddress getScionAddress(String hostName) throws ScionException {
     // $ dig +short TXT ethz.ch | grep "scion="
@@ -292,9 +292,12 @@ public class ScionService {
     return null;
   }
 
-  private ScionAddress parseTxtRecord(String txtEntry, String hostName) {
+  private ScionAddress parseTxtRecord(String txtEntry, String hostName) throws ScionException {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
+    if (!txtEntry.startsWith("\"scion=") || !txtEntry.endsWith("\"") || posComma < 0) {
+      throw new ScionException("Invalid TXT entry: " + txtEntry);
+    }
     long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));
     return ScionAddress.create(
         isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));

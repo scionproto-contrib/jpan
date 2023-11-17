@@ -32,6 +32,7 @@
 
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.
+- Merge Scion + ScionService?
 
 - Lookup FlowID -> mandatory - MTU?
 

@@ -71,7 +71,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void send_requiresAddressWithScionTxt() throws IOException {
+  void send_requiresAddressWithScionTxt() {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
     try (DatagramChannel channel = DatagramChannel.open()) {
@@ -79,6 +79,23 @@ class DatagramChannelApiTest {
       assertTrue(ex.getMessage().contains("No DNS TXT entry found for host"), ex.getMessage());
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  void send_requiresAddressWithScionCorrectTxt() {
+    ByteBuffer buffer = ByteBuffer.allocate(100);
+    String TXT = "\"XXXscion=1-ff00:0:110,127.0.0.55\"";
+    System.setProperty(
+            PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "127.0.0.55=" + TXT);
+    InetSocketAddress addr = new InetSocketAddress("127.0.0.55", 30255);
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
+      assertTrue(ex.getMessage().contains("Invalid TXT entry"), ex.getMessage());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    } finally {
+      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
     }
   }
 
