@@ -52,21 +52,20 @@ public class DatagramChannel implements ByteChannel, Closeable {
       srcAddress = channel.receive(buffer);
       if (srcAddress == null) {
         // this indicates nothing is available
-        // TODO test this.
         return null;
       }
       buffer.flip();
 
+      // validateResult != null indicates a problem with the packet
       validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
       if (validationResult != null && cfgReportFailedValidation) {
         throw new ScionException(validationResult);
       }
     } while (validationResult != null);
 
-    // TODO ScionPacketHelper2.verifyPacketHeader(buffer)   -> abort (or send SCMP) if check fails.
-    ScionPacketHelper.getUserData(buffer, userBuffer);
+    ScionHeaderParser.readUserData(buffer, userBuffer);
     ScionSocketAddress addr =
-        ScionPacketHelper.getRemoteAddressAndPath(buffer, (InetSocketAddress) srcAddress);
+        ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
     buffer.clear();
     return addr;
   }
@@ -112,7 +111,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     int payloadLength = buffer.remaining();
     ByteBuffer output = this.buffer;
     output.clear();
-    ScionPacketHelper.writeHeader(output, getLocalAddress(), dstAddress, payloadLength);
+    writeHeader(output, getLocalAddress(), dstAddress, payloadLength);
     output.put(buffer);
     output.flip();
 
@@ -201,7 +200,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
     int len = dst.position();
     buffer.flip();
-    ScionPacketHelper.getUserData(buffer, dst);
+    ScionHeaderParser.readUserData(buffer, dst);
     buffer.clear();
     return dst.position() - len;
   }
@@ -223,15 +222,10 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
     buffer.clear();
     int len = src.remaining();
-    ScionPacketHelper.writeHeader(buffer, getLocalAddress(), remoteScionAddress, len);
+    writeHeader(buffer, getLocalAddress(), remoteScionAddress, len);
     buffer.put(src);
     buffer.flip();
-
     channel.write(buffer);
-
-    // TODO ? What is this function? Can we use it?       channel.socket();
-    //    We have to overwrite it if it is in one of the interfaces!
-
     buffer.clear();
     return len;
   }
@@ -263,5 +257,25 @@ public class DatagramChannel implements ByteChannel, Closeable {
       channel.setOption(option, t);
     }
     return this;
+  }
+
+  private static void writeHeader(
+      ByteBuffer data,
+      InetSocketAddress srcSocketAddress,
+      ScionSocketAddress dstSocketAddress,
+      int payloadLength) {
+    // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
+
+    long srcIA = dstSocketAddress.getPath().getSourceIsdAs();
+    long dstIA = dstSocketAddress.getIsdAs();
+    int srcPort = srcSocketAddress.getPort();
+    int dstPort = dstSocketAddress.getPort();
+    InetAddress srcAddress = srcSocketAddress.getAddress();
+    InetAddress dstAddress = dstSocketAddress.getAddress();
+
+    byte[] path = dstSocketAddress.getPath().getRawPath();
+    ScionHeaderParser.write(data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.writePath(data, path);
+    ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
   }
 }
