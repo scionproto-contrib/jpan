@@ -27,10 +27,10 @@ public class Demo {
     while (en.hasMoreElements()) {
       NetworkInterface ni = en.nextElement();
       System.out.println(" Display Name = " + ni.getDisplayName());
-      System.out.println(" MTU = " + ni.getMTU());
+      System.out.println("   MTU = " + ni.getMTU());
       Enumeration<InetAddress> addresses = ni.getInetAddresses();
       while (addresses.hasMoreElements()) {
-        System.out.println("   Address = " + addresses.nextElement());
+        System.out.println("     Address = " + addresses.nextElement());
       }
     }
 
