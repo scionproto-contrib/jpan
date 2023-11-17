@@ -86,8 +86,7 @@ class DatagramChannelApiTest {
   void send_requiresAddressWithScionCorrectTxt() {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     String TXT = "\"XXXscion=1-ff00:0:110,127.0.0.55\"";
-    System.setProperty(
-            PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "127.0.0.55=" + TXT);
+    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "127.0.0.55=" + TXT);
     InetSocketAddress addr = new InetSocketAddress("127.0.0.55", 30255);
     try (DatagramChannel channel = DatagramChannel.open()) {
       Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));

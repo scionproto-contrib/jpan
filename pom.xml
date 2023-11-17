@@ -21,6 +21,7 @@
 
         <scion.bnd-maven-plugin.version>6.4.0</scion.bnd-maven-plugin.version>
         <scion.build-helper-maven-plugin.version>3.3.0</scion.build-helper-maven-plugin.version>
+        <scion.fmt-maven.version>2.20</scion.fmt-maven.version>
         <scion.maven-clean-plugin.version>3.2.0</scion.maven-clean-plugin.version>
         <scion.maven-compiler-plugin.version>3.11.0</scion.maven-compiler-plugin.version>
         <scion.maven-deploy-plugin.version>3.1.1</scion.maven-deploy-plugin.version>
@@ -296,6 +297,7 @@
                         <!-- This plugin makes sure to run the profile with a JDK 11 or above -->
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-enforcer-plugin</artifactId>
+                        <version>${scion.maven-enforcer-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>enforce-versions</id>
@@ -315,6 +317,7 @@
                     <plugin>
                         <groupId>com.spotify.fmt</groupId>
                         <artifactId>fmt-maven-plugin</artifactId>
+                        <version>${scion.fmt-maven.version}</version>
                         <configuration>
                             <verbose>true</verbose>
                             <skipSortingImports>false</skipSortingImports>
@@ -339,6 +342,7 @@
                         <!-- This plugin makes sure to run the profile with a JDK 11 or above -->
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-enforcer-plugin</artifactId>
+                        <version>${scion.maven-enforcer-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>enforce-versions</id>
@@ -358,6 +362,7 @@
                     <plugin>
                         <groupId>com.spotify.fmt</groupId>
                         <artifactId>fmt-maven-plugin</artifactId>
+                        <version>${scion.fmt-maven.version}</version>
                         <configuration>
                             <displayLimit>1000</displayLimit>
                             <verbose>true</verbose>
