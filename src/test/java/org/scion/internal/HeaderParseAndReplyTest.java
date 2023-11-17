@@ -16,6 +16,7 @@ package org.scion.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
@@ -33,9 +34,9 @@ public class HeaderParseAndReplyTest {
 
   /** Parse a packet and create a response packet with reversed path. */
   @Test
-  public void testParseAndReply() {
+  public void testParseAndReply() throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(packetBytes);
-    InetSocketAddress firstHop = new InetSocketAddress("127.0.0.42", 23456); // TODO test
+    InetSocketAddress firstHop = new InetSocketAddress("127.0.0.42", 23456);
 
     ByteBuffer userRcvBuffer = ByteBuffer.allocate(10000);
     ScionHeaderParser.readUserData(buffer, userRcvBuffer);

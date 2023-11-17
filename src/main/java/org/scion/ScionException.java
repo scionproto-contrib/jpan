@@ -14,7 +14,9 @@
 
 package org.scion;
 
-public class ScionException extends RuntimeException {
+import java.io.IOException;
+
+public class ScionException extends IOException {
 
   public ScionException(String s) {
     super(s);

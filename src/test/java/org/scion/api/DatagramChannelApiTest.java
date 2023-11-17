@@ -71,23 +71,15 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void sendPath_RequiresInetSocketAddress() throws IOException {
-    ByteBuffer bb = ByteBuffer.allocate(100);
-    Exception exception;
+  void send_requiresAddressWithScionTxt() throws IOException {
+    ByteBuffer buffer = ByteBuffer.allocate(100);
+    InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
     try (DatagramChannel channel = DatagramChannel.open()) {
-      SocketAddress addr =
-          new SocketAddress() {
-            @Override
-            public int hashCode() {
-              return super.hashCode();
-            }
-          };
-      exception = assertThrows(IllegalArgumentException.class, () -> channel.send(bb, addr));
+      Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
+      assertTrue(ex.getMessage().contains("Message too long"));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-
-    String expectedMessage = "must be of type InetSocketAddress";
-    String actualMessage = exception.getMessage();
-    assertTrue(actualMessage.contains(expectedMessage));
   }
 
   @Test

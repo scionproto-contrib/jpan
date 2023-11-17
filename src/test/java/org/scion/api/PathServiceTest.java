@@ -140,7 +140,7 @@ public class PathServiceTest {
   }
 
   @Test
-  void getScionAddress() {
+  void getScionAddress() throws ScionException {
     // TODO this test makes a DNS call _and_ it depends on ETH having a specific ISD/AS/IP
     ScionService pathService = ScionService.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
@@ -153,7 +153,7 @@ public class PathServiceTest {
   }
 
   @Test
-  void getScionAddress_Mock() {
+  void getScionAddress_Mock() throws ScionException {
     // Test that DNS injection via properties works
     // TODO do injection here instead of @BeforeAll
     ScionService pathService = ScionService.defaultService();

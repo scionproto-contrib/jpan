@@ -62,7 +62,7 @@ public class ScionSocketAddress extends InetSocketAddress {
     throw new UnsupportedOperationException();
   }
 
-  public static ScionSocketAddress create(InetSocketAddress address) {
+  public static ScionSocketAddress create(InetSocketAddress address) throws ScionException {
     ScionAddress addr = ScionService.defaultService().getScionAddress(address.getHostString());
     // TODO address.getHostName() vs addr.getHostName()?
     return new ScionSocketAddress(addr.getIsdAs(), addr.getHostName(), address.getPort(), null);
@@ -86,8 +86,9 @@ public class ScionSocketAddress extends InetSocketAddress {
    *
    * @return The path associated with this address. If no path is associated, this method will first
    *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
+   * @throws ScionException if an errors occurs while querying paths.
    */
-  public ScionPath getPath() {
+  public ScionPath getPath() throws ScionException {
     if (path == null) {
       path = ScionService.defaultService().getPath(isdAs);
     }

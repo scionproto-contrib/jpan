@@ -43,7 +43,7 @@ public class PathServiceDemo {
     this.daemon = daemon;
   }
 
-  private void testAsInfo() {
+  private void testAsInfo() throws ScionException {
     Daemon.ASResponse asInfo = daemon.getASInfo();
     System.out.println(
         "ASInfo found: "
@@ -56,7 +56,7 @@ public class PathServiceDemo {
             + asInfo.getMtu());
   }
 
-  private void testInterfaces() {
+  private void testInterfaces() throws ScionException {
     Map<Long, Daemon.Interface> interfaces = daemon.getInterfaces();
     System.out.println("Interfaces found: " + interfaces.size());
     for (Map.Entry<Long, Daemon.Interface> entry : interfaces.entrySet()) {
@@ -64,7 +64,7 @@ public class PathServiceDemo {
     }
   }
 
-  private void testPaths() {
+  private void testPaths() throws ScionException {
     long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
 
@@ -92,7 +92,7 @@ public class PathServiceDemo {
     }
   }
 
-  private void testServices() {
+  private void testServices() throws ScionException {
     Map<String, Daemon.ListService> services = daemon.getServices();
     System.out.println("Services found: " + services.size());
     for (Map.Entry<String, Daemon.ListService> entry : services.entrySet()) {

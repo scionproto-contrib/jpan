@@ -263,7 +263,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
       ByteBuffer data,
       InetSocketAddress srcSocketAddress,
       ScionSocketAddress dstSocketAddress,
-      int payloadLength) {
+      int payloadLength)
+      throws ScionException {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
 
     long srcIA = dstSocketAddress.getPath().getSourceIsdAs();

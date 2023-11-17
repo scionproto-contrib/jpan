@@ -94,7 +94,7 @@ public class ScionService {
     return DEFAULT;
   }
 
-  Daemon.ASResponse getASInfo() {
+  Daemon.ASResponse getASInfo() throws ScionException {
     LOG.info("*** GetASInfo ***");
 
     Daemon.ASRequest request =
@@ -110,7 +110,7 @@ public class ScionService {
     return response;
   }
 
-  Map<Long, Daemon.Interface> getInterfaces() {
+  Map<Long, Daemon.Interface> getInterfaces() throws ScionException {
     LOG.info("*** GetInterfaces ***");
 
     Daemon.InterfacesRequest request =
@@ -127,7 +127,7 @@ public class ScionService {
   }
 
   // TODO do not expose proto types on API
-  List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
+  List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) throws ScionException {
     LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
     Daemon.PathsRequest request =
@@ -151,8 +151,9 @@ public class ScionService {
    *
    * @param dstIsdAs Destination ISD + AS
    * @return The first path is returned by the path service.
+   * @throws ScionException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long dstIsdAs) {
+  public ScionPath getPath(long dstIsdAs) throws ScionException {
     return getPath(getLocalIsdAs(), dstIsdAs);
   }
 
@@ -161,21 +162,18 @@ public class ScionService {
    *
    * @param srcIsdAs Source ISD + AS
    * @param dstIsdAs Destination ISD + AS
-   * @return The first path is returned by the path service.
+   * @return The first path is returned by the path service or 'null' if no path could be found.
+   * @throws ScionException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long srcIsdAs, long dstIsdAs) {
+  public ScionPath getPath(long srcIsdAs, long dstIsdAs) throws ScionException {
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
-      throw new ScionException(
-          "No path found from "
-              + ScionUtil.toStringIA(srcIsdAs)
-              + " to "
-              + ScionUtil.toStringIA(dstIsdAs));
+      return null;
     }
     return new ScionPath(paths.get(0), srcIsdAs, dstIsdAs);
   }
 
-  Map<String, Daemon.ListService> getServices() {
+  Map<String, Daemon.ListService> getServices() throws ScionException {
     LOG.info("*** GetServices ***");
 
     Daemon.ServicesRequest request =
@@ -191,7 +189,7 @@ public class ScionService {
     return response.getServicesMap();
   }
 
-  public long getLocalIsdAs() {
+  public long getLocalIsdAs() throws ScionException {
     if (localIsdAs.get() == ISD_AS_NOT_SET) {
       // Yes, this may be called multiple time by different threads, but it should be
       // faster than `synchronize`.
@@ -216,7 +214,7 @@ public class ScionService {
    * @return A ScionAddress
    * @throws ScionException if the URL did not return a SCION address.
    */
-  public ScionAddress getScionAddress(String hostName) {
+  public ScionAddress getScionAddress(String hostName) throws ScionException {
     // $ dig +short TXT ethz.ch | grep "scion="
     // "scion=64-2:0:9,129.132.230.98"
 

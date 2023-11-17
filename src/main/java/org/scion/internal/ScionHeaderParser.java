@@ -18,7 +18,6 @@ import static org.scion.internal.ByteUtil.*;
 
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.ScionException;
 import org.scion.ScionPath;
 import org.scion.ScionSocketAddress;
 
@@ -51,7 +50,7 @@ public class ScionHeaderParser {
    */
   // TODO this is a bit weird to have the firstHopAddress here....
   public static ScionSocketAddress readRemoteSocketAddress(
-      ByteBuffer data, InetSocketAddress firstHopAddress) {
+      ByteBuffer data, InetSocketAddress firstHopAddress) throws UnknownHostException {
     int start = data.position();
 
     int i1 = data.getInt(start + 4);
@@ -79,12 +78,7 @@ public class ScionHeaderParser {
     // remote address
     byte[] bytesSrc = new byte[(sl + 1) * 4];
     data.get(bytesSrc);
-    InetAddress addr;
-    try {
-      addr = InetAddress.getByAddress(bytesSrc);
-    } catch (UnknownHostException e) {
-      throw new ScionException(e);
-    }
+    InetAddress addr = InetAddress.getByAddress(bytesSrc);
 
     // raw path
     byte[] path = new byte[start + hdrLenBytes - data.position()];
@@ -101,7 +95,8 @@ public class ScionHeaderParser {
         srcIsdAs, addr, srcPort, ScionPath.create(path, dstIsdAs, srcIsdAs, firstHopAddress));
   }
 
-  public static InetSocketAddress readDestinationSocketAddress(ByteBuffer data) {
+  public static InetSocketAddress readDestinationSocketAddress(ByteBuffer data)
+      throws UnknownHostException {
     int start = data.position();
 
     int i1 = data.getInt(start + 4); // necytHeader, hdrLen, payLoadLen
@@ -121,12 +116,7 @@ public class ScionHeaderParser {
     data.position(start + 28);
     byte[] bytesDst = new byte[(dl + 1) * 4];
     data.get(bytesDst);
-    InetAddress dstIP;
-    try {
-      dstIP = InetAddress.getByAddress(bytesDst);
-    } catch (UnknownHostException e) {
-      throw new ScionException(e);
-    }
+    InetAddress dstIP = InetAddress.getByAddress(bytesDst);
 
     // get remote port from UDP overlay
     data.position(start + hdrLenBytes + 2);

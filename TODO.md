@@ -32,7 +32,6 @@
 
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.
-- Design: ScionSocketAddress has a path but ScionAddress has not. This is inconsistent!
 
 - Lookup FlowID -> mandatory - MTU?
 
@@ -47,18 +46,14 @@
 
 ## Now
 - Implement interfaces from nio.DatagramChannel
-- Test Server with multiple clients
 - Implement DNS
   - Entries can go into local /etc/host or /etc/scion-hosts(?)
   - For SCION there is RHINE as a DNS equivalent but it is deprecated
 - SocketImpl. -> Then replace byte[] with ByteBuffer in Helper? 
 - Look into Selectors:  https://www.baeldung.com/java-nio-selector
-- socket. connect() + write() vs send()
 - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
-- Rename ScionHelper to PacketBuilder?
 - Implement SocketExceptions: 
   BindException(?), ConnectException, NoRouteToHostException, PortUnreachableException
-- Add channel.send(packet, dstAddr, dstIsdAs); 
 - Add socket.send(packet, dstIsdAs);
 - UDP checksum for overlay packet?
 
@@ -106,10 +101,7 @@
 - Use puppycrawl checkstyle plugin
   - to verify style in CI
   - for auto formatting in IntelliJ (if possible). How about other IDEs, e.g. MS code?
-
 - Change line length to 120 
-
-
 
 
 ## Testing
@@ -118,11 +110,6 @@
 - Interleaved response on server, e.g. Receive from A, Receive from B, send to B, send to A (see also NIO)
 - Test MTU exceed with proper network
 - Test SCMP handling, see Design.
-- Test channel: 
-  - connect() vs send(addr)
-  - getRemoteAddr()
-  - getLocalAddr()
-  - write() vs send()
 - Test general: Test that me make a minimum of gRPC calls, e.g. to get path from daemon 
 
 
