@@ -40,11 +40,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
-    // We cannot read directly into the user buffer because the user buffer may be too small.
-    // TODO Is it okay to use the user-buffer here and later "move" the payload forward?
-    //    Probably not, the user may not have enough byte allocated. Check API!
-    //    -> TODO make configurable: USE_USER_BUFFER_FOR_DECODING
-
     SocketAddress srcAddress;
     String validationResult;
     do {
@@ -184,14 +179,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public int read(ByteBuffer dst) throws IOException {
     checkOpen();
     checkConnected();
-    // TODO test these
-    // If there are more bytes in the datagram than remain in the given buffer then the
-    // remainder of the datagram is silently discarded. Otherwise this method behaves exactly
-    // as specified in the ReadableByteChannel interface.
-
-    // TODO test these
-    // Returns:
-    // The number of bytes read, possibly zero, or -1 if the channel has reached end-of-stream
 
     buffer.clear();
     int bytesRead = channel.read(buffer);
@@ -251,7 +238,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
       if (ScionSocketOptions.API_THROW_PARSER_FAILURE.equals(option)) {
         cfgReportFailedValidation = (Boolean) t;
       } else if (ScionSocketOptions.API_WRITE_TO_USER_BUFFER.equals(option)) {
-        throw new UnsupportedOperationException(); // TODO
+        // TODO This would allow reading directly into the user buffer. Advantages:
+        //     a) Omit copying step buffer-userBuffer; b) user can see SCION header.
+        throw new UnsupportedOperationException();
       }
     } else {
       channel.setOption(option, t);
