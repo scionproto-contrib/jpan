@@ -16,7 +16,6 @@ package org.scion.demo;
 
 import java.io.*;
 import java.net.*;
-
 import org.scion.DatagramSocket;
 import org.scion.ScionSocketAddress;
 import org.scion.testutil.MockDNS;
@@ -32,20 +31,20 @@ public class ScionPingPongSocketClient {
   }
 
   private void run() throws IOException {
-    //String serverHostname = "::1";
+    // String serverHostname = "::1";
     String serverHostname = "0:0:0:0:0:0:0:1";
     int serverPort = 44444;
 
     try {
       // InetAddress serverAddress2 = InetAddress.getByName(serverHostname);
-      ScionSocketAddress serverAddress = ScionSocketAddress.create("1-ff00:0:112", serverHostname, serverPort);
+      ScionSocketAddress serverAddress =
+          ScionSocketAddress.create("1-ff00:0:112", serverHostname, serverPort);
       DatagramSocket socket = new DatagramSocket(null);
 
       while (true) {
         String msg = "Hello there!";
         byte[] sendBuf = msg.getBytes();
-        DatagramPacket request =
-            new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
+        DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
         socket.send(request);
         System.out.println("Sent!");
 

@@ -90,7 +90,8 @@ public class PingPongHelper {
           }
         }
       } catch (IOException e) {
-        System.out.println("ENDPOINT " + Thread.currentThread().getName() + ": I/O error: " + e.getMessage());
+        System.out.println(
+            "ENDPOINT " + Thread.currentThread().getName() + ": I/O error: " + e.getMessage());
         exceptions.add(e);
       } catch (Exception e) {
         exceptions.add(e);
@@ -103,6 +104,7 @@ public class PingPongHelper {
   public interface ClientEndPoint {
     void run(DatagramChannel channel, ScionSocketAddress serverAddress, int id) throws IOException;
   }
+
   public interface ServerEndPoint {
     void run(DatagramChannel channel) throws IOException;
   }
@@ -115,14 +117,17 @@ public class PingPongHelper {
       ScionSocketAddress scionAddress = ScionSocketAddress.create(serverAddress);
       Thread[] servers = new Thread[nServers];
       for (int i = 0; i < servers.length; i++) {
-        //servers[i] = new Thread(() -> server(serverAddress, id), "Server-thread-" + i);
-        servers[i] = new Thread(new Endpoint(serverFn, i, serverAddress, nRounds * nClients), "Server-thread-" + i);
+        // servers[i] = new Thread(() -> server(serverAddress, id), "Server-thread-" + i);
+        servers[i] =
+            new Thread(
+                new Endpoint(serverFn, i, serverAddress, nRounds * nClients), "Server-thread-" + i);
         servers[i].start();
       }
 
       Thread[] clients = new Thread[nClients];
       for (int i = 0; i < clients.length; i++) {
-        clients[i] = new Thread(new Endpoint(clientFn, i, scionAddress, nRounds), "Client-thread-" + i);
+        clients[i] =
+            new Thread(new Endpoint(clientFn, i, scionAddress, nRounds), "Client-thread-" + i);
         clients[i].start();
       }
 
@@ -141,7 +146,7 @@ public class PingPongHelper {
         }
       }
     } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       MockNetwork.stopTiny();
       checkExceptions();

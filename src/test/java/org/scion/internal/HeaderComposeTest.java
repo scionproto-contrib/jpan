@@ -37,7 +37,6 @@ public class HeaderComposeTest {
   private static MockDaemon daemon;
   private Scion.CloseableService pathService = null;
 
-
   @BeforeAll
   public static void beforeAll() throws IOException {
     daemon = MockDaemon.create().start();
@@ -63,9 +62,7 @@ public class HeaderComposeTest {
     }
   }
 
-  /**
-   * Compose a packet from scratch.
-   */
+  /** Compose a packet from scratch. */
   @Test
   public void testCompose() throws IOException {
     MockDaemon.getAndResetCallCount(); // reset counter
@@ -82,13 +79,15 @@ public class HeaderComposeTest {
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path = ScionService.defaultService().getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
+    byte[] path =
+        ScionService.defaultService().getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
 
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
     InetAddress dstAddress = InetAddress.getByName(hostname);
 
     // Socket internal = write header
-    ScionHeaderParser.write(p, userPacket.limit(), path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.write(
+        p, userPacket.limit(), path.length, srcIA, srcAddress, dstIA, dstAddress);
     ScionHeaderParser.writePath(p, path);
 
     // Pseudo header

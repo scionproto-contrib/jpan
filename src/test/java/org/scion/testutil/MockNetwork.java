@@ -26,7 +26,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,7 +115,7 @@ public class MockNetwork {
     return new InetSocketAddress(TINY_SRV_ADDR_1, TINY_SRV_PORT_1);
   }
 
-  public static int getAndResetForwardCount(){
+  public static int getAndResetForwardCount() {
     return nForward.getAndSet(0);
   }
 }

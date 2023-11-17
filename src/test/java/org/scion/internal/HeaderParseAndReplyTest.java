@@ -31,9 +31,7 @@ public class HeaderParseAndReplyTest {
   // reversed packet
   private static final byte[] reversedBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
 
-  /**
-   * Parse a packet and create a response packet with reversed path.
-   */
+  /** Parse a packet and create a response packet with reversed path. */
   @Test
   public void testParseAndReply() {
     ByteBuffer buffer = ByteBuffer.wrap(packetBytes);

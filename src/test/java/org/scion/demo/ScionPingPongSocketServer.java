@@ -14,10 +14,9 @@
 
 package org.scion.demo;
 
-import org.scion.DatagramSocket;
-
 import java.io.*;
 import java.net.*;
+import org.scion.DatagramSocket;
 
 @Deprecated // This does not work.
 public class ScionPingPongSocketServer {

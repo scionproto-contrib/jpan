@@ -54,6 +54,7 @@ public class ScionPacketInspector {
 
   /**
    * Read a SCION header.
+   *
    * @param data A ButeBuffer containing the header data.
    * @return "true" iff the header could be read successfully.
    * @throws IOException if an IO error occurs.

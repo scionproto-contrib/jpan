@@ -193,7 +193,9 @@ public class ScionHeaderParser {
     }
     int reserved = readInt(i2, 16, 16);
     if (reserved != 0) {
-      return PRE + "Invalid reserved field: expected '0b0000_0000_0000_0000', got " + Integer.toBinaryString(reserved);
+      return PRE
+          + "Invalid reserved field: expected '0b0000_0000_0000_0000', got "
+          + Integer.toBinaryString(reserved);
     }
 
     // Address header

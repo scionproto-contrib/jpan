@@ -18,11 +18,11 @@ import java.net.*;
 
 /**
  * ScionSocketAddress is an InetSocketAddress + ISD/AS information.
- * <p>
- * A ScionPath may be assigned at construction of dynamically requested from
- * the PathService when calling getPath().
- * <p>
- * This class is threadsafe.
+ *
+ * <p>A ScionPath may be assigned at construction of dynamically requested from the PathService when
+ * calling getPath().
+ *
+ * <p>This class is threadsafe.
  */
 public class ScionSocketAddress extends InetSocketAddress {
   private final long isdAs;
@@ -65,8 +65,7 @@ public class ScionSocketAddress extends InetSocketAddress {
   public static ScionSocketAddress create(InetSocketAddress address) {
     ScionAddress addr = ScionService.defaultService().getScionAddress(address.getHostString());
     // TODO address.getHostName() vs addr.getHostName()?
-    return new ScionSocketAddress(
-        addr.getIsdAs(), addr.getHostName(), address.getPort(), null);
+    return new ScionSocketAddress(addr.getIsdAs(), addr.getHostName(), address.getPort(), null);
   }
 
   public static ScionSocketAddress create(long isdAs, InetAddress addr, int port, ScionPath path) {

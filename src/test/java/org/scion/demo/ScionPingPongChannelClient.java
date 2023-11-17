@@ -55,15 +55,15 @@ public class ScionPingPongChannelClient {
     boolean useMockTopology = true;
     // Demo setup
     if (useMockTopology) {
-        DemoTopology.configureMock();
-        MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-        doClientStuff(44444);
-        DemoTopology.shutDown();
-      } else {
-        DemoTopology.configureTiny110_112();
-        MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-        doClientStuff(8080);
-        DemoTopology.shutDown();
+      DemoTopology.configureMock();
+      MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+      doClientStuff(44444);
+      DemoTopology.shutDown();
+    } else {
+      DemoTopology.configureTiny110_112();
+      MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+      doClientStuff(8080);
+      DemoTopology.shutDown();
     }
   }
 

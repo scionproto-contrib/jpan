@@ -14,54 +14,51 @@
 
 package org.scion.demo;
 
+import java.net.InetSocketAddress;
 import org.scion.ScionConstants;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockNetwork;
 
-import java.net.InetSocketAddress;
-
-/**
- * Helper class for setting up a demo topology.
- */
+/** Helper class for setting up a demo topology. */
 class DemoTopology {
 
-    InetSocketAddress clientDaemonAddress;
-    InetSocketAddress clientBorderRouter;
+  InetSocketAddress clientDaemonAddress;
+  InetSocketAddress clientBorderRouter;
 
+  static DemoTopology configureTiny110_112() {
+    DemoTopology cfg = new DemoTopology();
+    cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.12", 30255);
+    //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
+    cfg.clientBorderRouter = new InetSocketAddress("127.0.0.9", 31002);
+    configurePathService("127.0.0.12", 30255);
+    return cfg;
+  }
 
-    static DemoTopology configureTiny110_112() {
-        DemoTopology cfg = new DemoTopology();
-        cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.12", 30255);
-        //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-        cfg.clientBorderRouter = new InetSocketAddress("127.0.0.9", 31002);
-        configurePathService("127.0.0.12", 30255);
-        return cfg;
-    }
+  static DemoTopology configureTiny111_112() {
+    DemoTopology cfg = new DemoTopology();
+    cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.19", 30255);
+    //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
+    cfg.clientBorderRouter = new InetSocketAddress("127.0.0.17", 31008);
+    configurePathService("127.0.0.19", 30255);
+    return cfg;
+  }
 
-    static DemoTopology configureTiny111_112() {
-        DemoTopology cfg = new DemoTopology();
-        cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.19", 30255);
-        //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-        cfg.clientBorderRouter = new InetSocketAddress("127.0.0.17", 31008);
-        configurePathService("127.0.0.19", 30255);
-        return cfg;
-    }
+  static DemoTopology configureMock() {
+    DemoTopology cfg = new DemoTopology();
+    MockNetwork.startTiny(true, false);
+    cfg.clientDaemonAddress = MockDaemon.DEFAULT_ADDRESS;
+    //    cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
+    cfg.clientBorderRouter =
+        new InetSocketAddress(MockNetwork.BORDER_ROUTER_HOST, MockNetwork.BORDER_ROUTER_PORT1);
+    return cfg;
+  }
 
-    static DemoTopology configureMock() {
-        DemoTopology cfg = new DemoTopology();
-        MockNetwork.startTiny(true, false);
-        cfg.clientDaemonAddress = MockDaemon.DEFAULT_ADDRESS;
-        //    cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-        cfg.clientBorderRouter = new InetSocketAddress(MockNetwork.BORDER_ROUTER_HOST, MockNetwork.BORDER_ROUTER_PORT1);
-        return cfg;
-    }
+  static void shutDown() {
+    MockNetwork.stopTiny();
+  }
 
-    static void shutDown() {
-        MockNetwork.stopTiny();
-    }
-
-    private static void configurePathService(String address, int port) {
-        System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, address);
-        System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, String.valueOf(port));
-    }
+  private static void configurePathService(String address, int port) {
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, address);
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, String.valueOf(port));
+  }
 }

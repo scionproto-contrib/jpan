@@ -14,16 +14,16 @@
 
 package org.scion;
 
-import org.scion.internal.DatagramSocketImpl;
-
 import java.io.IOException;
 import java.net.*;
+import org.scion.internal.DatagramSocketImpl;
 
 /**
- * We are extending DatagramSocket as recommended here:
- * <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)">...</a>
+ * We are extending DatagramSocket as recommended here: <a
+ * href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)">...</a>
  *
- * @deprecated Please do not use this. It does not really work and will be removed in a future release.
+ * @deprecated Please do not use this. It does not really work and will be removed in a future
+ *     release.
  */
 @Deprecated
 public class DatagramSocket extends java.net.DatagramSocket {
@@ -39,19 +39,23 @@ public class DatagramSocket extends java.net.DatagramSocket {
       super.bind(bindAddress);
     }
   }
+
   public DatagramSocket(int port, InetAddress localAddress) throws SocketException {
     super(new DatagramSocketImpl(true));
     super.bind(new InetSocketAddress(localAddress, port));
   }
 }
 
-//public class DatagramSocket implements Closeable {
+// public class DatagramSocket implements Closeable {
 //
 //  /*
 //   * Design:
-//   * We use delegation rather than inheritance. Inheritance is more difficult to handle if future version of
-//   * java.net.DatagramSocket get additional methods that need special SCION handling. These methods would
-//   * behave incorrectly until adapted, and, once adapted, would not compile anymore with earlier Java releases.
+//   * We use delegation rather than inheritance. Inheritance is more difficult to handle if future
+// version of
+//   * java.net.DatagramSocket get additional methods that need special SCION handling. These
+// methods would
+//   * behave incorrectly until adapted, and, once adapted, would not compile anymore with earlier
+// Java releases.
 //   */
 //
 //
@@ -83,7 +87,8 @@ public class DatagramSocket extends java.net.DatagramSocket {
 //    socket = new java.net.DatagramSocket(addr);
 //    localAddress = (InetSocketAddress) addr;
 //    System.out.println(
-//            "Creating socket with address: " + socket.getLocalAddress() + " : " + socket.getLocalPort());
+//            "Creating socket with address: " + socket.getLocalAddress() + " : " +
+// socket.getLocalPort());
 //  }
 //
 //  public DatagramSocket(int port) throws SocketException {
@@ -137,7 +142,8 @@ public class DatagramSocket extends java.net.DatagramSocket {
 //      // path = helper.getLastIncomingPath(destinationAddress);
 //      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
 //        throw new IllegalStateException(
-//                "state=" + pathState); // TODO remove this check and possibly the path state altogether
+//                "state=" + pathState); // TODO remove this check and possibly the path state
+// altogether
 //      }
 //    } else {
 //      // find a path
@@ -260,4 +266,4 @@ public class DatagramSocket extends java.net.DatagramSocket {
 //    }
 //    throw new UnsupportedOperationException("STUB: Return whatever is provided by connect()");
 //  }
-//}
+// }

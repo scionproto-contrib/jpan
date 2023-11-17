@@ -29,9 +29,7 @@ public class InspectorParseAndReplyTest {
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
   private static final byte[] responseBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
 
-  /**
-   * Parse a packet and create a reply packet.
-   */
+  /** Parse a packet and create a reply packet. */
   @Test
   public void testParseAndReply() {
     ScionHeader scionHeader = new ScionHeader();
@@ -56,7 +54,7 @@ public class InspectorParseAndReplyTest {
     pathHeaderScion.reverse();
     overlayHeaderUdp.reverse();
     scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+        newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     pathHeaderScion.write(newData);
     overlayHeaderUdp.write(newData, userInput.getLength());
     newData.put(userInput.getData(), 0, userInput.getLength());

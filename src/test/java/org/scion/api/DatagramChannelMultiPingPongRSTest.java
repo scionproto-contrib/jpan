@@ -25,9 +25,7 @@ import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
 import org.scion.testutil.PingPongHelper;
 
-/**
- * Tess receive()/send() operations on DatagramChannel.
- */
+/** Tess receive()/send() operations on DatagramChannel. */
 class DatagramChannelMultiPingPongRSTest {
 
   private static final String MSG = "Hello world!";

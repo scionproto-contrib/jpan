@@ -16,7 +16,6 @@ package org.scion.testutil;
 
 import java.net.DatagramPacket;
 import java.nio.ByteBuffer;
-
 import org.scion.ScionUtil;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
@@ -83,7 +82,7 @@ public class DecodeHeader {
     byte[] path = ExamplePacket.PATH_RAW_TINY_110_112;
 
     scionHeader.write(
-            newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
+        newData, userInput.getLength(), pathHeaderScion.length(), Constants.PathTypes.SCION);
     pathHeaderScion.writePath(newData, path);
     overlayHeaderUdp.write(newData, userInput.getLength(), 33333, 44444);
 
@@ -108,7 +107,7 @@ public class DecodeHeader {
 
     ByteBuffer newData = ByteBuffer.allocate(data.limit());
     scionHeader.write(
-            newData, userData.length, pathHeaderScion.length(), Constants.PathTypes.SCION);
+        newData, userData.length, pathHeaderScion.length(), Constants.PathTypes.SCION);
     pathHeaderScion.write(newData);
     overlayHeaderUdp.write(newData, userData.length);
     newData.put(userData);

@@ -29,13 +29,12 @@ public class PackageVisibilityHelper {
 
   public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_DNS_MOCK;
 
-  public static List<Daemon.Path> getPathList(
-          ScionService service, long srcIsdAs, long dstIsdAs) {
+  public static List<Daemon.Path> getPathList(ScionService service, long srcIsdAs, long dstIsdAs) {
     return service.getPathList(srcIsdAs, dstIsdAs);
   }
 
   public static InetSocketAddress getDstAddress(ByteBuffer packet) {
-      return ScionHeaderParser.readDestinationSocketAddress(packet);
+    return ScionHeaderParser.readDestinationSocketAddress(packet);
   }
 
   public static ScionSocketAddress createDummyAddress() {

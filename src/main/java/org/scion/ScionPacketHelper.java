@@ -47,8 +47,7 @@ class ScionPacketHelper {
     InetAddress dstAddress = dstSocketAddress.getAddress();
 
     byte[] path = dstSocketAddress.getPath().getRawPath();
-    ScionHeaderParser.write(
-        data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.write(data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
     ScionHeaderParser.writePath(data, path);
     ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
   }

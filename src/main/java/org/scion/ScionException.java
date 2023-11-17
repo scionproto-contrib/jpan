@@ -16,15 +16,15 @@ package org.scion;
 
 public class ScionException extends RuntimeException {
 
-    public ScionException(String s) {
-        super(s);
-    }
+  public ScionException(String s) {
+    super(s);
+  }
 
-    public ScionException(Throwable t) {
-        super(t);
-    }
+  public ScionException(Throwable t) {
+    super(t);
+  }
 
-    public ScionException(String msg, Throwable e) {
-        super(msg, e);
-    }
+  public ScionException(String msg, Throwable e) {
+    super(msg, e);
+  }
 }

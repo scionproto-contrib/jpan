@@ -39,11 +39,14 @@ public class ScionEndToEndExtensionHeader {
 
   @Override
   public String toString() {
-    return "ScionEndToEndExtensionHeader{" +
-            "nextHdr=" + nextHdr +
-            ", extLen=" + extLen +
-            ", options=" + options +
-            '}';
+    return "ScionEndToEndExtensionHeader{"
+        + "nextHdr="
+        + nextHdr
+        + ", extLen="
+        + extLen
+        + ", options="
+        + options
+        + '}';
   }
 
   public Constants.HdrTypes nextHdr() {

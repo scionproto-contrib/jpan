@@ -37,14 +37,7 @@ public class ScionSCMPHeader {
 
   @Override
   public String toString() {
-    return "ScionSCMPHeader{"
-        + "type="
-        + type
-        + ", code="
-        + code
-        + ", checksum="
-        + checksum
-        + '}';
+    return "ScionSCMPHeader{" + "type=" + type + ", code=" + code + ", checksum=" + checksum + '}';
   }
 
   public ScmpType getType() {
@@ -69,29 +62,29 @@ public class ScionSCMPHeader {
       }
       throw new IllegalArgumentException("Unknown code: " + code);
     }
-
   }
+
   public enum ScmpType implements ParseEnum {
     // SCMP error messages:
 
-    E1(1,"Destination Unreachable"),
+    E1(1, "Destination Unreachable"),
     E2(2, "Packet Too Big"),
     E3(3, "(not assigned)"),
-    E4(4,"Parameter Problem"),
-    E5(5,"External Interface Down"),
-    E6(6,"Internal Connectivity Down"),
-    E100(100,"Private Experimentation"),
-    E101(101,"Private Experimentation"),
+    E4(4, "Parameter Problem"),
+    E5(5, "External Interface Down"),
+    E6(6, "Internal Connectivity Down"),
+    E100(100, "Private Experimentation"),
+    E101(101, "Private Experimentation"),
     E127(127, "Reserved for expansion of SCMP error messages"),
 
     // SCMP informational messages:
     I128(128, "Echo Request"),
-    I129(129,"Echo Reply"),
-    I130(130,"Traceroute Request"),
-    I131(131,"Traceroute Reply"),
-    I200(200,"Private Experimentation"),
-    I201(201,"Private Experimentation"),
-    I255(255,"Reserved for expansion of SCMP informational messages");
+    I129(129, "Echo Reply"),
+    I130(130, "Traceroute Request"),
+    I131(131, "Traceroute Reply"),
+    I200(200, "Private Experimentation"),
+    I201(201, "Private Experimentation"),
+    I255(255, "Reserved for expansion of SCMP informational messages");
 
     final int code;
     final String text;
@@ -115,28 +108,27 @@ public class ScionSCMPHeader {
     }
   }
 
-
   public enum ScmpType1Code implements ParseEnum {
     // SCMP type 1 messages:
 
-    E1(1,"Destination Unreachable"),
+    E1(1, "Destination Unreachable"),
     E2(2, "Packet Too Big"),
     E3(3, "(not assigned)"),
-    E4(4,"Parameter Problem"),
-    E5(5,"External Interface Down"),
-    E6(6,"Internal Connectivity Down"),
-    E100(100,"Private Experimentation"),
-    E101(101,"Private Experimentation"),
+    E4(4, "Parameter Problem"),
+    E5(5, "External Interface Down"),
+    E6(6, "Internal Connectivity Down"),
+    E100(100, "Private Experimentation"),
+    E101(101, "Private Experimentation"),
     E127(127, "Reserved for expansion of SCMP error messages"),
 
     // SCMP informational messages:
     I128(128, "Echo Request"),
-    I129(129,"Echo Reply"),
-    I130(130,"Traceroute Request"),
-    I131(131,"Traceroute Reply"),
-    I200(200,"Private Experimentation"),
-    I201(201,"Private Experimentation"),
-    I255(255,"Reserved for expansion of SCMP informational messages");
+    I129(129, "Echo Reply"),
+    I130(130, "Traceroute Request"),
+    I131(131, "Traceroute Reply"),
+    I200(200, "Private Experimentation"),
+    I201(201, "Private Experimentation"),
+    I255(255, "Reserved for expansion of SCMP informational messages");
 
     final int code;
     final String text;
@@ -159,5 +151,4 @@ public class ScionSCMPHeader {
       return text;
     }
   }
-
 }

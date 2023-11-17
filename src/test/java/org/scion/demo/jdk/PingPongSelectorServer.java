@@ -37,7 +37,7 @@ public class PingPongSelectorServer {
   public static void runServer() throws IOException {
     InetSocketAddress address = new InetSocketAddress("localhost", 44444);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(address);
-         Selector selector = Selector.open()) {
+        Selector selector = Selector.open()) {
       chnLocal.configureBlocking(false);
       chnLocal.register(selector, SelectionKey.OP_READ);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
@@ -63,7 +63,8 @@ public class PingPongSelectorServer {
             buffer.flip();
 
             String message = extractMessage(buffer);
-            System.out.println("Received from client at: " + remoteAddress + "  message: " + message);
+            System.out.println(
+                "Received from client at: " + remoteAddress + "  message: " + message);
 
             sendMessage(channel, "Re: Hello scion", remoteAddress);
             buffer.clear();

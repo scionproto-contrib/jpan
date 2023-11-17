@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Set;
-
 import org.scion.DatagramChannel;
 import org.scion.ScionSocketAddress;
 
@@ -38,7 +37,6 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   }
 
   /**
-   *
    * @throws SocketException
    * @see java.net.DatagramSocketImpl#create()
    */
@@ -53,7 +51,6 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   }
 
   /**
-   *
    * @param port the local port
    * @param inetAddress the local address
    * @throws SocketException in case of a problem with the underlying protocol
@@ -69,7 +66,6 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   }
 
   /**
-   *
    * @param datagramPacket the packet to be sent.
    * @throws IOException
    * @see java.net.DatagramSocketImpl#send(DatagramPacket)
@@ -83,7 +79,6 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   }
 
   /**
-   *
    * @param inetAddress an InetAddress object
    * @return
    * @throws IOException
@@ -93,11 +88,10 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   protected int peek(InetAddress inetAddress) throws IOException {
     throw new UnsupportedOperationException(); // TODO
     // inetAddress.
-   // return 0;
+    // return 0;
   }
 
   /**
-   *
    * @param datagramPacket the Packet Received.
    * @return
    * @throws IOException
@@ -106,43 +100,42 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   @Override
   protected int peekData(DatagramPacket datagramPacket) throws IOException {
     throw new UnsupportedOperationException(); // TODO
-//    return 0;
+    //    return 0;
   }
 
   /**
-   *
    * @param datagramPacket the Packet Received.
    * @throws IOException
    * @see java.net.DatagramSocketImpl#receive(DatagramPacket)
    */
   @Override
   protected void receive(DatagramPacket datagramPacket) throws IOException {
-    //throw new UnsupportedOperationException(); // TODO
-    ByteBuffer buf = ByteBuffer.wrap(datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength());
+    // throw new UnsupportedOperationException(); // TODO
+    ByteBuffer buf =
+        ByteBuffer.wrap(
+            datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength());
     ScionSocketAddress a = channel.receive(buf);
-    //System.out.println("buf:" + buf.limit() + "  p=" + buf.position() + "  rem=" + buf.remaining());
+    // System.out.println("buf:" + buf.limit() + "  p=" + buf.position() + "  rem=" +
+    // buf.remaining());
     buf.flip();
-    //System.out.println("buf-f:" + buf.limit() + "  p=" + buf.position() + "  rem=" + buf.remaining());
+    // System.out.println("buf-f:" + buf.limit() + "  p=" + buf.position() + "  rem=" +
+    // buf.remaining());
     datagramPacket.setLength(buf.limit()); // TODO offset?
     datagramPacket.setPort(a.getPort());
     datagramPacket.setAddress(a.getAddress()); // TODO setSocketAddress() ?
   }
 
   /**
-   *
    * @param b a byte specifying the TTL value
-   *
    * @throws IOException
    * @see java.net.DatagramSocketImpl#setTTL(byte)
    */
   @Override
   protected void setTTL(byte b) throws IOException {
     throw new UnsupportedOperationException(); // TODO
-
   }
 
   /**
-   *
    * @return
    * @throws IOException
    * @see java.net.DatagramSocketImpl#getTTL()
@@ -150,11 +143,10 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   @Override
   protected byte getTTL() throws IOException {
     throw new UnsupportedOperationException(); // TODO
-//    return 0;
+    //    return 0;
   }
 
   /**
-   *
    * @param i an {@code int} specifying the time-to-live value
    * @throws IOException
    * @see java.net.DatagramSocketImpl#setTimeToLive(int)
@@ -162,11 +154,9 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   @Override
   protected void setTimeToLive(int i) throws IOException {
     throw new UnsupportedOperationException(); // TODO
-
   }
 
   /**
-   *
    * @return
    * @throws IOException
    * @see java.net.DatagramSocketImpl#getTimeToLive()
@@ -174,7 +164,7 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   @Override
   protected int getTimeToLive() throws IOException {
     throw new UnsupportedOperationException(); // TODO
-//    return 0;
+    //    return 0;
   }
 
   @Override
@@ -191,14 +181,12 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   protected void joinGroup(SocketAddress socketAddress, NetworkInterface networkInterface)
       throws IOException {
     throw new UnsupportedOperationException(); // TODO
-
   }
 
   @Override
   protected void leaveGroup(SocketAddress socketAddress, NetworkInterface networkInterface)
       throws IOException {
     throw new UnsupportedOperationException(); // TODO
-
   }
 
   /**
@@ -209,20 +197,19 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
     try {
       channel.close();
     } catch (IOException e) {
-      throw new RuntimeException(e);  // TODO ?s
+      throw new RuntimeException(e); // TODO ?s
     }
   }
 
   @Override
   public void setOption(int i, Object o) throws SocketException {
     throw new UnsupportedOperationException(); // TODO
-
   }
 
   @Override
   public Object getOption(int i) throws SocketException {
     throw new UnsupportedOperationException(); // TODO
-//    return null;
+    //    return null;
   }
 
   /**
@@ -257,16 +244,14 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
   }
 
   protected Set<SocketOption<?>> supportedOptions9() {
-      throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException();
   }
 
   public <T> T getOption9(SocketOption<T> name) throws IOException {
     throw new UnsupportedOperationException();
   }
 
-  public <T> void setOption9(SocketOption<T> name, T value)
-          throws IOException
-  {
+  public <T> void setOption9(SocketOption<T> name, T value) throws IOException {
     throw new UnsupportedOperationException();
   }
 }

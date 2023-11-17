@@ -150,9 +150,9 @@ public class ByteUtil {
     }
     sb.append("Path Header").append(NL);
     int segLen0 = readInt(readInt(b, pos), 14, 6);
-      int segLen1 = readInt(readInt(b, pos), 20, 6);
-      int segLen2 = readInt(readInt(b, pos), 26, 6);
-      pos = printLine(sb, b, pos);
+    int segLen1 = readInt(readInt(b, pos), 20, 6);
+    int segLen2 = readInt(readInt(b, pos), 26, 6);
+    pos = printLine(sb, b, pos);
     if (segLen0 > 0) {
       sb.append("  SegInfo0").append(NL);
       pos = printLine(sb, b, pos);
@@ -181,7 +181,7 @@ public class ByteUtil {
   private static int printLine(StringBuilder sb, byte[] b, int pos) {
     String NL = System.lineSeparator();
     sb.append(String.format("%02d", pos) + "-" + String.format("%02d", pos + 3) + "  ");
-    for (int i =0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
       sb.append(String.format("%02x", Byte.toUnsignedInt(b[pos + i])));
       sb.append(" ");
     }

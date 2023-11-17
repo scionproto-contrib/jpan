@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -98,8 +97,7 @@ public class InspectorComposeTest {
     scionHeader.setDstHostAddress(userPacket.getAddress().getAddress());
 
     // Socket internal = write header
-    scionHeader.write(
-            data, userPacket.getLength(), path.length, Constants.PathTypes.SCION);
+    scionHeader.write(data, userPacket.getLength(), path.length, Constants.PathTypes.SCION);
     assertEquals(1, scionHeader.pathType().code());
     pathHeaderScion.writePath(data, path);
 

@@ -26,10 +26,11 @@ class ToStringUtilTest {
     String ip1 = ToStringUtil.toStringIPv4(bytes1);
     assertEquals("127.0.15.23", ip1);
   }
-    @Test
+
+  @Test
   void testIPv6_fromBytes() {
     // For now without :: substitution
-    byte[] bytes1 = new byte[]{1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,2};
+    byte[] bytes1 = new byte[] {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2};
     String ip1 = ToStringUtil.toStringIPv6(bytes1);
     assertEquals("100:0:100:0:100:0:100:2", ip1);
 

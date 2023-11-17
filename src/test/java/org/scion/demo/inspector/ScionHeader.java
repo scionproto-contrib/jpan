@@ -14,14 +14,13 @@
 
 package org.scion.demo.inspector;
 
-import org.scion.ScionUtil;
-import org.scion.demo.util.ToStringUtil;
+import static org.scion.demo.inspector.ByteUtil.*;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-
-import static org.scion.demo.inspector.ByteUtil.*;
+import org.scion.ScionUtil;
+import org.scion.demo.util.ToStringUtil;
 
 /** Class for reading, writing and storing the Common Header and Address Header. */
 public class ScionHeader {

@@ -16,22 +16,21 @@ package org.scion.demo.inspector;
 
 public interface Constants {
 
-    interface ParseEnum {
+  interface ParseEnum {
 
-        int code();
+    int code();
 
-        static <E extends ParseEnum> E parse(Class<E> e, int code) {
-            E[] values = e.getEnumConstants();
-            for (int i = 0; i < values.length; i++) {
-                E pe = values[i];
-                if (pe.code() == code) {
-                    return pe;
-                }
-            }
-            throw new IllegalArgumentException("Unknown code: " + code);
+    static <E extends ParseEnum> E parse(Class<E> e, int code) {
+      E[] values = e.getEnumConstants();
+      for (int i = 0; i < values.length; i++) {
+        E pe = values[i];
+        if (pe.code() == code) {
+          return pe;
         }
-
+      }
+      throw new IllegalArgumentException("Unknown code: " + code);
     }
+  }
 
   enum PathTypes implements ParseEnum {
     Empty(0),
@@ -46,14 +45,14 @@ public interface Constants {
       this.code = code;
     }
 
-      public static PathTypes parse(int code) {
-          return ParseEnum.parse(PathTypes.class, code);
-      }
+    public static PathTypes parse(int code) {
+      return ParseEnum.parse(PathTypes.class, code);
+    }
 
-      @Override
-      public int code() {
-          return code;
-      }
+    @Override
+    public int code() {
+      return code;
+    }
   }
 
   // -- This is a combination of address type and length
@@ -68,14 +67,14 @@ public interface Constants {
       this.code = code;
     }
 
-      public static AddrTypes parse(int code) {
-          return ParseEnum.parse(AddrTypes.class, code);
-      }
+    public static AddrTypes parse(int code) {
+      return ParseEnum.parse(AddrTypes.class, code);
+    }
 
-      @Override
-      public int code() {
-          return code;
-      }
+    @Override
+    public int code() {
+      return code;
+    }
   }
 
   enum HdrTypes implements ParseEnum {
@@ -91,14 +90,14 @@ public interface Constants {
       this.code = code;
     }
 
-      public static HdrTypes parse(int code) {
-        return ParseEnum.parse(HdrTypes.class, code);
-      }
+    public static HdrTypes parse(int code) {
+      return ParseEnum.parse(HdrTypes.class, code);
+    }
 
-      @Override
-      public int code() {
-          return code;
-      }
+    @Override
+    public int code() {
+      return code;
+    }
   }
 
   enum SvcTypes {

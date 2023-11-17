@@ -227,7 +227,9 @@ public class ScionService {
     }
 
     // Use local ISD/AS for localhost addresses
-    if (hostName.startsWith("127.0.0.") || "::1".equals(hostName) || "0:0:0:0:0:0:0:1".equals(hostName)) {
+    if (hostName.startsWith("127.0.0.")
+        || "::1".equals(hostName)
+        || "0:0:0:0:0:0:0:1".equals(hostName)) {
       long isdAs = ScionService.defaultService().getLocalIsdAs();
       return ScionAddress.create(isdAs, hostName, hostName);
     }
@@ -279,8 +281,8 @@ public class ScionService {
     char nextChar = props.charAt(posHost + hostName.length());
     char prevChar = posHost <= 0 ? ';' : props.charAt(posHost - 1);
     if (posHost >= 0
-            && (nextChar == '=' || nextChar == '"')
-            && (prevChar == ';' || prevChar == ',')) {
+        && (nextChar == '=' || nextChar == '"')
+        && (prevChar == ';' || prevChar == ',')) {
       int posStart;
       int posEnd;
       if (prevChar == ',') {

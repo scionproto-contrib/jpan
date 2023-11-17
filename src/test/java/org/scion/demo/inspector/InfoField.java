@@ -20,93 +20,103 @@ import java.nio.ByteBuffer;
 
 public class InfoField {
 
-    private boolean r0;
-    private boolean r1;
-    private boolean r2;
-    private boolean r3;
-    private boolean r4;
-    private boolean r5;
-    private boolean r6;
-    private boolean p;
-    private boolean c;
-    // 8 bits
-    private int reserved;
-    // 16 bits : segID
-    private int segID;
-    // 32 bits : timestamp (unsigned int)
-    private int timestampRaw; // "raw" because field type is "signed int"
+  private boolean r0;
+  private boolean r1;
+  private boolean r2;
+  private boolean r3;
+  private boolean r4;
+  private boolean r5;
+  private boolean r6;
+  private boolean p;
+  private boolean c;
+  // 8 bits
+  private int reserved;
+  // 16 bits : segID
+  private int segID;
+  // 32 bits : timestamp (unsigned int)
+  private int timestampRaw; // "raw" because field type is "signed int"
 
-    InfoField() {
+  InfoField() {}
 
-    }
+  public void read(ByteBuffer data) {
+    int i0 = data.getInt();
+    int i1 = data.getInt();
+    p = readBoolean(i0, 6);
+    c = readBoolean(i0, 7);
+    reserved = readInt(i0, 8, 8);
+    segID = readInt(i0, 16, 16);
+    timestampRaw = i1;
+  }
 
-    public void read(ByteBuffer data) {
-        int i0 = data.getInt();
-        int i1 = data.getInt();
-        p = readBoolean(i0, 6);
-        c = readBoolean(i0, 7);
-        reserved = readInt(i0, 8, 8);
-        segID = readInt(i0, 16, 16);
-        timestampRaw = i1;
-    }
+  public void write(ByteBuffer data) {
+    int i0 = 0;
+    i0 = writeInt(i0, 0, 6, 0);
+    i0 = writeBool(i0, 6, p);
+    i0 = writeBool(i0, 7, c);
+    i0 = writeInt(i0, 8, 8, 0); // RSV
+    i0 = writeInt(i0, 16, 16, segID);
+    data.putInt(i0);
+    data.putInt(timestampRaw);
+  }
 
-    public void write(ByteBuffer data) {
-        int i0 = 0;
-        i0 = writeInt(i0, 0, 6, 0);
-        i0 = writeBool(i0, 6, p);
-        i0 = writeBool(i0, 7, c);
-        i0 = writeInt(i0, 8, 8, 0); // RSV
-        i0 = writeInt(i0, 16, 16, segID);
-        data.putInt(i0);
-        data.putInt(timestampRaw);
-    }
+  public void reverse() {
+    c = !c;
+  }
 
-    public void reverse() {
-        c = !c;
-    }
+  public int length() {
+    return 8;
+  }
 
-    public int length() {
-        return 8;
-    }
+  @Override
+  public String toString() {
+    return "InfoField{"
+        + "r0="
+        + r0
+        + ", r1="
+        + r1
+        + ", r2="
+        + r2
+        + ", r3="
+        + r3
+        + ", r4="
+        + r4
+        + ", r5="
+        + r5
+        + ", r6="
+        + r6
+        + ", P="
+        + p
+        + ", C="
+        + c
+        + ", reserved="
+        + reserved
+        + ", segID="
+        + segID
+        + ", timestamp="
+        + Integer.toUnsignedLong(timestampRaw)
+        + '}';
+  }
 
-    @Override
-    public String toString() {
-        return "InfoField{" +
-                "r0=" + r0 +
-                ", r1=" + r1 +
-                ", r2=" + r2 +
-                ", r3=" + r3 +
-                ", r4=" + r4 +
-                ", r5=" + r5 +
-                ", r6=" + r6 +
-                ", P=" + p +
-                ", C=" + c +
-                ", reserved=" + reserved +
-                ", segID=" + segID +
-                ", timestamp=" + Integer.toUnsignedLong(timestampRaw) +
-                '}';
-    }
+  public void reset() {
+    r0 = false;
+    r1 = false;
+    r2 = false;
+    r3 = false;
+    r4 = false;
+    r5 = false;
+    r6 = false;
+    p = false;
+    c = false;
+    reserved = 0;
+    segID = 0;
+    timestampRaw = 0;
+  }
 
-    public void reset() {
-        r0 = false;
-        r1 = false;
-        r2 = false;
-        r3 = false;
-        r4 = false;
-        r5 = false;
-        r6 = false;
-        p = false;
-        c = false;
-        reserved = 0;
-        segID = 0;
-        timestampRaw = 0;
-    }
+  public long getTimestamp() {
+    return Integer.toUnsignedLong(timestampRaw);
+  }
 
-    public long getTimestamp() {
-        return Integer.toUnsignedLong(timestampRaw);
-    }
-
-    public boolean hasConstructionDirection() {
-        return c;
-    }
+  public boolean hasConstructionDirection() {
+    return c;
+  }
 }
