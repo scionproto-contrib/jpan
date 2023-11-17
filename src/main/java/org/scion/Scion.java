@@ -29,30 +29,18 @@ public final class Scion {
     return ScionService.defaultService();
   }
 
+  /**
+   * @param hostAndPort in the form of IP:port
+   * @return new ScionService instance
+   */
   public static CloseableService newServiceForAddress(String hostAndPort) {
     return CloseableService.create(hostAndPort);
   }
 
-  public static CloseableService newServiceForAddress(String host, int port) {
-    return CloseableService.create(host, port);
-  }
-
   public static class CloseableService extends ScionService implements AutoCloseable {
 
-    public static CloseableService create(String daemonHost, int daemonPort) {
-      return create(daemonHost + ":" + daemonPort);
-    }
-
-    /**
-     * @param address in the form of IP:port
-     * @return new ScionService instance
-     */
-    public static CloseableService create(String address) {
+    static CloseableService create(String address) {
       return new CloseableService(address);
-    }
-
-    public static CloseableService create(InetSocketAddress address) {
-      return create(address.getHostString(), address.getPort());
     }
 
     private CloseableService(String address) {

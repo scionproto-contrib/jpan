@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.DatagramChannel;
+import org.scion.ScionException;
 import org.scion.ScionSocketAddress;
 
 public class PingPongHelper {
@@ -147,6 +148,9 @@ public class PingPongHelper {
       }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
+    } catch (ScionException e) {
+      exceptions.add(e);
+        throw new RuntimeException(e);
     } finally {
       MockNetwork.stopTiny();
       checkExceptions();

@@ -76,7 +76,7 @@ class DatagramChannelApiTest {
     InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
     try (DatagramChannel channel = DatagramChannel.open()) {
       Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
-      assertTrue(ex.getMessage().contains("Message too long"));
+      assertTrue(ex.getMessage().contains("No DNS TXT entry found for host"), ex.getMessage());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
+import org.scion.ScionException;
 import org.scion.ScionSocketAddress;
 import org.scion.testutil.MockNetwork;
 
@@ -34,7 +35,7 @@ class DatagramChannelSAPingPongTest {
   private int nServer = 0;
 
   @Test
-  void testPingPong() throws InterruptedException {
+  void testPingPong() throws InterruptedException, ScionException {
     MockNetwork.startTiny();
 
     InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();

@@ -96,33 +96,25 @@ public class ScionService {
 
   Daemon.ASResponse getASInfo() throws ScionException {
     LOG.info("*** GetASInfo ***");
-
-    Daemon.ASRequest request =
-        Daemon.ASRequest.newBuilder().setIsdAs(0).build(); // TODO getDefaultInstance()?
-
+    Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
       response = blockingStub.aS(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException("Error while getting AS info", e);
     }
-
     return response;
   }
 
   Map<Long, Daemon.Interface> getInterfaces() throws ScionException {
     LOG.info("*** GetInterfaces ***");
-
-    Daemon.InterfacesRequest request =
-        Daemon.InterfacesRequest.newBuilder().build(); // TODO getDefaultInstance()?
-
+    Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {
       response = blockingStub.interfaces(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException(e);
     }
-
     return response.getInterfacesMap();
   }
 
@@ -175,17 +167,13 @@ public class ScionService {
 
   Map<String, Daemon.ListService> getServices() throws ScionException {
     LOG.info("*** GetServices ***");
-
-    Daemon.ServicesRequest request =
-        Daemon.ServicesRequest.newBuilder().build(); // TODO getDefaultInstance()?
-
+    Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
     Daemon.ServicesResponse response;
     try {
       response = blockingStub.services(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException(e);
     }
-
     return response.getServicesMap();
   }
 
@@ -236,8 +224,7 @@ public class ScionService {
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
-        // throw new UnknownHostException("No DNS entry found for host: " + hostName); // TODO ?
-        throw new ScionException("No DNS entry found for host: " + hostName); // TODO test
+        throw new ScionException("No DNS TXT entry found for host: " + hostName);
       }
       for (int i = 0; i < records.length; i++) {
         TXTRecord txt = (TXTRecord) records[i];
@@ -247,7 +234,7 @@ public class ScionService {
         }
       }
     } catch (TextParseException e) {
-      throw new ScionException(e.getMessage());
+      throw new ScionException("Error parsing TXT entry: " + e.getMessage());
     }
     // TODO add /etc/scion-hosts or /etc/scion/hosts
 
@@ -267,7 +254,7 @@ public class ScionService {
     //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
     //    InetAddressResolver r = new InetAddressResolver();
 
-    throw new ScionException("Host has no SCION TXT entry: " + hostName); // TODO test
+    throw new ScionException("Host has no SCION TXT entry: " + hostName);
   }
 
   private String findTxtRecordInProperties(String hostName) {
