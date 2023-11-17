@@ -12,48 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.testutil;
+package org.scion.demo.inspector;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
+import java.net.*;
 import java.nio.ByteBuffer;
+import org.junit.jupiter.api.Test;
 import org.scion.ScionUtil;
-import org.scion.demo.inspector.OverlayHeader;
-import org.scion.demo.inspector.PathHeaderScion;
-import org.scion.demo.inspector.ScionHeader;
-import org.scion.demo.inspector.ScionPacketInspector;
+import org.scion.testutil.ExamplePacket;
 
-/** This is a tool to decode and print out a ScionHeader. */
-public class DecodeHeader {
+public class ScionPacketInspectorTest {
 
-  public static void main(String[] args) throws IOException {
-    printHeader(ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING);
-    printHeader(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
-    printHeader(ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG);
-    printHeader(ExamplePacket.PACKET_BYTES_CLIENT_E2E_PONG);
-
+  @Test
+  public void test() throws IOException {
     // client
-    ByteBuffer composed = compose("Hello SCION".getBytes());
-    System.out.println("------- Composed header: -------");
-    printHeader(composed);
+    ByteBuffer composed = compose("Hello scion".getBytes());
+
+    byte[] expectedCompose = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
+    for (int i = 0; i < expectedCompose.length; i++) {
+      if (i >= 90 && i <= 91) {
+        continue; // skip UDP checksum
+      }
+      assertEquals(expectedCompose[i], composed.get(i), "i=" + i);
+    }
+
     // server
-    System.out.println("------- Reply header: -------");
     composed.flip();
-    ByteBuffer reply = composeReply(composed, "Re: Hello SCION".getBytes());
-    printHeader(reply);
-  }
-
-  public static void printHeader(byte[] data) throws IOException {
-    printHeader(ByteBuffer.wrap(data));
-  }
-
-  public static void printHeader(ByteBuffer data) throws IOException {
-    int pos = data.position();
-    data.position(0);
-    ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
-    System.out.print(spi);
-    System.out.println("Payload: " + new String(spi.getPayLoad()));
-    data.position(pos);
+    ByteBuffer reply = composeReply(composed, "Hello scion".getBytes());
+    byte[] expectedReply = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
+    for (int i = 0; i < expectedReply.length; i++) {
+      if (i >= 54 && i <= 55) {
+        continue; // skip segmentID
+      }
+      if (i >= 90 && i <= 91) {
+        continue; // skip UDP checksum
+      }
+      assertEquals(expectedReply[i], reply.get(i), "i=" + i);
+    }
   }
 
   private static ByteBuffer compose(byte[] payload) {
@@ -77,7 +74,7 @@ public class DecodeHeader {
 
     // UDP overlay header
     OverlayHeader overlayHeaderUdp = spi.getOverlayHeaderUdp();
-    overlayHeaderUdp.set(userInput.getLength(), 33333, 44444);
+    overlayHeaderUdp.set(userInput.getLength(), 44444, 8080);
 
     spi.writePacket(newData, payload);
     return newData;

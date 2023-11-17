@@ -17,12 +17,24 @@ package org.scion.demo.inspector;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion();
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
   private final OverlayHeader overlayHeaderUdp = new OverlayHeader();
+  private byte[] payload;
+
+  public static ScionPacketInspector createEmpty() {
+    return new ScionPacketInspector();
+  }
+
+  public static ScionPacketInspector readPacket(ByteBuffer buffer) throws IOException {
+    ScionPacketInspector spi = new ScionPacketInspector();
+    spi.read(buffer);
+    return spi;
+  }
 
   public ScionPacketInspector() {}
 
@@ -49,6 +61,8 @@ public class ScionPacketInspector {
     } else {
       throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
     }
+    sb.append(overlayHeaderUdp).append("\n");
+    sb.append("Payload: ").append(Arrays.toString(payload)).append("\n");
     return sb.toString();
   }
 
@@ -59,8 +73,7 @@ public class ScionPacketInspector {
    * @return "true" iff the header could be read successfully.
    * @throws IOException if an IO error occurs.
    */
-  public boolean readScionHeader(ByteBuffer data) throws IOException {
-    int headerOffset = 0;
+  public boolean read(ByteBuffer data) throws IOException {
     scionHeader.read(data);
     if (scionHeader.getDT() != 0) {
       System.out.println(
@@ -105,6 +118,40 @@ public class ScionPacketInspector {
       System.out.println("Packet: DROPPED unknown: " + scionHeader.nextHeader().name());
       return false;
     }
+
+    payload = new byte[getPayloadLength()];
+    data.get(payload);
+
     return true;
+  }
+
+  public ScionHeader getScionHeader() {
+    return scionHeader;
+  }
+
+  public PathHeaderScion getPathHeaderScion() {
+    return pathHeaderScion;
+  }
+
+  public OverlayHeader getOverlayHeaderUdp() {
+    return overlayHeaderUdp;
+  }
+
+  public byte[] getPayLoad() {
+    return payload;
+  }
+
+  public void reversePath() {
+    scionHeader.reverse();
+    pathHeaderScion.reverse();
+    overlayHeaderUdp.reverse();
+  }
+
+  public void writePacket(ByteBuffer newData, byte[] userData) {
+    scionHeader.write(
+        newData, userData.length, pathHeaderScion.length(), Constants.PathTypes.SCION);
+    pathHeaderScion.write(newData);
+    overlayHeaderUdp.write(newData, userData.length);
+    newData.put(userData);
   }
 }

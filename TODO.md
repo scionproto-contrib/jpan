@@ -22,7 +22,6 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
-- test & use Inspector.readScionHeader()
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.

@@ -95,4 +95,10 @@ public class OverlayHeader {
   public int getDstPort() {
     return dstPort;
   }
+
+  public void set(int packetLength, int srcPort, int dstPort) {
+    this.packetLength = packetLength;
+    this.srcPort = srcPort;
+    this.dstPort = dstPort;
+  }
 }
