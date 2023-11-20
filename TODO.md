@@ -50,11 +50,8 @@
 - Implement DNS
   - Entries can go into local /etc/host or /etc/scion-hosts(?)
   - For SCION there is RHINE as a DNS equivalent but it is deprecated
-- SocketImpl. -> Then replace byte[] with ByteBuffer in Helper? 
 - Look into Selectors:  https://www.baeldung.com/java-nio-selector
 - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
-- Implement SocketExceptions: 
-  BindException(?), ConnectException, NoRouteToHostException, PortUnreachableException
 - Add socket.send(packet, dstIsdAs);
 - UDP checksum for overlay packet?
 
@@ -76,9 +73,7 @@
 - SCMP ping, traceroute?
 
 ## After that
-- CI
 - Integrate with bazel -> Simplifies integration of go testing topology.
-- Add OWASP dependency/vulnerability checker (or is this done by GitHub nowadays?)
 - SECURITY: java.net.AbstractPlainDatagramSocketImpl contains a lot of 
   Security checks (see also class javadoc). Do weed need these? Isn't this
   handled by the underlying DatagramChannel? Isn't this deprecated in Java 17?
@@ -119,7 +114,6 @@
 - Decide how to handle 
   - SCMP errors -> Exception? Log? Ignore?
   - Large packets, e 
-- Look at NIO integration?
 - Path selection & path policies
 
 - Where to place generated proto files? They are currently in `target` but could be in `scr/java`...
