@@ -29,12 +29,24 @@ public class ScionEndToEndExtensionHeader {
   private long options;
 
   public void read(ByteBuffer data) {
-    long l0 = data.getInt();
+    long l0 = data.getLong();
     nextHdr = (int) readLong(l0, 0, 8);
     extLen = (int) readLong(l0, 8, 8);
+//    nextHdr = toUnsignedInt(readLong(l0, 0, 8));
+//    extLen = toUnsignedInt(readLong(l0, 8, 8));
     extLenBytes = (extLen + 1) * 4;
     options = readLong(l0, 16, 48);
+
+    // Skip rest of the E2E header
+    data.position(data.position() - 8 + extLenBytes);
     // TODO validate checksum
+  }
+
+  private static int toUnsignedInt(long l) {
+    int i1 = (int) l;
+    int i2 = (int) (l - 0xFFFFFFFFL);
+    System.out.println(l + " " + i1 + " " + i2);
+    return l <= Integer.MAX_VALUE ? (int) l : (int) (l - 0xFFFFFFFFL);
   }
 
   @Override

@@ -69,7 +69,7 @@ public class ScionPacketInspector {
   /**
    * Read a SCION header.
    *
-   * @param data A ButeBuffer containing the header data.
+   * @param data A ByteBuffer containing the header data.
    * @return "true" iff the header could be read successfully.
    * @throws IOException if an IO error occurs.
    */
@@ -103,6 +103,7 @@ public class ScionPacketInspector {
       System.out.println("Packet EndToEnd");
       ScionEndToEndExtensionHeader e2eHeader = new ScionEndToEndExtensionHeader();
       e2eHeader.read(data);
+      System.out.println(e2eHeader);
       if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
         ScionSCMPHeader scmpHdr = new ScionSCMPHeader();
         scmpHdr.read(data);
