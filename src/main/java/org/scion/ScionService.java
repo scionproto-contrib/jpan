@@ -95,7 +95,7 @@ public class ScionService {
   }
 
   Daemon.ASResponse getASInfo() throws ScionException {
-    LOG.info("*** GetASInfo ***");
+    // LOG.info("*** GetASInfo ***");
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
@@ -107,7 +107,7 @@ public class ScionService {
   }
 
   Map<Long, Daemon.Interface> getInterfaces() throws ScionException {
-    LOG.info("*** GetInterfaces ***");
+    // LOG.info("*** GetInterfaces ***");
     Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {
@@ -120,7 +120,7 @@ public class ScionService {
 
   // TODO do not expose proto types on API
   List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) throws ScionException {
-    LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
+    // LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
     Daemon.PathsRequest request =
         Daemon.PathsRequest.newBuilder()
@@ -166,7 +166,7 @@ public class ScionService {
   }
 
   Map<String, Daemon.ListService> getServices() throws ScionException {
-    LOG.info("*** GetServices ***");
+    // LOG.info("*** GetServices ***");
     Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
     Daemon.ServicesResponse response;
     try {

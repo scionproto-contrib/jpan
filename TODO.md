@@ -22,10 +22,13 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
+- Improve Path inspection API
+- Test path switching, e.g. with 2nd BR
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
 - TEST concurrent path/as/DNS lookup
+- TEST concurrent use of single channel.
 - ScionPacketParser.strip()/augment(): 
   - strip(buffer) sets position() and returns address/path
   - augment(buffer, address+path) inserts scionHeader 
@@ -36,15 +39,6 @@
 
 - Lookup FlowID -> mandatory - MTU?
 
-- RAC (Routing Algorithm Container)/Jelte
-  - Attack vector:
-    - Flood with need algorithms
-    - -> This is a network multiplier: Send a simple algorithm, cause a PCB flood
-  - How do we know the algorithm terminates? Turing? 
-  - Why is WASM so much slower?
-  - Why do we need additional beacons????
-    - Why can normal beacons not aggregate all information?  
-
 ## Now
 - Implement interfaces from nio.DatagramChannel
 - Implement DNS
@@ -54,7 +48,6 @@
 - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
 - Add socket.send(packet, dstIsdAs);
 - UDP checksum for overlay packet?
-
 
 ## Then
 
@@ -71,6 +64,14 @@
 - ScionService: extend API
 - Remove PathHeaderOneHop
 - SCMP ping, traceroute?
+
+- For Android look into
+  - android.net.Network: 
+    https://developer.android.com/reference/android/net/Network.html#openConnection(java.net.URL)
+  - android.net.ConnectivityManager: 
+    https://developer.android.com/reference/android/net/ConnectivityManager#requestNetwork(android.net.NetworkRequest,%20android.app.PendingIntent)
+  - WiFi-Direct: 
+    https://developer.android.com/develop/connectivity/wifi/wifi-direct#java
 
 ## After that
 - Integrate with bazel -> Simplifies integration of go testing topology.
