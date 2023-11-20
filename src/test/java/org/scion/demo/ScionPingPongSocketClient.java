@@ -18,6 +18,7 @@ import java.io.*;
 import java.net.*;
 import org.scion.DatagramSocket;
 import org.scion.ScionSocketAddress;
+import org.scion.ScionUtil;
 import org.scion.testutil.MockDNS;
 
 @Deprecated // This does not work.
@@ -38,7 +39,7 @@ public class ScionPingPongSocketClient {
     try {
       // InetAddress serverAddress2 = InetAddress.getByName(serverHostname);
       ScionSocketAddress serverAddress =
-          ScionSocketAddress.create("1-ff00:0:112", serverHostname, serverPort);
+          ScionSocketAddress.create(ScionUtil.parseIA("1-ff00:0:112"), serverHostname, serverPort);
       DatagramSocket socket = new DatagramSocket(null);
 
       while (true) {

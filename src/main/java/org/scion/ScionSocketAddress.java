@@ -42,19 +42,11 @@ public class ScionSocketAddress extends InetSocketAddress {
     this.path = path;
   }
 
-  // TODO clean up create() methods: which ones are needed/useful? Order of arguments?
-
-  public static ScionSocketAddress create(String isdAs, String hostName, int port) {
-    long isdAsCode = ScionUtil.parseIA(isdAs);
-    return new ScionSocketAddress(isdAsCode, hostName, port, null);
-  }
-
   public static ScionSocketAddress create(String hostName, int port, ScionPath path) {
     return new ScionSocketAddress(path.getDestinationIsdAs(), hostName, port, path);
   }
 
-  @Deprecated
-  static ScionSocketAddress create(long isdAs, String hostName, int port) {
+  public static ScionSocketAddress create(long isdAs, String hostName, int port) {
     return new ScionSocketAddress(isdAs, hostName, port, null);
   }
 
