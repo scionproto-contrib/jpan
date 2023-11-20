@@ -25,7 +25,6 @@ public class ByteUtil {
     return r;
   }
 
-
   static long readLong(byte[] data, int offsetBytes) {
     long r = 0;
     for (int i = 0; i < 8; i++) {
