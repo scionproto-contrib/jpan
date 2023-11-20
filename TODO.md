@@ -123,6 +123,8 @@
 
 
 ## Reconsider tooling
+- Documentation
+  - There seems to be no documentation specifying the latency unit. [ms]?
 - Daemon.proto
   - Expiration is a 96bit Timestamp, optimize?
   - Latencies are 96bit Durations, optimize?

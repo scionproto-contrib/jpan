@@ -14,7 +14,6 @@
 
 package org.scion;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -84,10 +83,10 @@ public class PathViewer {
    *     the latency between interface i and i+1. Consequently, there are N-1 entries for N
    *     interfaces. A 0-value indicates that the AS did not announce a latency for this hop.
    */
-  public List<Duration> getLatencyList() {
+  public List<Integer> getLatencyList() {
     return Collections.unmodifiableList(
         path.getLatencyList().stream()
-            .map(duration -> Duration.ofSeconds(duration.getSeconds(), duration.getNanos()))
+            .map(time -> (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
             .collect(Collectors.toList()));
   }
 
