@@ -16,29 +16,23 @@ package org.scion.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.Inet6Address;
-import java.net.InetAddress;
 import org.junit.jupiter.api.Test;
 
 public class ByteUtilTest {
 
+  @Test
+  public void testWriteIntToByteArray() {
+    int i0 = 0xFFFFFFFF;
+    byte[] data = new byte[4];
+    ByteUtil.writeInt(data, 0, i0);
+    assertArrayEquals(new byte[] {-1, -1, -1, -1}, data);
+  }
 
-    @Test
-    public void testWriteIntToByteArray() {
-        int i0 = 0xFFFFFFFF;
-        byte[] data = new byte[4];
-        ByteUtil.writeInt(data, 0, i0);
-        assertArrayEquals(new byte[]{-1, -1, -1, -1}, data);
-    }
-
-    @Test
-    public void testWriteLongToByteArray() {
-        long l0 = 0xFFFFFFFFFFFFFFFFL;
-        byte[] data = new byte[8];
-        ByteUtil.writeLong(data, 0, l0);
-        assertArrayEquals(new byte[]{-1, -1, -1, -1, -1, -1, -1, -1}, data);
-    }
-
+  @Test
+  public void testWriteLongToByteArray() {
+    long l0 = 0xFFFFFFFFFFFFFFFFL;
+    byte[] data = new byte[8];
+    ByteUtil.writeLong(data, 0, l0);
+    assertArrayEquals(new byte[] {-1, -1, -1, -1, -1, -1, -1, -1}, data);
+  }
 }

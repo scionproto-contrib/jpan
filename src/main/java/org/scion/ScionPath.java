@@ -14,22 +14,81 @@
 
 package org.scion;
 
+import com.google.protobuf.ByteString;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import org.scion.proto.daemon.Daemon;
 
 /**
- * A SCION path represents a single path from a source to a destination.
- * Paths can be retrieved from the ScionPathService.
+ * A SCION path represents a single path from a source to a destination. Paths can be retrieved from
+ * the ScionService.
+ *
+ * <p>This class is threadsafe.
  */
 public class ScionPath {
-    private final Daemon.Path path;
+  private final Daemon.Path pathProtoc;
+  // ScionPath is basically immutable, it may be accessed in multiple thread concurrently.
+  private volatile byte[] pathRaw;
+  private final long srcIsdAs;
+  private final long dstIsdAs;
+  private final InetSocketAddress firstHopAddress;
 
+  ScionPath(Daemon.Path path, long srcIsdAs, long dstIsdAs) throws UnknownHostException {
+    this.pathProtoc = path;
+    this.pathRaw = null;
+    this.srcIsdAs = srcIsdAs;
+    this.dstIsdAs = dstIsdAs;
+    this.firstHopAddress = getFirstHopAddress(path);
+  }
 
-    ScionPath(Daemon.Path path) {
-        this.path = path;
+  private ScionPath(byte[] path, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
+    this.pathProtoc = null;
+    this.pathRaw = path;
+    this.srcIsdAs = srcIsdAs;
+    this.dstIsdAs = dstIsdAs;
+    this.firstHopAddress = firstHopAddress;
+  }
+
+  public static ScionPath create(
+      byte[] rawPath, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
+    return new ScionPath(rawPath, srcIsdAs, dstIsdAs, firstHopAddress);
+  }
+
+  public long getDestinationIsdAs() {
+    return dstIsdAs;
+  }
+
+  public long getSourceIsdAs() {
+    return srcIsdAs;
+  }
+
+  public InetSocketAddress getFirstHopAddress() {
+    return firstHopAddress;
+  }
+
+  private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath)
+      throws UnknownHostException {
+    String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
+    int splitIndex = underlayAddressString.indexOf(':');
+    InetAddress underlayAddress =
+        InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+    int underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+    return new InetSocketAddress(underlayAddress, underlayPort);
+  }
+
+  public byte[] getRawPath() {
+    if (pathRaw == null) {
+      ByteString bs = pathProtoc.getRaw();
+      pathRaw = new byte[bs.size()];
+      for (int i = 0; i < bs.size(); i++) {
+        pathRaw[i] = bs.byteAt(i);
+      }
     }
+    return pathRaw;
+  }
 
-    Daemon.Path getPathInternal() {
-        return path;
-    }
-
+  Daemon.Path getPathInternal() {
+    return pathProtoc;
+  }
 }

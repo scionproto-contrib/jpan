@@ -19,36 +19,41 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+/**
+ * ScionAddress is an InetAddress + ISD/AS information.
+ *
+ * <p>This class is threadsafe.
+ */
 public class ScionAddress {
   private final long isdAs;
   private final String hostName;
   private final InetAddress ipAddress;
 
-  public ScionAddress(String hostname, InetAddress ip, long isdAs) {
-    this.hostName = hostname;
+  ScionAddress(long isdAs, String hostName, InetAddress ip) {
+    this.hostName = hostName;
     this.ipAddress = ip;
     this.isdAs = isdAs;
   }
 
-  static ScionAddress create(String hostname, long isdAs, String ipString) {
+  static ScionAddress create(long isdAs, String hostName, String ipString) {
     InetAddress ip;
     try {
-    if (ipString.indexOf('.') > 0) {
-      ip = Inet4Address.getByName(ipString);
-    } else {
-      // Must be IPv6 or invalid
-      ip = Inet6Address.getByName(ipString);
-    }
+      if (ipString.indexOf('.') > 0) {
+        ip = Inet4Address.getByName(ipString);
+      } else {
+        // Must be IPv6 or invalid
+        ip = Inet6Address.getByName(ipString);
+      }
     } catch (UnknownHostException e) {
       // This should never happen because we always call getByName() with an IP address
       throw new RuntimeException(e);
     }
-      return new ScionAddress(hostname, ip, isdAs);
+    return new ScionAddress(isdAs, hostName, ip);
   }
 
-    public long getIsdAs() {
-      return isdAs;
-    }
+  public long getIsdAs() {
+    return isdAs;
+  }
 
   public String getHostName() {
     return hostName;

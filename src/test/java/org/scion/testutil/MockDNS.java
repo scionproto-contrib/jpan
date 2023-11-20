@@ -23,7 +23,7 @@ public class MockDNS {
     if (!entry.isEmpty()) {
       entry += ";";
     }
-    entry += hostName + ";";
+    entry += hostName + "=";
     entry += "\"scion=" + isdAs + "," + address + "\"";
     System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, entry);
   }

@@ -14,55 +14,67 @@
 
 package org.scion.testutil;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.Iterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 public class MockNetwork {
 
-  private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
-
-  private static ExecutorService pool = null;
-  private static MockDaemon daemon = null;
   public static final String BORDER_ROUTER_HOST = "127.0.0.1";
   public static final int BORDER_ROUTER_PORT1 = 30555;
   public static final int BORDER_ROUTER_PORT2 = 30556;
-
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
-
+  private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
+  private static ExecutorService routers = null;
+  private static MockDaemon daemon = null;
+  static final AtomicInteger nForward = new AtomicInteger();
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
-   * (considered local) with "1-ff00:0:112" (remote).
-   * This also installs a DNS TXT record for resolving the SRV-address to "1-ff00:0:112".
+   * (considered local) with "1-ff00:0:112" (remote). This also installs a DNS TXT record for
+   * resolving the SRV-address to "1-ff00:0:112".
    */
   public static synchronized void startTiny() {
     startTiny(true, true);
   }
 
   public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
-    if (pool != null) {
+    if (routers != null) {
       throw new IllegalStateException();
     }
-    pool = Executors.newSingleThreadExecutor();
 
-    MockBorderRouter router =
-        new MockBorderRouter("BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4);
-    pool.execute(router);
+    routers =
+        Executors.newSingleThreadExecutor(
+            new ThreadFactory() {
+              int id = 0;
 
-    InetSocketAddress brAddr = new InetSocketAddress(BORDER_ROUTER_HOST, router.getPort1());
+              @Override
+              public Thread newThread(Runnable r) {
+                return new Thread(r, "MockNetwork-" + id++);
+              }
+            });
+
+    MockBorderRouter routerInstance =
+        new MockBorderRouter(
+            "BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4);
+    routers.execute(routerInstance);
+
+    InetSocketAddress brAddr = new InetSocketAddress(BORDER_ROUTER_HOST, routerInstance.getPort1());
     try {
       daemon = MockDaemon.createForBorderRouter(brAddr).start();
     } catch (IOException e) {
@@ -84,19 +96,27 @@ public class MockNetwork {
       daemon = null;
     }
 
-    try {
-      pool.shutdownNow();
-      if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
-        throw new IllegalStateException("Threads did not terminate!");
+    if (routers != null) {
+      try {
+        routers.shutdownNow();
+        // Wait a while for tasks to respond to being cancelled
+        if (!routers.awaitTermination(5, TimeUnit.SECONDS)) {
+          logger.error("Router did not terminate");
+        }
+        logger.info("Router shut down");
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
       }
-      pool = null;
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      routers = null;
     }
   }
 
   public static InetSocketAddress getTinyServerAddress() {
     return new InetSocketAddress(TINY_SRV_ADDR_1, TINY_SRV_PORT_1);
+  }
+
+  public static int getAndResetForwardCount() {
+    return nForward.getAndSet(0);
   }
 }
 
@@ -120,41 +140,52 @@ class MockBorderRouter implements Runnable {
 
   @Override
   public void run() {
-    System.out.println("Running " + name + " on ports " + port1 + " -> " + port2);
     InetSocketAddress bind1 = new InetSocketAddress(ipv4_1 ? "localhost" : "::1", port1);
     InetSocketAddress bind2 = new InetSocketAddress(ipv4_2 ? "localhost" : "::1", port2);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
-        DatagramChannel chnRemote = DatagramChannel.open().bind(bind2)) {
+        DatagramChannel chnRemote = DatagramChannel.open().bind(bind2);
+        Selector selector = Selector.open()) {
       chnLocal.configureBlocking(false);
       chnRemote.configureBlocking(false);
-      // TODO use selectors, see e.g. https://www.baeldung.com/java-nio-selector
+      chnLocal.register(selector, SelectionKey.OP_READ, chnRemote);
+      chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
+      ByteBuffer buffer = ByteBuffer.allocate(66000);
+      logger.info(name + " started on ports " + bind1 + " <-> " + bind2);
+
       while (true) {
-        ByteBuffer bb = ByteBuffer.allocate(65000);
-        SocketAddress a1 = chnLocal.receive(bb);
-        if (a1 != null) {
-          InetSocketAddress dst = getDstAddress(bb);
-          logger.info("Service " + name + " sending to " + dst + "... ");
-          bb.flip();
-          chnRemote.send(bb, dst);
+        if (selector.select() == 0) {
+          // This must be an interrupt
+          selector.close();
+          return;
         }
-        SocketAddress a2 = chnRemote.receive(bb);
-        if (a2 != null) {
-          InetSocketAddress dst = getDstAddress(bb);
-          logger.info("Service " + name + " sending to " + dst + "... ");
-          bb.flip();
-          chnLocal.send(bb, dst);
+
+        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+        while (iter.hasNext()) {
+          SelectionKey key = iter.next();
+          if (key.isReadable()) {
+            DatagramChannel incoming = (DatagramChannel) key.channel();
+            DatagramChannel outgoing = (DatagramChannel) key.attachment();
+            Object o = incoming.receive(buffer);
+            if (o == null) {
+              throw new IllegalStateException();
+            }
+
+            buffer.flip();
+            InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
+            // logger.info(name + " forwarding " + buffer.position() + " bytes to " + dstAddress);
+
+            outgoing.send(buffer, dstAddress);
+            buffer.clear();
+            MockNetwork.nForward.incrementAndGet();
+          }
+          iter.remove();
         }
-        Thread.sleep(100); // TODO use selector
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+    } finally {
+      logger.info("Shutting down router");
     }
-  }
-
-  private InetSocketAddress getDstAddress(ByteBuffer bb) {
-    return PackageVisibilityHelper.getDstAddress(bb.array());
   }
 
   public int getPort1() {
