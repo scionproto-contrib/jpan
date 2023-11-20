@@ -39,6 +39,7 @@ public class HeaderComposeTest {
 
   @BeforeAll
   public static void beforeAll() throws IOException {
+    MockDaemon.getAndResetCallCount();
     daemon = MockDaemon.create().start();
   }
 
