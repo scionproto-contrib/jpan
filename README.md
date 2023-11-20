@@ -21,7 +21,7 @@ The central classes of the API are:
   supported.
 - **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
   This is currently deprecated because it does not work well.
-- `ScionPacketHelper`: A utility class to work with SCION packet headers
+- `PathViewer`: A utility class to view path details.
 - **TODO** `ScionPacketInspector`: A packet inspector and builder.
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
 - `Scion`, `ScionUtil`, `ScionAddress`, `ScionPath`, `ScionSocketAddress`.

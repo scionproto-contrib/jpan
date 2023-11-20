@@ -22,7 +22,9 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
-- Improve Path inspection API
+- Handle expired paths
+  - Provide callback for user? -> Maybe useful if path was selected manually
+    and if it changes.
 - Test path switching, e.g. with 2nd BR
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
@@ -118,3 +120,9 @@
 - Path selection & path policies
 
 - Where to place generated proto files? They are currently in `target` but could be in `scr/java`...
+
+
+## Reconsider tooling
+- Daemon.proto
+  - Expiration is a 96bit Timestamp, optimize?
+  - Latencies are 96bit Durations, optimize?

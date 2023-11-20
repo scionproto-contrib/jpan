@@ -28,7 +28,7 @@ import org.scion.proto.daemon.Daemon;
  */
 public class ScionPath {
   private final Daemon.Path pathProtoc;
-  // ScionPath ois basically immutable, it may be accessed in multiple thread concurrently.
+  // ScionPath is basically immutable, it may be accessed in multiple thread concurrently.
   private volatile byte[] pathRaw;
   private final long srcIsdAs;
   private final long dstIsdAs;
@@ -86,5 +86,9 @@ public class ScionPath {
       }
     }
     return pathRaw;
+  }
+
+  Daemon.Path getPathInternal() {
+    return pathProtoc;
   }
 }
