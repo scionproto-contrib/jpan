@@ -133,7 +133,8 @@ public class MockDaemon implements AutoCloseable {
     public void paths(
         Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
       // logger.info(
-      //     "Got request from client: " + req.getSourceIsdAs() + " / " + req.getDestinationIsdAs());
+      //     "Got request from client: " + req.getSourceIsdAs() + " / " +
+      // req.getDestinationIsdAs());
       callCount.incrementAndGet();
       ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();

@@ -57,9 +57,9 @@ public class PathViewerTest {
 
     assertEquals("127.0.0.10:31004", viewer.getInterface().getAddress());
     assertEquals(2, viewer.getInterfacesList().size());
-    //assertEquals(1, viewer.getInternalHopsList().size());
-    //assertEquals(0, viewer.getMtu());
-    //assertEquals(0, viewer.getLinkTypeList().size());
+    // assertEquals(1, viewer.getInternalHopsList().size());
+    // assertEquals(0, viewer.getMtu());
+    // assertEquals(0, viewer.getLinkTypeList().size());
     assertEquals(36, viewer.getRaw().length);
 
     // 2 calls: 1 path & 1 local AS
