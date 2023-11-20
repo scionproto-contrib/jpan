@@ -1,4 +1,4 @@
-name: Java 8
+name: Java
 
 on: [push]
 
@@ -25,7 +25,7 @@ jobs:
         java: [ 8, 11, 17, 21 ]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 8
+      - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.java }}
