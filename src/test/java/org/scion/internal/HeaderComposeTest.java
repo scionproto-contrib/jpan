@@ -24,7 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.Scion;
-import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDaemon;
@@ -39,7 +38,6 @@ public class HeaderComposeTest {
 
   @BeforeAll
   public static void beforeAll() throws IOException {
-    MockDaemon.getAndResetCallCount();
     daemon = MockDaemon.create().start();
   }
 
@@ -80,8 +78,7 @@ public class HeaderComposeTest {
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path =
-        ScionService.defaultService().getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
+    byte[] path = pathService.getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
 
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
     InetAddress dstAddress = InetAddress.getByName(hostname);

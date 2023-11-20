@@ -43,7 +43,6 @@ public class InspectorComposeTest {
 
   @BeforeAll
   public static void beforeAll() throws IOException {
-    MockDaemon.getAndResetCallCount();
     daemon = MockDaemon.create().start();
   }
 
