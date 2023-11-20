@@ -25,6 +25,8 @@ public class TestPingPongDemo {
   @Test
   public void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
+    ScionPingPongChannelServer.PRINT = false;
+    ScionPingPongChannelClient.PRINT = false;
     Thread server =
         new Thread(
             () -> {

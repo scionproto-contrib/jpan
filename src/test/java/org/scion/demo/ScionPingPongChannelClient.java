@@ -22,6 +22,8 @@ import org.scion.testutil.MockDNS;
 
 public class ScionPingPongChannelClient {
 
+  public static boolean PRINT = true;
+
   private static String extractMessage(ByteBuffer buffer) {
     buffer.flip();
     byte[] bytes = new byte[buffer.remaining()];
@@ -39,14 +41,18 @@ public class ScionPingPongChannelClient {
       DatagramChannel client, String msg, InetSocketAddress serverAddress) throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     client.send(buffer, serverAddress);
-    System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
+    if (PRINT) {
+      System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
+    }
   }
 
   public static void receiveMessage(DatagramChannel channel) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     SocketAddress remoteAddress = channel.receive(buffer);
     String message = extractMessage(buffer);
-    System.out.println("Received from server at: " + remoteAddress + "  message: " + message);
+    if (PRINT) {
+      System.out.println("Received from server at: " + remoteAddress + "  message: " + message);
+    }
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
@@ -75,7 +81,9 @@ public class ScionPingPongChannelClient {
 
     sendMessage(channel, msg, serverAddress);
 
-    System.out.println("Waiting ...");
+    if (PRINT) {
+      System.out.println("Waiting ...");
+    }
     receiveMessage(channel);
 
     channel.disconnect();
