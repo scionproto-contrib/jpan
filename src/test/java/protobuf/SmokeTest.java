@@ -14,11 +14,11 @@
 
 package protobuf;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.drkey.Drkey;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class SmokeTest {
 

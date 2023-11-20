@@ -14,15 +14,19 @@
 
 package org.scion;
 
-import io.grpc.StatusRuntimeException;
+import java.io.IOException;
 
-public class ScionException extends RuntimeException {
+public class ScionException extends IOException {
 
-    public ScionException(String s) {
-        super(s);
-    }
+  public ScionException(String s) {
+    super(s);
+  }
 
-    public ScionException(Throwable t) {
-        super(t);
-    }
+  public ScionException(Throwable t) {
+    super(t);
+  }
+
+  public ScionException(String msg, Throwable e) {
+    super(msg, e);
+  }
 }

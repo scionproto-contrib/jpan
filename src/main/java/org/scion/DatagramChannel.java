@@ -14,18 +14,22 @@
 
 package org.scion;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.NotYetConnectedException;
+import org.scion.internal.ScionHeaderParser;
 
-public class DatagramChannel {
+public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  private final ScionPacketHelper helper = new ScionPacketHelper();
-  private ScionPacketHelper.PathState pathState = ScionPacketHelper.PathState.NO_PATH;
-  private InetSocketAddress localAddress = null;
-  private InetSocketAddress routerAddress = null;
+  private boolean isBound = false;
+  private ScionSocketAddress remoteScionAddress;
+  private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
+  private boolean cfgReportFailedValidation = false;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -35,21 +39,30 @@ public class DatagramChannel {
     channel = java.nio.channels.DatagramChannel.open();
   }
 
-  public synchronized SocketAddress receive(ByteBuffer userBuffer) throws IOException {
-    byte[] bytes = new byte[65536];
-    ByteBuffer buffer = ByteBuffer.wrap(bytes); // TODO allocate direct?
-    SocketAddress srcAddr = channel.receive(buffer);
-    if (srcAddr == null) {
-      // this indicates nothing is available
-      return null;
-    }
-    routerAddress = (InetSocketAddress) srcAddr;
-    buffer.flip();
+  public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
+    SocketAddress srcAddress;
+    String validationResult;
+    do {
+      buffer.clear();
+      srcAddress = channel.receive(buffer);
+      if (srcAddress == null) {
+        // this indicates nothing is available
+        return null;
+      }
+      buffer.flip();
 
-    int headerLength = helper.readScionHeader(bytes);
-    userBuffer.put(bytes, headerLength, helper.getPayloadLength());
-    pathState = ScionPacketHelper.PathState.RCV_PATH;
-    return helper.getReceivedSrcAddress();
+      // validateResult != null indicates a problem with the packet
+      validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null && cfgReportFailedValidation) {
+        throw new ScionException(validationResult);
+      }
+    } while (validationResult != null);
+
+    ScionHeaderParser.readUserData(buffer, userBuffer);
+    ScionSocketAddress addr =
+        ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
+    buffer.clear();
+    return addr;
   }
 
   private InetSocketAddress checkAddress(SocketAddress address) {
@@ -63,96 +76,196 @@ public class DatagramChannel {
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param buffer Data to send
-   * @param destinationAddress Destination address. This should contain a host name known to the DNS so that
-   *                           the ISD/AS information can be retrieved.
-   * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that cannot be resolved
-   * to an ISD/AS. TODO test this
+   * @param destination Destination address. This should contain a host name known to the DNS so
+   *     that the ISD/AS information can be retrieved.
+   * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
+   *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public synchronized void send(ByteBuffer buffer, SocketAddress destinationAddress)
-      throws IOException {
-    InetSocketAddress dstAddress = checkAddress(destinationAddress);
-    ScionPath path = null;
-    if (dstAddress.getAddress().equals(helper.getSourceAddress())) {
-      // We are just sending back to last IP. We can use the reversed path. No need to lookup a
-      // path.
-      // path = helper.getLastIncomingPath(destinationAddress);
-      if (pathState != ScionPacketHelper.PathState.RCV_PATH) {
-        throw new IllegalStateException(
-            "state=" + pathState); // TODO remove this check and possibly the path state alltogether
-      }
+  public synchronized void send(ByteBuffer buffer, SocketAddress destination) throws IOException {
+    if (destination instanceof ScionSocketAddress) {
+      send(buffer, (ScionSocketAddress) destination);
     } else {
-      // find a path
-      path = helper.getDefaultPath(dstAddress);
-      routerAddress = null;
+      InetSocketAddress dstAddress = checkAddress(destination);
+      send(buffer, ScionSocketAddress.create(dstAddress));
     }
-    send(buffer, destinationAddress, path);
   }
 
-  public synchronized void send(
-      ByteBuffer buffer, SocketAddress destinationAddress, ScionPath path) throws IOException {
-    InetSocketAddress dstAddress = checkAddress(destinationAddress);
+  private void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
     //  do we need to create a new channel and reconnect?
 
     // get local IP
-    if (!channel.isConnected() && localAddress == null) {
-      InetSocketAddress borderRouterAddr = helper.getFirstHopAddress(path);
-      channel.connect(borderRouterAddr);
-      localAddress = (InetSocketAddress) channel.getLocalAddress();
+    if (!channel.isConnected() && !isBound) {
+      InetSocketAddress underlayAddress = dstAddress.getPath().getFirstHopAddress();
+      channel.connect(underlayAddress);
     }
 
-    byte[] buf = new byte[1000]; // / TODO ????  1000?
-    int payloadLength = buffer.limit() - buffer.position();
-    int headerLength =
-        helper.writeHeader(buf, pathState, localAddress, dstAddress, payloadLength);
+    int payloadLength = buffer.remaining();
+    ByteBuffer output = this.buffer;
+    output.clear();
+    writeHeader(output, getLocalAddress(), dstAddress, payloadLength);
+    output.put(buffer);
+    output.flip();
 
-    ByteBuffer output =
-        ByteBuffer.allocate(payloadLength + headerLength); // TODO reuse, or allocate direct??? Capacity?
-    System.arraycopy(buf, 0, output.array(), output.arrayOffset(), headerLength);
-    System.arraycopy(
-        buffer.array(),
-        buffer.arrayOffset() + buffer.position(),
-        output.array(),
-        output.arrayOffset() + headerLength,
-        payloadLength);
-    SocketAddress firstHopAddress;
-    if (pathState == ScionPacketHelper.PathState.RCV_PATH) {
-      firstHopAddress = routerAddress;
-    } else {
-      firstHopAddress = helper.getFirstHopAddress();
-      // TODO routerAddress = firstHopAddress?
-    }
-    channel.send(output, firstHopAddress);
+    // send packet
+    channel.send(output, dstAddress.getPath().getFirstHopAddress());
     buffer.position(buffer.limit());
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
-    localAddress = address; // `address` may be `null`.
-    channel.bind(address);
+    // bind() is called by java.net.DatagramSocket even for clients (with 0.0.0.0:0).
+    // We need to avoid this.
+    if (address != null && address.getPort() != 0) {
+      channel.bind(address);
+      isBound = true;
+    } else {
+      channel.bind(null);
+    }
     return this;
   }
 
+  // TODO we return `void` here. If we implement SelectableChannel
+  //  this can be changed to return SelectableChannel.
   public void configureBlocking(boolean block) throws IOException {
     channel.configureBlocking(block);
   }
 
-  @Deprecated
-  public void setDstIsdAs(String isdAs) {
-    helper.setDstIsdAs(isdAs);
+  public InetSocketAddress getLocalAddress() throws IOException {
+    return (InetSocketAddress) channel.getLocalAddress();
   }
 
-  public SocketAddress getLocalAddress() {
-    return localAddress;
+  public void disconnect() throws IOException {
+    channel.disconnect();
   }
 
-  public java.nio.channels.DatagramChannel disconnect() throws IOException {
-    return channel.disconnect();
+  @Override
+  public boolean isOpen() {
+    return channel.isOpen();
   }
 
-//  public SocketAddress getRemoteAddress() {
-//    return helper.get;
-//  }
+  @Override
+  public void close() throws IOException {
+    channel.close();
+  }
+
+  public DatagramChannel connect(SocketAddress addr) throws IOException {
+    if (addr instanceof ScionSocketAddress) {
+      remoteScionAddress = (ScionSocketAddress) addr;
+    } else if (addr instanceof InetSocketAddress) {
+      InetSocketAddress inetAddress = (InetSocketAddress) addr;
+      remoteScionAddress = ScionSocketAddress.create(inetAddress);
+    } else {
+      throw new IllegalArgumentException(
+          "connect() requires an InetSocketAddress or a ScionSocketAddress.");
+    }
+    channel.connect(remoteScionAddress.getPath().getFirstHopAddress());
+    return this;
+  }
+
+  /**
+   * Read data from the connected stream.
+   *
+   * @param dst The ByteBuffer that should contain data from the stream.
+   * @return The number of bytes that were read into the buffer or -1 if end of stream was reached.
+   * @throws NotYetConnectedException If the channel is not connected.
+   * @throws java.nio.channels.ClosedChannelException If the channel is closed.
+   * @throws IOException If some IOError occurs.
+   * @see java.nio.channels.DatagramChannel#read(ByteBuffer)
+   */
+  @Override
+  public int read(ByteBuffer dst) throws IOException {
+    checkOpen();
+    checkConnected();
+
+    buffer.clear();
+    int bytesRead = channel.read(buffer);
+    if (bytesRead == -1) {
+      return -1;
+    }
+    int len = dst.position();
+    buffer.flip();
+    ScionHeaderParser.readUserData(buffer, dst);
+    buffer.clear();
+    return dst.position() - len;
+  }
+
+  /**
+   * Write the content of a ByteBuffer to a connection.
+   *
+   * @param src The data to send
+   * @return The number of bytes written.
+   * @throws NotYetConnectedException If the channel is not connected.
+   * @throws java.nio.channels.ClosedChannelException If the channel is closed.
+   * @throws IOException If some IOError occurs.
+   * @see java.nio.channels.DatagramChannel#write(ByteBuffer[])
+   */
+  @Override
+  public int write(ByteBuffer src) throws IOException {
+    checkOpen();
+    checkConnected();
+
+    buffer.clear();
+    int len = src.remaining();
+    writeHeader(buffer, getLocalAddress(), remoteScionAddress, len);
+    buffer.put(src);
+    buffer.flip();
+    channel.write(buffer);
+    buffer.clear();
+    return len;
+  }
+
+  private void checkOpen() throws ClosedChannelException {
+    if (!channel.isOpen()) {
+      throw new ClosedChannelException();
+    }
+  }
+
+  private void checkConnected() {
+    if (!channel.isConnected()) {
+      throw new NotYetConnectedException();
+    }
+  }
+
+  public boolean isConnected() {
+    return channel.isConnected();
+  }
+
+  public <T> DatagramChannel setOption(SocketOption<T> option, T t) throws IOException {
+    if (option instanceof ScionSocketOptions.SciSocketOption) {
+      if (ScionSocketOptions.API_THROW_PARSER_FAILURE.equals(option)) {
+        cfgReportFailedValidation = (Boolean) t;
+      } else if (ScionSocketOptions.API_WRITE_TO_USER_BUFFER.equals(option)) {
+        // TODO This would allow reading directly into the user buffer. Advantages:
+        //     a) Omit copying step buffer-userBuffer; b) user can see SCION header.
+        throw new UnsupportedOperationException();
+      }
+    } else {
+      channel.setOption(option, t);
+    }
+    return this;
+  }
+
+  private static void writeHeader(
+      ByteBuffer data,
+      InetSocketAddress srcSocketAddress,
+      ScionSocketAddress dstSocketAddress,
+      int payloadLength)
+      throws IOException {
+    // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
+
+    long srcIA = dstSocketAddress.getPath().getSourceIsdAs();
+    long dstIA = dstSocketAddress.getIsdAs();
+    int srcPort = srcSocketAddress.getPort();
+    int dstPort = dstSocketAddress.getPort();
+    InetAddress srcAddress = srcSocketAddress.getAddress();
+    InetAddress dstAddress = dstSocketAddress.getAddress();
+
+    byte[] path = dstSocketAddress.getPath().getRawPath();
+    ScionHeaderParser.write(data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.writePath(data, path);
+    ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
+  }
 }

@@ -14,39 +14,36 @@
 
 package org.scion;
 
+import java.net.Inet4Address;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetSocketAddress;
-import java.util.List;
-
 /**
- * Helper class to access package private methods in org.scion.PathService and ScionPacketHelper.
+ * Helper class to access package private methods in org.scion.ScionService and ScionPacketHelper.
  */
 public class PackageVisibilityHelper {
 
-    public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_DNS_MOCK;
+  public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_DNS_MOCK;
 
-    public static List<Daemon.Path> getPathList(ScionPathService service, long srcIsdAs, long dstIsdAs) {
-        return service.getPathList(srcIsdAs, dstIsdAs);
-    }
+  public static List<Daemon.Path> getPathList(ScionService service, long srcIsdAs, long dstIsdAs)
+      throws ScionException {
+    return service.getPathList(srcIsdAs, dstIsdAs);
+  }
 
-    public static InetSocketAddress getSrcAddress(byte[] packet) {
-        try (ScionPacketHelper helper = new ScionPacketHelper()) {
-            helper.readScionHeader(packet);
-            return helper.getReceivedSrcAddress();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+  public static InetSocketAddress getDstAddress(ByteBuffer packet) throws UnknownHostException {
+    return ScionHeaderParser.readDestinationSocketAddress(packet);
+  }
 
-    public static InetSocketAddress getDstAddress(byte[] packet) {
-        try (ScionPacketHelper helper = new ScionPacketHelper()) {
-            helper.readScionHeader(packet);
-            return helper.getReceivedDstAddress();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+  public static ScionSocketAddress createDummyAddress() {
+    ScionPath path = ScionPath.create(new byte[0], 0, 0, new InetSocketAddress(44444));
+    try {
+      return ScionSocketAddress.create(0, Inet4Address.getLocalHost(), 55555, path);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
     }
+  }
 }

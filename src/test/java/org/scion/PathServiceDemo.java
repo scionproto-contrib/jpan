@@ -20,15 +20,15 @@ import java.util.Map;
 import org.scion.proto.daemon.Daemon;
 
 /**
- * Small demo that requests and prints information from the path service daemon.
- * This arguments are tailored to with with the "tiny" topology.
+ * Small demo that requests and prints information from the path service daemon. This arguments are
+ * tailored to with with the "tiny" topology.
  */
 public class PathServiceDemo {
 
-  private final ScionPathService daemon;
+  private final ScionService daemon;
 
   public static void main(String[] args) {
-    try (ScionPathService daemon = ScionPathService.create("127.0.0.12", 30255)) {
+    try (Scion.CloseableService daemon = Scion.newServiceForAddress("127.0.0.12" + 30255)) {
       PathServiceDemo demo = new PathServiceDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
@@ -39,11 +39,11 @@ public class PathServiceDemo {
     }
   }
 
-  public PathServiceDemo(ScionPathService daemon) {
+  public PathServiceDemo(ScionService daemon) {
     this.daemon = daemon;
   }
 
-  private void testAsInfo() {
+  private void testAsInfo() throws ScionException {
     Daemon.ASResponse asInfo = daemon.getASInfo();
     System.out.println(
         "ASInfo found: "
@@ -56,7 +56,7 @@ public class PathServiceDemo {
             + asInfo.getMtu());
   }
 
-  private void testInterfaces() {
+  private void testInterfaces() throws ScionException {
     Map<Long, Daemon.Interface> interfaces = daemon.getInterfaces();
     System.out.println("Interfaces found: " + interfaces.size());
     for (Map.Entry<Long, Daemon.Interface> entry : interfaces.entrySet()) {
@@ -64,9 +64,9 @@ public class PathServiceDemo {
     }
   }
 
-  private void testPaths() {
-    long srcIA = ScionUtil.ParseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.ParseIA("1-ff00:0:112");
+  private void testPaths() throws ScionException {
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
 
     List<Daemon.Path> paths = daemon.getPathList(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
@@ -76,14 +76,15 @@ public class PathServiceDemo {
       System.out.println("Path: first hop(?) = " + path.getInterface().getAddress().getAddress());
       int i = 0;
       for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
-        System.out.println("    pathIf: "
-                        + i
-                        + ": "
-                        + pathIf.getId()
-                        + " "
-                        + pathIf.getIsdAs()
-                        + "  "
-                        + ScionUtil.toStringIA(pathIf.getIsdAs()));
+        System.out.println(
+            "    pathIf: "
+                + i
+                + ": "
+                + pathIf.getId()
+                + " "
+                + pathIf.getIsdAs()
+                + "  "
+                + ScionUtil.toStringIA(pathIf.getIsdAs()));
       }
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
@@ -91,7 +92,7 @@ public class PathServiceDemo {
     }
   }
 
-  private void testServices() {
+  private void testServices() throws ScionException {
     Map<String, Daemon.ListService> services = daemon.getServices();
     System.out.println("Services found: " + services.size());
     for (Map.Entry<String, Daemon.ListService> entry : services.entrySet()) {

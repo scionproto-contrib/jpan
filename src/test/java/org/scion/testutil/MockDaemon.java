@@ -20,7 +20,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.ScionConstants;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
@@ -32,23 +32,28 @@ public class MockDaemon implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
 
   public static final InetSocketAddress DEFAULT_ADDRESS =
-          new InetSocketAddress("127.0.0.15", 30255);
+      new InetSocketAddress("127.0.0.15", 30255);
+  public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
+  public static final String DEFAULT_IP = "127.0.0.15";
+  public static final int DEFAULT_PORT = 30255;
 
   private final InetSocketAddress address;
   private Server server;
   private final InetSocketAddress borderRouter;
-
+  private static final AtomicInteger callCount = new AtomicInteger();
   private static final byte[] PATH_RAW_TINY_110_112 = {
-          0x00, 0x00, 0x20, 0x00, 0x01, 0x00, (byte) 0xb4, (byte) 0xab,
-          0x65, 0x14, 0x08, (byte) 0xde, 0x00, 0x3f, 0x00, 0x00,
-          0x00, 0x02, 0x66, 0x62, 0x3e, (byte) 0xba, 0x31, (byte) 0xc6,
-          0x00, 0x3f, 0x00, 0x01, 0x00, 0x00, 0x51, (byte) 0xc1,
-          (byte) 0xfd, (byte) 0xed, 0x27, 0x60, };
+    0, 0, 32, 0, 1, 0, 11, 16,
+    101, 83, 118, -81, 0, 63, 0, 0,
+    0, 2, 118, -21, 86, -46, 89, 0,
+    0, 63, 0, 1, 0, 0, -8, 2,
+    -114, 25, 76, -122,
+  };
 
   private static void setEnvironment() {
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_ADDRESS.getHostName());
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_ADDRESS.getPort());
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
+    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
   }
+
   public static MockDaemon create() {
     setEnvironment();
     return new MockDaemon(DEFAULT_ADDRESS);
@@ -70,8 +75,7 @@ public class MockDaemon implements AutoCloseable {
   }
 
   public MockDaemon start() throws IOException {
-    String br = "127.0.0.10:31004";
-    br = borderRouter.toString().substring(1);
+    String br = borderRouter.toString().substring(1);
     int port = address.getPort();
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
@@ -95,11 +99,27 @@ public class MockDaemon implements AutoCloseable {
 
   @Override
   public void close() throws IOException {
+    server.shutdown(); // Disable new tasks from being submitted
     try {
-      server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      throw new IOException(e);
+      // Wait a while for existing tasks to terminate
+      if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
+        server.shutdownNow(); // Cancel currently executing tasks
+        // Wait a while for tasks to respond to being cancelled
+        if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
+          logger.error("Daemon server did not terminate");
+        }
+      }
+      logger.info("Daemon server shut down");
+    } catch (InterruptedException ie) {
+      // (Re-)Cancel if current thread also interrupted
+      server.shutdownNow();
+      // Preserve interrupt status
+      Thread.currentThread().interrupt();
     }
+  }
+
+  public static int getAndResetCallCount() {
+    return callCount.getAndSet(0);
   }
 
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
@@ -112,8 +132,10 @@ public class MockDaemon implements AutoCloseable {
     @Override
     public void paths(
         Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
-      logger.info(
-          "Got request from client: " + req.getSourceIsdAs() + " / " + req.getDestinationIsdAs());
+      // logger.info(
+      //     "Got request from client: " + req.getSourceIsdAs() + " / " +
+      // req.getDestinationIsdAs());
+      callCount.incrementAndGet();
       ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
       if (req.getSourceIsdAs() == 561850441793808L
@@ -138,7 +160,8 @@ public class MockDaemon implements AutoCloseable {
 
     @Override
     public void aS(Daemon.ASRequest req, StreamObserver<Daemon.ASResponse> responseObserver) {
-      logger.info("Got AS request from client: " + req.getIsdAs());
+      // logger.info("Got AS request from client: " + req.getIsdAs());
+      callCount.incrementAndGet();
       Daemon.ASResponse.Builder replyBuilder = Daemon.ASResponse.newBuilder();
       if (req.getIsdAs() == 0) { // 0 -> local AS
         replyBuilder.setCore(true);

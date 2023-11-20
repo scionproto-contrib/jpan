@@ -14,203 +14,94 @@
 
 package org.scion;
 
-import java.net.InetSocketAddress;
-
+/** Scion utility functions. */
 public class ScionUtil {
-
-  //  const (
-  //  IABytes       = 8
-  private static final int ISDBits = 16;
 
   // ISD is the ISolation Domain identifier. See formatting and allocations here:
   // https://github.com/scionproto/scion/wiki/ISD-and-AS-numbering#isd-numbers
-  // type ISD uint16
 
   // AS is the Autonomous System identifier. See formatting and allocations here:
   // https://github.com/scionproto/scion/wiki/ISD-and-AS-numbering#as-numbers
-  //  type AS uint64
 
   // IA represents the ISD (ISolation Domain) and AS (Autonomous System) Id of a given SCION AS.
   // The highest 16 bit form the ISD number and the lower 48 bits form the AS number.
-  //  type IA uint64
+  private static final int ISDBits = 16;
+  private static final int MaxISD = (1 << ISDBits) - 1;
   private static final int ASBits = 48;
-  private static final int BGPASBits = 32;
-  //  MaxISD    ISD = (1 << ISDBits) - 1
   private static final long MaxAS = (1L << ASBits) - 1L;
-  //  MaxBGPAS  AS  = (1 << BGPASBits) - 1
-  //
   private static final int asPartBits = 16;
   private static final int asPartBase = 16;
-  private static final int asPartMask = (1 << asPartBits) - 1; // TODO int????
   private static final int asParts = ASBits / asPartBits;
 
-  // ParseIA parses an IA from a string of the format 'isd-as'.
-  public static long ParseIA(String ia) { // (IA, error) {
-    String[] parts = ia.split("-"); // TODO regex
+  /** ParseIA parses an IA from a string of the format 'isd-as'. */
+  public static long parseIA(String ia) {
+    String[] parts = ia.split("-");
     if (parts.length != 2) {
-      // return 0, serrors.New("invalid ISD-AS", "value", ia)
-      throw new ScionException("invalid ISD-AS: value=" + ia);
+      throw new IllegalArgumentException("invalid ISD-AS: value=" + ia);
     }
-    int isd = ParseISD(parts[0]);
-    //    if err != nil {
-    //      return 0, err
-    //    }
-    long as = ParseAS(parts[1]);
-    //    if err != nil {
-    //      return 0, err
-    //    }
-    return MustIAFrom(isd, as);
-  }
-  // )
-
-  // ParseISD parses an ISD from a decimal string. Note that ISD 0 is parsed
-  // without any errors.
-  private static int ParseISD(String s) { // (ISD, error) {
-    // int isd = strconv.ParseUint(s, 10, ISDBits);
-    int isd = Integer.parseUnsignedInt(s, 10); // , ISDBits);
-    //    if err != nil {
-    //      return 0, serrors.WrapStr("parsing ISD", err) // TODO
-    //    }
-    return isd;
-  }
-
-  // MustIAFrom creates an IA from the ISD and AS number. It panics if any error
-  // is encountered. Callers must ensure that the values passed to this function
-  // are valid.
-  private static long MustIAFrom(int isd, long as) { // IA {
-    long ia = IAFrom(isd, as);
-    //    if err != nil {
-    //      panic(fmt.Sprintf("parsing ISD-AS: %s", err)) // TODO
-    //    }
-    return ia;
-  }
-
-  private static boolean inRange(long as) {
-    return as <= MaxAS;
-  }
-
-  // IAFrom creates an IA from the ISD and AS number.
-  private static long IAFrom(int isd, long as) {
-    if (!inRange(as)) {
-      // return 0, serrors.New("AS out of range", "max", MaxAS, "value", as)
-      throw new IllegalArgumentException("AS out of range: max=" + MaxAS + "; value=" + as);
-    }
-    // return IA(isd)<<ASBits | IA(as&MaxAS), nil
+    int isd = Integer.parseUnsignedInt(parts[0], 10);
+    long as = parseAS(parts[1]);
+    checkLimits(isd, as);
     return Integer.toUnsignedLong(isd) << ASBits | (as & MaxAS);
   }
 
-  // ParseAS parses an AS from a decimal (in the case of the 32bit BGP AS number
-  // space) or ipv6-style hex (in the case of SCION-only AS numbers) string.
-  private static long ParseAS(String as) { // (AS, error) {
-    return parseAS(as, ":");
-  }
-
-  private static long parseAS(String as, String sep) { // (AS, error) {
-    String[] parts = as.split(sep);
+  /**
+   * ParseAS parses an AS from a decimal (in the case of the 32bit BGP AS number space) or
+   * ipv6-style hex (in the case of SCION-only AS numbers) string.
+   */
+  private static long parseAS(String as) {
+    String[] parts = as.split(":");
     if (parts.length == 1) {
       // Must be a BGP AS, parse as 32-bit decimal number
-      return asParseBGP(as);
+      return Integer.parseUnsignedInt(as, 10);
     }
 
     if (parts.length != asParts) {
-      // return 0, serrors.New("wrong number of separators", "sep", sep, "value", as)
-      throw new ScionException("wrong number of separators: sep=" + sep + "; value=" + as);
+      throw new IllegalArgumentException("Wrong number of ':' separators in value=" + as);
     }
-    long parsed = 0; // AS
+    long parsed = 0;
     for (int i = 0; i < asParts; i++) {
       parsed <<= asPartBits;
-      // long v = strconv.ParseUint(parts[i], asPartBase, asPartBits); // TODO long??
-      int v32 = Integer.parseUnsignedInt(parts[i], asPartBase) & 0xFFFF; // TODO long??
-      long v = Integer.toUnsignedLong(v32);
-      //      if err != nil {
-      //        return 0, serrors.WrapStr("parsing AS part", err, "index", i, "value", as) // TODO
-      //      }
-      parsed |= v; // AS(v)
-    }
-    // This should not be reachable. However, we leave it here to protect
-    // against future refactor mistakes.
-    if (!inRange(parsed)) {
-      // return 0, serrors.New("AS out of range", "max", MaxAS, "value", as)
-      throw new ScionException(
-          "AS out of range: max=" + MaxAS + "; value=" + as + "; parsed=" + parsed);
+      parsed |= Long.parseUnsignedLong(parts[i], asPartBase) & 0xFFFF;
     }
     return parsed;
   }
 
-  private static long asParseBGP(String s) { // (AS, error) {
-    // long as = strconv.ParseUint(s, 10, BGPASBits)
-    long as = Integer.parseUnsignedInt(s, 10);
-    //    if err != nil {
-    //      return 0, serrors.WrapStr("parsing BGP AS", err) // TODO ?
-    //    }
-    return as;
-  }
-
-
   public static String toStringIA(long ia) {
     long mask = 0xFFFFL << 48;
     String s = "";
-    s +=  Long.toString((ia & mask) >>> 48) + "-";
+    s += Long.toString((ia & mask) >>> 48, 10) + "-";
     mask >>>= 16;
-    s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
+    s += Long.toString((ia & mask) >>> 32, 16) + ":";
     mask >>>= 16;
-    s +=  Long.toString((ia & mask) >>> 16, 16) + ":";
+    s += Long.toString((ia & mask) >>> 16, 16) + ":";
     mask >>>= 16;
-    s +=  Long.toString(ia & mask, 16);
+    s += Long.toString(ia & mask, 16);
     return s;
   }
 
-  static String toStringIA(long isd, long as) {
-    long ia = (isd << 48) | as;
+  public static String toStringIA(int isd, long as) {
+    checkLimits(isd, as);
+    long ia = ((long) (isd) << 48) | as;
     long mask = 0xFFFFL << 48;
     String s = "";
-    s +=  Long.toString((ia & mask) >>> 48) + "-";
+    s += Long.toString((ia & mask) >>> 48, 10) + "-";
     mask >>>= 16;
-    s +=  Long.toString((ia & mask) >>> 32, 16) + ":";
+    s += Long.toString((ia & mask) >>> 32, 16) + ":";
     mask >>>= 16;
-    s +=  Long.toString((ia & mask) >>> 16, 16) + ":";
+    s += Long.toString((ia & mask) >>> 16, 16) + ":";
     mask >>>= 16;
-    s +=  Long.toString(ia & mask, 16);
+    s += Long.toString(ia & mask, 16);
     return s;
   }
 
-  // TODO non-public
-  public static String toStringIPv4(int ip) {
-    int mask = 0xFF000000;
-    String s = "";
-    s += ((ip & mask) >>> 24) + ".";
-    s += ((ip & (mask >>> 8)) >>> 16) + ".";
-    s += ((ip & (mask >>> 16)) >>> 8) + ".";
-    s += (ip & (mask >>> 24));
-    return s;
-  }
-
-  // TODO non-public
-  public static String toStringIPv6(int len, int ... ips) {
-    String s = "";
-    for (int i = 0; i < len; i++) {
-      String s2 = Integer.toHexString(ips[i] >>> 16);
-      String s3 = Integer.toHexString(ips[i] & 0xFFFF);
-      s += s2 + ":" + s3;
-      if (i < len -1) {
-        s += ":";
-      }
+  private static void checkLimits(int isd, long as) {
+    if (isd < 0 || isd > MaxISD) {
+      throw new IllegalArgumentException("ISD out of range: " + isd);
     }
-    // TODO not quite correct, we should replace the LONGEST sequence of 0:0 instead of the FIRST one.
-    int pos = s.indexOf("0:0:");
-    if (pos >= 0) {
-      int pos2 = pos + 4;
-      for (; pos2 + 1 < s.length(); pos2 += 2) {
-        if (s.charAt(pos2) != '0' || s.charAt(pos2 + 1) != ':') {
-          break;
-        }
-      }
-      s = s.substring(0, pos) + s.substring(pos2 - 1);
-      if (pos == 0) {
-        s = ":" + s;
-      }
+    if (as < 0 || as > MaxAS) {
+      throw new IllegalArgumentException("AS out of range: " + as);
     }
-    return s;
   }
 
   private static String getPropertyOrEnv(String propertyName, String envName) {
@@ -219,16 +110,21 @@ public class ScionUtil {
   }
 
   public static String getPropertyOrEnv(String propertyName, String envName, String defaultValue) {
-    String value = getPropertyOrEnv( propertyName, envName);
+    String value = getPropertyOrEnv(propertyName, envName);
     return value != null ? value : defaultValue;
   }
 
-  public static boolean getPropertyOrEnv(String propertyName, String envName, boolean defaultValue) {
-    String value = getPropertyOrEnv( propertyName, envName);
+  public static boolean getPropertyOrEnv(
+      String propertyName, String envName, boolean defaultValue) {
+    String value = getPropertyOrEnv(propertyName, envName);
     return value != null ? Boolean.parseBoolean(value) : defaultValue;
   }
 
   public static int extractIsd(long isdAs) {
     return (int) (isdAs >>> ASBits);
+  }
+
+  public static long extractAs(long isdAs) {
+    return isdAs & MaxAS;
   }
 }

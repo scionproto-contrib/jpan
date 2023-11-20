@@ -35,34 +35,9 @@ public class ScionSCMPHeader {
     return offset + 4;
   }
 
-  //    public void reverse() {
-  //        int dummy = srcPort;
-  //        srcPort = dstPort;
-  //        dstPort = dummy;
-  //    }
-  //
-  //    public int write(byte[] data, int offset, int packetLength) {
-  //        int i0 = 0;
-  //        int i1 = 0;
-  //        i0 = writeInt(i0, 0, 16, srcPort);
-  //        i0 = writeInt(i0, 16, 16, dstPort);
-  //        i1 = writeInt(i1, 0, 16, packetLength + 8);
-  //        i1 = writeInt(i1, 16, 16, checkSum);
-  //        offset = writeInt(data, offset, i0);
-  //        offset = writeInt(data, offset, i1);
-  //        return offset;
-  //    }
-
   @Override
   public String toString() {
-    return "ScionEndToEndExtensionHeader{"
-        + "type="
-        + type
-        + ", code="
-        + code
-        + ", checksum="
-        + checksum
-        + '}';
+    return "ScionSCMPHeader{" + "type=" + type + ", code=" + code + ", checksum=" + checksum + '}';
   }
 
   public ScmpType getType() {
@@ -73,37 +48,43 @@ public class ScionSCMPHeader {
     return "" + code;
   }
 
-  //    @Override
-  //    public String toString() {
-  //        return "UdpPseudoHeader{" +
-  //                "srcPort=" + srcPort +
-  //                ", dstPort=" + dstPort +
-  //                ", length=" + packetLength +
-  //                ", checkSum=" + checkSum +
-  //                '}';
-  //    }
+  interface ParseEnum {
 
-  public enum ScmpType implements Constants.ParseEnum {
+    int code();
+
+    static <E extends ParseEnum> E parse(Class<E> e, int code) {
+      E[] values = e.getEnumConstants();
+      for (int i = 0; i < values.length; i++) {
+        E pe = values[i];
+        if (pe.code() == code) {
+          return pe;
+        }
+      }
+      throw new IllegalArgumentException("Unknown code: " + code);
+    }
+  }
+
+  public enum ScmpType implements ParseEnum {
     // SCMP error messages:
 
-    E1(1,"Destination Unreachable"),
+    E1(1, "Destination Unreachable"),
     E2(2, "Packet Too Big"),
     E3(3, "(not assigned)"),
-    E4(4,"Parameter Problem"),
-    E5(5,"External Interface Down"),
-    E6(6,"Internal Connectivity Down"),
-    E100(100,"Private Experimentation"),
-    E101(101,"Private Experimentation"),
+    E4(4, "Parameter Problem"),
+    E5(5, "External Interface Down"),
+    E6(6, "Internal Connectivity Down"),
+    E100(100, "Private Experimentation"),
+    E101(101, "Private Experimentation"),
     E127(127, "Reserved for expansion of SCMP error messages"),
 
     // SCMP informational messages:
     I128(128, "Echo Request"),
-    I129(129,"Echo Reply"),
-    I130(130,"Traceroute Request"),
-    I131(131,"Traceroute Reply"),
-    I200(200,"Private Experimentation"),
-    I201(201,"Private Experimentation"),
-    I255(255,"Reserved for expansion of SCMP informational messages");
+    I129(129, "Echo Reply"),
+    I130(130, "Traceroute Request"),
+    I131(131, "Traceroute Reply"),
+    I200(200, "Private Experimentation"),
+    I201(201, "Private Experimentation"),
+    I255(255, "Reserved for expansion of SCMP informational messages");
 
     final int code;
     final String text;
@@ -114,7 +95,7 @@ public class ScionSCMPHeader {
     }
 
     public static ScmpType parse(int code) {
-      return Constants.ParseEnum.parse(ScmpType.class, code);
+      return ParseEnum.parse(ScmpType.class, code);
     }
 
     @Override
@@ -127,28 +108,27 @@ public class ScionSCMPHeader {
     }
   }
 
-
-  public enum ScmpType1Code implements Constants.ParseEnum {
+  public enum ScmpType1Code implements ParseEnum {
     // SCMP type 1 messages:
 
-    E1(1,"Destination Unreachable"),
+    E1(1, "Destination Unreachable"),
     E2(2, "Packet Too Big"),
     E3(3, "(not assigned)"),
-    E4(4,"Parameter Problem"),
-    E5(5,"External Interface Down"),
-    E6(6,"Internal Connectivity Down"),
-    E100(100,"Private Experimentation"),
-    E101(101,"Private Experimentation"),
+    E4(4, "Parameter Problem"),
+    E5(5, "External Interface Down"),
+    E6(6, "Internal Connectivity Down"),
+    E100(100, "Private Experimentation"),
+    E101(101, "Private Experimentation"),
     E127(127, "Reserved for expansion of SCMP error messages"),
 
     // SCMP informational messages:
     I128(128, "Echo Request"),
-    I129(129,"Echo Reply"),
-    I130(130,"Traceroute Request"),
-    I131(131,"Traceroute Reply"),
-    I200(200,"Private Experimentation"),
-    I201(201,"Private Experimentation"),
-    I255(255,"Reserved for expansion of SCMP informational messages");
+    I129(129, "Echo Reply"),
+    I130(130, "Traceroute Request"),
+    I131(131, "Traceroute Reply"),
+    I200(200, "Private Experimentation"),
+    I201(201, "Private Experimentation"),
+    I255(255, "Reserved for expansion of SCMP informational messages");
 
     final int code;
     final String text;
@@ -159,7 +139,7 @@ public class ScionSCMPHeader {
     }
 
     public static ScmpType1Code parse(int code) {
-      return Constants.ParseEnum.parse(ScmpType1Code.class, code);
+      return ParseEnum.parse(ScmpType1Code.class, code);
     }
 
     @Override
@@ -171,5 +151,4 @@ public class ScionSCMPHeader {
       return text;
     }
   }
-
 }
