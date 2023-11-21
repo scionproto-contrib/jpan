@@ -23,6 +23,7 @@
 
 # TODO
 - Allow getting multiple path!
+- Create Channel/SocketAddress with custom ScionService 
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
