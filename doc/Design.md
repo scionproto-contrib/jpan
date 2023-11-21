@@ -131,12 +131,3 @@ This is possible but usage is not transparent and inconvenient.
 ## Testing / fuzzing
 
 * TODO
-
-## Internal
-
-* [ ] Header classes could be consolidated, e.g. ScionHeader + AddressHeader.
-* [ ] Headers could store raw header info and extract data on the fly when required.
-      This safes space and simplifies. Problem: we either need to copy
-      the data[] in case we need the header data later (user's API calls, or when sending),
-      or we need to store key data from the header.
-      Solution: copy byte[] with header data instead of payload? Whichever is smaller???

@@ -22,10 +22,16 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
+- Allow getting multiple path!
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
 - Test path switching, e.g. with 2nd BR
+- Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
+  - dig NAPTR inf.ethz.ch
+  - Contact netsec-w37w3w.inf.ethz.ch for topology file
+  - Parse topology file for Control Server address
+- Path policies? 
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
@@ -40,6 +46,7 @@
 - Merge Scion + ScionService?
 
 - Lookup FlowID -> mandatory - MTU?
+- Remove slf4j from API?
 
 ## Now
 - Implement interfaces from nio.DatagramChannel
