@@ -1,6 +1,8 @@
 package org.scion.api;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.scion.demo.inspector.ByteUtil;
 import org.scion.demo.inspector.ScionHeader;
 import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.internal.ScionSCMPHeader;
@@ -98,5 +100,19 @@ public class SCMPTest {
 //    System.out.println("hdr=" + h);
 //    System.out.println("code=" + h.getCode());
 //    System.out.println("type=" + h.getType());
+  }
+
+  @Test
+  public void testPrint() throws IOException {
+    ByteBuffer data = ByteBuffer.wrap(SCMP_PKT_SIZE).asReadOnlyBuffer();
+    ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
+    System.out.println("SPI: " + spi);
+    System.out.println("BU: " + ByteUtil.printHeader(SCMP_PKT_SIZE));
+  }
+
+  @Disabled
+  @Test
+  public void testProcessingRules() {
+    // https://scion.docs.anapaya.net/en/latest/protocols/scmp.html
   }
 }

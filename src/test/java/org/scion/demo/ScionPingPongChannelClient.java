@@ -77,7 +77,8 @@ public class ScionPingPongChannelClient {
     DatagramChannel channel = startClient();
     String msg = "Hello scion";
     InetSocketAddress serverAddress = new InetSocketAddress("::1", port);
-    // ScionSocketAddress serverAddress = ScionSocketAddress.create("1-ff00:0:112", "::1", 44444);
+    // long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+    // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
 
     sendMessage(channel, msg, serverAddress);
 

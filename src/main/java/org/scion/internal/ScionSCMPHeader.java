@@ -14,10 +14,11 @@
 
 package org.scion.internal;
 
+import java.nio.ByteBuffer;
+
 import static org.scion.internal.ByteUtil.*;
 
 public class ScionSCMPHeader {
-
   // 8 bit
   private int type;
   // 8 bit
@@ -25,14 +26,14 @@ public class ScionSCMPHeader {
   // 48 bit
   private int checksum;
 
-  public int read(byte[] data, int offset) {
-    int i0 = readInt(data, offset);
+  public void read(ByteBuffer data) {
+    int i0 = data.getInt();
     type = readInt(i0, 0, 8);
     code = readInt(i0, 8, 8);
     checksum = readInt(i0, 16, 16);
     // TODO validate checksum
     // TODO read InfoBlock/DataBlock
-    return offset + 4;
+    System.out.println("To read:" + data.remaining());
   }
 
   @Override
