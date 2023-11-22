@@ -22,13 +22,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.PackageVisibilityHelper;
-import org.scion.Scion;
-import org.scion.ScionAddress;
-import org.scion.ScionException;
-import org.scion.ScionPath;
-import org.scion.ScionService;
-import org.scion.ScionUtil;
+import org.scion.*;
 import org.scion.testutil.MockDaemon;
 
 public class ScionServiceTest {
@@ -61,7 +55,8 @@ public class ScionServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
       ScionException thrown =
-          assertThrows(ScionException.class, () -> client.getPath(srcIA, dstIA));
+          assertThrows(
+              ScionException.class, () -> client.getPath(srcIA, dstIA, PathPolicy.DEFAULT));
       assertEquals(
           "io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
     }
@@ -75,7 +70,7 @@ public class ScionServiceTest {
     long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      ScionPath path = client.getPath(srcIA, dstIA);
+      ScionPath path = client.getPath(srcIA, dstIA, PathPolicy.DEFAULT);
       assertNotNull(path);
       assertEquals(1, MockDaemon.getAndResetCallCount());
     } finally {
@@ -91,7 +86,7 @@ public class ScionServiceTest {
     long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      ScionPath path = client.getPath(srcIA, dstIA);
+      ScionPath path = client.getPath(srcIA, dstIA, PathPolicy.DEFAULT);
       assertNotNull(path);
       assertEquals(1, MockDaemon.getAndResetCallCount());
     } finally {
@@ -101,15 +96,14 @@ public class ScionServiceTest {
 
   @Test
   void getPath() throws IOException {
-    MockDaemon daemon = MockDaemon.create().start();
-    try {
+    try (MockDaemon daemon = MockDaemon.create().start()) {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       ScionPath path;
       long srcIA = ScionUtil.parseIA("1-ff00:0:110");
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
           Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
-        path = client.getPath(srcIA, dstIA);
+        path = client.getPath(srcIA, dstIA, PathPolicy.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -122,17 +116,21 @@ public class ScionServiceTest {
       assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
       assertEquals(srcIA, path.getSourceIsdAs());
       assertEquals(dstIA, path.getDestinationIsdAs());
+      assertEquals(36, path.getRawPath().length);
+
+      assertEquals("127.0.0.10:31004", path.getInterface().getAddress());
+      assertEquals(2, path.getInterfacesList().size());
+      // assertEquals(1, viewer.getInternalHopsList().size());
+      // assertEquals(0, viewer.getMtu());
+      // assertEquals(0, viewer.getLinkTypeList().size());
 
       assertEquals(1, MockDaemon.getAndResetCallCount());
-    } finally {
-      daemon.close();
     }
   }
 
   @Test
   void getPaths() throws IOException {
-    MockDaemon daemon = MockDaemon.create().start();
-    try {
+    try (MockDaemon daemon = MockDaemon.create().start()) {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       List<ScionPath> paths;
       long srcIA = ScionUtil.parseIA("1-ff00:0:110");
@@ -157,8 +155,6 @@ public class ScionServiceTest {
       }
 
       assertEquals(1, MockDaemon.getAndResetCallCount());
-    } finally {
-      daemon.close();
     }
   }
 

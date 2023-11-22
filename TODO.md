@@ -27,6 +27,10 @@
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
 - Test path switching, e.g. with 2nd BR
+- Test 
+  - service.getPaths()
+  - PathPolicies
+- Truncate PROTO files! 
 - Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
   - dig NAPTR inf.ethz.ch
   - Contact netsec-w37w3w.inf.ethz.ch for topology file

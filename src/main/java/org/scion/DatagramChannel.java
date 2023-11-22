@@ -30,6 +30,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   private ScionSocketAddress remoteScionAddress;
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
   private boolean cfgReportFailedValidation = false;
+  private PathPolicy pathPolicy = PathPolicy.DEFAULT;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -37,6 +38,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   protected DatagramChannel() throws IOException {
     channel = java.nio.channels.DatagramChannel.open();
+  }
+
+  public void setPathPolicy(PathPolicy pathPolicy) {
+    this.pathPolicy = pathPolicy;
+  }
+
+  public PathPolicy getPathPolicy() {
+    return this.pathPolicy;
   }
 
   public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
@@ -91,7 +100,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
   }
 
-  private void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
+  private void send(ByteBuffer srcBuffer, ScionSocketAddress dstAddress) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
@@ -103,16 +112,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
       channel.connect(underlayAddress);
     }
 
-    int payloadLength = buffer.remaining();
-    ByteBuffer output = this.buffer;
-    output.clear();
-    writeHeader(output, getLocalAddress(), dstAddress, payloadLength);
-    output.put(buffer);
-    output.flip();
-
-    // send packet
-    channel.send(output, dstAddress.getPath().getFirstHopAddress());
-    buffer.position(buffer.limit());
+    // build and send packet
+    buildPacket(dstAddress, srcBuffer);
+    channel.send(buffer, dstAddress.getPath().getFirstHopAddress());
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
@@ -206,15 +208,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public int write(ByteBuffer src) throws IOException {
     checkOpen();
     checkConnected();
-
-    buffer.clear();
-    int len = src.remaining();
-    writeHeader(buffer, getLocalAddress(), remoteScionAddress, len);
-    buffer.put(src);
-    buffer.flip();
-    channel.write(buffer);
-    buffer.clear();
-    return len;
+    buildPacket(remoteScionAddress, src);
+    return channel.write(buffer);
   }
 
   private void checkOpen() throws ClosedChannelException {
@@ -248,14 +243,13 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
-  private static void writeHeader(
-      ByteBuffer data,
-      InetSocketAddress srcSocketAddress,
-      ScionSocketAddress dstSocketAddress,
-      int payloadLength)
+  private void buildPacket(ScionSocketAddress dstSocketAddress, ByteBuffer srcBuffer)
       throws IOException {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
+    buffer.clear();
+    int payloadLength = srcBuffer.remaining();
 
+    InetSocketAddress srcSocketAddress = getLocalAddress();
     long srcIA = dstSocketAddress.getPath().getSourceIsdAs();
     long dstIA = dstSocketAddress.getIsdAs();
     int srcPort = srcSocketAddress.getPort();
@@ -264,8 +258,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
     InetAddress dstAddress = dstSocketAddress.getAddress();
 
     byte[] path = dstSocketAddress.getPath().getRawPath();
-    ScionHeaderParser.write(data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
-    ScionHeaderParser.writePath(data, path);
-    ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
+    ScionHeaderParser.write(buffer, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.writePath(buffer, path);
+    ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
+
+    buffer.put(srcBuffer);
+    buffer.flip();
   }
 }

@@ -147,7 +147,19 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   public ScionPath getPath(long dstIsdAs) throws IOException {
-    return getPath(getLocalIsdAs(), dstIsdAs);
+    return getPath(getLocalIsdAs(), dstIsdAs, PathPolicy.DEFAULT);
+  }
+
+  /**
+   * Request and return a path from the local ISD/AS to dstIsdAs.
+   *
+   * @param dstIsdAs Destination ISD + AS
+   * @param pathPolicy Path policy
+   * @return The first path returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public ScionPath getPath(long dstIsdAs, PathPolicy pathPolicy) throws IOException {
+    return getPath(getLocalIsdAs(), dstIsdAs, pathPolicy);
   }
 
   /**
@@ -155,15 +167,20 @@ public class ScionService {
    *
    * @param srcIsdAs Source ISD + AS
    * @param dstIsdAs Destination ISD + AS
+   * @param pathPolicy Path policy
    * @return The first path returned by the path service or 'null' if no path could be found.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long srcIsdAs, long dstIsdAs) throws IOException {
+  public ScionPath getPath(long srcIsdAs, long dstIsdAs, PathPolicy pathPolicy) throws IOException {
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
       return null;
     }
-    return new ScionPath(paths.get(0), srcIsdAs, dstIsdAs);
+    List<ScionPath> scionPaths = new ArrayList<>(paths.size());
+    for (int i = 0; i < paths.size(); i++) {
+      scionPaths.add(ScionPath.createUnresolved(paths.get(i), srcIsdAs, dstIsdAs));
+    }
+    return pathPolicy.filter(scionPaths);
   }
 
   /**
@@ -178,7 +195,7 @@ public class ScionService {
     List<Daemon.Path> protoPaths = getPathList(srcIsdAs, dstIsdAs);
     List<ScionPath> paths = new ArrayList<>(protoPaths.size());
     for (int i = 0; i < protoPaths.size(); i++) {
-      paths.add(new ScionPath(protoPaths.get(i), srcIsdAs, dstIsdAs));
+      paths.add(ScionPath.createUnresolved(protoPaths.get(i), srcIsdAs, dstIsdAs));
     }
     return paths;
   }

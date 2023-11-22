@@ -51,7 +51,7 @@ public class ScionSocketAddress extends InetSocketAddress {
   }
 
   private static ScionSocketAddress createUnresolved() {
-    // We hide the public static method from InetSocketAddress
+    // DO NOT REMOVE! We hide the public static method from InetSocketAddress.
     throw new UnsupportedOperationException();
   }
 
@@ -82,8 +82,28 @@ public class ScionSocketAddress extends InetSocketAddress {
    * @throws ScionException if an errors occurs while querying paths.
    */
   public ScionPath getPath() throws IOException {
+    return getPath(PathPolicy.DEFAULT);
+  }
+
+
+  /**
+   * Return a path to the address represented by this object. If no path is associated it will try
+   * to create one.
+   *
+   * @return The path associated with this address. If no path is associated, this method will first
+   *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
+   * @throws ScionException if an errors occurs while querying paths.
+   */
+  @Deprecated // TODO Think about how to do this better
+  // TODO passing in a pathPolicy when it may not be used seems wrong!
+  //    -> Rename method to getOrCreate()
+  //       Also, make it explicit that this  method may be costly -> path lookup?
+  //    -> Rename or create class SocketAddressWithPath / ResolvedSocketAddress
+  //          to indicate that/if it has a path....?
+  public ScionPath getPath(PathPolicy pathPolicy) throws IOException {
     if (path == null) {
-      path = ScionService.defaultService().getPath(isdAs);
+      long localIA = ScionService.defaultService().getLocalIsdAs();
+      path = ScionService.defaultService().getPath(localIA, isdAs, pathPolicy);
     }
     return path;
   }
