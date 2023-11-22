@@ -14,9 +14,9 @@
 
 package org.scion.internal;
 
-import java.nio.ByteBuffer;
-
 import static org.scion.internal.ByteUtil.*;
+
+import java.nio.ByteBuffer;
 
 public class ScionSCMPHeader {
   // 8 bit

@@ -19,7 +19,6 @@ import static org.scion.internal.ByteUtil.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-
 import org.scion.ScionPath;
 import org.scion.ScionSocketAddress;
 
