@@ -20,16 +20,16 @@ import java.util.Map;
 import org.scion.proto.daemon.Daemon;
 
 /**
- * Small demo that requests and prints information from the path service daemon. This arguments are
- * tailored to with with the "tiny" topology.
+ * Small demo that requests and prints information from the path service daemon. The arguments are
+ * tailored to be used with the "tiny" topology.
  */
-public class PathServiceDemo {
+public class PathServiceProtobufDemo {
 
   private final ScionService daemon;
 
   public static void main(String[] args) {
     try (Scion.CloseableService daemon = Scion.newServiceForAddress("127.0.0.12" + 30255)) {
-      PathServiceDemo demo = new PathServiceDemo(daemon);
+      PathServiceProtobufDemo demo = new PathServiceProtobufDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
@@ -39,7 +39,7 @@ public class PathServiceDemo {
     }
   }
 
-  public PathServiceDemo(ScionService daemon) {
+  public PathServiceProtobufDemo(ScionService daemon) {
     this.daemon = daemon;
   }
 

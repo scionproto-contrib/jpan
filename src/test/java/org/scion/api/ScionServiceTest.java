@@ -29,7 +29,6 @@ import org.scion.ScionException;
 import org.scion.ScionPath;
 import org.scion.ScionService;
 import org.scion.ScionUtil;
-import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDaemon;
 
 public class ScionServiceTest {
@@ -103,40 +102,64 @@ public class ScionServiceTest {
   @Test
   void getPath() throws IOException {
     MockDaemon daemon = MockDaemon.create().start();
+    try {
+      // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+      ScionPath path;
+      long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      try (Scion.CloseableService client =
+          Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
+        path = client.getPath(srcIA, dstIA);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
-    // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-    List<Daemon.Path> paths;
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    try (Scion.CloseableService client =
-        Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
-      paths = PackageVisibilityHelper.getPathList(client, srcIA, dstIA);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      // Expected:
+      //    Paths found: 1
+      //    Path: first hop = 127.0.0.10:31004
+      //    0: 2 561850441793808
+      //    0: 1 561850441793810
+      assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
+      assertEquals(srcIA, path.getSourceIsdAs());
+      assertEquals(dstIA, path.getDestinationIsdAs());
+
+      assertEquals(1, MockDaemon.getAndResetCallCount());
+    } finally {
+      daemon.close();
     }
+  }
 
-    // Expected:
-    //    Paths found: 1
-    //    Path: first hop = 127.0.0.10:31004
-    //    0: 2 561850441793808
-    //    0: 1 561850441793810
+  @Test
+  void getPaths() throws IOException {
+    MockDaemon daemon = MockDaemon.create().start();
+    try {
+      // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+      List<ScionPath> paths;
+      long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      try (Scion.CloseableService client =
+          Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
+        paths = client.getPaths(srcIA, dstIA);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
-    assertEquals(1, paths.size());
-    Daemon.Path path0 = paths.get(0);
-    assertEquals("127.0.0.10:31004", path0.getInterface().getAddress().getAddress());
+      // Expected:
+      //    Paths found: 1
+      //    Path: first hop = 127.0.0.10:31004
+      //    0: 2 561850441793808
+      //    0: 1 561850441793810
+      assertEquals(1, paths.size());
+      for (ScionPath path : paths) {
+        assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
+        assertEquals(srcIA, path.getSourceIsdAs());
+        assertEquals(dstIA, path.getDestinationIsdAs());
+      }
 
-    //    System.out.println("Paths found: " + paths.size());
-    //    for (Daemon.Path path : paths) {
-    //      System.out.println("Path: first hop = " +
-    // path.getInterface().getAddress().getAddress());
-    //      int i = 0;
-    //      for (Daemon.PathInterface segment : path.getInterfacesList()) {
-    //        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs());
-    //      }
-    //    }
-
-    assertEquals(1, MockDaemon.getAndResetCallCount());
-    daemon.close();
+      assertEquals(1, MockDaemon.getAndResetCallCount());
+    } finally {
+      daemon.close();
+    }
   }
 
   @Test

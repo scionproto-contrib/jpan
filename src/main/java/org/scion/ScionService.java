@@ -23,6 +23,7 @@ import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -142,7 +143,7 @@ public class ScionService {
    * Request and return a path from the local ISD/AS to dstIsdAs.
    *
    * @param dstIsdAs Destination ISD + AS
-   * @return The first path is returned by the path service.
+   * @return The first path returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
   public ScionPath getPath(long dstIsdAs) throws IOException {
@@ -154,7 +155,7 @@ public class ScionService {
    *
    * @param srcIsdAs Source ISD + AS
    * @param dstIsdAs Destination ISD + AS
-   * @return The first path is returned by the path service or 'null' if no path could be found.
+   * @return The first path returned by the path service or 'null' if no path could be found.
    * @throws IOException if an errors occurs while querying paths.
    */
   public ScionPath getPath(long srcIsdAs, long dstIsdAs) throws IOException {
@@ -163,6 +164,23 @@ public class ScionService {
       return null;
     }
     return new ScionPath(paths.get(0), srcIsdAs, dstIsdAs);
+  }
+
+  /**
+   * Request and return a list of paths from srcIsdAs to dstIsdAs.
+   *
+   * @param srcIsdAs Source ISD + AS
+   * @param dstIsdAs Destination ISD + AS
+   * @return All path returned by the path service or 'null' if no path could be found.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public List<ScionPath> getPaths(long srcIsdAs, long dstIsdAs) throws IOException {
+    List<Daemon.Path> protoPaths = getPathList(srcIsdAs, dstIsdAs);
+    List<ScionPath> paths = new ArrayList<>(protoPaths.size());
+    for (int i = 0; i < protoPaths.size(); i++) {
+      paths.add(new ScionPath(protoPaths.get(i), srcIsdAs, dstIsdAs));
+    }
+    return paths;
   }
 
   Map<String, Daemon.ListService> getServices() throws ScionException {
