@@ -258,7 +258,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     InetAddress dstAddress = dstSocketAddress.getAddress();
 
     byte[] path = dstSocketAddress.getPath().getRawPath();
-    ScionHeaderParser.write(buffer, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.write(
+        buffer, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
     ScionHeaderParser.writePath(buffer, path);
     ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
 

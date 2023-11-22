@@ -54,15 +54,13 @@ public class ScionPath {
   }
 
   public static ScionPath create(
-          byte[] rawPath, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
+      byte[] rawPath, long srcIsdAs, long dstIsdAs, InetSocketAddress firstHopAddress) {
     return new ScionPath(rawPath, srcIsdAs, dstIsdAs, firstHopAddress);
   }
 
-  static ScionPath createUnresolved(
-          Daemon.Path path, long srcIsdAs, long dstIsdAs) {
+  static ScionPath createUnresolved(Daemon.Path path, long srcIsdAs, long dstIsdAs) {
     return new ScionPath(path, srcIsdAs, dstIsdAs);
   }
-
 
   public long getDestinationIsdAs() {
     return dstIsdAs;
@@ -99,8 +97,9 @@ public class ScionPath {
 
   private Daemon.Path protoPath() {
     if (pathProtoc == null) {
-      throw new IllegalStateException("Information is only available for paths that" +
-              " were retrieved directly from a path server.");
+      throw new IllegalStateException(
+          "Information is only available for paths that"
+              + " were retrieved directly from a path server.");
     }
     return pathProtoc;
   }
@@ -119,7 +118,9 @@ public class ScionPath {
    */
   public List<PathInterface> getInterfacesList() {
     return Collections.unmodifiableList(
-            protoPath().getInterfacesList().stream().map(PathInterface::new).collect(Collectors.toList()));
+        protoPath().getInterfacesList().stream()
+            .map(PathInterface::new)
+            .collect(Collectors.toList()));
   }
 
   /**
@@ -146,9 +147,9 @@ public class ScionPath {
    */
   public List<Integer> getLatencyList() {
     return Collections.unmodifiableList(
-            protoPath().getLatencyList().stream()
-                    .map(time -> (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
-                    .collect(Collectors.toList()));
+        protoPath().getLatencyList().stream()
+            .map(time -> (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
+            .collect(Collectors.toList()));
   }
 
   /**
@@ -169,7 +170,7 @@ public class ScionPath {
    */
   public List<GeoCoordinates> getGeoList() {
     return Collections.unmodifiableList(
-            protoPath().getGeoList().stream().map(GeoCoordinates::new).collect(Collectors.toList()));
+        protoPath().getGeoList().stream().map(GeoCoordinates::new).collect(Collectors.toList()));
   }
 
   /**
@@ -179,9 +180,9 @@ public class ScionPath {
    */
   public List<LinkType> getLinkTypeList() {
     return Collections.unmodifiableList(
-            protoPath().getLinkTypeList().stream()
-                    .map(linkType -> LinkType.values()[linkType.getNumber()])
-                    .collect(Collectors.toList()));
+        protoPath().getLinkTypeList().stream()
+            .map(linkType -> LinkType.values()[linkType.getNumber()])
+            .collect(Collectors.toList()));
   }
 
   /**

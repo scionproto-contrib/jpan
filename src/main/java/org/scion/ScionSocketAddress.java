@@ -85,7 +85,6 @@ public class ScionSocketAddress extends InetSocketAddress {
     return getPath(PathPolicy.DEFAULT);
   }
 
-
   /**
    * Return a path to the address represented by this object. If no path is associated it will try
    * to create one.
