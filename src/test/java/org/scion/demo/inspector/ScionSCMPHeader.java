@@ -19,7 +19,6 @@ import static org.scion.demo.inspector.ByteUtil.*;
 import java.nio.ByteBuffer;
 
 public class ScionSCMPHeader {
-
   // 8 bit
   private int type;
   // 8 bit
@@ -34,6 +33,7 @@ public class ScionSCMPHeader {
     checksum = readInt(i0, 16, 16);
     // TODO validate checksum
     // TODO read InfoBlock/DataBlock
+    System.out.println("To read:" + data.remaining());
   }
 
   @Override

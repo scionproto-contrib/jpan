@@ -60,15 +60,9 @@ public class ScionHeader {
   // 48 bit: SrcAS
   private long srcIsdAs;
   //  ? bit: DstHostAddr
-  private int dstHost0;
-  private int dstHost1;
-  private int dstHost2;
-  private int dstHost3;
+  private byte[] dstHost;
   //  ? bit: SrcHostAddr
-  private int srcHost0;
-  private int srcHost1;
-  private int srcHost2;
-  private int srcHost3;
+  private byte[] srcHost;
 
   public void read(ByteBuffer data) {
     //  4 bit: Version
@@ -117,27 +111,11 @@ public class ScionHeader {
     //        srcISD = (int) readLong(l1, 0, 16);
     //        srcAS = readLong(l1, 16, 48);
 
-    dstHost0 = data.getInt();
-    if (dl >= 1) {
-      dstHost1 = data.getInt();
-    }
-    if (dl >= 2) {
-      dstHost2 = data.getInt();
-    }
-    if (dl >= 3) {
-      dstHost3 = data.getInt();
-    }
+    dstHost = new byte[(dl + 1) * 4];
+    data.get(dstHost);
 
-    srcHost0 = data.getInt();
-    if (sl >= 1) {
-      srcHost1 = data.getInt();
-    }
-    if (sl >= 2) {
-      srcHost2 = data.getInt();
-    }
-    if (sl >= 3) {
-      srcHost3 = data.getInt();
-    }
+    srcHost = new byte[(sl + 1) * 4];
+    data.get(srcHost);
   }
 
   public void reverse() {
@@ -153,22 +131,9 @@ public class ScionHeader {
     srcIsdAs = dstIsdAs;
     dstIsdAs = dummyLong;
 
-    int d;
-    d = srcHost0;
-    srcHost0 = dstHost0;
-    dstHost0 = d;
-
-    d = srcHost1;
-    srcHost1 = dstHost1;
-    dstHost1 = d;
-
-    d = srcHost2;
-    srcHost2 = dstHost2;
-    dstHost2 = d;
-
-    d = srcHost3;
-    srcHost3 = dstHost3;
-    dstHost3 = d;
+    byte[] ba = dstHost;
+    dstHost = srcHost;
+    srcHost = ba;
   }
 
   public void write(
@@ -204,27 +169,8 @@ public class ScionHeader {
     data.putLong(srcIsdAs);
 
     // HostAddr
-    data.putInt(dstHost0);
-    if (dl >= 1) {
-      data.putInt(dstHost1);
-    }
-    if (dl >= 2) {
-      data.putInt(dstHost2);
-    }
-    if (dl >= 3) {
-      data.putInt(dstHost3);
-    }
-
-    data.putInt(srcHost0);
-    if (sl >= 1) {
-      data.putInt(srcHost1);
-    }
-    if (sl >= 2) {
-      data.putInt(srcHost2);
-    }
-    if (sl >= 3) {
-      data.putInt(srcHost3);
-    }
+    data.put(dstHost);
+    data.put(srcHost);
   }
 
   private int calcLen(int pathHeaderLength) {
@@ -283,21 +229,19 @@ public class ScionHeader {
     sb.append("  srcIsdAs=").append(ScionUtil.toStringIA(srcIsdAs));
     sb.append("  dstHost=").append(dt).append("/");
     if (dl == 0) {
-      sb.append(ToStringUtil.toStringIPv4(dstHost0)); // TODO dt 0=IPv$ or 1=Service
+      sb.append(ToStringUtil.toStringIPv4(dstHost));
     } else if (dl == 3) {
-      sb.append(ToStringUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+      sb.append(ToStringUtil.toStringIPv6(dstHost));
     } else {
-      sb.append("Format not recognized: ")
-          .append(ToStringUtil.toStringIPv6(dl + 1, dstHost0, dstHost1, dstHost2, dstHost3));
+      sb.append("Format not recognized: ").append(ToStringUtil.toStringIPv6(dstHost));
     }
     sb.append("  srcHost=").append(st).append("/");
     if (sl == 0) {
-      sb.append(ToStringUtil.toStringIPv4(srcHost0)); // TODO dt 0=IPv$ or 1=Service
+      sb.append(ToStringUtil.toStringIPv4(srcHost));
     } else if (sl == 3) {
-      sb.append(ToStringUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+      sb.append(ToStringUtil.toStringIPv6(srcHost));
     } else {
-      sb.append("Format not recognized: ")
-          .append(ToStringUtil.toStringIPv6(sl + 1, srcHost0, srcHost1, srcHost2, srcHost3));
+      sb.append("Format not recognized: ").append(ToStringUtil.toStringIPv6(srcHost));
     }
     return sb.toString();
   }
@@ -326,89 +270,46 @@ public class ScionHeader {
     if (address.length == 4) {
       dt = 0;
       dl = 0;
-      dstHost0 = readInt(address, 0);
-      dstHost1 = 0;
-      dstHost2 = 0;
-      dstHost3 = 0;
     } else if (address.length == 16) {
       dt = 0;
       dl = 3;
-      dstHost0 = readInt(address, 0);
-      dstHost1 = readInt(address, 4);
-      dstHost2 = readInt(address, 8);
-      dstHost3 = readInt(address, 12);
     } else {
       throw new UnsupportedOperationException(
           "Dst address class not supported: length=" + address.length);
     }
+    dstHost = address.clone();
   }
 
   public void setSrcHostAddress(byte[] address) {
     if (address.length == 4) {
       st = 0;
       sl = 0;
-      srcHost0 = readInt(address, 0);
-      srcHost1 = 0;
-      srcHost2 = 0;
-      srcHost3 = 0;
     } else if (address.length == 16) {
       st = 0;
       sl = 3;
-      srcHost0 = readInt(address, 0);
-      srcHost1 = readInt(address, 4);
-      srcHost2 = readInt(address, 8);
-      srcHost3 = readInt(address, 12);
     } else {
       throw new UnsupportedOperationException(
           "Dst address class not supported: " + address.getClass().getName());
     }
+    srcHost = address.clone();
   }
 
-  // TODO rename to HostString or similar?
-  public String getSrcHostName() {
-    byte[] bytes = new byte[(sl + 1) * 4];
+  public String getSrcHostString() {
     if (sl == 0 && (st == 0 || st == 1)) {
-      writeInt(bytes, 0, srcHost0);
-      return ToStringUtil.toStringIPv4(bytes);
+      return ToStringUtil.toStringIPv4(srcHost);
     } else if (sl == 3 && st == 0) {
-      writeInt(bytes, 0, srcHost0);
-      writeInt(bytes, 4, srcHost1);
-      writeInt(bytes, 8, srcHost2);
-      writeInt(bytes, 12, srcHost3);
-      return ToStringUtil.toStringIPv6(bytes);
+      return ToStringUtil.toStringIPv6(srcHost);
     } else {
       throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
     }
   }
 
   public InetAddress getSrcHostAddress() throws IOException {
-    byte[] bytes = new byte[(sl + 1) * 4];
-    if (sl == 0 && (st == 0 || st == 1)) {
-      writeInt(bytes, 0, srcHost0);
-    } else if (sl == 3 && st == 0) {
-      writeInt(bytes, 0, srcHost0);
-      writeInt(bytes, 4, srcHost1);
-      writeInt(bytes, 8, srcHost2);
-      writeInt(bytes, 12, srcHost3);
-    } else {
-      throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
-    }
-    return InetAddress.getByAddress(bytes);
+    return InetAddress.getByAddress(srcHost);
   }
 
   public InetAddress getDstHostAddress() throws IOException {
-    byte[] bytes = new byte[(dl + 1) * 4];
-    if (dl == 0 && (dt == 0 || dt == 1)) {
-      writeInt(bytes, 0, dstHost0);
-    } else if (dl == 3 && dt == 0) {
-      writeInt(bytes, 0, dstHost0);
-      writeInt(bytes, 4, dstHost1);
-      writeInt(bytes, 8, dstHost2);
-      writeInt(bytes, 12, dstHost3);
-    } else {
-      throw new UnsupportedOperationException("Dst address not supported: DT/DL=" + dt + "/" + dl);
-    }
-    return InetAddress.getByAddress(bytes);
+    return InetAddress.getByAddress(dstHost);
   }
 
   public int getPayloadLength() {

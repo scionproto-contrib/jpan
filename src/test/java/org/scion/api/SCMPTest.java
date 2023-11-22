@@ -107,7 +107,8 @@ public class SCMPTest {
     ByteBuffer data = ByteBuffer.wrap(SCMP_PKT_SIZE).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     System.out.println("SPI: " + spi);
-    System.out.println("BU: " + ByteUtil.printHeader(SCMP_PKT_SIZE));
+    data.flip();
+    System.out.println("BU: " + ByteUtil.printHeader(data));
   }
 
   @Disabled
