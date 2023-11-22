@@ -16,24 +16,6 @@ package org.scion.internal;
 
 public class ByteUtil {
 
-  static int readInt(byte[] data, int offsetBytes) {
-    int r = 0;
-    for (int i = 0; i < 4; i++) {
-      r <<= 8;
-      r |= Byte.toUnsignedInt(data[i + offsetBytes]);
-    }
-    return r;
-  }
-
-  static long readLong(byte[] data, int offsetBytes) {
-    long r = 0;
-    for (int i = 0; i < 8; i++) {
-      r <<= 8;
-      r |= Byte.toUnsignedLong(data[i + offsetBytes]);
-    }
-    return r;
-  }
-
   /**
    * Reads some bits from an integer and returns them as another integer, shifted right such that
    * the least significant extracted bit becomes the least significant bit in the output.
@@ -90,38 +72,5 @@ public class ByteUtil {
   public static long writeBool(long dst, int bitOffset, boolean value) {
     long mask = value ? 1L << (32 - 1 - bitOffset) : 0L;
     return dst | mask;
-  }
-
-  public static void writeShort(byte[] data, int offset, short value) {
-    data[offset] = (byte) (value >>> 8);
-    data[offset + 3] = (byte) (value & 0xFF);
-  }
-
-  public static int writeInt(byte[] data, int offset, int value) {
-    data[offset] = (byte) (value >>> 24);
-    data[offset + 1] = (byte) ((value >>> 16) & 0xFF);
-    data[offset + 2] = (byte) ((value >>> 8) & 0xFF);
-    data[offset + 3] = (byte) (value & 0xFF);
-    return offset + 4;
-  }
-
-  public static int writeUnsignedInt(byte[] data, int offset, long value) {
-    data[offset] = (byte) (value >>> 24);
-    data[offset + 1] = (byte) ((value >>> 16) & 0xFF);
-    data[offset + 2] = (byte) ((value >>> 8) & 0xFF);
-    data[offset + 3] = (byte) (value & 0xFF);
-    return offset + 4;
-  }
-
-  public static int writeLong(byte[] data, int offset, long value) {
-    data[offset] = (byte) (value >>> 56);
-    data[offset + 1] = (byte) ((value >>> 48) & 0xFFL);
-    data[offset + 2] = (byte) ((value >>> 40) & 0xFFL);
-    data[offset + 3] = (byte) ((value >>> 32) & 0xFFL);
-    data[offset + 4] = (byte) ((value >>> 24) & 0xFFL);
-    data[offset + 5] = (byte) ((value >>> 16) & 0xFFL);
-    data[offset + 6] = (byte) ((value >>> 8) & 0xFFL);
-    data[offset + 7] = (byte) (value & 0xFFL);
-    return offset + 8;
   }
 }

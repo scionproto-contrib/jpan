@@ -21,18 +21,27 @@ import org.junit.jupiter.api.Test;
 public class ByteUtilTest {
 
   @Test
-  public void testWriteIntToByteArray() {
-    int i0 = 0xFFFFFFFF;
-    byte[] data = new byte[4];
-    ByteUtil.writeInt(data, 0, i0);
-    assertArrayEquals(new byte[] {-1, -1, -1, -1}, data);
+  public void testReadInt() {
+    int i0 = 0xFEDCBA98;
+    int i = ByteUtil.readInt(i0, 8, 8);
+    assertEquals(0xDC, i);
   }
 
   @Test
-  public void testWriteLongToByteArray() {
-    long l0 = 0xFFFFFFFFFFFFFFFFL;
-    byte[] data = new byte[8];
-    ByteUtil.writeLong(data, 0, l0);
-    assertArrayEquals(new byte[] {-1, -1, -1, -1, -1, -1, -1, -1}, data);
+  public void testWriteToInt() {
+    int i0 = 0;
+    i0 = ByteUtil.writeBool(i0, 7, true);
+    assertEquals(0x01000000, i0, Integer.toBinaryString(i0));
+    i0 = ByteUtil.writeInt(i0, 16, 8, 0x23);
+    assertEquals(0x01002300, i0, Integer.toHexString(i0));
+  }
+
+  @Test
+  public void testWriteToLong() {
+    long l0 = ByteUtil.writeInt(0L, 16, 16, 0x8585);
+    assertEquals(0x0000858500000000L, l0, Long.toHexString(l0));
+
+    long l1 = ByteUtil.writeLong(0L, 16, 48, 0xF1E2D3C4B5A6L);
+    assertEquals(0x0000F1E2D3C4B5A6L, l1, Long.toHexString(l1));
   }
 }
