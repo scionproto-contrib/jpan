@@ -99,6 +99,15 @@ public class ScionSocketAddress extends InetSocketAddress {
   //       Also, make it explicit that this  method may be costly -> path lookup?
   //    -> Rename or create class SocketAddressWithPath / ResolvedSocketAddress
   //          to indicate that/if it has a path....?
+
+  // TODO idea: A SocketAddress should really be fixed (like InetSocketAddress(?)!
+  //      -> Either it has a path or is does not. Resolution happens externally.
+  //      -> Resolves problems with
+  //         - unintentional look up (performance)
+  //         - pathPolicy parameter ambiguity (may not apply to returned path)
+  //         - usage of correct daemon service instance.
+  //      -> DOCUMENT THIS!
+
   public ScionPath getPath(PathPolicy pathPolicy) throws IOException {
     if (path == null) {
       long localIA = ScionService.defaultService().getLocalIsdAs();
