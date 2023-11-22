@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.Charset;
@@ -123,9 +124,19 @@ class DatagramChannelApiTest {
       assertFalse(channel.isConnected());
       channel.connect(address);
       assertTrue(channel.isConnected());
+
+      // try connecting again
+      Exception ex = assertThrows(AlreadyConnectedException.class, () -> channel.connect(address));
+      assertNull(ex.getMessage(), ex.getMessage());
+      assertTrue(channel.isConnected());
+
+      // disconnect
+      channel.disconnect();
+      assertFalse(channel.isConnected());
       channel.disconnect();
       assertFalse(channel.isConnected());
 
+      // Connect again
       channel.connect(address);
       assertTrue(channel.isConnected());
       channel.close();
