@@ -94,8 +94,14 @@
   -> Simply declare that we only support JDK 17+ for this reason?
 - UDP Checksum validation? UDP checksum creation?
 
+Look at:
+- Protobuf-lite: https://github.com/protocolbuffers/protobuf/blob/main/java/lite.md
+- QuickBuffers: https://github.com/HebiRobotics/QuickBuffers/tree/main/benchmarks
+- FlatBuffers
+
 ## Finally
 
+- HiddenPath, EPIC, ...
 - SPAO end-to-end option -> Later, not used at the moment
 - MAC validation?
 
@@ -139,3 +145,4 @@
 - Daemon.proto
   - Expiration is a 96bit Timestamp, optimize?
   - Latencies are 96bit Durations, optimize?
+  - MTU and bandwidth are given per path, while latency is given per hop. Why is that?
