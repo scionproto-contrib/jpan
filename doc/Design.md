@@ -36,6 +36,22 @@ be cumbersome on platforms such as Android, we could directly connect to a path 
 - We do **not** introduce custom exceptions. The rationale is that we want our API to be as similar
   as possible as the standard networking API.
 
+## Path & Addresses
+
+There are two types of paths:
+- `RequestPath` are used to send initial request. They are retrieved from a path service and contain meta information.
+- `ResponsePath` are used to respond to a client request. They are extracted from Scion packets. 
+
+Paths contain an origin IA:IP:port, a destination IA:IP:port, a raw path and a first hop IP:port.
+
+A Scion(Socket)Address contains IA, IP (, port) and potentially a hostNameString.
+Scion(Socket)Addresses need to be resolved via DNS TXT fields.
+A ScionAddress cannot be resolved via JDK DNS resolution, hence they do not inherit Inet(Socket)Address.
+
+
+
+
+
 ## DatagramSocket
 
 **DatagramSocket is not really supported, please use DatagramChannel instead.**

@@ -29,7 +29,7 @@ public class ScionAddress {
   private final String hostName;
   private final InetAddress ipAddress;
 
-  ScionAddress(long isdAs, String hostName, InetAddress ip) {
+  private ScionAddress(long isdAs, String hostName, InetAddress ip) {
     this.hostName = hostName;
     this.ipAddress = ip;
     this.isdAs = isdAs;

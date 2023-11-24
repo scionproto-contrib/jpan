@@ -18,6 +18,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.DatagramChannel;
+import org.scion.Path;
 import org.scion.testutil.MockDNS;
 
 public class ScionPingPongChannelClient {
@@ -48,7 +49,7 @@ public class ScionPingPongChannelClient {
 
   public static void receiveMessage(DatagramChannel channel) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
-    SocketAddress remoteAddress = channel.receive(buffer);
+    Path remoteAddress = channel.receive(buffer);
     String message = extractMessage(buffer);
     if (PRINT) {
       System.out.println("Received from server at: " + remoteAddress + "  message: " + message);

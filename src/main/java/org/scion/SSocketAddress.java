@@ -25,44 +25,44 @@ import java.net.*;
  *
  * <p>This class is threadsafe.
  */
-public class ScionSocketAddress extends InetSocketAddress {
+public class SSocketAddress extends InetSocketAddress {
   private final long isdAs;
-  private volatile ScionPath path;
+  private volatile BasePath path;
 
-  private ScionSocketAddress(long isdAs, String hostName, int port, ScionPath path) {
+  private SSocketAddress(long isdAs, String hostName, int port, BasePath path) {
     // TODO this probably causes a DNS lookup, can we avoid that? Check!
     super(hostName, port);
     this.isdAs = isdAs;
     this.path = path;
   }
 
-  private ScionSocketAddress(long isdAs, InetAddress inetAddress, int port, ScionPath path) {
+  private SSocketAddress(long isdAs, InetAddress inetAddress, int port, BasePath path) {
     super(inetAddress, port);
     this.isdAs = isdAs;
     this.path = path;
   }
 
-  public static ScionSocketAddress create(String hostName, int port, ScionPath path) {
-    return new ScionSocketAddress(path.getDestinationIsdAs(), hostName, port, path);
+  public static SSocketAddress create(String hostName, int port, BasePath path) {
+    return new SSocketAddress(path.getDestinationIsdAs(), hostName, port, path);
   }
 
-  public static ScionSocketAddress create(long isdAs, String hostName, int port) {
-    return new ScionSocketAddress(isdAs, hostName, port, null);
+  public static SSocketAddress create(long isdAs, String hostName, int port) {
+    return new SSocketAddress(isdAs, hostName, port, null);
   }
 
-  private static ScionSocketAddress createUnresolved() {
+  private static SSocketAddress createUnresolved() {
     // DO NOT REMOVE! We hide the public static method from InetSocketAddress.
     throw new UnsupportedOperationException();
   }
 
-  public static ScionSocketAddress create(InetSocketAddress address) throws ScionException {
+  public static SSocketAddress create(InetSocketAddress address) throws ScionException {
     ScionAddress addr = ScionService.defaultService().getScionAddress(address.getHostString());
-    // TODO address.getHostName() vs addr.getHostName()?
-    return new ScionSocketAddress(addr.getIsdAs(), addr.getHostName(), address.getPort(), null);
+    // We need to use addr.HostName() because it is the SCION host!
+    return new SSocketAddress(addr.getIsdAs(), address.getHostName(), address.getPort(), null);
   }
 
-  public static ScionSocketAddress create(long isdAs, InetAddress addr, int port, ScionPath path) {
-    return new ScionSocketAddress(isdAs, addr, port, path);
+  public static SSocketAddress create(long isdAs, InetAddress addr, int port, BasePath path) {
+    return new SSocketAddress(isdAs, addr, port, path);
   }
 
   public long getIsdAs() {
@@ -73,17 +73,17 @@ public class ScionSocketAddress extends InetSocketAddress {
     return ScionUtil.extractIsd(isdAs);
   }
 
-  /**
-   * Return a path to the address represented by this object. If no path is associated it will try
-   * to create one.
-   *
-   * @return The path associated with this address. If no path is associated, this method will first
-   *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
-   * @throws ScionException if an errors occurs while querying paths.
-   */
-  public ScionPath getPath() throws IOException {
-    return getPath(PathPolicy.DEFAULT);
-  }
+//  /**
+//   * Return a path to the address represented by this object. If no path is associated it will try
+//   * to create one.
+//   *
+//   * @return The path associated with this address. If no path is associated, this method will first
+//   *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
+//   * @throws ScionException if an errors occurs while querying paths.
+//   */
+//  public BasePath getPath() throws IOException {
+//    return getPath(PathPolicy.DEFAULT);
+//  }
 
   /**
    * Return a path to the address represented by this object. If no path is associated it will try
@@ -93,7 +93,7 @@ public class ScionSocketAddress extends InetSocketAddress {
    *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
    * @throws ScionException if an errors occurs while querying paths.
    */
-  @Deprecated // TODO Think about how to do this better
+  // TODO Think about how to do this better
   // TODO passing in a pathPolicy when it may not be used seems wrong!
   //    -> Rename method to getOrCreate()
   //       Also, make it explicit that this  method may be costly -> path lookup?
@@ -108,15 +108,11 @@ public class ScionSocketAddress extends InetSocketAddress {
   //         - usage of correct daemon service instance.
   //      -> DOCUMENT THIS!
 
-  public ScionPath getPath(PathPolicy pathPolicy) throws IOException {
-    if (path == null) {
-      long localIA = ScionService.defaultService().getLocalIsdAs();
-      path = ScionService.defaultService().getPath(localIA, isdAs, pathPolicy);
-    }
-    return path;
-  }
-
-  public ScionAddress getScionAddress() {
-    return new ScionAddress(isdAs, getHostName(), super.getAddress());
-  }
+//  public BasePath getPath(PathPolicy pathPolicy) throws IOException {
+//    if (path == null) {
+//      long localIA = ScionService.defaultService().getLocalIsdAs();
+//      path = ScionService.defaultService().getPath(localIA, isdAs, pathPolicy);
+//    }
+//    return path;
+//  }
 }

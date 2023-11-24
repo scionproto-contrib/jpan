@@ -23,6 +23,7 @@ import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -142,11 +143,44 @@ public class ScionService {
   /**
    * Request and return a path from the local ISD/AS to dstIsdAs.
    *
+   * @param dstAddress Destination IP address
+   * @return The first path returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public RequestPath getPath(InetSocketAddress dstAddress) throws IOException {
+    return getPath(dstAddress, PathPolicy.DEFAULT);
+  }
+
+  /**
+   * Request and return a path from the local ISD/AS to dstIsdAs.
+   *
+   * @param dstAddress Destination IP address
+   * @param pathPolicy Path policy
+   * @return The first path returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public RequestPath getPath(InetSocketAddress dstAddress, PathPolicy pathPolicy) throws IOException {
+    long srcIsdAs = getLocalIsdAs();
+    long dstIsdAs = getScionAddress(dstAddress.getHostName()).getIsdAs(); // TODO improve this!!!!!
+    List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
+    if (paths.isEmpty()) {
+      return null;
+    }
+    List<RequestPath> scionPaths = new ArrayList<>(paths.size());
+    for (int i = 0; i < paths.size(); i++) {
+      scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort()));
+    }
+    return pathPolicy.filter(scionPaths);
+  }
+
+  /**
+   * Request and return a path from the local ISD/AS to dstIsdAs.
+   *
    * @param dstIsdAs Destination ISD + AS
    * @return The first path returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long dstIsdAs) throws IOException {
+  public RequestPath getPath(long dstIsdAs) throws IOException {
     return getPath(getLocalIsdAs(), dstIsdAs, PathPolicy.DEFAULT);
   }
 
@@ -158,7 +192,7 @@ public class ScionService {
    * @return The first path returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long dstIsdAs, PathPolicy pathPolicy) throws IOException {
+  public RequestPath getPath(long dstIsdAs, PathPolicy pathPolicy) throws IOException {
     return getPath(getLocalIsdAs(), dstIsdAs, pathPolicy);
   }
 
@@ -171,14 +205,15 @@ public class ScionService {
    * @return The first path returned by the path service or 'null' if no path could be found.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long srcIsdAs, long dstIsdAs, PathPolicy pathPolicy) throws IOException {
+  public RequestPath getPath(long srcIsdAs, long dstIsdAs, PathPolicy pathPolicy) throws IOException {
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
       return null;
     }
-    List<ScionPath> scionPaths = new ArrayList<>(paths.size());
+    List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
-      scionPaths.add(ScionPath.createUnresolved(paths.get(i), srcIsdAs, dstIsdAs));
+      throw new UnsupportedOperationException(); // TODO
+      //scionPaths.add(RequestPath.createUnresolved(paths.get(i), srcIsdAs, dstIsdAs));
     }
     return pathPolicy.filter(scionPaths);
   }
@@ -191,11 +226,12 @@ public class ScionService {
    * @return All path returned by the path service or 'null' if no path could be found.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public List<ScionPath> getPaths(long srcIsdAs, long dstIsdAs) throws IOException {
+  public List<RequestPath> getPaths(long srcIsdAs, long dstIsdAs) throws IOException {
     List<Daemon.Path> protoPaths = getPathList(srcIsdAs, dstIsdAs);
-    List<ScionPath> paths = new ArrayList<>(protoPaths.size());
+    List<RequestPath> paths = new ArrayList<>(protoPaths.size());
     for (int i = 0; i < protoPaths.size(); i++) {
-      paths.add(ScionPath.createUnresolved(protoPaths.get(i), srcIsdAs, dstIsdAs));
+      throw new UnsupportedOperationException(); // TODO
+//      paths.add(RequestPath.createUnresolved(protoPaths.get(i), srcIsdAs, dstIsdAs));
     }
     return paths;
   }

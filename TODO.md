@@ -1,5 +1,13 @@
 # Problems
 
+# Why ScionAddress?
+- ScionAddress has two properties:
+  - It has Isd/As info
+  - It represents an IP from a DNS/TXT lookup!
+
+
+## Other
+
 - How do we handle Interface switchover (e.g. WLAN -> 5G)?
   Is it enough to always call getLocalAddress() ?
 - Download server / Streaming server. What happens if path breaks?

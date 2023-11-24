@@ -27,7 +27,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
   private boolean isBound = false;
-  private ScionSocketAddress remoteScionAddress;
+  private Path path;
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
@@ -48,7 +48,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this.pathPolicy;
   }
 
-  public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
+  public synchronized Path receive(ByteBuffer userBuffer) throws IOException {
     SocketAddress srcAddress;
     String validationResult;
     do {
@@ -68,18 +68,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
     } while (validationResult != null);
 
     ScionHeaderParser.readUserData(buffer, userBuffer);
-    ScionSocketAddress addr =
-        ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
+    Path addr = ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
     buffer.clear();
     return addr;
   }
 
-  private InetSocketAddress checkAddress(SocketAddress address) {
-    if (!(address instanceof InetSocketAddress)) {
-      throw new IllegalArgumentException("Address must be of type InetSocketAddress");
-    }
-    return (InetSocketAddress) address;
-  }
 
   /**
    * Attempts to send the content of the buffer to the destinationAddress.
@@ -92,15 +85,10 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
   public synchronized void send(ByteBuffer buffer, SocketAddress destination) throws IOException {
-    if (destination instanceof ScionSocketAddress) {
-      send(buffer, (ScionSocketAddress) destination);
-    } else {
-      InetSocketAddress dstAddress = checkAddress(destination);
-      send(buffer, ScionSocketAddress.create(dstAddress));
-    }
+    send(buffer, findPath(destination));
   }
 
-  private void send(ByteBuffer srcBuffer, ScionSocketAddress dstAddress) throws IOException {
+  public synchronized void send(ByteBuffer srcBuffer, Path path) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
@@ -108,13 +96,13 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
     // get local IP
     if (!channel.isConnected() && !isBound) {
-      InetSocketAddress underlayAddress = dstAddress.getPath().getFirstHopAddress();
+      InetSocketAddress underlayAddress = path.getFirstHopAddress();
       channel.connect(underlayAddress);
     }
 
     // build and send packet
-    buildPacket(dstAddress, srcBuffer);
-    channel.send(buffer, dstAddress.getPath().getFirstHopAddress());
+    buildPacket(path, srcBuffer);
+    channel.send(buffer, path.getFirstHopAddress());
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
@@ -153,17 +141,66 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.close();
   }
 
-  public DatagramChannel connect(SocketAddress addr) throws IOException {
-    if (addr instanceof ScionSocketAddress) {
-      remoteScionAddress = (ScionSocketAddress) addr;
+  private Path findPath(SocketAddress addr) throws IOException {
+    if (addr instanceof SSocketAddress) {
+      throw new UnsupportedOperationException(); // TODO implement
     } else if (addr instanceof InetSocketAddress) {
       InetSocketAddress inetAddress = (InetSocketAddress) addr;
-      remoteScionAddress = ScionSocketAddress.create(inetAddress);
+      // TODO hostName vs hostString
+//      if (IPAddressUtil.isIPv4LiteralAddress(inetAddress.getHostString())
+//              || IPAddressUtil.isIPv6LiteralAddress(inetAddress.getHostString())) {
+//        // If the address is a literal address we can only assume that it is correct and
+//        // hasn't been looked up via normal DNS. We don;t have a choice anyway.
+//        // Problem: how do we get the AS info?
+//        throw new UnsupportedOperationException();
+//      } else {
+//        // Look it up via DNS/TXT entry
+//        // TODO special treatment of 'localhost'?
+//
+//      }
+
+      // path = Path.create(inetAddress);
+      // TODO optimize this, we ony need the IA here, not the full ScionAddress.
+      //   ... well, how do we know the dstIP?
+      //   - if "addr" is a ScionAddress, then we have the correct IP
+      //   - if it is an InetAddress based on hostname, then it was (definitely?) looked up with
+      //     normal DNS and is likely to be the wrong IP
+      //   - if it is an InetAddress based on IP, then it is probably the correct IP, in any case.
+      //     we don;t have a choice because we cannot look up another IP (reverse lookup???)
+      ScionService service = ScionService.defaultService();
+      ScionAddress sa = service.getScionAddress(inetAddress.getHostName());
+      path = service.getPath(sa.getIsdAs(), pathPolicy);
+    } else {
+      throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
+    }
+    return path;
+  }
+
+  public DatagramChannel connect(SocketAddress addr) throws IOException {
+    if (addr instanceof InetSocketAddress) {
+      InetSocketAddress inetAddress = (InetSocketAddress) addr;
+      // path = Path.create(inetAddress);
+      // TODO optimize this, we ony need the IA here, not the full ScionAddress.
+      //   ... well, how do we know the dstIP?
+      //   - if "addr" is a ScionAddress, then we have the correct IP
+      //   - if it is an InetAdress based on hostname, then it was (definitely?) looked up with
+      //     normal DNS and is likely to be the wrong IP
+      //   - if it is an InetAdress based on IP, then it is probably the correct IP, in any case.
+      //     we don;t have a choice because we cannot look up another IP (reverse lookup???)
+      ScionAddress sa = ScionService.defaultService().getScionAddress(inetAddress.getHostName());
+      path = ScionService.defaultService().getPath(sa.getIsdAs(), pathPolicy);
     } else {
       throw new IllegalArgumentException(
           "connect() requires an InetSocketAddress or a ScionSocketAddress.");
     }
-    channel.connect(remoteScionAddress.getPath().getFirstHopAddress());
+    channel.connect(path.getFirstHopAddress());
+    return this;
+  }
+
+  @Deprecated // TODO remove, we should not connect with a Fixed path object.
+  public DatagramChannel connect(Path path) throws IOException {
+    this.path = path;
+    channel.connect(path.getFirstHopAddress());
     return this;
   }
 
@@ -208,7 +245,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public int write(ByteBuffer src) throws IOException {
     checkOpen();
     checkConnected();
-    buildPacket(remoteScionAddress, src);
+    buildPacket(path, src);
     return channel.write(buffer);
   }
 
@@ -243,21 +280,20 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
-  private void buildPacket(ScionSocketAddress dstSocketAddress, ByteBuffer srcBuffer)
-      throws IOException {
+  private void buildPacket(Path dstSocketAddress, ByteBuffer srcBuffer) throws IOException {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
     buffer.clear();
     int payloadLength = srcBuffer.remaining();
 
     InetSocketAddress srcSocketAddress = getLocalAddress();
-    long srcIA = dstSocketAddress.getPath().getSourceIsdAs();
-    long dstIA = dstSocketAddress.getIsdAs();
+    long srcIA = ScionService.defaultService().getLocalIsdAs(); // TODO do not use default()
+    long dstIA = dstSocketAddress.getDestinationIsdAs();
     int srcPort = srcSocketAddress.getPort();
     int dstPort = dstSocketAddress.getPort();
     InetAddress srcAddress = srcSocketAddress.getAddress();
-    InetAddress dstAddress = dstSocketAddress.getAddress();
+    InetAddress dstAddress = dstSocketAddress.getAddress();  // TODO use byte[]
 
-    byte[] path = dstSocketAddress.getPath().getRawPath();
+    byte[] path = dstSocketAddress.getRawPath();
     ScionHeaderParser.write(
         buffer, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
     ScionHeaderParser.writePath(buffer, path);

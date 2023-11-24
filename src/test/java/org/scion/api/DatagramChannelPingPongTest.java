@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
+import org.scion.Path;
 import org.scion.testutil.MockNetwork;
 
 class DatagramChannelPingPongTest {
@@ -61,7 +62,7 @@ class DatagramChannelPingPongTest {
 
         // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
         ByteBuffer response = ByteBuffer.allocate(512);
-        SocketAddress addr;
+        Path addr;
         do {
           addr = channel.receive(response);
         } while (addr == null);
@@ -92,7 +93,7 @@ class DatagramChannelPingPongTest {
     for (int i = 0; i < N_REPEAT; i++) {
       ByteBuffer request = ByteBuffer.allocate(512);
       // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " +
-      SocketAddress addr = channel.receive(request);
+      Path addr = channel.receive(request);
 
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();

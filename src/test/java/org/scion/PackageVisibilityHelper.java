@@ -19,6 +19,8 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
+
+import com.google.protobuf.ByteString;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 
@@ -38,12 +40,24 @@ public class PackageVisibilityHelper {
     return ScionHeaderParser.readDestinationSocketAddress(packet);
   }
 
-  public static ScionSocketAddress createDummyAddress() {
-    ScionPath path = ScionPath.create(new byte[0], 0, 0, new InetSocketAddress(44444));
+  public static Path createDummyPath() {
+    String ip = null;
     try {
-      return ScionSocketAddress.create(0, Inet4Address.getLocalHost(), 55555, path);
+      ip = Inet4Address.getLocalHost().toString();
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
+    return createDummyPath(0, ip, 55555, new byte[0], new InetSocketAddress(12345));
+  }
+
+  public static RequestPath createDummyPath(
+      long dstIsdAs, String dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
+    ByteString bs = ByteString.copyFrom(raw);
+    Daemon.Interface inter =
+        Daemon.Interface.newBuilder()
+            .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHop.toString().substring(1)).build())
+            .build();
+    Daemon.Path path = Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).build();
+    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
   }
 }

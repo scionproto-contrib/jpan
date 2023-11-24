@@ -24,7 +24,7 @@ public interface PathPolicy {
   PathPolicy DEFAULT = FIRST;
 
   class First implements PathPolicy {
-    public ScionPath filter(List<ScionPath> paths) {
+    public RequestPath filter(List<RequestPath> paths) {
       if (paths.isEmpty()) {
         throw new NoSuchElementException();
       }
@@ -33,7 +33,7 @@ public interface PathPolicy {
   }
 
   class MaxBandwith implements PathPolicy {
-    public ScionPath filter(List<ScionPath> paths) {
+    public RequestPath filter(List<RequestPath> paths) {
       return paths.stream()
           .max(Comparator.comparing(path -> Collections.min(path.getBandwidthList())))
           .orElseThrow(NoSuchElementException::new);
@@ -41,7 +41,7 @@ public interface PathPolicy {
   }
 
   class MinLatency implements PathPolicy {
-    public ScionPath filter(List<ScionPath> paths) {
+    public RequestPath filter(List<RequestPath> paths) {
       // A 0-value indicates that the AS did not announce a latency for this hop.
       // We use Integer.MAX_VALUE for comparison of these ASes.
       return paths.stream()
@@ -56,7 +56,7 @@ public interface PathPolicy {
   }
 
   class MinHopCount implements PathPolicy {
-    public ScionPath filter(List<ScionPath> paths) {
+    public RequestPath filter(List<RequestPath> paths) {
       return paths.stream()
           .min(Comparator.comparing(path -> path.getInternalHopsList().size()))
           .orElseThrow(NoSuchElementException::new);
@@ -71,15 +71,15 @@ public interface PathPolicy {
     }
 
     @Override
-    public ScionPath filter(List<ScionPath> paths) {
+    public RequestPath filter(List<RequestPath> paths) {
       return paths.stream()
           .filter(this::checkPath)
           .findAny()
           .orElseThrow(NoSuchElementException::new);
     }
 
-    private boolean checkPath(ScionPath path) {
-      for (ScionPath.PathInterface pif : path.getInterfacesList()) {
+    private boolean checkPath(RequestPath path) {
+      for (RequestPath.PathInterface pif : path.getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
         if (allowedIsds.contains(isd)) {
           return false;
@@ -94,5 +94,5 @@ public interface PathPolicy {
    * @return The "best" path according to the filter's policy.
    * @throws NoSuchElementException if no matching path could be found.
    */
-  ScionPath filter(List<ScionPath> paths);
+  RequestPath filter(List<RequestPath> paths);
 }

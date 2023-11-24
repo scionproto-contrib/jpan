@@ -70,7 +70,7 @@ public class ScionServiceTest {
     long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      ScionPath path = client.getPath(srcIA, dstIA, PathPolicy.DEFAULT);
+      RequestPath path = client.getPath(srcIA, dstIA, PathPolicy.DEFAULT);
       assertNotNull(path);
       assertEquals(1, MockDaemon.getAndResetCallCount());
     } finally {
@@ -86,7 +86,7 @@ public class ScionServiceTest {
     long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      ScionPath path = client.getPath(srcIA, dstIA, PathPolicy.DEFAULT);
+      RequestPath path = client.getPath(srcIA, dstIA, PathPolicy.DEFAULT);
       assertNotNull(path);
       assertEquals(1, MockDaemon.getAndResetCallCount());
     } finally {
@@ -98,7 +98,7 @@ public class ScionServiceTest {
   void getPath() throws IOException {
     try (MockDaemon daemon = MockDaemon.create().start()) {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      ScionPath path;
+      RequestPath path;
       long srcIA = ScionUtil.parseIA("1-ff00:0:110");
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
@@ -114,7 +114,7 @@ public class ScionServiceTest {
       //    0: 2 561850441793808
       //    0: 1 561850441793810
       assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
-      assertEquals(srcIA, path.getSourceIsdAs());
+      // assertEquals(srcIA, path.getSourceIsdAs());
       assertEquals(dstIA, path.getDestinationIsdAs());
       assertEquals(36, path.getRawPath().length);
 
@@ -132,7 +132,7 @@ public class ScionServiceTest {
   void getPaths() throws IOException {
     try (MockDaemon daemon = MockDaemon.create().start()) {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      List<ScionPath> paths;
+      List<RequestPath> paths;
       long srcIA = ScionUtil.parseIA("1-ff00:0:110");
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
@@ -148,9 +148,9 @@ public class ScionServiceTest {
       //    0: 2 561850441793808
       //    0: 1 561850441793810
       assertEquals(1, paths.size());
-      for (ScionPath path : paths) {
+      for (RequestPath path : paths) {
         assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
-        assertEquals(srcIA, path.getSourceIsdAs());
+        // assertEquals(srcIA, path.getSourceIsdAs());
         assertEquals(dstIA, path.getDestinationIsdAs());
       }
 

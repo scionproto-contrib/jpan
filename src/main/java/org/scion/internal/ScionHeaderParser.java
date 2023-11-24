@@ -19,8 +19,8 @@ import static org.scion.internal.ByteUtil.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import org.scion.ScionPath;
-import org.scion.ScionSocketAddress;
+import org.scion.Path;
+import org.scion.ResponsePath;
 
 /** Utility methods for reading and writing the Common Header and Address Header. */
 public class ScionHeaderParser {
@@ -50,8 +50,8 @@ public class ScionHeaderParser {
    * @return A new ScionSocketAddress including raw path.
    */
   // TODO this is a bit weird to have the firstHopAddress here....
-  public static ScionSocketAddress readRemoteSocketAddress(
-      ByteBuffer data, InetSocketAddress firstHopAddress) throws UnknownHostException {
+  public static Path readRemoteSocketAddress(
+      ByteBuffer data, InetSocketAddress firstHopAddress) {
     int start = data.position();
 
     int i1 = data.getInt(start + 4);
@@ -72,14 +72,14 @@ public class ScionHeaderParser {
     long dstIsdAs = data.getLong(start + 12);
     long srcIsdAs = data.getLong(start + 20);
 
-    // skip dstAddress
-    int skip = (dl + 1) * 4;
-    data.position(start + 28 + skip);
+    // dstAddress
+    data.position(start + 28);
+    byte[] bytesDst = new byte[(dl + 1) * 4];
+    data.get(bytesDst);
 
     // remote address
     byte[] bytesSrc = new byte[(sl + 1) * 4];
     data.get(bytesSrc);
-    InetAddress addr = InetAddress.getByAddress(bytesSrc);
 
     // raw path
     byte[] path = new byte[start + hdrLenBytes - data.position()];
@@ -89,11 +89,15 @@ public class ScionHeaderParser {
     // get remote port from UDP overlay
     data.position(start + hdrLenBytes);
     int srcPort = Short.toUnsignedInt(data.getShort());
+    int dstPort = Short.toUnsignedInt(data.getShort());
 
     // rewind to original offset
     data.position(start);
-    return ScionSocketAddress.create(
-        srcIsdAs, addr, srcPort, ScionPath.create(path, dstIsdAs, srcIsdAs, firstHopAddress));
+    // Swap src and dst.
+    return ResponsePath.create(path,
+           dstIsdAs, bytesDst, dstPort,
+            srcIsdAs, bytesSrc, srcPort,
+            firstHopAddress);
   }
 
   public static InetSocketAddress readDestinationSocketAddress(ByteBuffer data)

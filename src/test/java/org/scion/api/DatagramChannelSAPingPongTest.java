@@ -22,8 +22,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
+import org.scion.Scion;
 import org.scion.ScionException;
-import org.scion.ScionSocketAddress;
+import org.scion.Path;
 import org.scion.testutil.MockNetwork;
 
 class DatagramChannelSAPingPongTest {
@@ -35,13 +36,13 @@ class DatagramChannelSAPingPongTest {
   private int nServer = 0;
 
   @Test
-  void testPingPong() throws InterruptedException, ScionException {
+  void testPingPong() throws InterruptedException, IOException {
     MockNetwork.startTiny();
 
     InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
     Thread server = new Thread(() -> server(serverAddress), "Server-thread");
     server.start();
-    ScionSocketAddress scionAddress = ScionSocketAddress.create(serverAddress);
+    Path scionAddress = Scion.defaultService().getPath(serverAddress);
     Thread client = new Thread(() -> client(scionAddress), "Client-thread");
     client.start();
 
@@ -54,7 +55,7 @@ class DatagramChannelSAPingPongTest {
     assertEquals(N_REPEAT, nServer);
   }
 
-  private void client(SocketAddress serverAddress) {
+  private void client(Path serverAddress) {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.configureBlocking(true);
 
@@ -64,7 +65,7 @@ class DatagramChannelSAPingPongTest {
 
         // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
         ByteBuffer response = ByteBuffer.allocate(512);
-        SocketAddress address = channel.receive(response);
+        Path address = channel.receive(response);
         assertNotNull(address);
 
         response.flip();
@@ -93,7 +94,7 @@ class DatagramChannelSAPingPongTest {
     for (int i = 0; i < N_REPEAT; i++) {
       ByteBuffer request = ByteBuffer.allocate(512);
       // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " +
-      SocketAddress addr = channel.receive(request);
+      Path addr = channel.receive(request);
 
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();

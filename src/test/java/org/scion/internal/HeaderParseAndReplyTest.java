@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
-import org.scion.ScionSocketAddress;
+import org.scion.Path;
 import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
 
@@ -40,7 +40,7 @@ public class HeaderParseAndReplyTest {
 
     ByteBuffer userRcvBuffer = ByteBuffer.allocate(10000);
     ScionHeaderParser.readUserData(buffer, userRcvBuffer);
-    ScionSocketAddress remoteAddr = ScionHeaderParser.readRemoteSocketAddress(buffer, firstHop);
+    Path remoteAddr = ScionHeaderParser.readRemoteSocketAddress(buffer, firstHop);
     userRcvBuffer.flip();
 
     // payload
@@ -51,12 +51,11 @@ public class HeaderParseAndReplyTest {
 
     // remote address
     assertEquals(44444, remoteAddr.getPort());
-    assertEquals("localhost", remoteAddr.getHostName());
     assertEquals("1-ff00:0:110", ScionUtil.toStringIA(remoteAddr.getIsdAs()));
-    assertEquals(firstHop, remoteAddr.getPath().getFirstHopAddress());
+    assertEquals(firstHop, remoteAddr.getFirstHopAddress());
 
     // path
-    byte[] path = remoteAddr.getPath().getRawPath();
+    byte[] path = remoteAddr.getRawPath();
     assertEquals(36, path.length);
     for (int i = 0; i < path.length; i++) {
       assertEquals(reversedBytes[i + 48], path[i], "At position:" + i);

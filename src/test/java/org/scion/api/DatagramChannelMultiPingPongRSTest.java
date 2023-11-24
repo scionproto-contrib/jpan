@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
-import org.scion.ScionSocketAddress;
+import org.scion.Path;
 import org.scion.testutil.PingPongHelper;
 
 /** Tess receive()/send() operations on DatagramChannel. */
@@ -38,7 +38,7 @@ class DatagramChannelMultiPingPongRSTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private void client(DatagramChannel channel, ScionSocketAddress serverAddress, int id)
+  private void client(DatagramChannel channel, Path serverAddress, int id)
       throws IOException {
     String message = MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
@@ -46,7 +46,7 @@ class DatagramChannelMultiPingPongRSTest {
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    ScionSocketAddress address = channel.receive(response);
+    Path address = channel.receive(response);
     assertNotNull(address);
     assertEquals(serverAddress.getAddress(), address.getAddress());
     assertEquals(serverAddress.getPort(), address.getPort());
@@ -59,7 +59,7 @@ class DatagramChannelMultiPingPongRSTest {
   private void server(DatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
-    SocketAddress address = channel.receive(request);
+    Path address = channel.receive(request);
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();

@@ -23,8 +23,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.DatagramChannel;
-import org.scion.ScionException;
-import org.scion.ScionSocketAddress;
+import org.scion.Scion;
+import org.scion.Path;
 
 public class PingPongHelper {
 
@@ -52,7 +52,7 @@ public class PingPongHelper {
     private final ClientEndPoint client;
     private final int id;
     private final InetSocketAddress localAddress;
-    private final ScionSocketAddress remoteAddress;
+    private final Path remoteAddress;
     private final int nRounds;
 
     Endpoint(ServerEndPoint server, int id, InetSocketAddress localAddress, int nRounds) {
@@ -64,7 +64,7 @@ public class PingPongHelper {
       this.nRounds = nRounds;
     }
 
-    Endpoint(ClientEndPoint client, int id, ScionSocketAddress remoteAddress, int nRounds) {
+    Endpoint(ClientEndPoint client, int id, Path remoteAddress, int nRounds) {
       this.server = null;
       this.client = client;
       this.id = id;
@@ -103,7 +103,7 @@ public class PingPongHelper {
   }
 
   public interface ClientEndPoint {
-    void run(DatagramChannel channel, ScionSocketAddress serverAddress, int id) throws IOException;
+    void run(DatagramChannel channel, Path serverAddress, int id) throws IOException;
   }
 
   public interface ServerEndPoint {
@@ -115,7 +115,7 @@ public class PingPongHelper {
       MockNetwork.startTiny();
 
       InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
-      ScionSocketAddress scionAddress = ScionSocketAddress.create(serverAddress);
+      Path scionAddress = Scion.defaultService().getPath(serverAddress);
       Thread[] servers = new Thread[nServers];
       for (int i = 0; i < servers.length; i++) {
         // servers[i] = new Thread(() -> server(serverAddress, id), "Server-thread-" + i);
@@ -148,7 +148,7 @@ public class PingPongHelper {
       }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
-    } catch (ScionException e) {
+    } catch (IOException e) {
       exceptions.add(e);
       throw new RuntimeException(e);
     } finally {
