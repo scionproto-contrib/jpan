@@ -30,7 +30,6 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
-- Make MockDaemon static!!!! (it is already partuially static anyway, see getAndResetCallCount())
 - Remove getPath() in favor of getPaths()?!
 - Rename *Path* to *Route*?
 - Handle expired paths

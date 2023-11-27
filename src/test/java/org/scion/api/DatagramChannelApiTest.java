@@ -39,17 +39,15 @@ class DatagramChannelApiTest {
 
   private static final int dummyPort = 44444;
   private static final String MSG = "Hello scion!";
-  private static MockDaemon daemon;
 
   @BeforeEach
   public void beforeAll() throws IOException {
-    daemon = MockDaemon.create().start();
+    MockDaemon.createAndStartDefault();
   }
 
   @AfterEach
   public void afterAll() throws IOException {
-    daemon.close();
-    daemon = null;
+    MockDaemon.closeDefault();
   }
 
   @Test
@@ -214,7 +212,7 @@ class DatagramChannelApiTest {
 
   @Test
   public void receive_bufferTooSmall() throws IOException {
-    daemon.close(); // We don't need the daemon here
+    MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
         (channel, serverAddress, id) -> {
@@ -237,7 +235,7 @@ class DatagramChannelApiTest {
 
   @Test
   public void read_bufferTooSmall() throws IOException {
-    daemon.close(); // We don't need the daemon here
+    MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
         (channel, serverAddress, id) -> {

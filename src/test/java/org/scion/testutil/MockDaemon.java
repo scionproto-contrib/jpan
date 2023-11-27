@@ -37,6 +37,8 @@ public class MockDaemon implements AutoCloseable {
   public static final String DEFAULT_IP = "127.0.0.15";
   public static final int DEFAULT_PORT = 30255;
 
+  public static MockDaemon DEFAULT = null;
+
   private final InetSocketAddress address;
   private Server server;
   private final InetSocketAddress borderRouter;
@@ -62,6 +64,22 @@ public class MockDaemon implements AutoCloseable {
   public static MockDaemon createForBorderRouter(InetSocketAddress borderRouter) {
     setEnvironment();
     return new MockDaemon(DEFAULT_ADDRESS, borderRouter);
+  }
+
+  public static void createAndStartDefault() throws IOException {
+    if (DEFAULT != null) {
+      throw new NullPointerException();
+    }
+    setEnvironment();
+    DEFAULT = new MockDaemon(DEFAULT_ADDRESS);
+    DEFAULT.start();
+  }
+
+  public static void closeDefault() throws IOException {
+    if (DEFAULT != null) {
+      DEFAULT.close();
+      DEFAULT = null;
+    }
   }
 
   private MockDaemon(InetSocketAddress address) {

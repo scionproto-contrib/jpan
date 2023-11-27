@@ -34,19 +34,16 @@ public class HeaderComposeTest {
   // Recorded before sending a packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
 
-  private static MockDaemon daemon;
   private Scion.CloseableService pathService = null;
 
   @BeforeAll
   public static void beforeAll() throws IOException {
-    daemon = MockDaemon.create().start();
+    MockDaemon.createAndStartDefault();
   }
 
   @AfterAll
   public static void afterAll() throws IOException {
-    if (daemon != null) {
-      daemon.close();
-    }
+    MockDaemon.closeDefault();
   }
 
   @AfterEach
