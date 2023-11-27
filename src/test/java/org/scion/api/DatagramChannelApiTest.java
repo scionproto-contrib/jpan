@@ -132,6 +132,7 @@ class DatagramChannelApiTest {
   public void isConnected_InetSocket() throws IOException {
     //    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
     //    InetSocketAddress address = new InetSocketAddress("::1", 12345);
+    // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
     try (DatagramChannel channel = DatagramChannel.open()) {
