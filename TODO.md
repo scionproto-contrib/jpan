@@ -30,6 +30,8 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
+- configurable path-service in Channel!
+- CleanUp ScionService.getRemoteAS() -> But only if remolte IP is known, otherwise combine lookup if possible 
 - Make MockDaemon static!!!! (it is already partuially static anyway, see getAndResetCallCount())
 - Remove getPath() in favor of getPaths()?!
 - Rename *Path* to *Route*?

@@ -17,6 +17,7 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -27,12 +28,12 @@ import java.nio.charset.Charset;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Path;
 import org.scion.testutil.ExamplePacket;
+import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.PingPongHelper;
 
@@ -135,8 +136,9 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void isConnected() throws IOException {
-    Path address = PackageVisibilityHelper.createDummyPath();
+  public void isConnected_InetSocket() throws IOException {
+    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+    InetSocketAddress address = new InetSocketAddress("::1", 12345);
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());
       channel.connect(address);
@@ -155,6 +157,35 @@ class DatagramChannelApiTest {
 
       // Connect again
       channel.connect(address);
+      assertTrue(channel.isConnected());
+      channel.close();
+      assertFalse(channel.isConnected());
+    } finally {
+      MockDNS.clear();
+    }
+  }
+
+  @Test
+  public void isConnected_Path() throws IOException {
+    Path path = PackageVisibilityHelper.createDummyPath();
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertFalse(channel.isConnected());
+      channel.connect(path);
+      assertTrue(channel.isConnected());
+
+      // try connecting again
+      Exception ex = assertThrows(AlreadyConnectedException.class, () -> channel.connect(path));
+      assertNull(ex.getMessage(), ex.getMessage());
+      assertTrue(channel.isConnected());
+
+      // disconnect
+      channel.disconnect();
+      assertFalse(channel.isConnected());
+      channel.disconnect();
+      assertFalse(channel.isConnected());
+
+      // Connect again
+      channel.connect(path);
       assertTrue(channel.isConnected());
       channel.close();
       assertFalse(channel.isConnected());
