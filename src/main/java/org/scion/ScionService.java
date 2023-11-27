@@ -196,11 +196,11 @@ public class ScionService {
     if (paths.isEmpty()) {
       return Collections.emptyList();
     }
+    byte[] dstBytes = dstAddress.getAddress().getAddress();
     List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
       scionPaths.add(
-          RequestPath.create(
-              paths.get(i), dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort()));
+          RequestPath.create(paths.get(i), srcIsdAs, dstIsdAs, dstBytes, dstAddress.getPort()));
     }
     return scionPaths;
   }

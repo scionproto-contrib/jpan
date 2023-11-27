@@ -14,31 +14,26 @@
 
 package org.scion;
 
-import org.scion.proto.daemon.Daemon;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.scion.proto.daemon.Daemon;
 
 public class RequestPath extends Path {
 
     private final Daemon.Path pathProtoc;
 
-    static RequestPath createUnresolved(Daemon.Path path, long dstIsdAs) {
-        return new RequestPath(path, dstIsdAs);
-    }
-
     // TODO remove String based host methods
     @Deprecated
-    public static RequestPath create(Daemon.Path path, long dstIsdAs, String dstIP, int dstPort) {
-        return new RequestPath(path, dstIsdAs, parseIP(dstIP), dstPort);
+    public static RequestPath create(Daemon.Path path, long srcIsdAs, long dstIsdAs, String dstIP, int dstPort) {
+        return new RequestPath(path, srcIsdAs, dstIsdAs, parseIP(dstIP), dstPort);
     }
 
-    public static RequestPath create(Daemon.Path path, long dstIsdAs, byte[] dstIP, int dstPort) {
-        return new RequestPath(path, dstIsdAs, dstIP, dstPort);
+    public static RequestPath create(Daemon.Path path, long srcIsdAs, long dstIsdAs, byte[] dstIP, int dstPort) {
+        return new RequestPath(path, srcIsdAs, dstIsdAs, dstIP, dstPort);
     }
 
     // TODO this method has no checks.... Remove it?
@@ -72,19 +67,13 @@ public class RequestPath extends Path {
         return bytes;
     }
 
-    @Deprecated
-    private RequestPath(Daemon.Path path, long dstIsdAs) {
-        // TODO remove, this is bad!
-        super(path.getRaw().toByteArray(), dstIsdAs, new byte[]{}, -1);
-        this.pathProtoc = path;
-    }
-
     private RequestPath(
             Daemon.Path path,
+            long srcIsdAs,
             long dstIsdAs,
             byte[] dstIP,
             int dstPort) {
-        super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
+        super(path.getRaw().toByteArray(), srcIsdAs, dstIsdAs, dstIP, dstPort);
         this.pathProtoc = path;
     }
 

@@ -258,23 +258,23 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
-  private void buildPacket(Path dstSocketAddress, ByteBuffer srcBuffer) throws IOException {
+  private void buildPacket(Path path, ByteBuffer srcBuffer) throws IOException {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
     buffer.clear();
     int payloadLength = srcBuffer.remaining();
 
     InetSocketAddress srcSocketAddress = getLocalAddress();
-    long srcIA = getService().getLocalIsdAs();
-    long dstIA = dstSocketAddress.getDestinationIsdAs();
+    long srcIA = path.getSourceIsdAs();
+    long dstIA = path.getDestinationIsdAs();
     int srcPort = srcSocketAddress.getPort();
-    int dstPort = dstSocketAddress.getDestinationPort();
+    int dstPort = path.getDestinationPort();
     byte[] srcAddress = srcSocketAddress.getAddress().getAddress();
-    byte[] dstAddress = dstSocketAddress.getDestinationAddress();
+    byte[] dstAddress = path.getDestinationAddress();
 
-    byte[] path = dstSocketAddress.getRawPath();
+    byte[] rawPath = path.getRawPath();
     ScionHeaderParser.write(
-        buffer, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
-    ScionHeaderParser.writePath(buffer, path);
+        buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress);
+    ScionHeaderParser.writePath(buffer, rawPath);
     ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
 
     buffer.put(srcBuffer);

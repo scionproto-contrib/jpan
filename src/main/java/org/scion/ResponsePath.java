@@ -19,41 +19,47 @@ import java.net.InetSocketAddress;
 public class ResponsePath extends Path {
 
   private final InetSocketAddress firstHopAddress;
+  // The ResponsePath gets source information from the incoming packet.
+  private final byte[] srcAddress;
+  private final int srcPort;
 
-  @Deprecated // TODO use otehr create()
   public static ResponsePath create(
           byte[] rawPath,
-          long srcIsdAs, // TODO remove these
+          long srcIsdAs,
           byte[] srcIP,
           int srcPort,
           long dstIsdAs,
           byte[] dstIP,
           int dstPort,
           InetSocketAddress firstHopAddress) {
-    return new ResponsePath(rawPath, dstIsdAs, dstIP, dstPort, firstHopAddress);
-  }
-
-  public static ResponsePath create(
-          byte[] rawPath,
-          long dstIsdAs,
-          byte[] dstIP,
-          int dstPort,
-          InetSocketAddress firstHopAddress) {
-    return new ResponsePath(rawPath, dstIsdAs, dstIP, dstPort, firstHopAddress);
+    return new ResponsePath(rawPath, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHopAddress);
   }
 
   private ResponsePath(
       byte[] rawPath,
+      long srcIsdAs,
+      byte[] srcIP,
+      int srcPort,
       long dstIsdAs,
       byte[] dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
-    super(rawPath, dstIsdAs, dstIP, dstPort);
+    super(rawPath, srcIsdAs, dstIsdAs, dstIP, dstPort);
     this.firstHopAddress = firstHopAddress;
+    this.srcAddress = srcIP;
+    this.srcPort = srcPort;
   }
 
   @Override
   public InetSocketAddress getFirstHopAddress() {
     return firstHopAddress;
+  }
+
+  public byte[] getSourceAddress() {
+    return srcAddress;
+  }
+
+  public int getSourcePort() {
+    return srcPort;
   }
 }

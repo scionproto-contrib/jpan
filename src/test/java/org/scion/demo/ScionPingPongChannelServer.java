@@ -25,8 +25,7 @@ public class ScionPingPongChannelServer {
   public static boolean PRINT = true;
 
   public static DatagramChannel startServer() throws IOException {
-    // InetSocketAddress address = new InetSocketAddress("localhost", 44444);
-    InetSocketAddress address = new InetSocketAddress("::1", 44444);
+    InetSocketAddress address = new InetSocketAddress("::1", ScionPingPongChannelClient.PORT);
     DatagramChannel server = DatagramChannel.open().bind(address);
 
     if (PRINT) {

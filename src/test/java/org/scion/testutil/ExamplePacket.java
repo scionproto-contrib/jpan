@@ -33,9 +33,8 @@ public class ExamplePacket {
     -114, 25, 76, -122,
   };
   public static final RequestPath PATH =
-  //    RequestPath.create(PATH_RAW_TINY_110_112, SRC_IA, DST_IA, FIRST_HOP);
-          // TODO dst port?
-          PackageVisibilityHelper.createDummyPath(DST_IA, "::1", 8080, PATH_RAW_TINY_110_112, FIRST_HOP);
+      PackageVisibilityHelper.createDummyPath(
+          SRC_IA, DST_IA, "::1", 8080, PATH_RAW_TINY_110_112, FIRST_HOP);
 
   /**
    * Packet bytes for a message sent in the "tiny"network config in scionproto.

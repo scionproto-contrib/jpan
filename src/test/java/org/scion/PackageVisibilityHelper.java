@@ -41,11 +41,16 @@ public class PackageVisibilityHelper {
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
-    return createDummyPath(0, ip, 55555, new byte[0], new InetSocketAddress(12345));
+    return createDummyPath(0, 0, ip, 55555, new byte[0], new InetSocketAddress(12345));
   }
 
   public static RequestPath createDummyPath(
-      long dstIsdAs, String dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
+      long srcIsdAs,
+      long dstIsdAs,
+      String dstHost,
+      int dstPort,
+      byte[] raw,
+      InetSocketAddress firstHop) {
     ByteString bs = ByteString.copyFrom(raw);
     String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
     Daemon.Interface inter =
@@ -53,6 +58,6 @@ public class PackageVisibilityHelper {
             .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHopString).build())
             .build();
     Daemon.Path path = Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).build();
-    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
   }
 }

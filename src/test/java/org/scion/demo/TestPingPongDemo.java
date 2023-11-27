@@ -27,6 +27,7 @@ public class TestPingPongDemo {
     AtomicInteger failures = new AtomicInteger();
     ScionPingPongChannelServer.PRINT = false;
     ScionPingPongChannelClient.PRINT = false;
+    ScionPingPongChannelClient.USE_MOCK_TOPOLOGY = true;
     Thread server =
         new Thread(
             () -> {

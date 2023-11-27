@@ -15,24 +15,23 @@
 package org.scion;
 
 import java.net.*;
+import java.util.Arrays;
 
 /**
- * TODO fix
- * ScionSocketAddress is an InetSocketAddress + ISD/AS information.
- *
- * <p>A ScionPath may be assigned at construction of dynamically requested from the PathService when
- * calling getPath().
+ * A Path is an InetSocketAddress/ISD/AS of a destination host plu a path to that host.
  *
  * <p>This class is threadsafe.
  */
 public abstract class Path {
   private final byte[] pathRaw;
+  private final long srcIsdAs;
   private final long dstIsdAs;
   private final byte[] dstAddress;
   private final int dstPort;
 
-  protected Path(byte[] rawPath, long dstIsdAs, byte[] dstIP, int dstPort) {
+  protected Path(byte[] rawPath, long srcIsdAs, long dstIsdAs, byte[] dstIP, int dstPort) {
     this.pathRaw = rawPath;
+    this.srcIsdAs = srcIsdAs;
     this.dstIsdAs = dstIsdAs;
     this.dstAddress = dstIP;
     this.dstPort = dstPort;
@@ -44,6 +43,10 @@ public abstract class Path {
 
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
+  public long getSourceIsdAs() {
+    return srcIsdAs;
+  }
+
   public int getDestinationPort() {
     return dstPort;
   }
@@ -54,5 +57,15 @@ public abstract class Path {
 
   public long getDestinationIsdAs() {
     return dstIsdAs;
+  }
+
+  @Override
+  public String toString() {
+    return "Path{" +
+            "dstIsdAs=" + ScionUtil.toStringIA(dstIsdAs) +
+            ", dstAddress=" + Arrays.toString(dstAddress) +
+            ", dstPort=" + dstPort +
+            ", pathRaw=" + Arrays.toString(pathRaw) +
+            '}';
   }
 }

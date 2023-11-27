@@ -31,12 +31,14 @@
 
 # TODO
 - TestPingPing with Tiny!! still works?
+- Check @Deprecated & @Disabled
 - Make MockDaemon static!!!! (it is already partuially static anyway, see getAndResetCallCount())
 - Remove getPath() in favor of getPaths()?!
 - Rename *Path* to *Route*?
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
+  - Handle SCMP reporting a failed path -> request new one!
 - Test path switching, e.g. with 2nd BR
 - Test 
   - service.getPaths()
