@@ -161,8 +161,9 @@ public class ScionService {
    * @return The first path returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public RequestPath getPath(InetSocketAddress dstAddress, PathPolicy pathPolicy) throws IOException {
-    long dstIsdAs = getScionAddress(dstAddress.getHostName()).getIsdAs(); // TODO improve this!!!!!
+  public RequestPath getPath(InetSocketAddress dstAddress, PathPolicy pathPolicy)
+      throws IOException {
+    long dstIsdAs = getIsdAs(dstAddress.getHostName());
     return getPath(dstIsdAs, dstAddress, pathPolicy);
   }
 
@@ -175,8 +176,9 @@ public class ScionService {
    * @return The first path returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public RequestPath getPath(long dstIsdAs, InetSocketAddress dstAddress, PathPolicy pathPolicy) throws IOException {
-   return pathPolicy.filter(getPaths(dstIsdAs, dstAddress));
+  public RequestPath getPath(long dstIsdAs, InetSocketAddress dstAddress, PathPolicy pathPolicy)
+      throws IOException {
+    return pathPolicy.filter(getPaths(dstIsdAs, dstAddress));
   }
 
   /**
@@ -187,7 +189,8 @@ public class ScionService {
    * @return The first path returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress) throws IOException {
+  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress)
+      throws IOException {
     long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
@@ -195,7 +198,9 @@ public class ScionService {
     }
     List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
-      scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort()));
+      scionPaths.add(
+          RequestPath.create(
+              paths.get(i), dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort()));
     }
     return scionPaths;
   }
@@ -230,9 +235,35 @@ public class ScionService {
   }
 
   /**
-   * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
-   * class.
-   *
+   * @param hostName hostName of the host to resolve
+   * @return A ScionAddress
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  public long getIsdAs(String hostName) throws ScionException {
+    // $ dig +short TXT ethz.ch | grep "scion="
+    // "scion=64-2:0:9,129.132.230.98"
+
+    // Look for TXT in application properties
+    String txtFromProperties = findTxtRecordInProperties(hostName);
+    if (txtFromProperties != null) {
+      return parseTxtRecordToIA(txtFromProperties, hostName);
+    }
+
+    // Use local ISD/AS for localhost addresses
+    if (isLocalhost(hostName)) {
+      return ScionService.defaultService().getLocalIsdAs(); // TODO default service ?!?!?!
+    }
+
+    // DNS lookup
+    String txtFromDNS = findTxtRecordViaDNS(hostName);
+    if (txtFromDNS != null) {
+      return parseTxtRecordToIA(txtFromDNS, hostName);
+    }
+
+    throw new ScionException("Host has no SCION TXT entry: " + hostName);
+  }
+
+  /**
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
@@ -241,23 +272,36 @@ public class ScionService {
     // $ dig +short TXT ethz.ch | grep "scion="
     // "scion=64-2:0:9,129.132.230.98"
 
-    // Look for TXT in properties
+    // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName);
     if (txtFromProperties != null) {
       return parseTxtRecord(txtFromProperties, hostName);
     }
 
     // Use local ISD/AS for localhost addresses
-    if (hostName.startsWith("127.0.0.")
-            || "::1".equals(hostName)
-            || "0:0:0:0:0:0:0:1".equals(hostName)
-            || "localhost".equals(hostName)
-            || "ip6-localhost".equals(hostName)) {
-      long isdAs = ScionService.defaultService().getLocalIsdAs();
+    if (isLocalhost(hostName)) {
+      long isdAs = ScionService.defaultService().getLocalIsdAs(); // TODO default service ?!?!?!
       return ScionAddress.create(isdAs, hostName, hostName);
     }
 
     // DNS lookup
+    String txtFromDNS = findTxtRecordViaDNS(hostName);
+    if (txtFromDNS != null) {
+      return parseTxtRecord(txtFromDNS, hostName);
+    }
+
+    throw new ScionException("Host has no SCION TXT entry: " + hostName);
+  }
+
+  private boolean isLocalhost(String hostName) {
+    return hostName.startsWith("127.0.0.")
+        || "::1".equals(hostName)
+        || "0:0:0:0:0:0:0:1".equals(hostName)
+        || "localhost".equals(hostName)
+        || "ip6-localhost".equals(hostName);
+  }
+
+  private String findTxtRecordViaDNS(String hostName) throws ScionException {
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
@@ -267,7 +311,7 @@ public class ScionService {
         TXTRecord txt = (TXTRecord) records[i];
         String entry = txt.rdataToString();
         if (entry.startsWith("\"scion=")) {
-          return parseTxtRecord(entry, hostName);
+          return entry;
         }
       }
     } catch (TextParseException e) {
@@ -291,7 +335,7 @@ public class ScionService {
     //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
     //    InetAddressResolver r = new InetAddressResolver();
 
-    throw new ScionException("Host has no SCION TXT entry: " + hostName);
+    return null;
   }
 
   private String findTxtRecordInProperties(String hostName) {
@@ -338,5 +382,14 @@ public class ScionService {
     long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));
     return ScionAddress.create(
         isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
+  }
+
+  private long parseTxtRecordToIA(String txtEntry, String hostName) throws ScionException {
+    // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
+    int posComma = txtEntry.indexOf(',');
+    if (!txtEntry.startsWith("\"scion=") || !txtEntry.endsWith("\"") || posComma < 0) {
+      throw new ScionException("Invalid TXT entry: " + txtEntry);
+    }
+    return ScionUtil.parseIA(txtEntry.substring(7, posComma));
   }
 }
