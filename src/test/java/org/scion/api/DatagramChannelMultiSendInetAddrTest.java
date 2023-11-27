@@ -26,7 +26,8 @@ import org.scion.DatagramChannel;
 import org.scion.Path;
 import org.scion.testutil.PingPongHelper;
 
-class DatagramChannelMultiPingPongWithInetAddrTest {
+/** Test receive()/send(InetAddress) operations on DatagramChannel. */
+class DatagramChannelMultiSendInetAddrTest {
 
   private static final String MSG = "Hello world!";
 

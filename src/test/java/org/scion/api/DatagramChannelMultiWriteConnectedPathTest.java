@@ -24,8 +24,8 @@ import org.scion.DatagramChannel;
 import org.scion.Path;
 import org.scion.testutil.PingPongHelper;
 
-/** Tess receive()/send() operations on DatagramChannel. */
-class DatagramChannelMultiPingPongRSTest {
+/** Test read()/write() operations on DatagramChannel connected with a path. */
+class DatagramChannelMultiWriteConnectedPathTest {
 
   private static final String MSG = "Hello world!";
 
@@ -33,7 +33,7 @@ class DatagramChannelMultiPingPongRSTest {
   public void test() {
     PingPongHelper.ServerEndPoint serverFn = this::server;
     PingPongHelper.ClientEndPoint clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 20, 50);
+    PingPongHelper pph = new PingPongHelper(1, 10, 10);
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -41,14 +41,15 @@ class DatagramChannelMultiPingPongRSTest {
       throws IOException {
     String message = MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-    channel.send(sendBuf, serverAddress);
+    channel.disconnect();
+    channel.connect(serverAddress);
+    assertTrue(channel.isConnected());
+    channel.write(sendBuf);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    Path address = channel.receive(response);
-    assertNotNull(address);
-    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
-    assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
+    int len = channel.read(response);
+    assertEquals(14, len);
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
@@ -62,7 +63,7 @@ class DatagramChannelMultiPingPongRSTest {
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();
-    assertTrue(msg.startsWith(MSG));
+    assertTrue(msg.startsWith(MSG), msg);
     assertTrue(MSG.length() + 3 >= msg.length());
 
     // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);

@@ -17,6 +17,8 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
@@ -24,7 +26,8 @@ import org.scion.DatagramChannel;
 import org.scion.Path;
 import org.scion.testutil.PingPongHelper;
 
-class DatagramChannelMultiPingPongWIthPathTest {
+/** Test read()/write() operations on DatagramChannel connected with an InetSocketAddress. */
+class DatagramChannelMultiWriteConnectedInetSocketTest {
 
   private static final String MSG = "Hello world!";
 
@@ -32,7 +35,7 @@ class DatagramChannelMultiPingPongWIthPathTest {
   public void test() {
     PingPongHelper.ServerEndPoint serverFn = this::server;
     PingPongHelper.ClientEndPoint clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 20, 50);
+    PingPongHelper pph = new PingPongHelper(1, 10, 10);
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -40,14 +43,18 @@ class DatagramChannelMultiPingPongWIthPathTest {
       throws IOException {
     String message = MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-    channel.send(sendBuf, serverAddress);
+    channel.disconnect();
+    // Test send() with InetAddress
+    InetAddress inetServerAddress = InetAddress.getByAddress(serverAddress.getDestinationAddress());
+    InetSocketAddress inetServerSocketAddress = new InetSocketAddress(inetServerAddress, serverAddress.getDestinationPort());
+    channel.connect(inetServerSocketAddress);
+    assertTrue(channel.isConnected());
+    channel.write(sendBuf);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    Path address = channel.receive(response);
-    assertNotNull(address);
-    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
-    assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
+    int len = channel.read(response);
+    assertEquals(14, len);
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
@@ -61,7 +68,7 @@ class DatagramChannelMultiPingPongWIthPathTest {
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();
-    assertTrue(msg.startsWith(MSG));
+    assertTrue(msg.startsWith(MSG), msg);
     assertTrue(MSG.length() + 3 >= msg.length());
 
     // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);

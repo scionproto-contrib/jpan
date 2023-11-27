@@ -17,7 +17,6 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
@@ -25,8 +24,8 @@ import org.scion.DatagramChannel;
 import org.scion.Path;
 import org.scion.testutil.PingPongHelper;
 
-/** Test read()/write() operations on DatagramChannel. */
-class DatagramChannelMultiPingPongRWTest {
+/** Test receive()/send(Path) operations on DatagramChannel. */
+class DatagramChannelMultiSendPathTest {
 
   private static final String MSG = "Hello world!";
 
@@ -34,7 +33,7 @@ class DatagramChannelMultiPingPongRWTest {
   public void test() {
     PingPongHelper.ServerEndPoint serverFn = this::server;
     PingPongHelper.ClientEndPoint clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 10, 10);
+    PingPongHelper pph = new PingPongHelper(1, 20, 50);
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -42,16 +41,14 @@ class DatagramChannelMultiPingPongRWTest {
       throws IOException {
     String message = MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-    if (!channel.isConnected()) {
-      channel.connect(serverAddress);
-    }
-    assertTrue(channel.isConnected());
-    channel.write(sendBuf);
+    channel.send(sendBuf, serverAddress);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    int len = channel.read(response);
-    assertEquals(14, len);
+    Path address = channel.receive(response);
+    assertNotNull(address);
+    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
+    assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
@@ -65,7 +62,7 @@ class DatagramChannelMultiPingPongRWTest {
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();
-    assertTrue(msg.startsWith(MSG), msg);
+    assertTrue(msg.startsWith(MSG));
     assertTrue(MSG.length() + 3 >= msg.length());
 
     // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);

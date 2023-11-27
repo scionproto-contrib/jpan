@@ -142,7 +142,7 @@ public class ScionServiceTest {
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
           Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
-        paths = client.getPaths(dstIA, dstAddress, PathPolicy.DEFAULT);
+        paths = client.getPaths(dstIA, dstAddress);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
