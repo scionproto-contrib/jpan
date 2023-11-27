@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
+import org.scion.testutil.ExamplePacket;
 
 /**
  * Helper class to access package private methods in org.scion.ScionService and ScionPacketHelper.
@@ -35,19 +36,14 @@ public class PackageVisibilityHelper {
   }
 
   public static Path createDummyPath() {
-    String ip = null;
-    try {
-      ip = Inet4Address.getLocalHost().getHostAddress();
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
-    return createDummyPath(0, 0, ip, 55555, new byte[0], new InetSocketAddress(12345));
+    return createDummyPath(
+        0, 0, ExamplePacket.SRC_HOST, 55555, new byte[0], new InetSocketAddress(12345));
   }
 
   public static RequestPath createDummyPath(
       long srcIsdAs,
       long dstIsdAs,
-      String dstHost,
+      byte[] dstHost,
       int dstPort,
       byte[] raw,
       InetSocketAddress firstHop) {
