@@ -14,13 +14,12 @@
 
 package org.scion;
 
+import com.google.protobuf.ByteString;
 import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
-
-import com.google.protobuf.ByteString;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 
@@ -31,11 +30,6 @@ public class PackageVisibilityHelper {
 
   public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_DNS_MOCK;
 
-  public static List<Daemon.Path> getPathList(ScionService service, long srcIsdAs, long dstIsdAs)
-      throws ScionException {
-    return service.getPathList(srcIsdAs, dstIsdAs);
-  }
-
   public static InetSocketAddress getDstAddress(ByteBuffer packet) throws UnknownHostException {
     return ScionHeaderParser.readDestinationSocketAddress(packet);
   }
@@ -43,7 +37,7 @@ public class PackageVisibilityHelper {
   public static Path createDummyPath() {
     String ip = null;
     try {
-      ip = Inet4Address.getLocalHost().toString();
+      ip = Inet4Address.getLocalHost().getHostAddress();
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
@@ -53,9 +47,10 @@ public class PackageVisibilityHelper {
   public static RequestPath createDummyPath(
       long dstIsdAs, String dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
     ByteString bs = ByteString.copyFrom(raw);
+    String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
     Daemon.Interface inter =
         Daemon.Interface.newBuilder()
-            .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHop.toString().substring(1)).build())
+            .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHopString).build())
             .build();
     Daemon.Path path = Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).build();
     return RequestPath.create(path, dstIsdAs, dstHost, dstPort);

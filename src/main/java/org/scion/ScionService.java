@@ -103,7 +103,7 @@ public class ScionService {
     try {
       response = blockingStub.aS(request);
     } catch (StatusRuntimeException e) {
-      throw new ScionException("Error while getting AS info", e);
+      throw new ScionException("Error while getting AS info: " + e.getMessage(), e);
     }
     return response;
   }
@@ -198,17 +198,6 @@ public class ScionService {
       scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort()));
     }
     return scionPaths;
-  }
-
-  /**
-   * Request and return a path from the local ISD/AS to dstIsdAs.
-   *
-   * @param dstIsdAs Destination ISD + AS
-   * @return The first path returned by the path service.
-   * @throws IOException if an errors occurs while querying paths.
-   */
-  public RequestPath getPath(long dstIsdAs) throws IOException {
-    return getPath(getLocalIsdAs(), dstIsdAs, PathPolicy.DEFAULT);
   }
 
   /**

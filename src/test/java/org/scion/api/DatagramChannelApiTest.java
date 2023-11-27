@@ -134,7 +134,6 @@ class DatagramChannelApiTest {
     }
   }
 
-  @Disabled // TODO fix this, create dummy paths
   @Test
   public void isConnected() throws IOException {
     Path address = PackageVisibilityHelper.createDummyPath();

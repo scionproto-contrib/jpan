@@ -54,12 +54,13 @@ public class ScionServiceTest {
     String daemonAddr = "127.0.0.112:12345";
     long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
       ScionException thrown =
           assertThrows(
-              ScionException.class, () -> client.getPath(srcIA, dstIA, PathPolicy.DEFAULT));
-      assertEquals(
-          "io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
+              ScionException.class, () -> client.getPath(dstIA, dstAddress, PathPolicy.DEFAULT));
+      assertTrue(
+          thrown.getMessage().startsWith("Error while getting AS info:"), thrown.getMessage());
     }
   }
 
