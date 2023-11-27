@@ -30,6 +30,7 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
+- TestPingPing with Tiny!! still works?
 - Make MockDaemon static!!!! (it is already partuially static anyway, see getAndResetCallCount())
 - Remove getPath() in favor of getPaths()?!
 - Rename *Path* to *Route*?
@@ -41,6 +42,9 @@
   - service.getPaths()
   - PathPolicies
 - Truncate PROTO files! 
+- Implement callback for
+  - SCMP errors (+ option to NOT ignore)
+  - SCMP pings (+ option to NOT ignore)
 - Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
   - dig NAPTR inf.ethz.ch
   - Contact netsec-w37w3w.inf.ethz.ch for topology file

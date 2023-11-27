@@ -251,7 +251,7 @@ public class ScionService {
 
     // Use local ISD/AS for localhost addresses
     if (isLocalhost(hostName)) {
-      return ScionService.defaultService().getLocalIsdAs(); // TODO default service ?!?!?!
+      return getLocalIsdAs();
     }
 
     // DNS lookup
@@ -280,8 +280,7 @@ public class ScionService {
 
     // Use local ISD/AS for localhost addresses
     if (isLocalhost(hostName)) {
-      long isdAs = ScionService.defaultService().getLocalIsdAs(); // TODO default service ?!?!?!
-      return ScionAddress.create(isdAs, hostName, hostName);
+      return ScionAddress.create(getLocalIsdAs(), hostName, hostName);
     }
 
     // DNS lookup
@@ -381,7 +380,7 @@ public class ScionService {
     }
     long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));
     return ScionAddress.create(
-            isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
+        isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }
 
   private long parseTxtRecordToIA(String txtEntry, String hostName) throws ScionException {
