@@ -140,8 +140,7 @@ class DatagramChannelApiTest {
 
       // try connecting again
       // Should be AlreadyConnectedException, but Temurin throws IllegalStateException
-      Exception ex = assertThrows(IllegalStateException.class, () -> channel.connect(address));
-      // assertNull(ex.getMessage(), ex.getMessage());
+      assertThrows(IllegalStateException.class, () -> channel.connect(address));
       assertTrue(channel.isConnected());
 
       // disconnect
