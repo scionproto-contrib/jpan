@@ -30,8 +30,6 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
-- TestPingPing with Tiny!! still works?
-- Check @Deprecated & @Disabled
 - Make MockDaemon static!!!! (it is already partuially static anyway, see getAndResetCallCount())
 - Remove getPath() in favor of getPaths()?!
 - Rename *Path* to *Route*?

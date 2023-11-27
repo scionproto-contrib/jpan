@@ -125,7 +125,6 @@ public class ScionService {
   @Deprecated
   List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) throws ScionException {
     // LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
-
     Daemon.PathsRequest request =
         Daemon.PathsRequest.newBuilder()
             .setSourceIsdAs(srcIsdAs)

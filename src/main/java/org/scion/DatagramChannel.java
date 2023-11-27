@@ -175,7 +175,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
-  @Deprecated // TODO remove, we should not connect with a Fixed path object.
   public DatagramChannel connect(Path path) throws IOException {
     this.path = path;
     channel.connect(path.getFirstHopAddress());
