@@ -130,8 +130,10 @@ class DatagramChannelApiTest {
 
   @Test
   public void isConnected_InetSocket() throws IOException {
-    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-    InetSocketAddress address = new InetSocketAddress("::1", 12345);
+    //    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+    //    InetSocketAddress address = new InetSocketAddress("::1", 12345);
+    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());
       channel.connect(address);
