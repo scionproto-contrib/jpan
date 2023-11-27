@@ -38,29 +38,13 @@ public abstract class Path {
     this.dstPort = dstPort;
   }
 
-  @Deprecated // TODO rename to DST...
-  public long getIsdAs() {
-    return dstIsdAs;
-  }
-
-  @Deprecated // TODO rename to DST...
-  public int getIsd() {
-    return ScionUtil.extractIsd(dstIsdAs);
-  }
-
-  // TODO doc
   public byte[] getRawPath() {
     return pathRaw;
   }
 
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
-  @Deprecated // TODO do we need this?
-  public InetAddress getAddress() throws UnknownHostException {
-    return InetAddress.getByAddress(dstAddress);
-  }
-
-  public int getPort() {
+  public int getDestinationPort() {
     return dstPort;
   }
 
@@ -68,7 +52,6 @@ public abstract class Path {
     return dstAddress;
   }
 
-  @Deprecated // TODO rename? Move in ScionAddres??
   public long getDestinationIsdAs() {
     return dstIsdAs;
   }

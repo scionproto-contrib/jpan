@@ -257,11 +257,11 @@ public class ScionHeaderParser {
       int userPacketLength,
       int pathHeaderLength,
       long srcIsdAs,
-      InetAddress srcAddress,
+      byte[] srcAddress,
       long dstIsdAs,
-      InetAddress dstAddress) {
-    int sl = srcAddress instanceof Inet4Address ? 0 : 3;
-    int dl = dstAddress instanceof Inet4Address ? 0 : 3;
+      byte[] dstAddress) {
+    int sl = srcAddress.length / 4 - 1;
+    int dl = dstAddress.length / 4 - 1;
 
     int i0 = 0;
     int i1 = 0;
@@ -293,10 +293,8 @@ public class ScionHeaderParser {
     data.putLong(srcIsdAs);
 
     // HostAddr
-    byte[] dstBytes = dstAddress.getAddress();
-    data.put(dstBytes);
-    byte[] srcBytes = srcAddress.getAddress();
-    data.put(srcBytes);
+    data.put(dstAddress);
+    data.put(srcAddress);
   }
 
   private static int calcLen(int pathHeaderLength, int sl, int dl) {

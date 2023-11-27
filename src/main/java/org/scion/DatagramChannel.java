@@ -185,8 +185,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
       //     normal DNS and is likely to be the wrong IP
       //   - if it is an InetAdress based on IP, then it is probably the correct IP, in any case.
       //     we don;t have a choice because we cannot look up another IP (reverse lookup???)
-      ScionAddress sa = ScionService.defaultService().getScionAddress(inetAddress.getHostName());
-      path = ScionService.defaultService().getPath(sa.getIsdAs(), pathPolicy);
+      ScionAddress sa = Scion.defaultService().getScionAddress(inetAddress.getHostName());
+      path = Scion.defaultService().getPath(sa.getIsdAs(), pathPolicy);
     } else {
       throw new IllegalArgumentException(
           "connect() requires an InetSocketAddress or a ScionSocketAddress.");
@@ -284,12 +284,12 @@ public class DatagramChannel implements ByteChannel, Closeable {
     int payloadLength = srcBuffer.remaining();
 
     InetSocketAddress srcSocketAddress = getLocalAddress();
-    long srcIA = ScionService.defaultService().getLocalIsdAs(); // TODO do not use default()
+    long srcIA = Scion.defaultService().getLocalIsdAs(); // TODO do not use default()
     long dstIA = dstSocketAddress.getDestinationIsdAs();
     int srcPort = srcSocketAddress.getPort();
-    int dstPort = dstSocketAddress.getPort();
-    InetAddress srcAddress = srcSocketAddress.getAddress();
-    InetAddress dstAddress = dstSocketAddress.getAddress();  // TODO use byte[]
+    int dstPort = dstSocketAddress.getDestinationPort();
+    byte[] srcAddress = srcSocketAddress.getAddress().getAddress();
+    byte[] dstAddress = dstSocketAddress.getDestinationAddress();
 
     byte[] path = dstSocketAddress.getRawPath();
     ScionHeaderParser.write(

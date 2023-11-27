@@ -121,8 +121,8 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
     // System.out.println("buf-f:" + buf.limit() + "  p=" + buf.position() + "  rem=" +
     // buf.remaining());
     datagramPacket.setLength(buf.limit()); // TODO offset?
-    datagramPacket.setPort(a.getPort());
-    datagramPacket.setAddress(a.getAddress()); // TODO setSocketAddress() ?
+    datagramPacket.setPort(a.getDestinationPort());
+    datagramPacket.setAddress(InetAddress.getByAddress(a.getDestinationAddress())); // TODO setPath() ?
   }
 
   /**

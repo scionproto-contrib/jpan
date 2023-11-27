@@ -46,8 +46,8 @@ class DatagramChannelMultiPingPongWIthPathTest {
     ByteBuffer response = ByteBuffer.allocate(512);
     Path address = channel.receive(response);
     assertNotNull(address);
-    assertEquals(serverAddress.getAddress(), address.getAddress());
-    assertEquals(serverAddress.getPort(), address.getPort());
+    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
+    assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();

@@ -75,9 +75,12 @@ public class HeaderComposeTest {
     String msg = "Hello scion";
     ByteBuffer userPacket = ByteBuffer.allocate(msg.length());
     userPacket.put(msg.getBytes());
-    InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
-    InetAddress dstAddress = InetAddress.getByName(hostname);
-    InetSocketAddress dstSocketAddress = new InetSocketAddress(dstAddress, dstPort);
+    //    InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
+    //    InetAddress dstAddress = InetAddress.getByName(hostname);
+    byte[] srcAddress = new byte[] {127, 0, 0, 1};
+    byte[] dstAddress = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+    InetSocketAddress dstSocketAddress =
+        new InetSocketAddress(InetAddress.getByAddress(dstAddress), dstPort);
 
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
