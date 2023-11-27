@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.PathPolicy;
 import org.scion.Scion;
 import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
@@ -74,14 +75,14 @@ public class HeaderComposeTest {
     String msg = "Hello scion";
     ByteBuffer userPacket = ByteBuffer.allocate(msg.length());
     userPacket.put(msg.getBytes());
+    InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
+    InetAddress dstAddress = InetAddress.getByName(hostname);
+    InetSocketAddress dstSocketAddress = new InetSocketAddress(dstAddress, dstPort);
 
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path = pathService.getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
-
-    InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
-    InetAddress dstAddress = InetAddress.getByName(hostname);
+    byte[] path = pathService.getPath(dstIA, dstSocketAddress, PathPolicy.DEFAULT).getRawPath();
 
     // Socket internal = write header
     ScionHeaderParser.write(

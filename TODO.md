@@ -30,6 +30,9 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
+- Make MockDaemon static!!!! (it is already partuially static anyway, see getAndResetCallCount())
+- Remove getPath() in favor of getPaths()?!
+- Rename *Path* to *Route*?
 - Create Channel/SocketAddress with custom ScionService 
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
@@ -85,6 +88,7 @@
 - ScionService: extend API
 - Remove PathHeaderOneHop
 - SCMP ping, traceroute?
+- Maven: reproducible build
 
 - For Android look into
   - android.net.Network: 
@@ -153,4 +157,4 @@ Look at:
 - Daemon.proto
   - Expiration is a 96bit Timestamp, optimize?
   - Latencies are 96bit Durations, optimize?
-  - MTU and bandwidth are given per path, while latency is given per hop. Why is that?
+ 

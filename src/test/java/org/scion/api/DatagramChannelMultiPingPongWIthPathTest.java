@@ -17,7 +17,6 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ import org.scion.DatagramChannel;
 import org.scion.Path;
 import org.scion.testutil.PingPongHelper;
 
-class DatagramChannelMultiPingPongTest {
+class DatagramChannelMultiPingPongWIthPathTest {
 
   private static final String MSG = "Hello world!";
 

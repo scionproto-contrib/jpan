@@ -167,9 +167,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
       //     normal DNS and is likely to be the wrong IP
       //   - if it is an InetAddress based on IP, then it is probably the correct IP, in any case.
       //     we don;t have a choice because we cannot look up another IP (reverse lookup???)
-      ScionService service = ScionService.defaultService();
-      ScionAddress sa = service.getScionAddress(inetAddress.getHostName());
-      path = service.getPath(sa.getIsdAs(), pathPolicy);
+      path = Scion.defaultService().getPath(inetAddress, pathPolicy);
     } else {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }

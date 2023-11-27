@@ -25,18 +25,33 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.Charset;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Path;
 import org.scion.testutil.ExamplePacket;
+import org.scion.testutil.MockDaemon;
 import org.scion.testutil.PingPongHelper;
 
 class DatagramChannelApiTest {
 
   private static final int dummyPort = 44444;
   private static final String MSG = "Hello scion!";
+  private static MockDaemon daemon;
+
+  @BeforeEach
+  public void beforeAll() throws IOException {
+    daemon = MockDaemon.create().start();
+  }
+
+  @AfterEach
+  public void afterAll() throws IOException {
+    daemon.close();
+    daemon = null;
+  }
 
   @Test
   void getLocalAddress_withBind() throws IOException {
@@ -148,7 +163,8 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void receive_bufferTooSmall() {
+  public void receive_bufferTooSmall() throws IOException {
+    daemon.close(); // We don't need the daemon here
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
         (channel, serverAddress, id) -> {
@@ -170,7 +186,8 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void read_bufferTooSmall() {
+  public void read_bufferTooSmall() throws IOException {
+    daemon.close(); // We don't need the daemon here
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
         (channel, serverAddress, id) -> {
@@ -228,7 +245,7 @@ class DatagramChannelApiTest {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.connect(addr);
       Exception ex = assertThrows(IOException.class, () -> channel.write(buffer));
-      assertTrue(ex.getMessage().contains("Message too long"));
+      assertTrue(ex.getMessage().contains("Message too long"), ex.getMessage());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

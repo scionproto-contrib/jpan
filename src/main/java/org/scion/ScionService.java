@@ -121,6 +121,7 @@ public class ScionService {
   }
 
   // TODO do not expose proto types on API
+  @Deprecated
   List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) throws ScionException {
     // LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
 
@@ -160,8 +161,34 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   public RequestPath getPath(InetSocketAddress dstAddress, PathPolicy pathPolicy) throws IOException {
-    long srcIsdAs = getLocalIsdAs();
     long dstIsdAs = getScionAddress(dstAddress.getHostName()).getIsdAs(); // TODO improve this!!!!!
+    return getPath(dstIsdAs, dstAddress, pathPolicy);
+  }
+
+  /**
+   * Request and return a path from the local ISD/AS to dstIsdAs.
+   *
+   * @param dstIsdAs Destination ISD/AS
+   * @param dstAddress Destination IP address
+   * @param pathPolicy Path policy
+   * @return The first path returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public RequestPath getPath(long dstIsdAs, InetSocketAddress dstAddress, PathPolicy pathPolicy) throws IOException {
+   return pathPolicy.filter(getPaths(dstIsdAs, dstAddress, pathPolicy));
+  }
+
+  /**
+   * Request and return a path from the local ISD/AS to dstIsdAs.
+   *
+   * @param dstIsdAs Destination ISD/AS
+   * @param dstAddress Destination IP address
+   * @param pathPolicy Path policy
+   * @return The first path returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress, PathPolicy pathPolicy) throws IOException {
+    long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
       return null;
@@ -170,7 +197,7 @@ public class ScionService {
     for (int i = 0; i < paths.size(); i++) {
       scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort()));
     }
-    return pathPolicy.filter(scionPaths);
+    return scionPaths;
   }
 
   /**
@@ -285,8 +312,10 @@ public class ScionService {
 
     // Use local ISD/AS for localhost addresses
     if (hostName.startsWith("127.0.0.")
-        || "::1".equals(hostName)
-        || "0:0:0:0:0:0:0:1".equals(hostName)) {
+            || "::1".equals(hostName)
+            || "0:0:0:0:0:0:0:1".equals(hostName)
+            || "localhost".equals(hostName)
+            || "ip6-localhost".equals(hostName)) {
       long isdAs = ScionService.defaultService().getLocalIsdAs();
       return ScionAddress.create(isdAs, hostName, hostName);
     }

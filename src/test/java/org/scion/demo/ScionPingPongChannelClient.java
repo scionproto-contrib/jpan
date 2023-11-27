@@ -63,7 +63,7 @@ public class ScionPingPongChannelClient {
     // Demo setup
     if (useMockTopology) {
       DemoTopology.configureMock();
-      MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+      MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
       doClientStuff(44444);
       DemoTopology.shutDown();
     } else {

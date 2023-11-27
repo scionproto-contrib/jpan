@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.PathPolicy;
 import org.scion.Scion;
 import org.scion.ScionUtil;
 import org.scion.demo.inspector.Constants;
@@ -80,16 +81,17 @@ public class InspectorComposeTest {
     // User side
     String hostname = "::1";
     int dstPort = 8080;
-    InetAddress address = InetAddress.getByName(hostname);
+    InetAddress dstAddress = InetAddress.getByName(hostname);
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
     byte[] sendBuf = msg.getBytes();
-    DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, dstPort);
+    DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, dstAddress, dstPort);
 
     // Socket internal - compose header data
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path = pathService.getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
+    InetSocketAddress dstSocketAddress = new InetSocketAddress(dstAddress, dstPort);
+    byte[] path = pathService.getPath(dstIA, dstSocketAddress, PathPolicy.DEFAULT).getRawPath();
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");

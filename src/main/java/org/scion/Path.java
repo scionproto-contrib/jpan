@@ -64,6 +64,10 @@ public abstract class Path {
     return dstPort;
   }
 
+  public byte[] getDestinationAddress() {
+    return dstAddress;
+  }
+
   @Deprecated // TODO rename? Move in ScionAddres??
   public long getDestinationIsdAs() {
     return dstIsdAs;
