@@ -17,7 +17,6 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-
 import org.scion.*;
 import org.scion.testutil.MockDNS;
 
@@ -26,8 +25,8 @@ public class ScionPingPongChannelClient {
   public static boolean PRINT = true;
   public static int PORT = 44444;
   /**
-   * True: connect to ScionPingPongChannelServer via Java mock topology
-   * False: connect to any service via ScionProto "tiny" topology
+   * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
+   * service via ScionProto "tiny" topology
    */
   public static boolean USE_MOCK_TOPOLOGY = false;
 
@@ -44,13 +43,13 @@ public class ScionPingPongChannelClient {
     return client;
   }
 
-  public static void sendMessage(
-      DatagramChannel client, String msg, Path serverAddress) throws IOException {
+  public static void sendMessage(DatagramChannel client, String msg, Path serverAddress)
+      throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     client.send(buffer, serverAddress);
-    //if (PRINT) {
-      System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
-    //}
+    // if (PRINT) {
+    System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
+    // }
   }
 
   public static void receiveMessage(DatagramChannel channel) throws IOException {

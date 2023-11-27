@@ -35,8 +35,8 @@ public class ScionPingPongChannelServer {
     return server;
   }
 
-  public static void sendMessage(
-      DatagramChannel channel, String msg, Path serverAddress) throws IOException {
+  public static void sendMessage(DatagramChannel channel, String msg, Path serverAddress)
+      throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     channel.send(buffer, serverAddress);
     if (PRINT) {

@@ -39,14 +39,14 @@ class DatagramChannelMultiWriteConnectedInetSocketTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private void client(DatagramChannel channel, Path serverAddress, int id)
-      throws IOException {
+  private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
     String message = MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.disconnect();
     // Test send() with InetAddress
     InetAddress inetServerAddress = InetAddress.getByAddress(serverAddress.getDestinationAddress());
-    InetSocketAddress inetServerSocketAddress = new InetSocketAddress(inetServerAddress, serverAddress.getDestinationPort());
+    InetSocketAddress inetServerSocketAddress =
+        new InetSocketAddress(inetServerAddress, serverAddress.getDestinationPort());
     channel.connect(inetServerSocketAddress);
     assertTrue(channel.isConnected());
     channel.write(sendBuf);

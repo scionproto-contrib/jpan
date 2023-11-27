@@ -28,6 +28,7 @@ public class ExamplePacket {
   public static final byte[] DST_HOST = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
   /** IPv6 localhost: "::1" */
   public static final byte[] SRC_HOST = {127, 0, 0, 1};
+
   public static final InetSocketAddress FIRST_HOP = new InetSocketAddress("127.0.0.1", 23456);
   public static final byte[] PATH_RAW_TINY_110_112 = {
     0, 0, 32, 0, 1, 0, 11, 16,

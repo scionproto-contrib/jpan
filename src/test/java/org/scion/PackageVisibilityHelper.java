@@ -15,11 +15,9 @@
 package org.scion;
 
 import com.google.protobuf.ByteString;
-import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.List;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;

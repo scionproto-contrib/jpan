@@ -50,8 +50,7 @@ public class ScionHeaderParser {
    * @return A new ScionSocketAddress including raw path.
    */
   // TODO this is a bit weird to have the firstHopAddress here....
-  public static Path readRemoteSocketAddress(
-      ByteBuffer data, InetSocketAddress firstHopAddress) {
+  public static Path readRemoteSocketAddress(ByteBuffer data, InetSocketAddress firstHopAddress) {
     int start = data.position();
 
     int i1 = data.getInt(start + 4);
@@ -94,10 +93,8 @@ public class ScionHeaderParser {
     // rewind to original offset
     data.position(start);
     // Swap src and dst.
-    return ResponsePath.create(path,
-           dstIsdAs, bytesDst, dstPort,
-            srcIsdAs, bytesSrc, srcPort,
-            firstHopAddress);
+    return ResponsePath.create(
+        path, dstIsdAs, bytesDst, dstPort, srcIsdAs, bytesSrc, srcPort, firstHopAddress);
   }
 
   public static InetSocketAddress readDestinationSocketAddress(ByteBuffer data)

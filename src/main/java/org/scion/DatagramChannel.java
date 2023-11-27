@@ -85,7 +85,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return addr;
   }
 
-
   /**
    * Attempts to send the content of the buffer to the destinationAddress.
    *

@@ -61,11 +61,15 @@ public abstract class Path {
 
   @Override
   public String toString() {
-    return "Path{" +
-            "dstIsdAs=" + ScionUtil.toStringIA(dstIsdAs) +
-            ", dstAddress=" + Arrays.toString(dstAddress) +
-            ", dstPort=" + dstPort +
-            ", pathRaw=" + Arrays.toString(pathRaw) +
-            '}';
+    return "Path{"
+        + "dstIsdAs="
+        + ScionUtil.toStringIA(dstIsdAs)
+        + ", dstAddress="
+        + Arrays.toString(dstAddress)
+        + ", dstPort="
+        + dstPort
+        + ", pathRaw="
+        + Arrays.toString(pathRaw)
+        + '}';
   }
 }

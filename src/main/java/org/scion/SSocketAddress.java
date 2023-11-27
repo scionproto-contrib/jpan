@@ -14,7 +14,6 @@
 
 package org.scion;
 
-import java.io.IOException;
 import java.net.*;
 
 /**
@@ -73,17 +72,19 @@ public class SSocketAddress extends InetSocketAddress {
     return ScionUtil.extractIsd(isdAs);
   }
 
-//  /**
-//   * Return a path to the address represented by this object. If no path is associated it will try
-//   * to create one.
-//   *
-//   * @return The path associated with this address. If no path is associated, this method will first
-//   *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
-//   * @throws ScionException if an errors occurs while querying paths.
-//   */
-//  public BasePath getPath() throws IOException {
-//    return getPath(PathPolicy.DEFAULT);
-//  }
+  //  /**
+  //   * Return a path to the address represented by this object. If no path is associated it will
+  // try
+  //   * to create one.
+  //   *
+  //   * @return The path associated with this address. If no path is associated, this method will
+  // first
+  //   *     look up the local ISD/AS and then look up a path to the remote ISD/AS.
+  //   * @throws ScionException if an errors occurs while querying paths.
+  //   */
+  //  public BasePath getPath() throws IOException {
+  //    return getPath(PathPolicy.DEFAULT);
+  //  }
 
   /**
    * Return a path to the address represented by this object. If no path is associated it will try
@@ -108,11 +109,11 @@ public class SSocketAddress extends InetSocketAddress {
   //         - usage of correct daemon service instance.
   //      -> DOCUMENT THIS!
 
-//  public BasePath getPath(PathPolicy pathPolicy) throws IOException {
-//    if (path == null) {
-//      long localIA = ScionService.defaultService().getLocalIsdAs();
-//      path = ScionService.defaultService().getPath(localIA, isdAs, pathPolicy);
-//    }
-//    return path;
-//  }
+  //  public BasePath getPath(PathPolicy pathPolicy) throws IOException {
+  //    if (path == null) {
+  //      long localIA = ScionService.defaultService().getLocalIsdAs();
+  //      path = ScionService.defaultService().getPath(localIA, isdAs, pathPolicy);
+  //    }
+  //    return path;
+  //  }
 }

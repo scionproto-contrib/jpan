@@ -23,8 +23,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.DatagramChannel;
-import org.scion.Scion;
 import org.scion.Path;
+import org.scion.Scion;
 
 public class PingPongHelper {
 

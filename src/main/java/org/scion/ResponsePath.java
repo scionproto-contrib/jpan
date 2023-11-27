@@ -24,15 +24,16 @@ public class ResponsePath extends Path {
   private final int srcPort;
 
   public static ResponsePath create(
-          byte[] rawPath,
-          long srcIsdAs,
-          byte[] srcIP,
-          int srcPort,
-          long dstIsdAs,
-          byte[] dstIP,
-          int dstPort,
-          InetSocketAddress firstHopAddress) {
-    return new ResponsePath(rawPath, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHopAddress);
+      byte[] rawPath,
+      long srcIsdAs,
+      byte[] srcIP,
+      int srcPort,
+      long dstIsdAs,
+      byte[] dstIP,
+      int dstPort,
+      InetSocketAddress firstHopAddress) {
+    return new ResponsePath(
+        rawPath, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHopAddress);
   }
 
   private ResponsePath(
