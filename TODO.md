@@ -30,12 +30,9 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
-- configurable path-service in Channel!
-- CleanUp ScionService.getRemoteAS() -> But only if remolte IP is known, otherwise combine lookup if possible 
 - Make MockDaemon static!!!! (it is already partuially static anyway, see getAndResetCallCount())
 - Remove getPath() in favor of getPaths()?!
 - Rename *Path* to *Route*?
-- Create Channel/SocketAddress with custom ScionService 
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
@@ -48,7 +45,6 @@
   - dig NAPTR inf.ethz.ch
   - Contact netsec-w37w3w.inf.ethz.ch for topology file
   - Parse topology file for Control Server address
-- Path policies? 
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.

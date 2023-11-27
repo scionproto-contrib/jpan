@@ -29,9 +29,7 @@ import java.nio.charset.Charset;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.DatagramChannel;
-import org.scion.PackageVisibilityHelper;
-import org.scion.Path;
+import org.scion.*;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
@@ -189,6 +187,28 @@ class DatagramChannelApiTest {
       assertTrue(channel.isConnected());
       channel.close();
       assertFalse(channel.isConnected());
+    }
+  }
+
+  @Test
+  public void getService() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertEquals(Scion.defaultService(), channel.getService());
+      ScionService service2 = Scion.newServiceForAddress("127.0.0.2");
+      channel.setService(service2);
+      assertEquals(service2, channel.getService());
+      // TODO test that the service is actually used
+    }
+  }
+
+  @Test
+  public void getPathPolicy() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertEquals(PathPolicy.DEFAULT, channel.getPathPolicy());
+      assertEquals(PathPolicy.FIRST, channel.getPathPolicy());
+      channel.setPathPolicy(PathPolicy.MIN_HOPS);
+      assertEquals(PathPolicy.MIN_HOPS, channel.getPathPolicy());
+      // TODO test that path policy is actually used
     }
   }
 

@@ -381,7 +381,7 @@ public class ScionService {
     }
     long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));
     return ScionAddress.create(
-        isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
+            isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }
 
   private long parseTxtRecordToIA(String txtEntry, String hostName) throws ScionException {

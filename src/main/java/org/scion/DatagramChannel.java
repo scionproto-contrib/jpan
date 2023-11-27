@@ -31,6 +31,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
+  private ScionService service;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -46,6 +47,17 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public PathPolicy getPathPolicy() {
     return this.pathPolicy;
+  }
+
+  public void setService(ScionService service) {
+    this.service = service;
+  }
+
+  public ScionService getService() {
+    if (service == null) {
+      service = Scion.defaultService();
+    }
+    return this.service;
   }
 
   public synchronized Path receive(ByteBuffer userBuffer) throws IOException {
@@ -145,29 +157,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     if (addr instanceof SSocketAddress) {
       throw new UnsupportedOperationException(); // TODO implement
     } else if (addr instanceof InetSocketAddress) {
-      InetSocketAddress inetAddress = (InetSocketAddress) addr;
-      // TODO hostName vs hostString
-//      if (IPAddressUtil.isIPv4LiteralAddress(inetAddress.getHostString())
-//              || IPAddressUtil.isIPv6LiteralAddress(inetAddress.getHostString())) {
-//        // If the address is a literal address we can only assume that it is correct and
-//        // hasn't been looked up via normal DNS. We don;t have a choice anyway.
-//        // Problem: how do we get the AS info?
-//        throw new UnsupportedOperationException();
-//      } else {
-//        // Look it up via DNS/TXT entry
-//        // TODO special treatment of 'localhost'?
-//
-//      }
-
-      // path = Path.create(inetAddress);
-      // TODO optimize this, we ony need the IA here, not the full ScionAddress.
-      //   ... well, how do we know the dstIP?
-      //   - if "addr" is a ScionAddress, then we have the correct IP
-      //   - if it is an InetAddress based on hostname, then it was (definitely?) looked up with
-      //     normal DNS and is likely to be the wrong IP
-      //   - if it is an InetAddress based on IP, then it is probably the correct IP, in any case.
-      //     we don;t have a choice because we cannot look up another IP (reverse lookup???)
-      path = Scion.defaultService().getPath(inetAddress, pathPolicy);
+      path = getService().getPath((InetSocketAddress) addr, pathPolicy);
     } else {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
@@ -176,16 +166,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public DatagramChannel connect(SocketAddress addr) throws IOException {
     if (addr instanceof InetSocketAddress) {
-      InetSocketAddress inetAddress = (InetSocketAddress) addr;
-      // path = Path.create(inetAddress);
-      // TODO optimize this, we ony need the IA here, not the full ScionAddress.
-      //   ... well, how do we know the dstIP?
-      //   - if "addr" is a ScionAddress, then we have the correct IP
-      //   - if it is an InetAdress based on hostname, then it was (definitely?) looked up with
-      //     normal DNS and is likely to be the wrong IP
-      //   - if it is an InetAdress based on IP, then it is probably the correct IP, in any case.
-      //     we don;t have a choice because we cannot look up another IP (reverse lookup???)
-      path = Scion.defaultService().getPath(inetAddress, pathPolicy);
+      path = getService().getPath((InetSocketAddress) addr, pathPolicy);
     } else {
       throw new IllegalArgumentException(
           "connect() requires an InetSocketAddress or a ScionSocketAddress.");
@@ -283,7 +264,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     int payloadLength = srcBuffer.remaining();
 
     InetSocketAddress srcSocketAddress = getLocalAddress();
-    long srcIA = Scion.defaultService().getLocalIsdAs(); // TODO do not use default()
+    long srcIA = getService().getLocalIsdAs();
     long dstIA = dstSocketAddress.getDestinationIsdAs();
     int srcPort = srcSocketAddress.getPort();
     int dstPort = dstSocketAddress.getDestinationPort();
