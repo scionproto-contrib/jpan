@@ -23,7 +23,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.scion.PathPolicy;
 import org.scion.Scion;
 import org.scion.ScionUtil;
 import org.scion.demo.inspector.Constants;
@@ -87,7 +86,7 @@ public class InspectorComposeTest {
     pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
     InetSocketAddress dstSocketAddress = new InetSocketAddress(dstAddress, dstPort);
-    byte[] path = pathService.getPath(dstIA, dstSocketAddress, PathPolicy.DEFAULT).getRawPath();
+    byte[] path = pathService.getPaths(dstIA, dstSocketAddress).get(0).getRawPath();
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");

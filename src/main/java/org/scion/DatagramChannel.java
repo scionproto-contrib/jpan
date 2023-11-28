@@ -160,7 +160,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     if (addr instanceof SSocketAddress) {
       throw new UnsupportedOperationException(); // TODO implement
     } else if (addr instanceof InetSocketAddress) {
-      path = getService().getPath((InetSocketAddress) addr, pathPolicy);
+      path = pathPolicy.filter(getService().getPaths((InetSocketAddress) addr));
     } else {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
@@ -169,7 +169,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public DatagramChannel connect(SocketAddress addr) throws IOException {
     if (addr instanceof InetSocketAddress) {
-      path = getService().getPath((InetSocketAddress) addr, pathPolicy);
+      path = pathPolicy.filter(getService().getPaths((InetSocketAddress) addr));
     } else {
       throw new IllegalArgumentException(
           "connect() requires an InetSocketAddress or a ScionSocketAddress.");

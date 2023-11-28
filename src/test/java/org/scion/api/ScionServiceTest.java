@@ -52,13 +52,11 @@ public class ScionServiceTest {
   @Test
   void testWrongDaemonAddress() throws IOException {
     String daemonAddr = "127.0.0.112:12345";
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
       ScionException thrown =
-          assertThrows(
-              ScionException.class, () -> client.getPath(dstIA, dstAddress, PathPolicy.DEFAULT));
+          assertThrows(ScionException.class, () -> client.getPaths(dstIA, dstAddress).get(0));
       assertTrue(
           thrown.getMessage().startsWith("Error while getting AS info:"), thrown.getMessage());
     }
@@ -71,7 +69,7 @@ public class ScionServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      RequestPath path = client.getPath(dstIA, dstAddress, PathPolicy.DEFAULT);
+      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
@@ -87,7 +85,7 @@ public class ScionServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      RequestPath path = client.getPath(dstIA, dstAddress, PathPolicy.DEFAULT);
+      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
@@ -106,7 +104,7 @@ public class ScionServiceTest {
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
           Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
-        path = client.getPath(dstIA, dstAddress, PathPolicy.DEFAULT);
+        path = client.getPaths(dstIA, dstAddress).get(0);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

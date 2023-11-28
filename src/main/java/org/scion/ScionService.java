@@ -142,46 +142,19 @@ public class ScionService {
   }
 
   /**
-   * Request and return a path from the local ISD/AS to dstIsdAs.
+   * Request and return a path from the local ISD/AS to the destination.
    *
    * @param dstAddress Destination IP address
    * @return The first path returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public RequestPath getPath(InetSocketAddress dstAddress) throws IOException {
-    return getPath(dstAddress, PathPolicy.DEFAULT);
-  }
-
-  /**
-   * Request and return a path from the local ISD/AS to dstIsdAs.
-   *
-   * @param dstAddress Destination IP address
-   * @param pathPolicy Path policy
-   * @return The first path returned by the path service.
-   * @throws IOException if an errors occurs while querying paths.
-   */
-  public RequestPath getPath(InetSocketAddress dstAddress, PathPolicy pathPolicy)
-      throws IOException {
+  public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
     long dstIsdAs = getIsdAs(dstAddress.getHostName());
-    return getPath(dstIsdAs, dstAddress, pathPolicy);
+    return getPaths(dstIsdAs, dstAddress);
   }
 
   /**
-   * Request and return a path from the local ISD/AS to dstIsdAs.
-   *
-   * @param dstIsdAs Destination ISD/AS
-   * @param dstAddress Destination IP address
-   * @param pathPolicy Path policy
-   * @return The first path returned by the path service.
-   * @throws IOException if an errors occurs while querying paths.
-   */
-  public RequestPath getPath(long dstIsdAs, InetSocketAddress dstAddress, PathPolicy pathPolicy)
-      throws IOException {
-    return pathPolicy.filter(getPaths(dstIsdAs, dstAddress));
-  }
-
-  /**
-   * Request and return a path from the local ISD/AS to dstIsdAs.
+   * Request and return a path from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
    * @param dstAddress Destination IP address

@@ -59,6 +59,7 @@
 
 - IMPORTANT: In non-blocking mode, the channel should probably block if it received a partial Scion-header?
   Or not? This would be an attack, send a partial header would block the receiver....
+  We could just buffer a partial header until it is complete... 
 
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.

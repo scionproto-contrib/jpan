@@ -115,7 +115,7 @@ public class PingPongHelper {
       MockNetwork.startTiny();
 
       InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
-      Path scionAddress = Scion.defaultService().getPath(serverAddress);
+      Path scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
       Thread[] servers = new Thread[nServers];
       for (int i = 0; i < servers.length; i++) {
         // servers[i] = new Thread(() -> server(serverAddress, id), "Server-thread-" + i);

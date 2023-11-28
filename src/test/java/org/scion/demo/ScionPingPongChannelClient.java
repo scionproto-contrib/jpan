@@ -82,7 +82,7 @@ public class ScionPingPongChannelClient {
     InetSocketAddress serverAddress = new InetSocketAddress("::1", PORT);
     long isdAs = ScionUtil.parseIA("1-ff00:0:112");
     // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
-    Path path = Scion.defaultService().getPath(isdAs, serverAddress, PathPolicy.DEFAULT);
+    Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
 
     sendMessage(channel, msg, path);
 
