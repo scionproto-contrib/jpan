@@ -57,6 +57,9 @@
   - strip(buffer) sets position() and returns address/path
   - augment(buffer, address+path) inserts scionHeader 
 
+- IMPORTANT: In non-blocking mode, the channel should probably block if it received a partial Scion-header?
+  Or not? This would be an attack, send a partial header would block the receiver....
+
 - Daemon on mobile? Java?
 - Make configurable: client uses own path vs reversed server path.
 - Merge Scion + ScionService?
