@@ -18,10 +18,12 @@ import static org.scion.testutil.ExamplePacket.DST_IA;
 import static org.scion.testutil.ExamplePacket.SRC_IA;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.ScionConstants;
@@ -169,6 +171,8 @@ public class MockDaemon implements AutoCloseable {
                 .addInterfaces(Daemon.PathInterface.newBuilder().setId(2).setIsdAs(SRC_IA).build())
                 .addInterfaces(Daemon.PathInterface.newBuilder().setId(1).setIsdAs(DST_IA).build())
                 .setRaw(rawPath)
+                .setExpiration(
+                    Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build())
                 .build();
         replyBuilder.addPaths(p0);
       }

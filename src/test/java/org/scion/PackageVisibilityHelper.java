@@ -49,4 +49,28 @@ public class PackageVisibilityHelper {
     Daemon.Path path = Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).build();
     return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
   }
+
+  public static RequestPath createRequestPath110_112(
+      Daemon.Path.Builder builder,
+      long dstIsdAs,
+      byte[] dstHost,
+      int dstPort,
+      InetSocketAddress firstHop) {
+    ByteString bs = ByteString.copyFrom(ExamplePacket.PATH_RAW_TINY_110_112);
+    String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
+    Daemon.Interface inter =
+        Daemon.Interface.newBuilder()
+            .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHopString).build())
+            .build();
+    Daemon.Path path =
+        builder
+            .setRaw(bs)
+            .setInterface(inter)
+            .addInterfaces(
+                Daemon.PathInterface.newBuilder().setId(2).setIsdAs(ExamplePacket.SRC_IA).build())
+            .addInterfaces(
+                Daemon.PathInterface.newBuilder().setId(1).setIsdAs(ExamplePacket.DST_IA).build())
+            .build();
+    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
+  }
 }

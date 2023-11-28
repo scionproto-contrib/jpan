@@ -103,7 +103,7 @@ public class PingPongHelper {
   }
 
   public interface ClientEndPoint {
-    void run(DatagramChannel channel, Path serverAddress, int id) throws IOException;
+    void run(DatagramChannel channel, Path path, int id) throws IOException;
   }
 
   public interface ServerEndPoint {

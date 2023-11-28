@@ -16,7 +16,7 @@ package org.scion.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
@@ -32,10 +33,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.proto.daemon.Daemon;
-import org.scion.testutil.ExamplePacket;
-import org.scion.testutil.MockDNS;
-import org.scion.testutil.MockDaemon;
-import org.scion.testutil.PingPongHelper;
+import org.scion.testutil.*;
 
 class DatagramChannelApiTest {
 
@@ -227,8 +225,7 @@ class DatagramChannelApiTest {
 
       // try connecting again
       // Should be AlreadyConnectedException, but Temurin throws IllegalStateException
-      Exception ex = assertThrows(IllegalStateException.class, () -> channel.connect(path));
-      // assertNull(ex.getMessage(), ex.getMessage());
+      assertThrows(IllegalStateException.class, () -> channel.connect(path));
       assertTrue(channel.isConnected());
 
       // disconnect
@@ -393,27 +390,43 @@ class DatagramChannelApiTest {
   @Disabled
   @Test
   void send_expired() throws IOException {
-    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
-    Scion.defaultService().getPaths(ScionUtil.parseIA("1-ff00:0:112"), address);
+    //MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+    //InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
+    InetSocketAddress address = MockNetwork.getTinyServerAddress();
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    Scion.defaultService().getPaths(dstIA, address);
 
-    ByteString rawPath = ByteString.copyFrom(ExamplePacket.PATH_RAW_TINY_110_112);
-    Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
-    Daemon.Path p0 =
-            Daemon.Path.newBuilder()
-//                    .setInterface(
-//                            Daemon.Interface.newBuilder()
-//                                    .setAddress(Daemon.Underlay.newBuilder().setAddress(borderRouter).build())
-//                                    .build())
-                    .addInterfaces(
-                            Daemon.PathInterface.newBuilder().setId(2).setIsdAs(ExamplePacket.SRC_IA).build())
-                    .addInterfaces(
-                            Daemon.PathInterface.newBuilder().setId(1).setIsdAs(ExamplePacket.DST_IA).build())
-                    .setRaw(rawPath)
-                    .build();
-    replyBuilder.addPaths(p0);
+    InetSocketAddress firstHop = Scion.defaultService().getPaths(dstIA, address).get(0).getFirstHopAddress();
 
-    //RequestPath path = RequestPath.create();
-    fail();
+    // Build a path that is about to expire
+    long now = Instant.now().getEpochSecond();
+    Daemon.Path.Builder builder =
+        Daemon.Path.newBuilder()
+            .setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
+    RequestPath path = PackageVisibilityHelper.createRequestPath110_112(
+        builder, dstIA, ExamplePacket.DST_HOST, 12345, firstHop);
+
+    // Test the path
+    MockDaemon.closeDefault(); // We don't need the daemon here
+    PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
+    PingPongHelper.ClientEndPoint clientFn =
+            (channel, ingoreMe, id) -> {
+              String message = MSG + "-" + id;
+              ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+              Path path2 = channel.send(sendBuf, path);
+              RequestPath rPath2 = (RequestPath) path2;
+              assertTrue(rPath2.getExpiration() > path.getExpiration());
+
+              // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+              ByteBuffer response = ByteBuffer.allocate(5);
+              channel.receive(response);
+
+              response.flip();
+              assertEquals(5, response.limit());
+              String pong = Charset.defaultCharset().decode(response).toString();
+              assertEquals(message.substring(0, 5), pong);
+            };
+    PingPongHelper pph = new PingPongHelper(1, 1, 1);
+    pph.runPingPong(serverFn, clientFn);
   }
 }
