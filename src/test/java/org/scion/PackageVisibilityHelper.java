@@ -35,16 +35,11 @@ public class PackageVisibilityHelper {
 
   public static Path createDummyPath() {
     return createDummyPath(
-        0, 0, ExamplePacket.SRC_HOST, 55555, new byte[0], new InetSocketAddress(12345));
+        0, ExamplePacket.SRC_HOST, 55555, new byte[0], new InetSocketAddress(12345));
   }
 
   public static RequestPath createDummyPath(
-      long srcIsdAs,
-      long dstIsdAs,
-      byte[] dstHost,
-      int dstPort,
-      byte[] raw,
-      InetSocketAddress firstHop) {
+      long dstIsdAs, byte[] dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
     ByteString bs = ByteString.copyFrom(raw);
     String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
     Daemon.Interface inter =
@@ -52,6 +47,6 @@ public class PackageVisibilityHelper {
             .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHopString).build())
             .build();
     Daemon.Path path = Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).build();
-    return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
   }
 }

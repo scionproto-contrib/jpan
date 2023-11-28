@@ -21,6 +21,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
+import java.time.Instant;
+
 import org.scion.internal.ScionHeaderParser;
 
 public class DatagramChannel implements ByteChannel, Closeable {
@@ -99,7 +101,18 @@ public class DatagramChannel implements ByteChannel, Closeable {
     send(buffer, findPath(destination));
   }
 
-  public synchronized void send(ByteBuffer srcBuffer, Path path) throws IOException {
+  /**
+   * Attempts to send the content of the buffer to the destinationAddress.
+   *
+   * @param srcBuffer Data to send
+   * @param path Path to destination.
+   * @return either the path argument or a new path if the path was an expired RequestPath. Note
+   *     that ResponsePaths are not checked for expiration.
+   * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
+   *     cannot be resolved to an ISD/AS.
+   * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
+   */
+  public synchronized Path send(ByteBuffer srcBuffer, Path path) throws IOException {
     // TODO do we need to create separate channels for each border router or can we "connect" to
     //  different ones from a single channel? Do we need to connect explicitly?
     //  What happens if, for the same path, we suddenly get a different border router recommended,
@@ -112,8 +125,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
 
     // build and send packet
-    buildPacket(path, srcBuffer);
+    Path actualPath = buildPacket(path, srcBuffer);
     channel.send(buffer, path.getFirstHopAddress());
+    return actualPath;
   }
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
@@ -236,7 +250,13 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public int write(ByteBuffer src) throws IOException {
     checkOpen();
     checkConnected();
-    buildPacket(path, src);
+
+    Path newPath = buildPacket(path, src);
+    if (path != newPath) {
+      path = newPath;
+      channel.disconnect();
+      channel.connect(newPath.getFirstHopAddress());
+    }
     return channel.write(buffer);
   }
 
@@ -271,7 +291,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
-  private void buildPacket(Path path, ByteBuffer srcBuffer) throws IOException {
+  /**
+   *
+   * @param path path
+   * @param srcBuffer src buffer
+   * @return argument path or a new path if the argument path was expired
+   * @throws IOException in case of IOException.
+   */
+  private Path buildPacket(Path path, ByteBuffer srcBuffer) throws IOException {
     // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
     buffer.clear();
     int payloadLength = srcBuffer.remaining();
@@ -287,6 +314,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
       srcAddress = rPath.getSourceAddress();
       srcPort = rPath.getSourcePort();
     } else {
+      // check path expiration
+      path = ensureUpToDate((RequestPath) path);
       srcIA = getService().getLocalIsdAs();
       InetSocketAddress srcSocketAddress = getLocalAddress();
       srcAddress = srcSocketAddress.getAddress().getAddress();
@@ -305,5 +334,19 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
     buffer.put(srcBuffer);
     buffer.flip();
+    return path;
+  }
+
+  private Path ensureUpToDate(RequestPath path) throws IOException {
+    if (Instant.now().getEpochSecond() <= path.getExpiration()) {
+      return path;
+    }
+    // expired, get new path
+    return pathPolicy.filter(
+        getService()
+            .getPaths(
+                path.getDestinationIsdAs(),
+                path.getDestinationAddress(),
+                path.getDestinationPort()));
   }
 }

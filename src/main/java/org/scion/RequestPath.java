@@ -26,13 +26,12 @@ public class RequestPath extends Path {
 
   private final Daemon.Path pathProtoc;
 
-  public static RequestPath create(
-      Daemon.Path path, long srcIsdAs, long dstIsdAs, byte[] dstIP, int dstPort) {
-    return new RequestPath(path, srcIsdAs, dstIsdAs, dstIP, dstPort);
+  static RequestPath create(Daemon.Path path, long dstIsdAs, byte[] dstIP, int dstPort) {
+    return new RequestPath(path, dstIsdAs, dstIP, dstPort);
   }
 
-  private RequestPath(Daemon.Path path, long srcIsdAs, long dstIsdAs, byte[] dstIP, int dstPort) {
-    super(path.getRaw().toByteArray(), srcIsdAs, dstIsdAs, dstIP, dstPort);
+  private RequestPath(Daemon.Path path, long dstIsdAs, byte[] dstIP, int dstPort) {
+    super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
     this.pathProtoc = path;
   }
 

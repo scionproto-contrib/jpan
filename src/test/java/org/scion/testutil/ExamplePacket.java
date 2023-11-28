@@ -24,8 +24,10 @@ public class ExamplePacket {
   public static final String MSG = "Hello scion";
   public static final long SRC_IA = ScionUtil.parseIA("1-ff00:0:110");
   public static final long DST_IA = ScionUtil.parseIA("1-ff00:0:112");
+
   /** IPv6 localhost: "::1" */
   public static final byte[] DST_HOST = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+
   /** IPv6 localhost: "::1" */
   public static final byte[] SRC_HOST = {127, 0, 0, 1};
 
@@ -39,7 +41,7 @@ public class ExamplePacket {
   };
   public static final RequestPath PATH =
       PackageVisibilityHelper.createDummyPath(
-          SRC_IA, DST_IA, DST_HOST, 8080, PATH_RAW_TINY_110_112, FIRST_HOP);
+          DST_IA, DST_HOST, 8080, PATH_RAW_TINY_110_112, FIRST_HOP);
 
   /**
    * Packet bytes for a message sent in the "tiny"network config in scionproto.

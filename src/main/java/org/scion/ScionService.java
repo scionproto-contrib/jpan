@@ -163,16 +163,28 @@ public class ScionService {
    */
   public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress)
       throws IOException {
+    return getPaths(dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort());
+  }
+
+  /**
+   * Request and return a path from the local ISD/AS to the destination.
+   *
+   * @param dstIsdAs Destination ISD/AS
+   * @param dstAddress Destination IP address
+   * @param dstPort Destination port
+   * @return The first path returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort)
+      throws IOException {
     long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
       return Collections.emptyList();
     }
-    byte[] dstBytes = dstAddress.getAddress().getAddress();
     List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
-      scionPaths.add(
-          RequestPath.create(paths.get(i), srcIsdAs, dstIsdAs, dstBytes, dstAddress.getPort()));
+      scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress, dstPort));
     }
     return scionPaths;
   }

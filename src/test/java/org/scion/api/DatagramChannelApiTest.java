@@ -16,6 +16,7 @@ package org.scion.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -27,8 +28,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
+import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
@@ -40,13 +43,14 @@ class DatagramChannelApiTest {
   private static final String MSG = "Hello scion!";
 
   @BeforeEach
-  public void beforeAll() throws IOException {
+  public void beforeEach() throws IOException {
     MockDaemon.createAndStartDefault();
   }
 
   @AfterEach
-  public void afterAll() throws IOException {
+  public void afterEach() throws IOException {
     MockDaemon.closeDefault();
+    MockDNS.clear();
   }
 
   @Test
@@ -210,8 +214,6 @@ class DatagramChannelApiTest {
       assertTrue(channel.isConnected());
       channel.close();
       assertFalse(channel.isConnected());
-    } finally {
-      MockDNS.clear();
     }
   }
 
@@ -386,5 +388,32 @@ class DatagramChannelApiTest {
       channel.close();
       assertThrows(ClosedChannelException.class, () -> channel.write(buffer));
     }
+  }
+
+  @Disabled
+  @Test
+  void send_expired() throws IOException {
+    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
+    Scion.defaultService().getPaths(ScionUtil.parseIA("1-ff00:0:112"), address);
+
+    ByteString rawPath = ByteString.copyFrom(ExamplePacket.PATH_RAW_TINY_110_112);
+    Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
+    Daemon.Path p0 =
+            Daemon.Path.newBuilder()
+//                    .setInterface(
+//                            Daemon.Interface.newBuilder()
+//                                    .setAddress(Daemon.Underlay.newBuilder().setAddress(borderRouter).build())
+//                                    .build())
+                    .addInterfaces(
+                            Daemon.PathInterface.newBuilder().setId(2).setIsdAs(ExamplePacket.SRC_IA).build())
+                    .addInterfaces(
+                            Daemon.PathInterface.newBuilder().setId(1).setIsdAs(ExamplePacket.DST_IA).build())
+                    .setRaw(rawPath)
+                    .build();
+    replyBuilder.addPaths(p0);
+
+    //RequestPath path = RequestPath.create();
+    fail();
   }
 }

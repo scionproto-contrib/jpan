@@ -30,7 +30,6 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
-- Remove getPath() in favor of getPaths()?!
 - Rename *Path* to *Route*?
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually

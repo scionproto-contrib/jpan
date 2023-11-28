@@ -24,14 +24,12 @@ import java.util.Arrays;
  */
 public abstract class Path {
   private final byte[] pathRaw;
-  private final long srcIsdAs;
   private final long dstIsdAs;
   private final byte[] dstAddress;
   private final int dstPort;
 
-  protected Path(byte[] rawPath, long srcIsdAs, long dstIsdAs, byte[] dstIP, int dstPort) {
+  protected Path(byte[] rawPath, long dstIsdAs, byte[] dstIP, int dstPort) {
     this.pathRaw = rawPath;
-    this.srcIsdAs = srcIsdAs;
     this.dstIsdAs = dstIsdAs;
     this.dstAddress = dstIP;
     this.dstPort = dstPort;
@@ -42,10 +40,6 @@ public abstract class Path {
   }
 
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
-
-  public long getSourceIsdAs() {
-    return srcIsdAs;
-  }
 
   public int getDestinationPort() {
     return dstPort;

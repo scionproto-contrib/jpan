@@ -14,6 +14,9 @@
 
 package org.scion.testutil;
 
+import static org.scion.testutil.ExamplePacket.DST_IA;
+import static org.scion.testutil.ExamplePacket.SRC_IA;
+
 import com.google.protobuf.ByteString;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
@@ -156,18 +159,15 @@ public class MockDaemon implements AutoCloseable {
       callCount.incrementAndGet();
       ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
-      if (req.getSourceIsdAs() == 561850441793808L
-          && req.getDestinationIsdAs() == 561850441793810L) {
+      if (req.getSourceIsdAs() == SRC_IA && req.getDestinationIsdAs() == DST_IA) {
         Daemon.Path p0 =
             Daemon.Path.newBuilder()
                 .setInterface(
                     Daemon.Interface.newBuilder()
                         .setAddress(Daemon.Underlay.newBuilder().setAddress(borderRouter).build())
                         .build())
-                .addInterfaces(
-                    Daemon.PathInterface.newBuilder().setId(2).setIsdAs(561850441793808L).build())
-                .addInterfaces(
-                    Daemon.PathInterface.newBuilder().setId(1).setIsdAs(561850441793810L).build())
+                .addInterfaces(Daemon.PathInterface.newBuilder().setId(2).setIsdAs(SRC_IA).build())
+                .addInterfaces(Daemon.PathInterface.newBuilder().setId(1).setIsdAs(DST_IA).build())
                 .setRaw(rawPath)
                 .build();
         replyBuilder.addPaths(p0);
