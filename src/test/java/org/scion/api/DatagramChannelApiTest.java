@@ -23,6 +23,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.Charset;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,18 +121,66 @@ class DatagramChannelApiTest {
     }
   }
 
-//  @Test
-//  void isBlocking() throws IOException {
-//    try (DatagramChannel channel = DatagramChannel.open()) {
-//      assertTrue(channel.isBlocking());
-//      channel.configureBlocking(false);
-//      assertFalse(channel.isBlocking());
-//      assertTrue(false); // TODO
-//      assertTrue(channel.isOpen());
-//      channel.close();
-//      assertFalse(channel.isOpen());
-//    }
-//  }
+  @Test
+  void isBlocking_default() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertTrue(channel.isBlocking());
+    }
+  }
+
+  @Test
+  void isBlocking_true_read() throws IOException, InterruptedException {
+    testBlocking(true, channel -> channel.read(ByteBuffer.allocate(100)));
+  }
+
+  @Test
+  void isBlocking_false_read() throws IOException, InterruptedException {
+    testBlocking(false, channel -> channel.read(ByteBuffer.allocate(100)));
+  }
+
+  @Test
+  void isBlocking_true_receiver() throws IOException, InterruptedException {
+    testBlocking(true, channel -> channel.receive(ByteBuffer.allocate(100)));
+  }
+
+  @Test
+  void isBlocking_false_receive() throws IOException, InterruptedException {
+    testBlocking(false, channel -> channel.receive(ByteBuffer.allocate(100)));
+  }
+
+  interface ChannelConsumer {
+    void accept(DatagramChannel channel) throws InterruptedException, IOException;
+  }
+
+  private void testBlocking(boolean isBlocking, ChannelConsumer fn)
+      throws IOException, InterruptedException {
+    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
+    CountDownLatch latch = new CountDownLatch(1);
+    AtomicBoolean wasBlocking = new AtomicBoolean(true);
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.connect(address);
+      channel.configureBlocking(isBlocking);
+      assertEquals(isBlocking, channel.isBlocking());
+      Thread t =
+          new Thread(
+              () -> {
+                try {
+                  latch.countDown();
+                  fn.accept(channel);
+                  // Should only be reached with non-blocking channel
+                  wasBlocking.getAndSet(false);
+                } catch (InterruptedException | IOException e) {
+                  // ignore
+                }
+              });
+      t.start();
+      latch.await();
+      t.join(10);
+      t.interrupt();
+      assertEquals(isBlocking, wasBlocking.get());
+    }
+  }
 
   @Test
   public void isConnected_InetSocket() throws IOException {

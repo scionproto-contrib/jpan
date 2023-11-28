@@ -190,7 +190,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @param dst The ByteBuffer that should contain data from the stream.
    * @return The number of bytes that were read into the buffer or -1 if end of stream was reached.
    * @throws NotYetConnectedException If the channel is not connected.
-   * @throws java.nio.channels.ClosedChannelException If the channel is closed.
+   * @throws java.nio.channels.ClosedChannelException If the channel is closed, e.g. by calling
+   *     interrupt during read().
    * @throws IOException If some IOError occurs.
    * @see java.nio.channels.DatagramChannel#read(ByteBuffer)
    */
@@ -199,16 +200,26 @@ public class DatagramChannel implements ByteChannel, Closeable {
     checkOpen();
     checkConnected();
 
-    buffer.clear();
-    int bytesRead = channel.read(buffer);
-    if (bytesRead == -1) {
-      return -1;
-    }
-    int len = dst.position();
-    buffer.flip();
+    int oldPos = dst.position();
+    String validationResult;
+    do {
+      buffer.clear();
+      int bytesRead = channel.read(buffer);
+      if (bytesRead <= 0) {
+        return bytesRead;
+      }
+      buffer.flip();
+
+      // validateResult != null indicates a problem with the packet
+      validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null && cfgReportFailedValidation) {
+        throw new ScionException(validationResult);
+      }
+    } while (validationResult != null);
+
     ScionHeaderParser.readUserData(buffer, dst);
     buffer.clear();
-    return dst.position() - len;
+    return dst.position() - oldPos;
   }
 
   /**
