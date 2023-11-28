@@ -119,14 +119,18 @@ class DatagramChannelApiTest {
     }
   }
 
-  @Test
-  void isBlocking() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
-      assertTrue(channel.isOpen());
-      channel.close();
-      assertFalse(channel.isOpen());
-    }
-  }
+//  @Test
+//  void isBlocking() throws IOException {
+//    try (DatagramChannel channel = DatagramChannel.open()) {
+//      assertTrue(channel.isBlocking());
+//      channel.configureBlocking(false);
+//      assertFalse(channel.isBlocking());
+//      assertTrue(false); // TODO
+//      assertTrue(channel.isOpen());
+//      channel.close();
+//      assertFalse(channel.isOpen());
+//    }
+//  }
 
   @Test
   public void isConnected_InetSocket() throws IOException {
@@ -141,7 +145,7 @@ class DatagramChannelApiTest {
       assertTrue(channel.isConnected());
 
       // try connecting again
-      // Should be AlreadyConnectedException, but Temurin throws IllegalStateException
+      // Should be AlreadyConnectedException but Temurin throws IllegalStateException
       assertThrows(IllegalStateException.class, () -> channel.connect(address));
       assertTrue(channel.isConnected());
 

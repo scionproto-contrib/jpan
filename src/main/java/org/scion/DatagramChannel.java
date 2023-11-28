@@ -134,6 +134,10 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.configureBlocking(block);
   }
 
+  public boolean isBlocking() {
+    return channel.isBlocking();
+  }
+
   public InetSocketAddress getLocalAddress() throws IOException {
     return (InetSocketAddress) channel.getLocalAddress();
   }
@@ -261,13 +265,26 @@ public class DatagramChannel implements ByteChannel, Closeable {
     buffer.clear();
     int payloadLength = srcBuffer.remaining();
 
-    InetSocketAddress srcSocketAddress = getLocalAddress();
-    long srcIA = path.getSourceIsdAs();
+    long srcIA;
+    byte[] srcAddress;
+    int srcPort;
+    if (path instanceof ResponsePath) {
+      // We could get source IA, address and port locally but it seems cleaner to
+      // to get the from the inverted header.
+      ResponsePath rPath = (ResponsePath) path;
+      srcIA = rPath.getSourceIsdAs();
+      srcAddress = rPath.getSourceAddress();
+      srcPort = rPath.getSourcePort();
+    } else {
+      srcIA = getService().getLocalIsdAs();
+      InetSocketAddress srcSocketAddress = getLocalAddress();
+      srcAddress = srcSocketAddress.getAddress().getAddress();
+      srcPort = srcSocketAddress.getPort();
+    }
+
     long dstIA = path.getDestinationIsdAs();
-    int srcPort = srcSocketAddress.getPort();
-    int dstPort = path.getDestinationPort();
-    byte[] srcAddress = srcSocketAddress.getAddress().getAddress();
     byte[] dstAddress = path.getDestinationAddress();
+    int dstPort = path.getDestinationPort();
 
     byte[] rawPath = path.getRawPath();
     ScionHeaderParser.write(

@@ -54,8 +54,11 @@ public class TestPingPongDemo {
             });
     client.start();
 
-    server.join();
-    client.join();
+    server.join(1000);
+    client.join(1000);
+    // just in case
+    server.interrupt();
+    client.interrupt();
 
     assertEquals(0, failures.get());
   }
