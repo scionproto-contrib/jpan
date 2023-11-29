@@ -47,6 +47,13 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel = java.nio.channels.DatagramChannel.open();
   }
 
+  /**
+   * Set the path policy. The default path policy is set in PathPolicy.DEFAULT, which currently
+   * means to use the first path returned by the daemon or control service.
+   *
+   * @param pathPolicy the new path policy
+   * @see PathPolicy#DEFAULT
+   */
   public void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
   }
@@ -92,7 +99,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   /**
-   * Attempts to send the content of the buffer to the destinationAddress.
+   * Attempts to send the content of the buffer to the destinationAddress. This method will request
+   * a new path for each call.
    *
    * @param buffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
@@ -109,7 +117,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
-   * @param path Path to destination.
+   * @param path Path to destination. If this path is expired it will automatically be replaced with
+   *     a new path.
    * @return either the path argument or a new path if the path was an expired RequestPath. Note
    *     that ResponsePaths are not checked for expiration.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
@@ -185,6 +194,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return path;
   }
 
+  /**
+   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
+   * border router (first hop) instead of the remote host.
+   *
+   * @param addr Address of remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   */
   public DatagramChannel connect(SocketAddress addr) throws IOException {
     if (addr instanceof InetSocketAddress) {
       path = pathPolicy.filter(getService().getPaths((InetSocketAddress) addr));
@@ -196,6 +213,15 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
+  /**
+   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
+   * border router (first hop) instead of the remote host. - The path will be replaced with a new
+   * path once it is expired.
+   *
+   * @param path PAth to the remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   */
   public DatagramChannel connect(Path path) throws IOException {
     this.path = path;
     channel.connect(path.getFirstHopAddress());
@@ -241,7 +267,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   /**
-   * Write the content of a ByteBuffer to a connection.
+   * Write the content of a ByteBuffer to a connection. This method uses the path that was provided
+   * or looked up during `connect()`. The path will automatically be refreshed when expired.
    *
    * @param src The data to send
    * @return The number of bytes written.

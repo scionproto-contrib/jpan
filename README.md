@@ -47,6 +47,10 @@ Options are defined in `ScionSocketOptions`, see javadoc for details.
 
 ## Performance Pitfalls
 
+- **Using `SocketAddress` for `send()`**. `send(buffer, socketAddress)` is a convenience function. However, when sending 
+  multiple packets to the same destination, one should use `path = send(buffer, path)` or `connect()` + `write()` in 
+  order to avoid frequent path lookups.
+
 - **Using expired path (client).** When using `send(buffer, path)` with an expired `RequestPath`, the channel will 
   transparently look up a new path. This works but causes a path lookup for every `send()`.
   Solution: always use the latest path returned by send, e.g. `path = send(buffer, path)`.
