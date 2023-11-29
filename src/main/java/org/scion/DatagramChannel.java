@@ -22,7 +22,6 @@ import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
-
 import org.scion.internal.ScionHeaderParser;
 
 public class DatagramChannel implements ByteChannel, Closeable {
@@ -34,6 +33,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private ScionService service;
+  private int cfgExpirationSafetyMargin =
+      ScionUtil.getPropertyOrEnv(
+          ScionConstants.PROPERTY_PATH_EXPIRY_MARGIN,
+          ScionConstants.ENV_PATH_EXPIRY_MARGIN,
+          ScionConstants.DEFAULT_PATH_EXPIRY_MARGIN);
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -278,11 +282,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public <T> DatagramChannel setOption(SocketOption<T> option, T t) throws IOException {
     if (option instanceof ScionSocketOptions.SciSocketOption) {
-      if (ScionSocketOptions.API_THROW_PARSER_FAILURE.equals(option)) {
+      if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
         cfgReportFailedValidation = (Boolean) t;
-      } else if (ScionSocketOptions.API_WRITE_TO_USER_BUFFER.equals(option)) {
-        // TODO This would allow reading directly into the user buffer. Advantages:
-        //     a) Omit copying step buffer-userBuffer; b) user can see SCION header.
+      } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
+        cfgExpirationSafetyMargin = (Integer) t;
+      } else {
         throw new UnsupportedOperationException();
       }
     } else {
@@ -292,7 +296,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   /**
-   *
    * @param path path
    * @param srcBuffer src buffer
    * @return argument path or a new path if the argument path was expired
@@ -338,7 +341,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   private Path ensureUpToDate(RequestPath path) throws IOException {
-    if (Instant.now().getEpochSecond() <= path.getExpiration()) {
+    if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
       return path;
     }
     // expired, get new path

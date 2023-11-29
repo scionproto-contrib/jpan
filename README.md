@@ -21,11 +21,13 @@ The central classes of the API are:
   supported.
 - **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
   This is currently deprecated because it does not work well.
-- `Path`, `RequestPath`, `ResponsePath`: THe notion of path is slightly different than in other 
+- `Path`, `RequestPath`, `ResponsePath`: The notion of path is slightly different than in other 
     parts of Scion. A `Path` contains a route to a destination ("raw path") plus the full 
     destination, i.e. IP-address and port.
   - A `RequestPath` is a `Path` with meta information (bandwidth, geo info, etc).
-  - A `ResponsePath` is a `Path` with a first hop address.
+  - A `ResponsePath` is a `Path` with source IA, IP & port.
+- `PathPolicy` is an interface with several example implementations for:
+  first path returned by daemon (default), max bandwidth, min latency, min hops, ...
 - **TODO** `ScionPacketInspector`: A packet inspector and builder.
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
 - `Scion`, `ScionUtil`, `ScionAddress`, `ScionPath`, `ScionSocketAddress`.
@@ -39,9 +41,23 @@ The central classes of the API are:
 
 Options are defined in `ScionSocketOptions`, see javadoc for details.
 
-| Option            | Default    | Short description         |
-|-------------------|------------|---------------------------|
-| `API_THROW_PARSER_FAILURE` | `false` | Throw exception when reading invalid packet | 
+| Option                        | Default | Short description                                               |
+|-------------------------------|---------|-----------------------------------------------------------------|
+| `SN_API_WRITE_TO_USER_BUFFER`    | `false` | Throw exception when receiving an invalid packet          | 
+| `SN_PATH_EXPIRY_MARGIN` | `2`     | A new path is requested if `now + margin > pathExpirationDate` | 
+
+## Performance Pitfalls
+
+- **Using expired path (client).** When using `send(buffer, path)` with an expired `RequestPath`, the channel will 
+  transparently look up a new path. This works but causes a path lookup for every `send()`.
+  Solution: always use the latest path returned by send, e.g. `path = send(buffer, path)`.
+
+- **Using expired path (server).** When using `send(buffer, path)` with an expired `ResponsePath`, the channel will
+  simple send it anyway (could just drop it) TODO
+  -> Callback?
+  - TODO request new path a few seconds in advance on client side?    
+
+
 
 ## Demo application - ping pong
 

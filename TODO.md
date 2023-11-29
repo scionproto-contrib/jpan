@@ -25,6 +25,10 @@
   ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
+- Test: Send multiple packets before reading
+- Deprecate SSocketAddress for now
+
+
 - Rename *Path* to *Route* or *ScionSocketAddress*?
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
@@ -48,14 +52,20 @@
 ## Plan
 
 ### 0.1.0
-- Document
-  - RequestPath vs ResponsePath
-  - PathPolicy (README?)
 - Path Expiry
 - Path switching
 - SCMP error handling (only error, not info)
   - implement callbacks (+ option to NOT ignore)
-  - E>g. MTU exceeded, path expired, checksum problem, path broken (router not available)
+  - E>g. MTU exceeded, path expired, checksum problem, "destination unreachable"
+- Handle "no path found" / NoRouteToHost?.>!?!?
+
+Discuss required for 0.1.0:
+- SCMP errors handling (above)
+  - Especially for expired paths / revoked paths / broken paths?  
+- Bootstrapping
+- /etc/scion-hosts
+- RHINE
+
 
 ### 0.2.0
 - Selector support

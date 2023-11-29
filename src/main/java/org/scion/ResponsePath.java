@@ -16,6 +16,12 @@ package org.scion;
 
 import java.net.InetSocketAddress;
 
+/**
+ * A ResponsePath is created/returned when receiving a packet. Besides being a Path,
+ * it contains ISD/AS, IP and port of the local host. This is mostly for convenience to
+ * avoid looking up this information, but it also ensures that the return packet header
+ * contains the exact information sent/expected by the client.
+ */
 public class ResponsePath extends Path {
 
   private final InetSocketAddress firstHopAddress;

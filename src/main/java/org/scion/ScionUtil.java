@@ -115,9 +115,15 @@ public class ScionUtil {
   }
 
   public static boolean getPropertyOrEnv(
-      String propertyName, String envName, boolean defaultValue) {
+          String propertyName, String envName, boolean defaultValue) {
     String value = getPropertyOrEnv(propertyName, envName);
     return value != null ? Boolean.parseBoolean(value) : defaultValue;
+  }
+
+  public static int getPropertyOrEnv(
+          String propertyName, String envName, int defaultValue) {
+    String value = getPropertyOrEnv(propertyName, envName);
+    return value != null ? Integer.parseInt(value) : defaultValue;
   }
 
   public static int extractIsd(long isdAs) {
