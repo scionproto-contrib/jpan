@@ -391,7 +391,6 @@ class DatagramChannelApiTest {
     }
   }
 
-  @Disabled
   @Test
   void send_expired() throws IOException {
     // MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
@@ -415,7 +414,7 @@ class DatagramChannelApiTest {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
-        (channel, ingoreMe, id) -> {
+        (channel, ignoreMe, id) -> {
           String message = MSG + "-" + id;
           ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
           Path path2 = channel.send(sendBuf, path);

@@ -131,17 +131,26 @@ public class DatagramChannel implements ByteChannel, Closeable {
     //  What happens if, for the same path, we suddenly get a different border router recommended,
     //  do we need to create a new channel and reconnect?
 
-    // get local IP
+    // TODO we could have separate send() methods for Request vs ResponsePath
+    //   - ResponsePath would bind()
+    //   - RequestPath would connect()
+    //   - How do we prevent mixing of the two?
 
-    // TODO why connect??????
+    // We need to connect() or bind() for getLocalAddress()  to work.
     if (!channel.isConnected() && !isBound) {
-      InetSocketAddress underlayAddress = path.getFirstHopAddress();
-      channel.connect(underlayAddress);
+      if (path instanceof RequestPath) {
+        InetSocketAddress underlayAddress = path.getFirstHopAddress();
+        channel.connect(underlayAddress);
+      } else {
+        // TODO Path switching, once we are bound we cannot switch to a different
+        channel.bind(null);
+        isBound = true;
+      }
     }
 
     // build and send packet
     Path actualPath = buildPacket(path, srcBuffer);
-    channel.send(buffer, path.getFirstHopAddress());
+    channel.send(buffer, actualPath.getFirstHopAddress());
     return actualPath;
   }
 
@@ -353,7 +362,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
       // check path expiration
       path = ensureUpToDate((RequestPath) path);
       srcIA = getService().getLocalIsdAs();
-      InetSocketAddress srcSocketAddress = getLocalAddress();
+      InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+      // TODO
+      //  - we need to connect/bind for send() to have a local address -> document
+      //  - the send() local-address also needs to be reconnected, i.e. AS switch
+      //    -> implement! (test?!?!)
       srcAddress = srcSocketAddress.getAddress().getAddress();
       srcPort = srcSocketAddress.getPort();
     }
@@ -386,10 +399,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
                     path.getDestinationAddress(),
                     path.getDestinationPort()));
 
-    if (this.path != null) {
-      // TODO THis is brittle, do this on channel.isConnected() i.o. path != null?
+    if (channel.isConnected()) {  // equal to !isBound at this point
       channel.disconnect();
       channel.connect(newPath.getFirstHopAddress());
+    }
+    if (this.path != null) {
+      // TODO THis is brittle, do this on channel.isConnected() i.o. path != null?
+//      channel.disconnect();
+//      channel.connect(newPath.getFirstHopAddress());
       this.path = newPath;
     }
 

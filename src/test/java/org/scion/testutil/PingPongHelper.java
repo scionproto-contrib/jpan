@@ -18,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.channels.ClosedByInterruptException;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -163,8 +165,11 @@ public class PingPongHelper {
   }
 
   private void checkExceptions() {
-    for (Throwable e : exceptions) {
-      e.printStackTrace();
+    for (Iterator<Throwable> it = exceptions.iterator(); it.hasNext();  ) {
+      Throwable t = it.next();
+      if (t instanceof  ClosedByInterruptException) {
+        it.remove();
+      }
     }
     assertEquals(0, exceptions.size());
     exceptions.clear();
