@@ -15,6 +15,7 @@
 package org.scion;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 
 /**
  * A ResponsePath is created/returned when receiving a packet. Besides being a Path, it contains
@@ -74,5 +75,20 @@ public class ResponsePath extends Path {
 
   public int getSourcePort() {
     return srcPort;
+  }
+
+  @Override
+  public String toString() {
+    return "ResponsePath{"
+        + super.toString()
+        + ", firstHopAddress="
+        + firstHopAddress
+        + ", srcIsdAs="
+        + srcIsdAs
+        + ", srcAddress="
+        + Arrays.toString(srcAddress)
+        + ", srcPort="
+        + srcPort
+        + '}';
   }
 }

@@ -28,6 +28,7 @@ import org.scion.Scion;
 
 public class PingPongHelper {
 
+  private static final int TIMEOUT = 5; // seconds
   private final CountDownLatch BARRIER;
 
   private final int nClients;
@@ -134,7 +135,7 @@ public class PingPongHelper {
 
       // This enables shutdown in case of an error.
       // Wait for all threads to finish.
-      if (!BARRIER.await(10, TimeUnit.SECONDS)) {
+      if (!BARRIER.await(TIMEOUT, TimeUnit.SECONDS)) {
         for (Thread client : clients) {
           client.interrupt();
         }

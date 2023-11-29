@@ -132,6 +132,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     //  do we need to create a new channel and reconnect?
 
     // get local IP
+
+    // TODO why connect??????
     if (!channel.isConnected() && !isBound) {
       InetSocketAddress underlayAddress = path.getFirstHopAddress();
       channel.connect(underlayAddress);
@@ -229,6 +231,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   /**
+   * Get the currently connected path.
+   * @return the current Path or `null` if not path is connected.
+   */
+  public Path getCurrentPath() {
+    return path;
+  }
+
+  /**
    * Read data from the connected stream.
    *
    * @param dst The ByteBuffer that should contain data from the stream.
@@ -282,12 +292,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     checkOpen();
     checkConnected();
 
-    Path newPath = buildPacket(path, src);
-    if (path != newPath) {
-      path = newPath;
-      channel.disconnect();
-      channel.connect(newPath.getFirstHopAddress());
-    }
+    buildPacket(path, src);
     return channel.write(buffer);
   }
 
@@ -372,11 +377,20 @@ public class DatagramChannel implements ByteChannel, Closeable {
       return path;
     }
     // expired, get new path
-    return pathPolicy.filter(
+    Path newPath =  pathPolicy.filter(
         getService()
             .getPaths(
                 path.getDestinationIsdAs(),
                 path.getDestinationAddress(),
                 path.getDestinationPort()));
+
+    if (this.path != null) {
+      // TODO THis is brittle, do this on channel.isConnected() i.o. path != null?
+      channel.disconnect();
+      channel.connect(newPath.getFirstHopAddress());
+      this.path = newPath;
+    }
+
+    return newPath;
   }
 }

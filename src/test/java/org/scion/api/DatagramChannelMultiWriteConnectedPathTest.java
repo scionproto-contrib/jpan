@@ -58,7 +58,7 @@ class DatagramChannelMultiWriteConnectedPathTest {
   private void server(DatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
-    Path address = channel.receive(request);
+    Path path = channel.receive(request);
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();
@@ -67,6 +67,6 @@ class DatagramChannelMultiWriteConnectedPathTest {
 
     // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
     request.flip();
-    channel.send(request, address);
+    channel.send(request, path);
   }
 }

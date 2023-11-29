@@ -172,7 +172,14 @@ class MockBorderRouter implements Runnable {
 
             buffer.flip();
             InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
-            // logger.info(name + " forwarding " + buffer.position() + " bytes to " + dstAddress);
+            logger.info(
+                name
+                    + " forwarding "
+                    + buffer.remaining()
+                    + " bytes from "
+                    + o
+                    + " to "
+                    + dstAddress);
 
             outgoing.send(buffer, dstAddress);
             buffer.clear();

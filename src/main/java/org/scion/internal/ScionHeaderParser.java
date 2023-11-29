@@ -134,14 +134,16 @@ public class ScionHeaderParser {
     //   Flooding a receiver with bad packets may cause unnecessary CPU and
     //   garbage collection cost due to creation of error messages.
     //   --> return isDropBadPackets ? "" : report(String ... args);
-    for (int i = 0; i < data.limit(); i++) {
-      if (i > 0 && i % 16 == 0) {
-        System.out.println();
-      }
-      byte b = data.get(i);
-      System.out.print(b + ", ");
-    }
-    System.out.println();
+
+    // TODO remove
+    //    for (int i = 0; i < data.limit(); i++) {
+    //      if (i > 0 && i % 16 == 0) {
+    //        System.out.println();
+    //      }
+    //      byte b = data.get(i);
+    //      System.out.print(b + ", ");
+    //    }
+    //    System.out.println();
     final String PRE = "SCION packet validation failed: ";
     int start = data.position();
     if (data.limit() - start < 12 + 16 + 8) {
@@ -159,7 +161,8 @@ public class ScionHeaderParser {
     // int flowId = readInt(i0, 12, 20);
     int nextHeader = readInt(i1, 0, 8);
     if (nextHeader != 17) {
-      System.out.println("REceived: " + Arrays.toString(data.array()));
+      // TODO remove
+      //      System.out.println("REceived: " + Arrays.toString(data.array()));
       return PRE + "nextHeader: expected 17, got " + nextHeader;
     }
     int hdrLen = readInt(i1, 8, 8);
