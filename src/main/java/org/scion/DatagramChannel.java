@@ -232,6 +232,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   /**
    * Get the currently connected path.
+   *
    * @return the current Path or `null` if not path is connected.
    */
   public Path getCurrentPath() {
@@ -377,12 +378,13 @@ public class DatagramChannel implements ByteChannel, Closeable {
       return path;
     }
     // expired, get new path
-    Path newPath =  pathPolicy.filter(
-        getService()
-            .getPaths(
-                path.getDestinationIsdAs(),
-                path.getDestinationAddress(),
-                path.getDestinationPort()));
+    Path newPath =
+        pathPolicy.filter(
+            getService()
+                .getPaths(
+                    path.getDestinationIsdAs(),
+                    path.getDestinationAddress(),
+                    path.getDestinationPort()));
 
     if (this.path != null) {
       // TODO THis is brittle, do this on channel.isConnected() i.o. path != null?

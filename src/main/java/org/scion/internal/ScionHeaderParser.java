@@ -18,7 +18,6 @@ import static org.scion.internal.ByteUtil.*;
 
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import org.scion.Path;
 import org.scion.ResponsePath;
 
