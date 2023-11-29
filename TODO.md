@@ -48,10 +48,14 @@
 ## Plan
 
 ### 0.1.0
+- Document
+  - RequestPath vs ResponsePath
+  - PathPolicy (README?)
 - Path Expiry
 - Path switching
 - SCMP error handling (only error, not info)
   - implement callbacks (+ option to NOT ignore)
+  - E>g. MTU exceeded, path expired, checksum problem, path broken (router not available)
 
 ### 0.2.0
 - Selector support
@@ -75,6 +79,7 @@
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...
+- SCMP error _sending_ e.h. in case of corrupt packet
 - Multipathing
 - Reproducible build
 - RHINE?
@@ -91,17 +96,8 @@
 - Multipathing: We probably ignore that for now. Multipathing can be done in
   many different ways, it may be difficult to design a one-size-fits-all API.
   E.g. "Hercules" uses a round-robin fashion with multiple path to fire UDP packets. 
-  
-- Inherit DatagramSocket? 
-- Extract path info from server socket in order to support multiple clients
 - MulticastSocket / MulticastChannel (?)
-- Send SCMP on error? Probably yes, e.g. "Parameter Problem" when processing
-  extension headers (which are only processed ayt end-hosts)
 - Abuse socket/channel.setOption() to set path policies?
-- ScionService: extend API
-- Remove PathHeaderOneHop
-- SCMP ping, traceroute?
-- Maven: reproducible build
 
 - For Android look into
   - android.net.Network: 
@@ -138,11 +134,6 @@
 
 
 ## Design
-- Decide how to handle 
-  - SCMP errors -> Exception? Log? Ignore?
-  - Large packets, e 
-- Path selection & path policies
-
 - Where to place generated proto files? They are currently in `target` but could be in `scr/java`...
 
 
