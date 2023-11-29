@@ -19,21 +19,20 @@ The central classes of the API are:
 - `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
   `Channel` and `ByteChannel`. Scattering. gathering, multicast and selectors are currently not
   supported.
-- **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
-  This is currently deprecated because it does not work well.
 - `Path`, `RequestPath`, `ResponsePath`: The notion of path is slightly different than in other 
     parts of Scion. A `Path` contains a route to a destination ("raw path") plus the full 
     destination, i.e. IP-address and port.
-  - A `RequestPath` is a `Path` with meta information (bandwidth, geo info, etc).
-  - A `ResponsePath` is a `Path` with source IA, IP & port.
+  - `RequestPath` is a `Path` with meta information (bandwidth, geo info, etc).
+  - `ResponsePath` is a `Path` with source IA, IP & port.
 - `PathPolicy` is an interface with several example implementations for:
   first path returned by daemon (default), max bandwidth, min latency, min hops, ...
-- **TODO** `ScionPacketInspector`: A packet inspector and builder.
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
-- `Scion`, `ScionUtil`, `ScionAddress`, `ScionPath`, `ScionSocketAddress`.
-  - `ScionAddress` and `ScionSocketAddress` contain ISD/AS information on top of a 
-    `InetAddress`/`InetSocketAddress`
-  - `ScionSocketAddress` can contain a `ScionPath`
+- `Scion`, `ScionUtil`: Utility classes.
+- **TODO** Currently residing in `test`: `ScionPacketInspector`: A packet inspector and builder.
+- **TODO** Currently deprecated: `ScionSocketAddress`: contain ISD/AS information on top of a 
+  `InetSocketAddress`. It is not clear what this would be useful for.
+- **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
+  This is currently deprecated because it does not work well.
 
 ## DatagramChannel
 

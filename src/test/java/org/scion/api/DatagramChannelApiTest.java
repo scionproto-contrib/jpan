@@ -33,7 +33,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.proto.daemon.Daemon;
-import org.scion.testutil.*;
+import org.scion.testutil.ExamplePacket;
+import org.scion.testutil.MockDNS;
+import org.scion.testutil.MockDaemon;
+import org.scion.testutil.MockNetwork;
+import org.scion.testutil.PingPongHelper;
 
 class DatagramChannelApiTest {
 
@@ -390,42 +394,43 @@ class DatagramChannelApiTest {
   @Disabled
   @Test
   void send_expired() throws IOException {
-    //MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-    //InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
+    // MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+    // InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
     InetSocketAddress address = MockNetwork.getTinyServerAddress();
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     Scion.defaultService().getPaths(dstIA, address);
 
-    InetSocketAddress firstHop = Scion.defaultService().getPaths(dstIA, address).get(0).getFirstHopAddress();
+    InetSocketAddress firstHop =
+        Scion.defaultService().getPaths(dstIA, address).get(0).getFirstHopAddress();
 
     // Build a path that is about to expire
     long now = Instant.now().getEpochSecond();
     Daemon.Path.Builder builder =
-        Daemon.Path.newBuilder()
-            .setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
-    RequestPath path = PackageVisibilityHelper.createRequestPath110_112(
-        builder, dstIA, ExamplePacket.DST_HOST, 12345, firstHop);
+        Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
+    RequestPath path =
+        PackageVisibilityHelper.createRequestPath110_112(
+            builder, dstIA, ExamplePacket.DST_HOST, 12345, firstHop);
 
     // Test the path
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
-            (channel, ingoreMe, id) -> {
-              String message = MSG + "-" + id;
-              ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-              Path path2 = channel.send(sendBuf, path);
-              RequestPath rPath2 = (RequestPath) path2;
-              assertTrue(rPath2.getExpiration() > path.getExpiration());
+        (channel, ingoreMe, id) -> {
+          String message = MSG + "-" + id;
+          ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+          Path path2 = channel.send(sendBuf, path);
+          RequestPath rPath2 = (RequestPath) path2;
+          assertTrue(rPath2.getExpiration() > path.getExpiration());
 
-              // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-              ByteBuffer response = ByteBuffer.allocate(5);
-              channel.receive(response);
+          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+          ByteBuffer response = ByteBuffer.allocate(5);
+          channel.receive(response);
 
-              response.flip();
-              assertEquals(5, response.limit());
-              String pong = Charset.defaultCharset().decode(response).toString();
-              assertEquals(message.substring(0, 5), pong);
-            };
+          response.flip();
+          assertEquals(5, response.limit());
+          String pong = Charset.defaultCharset().decode(response).toString();
+          assertEquals(message.substring(0, 5), pong);
+        };
     PingPongHelper pph = new PingPongHelper(1, 1, 1);
     pph.runPingPong(serverFn, clientFn);
   }

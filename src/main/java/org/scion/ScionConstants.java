@@ -24,6 +24,7 @@ public final class ScionConstants {
 
   /** Paths are refreshed when their expiry is less than X seconds away. */
   public static final String PROPERTY_PATH_EXPIRY_MARGIN = "org.scion.channel.pathExpiryMargin";
+
   public static final String ENV_PATH_EXPIRY_MARGIN = "SCION_CHANNEL_PATH_EXPIRY_MARGIN";
   public static final int DEFAULT_PATH_EXPIRY_MARGIN = 2;
 

@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 import org.scion.proto.daemon.Daemon;
 
 /**
- * A RequestPath is a Path with additional meta information such as bandwidth, latency or
- * geo coordinates. RequestPaths are created/returned by the ScionService when requesting a new
- * path from the control service.
+ * A RequestPath is a Path with additional meta information such as bandwidth, latency or geo
+ * coordinates. RequestPaths are created/returned by the ScionService when requesting a new path
+ * from the control service.
  */
 public class RequestPath extends Path {
 
