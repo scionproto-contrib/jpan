@@ -61,11 +61,6 @@ public class MockDaemon implements AutoCloseable {
     System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
   }
 
-  public static MockDaemon create() {
-    setEnvironment();
-    return new MockDaemon(DEFAULT_ADDRESS);
-  }
-
   public static MockDaemon createForBorderRouter(InetSocketAddress borderRouter) {
     setEnvironment();
     return new MockDaemon(DEFAULT_ADDRESS, borderRouter);

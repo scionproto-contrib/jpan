@@ -230,7 +230,7 @@ public class ScionService {
     // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName);
     if (txtFromProperties != null) {
-      return parseTxtRecordToIA(txtFromProperties, hostName);
+      return parseTxtRecordToIA(txtFromProperties);
     }
 
     // Use local ISD/AS for localhost addresses
@@ -241,7 +241,7 @@ public class ScionService {
     // DNS lookup
     String txtFromDNS = findTxtRecordViaDNS(hostName);
     if (txtFromDNS != null) {
-      return parseTxtRecordToIA(txtFromDNS, hostName);
+      return parseTxtRecordToIA(txtFromDNS);
     }
 
     throw new ScionException("Host has no SCION TXT entry: " + hostName);
@@ -367,7 +367,7 @@ public class ScionService {
         isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
   }
 
-  private long parseTxtRecordToIA(String txtEntry, String hostName) throws ScionException {
+  private long parseTxtRecordToIA(String txtEntry) throws ScionException {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
     if (!txtEntry.startsWith("\"scion=") || !txtEntry.endsWith("\"") || posComma < 0) {

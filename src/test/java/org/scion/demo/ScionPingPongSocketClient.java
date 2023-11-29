@@ -14,9 +14,6 @@
 
 package org.scion.demo;
 
-import java.io.*;
-import java.net.*;
-
 @Deprecated // This does not work.
 public class ScionPingPongSocketClient {
 
