@@ -209,7 +209,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * Connect to a destination host. Note: - A SCION channel will internally connect to the next
    * border router (first hop) instead of the remote host.
    *
-   * NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
    * instead it calls bind(). That means this method does NOT perform any additional security checks
    * associated with connect(), only those associated with bind().
    *
@@ -231,7 +231,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * border router (first hop) instead of the remote host. - The path will be replaced with a new
    * path once it is expired.
    *
-   * NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
    * instead it calls bind(). That means this method does NOT perform any additional security checks
    * associated with connect(), only those associated with bind().
    *
@@ -270,7 +270,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
    *     interrupt during read().
    * @throws IOException If some IOError occurs.
    * @see java.nio.channels.DatagramChannel#read(ByteBuffer)
-   * @see ByteChannel#read(ByteBuffer) 
+   * @see ByteChannel#read(ByteBuffer)
    */
   @Override
   public int read(ByteBuffer dst) throws IOException {
@@ -302,7 +302,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     // We do not write() because the channel is not connected.
     // We do not connect because the path may change which would require dis-/re-connect.
     // We cannot dis-/re-connect because the local port may change (at least with JDK 8 & 11).
-    //return channel.write(buffer); // TODO remove
+    // return channel.write(buffer); // TODO remove
     return channel.send(buffer, connection);
   }
 
@@ -402,7 +402,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
                     path.getDestinationAddress(),
                     path.getDestinationPort()));
 
-    if (isConnected) {  // equal to !isBound at this point
+    if (isConnected) { // equal to !isBound at this point
       connection = newPath.getFirstHopAddress();
     }
     if (this.path != null) {

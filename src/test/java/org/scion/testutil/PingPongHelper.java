@@ -165,9 +165,9 @@ public class PingPongHelper {
   }
 
   private void checkExceptions() {
-    for (Iterator<Throwable> it = exceptions.iterator(); it.hasNext();  ) {
+    for (Iterator<Throwable> it = exceptions.iterator(); it.hasNext(); ) {
       Throwable t = it.next();
-      if (t instanceof  ClosedByInterruptException) {
+      if (t instanceof ClosedByInterruptException) {
         it.remove();
       }
     }
