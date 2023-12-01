@@ -52,14 +52,10 @@
 ## Plan
 
 ### 0.1.0
-- Path switching
-  - We need to enable switching of local port binding.
-    Maybe we can test this by having a IPv6 BR and an IPv4 BR?
-    The daemon first returns one, then the other...? 
-    Can we connect to two different networks via a single channel?
-    This certainly does not work with bind(), but maybe with connect().
-    --> This means we cannot use bind() for send, unless we switch to a new
-        java.DatagramChannel...?!?!?
+- Test switching of firstHop when path changes
+  - Should be easy to test now, the daemon returns two paths
+    and we can just use the second one.
+    We just need to find a way to test this. 
 - SCMP error handling (only error, not info)
   - implement callbacks (+ option to NOT ignore)
   - E>g. MTU exceeded, path expired, checksum problem, "destination unreachable"
