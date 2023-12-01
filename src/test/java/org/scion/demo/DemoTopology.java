@@ -23,13 +23,11 @@ import org.scion.testutil.MockNetwork;
 class DemoTopology {
 
   InetSocketAddress clientDaemonAddress;
-  InetSocketAddress clientBorderRouter;
 
   static DemoTopology configureTiny110_112() {
     DemoTopology cfg = new DemoTopology();
     cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.12", 30255);
     //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    cfg.clientBorderRouter = new InetSocketAddress("127.0.0.9", 31002);
     configurePathService("127.0.0.12", 30255);
     return cfg;
   }
@@ -38,7 +36,6 @@ class DemoTopology {
     DemoTopology cfg = new DemoTopology();
     cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.19", 30255);
     //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    cfg.clientBorderRouter = new InetSocketAddress("127.0.0.17", 31008);
     configurePathService("127.0.0.19", 30255);
     return cfg;
   }
@@ -48,8 +45,6 @@ class DemoTopology {
     MockNetwork.startTiny(true, false);
     cfg.clientDaemonAddress = MockDaemon.DEFAULT_ADDRESS;
     //    cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    cfg.clientBorderRouter =
-        new InetSocketAddress(MockNetwork.BORDER_ROUTER_HOST, MockNetwork.BORDER_ROUTER_PORT1);
     return cfg;
   }
 

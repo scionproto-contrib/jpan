@@ -221,7 +221,7 @@ class DatagramChannelApiTest {
 
   @Test
   public void isConnected_Path() throws IOException {
-    Path path = PackageVisibilityHelper.createDummyPath();
+    RequestPath path = PackageVisibilityHelper.createDummyPath();
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());
       channel.connect(path);
@@ -253,7 +253,7 @@ class DatagramChannelApiTest {
       ScionService service2 = Scion.newServiceForAddress("127.0.0.2");
       channel.setService(service2);
       assertEquals(service2, channel.getService());
-      // TODO test that the service is actually used
+      service2.close();
     }
   }
 
@@ -330,7 +330,7 @@ class DatagramChannelApiTest {
 
   @Test
   public void write_bufferToLarge() {
-    Path addr = ExamplePacket.PATH;
+    RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65500);
     buffer.limit(buffer.capacity());
     try (DatagramChannel channel = DatagramChannel.open()) {
@@ -455,7 +455,7 @@ class DatagramChannelApiTest {
 
   @Test
   public void geCurrentPath() {
-    Path addr = ExamplePacket.PATH;
+    RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertNull(channel.getCurrentPath());

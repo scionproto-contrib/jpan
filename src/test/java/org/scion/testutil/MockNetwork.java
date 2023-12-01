@@ -16,16 +16,20 @@ package org.scion.testutil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +37,8 @@ import org.slf4j.LoggerFactory;
 public class MockNetwork {
 
   public static final String BORDER_ROUTER_HOST = "127.0.0.1";
-  public static final int BORDER_ROUTER_PORT1 = 30555;
-  public static final int BORDER_ROUTER_PORT2 = 30556;
+  private static final int BORDER_ROUTER_PORT1 = 30555;
+  private static final int BORDER_ROUTER_PORT2 = 30556;
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
@@ -69,14 +73,28 @@ public class MockNetwork {
               }
             });
 
-    MockBorderRouter routerInstance =
+    List<MockBorderRouter> brList = new ArrayList<>();
+    brList.add(
         new MockBorderRouter(
-            "BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4);
-    routers.execute(routerInstance);
+            "BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4));
+    brList.add(
+        new MockBorderRouter(
+            "BorderRouter-2",
+            BORDER_ROUTER_PORT1 + 10,
+            BORDER_ROUTER_PORT2 + 10,
+            localIPv4,
+            remoteIPv4));
 
-    InetSocketAddress brAddr = new InetSocketAddress(BORDER_ROUTER_HOST, routerInstance.getPort1());
+    for (MockBorderRouter br : brList) {
+      routers.execute(br);
+    }
+
+    List<InetSocketAddress> brAddrList =
+        brList.stream()
+            .map(mBR -> new InetSocketAddress(BORDER_ROUTER_HOST, mBR.getPort1()))
+            .collect(Collectors.toList());
     try {
-      daemon = MockDaemon.createForBorderRouter(brAddr).start();
+      daemon = MockDaemon.createForBorderRouter(brAddrList).start();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -165,8 +183,8 @@ class MockBorderRouter implements Runnable {
           if (key.isReadable()) {
             DatagramChannel incoming = (DatagramChannel) key.channel();
             DatagramChannel outgoing = (DatagramChannel) key.attachment();
-            Object o = incoming.receive(buffer);
-            if (o == null) {
+            SocketAddress srcAddress = incoming.receive(buffer);
+            if (srcAddress == null) {
               throw new IllegalStateException();
             }
 
@@ -177,7 +195,7 @@ class MockBorderRouter implements Runnable {
                     + " forwarding "
                     + buffer.remaining()
                     + " bytes from "
-                    + o
+                    + srcAddress
                     + " to "
                     + dstAddress);
 

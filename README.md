@@ -29,8 +29,6 @@ The central classes of the API are:
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
 - `Scion`, `ScionUtil`: Utility classes.
 - **TODO** Currently residing in `test`: `ScionPacketInspector`: A packet inspector and builder.
-- **TODO** Currently deprecated: `ScionSocketAddress`: contain ISD/AS information on top of a 
-  `InetSocketAddress`. It is not clear what this would be useful for.
 - **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
   This is currently deprecated because it does not work well.
 

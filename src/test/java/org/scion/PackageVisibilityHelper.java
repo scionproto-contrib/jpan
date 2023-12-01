@@ -33,7 +33,7 @@ public class PackageVisibilityHelper {
     return ScionHeaderParser.readDestinationSocketAddress(packet);
   }
 
-  public static Path createDummyPath() {
+  public static RequestPath createDummyPath() {
     return createDummyPath(
         0, ExamplePacket.SRC_HOST, 55555, new byte[0], new InetSocketAddress(12345));
   }

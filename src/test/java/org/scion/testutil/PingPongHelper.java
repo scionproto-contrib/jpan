@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.DatagramChannel;
 import org.scion.Path;
+import org.scion.RequestPath;
 import org.scion.Scion;
 
 public class PingPongHelper {
@@ -58,7 +59,7 @@ public class PingPongHelper {
     private final ClientEndPoint client;
     private final int id;
     private final InetSocketAddress localAddress;
-    private final Path remoteAddress;
+    private final RequestPath remoteAddress;
     private final int nRounds;
 
     Endpoint(ServerEndPoint server, int id, InetSocketAddress localAddress, int nRounds) {
@@ -70,7 +71,7 @@ public class PingPongHelper {
       this.nRounds = nRounds;
     }
 
-    Endpoint(ClientEndPoint client, int id, Path remoteAddress, int nRounds) {
+    Endpoint(ClientEndPoint client, int id, RequestPath remoteAddress, int nRounds) {
       this.server = null;
       this.client = client;
       this.id = id;
@@ -109,7 +110,7 @@ public class PingPongHelper {
   }
 
   public interface ClientEndPoint {
-    void run(DatagramChannel channel, Path path, int id) throws IOException;
+    void run(DatagramChannel channel, RequestPath path, int id) throws IOException;
   }
 
   public interface ServerEndPoint {
@@ -121,7 +122,7 @@ public class PingPongHelper {
       MockNetwork.startTiny();
 
       InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
-      Path scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
+      RequestPath scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
       Thread[] servers = new Thread[nServers];
       for (int i = 0; i < servers.length; i++) {
         // servers[i] = new Thread(() -> server(serverAddress, id), "Server-thread-" + i);

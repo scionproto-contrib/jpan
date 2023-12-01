@@ -142,10 +142,10 @@ public class ScionService {
   }
 
   /**
-   * Request and return a path from the local ISD/AS to the destination.
+   * Requests paths from the local ISD/AS to the destination.
    *
    * @param dstAddress Destination IP address
-   * @return The first path returned by the path service.
+   * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
@@ -154,11 +154,11 @@ public class ScionService {
   }
 
   /**
-   * Request and return a path from the local ISD/AS to the destination.
+   * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
    * @param dstAddress Destination IP address
-   * @return The first path returned by the path service.
+   * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress)
@@ -167,12 +167,24 @@ public class ScionService {
   }
 
   /**
-   * Request and return a path from the local ISD/AS to the destination.
+   * Request paths to the same destination as the provided path.
+   *
+   * @param path A path
+   * @return All paths returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public List<RequestPath> getPaths(RequestPath path) throws IOException {
+    return getPaths(
+        path.getDestinationIsdAs(), path.getDestinationAddress(), path.getDestinationPort());
+  }
+
+  /**
+   * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
    * @param dstAddress Destination IP address
    * @param dstPort Destination port
-   * @return The first path returned by the path service.
+   * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort)
@@ -210,9 +222,13 @@ public class ScionService {
     return localIsdAs.get();
   }
 
-  protected void close() throws IOException {
+  public void close() throws IOException {
     try {
-      channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+      if (!channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)) {
+        if (!channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)) {
+          LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
+        }
+      }
     } catch (InterruptedException e) {
       throw new IOException(e);
     }

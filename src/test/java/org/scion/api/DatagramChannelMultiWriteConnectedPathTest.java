@@ -22,6 +22,7 @@ import java.nio.charset.Charset;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.Path;
+import org.scion.RequestPath;
 import org.scion.testutil.PingPongHelper;
 
 /** Test read()/write() operations on DatagramChannel connected with a path. */
@@ -37,7 +38,8 @@ class DatagramChannelMultiWriteConnectedPathTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
+  private void client(DatagramChannel channel, RequestPath serverAddress, int id)
+      throws IOException {
     String message = MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.disconnect();
