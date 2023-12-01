@@ -75,6 +75,10 @@ Discuss required for 0.1.0:
 
 
 ### 0.2.0
+- Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
+  - dig NAPTR inf.ethz.ch
+  - Contact netsec-w37w3w.inf.ethz.ch for topology file
+  - Parse topology file for Control Server address
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
@@ -89,10 +93,6 @@ Discuss required for 0.1.0:
   - Protobuf-lite: https://github.com/protocolbuffers/protobuf/blob/main/java/lite.md
   - QuickBuffers: https://github.com/HebiRobotics/QuickBuffers/tree/main/benchmarks
   - FlatBuffers
-- Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
-  - dig NAPTR inf.ethz.ch
-  - Contact netsec-w37w3w.inf.ethz.ch for topology file
-  - Parse topology file for Control Server address
 - remove "internals" package
 
 ### 0.3.0
