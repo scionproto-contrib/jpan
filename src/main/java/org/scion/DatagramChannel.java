@@ -28,6 +28,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
   private boolean isBound = false;
+  private boolean isConnected = false;
+  private InetSocketAddress connection;
   private Path path;
   private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
   private boolean cfgReportFailedValidation = false;
@@ -137,15 +139,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
     //   - How do we prevent mixing of the two?
 
     // We need to connect() or bind() for getLocalAddress()  to work.
-    if (!channel.isConnected() && !isBound) {
-      if (path instanceof RequestPath) {
-        InetSocketAddress underlayAddress = path.getFirstHopAddress();
-        channel.connect(underlayAddress);
-      } else {
-        // TODO Path switching, once we are bound we cannot switch to a different
-        channel.bind(null);
-        isBound = true;
-      }
+    if (!isConnected && !isBound) {
+      channel.bind(null);
+      isBound = true;
     }
 
     // build and send packet
@@ -156,13 +152,13 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
     // bind() is called by java.net.DatagramSocket even for clients (with 0.0.0.0:0).
-    // We need to avoid this.
+    // We need to avoid this. // TODO still necessary? -> remobve
     if (address != null && address.getPort() != 0) {
       channel.bind(address);
-      isBound = true;
     } else {
       channel.bind(null);
     }
+    isBound = true;
     return this;
   }
 
@@ -181,7 +177,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   public void disconnect() throws IOException {
-    channel.disconnect();
+    connection = null;
+    isConnected = false;
   }
 
   @Override
@@ -192,6 +189,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
   @Override
   public void close() throws IOException {
     channel.close();
+    isConnected = false;
+    connection = null;
+    isBound = false;
   }
 
   private Path findPath(SocketAddress addr) throws IOException {
@@ -209,19 +209,21 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * Connect to a destination host. Note: - A SCION channel will internally connect to the next
    * border router (first hop) instead of the remote host.
    *
+   * NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * instead it calls bind(). That means this method does NOT perform any additional security checks
+   * associated with connect(), only those associated with bind().
+   *
    * @param addr Address of remote host.
    * @return This channel.
    * @throws IOException for example when the first hop (border router) cannot be connected.
    */
   public DatagramChannel connect(SocketAddress addr) throws IOException {
-    if (addr instanceof InetSocketAddress) {
-      path = pathPolicy.filter(getService().getPaths((InetSocketAddress) addr));
-    } else {
+    checkConnected(false);
+    if (!(addr instanceof InetSocketAddress)) {
       throw new IllegalArgumentException(
           "connect() requires an InetSocketAddress or a ScionSocketAddress.");
     }
-    channel.connect(path.getFirstHopAddress());
-    return this;
+    return connect(pathPolicy.filter(getService().getPaths((InetSocketAddress) addr)));
   }
 
   /**
@@ -229,13 +231,23 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * border router (first hop) instead of the remote host. - The path will be replaced with a new
    * path once it is expired.
    *
-   * @param path PAth to the remote host.
+   * NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * instead it calls bind(). That means this method does NOT perform any additional security checks
+   * associated with connect(), only those associated with bind().
+   *
+   * @param path Path to the remote host.
    * @return This channel.
    * @throws IOException for example when the first hop (border router) cannot be connected.
    */
   public DatagramChannel connect(Path path) throws IOException {
+    checkConnected(false);
     this.path = path;
-    channel.connect(path.getFirstHopAddress());
+    isConnected = true;
+    connection = path.getFirstHopAddress();
+    if (!isBound) {
+      channel.bind(null);
+      isBound = true;
+    }
     return this;
   }
 
@@ -258,31 +270,15 @@ public class DatagramChannel implements ByteChannel, Closeable {
    *     interrupt during read().
    * @throws IOException If some IOError occurs.
    * @see java.nio.channels.DatagramChannel#read(ByteBuffer)
+   * @see ByteChannel#read(ByteBuffer) 
    */
   @Override
   public int read(ByteBuffer dst) throws IOException {
     checkOpen();
-    checkConnected();
+    checkConnected(true);
 
     int oldPos = dst.position();
-    String validationResult;
-    do {
-      buffer.clear();
-      int bytesRead = channel.read(buffer);
-      if (bytesRead <= 0) {
-        return bytesRead;
-      }
-      buffer.flip();
-
-      // validateResult != null indicates a problem with the packet
-      validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
-      if (validationResult != null && cfgReportFailedValidation) {
-        throw new ScionException(validationResult);
-      }
-    } while (validationResult != null);
-
-    ScionHeaderParser.readUserData(buffer, dst);
-    buffer.clear();
+    receive(dst);
     return dst.position() - oldPos;
   }
 
@@ -300,10 +296,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
   @Override
   public int write(ByteBuffer src) throws IOException {
     checkOpen();
-    checkConnected();
+    checkConnected(true);
 
     buildPacket(path, src);
-    return channel.write(buffer);
+    // We do not write() because the channel is not connected.
+    // We do not connect because the path may change which would require dis-/re-connect.
+    // We cannot dis-/re-connect because the local port may change (at least with JDK 8 & 11).
+    //return channel.write(buffer); // TODO remove
+    return channel.send(buffer, connection);
   }
 
   private void checkOpen() throws ClosedChannelException {
@@ -312,14 +312,17 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
   }
 
-  private void checkConnected() {
-    if (!channel.isConnected()) {
+  private void checkConnected(boolean requiredState) {
+    if (requiredState != isConnected) {
+      throw new NotYetConnectedException();
+    }
+    if (requiredState != (connection != null)) {
       throw new NotYetConnectedException();
     }
   }
 
   public boolean isConnected() {
-    return channel.isConnected();
+    return isConnected;
   }
 
   public <T> DatagramChannel setOption(SocketOption<T> option, T t) throws IOException {
@@ -399,17 +402,12 @@ public class DatagramChannel implements ByteChannel, Closeable {
                     path.getDestinationAddress(),
                     path.getDestinationPort()));
 
-    if (channel.isConnected()) {  // equal to !isBound at this point
-      channel.disconnect();
-      channel.connect(newPath.getFirstHopAddress());
+    if (isConnected) {  // equal to !isBound at this point
+      connection = newPath.getFirstHopAddress();
     }
     if (this.path != null) {
-      // TODO THis is brittle, do this on channel.isConnected() i.o. path != null?
-//      channel.disconnect();
-//      channel.connect(newPath.getFirstHopAddress());
       this.path = newPath;
     }
-
     return newPath;
   }
 }

@@ -167,7 +167,7 @@ public class MockDaemon implements AutoCloseable {
                 .addInterfaces(Daemon.PathInterface.newBuilder().setId(1).setIsdAs(DST_IA).build())
                 .setRaw(rawPath)
                 .setExpiration(
-                    Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build())
+                    Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond() + 5).build())
                 .build();
         replyBuilder.addPaths(p0);
       }

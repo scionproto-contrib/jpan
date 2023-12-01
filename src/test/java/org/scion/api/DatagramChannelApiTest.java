@@ -20,6 +20,7 @@ import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
@@ -27,16 +28,16 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
-import org.scion.testutil.MockNetwork;
 import org.scion.testutil.PingPongHelper;
 
 class DatagramChannelApiTest {
@@ -392,45 +393,72 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void send_expired() throws IOException {
-    // MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-    // InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
-    InetSocketAddress address = MockNetwork.getTinyServerAddress();
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    Scion.defaultService().getPaths(dstIA, address);
+  void send_expiredRequestPath() throws IOException {
+    testExpired(
+        (channel, expiredPath) -> {
+          ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
+          try {
+            RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
+            assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
+            assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
+            assertNull(channel.getCurrentPath());
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
 
-    InetSocketAddress firstHop =
-        Scion.defaultService().getPaths(dstIA, address).get(0).getFirstHopAddress();
+  @Test
+  void write_expiredRequestPath() throws IOException {
+    testExpired(
+        (channel, expiredPath) -> {
+          ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
+          try {
+            channel.connect(expiredPath);
+            channel.write(sendBuf);
+            RequestPath newPath = (RequestPath) channel.getCurrentPath();
+            assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
+            assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
 
-    // Build a path that is about to expire
-    long now = Instant.now().getEpochSecond();
-    Daemon.Path.Builder builder =
-        Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
-    RequestPath path =
-        PackageVisibilityHelper.createRequestPath110_112(
-            builder, dstIA, ExamplePacket.DST_HOST, 12345, firstHop);
-
-    // Test the path
+  private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod) throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
-        (channel, ignoreMe, id) -> {
-          String message = MSG + "-" + id;
-          ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-          Path path2 = channel.send(sendBuf, path);
-          RequestPath rPath2 = (RequestPath) path2;
-          assertTrue(rPath2.getExpiration() > path.getExpiration());
+        (channel, basePath, id) -> {
+
+          // Build a path that is already expired
+          RequestPath expiredPath = createExpiredPath(basePath);
+          sendMethod.accept(channel, expiredPath);
 
           // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-          ByteBuffer response = ByteBuffer.allocate(5);
+          ByteBuffer response = ByteBuffer.allocate(100);
           channel.receive(response);
 
           response.flip();
-          assertEquals(5, response.limit());
           String pong = Charset.defaultCharset().decode(response).toString();
-          assertEquals(message.substring(0, 5), pong);
+          assertEquals(MSG, pong);
         };
     PingPongHelper pph = new PingPongHelper(1, 1, 1);
     pph.runPingPong(serverFn, clientFn);
+  }
+
+  private RequestPath createExpiredPath(Path basePath) throws UnknownHostException {
+    long now = Instant.now().getEpochSecond();
+    Daemon.Path.Builder builder =
+        Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
+    RequestPath expiredPath =
+        PackageVisibilityHelper.createRequestPath110_112(
+            builder,
+            basePath.getDestinationIsdAs(),
+            basePath.getDestinationAddress(),
+            basePath.getDestinationPort(),
+            basePath.getFirstHopAddress());
+    assertTrue(Instant.now().getEpochSecond() > expiredPath.getExpiration());
+    return expiredPath;
   }
 }

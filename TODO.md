@@ -52,7 +52,6 @@
 ## Plan
 
 ### 0.1.0
-- Path Expiry
 - Path switching
   - We need to enable switching of local port binding.
     Maybe we can test this by having a IPv6 BR and an IPv4 BR?
