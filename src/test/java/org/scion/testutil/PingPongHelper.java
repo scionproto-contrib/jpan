@@ -178,6 +178,23 @@ public class PingPongHelper {
     exceptions.clear();
   }
 
+  public static void defaultClient(DatagramChannel channel, Path serverAddress, int id) throws IOException {
+    String message = PingPongHelper.MSG + "-" + id;
+    ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+    channel.send(sendBuf, serverAddress);
+
+    // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+    ByteBuffer response = ByteBuffer.allocate(512);
+    Path address = channel.receive(response);
+    assertNotNull(address);
+    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
+    assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
+
+    response.flip();
+    String pong = Charset.defaultCharset().decode(response).toString();
+    assertEquals(message, pong);
+  }
+
   public static void defaultServer(DatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
