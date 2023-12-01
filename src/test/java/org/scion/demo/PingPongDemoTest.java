@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-public class TestPingPongDemo {
+public class PingPongDemoTest {
 
   @Test
   public void test() throws InterruptedException {
