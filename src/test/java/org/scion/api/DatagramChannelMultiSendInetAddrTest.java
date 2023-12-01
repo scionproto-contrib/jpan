@@ -29,18 +29,16 @@ import org.scion.testutil.PingPongHelper;
 /** Test receive()/send(InetAddress) operations on DatagramChannel. */
 class DatagramChannelMultiSendInetAddrTest {
 
-  private static final String MSG = "Hello world!";
-
   @Test
   public void test() {
-    PingPongHelper.ServerEndPoint serverFn = this::server;
+    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
     PingPongHelper.ClientEndPoint clientFn = this::client;
     PingPongHelper pph = new PingPongHelper(1, 20, 50);
     pph.runPingPong(serverFn, clientFn);
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
-    String message = MSG + "-" + id;
+    String message = PingPongHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     // Test send() with InetAddress
     InetAddress inetServerAddress = InetAddress.getByAddress(serverAddress.getDestinationAddress());
@@ -58,20 +56,5 @@ class DatagramChannelMultiSendInetAddrTest {
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
     assertEquals(message, pong);
-  }
-
-  private void server(DatagramChannel channel) throws IOException {
-    ByteBuffer request = ByteBuffer.allocate(512);
-    // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
-    Path address = channel.receive(request);
-
-    request.flip();
-    String msg = Charset.defaultCharset().decode(request).toString();
-    assertTrue(msg.startsWith(MSG));
-    assertTrue(MSG.length() + 3 >= msg.length());
-
-    // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
-    request.flip();
-    channel.send(request, address);
   }
 }

@@ -42,7 +42,6 @@ import org.scion.testutil.PingPongHelper;
 class DatagramChannelApiTest {
 
   private static final int dummyPort = 44444;
-  private static final String MSG = "Hello scion!";
 
   @BeforeEach
   public void beforeEach() throws IOException {
@@ -271,10 +270,10 @@ class DatagramChannelApiTest {
   @Test
   public void receive_bufferTooSmall() throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
+    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
         (channel, serverAddress, id) -> {
-          String message = MSG + "-" + id;
+          String message = PingPongHelper.MSG + "-" + id;
           ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
           channel.send(sendBuf, serverAddress);
 
@@ -294,10 +293,10 @@ class DatagramChannelApiTest {
   @Test
   public void read_bufferTooSmall() throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
+    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
         (channel, serverAddress, id) -> {
-          String message = MSG + "-" + id;
+          String message = PingPongHelper.MSG + "-" + id;
           ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
           channel.connect(serverAddress);
           channel.write(sendBuf);
@@ -313,21 +312,6 @@ class DatagramChannelApiTest {
         };
     PingPongHelper pph = new PingPongHelper(1, 1, 1);
     pph.runPingPong(serverFn, clientFn);
-  }
-
-  private void defaultServer(DatagramChannel channel) throws IOException {
-    ByteBuffer request = ByteBuffer.allocate(512);
-    // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
-    Path address = channel.receive(request);
-
-    request.flip();
-    String msg = Charset.defaultCharset().decode(request).toString();
-    assertTrue(msg.startsWith(MSG), msg);
-    assertTrue(MSG.length() + 3 >= msg.length());
-
-    // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
-    request.flip();
-    channel.send(request, address);
   }
 
   @Test
@@ -393,9 +377,10 @@ class DatagramChannelApiTest {
 
   @Test
   void send_expiredRequestPath() throws IOException {
+    // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiredPath) -> {
-          ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
+          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
           try {
             RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
@@ -409,9 +394,10 @@ class DatagramChannelApiTest {
 
   @Test
   void write_expiredRequestPath() throws IOException {
+    // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiredPath) -> {
-          ByteBuffer sendBuf = ByteBuffer.wrap(MSG.getBytes());
+          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
           try {
             channel.connect(expiredPath);
             channel.write(sendBuf);
@@ -426,7 +412,7 @@ class DatagramChannelApiTest {
 
   private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod) throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.ServerEndPoint serverFn = this::defaultServer;
+    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
     PingPongHelper.ClientEndPoint clientFn =
         (channel, basePath, id) -> {
 
@@ -440,7 +426,7 @@ class DatagramChannelApiTest {
 
           response.flip();
           String pong = Charset.defaultCharset().decode(response).toString();
-          assertEquals(MSG, pong);
+          assertEquals(PingPongHelper.MSG, pong);
         };
     PingPongHelper pph = new PingPongHelper(1, 1, 1);
     pph.runPingPong(serverFn, clientFn);

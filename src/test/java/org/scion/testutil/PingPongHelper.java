@@ -18,7 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -30,6 +32,7 @@ import org.scion.Scion;
 
 public class PingPongHelper {
 
+  public static final String MSG = "Hello scion!";
   private static final int TIMEOUT = 5; // seconds
   private final CountDownLatch BARRIER;
 
@@ -173,5 +176,20 @@ public class PingPongHelper {
     }
     assertEquals(0, exceptions.size());
     exceptions.clear();
+  }
+
+  public static void defaultServer(DatagramChannel channel) throws IOException {
+    ByteBuffer request = ByteBuffer.allocate(512);
+    // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
+    Path address = channel.receive(request);
+
+    request.flip();
+    String msg = Charset.defaultCharset().decode(request).toString();
+    assertTrue(msg.startsWith(MSG), msg);
+    assertTrue(MSG.length() + 3 >= msg.length());
+
+    // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
+    request.flip();
+    channel.send(request, address);
   }
 }
