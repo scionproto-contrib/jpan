@@ -18,6 +18,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
@@ -179,6 +180,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public void disconnect() throws IOException {
     connection = null;
     isConnected = false;
+    path = null;
   }
 
   @Override
@@ -192,17 +194,17 @@ public class DatagramChannel implements ByteChannel, Closeable {
     isConnected = false;
     connection = null;
     isBound = false;
+    path = null;
   }
 
   private Path findPath(SocketAddress addr) throws IOException {
     if (addr instanceof SSocketAddress) {
       throw new UnsupportedOperationException(); // TODO implement
     } else if (addr instanceof InetSocketAddress) {
-      path = pathPolicy.filter(getService().getPaths((InetSocketAddress) addr));
+      return pathPolicy.filter(getService().getPaths((InetSocketAddress) addr));
     } else {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
-    return path;
   }
 
   /**
@@ -314,10 +316,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   private void checkConnected(boolean requiredState) {
     if (requiredState != isConnected) {
-      throw new NotYetConnectedException();
-    }
-    if (requiredState != (connection != null)) {
-      throw new NotYetConnectedException();
+      if (isConnected) {
+        throw new AlreadyConnectedException();
+      } else {
+        throw new NotYetConnectedException();
+      }
     }
   }
 
@@ -404,8 +407,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
     if (isConnected) { // equal to !isBound at this point
       connection = newPath.getFirstHopAddress();
-    }
-    if (this.path != null) {
+      //    }
+      //    if (this.path != null) {
       this.path = newPath;
     }
     return newPath;

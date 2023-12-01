@@ -28,6 +28,7 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -395,11 +396,15 @@ class DatagramChannelApiTest {
   @Test
   void write_expiredRequestPath() throws IOException {
     // Expected behavior: expired paths should be replaced transparently.
+    AtomicInteger countConnect = new AtomicInteger();
     testExpired(
         (channel, expiredPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
           try {
-            channel.connect(expiredPath);
+            if (!channel.isConnected()) {
+              channel.connect(expiredPath);
+              countConnect.incrementAndGet();
+            }
             channel.write(sendBuf);
             RequestPath newPath = (RequestPath) channel.getCurrentPath();
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
@@ -408,6 +413,7 @@ class DatagramChannelApiTest {
             throw new RuntimeException(e);
           }
         });
+    assertEquals(10, countConnect.get()); // # of clients
   }
 
   private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod) throws IOException {
@@ -428,7 +434,7 @@ class DatagramChannelApiTest {
           String pong = Charset.defaultCharset().decode(response).toString();
           assertEquals(PingPongHelper.MSG, pong);
         };
-    PingPongHelper pph = new PingPongHelper(1, 1, 1);
+    PingPongHelper pph = new PingPongHelper(1, 10, 5);
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -445,5 +451,26 @@ class DatagramChannelApiTest {
             basePath.getFirstHopAddress());
     assertTrue(Instant.now().getEpochSecond() > expiredPath.getExpiration());
     return expiredPath;
+  }
+
+  @Test
+  public void geCurrentPath() {
+    Path addr = ExamplePacket.PATH;
+    ByteBuffer buffer = ByteBuffer.allocate(50);
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertNull(channel.getCurrentPath());
+
+      // connect should set a path
+      channel.connect(addr);
+      assertNotNull(channel.getCurrentPath());
+      channel.disconnect();
+      assertNull(channel.getCurrentPath());
+
+      // send should NOT set a path
+      channel.send(buffer, addr);
+      assertNull(channel.getCurrentPath());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

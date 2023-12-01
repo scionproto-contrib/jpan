@@ -173,12 +173,14 @@ public class PingPongHelper {
       if (t instanceof ClosedByInterruptException) {
         it.remove();
       }
+      t.printStackTrace();
     }
     assertEquals(0, exceptions.size());
     exceptions.clear();
   }
 
-  public static void defaultClient(DatagramChannel channel, Path serverAddress, int id) throws IOException {
+  public static void defaultClient(DatagramChannel channel, Path serverAddress, int id)
+      throws IOException {
     String message = PingPongHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.send(sendBuf, serverAddress);

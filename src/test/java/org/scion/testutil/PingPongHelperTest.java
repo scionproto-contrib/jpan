@@ -14,7 +14,6 @@
 
 package org.scion.testutil;
 
-
 import org.junit.jupiter.api.Test;
 
 public class PingPongHelperTest {
