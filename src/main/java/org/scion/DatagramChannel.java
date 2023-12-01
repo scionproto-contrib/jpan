@@ -153,7 +153,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   public DatagramChannel bind(InetSocketAddress address) throws IOException {
     // bind() is called by java.net.DatagramSocket even for clients (with 0.0.0.0:0).
-    // We need to avoid this. // TODO still necessary? -> remobve
+    // We need to avoid this. // TODO still necessary? -> remove
     if (address != null && address.getPort() != 0) {
       channel.bind(address);
     } else {

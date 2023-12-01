@@ -63,8 +63,8 @@
 - SCMP error handling (only error, not info)
   - implement callbacks (+ option to NOT ignore)
   - E>g. MTU exceeded, path expired, checksum problem, "destination unreachable"
-- Handle "no path found" / NoRouteToHost?.>!?!?
-- remove "internals" package
+  - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
+- Run testing with IPv6 again? -> MockNetwork 
 
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
@@ -93,6 +93,7 @@ Discuss required for 0.1.0:
   - dig NAPTR inf.ethz.ch
   - Contact netsec-w37w3w.inf.ethz.ch for topology file
   - Parse topology file for Control Server address
+- remove "internals" package
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...
