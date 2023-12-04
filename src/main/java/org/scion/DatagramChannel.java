@@ -28,7 +28,6 @@ import org.scion.internal.ScionHeaderParser;
 public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  private boolean isBound = false;
   private boolean isConnected = false;
   private InetSocketAddress connection;
   private RequestPath path;
@@ -58,29 +57,122 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @param pathPolicy the new path policy
    * @see PathPolicy#DEFAULT
    */
-  public void setPathPolicy(PathPolicy pathPolicy) throws IOException {
+  public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
     this.pathPolicy = pathPolicy;
     if (path != null) {
       path = pathPolicy.filter(getService().getPaths(path));
     }
   }
 
-  public PathPolicy getPathPolicy() {
+  public synchronized PathPolicy getPathPolicy() {
     return this.pathPolicy;
   }
 
-  public void setService(ScionService service) {
+  public synchronized void setService(ScionService service) {
     this.service = service;
   }
 
-  public ScionService getService() {
+  public synchronized ScionService getService() {
     if (service == null) {
       service = Scion.defaultService();
     }
     return this.service;
   }
 
-  public synchronized Path receive(ByteBuffer userBuffer) throws IOException {
+  public synchronized DatagramChannel bind(InetSocketAddress address) throws IOException {
+    channel.bind(address);
+    return this;
+  }
+
+  // TODO we return `void` here. If we implement SelectableChannel
+  //  this can be changed to return SelectableChannel.
+  public synchronized void configureBlocking(boolean block) throws IOException {
+    channel.configureBlocking(block);
+  }
+
+  public synchronized boolean isBlocking() {
+    return channel.isBlocking();
+  }
+
+  public synchronized InetSocketAddress getLocalAddress() throws IOException {
+    return (InetSocketAddress) channel.getLocalAddress();
+  }
+
+  public synchronized void disconnect() throws IOException {
+    channel.disconnect();
+    connection = null;
+    isConnected = false;
+    path = null;
+  }
+
+  @Override
+  public synchronized boolean isOpen() {
+    return channel.isOpen();
+  }
+
+  @Override
+  // TODO not synchronized yet, think about a more fine grained lock (see JDK Channel impl)
+  public void close() throws IOException {
+    channel.disconnect();
+    channel.close();
+    isConnected = false;
+    connection = null;
+    path = null;
+  }
+
+  /**
+   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
+   * border router (first hop) instead of the remote host.
+   *
+   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * instead it calls bind(). That means this method does NOT perform any additional security checks
+   * associated with connect(), only those associated with bind().
+   *
+   * @param addr Address of remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   */
+  public synchronized DatagramChannel connect(SocketAddress addr) throws IOException {
+    checkConnected(false);
+    if (!(addr instanceof InetSocketAddress)) {
+      throw new IllegalArgumentException(
+          "connect() requires an InetSocketAddress or a ScionSocketAddress.");
+    }
+    return connect(pathPolicy.filter(getService().getPaths((InetSocketAddress) addr)));
+  }
+
+  /**
+   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
+   * border router (first hop) instead of the remote host. - The path will be replaced with a new
+   * path once it is expired.
+   *
+   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * instead it calls bind(). That means this method does NOT perform any additional security checks
+   * associated with connect(), only those associated with bind().
+   *
+   * @param path Path to the remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   */
+  public synchronized DatagramChannel connect(RequestPath path) throws IOException {
+    checkConnected(false);
+    this.path = path;
+    isConnected = true;
+    connection = path.getFirstHopAddress();
+    channel.connect(connection);
+    return this;
+  }
+
+  /**
+   * Get the currently connected path.
+   *
+   * @return the current Path or `null` if not path is connected.
+   */
+  public synchronized Path getCurrentPath() {
+    return path;
+  }
+
+  public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
     SocketAddress srcAddress;
     String validationResult;
     do {
@@ -100,7 +192,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     } while (validationResult != null);
 
     ScionHeaderParser.readUserData(buffer, userBuffer);
-    Path addr = ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
+    ResponsePath addr =
+        ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
     buffer.clear();
     return addr;
   }
@@ -128,8 +221,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
-   * @param path Path to destination. If this path is expired it will automatically be replaced with
-   *     a new path.
+   * @param path Path to destination. If this is a Request path and it is expired then it will
+   *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
    * @return either the path argument or a new path if the path was an expired RequestPath. Note
    *     that ResponsePaths are not checked for expiration.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
@@ -137,122 +230,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
   public synchronized Path send(ByteBuffer srcBuffer, Path path) throws IOException {
-    // TODO do we need to create separate channels for each border router or can we "connect" to
-    //  different ones from a single channel? Do we need to connect explicitly?
-    //  What happens if, for the same path, we suddenly get a different border router recommended,
-    //  do we need to create a new channel and reconnect?
-
-    // We need to connect() or bind() for getLocalAddress()  to work.
-    if (!isConnected && !isBound) {
-      channel.bind(null);
-      isBound = true;
-    }
-
-    // build and send packet
     Path actualPath = buildPacket(path, srcBuffer);
     channel.send(buffer, actualPath.getFirstHopAddress());
     return actualPath;
-  }
-
-  public DatagramChannel bind(InetSocketAddress address) throws IOException {
-    // bind() is called by java.net.DatagramSocket even for clients (with 0.0.0.0:0).
-    // We need to avoid this. // TODO still necessary? -> remove
-    if (address != null && address.getPort() != 0) {
-      channel.bind(address);
-    } else {
-      channel.bind(null);
-    }
-    isBound = true;
-    return this;
-  }
-
-  // TODO we return `void` here. If we implement SelectableChannel
-  //  this can be changed to return SelectableChannel.
-  public void configureBlocking(boolean block) throws IOException {
-    channel.configureBlocking(block);
-  }
-
-  public boolean isBlocking() {
-    return channel.isBlocking();
-  }
-
-  public InetSocketAddress getLocalAddress() throws IOException {
-    return (InetSocketAddress) channel.getLocalAddress();
-  }
-
-  public void disconnect() throws IOException {
-    connection = null;
-    isConnected = false;
-    path = null;
-  }
-
-  @Override
-  public boolean isOpen() {
-    return channel.isOpen();
-  }
-
-  @Override
-  public void close() throws IOException {
-    channel.close();
-    isConnected = false;
-    connection = null;
-    isBound = false;
-    path = null;
-  }
-
-  /**
-   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
-   * border router (first hop) instead of the remote host.
-   *
-   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
-   * instead it calls bind(). That means this method does NOT perform any additional security checks
-   * associated with connect(), only those associated with bind().
-   *
-   * @param addr Address of remote host.
-   * @return This channel.
-   * @throws IOException for example when the first hop (border router) cannot be connected.
-   */
-  public DatagramChannel connect(SocketAddress addr) throws IOException {
-    checkConnected(false);
-    if (!(addr instanceof InetSocketAddress)) {
-      throw new IllegalArgumentException(
-          "connect() requires an InetSocketAddress or a ScionSocketAddress.");
-    }
-    return connect(pathPolicy.filter(getService().getPaths((InetSocketAddress) addr)));
-  }
-
-  /**
-   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
-   * border router (first hop) instead of the remote host. - The path will be replaced with a new
-   * path once it is expired.
-   *
-   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
-   * instead it calls bind(). That means this method does NOT perform any additional security checks
-   * associated with connect(), only those associated with bind().
-   *
-   * @param path Path to the remote host.
-   * @return This channel.
-   * @throws IOException for example when the first hop (border router) cannot be connected.
-   */
-  public DatagramChannel connect(RequestPath path) throws IOException {
-    checkConnected(false);
-    this.path = path;
-    isConnected = true;
-    connection = path.getFirstHopAddress();
-    if (!isBound) {
-      channel.bind(null);
-      isBound = true;
-    }
-    return this;
-  }
-
-  /**
-   * Get the currently connected path.
-   *
-   * @return the current Path or `null` if not path is connected.
-   */
-  public Path getCurrentPath() {
-    return path;
   }
 
   /**
@@ -268,7 +248,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @see ByteChannel#read(ByteBuffer)
    */
   @Override
-  public int read(ByteBuffer dst) throws IOException {
+  public synchronized int read(ByteBuffer dst) throws IOException {
     checkOpen();
     checkConnected(true);
 
@@ -289,16 +269,17 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @see java.nio.channels.DatagramChannel#write(ByteBuffer[])
    */
   @Override
-  public int write(ByteBuffer src) throws IOException {
+  public synchronized int write(ByteBuffer src) throws IOException {
     checkOpen();
     checkConnected(true);
 
     buildPacket(path, src);
-    // We do not write() because the channel is not connected.
-    // We do not connect because the path may change which would require dis-/re-connect.
-    // We cannot dis-/re-connect because the local port may change (at least with JDK 8 & 11).
-    // return channel.write(buffer); // TODO remove
-    return channel.send(buffer, connection);
+    int len = src.remaining();
+    int sent = channel.write(buffer);
+    if (sent < buffer.limit() || buffer.remaining() > 0) {
+      throw new ScionException("Failed to send all data.");
+    }
+    return len - buffer.remaining();
   }
 
   private void checkOpen() throws ClosedChannelException {
@@ -317,11 +298,12 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
   }
 
-  public boolean isConnected() {
+  public synchronized boolean isConnected() {
     return isConnected;
   }
 
-  public <T> DatagramChannel setOption(SocketOption<T> option, T t) throws IOException {
+  public synchronized <T> DatagramChannel setOption(SocketOption<T> option, T t)
+      throws IOException {
     if (option instanceof ScionSocketOptions.SciSocketOption) {
       if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
         cfgReportFailedValidation = (Boolean) t;
@@ -343,7 +325,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @throws IOException in case of IOException.
    */
   private Path buildPacket(Path path, ByteBuffer srcBuffer) throws IOException {
-    // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
     buffer.clear();
     int payloadLength = srcBuffer.remaining();
 
@@ -358,14 +339,19 @@ public class DatagramChannel implements ByteChannel, Closeable {
       srcAddress = rPath.getSourceAddress();
       srcPort = rPath.getSourcePort();
     } else {
+      // For sending request path we need to have a valid local external address.
+      // For a valid local external address we need to be connected.
+      if (!isConnected) {
+        isConnected = true;
+        connection = path.getFirstHopAddress();
+        channel.connect(connection);
+      }
+
       // check path expiration
       path = ensureUpToDate((RequestPath) path);
       srcIA = getService().getLocalIsdAs();
+      // Get external host address. This must be done *after* refreshing the path!
       InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
-      // TODO
-      //  - we need to connect/bind for send() to have a local address -> document
-      //  - the send() local-address also needs to be reconnected, i.e. AS switch
-      //    -> implement! (test?!?!)
       srcAddress = srcSocketAddress.getAddress().getAddress();
       srcPort = srcSocketAddress.getPort();
     }
@@ -394,7 +380,12 @@ public class DatagramChannel implements ByteChannel, Closeable {
     RequestPath newPath = pathPolicy.filter(getService().getPaths(path));
 
     if (isConnected) { // equal to !isBound at this point
-      this.connection = newPath.getFirstHopAddress();
+      if (!newPath.getFirstHopAddress().equals(this.connection)) {
+        // TODO only reconnect if firstHop is on different interface....?!
+        channel.disconnect();
+        this.connection = newPath.getFirstHopAddress();
+        channel.connect(this.connection);
+      }
       this.path = newPath;
     }
     return newPath;

@@ -18,7 +18,6 @@ import static org.scion.internal.ByteUtil.*;
 
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.Path;
 import org.scion.ResponsePath;
 
 /** Utility methods for reading and writing the Common Header and Address Header. */
@@ -49,7 +48,8 @@ public class ScionHeaderParser {
    * @return A new ScionSocketAddress including raw path.
    */
   // TODO this is a bit weird to have the firstHopAddress here....
-  public static Path readRemoteSocketAddress(ByteBuffer data, InetSocketAddress firstHopAddress) {
+  public static ResponsePath readRemoteSocketAddress(
+      ByteBuffer data, InetSocketAddress firstHopAddress) {
     int start = data.position();
 
     int i1 = data.getInt(start + 4);

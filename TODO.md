@@ -21,6 +21,15 @@
   - It represents an IP from a DNS/TXT lookup!
 
 
+## Questions
+- What to do on server if path is expired? Currently we just don't check and send anyway.
+- Should I have separate ServerChannel & ClientChannel classes
+  - ServerChannel has receive()/send()/bind()
+  - ClientChannel has read()/write()/connect()
+  - This would be cleaner but may be confusing and
+- Related to previous: Should receive()/send() be specific about RequestPath/ResponsePath?
+  I.e. hide complexity vs being specific....   check Effective Java?   
+
 ## Plan
 
 ### 0.1.0
