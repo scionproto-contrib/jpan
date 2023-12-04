@@ -1,17 +1,3 @@
-# Problems
-
-# Why ScionAddress?
-- ScionAddress has two properties:
-  - It has Isd/As info
-  - It represents an IP from a DNS/TXT lookup!
-
-
-## Other
-
-- How do we handle Interface switchover (e.g. WLAN -> 5G)?
-  Is it enough to always call getLocalAddress() ?
-- How do I get the local external IP? Make it configurable?
-
 # TODO
 - Test: Send multiple packets before reading
 - Handle expired paths
@@ -23,7 +9,6 @@
 - Truncate PROTO files! 
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
 - MOVE Channel to ".channel"?
-- CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
 - TEST concurrent path/as/DNS lookup
 - TEST concurrent use of single channel.
 - IMPORTANT: In non-blocking mode, the channel should probably block if it received a partial Scion-header?
@@ -31,6 +16,10 @@
   We could just buffer a partial header until it is complete... 
 - Merge Scion + ScionService?
 - Remove slf4j from API?
+- Why ScionAddress? ScionAddress has two properties:
+  - It has Isd/As info
+  - It represents an IP from a DNS/TXT lookup!
+
 
 ## Plan
 
@@ -48,10 +37,6 @@
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
   - Especially for expired paths / revoked paths / broken paths?  
-- Bootstrapping
-- /etc/scion-hosts
-- RHINE
-
 
 ### 0.2.0
 - Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
@@ -61,6 +46,15 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
+- DNS /etc/scion-hosts
+- UDP checksum validation + creation
+- Fuzzing
+- Remove daemon requirement -> support connecting directly to control service
+- remove "internals" package
+
+### 0.3.0
+- SCMP info handling: ping, traceroute, ...
+- SCMP error _sending_ e.h. in case of corrupt packet
 - DatagramSocket
   - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
   - Add socket.send(packet, dstIsdAs); ?
@@ -68,27 +62,18 @@ Discuss required for 0.1.0:
     Instead we may simply implement a class that is *similar* to DatagramSocket, e.g.
     with enforcing bind()/connect() before send()/receive() and enforcing that connect() uses
     ScionSocketAddresses. Problematic: how to handle path on server side?
-- DNS /etc/scion-hosts
-- UDP checksum validation + creation
-- Fuzzing
-- Remove daemon requirement -> support connecting directly to control service
-- Replace Protobuf:
-  - Protobuf-lite: https://github.com/protocolbuffers/protobuf/blob/main/java/lite.md
-  - QuickBuffers: https://github.com/HebiRobotics/QuickBuffers/tree/main/benchmarks
-  - FlatBuffers
-- remove "internals" package
-
-### 0.3.0
-- SCMP info handling: ping, traceroute, ...
-- SCMP error _sending_ e.h. in case of corrupt packet
-- Multipathing
 - Reproducible build
 - RHINE?
 
 ### 0.4.0
+- Multipathing
 - EPIC, Hidden paths
 - SPAO end-to-end option -> Later, not used at the moment
 - MAC validation?
+- Replace Protobuf:
+  - Protobuf-lite: https://github.com/protocolbuffers/protobuf/blob/main/java/lite.md
+  - QuickBuffers: https://github.com/HebiRobotics/QuickBuffers/tree/main/benchmarks
+  - FlatBuffers
 
 
 
