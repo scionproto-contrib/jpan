@@ -11,35 +11,18 @@
 - How do we handle Interface switchover (e.g. WLAN -> 5G)?
   Is it enough to always call getLocalAddress() ?
 - How do I get the local external IP? Make it configurable?
-- Expired path, what to do?
-  - Server side: just keep using it? -> problematic with write() which may be reused infinitely
-    - Just stop sending? 
-  - Client side: 
-    - try to automatically get a new path? Concurrently to avoid hickups?
-    - Define callback for user?
-    - throw exception????  -> probably not a good idea
-- We cannot really use "connect()" because the first hop may change if the path changes...? 
-- It seems we cannot use DatagramSocketImpl for implementing a Scion DatagramSocket.
-  Instead we may simply implement a class that is *similar* to DatagramSocket, e.g.
-  with enforcing bind()/connect() before send()/receive() and enforcing that connect() uses
-  ScionSocketAddresses. Problematic: how to handle path on server side?
 
 # TODO
 - Test: Send multiple packets before reading
-- Deprecate SSocketAddress for now
-
-
-- Rename *Path* to *Route* or *ScionSocketAddress*?
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
   - Handle SCMP reporting a failed path -> request new one!
-- Test path switching, e.g. with 2nd BR
 - Test 
   - PathPolicies
 - Truncate PROTO files! 
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
-- MOVE Channel to ".channel"
+- MOVE Channel to ".channel"?
 - CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
 - TEST concurrent path/as/DNS lookup
 - TEST concurrent use of single channel.
@@ -81,6 +64,10 @@ Discuss required for 0.1.0:
 - DatagramSocket
   - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
   - Add socket.send(packet, dstIsdAs); ?
+  - It seems we cannot use DatagramSocketImpl for implementing a Scion DatagramSocket.
+    Instead we may simply implement a class that is *similar* to DatagramSocket, e.g.
+    with enforcing bind()/connect() before send()/receive() and enforcing that connect() uses
+    ScionSocketAddresses. Problematic: how to handle path on server side?
 - DNS /etc/scion-hosts
 - UDP checksum validation + creation
 - Fuzzing
@@ -111,7 +98,6 @@ Discuss required for 0.1.0:
   many different ways, it may be difficult to design a one-size-fits-all API.
   E.g. "Hercules" uses a round-robin fashion with multiple path to fire UDP packets. 
 - MulticastSocket / MulticastChannel (?)
-- Abuse socket/channel.setOption() to set path policies?
 
 - For Android look into
   - android.net.Network: 

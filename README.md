@@ -28,6 +28,7 @@ The central classes of the API are:
   first path returned by daemon (default), max bandwidth, min latency, min hops, ...
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
 - `Scion`, `ScionUtil`: Utility classes.
+- `ScionSocketOptions`: Options for the `DatagramChannel`.
 - **TODO** Currently residing in `test`: `ScionPacketInspector`: A packet inspector and builder.
 - **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
   This is currently deprecated because it does not work well.
