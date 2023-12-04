@@ -33,6 +33,7 @@
   - E>g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
 - Run testing with IPv6 again? -> MockNetwork 
+- Path Expiry: ms or ns instead of seconds!
 
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
@@ -46,6 +47,7 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
+- Path expiry: request new path asynchronously when old path is close to expiry
 - DNS /etc/scion-hosts
 - UDP checksum validation + creation
 - Fuzzing
