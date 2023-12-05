@@ -1,5 +1,4 @@
 # TODO
-- Test: Send multiple packets before reading
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
@@ -20,7 +19,7 @@
   - It has Isd/As info
   - It represents an IP from a DNS/TXT lookup!
 
-## Known Bugs
+## Known Shortcomings
 
 - ScionService always returns the same localIsdAs number, even when the interface changes or
   a new IP is assigned. How does it work with mobile phones?

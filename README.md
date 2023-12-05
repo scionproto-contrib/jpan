@@ -33,6 +33,30 @@ The central classes of the API are:
 - **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
   This is currently deprecated because it does not work well.
 
+### Features
+Supported:
+- DatagramChannel support: read(), write(), receive(), send(), bind(), connnect(), ... 
+- Path selection policies
+- Path expiry/refresh
+- Border router switching
+- Packet validation
+- DNS/TXT scion entry lookup
+- Configurable:
+  - daemon address
+  - Path expiry
+- Packet inspector for debugging
+- No "dispatcher"
+
+Missing:
+- DatagramChannel support for Selectors
+- DatagramSockets
+- SCMP error messages
+- SCMP info messages
+- Bootstrapping
+- EPIC
+- RHINE
+- ...
+
 ## DatagramChannel
 
 ### Options
