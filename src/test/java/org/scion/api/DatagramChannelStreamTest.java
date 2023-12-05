@@ -29,16 +29,7 @@ import org.scion.testutil.PingPongHelper;
 /** Test write/send of multiple packets at once. */
 class DatagramChannelStreamTest {
 
-  static final int N_BULK = 10;
-  private final PathPolicy alternatingPolicy =
-      new PathPolicy() {
-        private int count = 0;
-
-        @Override
-        public RequestPath filter(List<RequestPath> paths) {
-          return paths.get(count++ % 2);
-        }
-      };
+  private static final int N_BULK = 10;
 
   @Test
   public void test() {
@@ -72,7 +63,7 @@ class DatagramChannelStreamTest {
     }
   }
 
-  private class Pair {
+  private static class Pair {
     Path path;
     String msg;
 
