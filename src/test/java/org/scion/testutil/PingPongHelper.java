@@ -53,50 +53,20 @@ public class PingPongHelper {
     MockNetwork.getAndResetForwardCount();
   }
 
-  private class Endpoint implements Runnable {
+  private abstract class AbstractEndpoint implements Runnable {
+    protected final int id;
 
-    private final ServerEndPoint server;
-    private final ClientEndPoint client;
-    private final int id;
-    private final InetSocketAddress localAddress;
-    private final RequestPath remoteAddress;
-    private final int nRounds;
-
-    Endpoint(ServerEndPoint server, int id, InetSocketAddress localAddress, int nRounds) {
-      this.server = server;
-      this.client = null;
+    AbstractEndpoint(int id) {
       this.id = id;
-      this.localAddress = localAddress;
-      this.remoteAddress = null;
-      this.nRounds = nRounds;
     }
 
-    Endpoint(ClientEndPoint client, int id, RequestPath remoteAddress, int nRounds) {
-      this.server = null;
-      this.client = client;
-      this.id = id;
-      this.localAddress = null;
-      this.remoteAddress = remoteAddress;
-      this.nRounds = nRounds;
-    }
+    abstract void runImpl(DatagramChannel channel) throws IOException;
 
     @Override
     public final void run() {
       try (DatagramChannel channel = DatagramChannel.open()) {
-        if (localAddress != null) {
-          channel.bind(localAddress);
-        }
         channel.configureBlocking(true);
-
-        for (int i = 0; i < nRounds; i++) {
-          if (server != null) {
-            server.run(channel);
-            nRoundsServer.incrementAndGet();
-          } else {
-            client.run(channel, remoteAddress, id);
-            nRoundsClient.incrementAndGet();
-          }
-        }
+        runImpl(channel);
       } catch (IOException e) {
         System.out.println(
             "ENDPOINT " + Thread.currentThread().getName() + ": I/O error: " + e.getMessage());
@@ -109,15 +79,67 @@ public class PingPongHelper {
     }
   }
 
-  public interface ClientEndPoint {
+  private class ClientEndpoint extends AbstractEndpoint {
+    private final Client client;
+    private final RequestPath remoteAddress;
+    private final int nRounds;
+
+    ClientEndpoint(Client client, int id, RequestPath remoteAddress, int nRounds) {
+      super(id);
+      this.client = client;
+      this.remoteAddress = remoteAddress;
+      this.nRounds = nRounds;
+    }
+
+    @Override
+    public final void runImpl(DatagramChannel channel) throws IOException {
+      InetAddress inetAddress = InetAddress.getByAddress(remoteAddress.getDestinationAddress());
+      InetSocketAddress iSAddress =
+          new InetSocketAddress(inetAddress, remoteAddress.getDestinationPort());
+      channel.connect(iSAddress);
+      for (int i = 0; i < nRounds; i++) {
+        client.run(channel, remoteAddress, id);
+        nRoundsClient.incrementAndGet();
+      }
+      channel.disconnect();
+    }
+  }
+
+  private class ServerEndpoint extends AbstractEndpoint {
+    private final Server server;
+    private final InetSocketAddress localAddress;
+    private final int nRounds;
+
+    ServerEndpoint(Server server, int id, InetSocketAddress localAddress, int nRounds) {
+      super(id);
+      this.server = server;
+      this.localAddress = localAddress;
+      this.nRounds = nRounds;
+    }
+
+    @Override
+    public final void runImpl(DatagramChannel channel) throws IOException {
+      channel.bind(localAddress);
+      for (int i = 0; i < nRounds; i++) {
+        server.run(channel);
+        nRoundsServer.incrementAndGet();
+      }
+    }
+  }
+
+  public interface Client {
     void run(DatagramChannel channel, RequestPath path, int id) throws IOException;
   }
 
-  public interface ServerEndPoint {
+  public interface Server {
     void run(DatagramChannel channel) throws IOException;
   }
 
-  public void runPingPong(ServerEndPoint serverFn, ClientEndPoint clientFn) {
+  public void runPingPong(Server serverFn, Client clientFn) {
+    runPingPong(serverFn, clientFn, true);
+  }
+
+  public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     try {
       MockNetwork.startTiny();
 
@@ -125,17 +147,15 @@ public class PingPongHelper {
       RequestPath scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
       Thread[] servers = new Thread[nServers];
       for (int i = 0; i < servers.length; i++) {
-        // servers[i] = new Thread(() -> server(serverAddress, id), "Server-thread-" + i);
-        servers[i] =
-            new Thread(
-                new Endpoint(serverFn, i, serverAddress, nRounds * nClients), "Server-thread-" + i);
+        servers[i] = new Thread(new ServerEndpoint(serverFn, i, serverAddress, nRounds * nClients));
+        servers[i].setName("Server-thread-" + i);
         servers[i].start();
       }
 
       Thread[] clients = new Thread[nClients];
       for (int i = 0; i < clients.length; i++) {
-        clients[i] =
-            new Thread(new Endpoint(clientFn, i, scionAddress, nRounds), "Client-thread-" + i);
+        clients[i] = new Thread(new ClientEndpoint(clientFn, i, scionAddress, nRounds));
+        clients[i].setName("Client-thread-" + i);
         clients[i].start();
       }
 
@@ -163,7 +183,9 @@ public class PingPongHelper {
       checkExceptions();
     }
 
-    assertEquals(nRounds * nClients * 2, MockNetwork.getAndResetForwardCount());
+    if (reset) {
+      assertEquals(nRounds * nClients * 2, MockNetwork.getAndResetForwardCount());
+    }
     assertEquals(nRounds * nClients, nRoundsClient.get());
     assertEquals(nRounds * nClients, nRoundsServer.get());
   }

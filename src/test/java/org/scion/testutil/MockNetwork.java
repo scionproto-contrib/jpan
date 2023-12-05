@@ -26,9 +26,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Collectors;
 import org.scion.PackageVisibilityHelper;
 import org.slf4j.Logger;
@@ -46,7 +46,8 @@ public class MockNetwork {
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
-  static final AtomicInteger nForward = new AtomicInteger();
+  static final AtomicInteger nForwardTotal = new AtomicInteger();
+  static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
@@ -62,28 +63,14 @@ public class MockNetwork {
       throw new IllegalStateException();
     }
 
-    routers =
-        Executors.newSingleThreadExecutor(
-            new ThreadFactory() {
-              int id = 0;
-
-              @Override
-              public Thread newThread(Runnable r) {
-                return new Thread(r, "MockNetwork-" + id++);
-              }
-            });
+    routers = Executors.newFixedThreadPool(2);
 
     List<MockBorderRouter> brList = new ArrayList<>();
     brList.add(
-        new MockBorderRouter(
-            "BorderRouter-1", BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4));
+        new MockBorderRouter(0, BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4));
     brList.add(
         new MockBorderRouter(
-            "BorderRouter-2",
-            BORDER_ROUTER_PORT1 + 10,
-            BORDER_ROUTER_PORT2 + 10,
-            localIPv4,
-            remoteIPv4));
+            1, BORDER_ROUTER_PORT1 + 10, BORDER_ROUTER_PORT2 + 10, localIPv4, remoteIPv4));
 
     for (MockBorderRouter br : brList) {
       routers.execute(br);
@@ -134,7 +121,14 @@ public class MockNetwork {
   }
 
   public static int getAndResetForwardCount() {
-    return nForward.getAndSet(0);
+    for (int i = 0; i < nForwards.length(); i++) {
+      nForwards.set(i, 0);
+    }
+    return nForwardTotal.getAndSet(0);
+  }
+
+  public static int getForwardCount(int routerId) {
+    return nForwards.get(routerId);
   }
 }
 
@@ -142,14 +136,17 @@ class MockBorderRouter implements Runnable {
 
   private static final Logger logger = LoggerFactory.getLogger(MockBorderRouter.class.getName());
 
+  private final int id;
   private final String name;
   private final int port1;
   private final int port2;
   private final boolean ipv4_1;
   private final boolean ipv4_2;
 
-  MockBorderRouter(String name, int port1, int port2, boolean ipv4_1, boolean ipv4_2) {
-    this.name = name;
+  MockBorderRouter(int id, int port1, int port2, boolean ipv4_1, boolean ipv4_2) {
+    this.id = id;
+    this.name = "BorderRouter-" + id;
+    Thread.currentThread().setName(name);
     this.port1 = port1;
     this.port2 = port2;
     this.ipv4_1 = ipv4_1;
@@ -201,7 +198,8 @@ class MockBorderRouter implements Runnable {
 
             outgoing.send(buffer, dstAddress);
             buffer.clear();
-            MockNetwork.nForward.incrementAndGet();
+            MockNetwork.nForwardTotal.incrementAndGet();
+            MockNetwork.nForwards.incrementAndGet(id);
           }
           iter.remove();
         }

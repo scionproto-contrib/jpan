@@ -20,6 +20,11 @@
   - It has Isd/As info
   - It represents an IP from a DNS/TXT lookup!
 
+## Known Bugs
+
+- ScionService always returns the same localIsdAs number, even when the interface changes or
+  a new IP is assigned. How does it work with mobile phones?
+  Is assigning new IPs a thing? 
 
 ## Questions
 - What to do on server if path is expired? Currently we just don't check and send anyway.
@@ -33,16 +38,11 @@
 ## Plan
 
 ### 0.1.0
-- Test switching of firstHop when path changes
-  - Should be easy to test now, the daemon returns two paths
-    and we can just use the second one.
-    We just need to find a way to test this. 
 - SCMP error handling (only error, not info)
   - implement callbacks (+ option to NOT ignore)
   - E>g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
 - Run testing with IPv6 again? -> MockNetwork 
-- Path Expiry: ms or ns instead of seconds!
 
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
@@ -56,6 +56,7 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
+- AS switching: handle localIsdAs code per Interface or IP
 - Path expiry: request new path asynchronously when old path is close to expiry
 - DNS /etc/scion-hosts
 - UDP checksum validation + creation

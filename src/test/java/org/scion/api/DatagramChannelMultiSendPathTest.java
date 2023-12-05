@@ -29,8 +29,8 @@ class DatagramChannelMultiSendPathTest {
 
   @Test
   public void test() {
-    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.ClientEndPoint clientFn = this::client;
+    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
+    PingPongHelper.Client clientFn = this::client;
     PingPongHelper pph = new PingPongHelper(1, 20, 50);
     pph.runPingPong(serverFn, clientFn);
   }
@@ -38,6 +38,7 @@ class DatagramChannelMultiSendPathTest {
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
     String message = PingPongHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+    channel.disconnect();
     channel.send(sendBuf, serverAddress);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");

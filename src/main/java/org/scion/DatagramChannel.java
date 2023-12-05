@@ -60,7 +60,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
     this.pathPolicy = pathPolicy;
     if (path != null) {
-      path = pathPolicy.filter(getService().getPaths(path));
+      updatePath(path);
     }
   }
 
@@ -375,7 +375,10 @@ public class DatagramChannel implements ByteChannel, Closeable {
     if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
       return path;
     }
+    return updatePath(path);
+  }
 
+  private Path updatePath(RequestPath path) throws IOException {
     // expired, get new path
     RequestPath newPath = pathPolicy.filter(getService().getPaths(path));
 

@@ -20,8 +20,8 @@ public class PingPongHelperTest {
 
   @Test
   public void test() throws InterruptedException {
-    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.ClientEndPoint clientFn = PingPongHelper::defaultClient;
+    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
+    PingPongHelper.Client clientFn = PingPongHelper::defaultClient;
     PingPongHelper pph = new PingPongHelper(1, 1, 10);
     pph.runPingPong(serverFn, clientFn);
   }

@@ -28,7 +28,6 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -295,8 +294,8 @@ class DatagramChannelApiTest {
   @Test
   public void receive_bufferTooSmall() throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.ClientEndPoint clientFn =
+    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
+    PingPongHelper.Client clientFn =
         (channel, serverAddress, id) -> {
           String message = PingPongHelper.MSG + "-" + id;
           ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
@@ -318,12 +317,11 @@ class DatagramChannelApiTest {
   @Test
   public void read_bufferTooSmall() throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.ClientEndPoint clientFn =
+    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
+    PingPongHelper.Client clientFn =
         (channel, serverAddress, id) -> {
           String message = PingPongHelper.MSG + "-" + id;
           ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-          channel.connect(serverAddress);
           // System.out.println("CLIENT: Writing ... (" + channel.getLocalAddress() + ")");
           channel.write(sendBuf);
 
@@ -402,7 +400,25 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void send_expiredRequestPath() throws IOException {
+  void send_disconnected_expiredRequestPath() throws IOException {
+    // Expected behavior: expired paths should be replaced transparently.
+    testExpired(
+        (channel, expiredPath) -> {
+          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
+          try {
+            channel.disconnect();
+            RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
+            assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
+            assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
+            // assertNull(channel.getCurrentPath());
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  @Test
+  void send_connected_expiredRequestPath() throws IOException {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiredPath) -> {
@@ -421,15 +437,10 @@ class DatagramChannelApiTest {
   @Test
   void write_expiredRequestPath() throws IOException {
     // Expected behavior: expired paths should be replaced transparently.
-    AtomicInteger countConnect = new AtomicInteger();
     testExpired(
         (channel, expiredPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
           try {
-            if (!channel.isConnected()) {
-              channel.connect(expiredPath);
-              countConnect.incrementAndGet();
-            }
             channel.write(sendBuf);
             RequestPath newPath = (RequestPath) channel.getCurrentPath();
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
@@ -438,15 +449,13 @@ class DatagramChannelApiTest {
             throw new RuntimeException(e);
           }
         });
-    assertEquals(10, countConnect.get()); // # of clients
   }
 
   private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod) throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.ServerEndPoint serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.ClientEndPoint clientFn =
+    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
+    PingPongHelper.Client clientFn =
         (channel, basePath, id) -> {
-
           // Build a path that is already expired
           RequestPath expiredPath = createExpiredPath(basePath);
           sendMethod.accept(channel, expiredPath);

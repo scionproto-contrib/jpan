@@ -17,42 +17,51 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.scion.DatagramChannel;
-import org.scion.Path;
+import org.scion.*;
+import org.scion.testutil.MockNetwork;
 import org.scion.testutil.PingPongHelper;
 
-/** Test read()/write() operations on DatagramChannel connected with an InetSocketAddress. */
-class DatagramChannelMultiWriteConnectedInetSocketTest {
+/** Test path switching (changing first hop) on DatagramChannel. */
+class DatagramChannelPathSwitchTest {
+
+  private final PathPolicy alternatingPolicy =
+      new PathPolicy() {
+        private int count = 0;
+
+        @Override
+        public RequestPath filter(List<RequestPath> paths) {
+          return paths.get(count++ % 2);
+        }
+      };
 
   @Test
   public void test() {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 10, 10);
-    pph.runPingPong(serverFn, clientFn);
+    PingPongHelper pph = new PingPongHelper(1, 2, 10);
+    pph.runPingPong(serverFn, clientFn, false);
+    assertEquals(2 * 10, MockNetwork.getForwardCount(0));
+    assertEquals(2 * 10, MockNetwork.getForwardCount(1));
+    assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
     String message = PingPongHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-    channel.disconnect();
-    // Test send() with InetAddress
-    InetAddress inetAddress = InetAddress.getByAddress(serverAddress.getDestinationAddress());
-    InetSocketAddress inetServerSocketAddress =
-        new InetSocketAddress(inetAddress, serverAddress.getDestinationPort());
-    channel.connect(inetServerSocketAddress);
-    assertTrue(channel.isConnected());
+
+    // Use a path policy that alternates between 1st and 2nd path
+    // -> setPathPolicy() sets a new path!
+    channel.setPathPolicy(alternatingPolicy);
     channel.write(sendBuf);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
     int len = channel.read(response);
-    assertEquals(14, len);
+    assertEquals(message.length(), len);
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
