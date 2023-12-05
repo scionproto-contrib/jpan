@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.testutil.MockNetwork;
@@ -46,7 +45,6 @@ class DatagramChannelStreamTest {
 
     for (int i = 0; i < N_BULK; i++) {
       sendBuf.rewind();
-      System.out.println("Sending(" + id + ")  " + sendBuf.remaining());
       channel.write(sendBuf);
     }
 
@@ -85,7 +83,6 @@ class DatagramChannelStreamTest {
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();
       received.add(new Pair(returnAddress, msg));
-      System.out.println("S: Received: " + msg);
       assertTrue(msg.startsWith(PingPongHelper.MSG), msg);
       assertTrue(PingPongHelper.MSG.length() + 3 >= msg.length());
     }
@@ -98,7 +95,6 @@ class DatagramChannelStreamTest {
       Pair p = received.get(i);
       request.clear();
       request.put(p.msg.getBytes());
-      System.out.println("S: Send: " + p.msg);
       request.flip();
       channel.send(request, p.path);
     }
