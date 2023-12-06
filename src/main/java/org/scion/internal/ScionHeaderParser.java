@@ -96,7 +96,7 @@ public class ScionHeaderParser {
         path, dstIsdAs, bytesDst, dstPort, srcIsdAs, bytesSrc, srcPort, firstHopAddress);
   }
 
-  public static Constants.HdrTypes readNextHeader(ByteBuffer data) throws UnknownHostException {
+  public static Constants.HdrTypes readNextHeader(ByteBuffer data) {
     int start = data.position();
     int nextHeader = data.get(start + 4);
     nextHeader = nextHeader >= 0 ? nextHeader : nextHeader + 256;
