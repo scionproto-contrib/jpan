@@ -45,6 +45,19 @@ public class Scmp {
     buffer.putShort((short) 0); // TODO checksum
     buffer.putShort(ByteUtil.toShort(identifier));
     buffer.putShort(ByteUtil.toShort(sequenceNumber));
+
+    // add 16 byte placeholder
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    // |              ISD              |                               |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+         AS                    +
+    // |                                                               |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    // |                                                               |
+    // +                          Interface ID                         |
+    // |                                                               |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    buffer.putLong(0);
+    buffer.putLong(0);
   }
 
   /**
