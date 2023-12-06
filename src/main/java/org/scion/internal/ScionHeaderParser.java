@@ -96,6 +96,13 @@ public class ScionHeaderParser {
         path, dstIsdAs, bytesDst, dstPort, srcIsdAs, bytesSrc, srcPort, firstHopAddress);
   }
 
+  public static Constants.HdrTypes readNextHeader(ByteBuffer data) throws UnknownHostException {
+    int start = data.position();
+    int nextHeader = data.get(start + 4);
+    nextHeader = nextHeader >= 0 ? nextHeader : nextHeader + 256;
+    return Constants.HdrTypes.parse(nextHeader);
+  }
+
   public static InetSocketAddress readDestinationSocketAddress(ByteBuffer data)
       throws UnknownHostException {
     int start = data.position();
@@ -159,7 +166,9 @@ public class ScionHeaderParser {
     // int trafficLClass = readInt(i0, 4, 8);
     // int flowId = readInt(i0, 12, 20);
     int nextHeader = readInt(i1, 0, 8);
-    if (nextHeader != 17) {
+    if (nextHeader != Constants.HdrTypes.UDP.code()
+        && nextHeader != Constants.HdrTypes.HOP_BY_HOP.code()
+        && nextHeader != Constants.HdrTypes.END_TO_END.code()) {
       // TODO remove
       //      System.out.println("REceived: " + Arrays.toString(data.array()));
       return PRE + "nextHeader: expected 17, got " + nextHeader;
@@ -258,7 +267,8 @@ public class ScionHeaderParser {
       long srcIsdAs,
       byte[] srcAddress,
       long dstIsdAs,
-      byte[] dstAddress) {
+      byte[] dstAddress,
+      Constants.HdrTypes hdrType) {
     int sl = srcAddress.length / 4 - 1;
     int dl = dstAddress.length / 4 - 1;
 
@@ -269,15 +279,10 @@ public class ScionHeaderParser {
     i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
     i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
-    i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP PseudoHeader
+    i1 = writeInt(i1, 0, 8, hdrType.code); // NextHdr = 17 is for UDP OverlayHeader
     int newHdrLen = (calcLen(pathHeaderLength, dl, sl) - 1) / 4 + 1;
     i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
-    i1 =
-        writeInt(
-            i1,
-            16,
-            16,
-            userPacketLength + 8); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
+    i1 = writeInt(i1, 16, 16, userPacketLength); // PayloadLen (+ overlay!)
     data.putInt(i1);
     i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
     i2 = writeInt(i2, 8, 2, 0); // DT

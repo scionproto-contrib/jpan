@@ -17,6 +17,7 @@ package org.scion.demo.inspector;
 import static org.scion.demo.inspector.ByteUtil.*;
 
 import java.nio.ByteBuffer;
+import org.scion.internal.Scmp;
 
 public class ScionSCMPHeader {
   // 8 bit
@@ -33,6 +34,7 @@ public class ScionSCMPHeader {
     checksum = readInt(i0, 16, 16);
     // TODO validate checksum
     // TODO read InfoBlock/DataBlock
+    System.out.println("Found SCMP: " + getType() + " -> " + getCode());
     System.out.println("To read:" + data.remaining());
   }
 
@@ -41,99 +43,11 @@ public class ScionSCMPHeader {
     return "ScionSCMPHeader{" + "type=" + type + ", code=" + code + ", checksum=" + checksum + '}';
   }
 
-  public ScmpType getType() {
-    return ScmpType.parse(type);
+  public Scmp.ScmpType getType() {
+    return Scmp.ScmpType.parse(type);
   }
 
-  public String getCode() {
-    return "" + code;
-  }
-
-  public enum ScmpType implements Constants.ParseEnum {
-    // SCMP error messages:
-
-    E1(1, "Destination Unreachable"),
-    E2(2, "Packet Too Big"),
-    E3(3, "(not assigned)"),
-    E4(4, "Parameter Problem"),
-    E5(5, "External Interface Down"),
-    E6(6, "Internal Connectivity Down"),
-    E100(100, "Private Experimentation"),
-    E101(101, "Private Experimentation"),
-    E127(127, "Reserved for expansion of SCMP error messages"),
-
-    // SCMP informational messages:
-    I128(128, "Echo Request"),
-    I129(129, "Echo Reply"),
-    I130(130, "Traceroute Request"),
-    I131(131, "Traceroute Reply"),
-    I200(200, "Private Experimentation"),
-    I201(201, "Private Experimentation"),
-    I255(255, "Reserved for expansion of SCMP informational messages");
-
-    final int code;
-    final String text;
-
-    ScmpType(int code, String text) {
-      this.code = code;
-      this.text = text;
-    }
-
-    public static ScmpType parse(int code) {
-      return Constants.ParseEnum.parse(ScmpType.class, code);
-    }
-
-    @Override
-    public int code() {
-      return code;
-    }
-
-    public String getText() {
-      return text;
-    }
-  }
-
-  public enum ScmpType1Code implements Constants.ParseEnum {
-    // SCMP type 1 messages:
-
-    E1(1, "Destination Unreachable"),
-    E2(2, "Packet Too Big"),
-    E3(3, "(not assigned)"),
-    E4(4, "Parameter Problem"),
-    E5(5, "External Interface Down"),
-    E6(6, "Internal Connectivity Down"),
-    E100(100, "Private Experimentation"),
-    E101(101, "Private Experimentation"),
-    E127(127, "Reserved for expansion of SCMP error messages"),
-
-    // SCMP informational messages:
-    I128(128, "Echo Request"),
-    I129(129, "Echo Reply"),
-    I130(130, "Traceroute Request"),
-    I131(131, "Traceroute Reply"),
-    I200(200, "Private Experimentation"),
-    I201(201, "Private Experimentation"),
-    I255(255, "Reserved for expansion of SCMP informational messages");
-
-    final int code;
-    final String text;
-
-    ScmpType1Code(int code, String text) {
-      this.code = code;
-      this.text = text;
-    }
-
-    public static ScmpType1Code parse(int code) {
-      return Constants.ParseEnum.parse(ScmpType1Code.class, code);
-    }
-
-    @Override
-    public int code() {
-      return code;
-    }
-
-    public String getText() {
-      return text;
-    }
+  public Scmp.ScmpCode getCode() {
+    return Scmp.ScmpCode.parse(type, code);
   }
 }

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import org.scion.internal.Scmp;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
@@ -93,15 +94,16 @@ public class ScionPacketInspector {
       throw new UnsupportedOperationException("Path type: " + scionHeader.pathType());
     }
 
-    // Pseudo header
+    // Overlay header
     if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
       overlayHeaderUdp.read(data);
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
+      Scmp.consume(data, null); // TODO provide path?
       System.out.println("Packet: DROPPED: SCMP");
       return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
       System.out.println("Packet EndToEnd");
-      ScionEndToEndExtensionHeader e2eHeader = new ScionEndToEndExtensionHeader();
+      ExtensionHeader e2eHeader = new ExtensionHeader();
       e2eHeader.read(data);
       System.out.println(e2eHeader);
       if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {

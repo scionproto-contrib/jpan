@@ -18,7 +18,7 @@ import static org.scion.demo.inspector.ByteUtil.*;
 
 import java.nio.ByteBuffer;
 
-public class ScionEndToEndExtensionHeader {
+public class ExtensionHeader {
   // 8 bit
   private int nextHdr;
   // 8 bit
@@ -41,7 +41,7 @@ public class ScionEndToEndExtensionHeader {
 
   @Override
   public String toString() {
-    return "ScionEndToEndExtensionHeader{"
+    return "ExtensionHeader{"
         + "nextHdr="
         + nextHdr
         + ", extLen="

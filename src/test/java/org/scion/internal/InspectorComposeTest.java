@@ -98,7 +98,7 @@ public class InspectorComposeTest {
     assertEquals(1, scionHeader.pathType().code());
     pathHeaderScion.writePath(data, path);
 
-    // Pseudo header
+    // Overlay header
     overlayHeaderUdp.write(data, userPacket.getLength(), 44444, dstPort);
 
     data.put(userPacket.getData(), 0, userPacket.getLength());

@@ -82,10 +82,17 @@ public class HeaderComposeTest {
 
     // Socket internal = write header
     ScionHeaderParser.write(
-        p, userPacket.limit(), path.length, srcIA, srcAddress, dstIA, dstAddress);
+        p,
+        userPacket.limit() + 8,
+        path.length,
+        srcIA,
+        srcAddress,
+        dstIA,
+        dstAddress,
+        Constants.HdrTypes.UDP);
     ScionHeaderParser.writePath(p, path);
 
-    // Pseudo header
+    // Overlay header
     ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 44444, dstPort);
 
     // add payload

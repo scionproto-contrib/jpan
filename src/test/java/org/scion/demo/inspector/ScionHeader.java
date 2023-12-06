@@ -146,7 +146,7 @@ public class ScionHeader {
     i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
     i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
-    i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP PseudoHeader
+    i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP OverlayHeader
     int newHdrLen = (calcLen(pathHeaderLength) - 1) / 4 + 1;
     i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
     i1 =
@@ -154,7 +154,7 @@ public class ScionHeader {
             i1,
             16,
             16,
-            userPacketLength + 8); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
+            userPacketLength + 8); // PayloadLen  // TODO? hardcoded OverlayHeaderLength....
     data.putInt(i1);
     i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
     i2 = writeInt(i2, 8, 2, 0); // DT

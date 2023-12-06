@@ -24,6 +24,7 @@ public class ScionPingPongChannelClient {
 
   public static boolean PRINT = true;
   public static int PORT = 44444;
+
   /**
    * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
    * service via ScionProto "tiny" topology
@@ -47,9 +48,9 @@ public class ScionPingPongChannelClient {
       throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     client.send(buffer, serverAddress);
-    // if (PRINT) {
-    System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
-    // }
+    if (PRINT) {
+      System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
+    }
   }
 
   public static void receiveMessage(DatagramChannel channel) throws IOException {

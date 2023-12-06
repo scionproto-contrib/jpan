@@ -73,4 +73,12 @@ public class ByteUtil {
     long mask = value ? 1L << (32 - 1 - bitOffset) : 0L;
     return dst | mask;
   }
+
+  public static byte toByte(int code) {
+    return (byte) (code <= 127 ? code : code - 256);
+  }
+
+  public static short toShort(int code) {
+    return (short) (code <= Short.MAX_VALUE ? code : code - 2 ^ 16);
+  }
 }
