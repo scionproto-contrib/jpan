@@ -17,6 +17,7 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import org.scion.DatagramChannel;
 import org.scion.ResponsePath;
 import org.scion.ScionUtil;
@@ -39,7 +40,7 @@ public class ScmpServerDemo {
             "Received ECHO from client: "
                 + ScionUtil.toStringIA(path.getDestinationIsdAs())
                 + " "
-                + path.getDestinationAddress()
+                + Arrays.toString(path.getDestinationAddress())
                 + " "
                 + path.getDestinationPort());
       }
@@ -61,7 +62,7 @@ public class ScmpServerDemo {
             "Received TRACEROUTE from client: "
                 + ScionUtil.toStringIA(path.getDestinationIsdAs())
                 + " "
-                + path.getDestinationAddress()
+                + Arrays.toString(path.getDestinationAddress())
                 + " "
                 + path.getDestinationPort());
       }
