@@ -44,7 +44,7 @@ public class ScmpServerDemo {
                 + path.getDestinationPort());
       }
       ByteBuffer data = ByteBuffer.wrap(msg.getData());
-      channel.sendEchoRequest(path, msg.getIdentifier(), msg.getSequenceNumber(), data);
+      channel.sendEchoRequest(path, msg.getSequenceNumber(), data);
       if (PRINT) {
         System.out.println("Sent ECHO to client");
       }
@@ -65,7 +65,7 @@ public class ScmpServerDemo {
                 + " "
                 + path.getDestinationPort());
       }
-      channel.sendTracerouteRequest(path, msg.getIdentifier(), msg.getSequenceNumber());
+      channel.sendTracerouteRequest(path, msg.getSequenceNumber());
       if (PRINT) {
         System.out.println("Sent TRACEROUTE to client");
       }

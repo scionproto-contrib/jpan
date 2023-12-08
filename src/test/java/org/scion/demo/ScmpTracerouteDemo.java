@@ -76,7 +76,7 @@ public class ScmpTracerouteDemo {
         System.out.println("Sending traceroute request ...");
       }
       // TODO match id + sn
-      channel.sendTracerouteRequest(path, 123, 456);
+      channel.sendTracerouteRequest(path, 0);
 
       if (PRINT) {
         System.out.println("Waiting ...");

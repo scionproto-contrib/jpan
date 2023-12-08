@@ -135,6 +135,18 @@ public class ScionHeaderParser {
     return new InetSocketAddress(dstIP, dstPort);
   }
 
+  /**
+   * This method "consumes" the header, i.e. it sets the position to nextHdr()
+   *
+   * @param data The packet buffer
+   * @return the length of the SCION common+address+path header in bytes
+   */
+  public static int getHeaderLength(ByteBuffer data) {
+    int i1 = data.getInt(4);
+    int hdrLen = readInt(i1, 8, 8);
+    return hdrLen * 4;
+  }
+
   public static String validate(ByteBuffer data) {
     // TODO this approach to error handling is not ideal.
     //   Flooding a receiver with bad packets may cause unnecessary CPU and

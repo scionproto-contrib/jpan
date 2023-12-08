@@ -19,6 +19,25 @@
   - It has Isd/As info
   - It represents an IP from a DNS/TXT lookup!
 
+## Reconsider bind/connect
+- We should be able to do any off bind(null), bind(port), bind(IP, port)
+- Problem: connect() ESTABLISHES a connection to a specific IP/port, disallowing
+  incoming packets from any other source.
+  - (WILL BE FIXED:) This is problematic for ping, where answers come via dispatcher
+  - ....?
+- Multipath: connect to multiple BRs...??!?!?!
+- Multi AS: connect to 
+
+- PING: It is fine to manually specify local IP (as scion ping command does)
+
+# TODO #2
+- TODO Fix: getPath for same-AS-ISD
+  What does daemon return as first hop in this case:
+  - The destination IP?
+  - Still the BR IP, and then forwards it? 
+    -> check behaviour of TINY  
+- TODO setTTL or similar
+
 ## Known Shortcomings
 
 - ScionService always returns the same localIsdAs number, even when the interface changes or

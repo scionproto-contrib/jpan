@@ -34,8 +34,8 @@ public class Scmp {
     buffer.put(ByteUtil.toByte(ScmpType.INFO_128.code));
     buffer.put(ByteUtil.toByte(0));
     buffer.putShort((short) 0); // TODO checksum
-    buffer.putShort(ByteUtil.toShort(identifier));
-    buffer.putShort(ByteUtil.toShort(sequenceNumber));
+    buffer.putShort((short) identifier); // unsigned
+    buffer.putShort((short) sequenceNumber); // unsigned
     buffer.put(data);
   }
 
@@ -43,8 +43,8 @@ public class Scmp {
     buffer.put(ByteUtil.toByte(ScmpType.INFO_130.code));
     buffer.put(ByteUtil.toByte(0));
     buffer.putShort((short) 0); // TODO checksum
-    buffer.putShort(ByteUtil.toShort(identifier));
-    buffer.putShort(ByteUtil.toShort(sequenceNumber));
+    buffer.putShort((short) identifier); // unsigned
+    buffer.putShort((short) sequenceNumber); // unsigned
 
     // add 16 byte placeholder
     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -63,11 +63,13 @@ public class Scmp {
   /**
    * Reads a SCMP message from the packet. Consumes the byte buffer.
    *
+   * @param offset offset in bytes
    * @param data packet data
    * @param path receive path
    * @return ScmpMessage object
    */
-  public static ScmpMessage consume(ByteBuffer data, Path path) {
+  public static ScmpMessage read(int offset, ByteBuffer data, Path path) {
+    data.position(offset);
     int i0 = data.getInt();
     int type = readInt(i0, 0, 8);
     int code = readInt(i0, 8, 8);
@@ -76,17 +78,19 @@ public class Scmp {
 
     ScmpType st = ScmpType.parse(type);
     ScmpCode sc = ScmpCode.parse(type, code);
+    int short1 = ByteUtil.toUnsigned(data.getShort());
+    int short2 = ByteUtil.toUnsigned(data.getShort());
     switch (st) {
       case INFO_128:
       case INFO_129:
         // TODO read data section
         byte[] scmpData = new byte[0];
-        return new ScmpEcho(sc, data.getShort(), data.getShort(), path, scmpData);
+        return new ScmpEcho(sc, short1, short2, path, scmpData);
       case INFO_130:
       case INFO_131:
-        return new ScmpTraceroute(sc, data.getShort(), data.getShort(), path);
+        return new ScmpTraceroute(sc, short1, short2, path);
       default:
-        return new ScmpMessage(sc, data.getShort(), data.getShort(), path);
+        return new ScmpMessage(sc, short1, short2, path);
     }
   }
 

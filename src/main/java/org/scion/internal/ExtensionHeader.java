@@ -14,8 +14,6 @@
 
 package org.scion.internal;
 
-import static org.scion.internal.ByteUtil.readInt;
-
 import java.nio.ByteBuffer;
 
 public class ExtensionHeader {
@@ -30,25 +28,17 @@ public class ExtensionHeader {
   /**
    * Read the extension header and consume the buffer.
    *
+   * @param offset packet offset in bytes
    * @param data incoming packet
    * @return the ExtensionHeader
    */
-  public static ExtensionHeader consume(ByteBuffer data) {
-    int start = data.position();
-    int i1 = data.getInt(start + 4);
-    int hdrLen = readInt(i1, 8, 8);
-    int hdrLenBytes = hdrLen * 4;
-    data.position(start + hdrLenBytes);
-
+  public static ExtensionHeader read(int offset, ByteBuffer data) {
     ExtensionHeader eh = new ExtensionHeader();
-    long l0 = data.getLong();
+    long l0 = data.getLong(offset);
     eh.nextHdr = (int) ByteUtil.readLong(l0, 0, 8);
     eh.extLen = (int) ByteUtil.readLong(l0, 8, 8);
     eh.extLenBytes = (eh.extLen + 1) * 4;
     eh.options = ByteUtil.readLong(l0, 16, 48);
-
-    // Skip rest of the E2E header
-    data.position(data.position() - 8 + eh.extLenBytes);
     // TODO validate checksum
     return eh;
   }

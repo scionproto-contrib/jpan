@@ -48,41 +48,52 @@ public class ScmpEchoDemo {
   }
 
   private static void echoListener(Scmp.ScmpEcho msg) {
-    if (PRINT) {
-      System.out.println("Received ECHO: " + msg.getIdentifier() + "/" + msg.getSequenceNumber());
-    }
+    println("Received ECHO: " + msg.getIdentifier() + "/" + msg.getSequenceNumber());
   }
 
   private static void errorListener(Scmp.ScmpMessage msg) {
-    if (PRINT) {
-      System.out.println("SCMP error: " + msg.getType().getText());
-    }
+    println("SCMP error: " + msg.getType().getText());
   }
 
   private static void doClientStuff() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
+    //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
+    InetSocketAddress local = new InetSocketAddress("127.0.0.1", 34567);
+    try (DatagramChannel channel = DatagramChannel.open().bind(local)) {
       channel.configureBlocking(true);
 
       InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+
+      // InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.10", 31004);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+
+      // Tiny topology SCMP
+      //      InetSocketAddress serverAddress = new InetSocketAddress("[fd00:f00d:cafe::7f00:9]",
+      // 31012);
+      //      long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+
       // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
       Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
 
       channel.setScmpErrorListener(ScmpEchoDemo::errorListener);
       channel.setEchoListener(ScmpEchoDemo::echoListener);
 
-      if (PRINT) {
-        System.out.println("Sending echo request ...");
-      }
+      println("Sending echo request ...");
       // TODO match id + sn
-      channel.sendEchoRequest(path, 123, 456, ByteBuffer.allocate(0));
+      ByteBuffer data = ByteBuffer.allocate(8);
+      data.putLong(123456);
+      data.flip();
+      channel.sendEchoRequest(path, 0, data);
 
-      if (PRINT) {
-        System.out.println("Waiting ...");
-      }
+      println("Waiting at " + channel.getLocalAddress() + " ...");
       channel.receive(null);
 
       channel.disconnect();
+    }
+  }
+
+  private static void println(String msg) {
+    if (PRINT) {
+      System.out.println(msg);
     }
   }
 }

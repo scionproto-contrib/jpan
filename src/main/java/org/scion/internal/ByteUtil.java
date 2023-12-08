@@ -78,7 +78,7 @@ public class ByteUtil {
     return (byte) (code <= 127 ? code : code - 256);
   }
 
-  public static short toShort(int code) {
-    return (short) (code <= Short.MAX_VALUE ? code : code - 2 ^ 16);
+  public static int toUnsigned(short code) {
+    return code >= 0 ? code : ((int) code) + (1 << 16);
   }
 }

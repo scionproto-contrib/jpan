@@ -205,7 +205,20 @@ public class DatagramChannel implements ByteChannel, Closeable {
       if (!isUserPacket) {
         ResponsePath path =
             ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
-        receiveExtension(hdrType, path);
+        int nextHeaderPos = ScionHeaderParser.getHeaderLength(buffer);
+        switch (hdrType) {
+          case HOP_BY_HOP:
+          case END_TO_END:
+            receiveExtension(nextHeaderPos, hdrType, path);
+            break;
+          case SCMP:
+            receiveScmp(nextHeaderPos, path);
+            break;
+          default:
+            if (cfgReportFailedValidation) {
+              throw new ScionException("Unknown nextHdr: " + hdrType);
+            }
+        }
       }
     } while (validationResult != null || !isUserPacket);
 
@@ -216,13 +229,14 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return addr;
   }
 
-  private void receiveExtension(Constants.HdrTypes hdrType, Path path) throws ScionException {
-    ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
+  private void receiveExtension(int offset, Constants.HdrTypes hdrType, Path path)
+      throws ScionException {
+    ExtensionHeader extHdr = ExtensionHeader.read(offset, buffer);
     switch (hdrType) {
       case HOP_BY_HOP:
       case END_TO_END:
         if (extHdr.nextHdr() == Constants.HdrTypes.SCMP) {
-          receiveScmp(path);
+          receiveScmp(offset + extHdr.getExtLenBytes(), path);
         }
         break;
       default:
@@ -232,8 +246,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
   }
 
-  private void receiveScmp(Path path) throws ScionException {
-    Scmp.ScmpMessage scmpMsg = Scmp.consume(buffer, path);
+  private void receiveScmp(int offset, Path path) throws ScionException {
+    Scmp.ScmpMessage scmpMsg = Scmp.read(offset, buffer, path);
     if (scmpMsg instanceof Scmp.ScmpEcho) {
       if (pingListener != null) {
         pingListener.accept((Scmp.ScmpEcho) scmpMsg);
@@ -296,24 +310,23 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return actualPath;
   }
 
-  public synchronized void sendEchoRequest(
-      Path path, int identifier, int sequenceNumber, ByteBuffer data) throws IOException {
-    // Extension=8 + echo=8 + data
-    int len = 8 + 8 + data.remaining();
-    Path actualPath = buildHeader(path, len, Constants.HdrTypes.END_TO_END);
-    Scmp.buildExtensionHeader(buffer, Constants.HdrTypes.SCMP);
-    Scmp.buildScmpPing(buffer, identifier, sequenceNumber, data);
+  public synchronized void sendEchoRequest(Path path, int sequenceNumber, ByteBuffer data)
+      throws IOException {
+    // EchoHeader = 8 + data
+    int len = 8 + data.remaining();
+    Path actualPath = buildHeader(path, len, Constants.HdrTypes.SCMP);
+    Scmp.buildScmpPing(buffer, getLocalAddress().getPort(), sequenceNumber, data);
     buffer.flip();
+    channel.disconnect(); // TODO !!!!!!!!
     channel.send(buffer, actualPath.getFirstHopAddress());
   }
 
-  public synchronized void sendTracerouteRequest(Path path, int identifier, int sequenceNumber)
-      throws IOException {
-    // Extension=8 + traceroute=24
-    int len = 8 + 24;
+  public synchronized void sendTracerouteRequest(Path path, int sequenceNumber) throws IOException {
+    // TracerouteHeader=24
+    int len = 24;
     Path actualPath = buildHeader(path, len, Constants.HdrTypes.HOP_BY_HOP);
     Scmp.buildExtensionHeader(buffer, Constants.HdrTypes.SCMP);
-    Scmp.buildScmpTraceroute(buffer, identifier, sequenceNumber);
+    Scmp.buildScmpTraceroute(buffer, getLocalAddress().getPort(), sequenceNumber);
 
     buffer.flip();
     channel.send(buffer, actualPath.getFirstHopAddress());
