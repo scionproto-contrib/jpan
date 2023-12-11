@@ -233,4 +233,17 @@ public class ScionServiceTest {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
     }
   }
+
+  @Test
+  void bootstrapViaDns() throws IOException {
+    InetSocketAddress addr = Scion.defaultService().bootstrapViaDNS("inf.ethz.ch");
+    assertNotNull(addr);
+    System.out.println(addr);
+    // TODO avoid argument!
+    //System.out.println(Scion.defaultService().bootstrapViaDNS("inf.ethz.ch").ddr);
+
+    // TODO
+    //   - default to (inf).ethz.ch
+    //   - default to http (not https)?
+  }
 }

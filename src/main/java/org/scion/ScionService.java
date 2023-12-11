@@ -23,6 +23,7 @@ import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -390,5 +391,10 @@ public class ScionService {
       throw new ScionException("Invalid TXT entry: " + txtEntry);
     }
     return ScionUtil.parseIA(txtEntry.substring(7, posComma));
+  }
+
+  @Deprecated // TODO experimental, do not use
+  public InetSocketAddress bootstrapViaDNS(String hostName) throws IOException {
+    return ScionBootsrapper.defaultService(hostName).getControlServerAddress();
   }
 }
