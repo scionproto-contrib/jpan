@@ -99,7 +99,8 @@ public class ScionPacketInspector {
       overlayHeaderUdp.read(data);
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       int offset = scionHeader.hdrLenBytes();
-      Scmp.read(offset, data, null); // TODO provide path?
+      data.position(offset);
+      Scmp.consume(data, null); // TODO provide path?
       System.out.println("Packet: DROPPED: SCMP");
       return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {

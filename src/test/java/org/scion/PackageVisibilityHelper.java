@@ -30,7 +30,7 @@ public class PackageVisibilityHelper {
   public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_DNS_MOCK;
 
   public static InetSocketAddress getDstAddress(ByteBuffer packet) throws UnknownHostException {
-    return ScionHeaderParser.readDestinationSocketAddress(packet);
+    return ScionHeaderParser.extractDestinationSocketAddress(packet);
   }
 
   public static RequestPath createDummyPath() {

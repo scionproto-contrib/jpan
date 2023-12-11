@@ -14,8 +14,6 @@
 
 package org.scion.internal;
 
-import static org.scion.internal.ByteUtil.*;
-
 import java.nio.ByteBuffer;
 import org.scion.Path;
 
@@ -63,17 +61,14 @@ public class Scmp {
   /**
    * Reads a SCMP message from the packet. Consumes the byte buffer.
    *
-   * @param offset offset in bytes
    * @param data packet data
    * @param path receive path
    * @return ScmpMessage object
    */
-  public static ScmpMessage read(int offset, ByteBuffer data, Path path) {
-    data.position(offset);
-    int i0 = data.getInt();
-    int type = readInt(i0, 0, 8);
-    int code = readInt(i0, 8, 8);
-    int checksum = readInt(i0, 16, 16);
+  public static ScmpMessage consume(ByteBuffer data, Path path) {
+    int type = data.get();
+    int code = data.get();
+    data.getShort(); // checksum
     // TODO validate checksum
 
     ScmpType st = ScmpType.parse(type);

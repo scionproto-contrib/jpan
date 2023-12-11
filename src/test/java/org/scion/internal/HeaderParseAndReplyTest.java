@@ -39,8 +39,8 @@ public class HeaderParseAndReplyTest {
     InetSocketAddress firstHop = new InetSocketAddress("127.0.0.42", 23456);
 
     ByteBuffer userRcvBuffer = ByteBuffer.allocate(10000);
-    ScionHeaderParser.readUserData(buffer, userRcvBuffer);
-    Path remoteAddr = ScionHeaderParser.readRemoteSocketAddress(buffer, firstHop);
+    ScionHeaderParser.extractUserPayload(buffer, userRcvBuffer);
+    Path remoteAddr = ScionHeaderParser.extractRemoteSocketAddress(buffer, firstHop);
     userRcvBuffer.flip();
 
     // payload

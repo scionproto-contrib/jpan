@@ -28,17 +28,17 @@ public class ExtensionHeader {
   /**
    * Read the extension header and consume the buffer.
    *
-   * @param offset packet offset in bytes
    * @param data incoming packet
    * @return the ExtensionHeader
    */
-  public static ExtensionHeader read(int offset, ByteBuffer data) {
+  public static ExtensionHeader consume(ByteBuffer data) {
     ExtensionHeader eh = new ExtensionHeader();
-    long l0 = data.getLong(offset);
-    eh.nextHdr = (int) ByteUtil.readLong(l0, 0, 8);
-    eh.extLen = (int) ByteUtil.readLong(l0, 8, 8);
+    eh.nextHdr = data.get();
+    eh.extLen = data.get();
     eh.extLenBytes = (eh.extLen + 1) * 4;
-    eh.options = ByteUtil.readLong(l0, 16, 48);
+    eh.options = ((long) ByteUtil.toUnsigned(data.getShort()) << 32) | data.getInt();
+    // skip the rest
+    data.position(data.position() + eh.extLenBytes - 8);
     // TODO validate checksum
     return eh;
   }
