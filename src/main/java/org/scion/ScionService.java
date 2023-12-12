@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
@@ -72,7 +73,8 @@ public class ScionService {
 
   protected enum Mode {
     DAEMON,
-    CONTROL_SERVICE
+    CONTROL_SERVICE_IP,
+    CONTROL_SERVICE_DNS
   }
 
   protected ScionService(String addressOrHost, Mode mode) {
@@ -82,14 +84,22 @@ public class ScionService {
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
       LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
-    } else {
+    } else if (mode == Mode.CONTROL_SERVICE_DNS) {
       String csHost = ScionBootsrapper.defaultService(addressOrHost).getControlServerAddress();
+      // TODO InsecureChannelCredentials?
+      channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
+      daemonStub = null;
+      segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
+      LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
+    } else if (mode == Mode.CONTROL_SERVICE_IP) {
       // TODO InsecureChannelCredentials?
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info(
           "Path service started with control service " + channel.toString() + " " + addressOrHost);
+    } else {
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -412,7 +422,27 @@ public class ScionService {
   }
 
   @Deprecated // TODO experimental, do not use
-  public String bootstrapViaDNS(String hostName) throws IOException {
+  public String bootstrapViaDNS(String hostName) {
     return ScionBootsrapper.defaultService(hostName).getControlServerAddress();
+  }
+
+  @Deprecated // TODO do not use
+  public void getSegments(long srcIsdAs, long dstIsdAs) throws ScionException {
+    // LOG.info("*** GetASInfo ***");
+    Seg.SegmentsRequest request =
+        Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
+    Seg.SegmentsResponse response;
+    try {
+      response = segmentStub.segments(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionException("Error while getting AS info: " + e.getMessage(), e);
+    }
+
+    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> e :
+        response.getSegmentsMap().entrySet()) {
+      System.out.println("SEG: " + e.getKey() + " -> " + e.getValue().getSegmentsCount());
+    }
+
+    // return response;
   }
 }

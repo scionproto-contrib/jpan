@@ -234,18 +234,25 @@ public class ScionServiceTest {
 
   @Disabled
   @Test
-  void bootstrapViaDns() throws IOException {
-    String addr = Scion.defaultService().bootstrapViaDNS("inf.ethz.ch");
-    assertNotNull(addr);
-    System.out.println(addr);
-    ScionService ss = Scion.newServiceWithDaemon(addr);
-    System.out.println(
-        "ISD/AS=" + ss.getLocalIsdAs() + "  " + ScionUtil.toStringIA(ss.getLocalIsdAs()));
-    // TODO avoid argument!
-    // System.out.println(Scion.defaultService().bootstrapViaDNS("inf.ethz.ch").ddr);
+  void bootstrapViaDnsDirect() throws IOException {
+    ScionService ss = Scion.newServiceWithDNS("inf.ethz.ch");
 
     // TODO
     //   - default to (inf).ethz.ch
     //   - default to http (not https)?
+
+    ss.getSegments(5, 15);
+  }
+
+  @Disabled
+  @Test
+  void bootstrapViaControlServiceIP() throws IOException {
+    ScionService ss = Scion.newServiceWithControlServiceIP("192.168.53.20:30252");
+
+    // TODO
+    //   - default to (inf).ethz.ch
+    //   - default to http (not https)?
+
+    ss.getSegments(5, 15);
   }
 }

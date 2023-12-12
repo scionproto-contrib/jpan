@@ -14,7 +14,6 @@
 
 package org.scion;
 
-
 public class ScionRuntimeException extends RuntimeException {
 
   public ScionRuntimeException(String s) {

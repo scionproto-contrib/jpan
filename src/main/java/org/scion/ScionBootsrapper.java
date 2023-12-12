@@ -44,8 +44,11 @@ class ScionBootsrapper {
   private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
   private static ScionBootsrapper DEFAULT;
   private final InetSocketAddress topologyService;
-  private final List<ControlService> controlServices = new ArrayList<>();
-  private final List<ControlService> discoveryServices = new ArrayList<>();
+  private String localIsdAs;
+  private int localMtu;
+
+  private final List<ServiceNode> controlServices = new ArrayList<>();
+  private final List<ServiceNode> discoveryServices = new ArrayList<>();
 
   private static final String baseURL = "";
   private static final String topologyEndpoint = "topology";
@@ -56,11 +59,11 @@ class ScionBootsrapper {
   private static final String signedTopologyFileName = "topology.signed";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
 
-  private static class ControlService {
+  private static class ServiceNode {
     final String name;
     final String ipString;
 
-    ControlService(String name, String ipString) {
+    ServiceNode(String name, String ipString) {
       this.name = name;
       this.ipString = ipString;
     }
@@ -172,8 +175,16 @@ class ScionBootsrapper {
       throw new ScionRuntimeException(
           "No control servers found in topology provided by " + topologyService);
     }
-    // return controlServices.get(0).ipString;
-    return discoveryServices.get(0).ipString;
+
+    System.out.println("Topology: ISD/AS=" + localIsdAs + "  mtu=" + localMtu);
+    for (ServiceNode cs : controlServices) {
+      System.out.println("Control service: " + cs.name + "   " + cs.ipString);
+    }
+    for (ServiceNode cs : discoveryServices) {
+      System.out.println("Discovery service: " + cs.name + "   " + cs.ipString);
+    }
+    return controlServices.get(0).ipString;
+    // return discoveryServices.get(0).ipString;
   }
 
   public void refreshTopology() {
@@ -191,6 +202,7 @@ class ScionBootsrapper {
     ObjectMapper om = new ObjectMapper();
     JsonParser p = om.reader().createParser(topologyFile);
     p.nextToken();
+    int depth = 0;
     while (p.hasCurrentToken()) {
       JsonToken t = p.currentToken();
       if ("control_service".equals(p.currentName()) && t.isStructStart()) {
@@ -203,13 +215,24 @@ class ScionBootsrapper {
         while (!"discovery_service".equals(p.currentName())) {
           discoveryServices.add(readControlServer(p));
         }
-      } else {
+      } else if ("isd_as".equals(p.currentName()) && depth == 1) {
         p.nextToken();
+        assertString("isd_as", p.currentName());
+        localIsdAs = p.getValueAsString();
+      } else if ("mtu".equals(p.currentName()) && depth == 1) {
+        p.nextToken();
+        assertString("mtu", p.currentName());
+        localMtu = p.getIntValue();
+      } else if (t.isStructStart()) {
+        depth++;
+      } else if (t.isStructEnd()) {
+        depth--;
       }
+      p.nextToken();
     }
   }
 
-  private static ControlService readControlServer(JsonParser p) throws IOException {
+  private static ServiceNode readControlServer(JsonParser p) throws IOException {
     //  "control_service": {
     //    "cs64-2_0_9-1": {
     //      "addr": "192.168.53.20:30252"
@@ -221,7 +244,6 @@ class ScionBootsrapper {
 
     // CS name
     String csName = p.getValueAsString();
-    // assertString("cs", p.getText().substring(0, 2));
     p.nextToken();
     assertString(csName, p.currentName());
     assertString("{", p.getText());
@@ -239,7 +261,7 @@ class ScionBootsrapper {
     assertString(csName, p.currentName());
     assertString("}", p.getText());
     p.nextToken();
-    return new ControlService(csName, csAddress);
+    return new ServiceNode(csName, csAddress);
   }
 
   private static void assertString(String s1, String s2) {
@@ -271,7 +293,7 @@ class ScionBootsrapper {
     StringBuilder response = new StringBuilder();
     String inputLine;
     while ((inputLine = in.readLine()) != null) {
-      response.append(inputLine);
+      response.append(inputLine); // .append(System.lineSeparator());
     }
     in.close();
 
