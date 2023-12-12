@@ -23,7 +23,6 @@ import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;

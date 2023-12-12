@@ -14,19 +14,17 @@
 
 package org.scion;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.reflect.Array;
-import java.net.*;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.*;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xbill.DNS.*;
@@ -41,11 +39,12 @@ import org.xbill.DNS.Record;
  */
 class ScionBootsrapper {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ScionBootsrapper.class.getName());
   private static final String STR_X_SCION = "x-sciondiscovery";
   private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
-  private static final Logger LOG = LoggerFactory.getLogger(ScionBootsrapper.class.getName());
   private static ScionBootsrapper DEFAULT;
   private final InetSocketAddress topologyService;
+  private final List<ControlService> controlServices = new ArrayList<>();
 
   private static final String baseURL = "";
   private static final String topologyEndpoint = "topology";
@@ -56,12 +55,22 @@ class ScionBootsrapper {
   private static final String signedTopologyFileName = "topology.signed";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
 
+  private static class ControlService {
+    final String name;
+    final String ipString;
+
+    ControlService(String name, String ipString) {
+      this.name = name;
+      this.ipString = ipString;
+    }
+  }
+
   protected ScionBootsrapper(InetSocketAddress topologyService) {
     if (topologyService == null) {
       throw new IllegalArgumentException("Topology service address is null.");
     }
     this.topologyService = topologyService;
-    LOG.info("Path service started on " + topologyService);
+    LOG.info("Bootstrapper service started on " + topologyService);
   }
 
   /**
@@ -167,91 +176,59 @@ class ScionBootsrapper {
   }
 
   @Deprecated // make non-public
-  public static String getTopology(InetSocketAddress addr) throws IOException {
+  public static List<ControlService> getTopology(InetSocketAddress addr) throws IOException {
+    List<ControlService> services = new ArrayList<>();
     URL url = buildTopologyURL(addr);
-    String raw = fetchRawBytes("topology", url);
-    //    if err != nil {
-    //      return err
-    //    }
-
-    // TODO
-    // Check that the topology is valid json
-    //    if (!json.Valid(raw)) {
-    //      throw new ScionException("unable to parse raw bytes to JSON");
-    //    }
+    String topologyFile = fetchTopologyFile(url);
 
     ObjectMapper om = new ObjectMapper();
-    JsonParser p = om.reader().createParser(raw);
+    JsonParser p = om.reader().createParser(topologyFile);
     p.nextToken();
     while (p.hasCurrentToken()) {
       JsonToken t = p.currentToken();
       if ("control_service".equals(p.currentName()) && t.isStructStart()) {
-        t = p.nextToken();
-        //t = p.nextToken();
+        p.nextToken();
         while (!"control_service".equals(p.currentName())) {
-          ControlServer cs = readControlServer(p);
-       //   System.out.println("TOKEN: " + p.currentName() + " " + t.name() + " " + t.id() + " " + t.isStructStart() + "/" + t.isStructEnd() + " " + p.getValueAsString());
-          //p.nextToken();
+          services.add(readControlServer(p));
         }
       }
-//      System.out.println("TOKEN: " + p.currentName() + " " + t.name() + " " + t.id() + " " + t.isStructStart() + "/" + t.isStructEnd() + " " + t.asString() + Arrays.toString(t.asCharArray()) + p.getValueAsString());
       p.nextToken();
     }
 
-    Gson gson = new Gson();
-    //gson.fromJson(raw)
+    return services;
+  }
 
-    System.out.println("JSON: " + raw);
-
-    // TODO
-    // Check that the topology is a valid SCION topology, this check is done by the topology
-    // consumer
-    /*_, err = topology.RWTopologyFromJSONBytes(raw)
-    if err != nil {
-    	return fmt.Errorf("unable to parse RWTopology from JSON bytes: %w", err)
-    }*/
-    //    topologyPath := filepath.Join(outputPath, topologyJSONFileName)
-    //    err = os.WriteFile(topologyPath, raw, 0644)
-    //    if err != nil {
-    //      return fmt.Errorf("bootstrapper could not store topology: %w", err);
+  private static ControlService readControlServer(JsonParser p) throws IOException {
+    //  "control_service": {
+    //    "cs64-2_0_9-1": {
+    //      "addr": "192.168.53.20:30252"
+    //    },
+    //    "cs64-2_0_9-2": {
+    //      "addr": "192.168.53.35:30252"
     //    }
-    //    return nil;
-    return raw;
-  }
+    //  },
 
-  private static class ControlServer {
-    final String name;
-    final String ipString;
-
-    ControlServer(String name, String ipString) {
-      this.name = name;
-      this.ipString = ipString;
-    }
-
-  }
-
-  private static ControlServer readControlServer(JsonParser p) throws IOException {
-    String s1 = p.getValueAsString();
-   // System.out.println("TOKEN: " + p.currentName() + " " + p.getValueAsString());
+    // CS name
+    String csName = p.getValueAsString();
+    assertString("cs", p.getText().substring(0, 2));
     p.nextToken();
-    String s2 = p.getValueAsString();
-    assertString(s1, p.currentName());
-//    System.out.println("TOKEN: " + p.currentName() + " " + p.getValueAsString());
+    assertString(csName, p.currentName());
+    assertString("{", p.getText());
     p.nextToken();
-    String s3 = p.getValueAsString();
+
+    // CS address
     assertString("addr", p.currentName());
     assertString("addr", p.getValueAsString());
-//    System.out.println("TOKEN: " + p.currentName() + " " + p.getValueAsString());
     p.nextToken();
-    String s4 = p.getValueAsString();
+    String csAddress = p.getValueAsString();
     assertString("addr", p.currentName());
-  //  System.out.println("TOKEN: " + p.currentName() + " " + p.getValueAsString());
     p.nextToken();
-    String s5 = p.getValueAsString();
-    // System.out.println("TOKEN: " + p.currentName() + " " + p.getValueAsString());
+
+    // end
+    assertString(csName, p.currentName());
+    assertString("}", p.getText());
     p.nextToken();
-    System.out.println(s1 + "  " + s4);
-    return new ControlServer(s1, s4);
+    return new ControlService(csName, csAddress);
   }
 
   private static void assertString(String s1, String s2) {
@@ -264,73 +241,29 @@ class ScionBootsrapper {
     String urlPath = baseURL + topologyEndpoint;
     String s =
         "http://" + addr.getAddress().getHostAddress() + ":" + addr.getPort() + "/" + urlPath;
-    System.out.println("URL= " + s);
-    URL url = new URL(s);
-    System.out.println("URL= " + url);
-    return url;
+    return new URL(s);
   }
 
-  private static String fetchRawBytes(String fileName, URL url) throws IOException {
-    LOG.info("Fetching " + fileName + " url" + url);
-    //    ctx, cancelF := context.WithTimeout(context.Background(), httpRequestTimeout)
-    //    defer cancelF()
-    String r = fetchHTTP(url);
-    //    if err != nil {
-    //      log.Error(fmt.Sprintf("Failed to fetch %s from %s", fileName, url), "err", err)
-    //      return nil, err
-    //    }
-    // Close response reader and handle errors
-    //    defer func() {
-    //      if err := r.Close(); err != nil {
-    //        log.Error(fmt.Sprintf("Error closing the body of the %s response", fileName), "err",
-    // err)
-    //      }
-    //    }()
-
-    return r;
-    //    byte[] raw = r.getBytes();
-    ////    if err != nil {
-    ////      return nil, fmt.Errorf("unable to read from response body: %w", err)
-    ////    }
-    //    return raw;
-  }
-
-  private static String fetchHTTP2(URL url) throws IOException {
-    // URL url = new URL("http://example.com");
-    HttpURLConnection con = (HttpURLConnection) url.openConnection();
-    con.setRequestMethod("GET");
-    // con.
-    return con.getResponseMessage();
-  }
-
-  private static String fetchHTTP(URL url) throws IOException {
+  private static String fetchTopologyFile(URL url) throws IOException {
     HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
     httpURLConnection.setRequestMethod("GET");
-    // httpURLConnection.setRequestProperty("User-Agent", USER_AGENT);
+    httpURLConnection.setConnectTimeout((int) httpRequestTimeout.toMillis());
+
     int responseCode = httpURLConnection.getResponseCode();
-    System.out.println("GET Response Code :: " + responseCode);
-    if (responseCode == HttpURLConnection.HTTP_OK) { // success
-      BufferedReader in =
-          new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
-      String inputLine;
-      StringBuffer response = new StringBuffer();
-
-      while ((inputLine = in.readLine()) != null) {
-        response.append(inputLine);
-      }
-      in.close();
-
-      // print result
-      System.out.println(response);
-      return response.toString();
-    } else {
-      System.out.println("GET request not worked");
+    if (responseCode != HttpURLConnection.HTTP_OK) { // success
+      throw new ScionException(
+          "GET request failed (" + responseCode + ") on topology server: " + url);
     }
 
-    for (int i = 1; i <= 8; i++) {
-      System.out.println(
-          httpURLConnection.getHeaderFieldKey(i) + " = " + httpURLConnection.getHeaderField(i));
+    BufferedReader in =
+        new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
+    StringBuilder response = new StringBuilder();
+    String inputLine;
+    while ((inputLine = in.readLine()) != null) {
+      response.append(inputLine);
     }
-    return null;
+    in.close();
+
+    return response.toString();
   }
 }

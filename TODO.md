@@ -31,12 +31,14 @@
 - PING: It is fine to manually specify local IP (as scion ping command does)
 
 # TODO #2
-- TODO Fix: getPath for same-AS-ISD
+- TODO Fix: getPath for src&dst in same AS-ISD
   What does daemon return as first hop in this case:
   - The destination IP?
   - Still the BR IP, and then forwards it? 
     -> check behaviour of TINY  
 - TODO setTTL or similar
+- TODO test SCMP
+- TODO test Bootstrapping
 
 ## Known Shortcomings
 

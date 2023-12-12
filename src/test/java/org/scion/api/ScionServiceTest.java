@@ -240,7 +240,7 @@ public class ScionServiceTest {
     assertNotNull(addr);
     System.out.println(addr);
     // TODO avoid argument!
-    //System.out.println(Scion.defaultService().bootstrapViaDNS("inf.ethz.ch").ddr);
+    // System.out.println(Scion.defaultService().bootstrapViaDNS("inf.ethz.ch").ddr);
 
     // TODO
     //   - default to (inf).ethz.ch
