@@ -21,6 +21,7 @@ import static org.scion.ScionConstants.ENV_DAEMON_PORT;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -438,34 +439,57 @@ public class ScionService {
       throw new ScionException("Error while getting AS info: " + e.getMessage(), e);
     }
 
-    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> e :
-        response.getSegmentsMap().entrySet()) {
-      System.out.println("SEG: key=" + e.getKey() + " -> n=" + e.getValue().getSegmentsCount());
-      for (Seg.PathSegment pseg : e.getValue().getSegmentsList()) {
-        System.out.println("  PathSeg: size=" + pseg.getSegmentInfo().size());
-        for (Seg.ASEntry asEntry : pseg.getAsEntriesList()) {
-          if (asEntry.hasSigned()) {
-            Signed.SignedMessage sm = asEntry.getSigned();
-            System.out.println(
-                "    AS: signed="
-                    + sm.getHeaderAndBody().size()
-                    + "   s-> "
-                    + sm.getSignature().size());
-            System.out.println(
-                "    Header/Body=" + Arrays.toString(sm.getHeaderAndBody().toByteArray()));
-            System.out.println(
-                "    Signature  =" + Arrays.toString(sm.getSignature().toByteArray()));
-          }
-          if (asEntry.hasUnsigned()) {
-            SegExtensions.PathSegmentUnsignedExtensions psue = asEntry.getUnsigned();
-            System.out.println("    AS: hasEpic=" + psue.hasEpic());
-            if (psue.hasEpic()) {
-              SegDetachedExtensions.EPICDetachedExtension epic = psue.getEpic();
-              System.out.println("      EPIC: " + epic.getAuthHopEntry().size() + "    ...");
+    try {
+
+      for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> e :
+          response.getSegmentsMap().entrySet()) {
+        System.out.println("SEG: key=" + e.getKey() + " -> n=" + e.getValue().getSegmentsCount());
+        for (Seg.PathSegment pseg : e.getValue().getSegmentsList()) {
+          System.out.println("  PathSeg: size=" + pseg.getSegmentInfo().size());
+          for (Seg.ASEntry asEntry : pseg.getAsEntriesList()) {
+            if (asEntry.hasSigned()) {
+              Signed.SignedMessage sm = asEntry.getSigned();
+              System.out.println(
+                  "    AS: signed="
+                      + sm.getHeaderAndBody().size()
+                      + "   s-> "
+                      + sm.getSignature().size());
+              System.out.println(
+                  "    Header/Body=" + Arrays.toString(sm.getHeaderAndBody().toByteArray()));
+              System.out.println(
+                  "    Signature  =" + Arrays.toString(sm.getSignature().toByteArray()));
+              Seg.ASEntrySignedBody body =
+                  // Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody().asReadOnlyByteBuffer());
+                  //    Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody().toByteArray());
+                  Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody().substring(0));
+              System.out.println(
+                  "      Body: " + body.getIsdAs() + " " + body.getNextIsdAs() + " ");
+              Seg.HopEntry he = body.getHopEntry();
+              System.out.println("       HopEntry: " + he.hasHopField() + " " + he.getIngressMtu());
+              if (he.hasHopField()) {
+                Seg.HopField hf = he.getHopField();
+                System.out.println(
+                    "         HopField: "
+                        + hf.getExpTime()
+                        + " "
+                        + hf.getIngress()
+                        + " "
+                        + hf.getEgress());
+              }
+            }
+            if (asEntry.hasUnsigned()) {
+              SegExtensions.PathSegmentUnsignedExtensions psue = asEntry.getUnsigned();
+              System.out.println("    AS: hasEpic=" + psue.hasEpic());
+              if (psue.hasEpic()) {
+                SegDetachedExtensions.EPICDetachedExtension epic = psue.getEpic();
+                System.out.println("      EPIC: " + epic.getAuthHopEntry().size() + "    ...");
+              }
             }
           }
         }
       }
+    } catch (InvalidProtocolBufferException e) {
+      throw new ScionException(e);
     }
 
     // return response;
