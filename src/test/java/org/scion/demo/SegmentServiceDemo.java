@@ -14,7 +14,6 @@
 
 package org.scion.demo;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.*;
 import java.net.*;
@@ -49,10 +48,9 @@ public class SegmentServiceDemo {
 
   private static void doClientStuff() throws IOException {
 
-    String addr = Scion.defaultService().bootstrapViaDNS("inf.ethz.ch");
-    assertNotNull(addr);
-    System.out.println(addr);
-    ScionService ss = Scion.newServiceWithDaemon(addr);
+    String addr110 = "127.0.0.11:31000";
+    String addr111 = "127.0.0.18:31006";
+    ScionService ss = Scion.newServiceWithControlServiceIP(addr111);
     //    System.out.println(
     //        "ISD/AS=" + ss.getLocalIsdAs() + "  " + ScionUtil.toStringIA(ss.getLocalIsdAs()));
     // TODO avoid argument!
@@ -62,7 +60,26 @@ public class SegmentServiceDemo {
     //   - default to (inf).ethz.ch
     //   - default to http (not https)?
 
-    ss.getSegments(0, 1);
+    long ia110 = ScionUtil.parseIA("1-ff00:0:110");
+    long ia111 = ScionUtil.parseIA("1-ff00:0:111");
+    long ia112 = ScionUtil.parseIA("1-ff00:0:112");
+
+    long maskWild = -1L << 48;
+    long core = ia110 & maskWild;
+
+    //    println("110 -> 110");
+    //    //ss.getSegments(ia110, ia111);
+    //    ss.getSegments(ia111, ia110);
+    //
+    //    println("");
+    //    println("");
+
+    println("111 -> core");
+    ss.getSegments(ia111, core);
+    println("core -> core");
+    ss.getSegments(core, core);
+    println("core -> 112");
+    ss.getSegments(core, ia112);
   }
 
   private static void println(String msg) {
