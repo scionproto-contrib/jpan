@@ -39,6 +39,7 @@
 - TODO setTTL or similar
 - TODO test SCMP
 - TODO test Bootstrapping
+- TODO document stand-alon feature (no daemon or local installation required)
 
 ## Known Shortcomings
 

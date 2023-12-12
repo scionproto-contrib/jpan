@@ -29,21 +29,26 @@ public final class Scion {
   }
 
   /**
-   * @param hostAndPort in the form of IP:port
+   * @param hostAndPort of the local daemon in the form of IP:port
    * @return new ScionService instance
    */
-  public static CloseableService newServiceForAddress(String hostAndPort) {
-    return CloseableService.create(hostAndPort);
+  public static CloseableService newServiceWithDaemon(String hostAndPort) {
+    return new CloseableService(hostAndPort, ScionService.Mode.DAEMON);
+  }
+
+  /**
+   * @param hostName of the host whose DNS entry contains hints for control service etc.
+   * @return new ScionService instance
+   */
+  @Deprecated // TODO not really implemented yet
+  public static CloseableService newServiceWithDNS(String hostName) {
+    return new CloseableService(hostName, ScionService.Mode.CONTROL_SERVICE);
   }
 
   public static class CloseableService extends ScionService implements AutoCloseable {
 
-    static CloseableService create(String address) {
-      return new CloseableService(address);
-    }
-
-    private CloseableService(String address) {
-      super(address);
+    private CloseableService(String address, Mode mode) {
+      super(address, mode);
     }
 
     public void close() throws IOException {

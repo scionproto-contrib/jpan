@@ -28,7 +28,7 @@ public class PathServiceProtobufDemo {
   private final ScionService daemon;
 
   public static void main(String[] args) {
-    try (Scion.CloseableService daemon = Scion.newServiceForAddress("127.0.0.12" + 30255)) {
+    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon("127.0.0.12" + 30255)) {
       PathServiceProtobufDemo demo = new PathServiceProtobufDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -61,17 +62,35 @@ public class ScionService {
 
   private static ScionService DEFAULT;
 
-  private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
+  // TODO create subclasses for these two?
+  private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
+  private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
 
   private final ManagedChannel channel;
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
 
-  protected ScionService(String daemonAddress) {
-    // TODO InsecureChannelCredentials?
-    channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
-    blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
-    LOG.info("Path service started on " + channel.toString() + " " + daemonAddress);
+  protected enum Mode {
+    DAEMON,
+    CONTROL_SERVICE
+  }
+
+  protected ScionService(String addressOrHost, Mode mode) {
+    if (mode == Mode.DAEMON) {
+      // TODO InsecureChannelCredentials?
+      channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
+      daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
+      segmentStub = null;
+      LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
+    } else {
+      String csHost = ScionBootsrapper.defaultService(addressOrHost).getControlServerAddress();
+      // TODO InsecureChannelCredentials?
+      channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
+      daemonStub = null;
+      segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
+      LOG.info(
+          "Path service started with control service " + channel.toString() + " " + addressOrHost);
+    }
   }
 
   /**
@@ -82,7 +101,7 @@ public class ScionService {
    */
   public static synchronized ScionService defaultService() {
     if (DEFAULT == null) {
-      DEFAULT = new ScionService(DAEMON_HOST + ":" + DAEMON_PORT);
+      DEFAULT = new ScionService(DAEMON_HOST + ":" + DAEMON_PORT, Mode.DAEMON);
       Runtime.getRuntime()
           .addShutdownHook(
               new Thread(
@@ -102,7 +121,7 @@ public class ScionService {
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
-      response = blockingStub.aS(request);
+      response = daemonStub.aS(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException("Error while getting AS info: " + e.getMessage(), e);
     }
@@ -114,7 +133,7 @@ public class ScionService {
     Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {
-      response = blockingStub.interfaces(request);
+      response = daemonStub.interfaces(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException(e);
     }
@@ -133,7 +152,7 @@ public class ScionService {
 
     Daemon.PathsResponse response;
     try {
-      response = blockingStub.paths(request);
+      response = daemonStub.paths(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException(e);
     }
@@ -206,7 +225,7 @@ public class ScionService {
     Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
     Daemon.ServicesResponse response;
     try {
-      response = blockingStub.services(request);
+      response = daemonStub.services(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException(e);
     }
@@ -393,7 +412,7 @@ public class ScionService {
   }
 
   @Deprecated // TODO experimental, do not use
-  public InetSocketAddress bootstrapViaDNS(String hostName) throws IOException {
+  public String bootstrapViaDNS(String hostName) throws IOException {
     return ScionBootsrapper.defaultService(hostName).getControlServerAddress();
   }
 }

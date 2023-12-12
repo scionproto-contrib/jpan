@@ -45,6 +45,7 @@ class ScionBootsrapper {
   private static ScionBootsrapper DEFAULT;
   private final InetSocketAddress topologyService;
   private final List<ControlService> controlServices = new ArrayList<>();
+  private final List<ControlService> discoveryServices = new ArrayList<>();
 
   private static final String baseURL = "";
   private static final String topologyEndpoint = "topology";
@@ -79,7 +80,7 @@ class ScionBootsrapper {
    *
    * @return default instance
    */
-  public static synchronized ScionBootsrapper defaultService(String host) throws ScionException {
+  static synchronized ScionBootsrapper defaultService(String host) {
     if (DEFAULT == null) {
       InetSocketAddress csAddress = bootstrapViaDNS(host);
       DEFAULT = new ScionBootsrapper(csAddress);
@@ -87,47 +88,40 @@ class ScionBootsrapper {
     return DEFAULT;
   }
 
-  @Deprecated // TODO experimental, do not use
-  private static InetSocketAddress bootstrapViaDNS(String hostName) throws ScionException {
+  private static InetSocketAddress bootstrapViaDNS(String hostName) {
     try {
       Record[] records = new Lookup(hostName, Type.NAPTR).run();
       if (records == null) {
-        throw new ScionException("No DNS NAPTR entry found for host: " + hostName);
+        throw new ScionRuntimeException("No DNS NAPTR entry found for host: " + hostName);
       }
-      String host = null;
-      String flag = null;
+
       for (int i = 0; i < records.length; i++) {
         NAPTRRecord nr = (NAPTRRecord) records[i];
         String naptrService = nr.getService();
         if (STR_X_SCION_TCP.equals(naptrService)) {
-          host = nr.getReplacement().toString();
+          String host = nr.getReplacement().toString();
           String naptrFlag = nr.getFlags();
           int port = queryTXT(hostName);
           if ("A".equals(naptrFlag) || "AAAA".equals(naptrFlag)) {
-            flag = naptrFlag;
+            String flag = naptrFlag;
             InetAddress addr = queryTopoServerDNS(flag, host);
             return new InetSocketAddress(addr, port);
           }
           // keep going and collect more hints
         }
       }
-
-      if (host == null) {
-        return null;
-      }
-    } catch (TextParseException e) {
-      throw new ScionException("Error parsing TXT entry: " + e.getMessage());
+    } catch (IOException e) {
+      throw new ScionRuntimeException("Error while bootstrapping Scion via DNS: " + e.getMessage());
     }
 
     return null;
   }
 
-  private static InetAddress queryTopoServerDNS(String flag, String topoHost)
-      throws ScionException, TextParseException {
+  private static InetAddress queryTopoServerDNS(String flag, String topoHost) throws IOException {
     if ("A".equals(flag)) {
       Record[] recordsA = new Lookup(topoHost, Type.A).run();
       if (recordsA == null) {
-        throw new ScionException("No DNS A entry found for host: " + topoHost);
+        throw new ScionRuntimeException("No DNS A entry found for host: " + topoHost);
       }
       for (int i = 0; i < recordsA.length; i++) {
         ARecord ar = (ARecord) recordsA[i];
@@ -136,22 +130,22 @@ class ScionBootsrapper {
     } else if ("AAAA".equals(flag)) {
       Record[] recordsA = new Lookup(topoHost, Type.AAAA).run();
       if (recordsA == null) {
-        throw new ScionException("No DNS AAAA entry found for host: " + topoHost);
+        throw new ScionRuntimeException("No DNS AAAA entry found for host: " + topoHost);
       }
       for (int i = 0; i < recordsA.length; i++) {
         ARecord ar = (ARecord) recordsA[i];
         return ar.getAddress();
       }
     } else {
-      throw new ScionException("Could not find bootstrap A/AAAA record");
+      throw new ScionRuntimeException("Could not find bootstrap A/AAAA record");
     }
     return null;
   }
 
-  private static int queryTXT(String hostName) throws ScionException, TextParseException {
+  private static int queryTXT(String hostName) throws IOException {
     Record[] records = new Lookup(hostName, Type.TXT).run();
     if (records == null) {
-      throw new ScionException("No DNS TXT entry found for host: " + hostName);
+      throw new ScionRuntimeException("No DNS TXT entry found for host: " + hostName);
     }
     for (int i = 0; i < records.length; i++) {
       TXTRecord tr = (TXTRecord) records[i];
@@ -160,24 +154,37 @@ class ScionBootsrapper {
         String portStr = txtEntry.substring(STR_X_SCION.length() + 2, txtEntry.length() - 1);
         int port = Integer.parseInt(portStr);
         if (port < 0 || port > 65536) {
-          throw new ScionException("Error parsing TXT entry: " + txtEntry);
+          throw new ScionRuntimeException("Error parsing TXT entry: " + txtEntry);
         }
         return port;
       }
     }
-    throw new ScionException("Could not find bootstrap TXT port record");
+    throw new ScionRuntimeException("Could not find bootstrap TXT port record");
   }
 
-  public InetSocketAddress getControlServerAddress() throws IOException {
-
-    getTopology(topologyService);
-
-    return topologyService;
+  public String getControlServerAddress() {
+    try {
+      getTopology(topologyService);
+    } catch (IOException e) {
+      throw new ScionRuntimeException("Error while getting topologyu file: " + e.getMessage(), e);
+    }
+    if (controlServices.isEmpty()) {
+      throw new ScionRuntimeException(
+          "No control servers found in topology provided by " + topologyService);
+    }
+    // return controlServices.get(0).ipString;
+    return discoveryServices.get(0).ipString;
   }
 
-  @Deprecated // make non-public
-  public static List<ControlService> getTopology(InetSocketAddress addr) throws IOException {
-    List<ControlService> services = new ArrayList<>();
+  public void refreshTopology() {
+    // TODO check timeout from dig netsec-w37w3w.inf.ethz.ch?
+    // TODO verify local DNS?? How?
+    throw new UnsupportedOperationException();
+  }
+
+  private void getTopology(InetSocketAddress addr) throws IOException {
+    controlServices.clear();
+    discoveryServices.clear();
     URL url = buildTopologyURL(addr);
     String topologyFile = fetchTopologyFile(url);
 
@@ -189,13 +196,17 @@ class ScionBootsrapper {
       if ("control_service".equals(p.currentName()) && t.isStructStart()) {
         p.nextToken();
         while (!"control_service".equals(p.currentName())) {
-          services.add(readControlServer(p));
+          controlServices.add(readControlServer(p));
         }
+      } else if ("discovery_service".equals(p.currentName()) && t.isStructStart()) {
+        p.nextToken();
+        while (!"discovery_service".equals(p.currentName())) {
+          discoveryServices.add(readControlServer(p));
+        }
+      } else {
+        p.nextToken();
       }
-      p.nextToken();
     }
-
-    return services;
   }
 
   private static ControlService readControlServer(JsonParser p) throws IOException {
@@ -210,7 +221,7 @@ class ScionBootsrapper {
 
     // CS name
     String csName = p.getValueAsString();
-    assertString("cs", p.getText().substring(0, 2));
+    // assertString("cs", p.getText().substring(0, 2));
     p.nextToken();
     assertString(csName, p.currentName());
     assertString("{", p.getText());

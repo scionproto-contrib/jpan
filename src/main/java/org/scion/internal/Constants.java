@@ -59,7 +59,7 @@ public interface Constants {
   enum AddrTypes implements ParseEnum {
     IPv4(0x0), //   [0x0] = "IPv4", -- 0000
     SVC(0x4), // [0x4] = "SVC",  -- 0100
-    IPv(0x3); // [0x3] = "IPv6", -- 0011
+    IPv6(0x3); // [0x3] = "IPv6", -- 0011
 
     public final int code;
 
