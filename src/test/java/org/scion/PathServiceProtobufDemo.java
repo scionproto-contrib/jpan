@@ -28,12 +28,17 @@ public class PathServiceProtobufDemo {
   private final ScionService daemon;
 
   public static void main(String[] args) {
-    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon("127.0.0.12" + 30255)) {
+    String daemon110 = "127.0.0.12:30255";
+    String daemon111 = "127.0.0.19:30255";
+    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon111)) {
       PathServiceProtobufDemo demo = new PathServiceProtobufDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPaths();
+      demo.testPathsDaemon(srcIA, dstIA);
+      demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -64,16 +69,41 @@ public class PathServiceProtobufDemo {
     }
   }
 
-  private void testPaths() throws ScionException {
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-
+  private void testPathsDaemon(long srcIA, long dstIA) throws ScionException {
     List<Daemon.Path> paths = daemon.getPathList(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
       System.out.println("Path: interfaces = " + path.getInterface().getAddress().getAddress());
-      System.out.println("Path: first hop(?) = " + path.getInterface().getAddress().getAddress());
+      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
+      int i = 0;
+      for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
+        System.out.println(
+            "    pathIf: "
+                + i
+                + ": "
+                + pathIf.getId()
+                + " "
+                + pathIf.getIsdAs()
+                + "  "
+                + ScionUtil.toStringIA(pathIf.getIsdAs()));
+      }
+      for (int hop : path.getInternalHopsList()) {
+        System.out.println("    hop: " + i + ": " + hop);
+      }
+    }
+  }
+
+  private void testPathsControlService(long srcIA, long dstIA) throws ScionException {
+    String addr110 = "127.0.0.11:31000";
+    String addr111 = "127.0.0.18:31006";
+    ScionService csSercice = Scion.newServiceWithControlServiceIP(addr111);
+    List<Daemon.Path> paths = csSercice.getPathListCS(srcIA, dstIA);
+    System.out.println("Paths found: " + paths.size());
+    for (Daemon.Path path : paths) {
+      System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
+      System.out.println("Path: interfaces = " + path.getInterface().getAddress().getAddress());
+      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
       int i = 0;
       for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
         System.out.println(

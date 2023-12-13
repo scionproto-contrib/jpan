@@ -21,13 +21,17 @@ import static org.scion.ScionConstants.ENV_DAEMON_PORT;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.scion.internal.MultiMap;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegExtensions;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -428,52 +432,92 @@ public class ScionService {
   }
 
   @Deprecated // TODO do not use
-  public void getSegments(long srcIsdAs, long dstIsdAs) throws ScionException {
+  public Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> getSegments(
+      long srcIsdAs, long dstIsdAs) throws ScionException {
     // LOG.info("*** GetASInfo ***");
+    System.out.println(
+        "Requesting segments: "
+            + ScionUtil.toStringIA(srcIsdAs)
+            + " -> "
+            + ScionUtil.toStringIA(dstIsdAs));
     Seg.SegmentsRequest request =
         Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
     Seg.SegmentsResponse response;
     try {
       response = segmentStub.segments(request);
     } catch (StatusRuntimeException e) {
-      throw new ScionException("Error while getting AS info: " + e.getMessage(), e);
+      throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
     }
 
     try {
-
-      for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> e :
+      for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
           response.getSegmentsMap().entrySet()) {
-        System.out.println("SEG: key=" + e.getKey() + " -> n=" + e.getValue().getSegmentsCount());
-        for (Seg.PathSegment pseg : e.getValue().getSegmentsList()) {
+        System.out.println(
+            "SEG: key=" + seg.getKey() + " -> n=" + seg.getValue().getSegmentsCount());
+        for (Seg.PathSegment pseg : seg.getValue().getSegmentsList()) {
           System.out.println("  PathSeg: size=" + pseg.getSegmentInfo().size());
+          Seg.SegmentInformation segInf = Seg.SegmentInformation.parseFrom(pseg.getSegmentInfo());
+          System.out.println(
+              "    SegInfo:  ts="
+                  + Instant.ofEpochSecond(segInf.getTimestamp())
+                  + "  id="
+                  + segInf.getSegmentId());
           for (Seg.ASEntry asEntry : pseg.getAsEntriesList()) {
             if (asEntry.hasSigned()) {
               Signed.SignedMessage sm = asEntry.getSigned();
+              //              System.out.println(
+              //                  "    AS: signed="
+              //                      + sm.getHeaderAndBody().size()
+              //                      + "   s-> "
+              //                      + sm.getSignature().size());
+              //              System.out.println(
+              //                  "    Header/Body=" +
+              // Arrays.toString(sm.getHeaderAndBody().toByteArray()));
+              //              System.out.println(
+              //                  "    Signature  =" +
+              // Arrays.toString(sm.getSignature().toByteArray()));
+
+              Signed.HeaderAndBodyInternal habi =
+                  Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
+              //              System.out.println(
+              //                  "      habi: " + habi.getHeader().size() + " " +
+              // habi.getBody().size());
+              Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
+              // TODO body for signature verification?!?
               System.out.println(
-                  "    AS: signed="
-                      + sm.getHeaderAndBody().size()
-                      + "   s-> "
-                      + sm.getSignature().size());
+                  "    AS header: "
+                      + header.getSignatureAlgorithm()
+                      + "  ts[s:ns]"
+                      + header.getTimestamp().getSeconds()
+                      + ":"
+                      + header.getTimestamp().getNanos()
+                      + "  meta="
+                      + header.getMetadata().size()
+                      + "  data="
+                      + header.getAssociatedDataLength());
+
+              Seg.ASEntrySignedBody body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
               System.out.println(
-                  "    Header/Body=" + Arrays.toString(sm.getHeaderAndBody().toByteArray()));
-              System.out.println(
-                  "    Signature  =" + Arrays.toString(sm.getSignature().toByteArray()));
-              Seg.ASEntrySignedBody body =
-                  // Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody().asReadOnlyByteBuffer());
-                  //    Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody().toByteArray());
-                  Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody().substring(0));
-              System.out.println(
-                  "      Body: " + body.getIsdAs() + " " + body.getNextIsdAs() + " ");
+                  "    AS Body: IA="
+                      + ScionUtil.toStringIA(body.getIsdAs())
+                      + " nextIA="
+                      + ScionUtil.toStringIA(body.getNextIsdAs())
+                      + " nPeers="
+                      + body.getPeerEntriesCount()
+                      + "  mtu="
+                      + body.getMtu());
               Seg.HopEntry he = body.getHopEntry();
-              System.out.println("       HopEntry: " + he.hasHopField() + " " + he.getIngressMtu());
+              System.out.println(
+                  "      HopEntry: " + he.hasHopField() + " mtu=" + he.getIngressMtu());
+
               if (he.hasHopField()) {
                 Seg.HopField hf = he.getHopField();
                 System.out.println(
-                    "         HopField: "
+                    "        HopField: exp="
                         + hf.getExpTime()
-                        + " "
+                        + " ingress="
                         + hf.getIngress()
-                        + " "
+                        + " egress="
                         + hf.getEgress());
               }
             }
@@ -492,6 +536,200 @@ public class ScionService {
       throw new ScionException(e);
     }
 
-    // return response;
+    return response.getSegmentsMap().entrySet();
+  }
+
+  // TODO do not expose proto types on API
+  @Deprecated
+  List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) throws ScionException {
+    long maskWild = -1L << 48;
+    long srcCore = srcIsdAs & maskWild;
+    long dstCore = dstIsdAs & maskWild;
+
+    //    println("110 -> 110");
+    //    //ss.getSegments(ia110, ia111);
+    //    ss.getSegments(ia111, ia110);
+    //
+    //    println("");
+    //    println("");
+
+    System.out.println(ScionUtil.toStringIA(srcIsdAs) + " -> localCore");
+    Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsUp =
+        getSegments(srcIsdAs, srcCore);
+    System.out.println("core -> core");
+    Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsCore =
+        getSegments(srcCore, dstCore);
+    System.out.println("core -> 112");
+    Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsDown =
+        getSegments(dstCore, srcIsdAs);
+
+    // Map IsdAs to pathSegment
+    MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
+    MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
+
+    List<Daemon.Path> paths = new ArrayList<>();
+    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg : segmentsCore) {
+      for (Seg.PathSegment pathSeg : seg.getValue().getSegmentsList()) {
+        System.out.println("  PathSeg: size=" + pathSeg.getSegmentInfo().size());
+        for (Seg.ASEntry asEntry : pathSeg.getAsEntriesList()) {
+          if (asEntry.hasSigned()) {
+            //            Signed.SignedMessage sm = asEntry.getSigned();
+            //            Signed.HeaderAndBodyInternal habi =
+            //                    Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
+            //            Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
+            //            // TODO body for signature verification?!?
+            //
+            //            Seg.ASEntrySignedBody body =
+            // Seg.ASEntrySignedBody.parseFrom(habi.getBody());
+            Seg.ASEntrySignedBody body = getBody(asEntry.getSigned());
+            long ia1 = body.getIsdAs();
+            long ia2 = body.getNextIsdAs();
+
+            if (upSegments.get(ia1) != null && downSegments.get(ia2) != null) {
+              buildPath(paths, upSegments.get(ia1), pathSeg, downSegments.get(ia2));
+            } else if (downSegments.get(ia1) != null && upSegments.get(ia1) != null) {
+              buildPath(paths, downSegments.get(ia1), pathSeg, upSegments.get(ia2));
+            } else {
+              throw new IllegalStateException();
+            }
+
+            Seg.HopEntry he = body.getHopEntry();
+
+            if (he.hasHopField()) {
+              Seg.HopField hf = he.getHopField();
+            }
+          }
+        }
+      }
+    }
+
+    return paths;
+  }
+
+  private void buildPath(
+      List<Daemon.Path> paths,
+      List<Seg.PathSegment> segmentsUp,
+      Seg.PathSegment segCore,
+      List<Seg.PathSegment> segmentsDown)
+      throws ScionException {
+    try {
+      for (Seg.PathSegment segUp : segmentsUp) {
+        for (Seg.PathSegment segDown : segmentsDown) {
+          paths.add(buildPath(segUp, segCore, segDown));
+        }
+      }
+    } catch (InvalidProtocolBufferException e) {
+      throw new ScionException(e);
+    }
+  }
+
+  private Daemon.Path buildPath(
+      Seg.PathSegment segUp, Seg.PathSegment segCore, Seg.PathSegment segDown)
+      throws InvalidProtocolBufferException {
+    boolean reverse = false; // TODO
+    Daemon.Path.Builder path = Daemon.Path.newBuilder();
+    ByteBuffer raw = ByteBuffer.allocate(1000);
+
+    int hopCount0 = segUp.getAsEntriesCount();
+    int hopCount1 = segCore.getAsEntriesCount();
+    int hopCount2 = segDown.getAsEntriesCount();
+    int i0 = 0;
+    if (hopCount1 > 0) {
+      i0 = (hopCount0 << 12) | (hopCount1 << 6) | hopCount2;
+    } else {
+      i0 = (hopCount0 << 12) | (hopCount2 << 6);
+    }
+    raw.putInt(i0);
+
+    // info fields
+    Seg.SegmentInformation infoUp = Seg.SegmentInformation.parseFrom(segUp.getSegmentInfo());
+    raw.putInt(infoUp.getSegmentId());
+    raw.putInt((int) infoUp.getTimestamp()); // TODO does this work? casting to int?
+    if (hopCount1 > 0) {
+      Seg.SegmentInformation infoCore = Seg.SegmentInformation.parseFrom(segCore.getSegmentInfo());
+      raw.putInt(infoCore.getSegmentId());
+      raw.putInt((int) infoCore.getTimestamp()); // TODO does this work? casting to int?
+    }
+    if (hopCount2 > 0) {
+      Seg.SegmentInformation infoDown = Seg.SegmentInformation.parseFrom(segDown.getSegmentInfo());
+      raw.putInt(infoDown.getSegmentId());
+      raw.putInt((int) infoDown.getTimestamp()); // TODO does this work? casting to int?
+    }
+
+    // hop fields
+    for (Seg.ASEntry asEntry : segUp.getAsEntriesList()) {
+      // Let's assumed they are all signed // TODO?
+      Signed.SignedMessage sm = asEntry.getSigned();
+      Signed.HeaderAndBodyInternal habi =
+          Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
+      Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
+      // TODO body for signature verification?!?
+      Seg.ASEntrySignedBody body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
+      Seg.HopEntry hopEntry = body.getHopEntry();
+      Seg.HopField hopField = body.getHopEntry().getHopField();
+
+      raw.put((byte) 0);
+      raw.put((byte) hopField.getExpTime()); // TODO cast to byte,...?
+      if (!reverse) {
+        raw.putShort((short) hopField.getIngress());
+        raw.putShort((short) hopField.getEgress());
+      } else {
+        throw new UnsupportedOperationException();
+      }
+      ByteString mac = hopField.getMac();
+      for (int i = 0; i < 6; i++) { // TODO check length
+        raw.put(mac.byteAt(i));
+      }
+    }
+
+    raw.flip();
+    path.setRaw(ByteString.copyFrom(raw));
+
+    //    path.setInterface(Daemon.Interface.newBuilder().setAddress().build());
+    //    path.addInterfaces(Daemon.PathInterface.newBuilder().setId().setIsdAs().build());
+    //    segUp.getSegmentInfo();
+    //    path.setExpiration();
+    //    path.setMtu();
+    //    path.setLatency();
+
+    return path.build();
+  }
+
+  private MultiMap<Long, Seg.PathSegment> createSegmentsMap(
+      Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segments, long knownIsdAs)
+      throws ScionException {
+    MultiMap<Long, Seg.PathSegment> map = new MultiMap<>();
+    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg : segments) {
+      for (Seg.PathSegment pathSeg : seg.getValue().getSegmentsList()) {
+        long unknownIsdAs = getOtherIsdAs(knownIsdAs, pathSeg);
+        map.put(unknownIsdAs, pathSeg);
+      }
+    }
+    return map;
+  }
+
+  private long getOtherIsdAs(long isdAs, Seg.PathSegment seg) throws ScionException {
+    // Either the first or the last ISD/AS is the one we are looking for.
+    if (seg.getAsEntriesCount() < 2) {
+      throw new ScionException("Segment has < 2 hops.");
+    }
+    Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
+    Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
+    if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
+      throw new UnsupportedOperationException("Unsigned entries not (yet) supported"); // TODO
+    }
+    Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
+    if (bodyFirst.getIsdAs() != isdAs) {
+      return bodyFirst.getIsdAs();
+    }
+    return getBody(asEntryLast.getSigned()).getIsdAs();
+  }
+
+  private Seg.ASEntrySignedBody getBody(Signed.SignedMessage sm) throws ScionException {
+    try {
+      return Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody());
+    } catch (InvalidProtocolBufferException e) {
+      throw new ScionException(e);
+    }
   }
 }
