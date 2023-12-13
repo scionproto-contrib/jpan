@@ -79,7 +79,9 @@ Discuss required for 0.1.0:
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
 - AS switching: handle localIsdAs code per Interface or IP
 - Path expiry: request new path asynchronously when old path is close to expiry
-- DNS /etc/scion-hosts
+- DNS /etc/scion/hosts e.g.:
+  71-2:0:4a,[127.0.0.1]	www.netsys.ovgu.de netsys.ovgu.de
+  71-2:0:48,[127.0.0.1]	dfw.source.kernel.org
 - UDP checksum validation + creation
 - Fuzzing
 - Remove daemon requirement -> support connecting directly to control service
