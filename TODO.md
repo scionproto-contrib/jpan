@@ -87,7 +87,8 @@ Discuss required for 0.1.0:
 - Fuzzing
 - Remove daemon requirement -> support connecting directly to control service
 - remove "internals" package
-- For stand-alon path query, we should cache localAS->localCore paths.
+- For stand-alone path query, we should cache localAS->localCore paths.
+- For stand-alone, fill meta/proto properly
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...

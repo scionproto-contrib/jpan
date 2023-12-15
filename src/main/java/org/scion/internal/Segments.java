@@ -132,6 +132,7 @@ public class Segments {
     raw.flip();
     path.setRaw(ByteString.copyFrom(raw));
 
+    // TODO implement this
     //    path.setInterface(Daemon.Interface.newBuilder().setAddress().build());
     //    path.addInterfaces(Daemon.PathInterface.newBuilder().setId().setIsdAs().build());
     //    segUp.getSegmentInfo();
