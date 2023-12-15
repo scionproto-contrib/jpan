@@ -571,6 +571,8 @@ public class ScionService {
       if (srcCore != dstCore) {
         return Segments.getPathMultiISD(segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
       }
+      // TODO !!!!!
+      //   if the dst-AS is a core, do not request down segments
       return Segments.getPathSingleISD(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs);
     } catch (InvalidProtocolBufferException e) {
       throw new ScionException(e);

@@ -48,6 +48,8 @@ public class SegmentServiceDemo {
     long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
 
+    long iaCyberex = ScionUtil.parseIA("71-2:0:49");
+
     // Demo setup
     if (USE_MOCK_TOPOLOGY) {
       DemoTopology.configureMock();

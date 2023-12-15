@@ -112,6 +112,12 @@ public class Segments {
     raw.putInt(i0);
 
     // info fields
+    if (hopCount0 == 0) {
+      // TODO
+      // This can probably happen if we start in a CORE AS!
+      // E.g. only coreSegments or only downSegments or core+down
+      throw new UnsupportedOperationException();
+    }
     writeInfoField(raw, segUp, true);
     if (hopCount1 > 0) {
       writeInfoField(raw, segCore, false);
