@@ -25,7 +25,6 @@ import org.scion.testutil.MockDNS;
 public class SegmentServiceDemo {
 
   private static final boolean PRINT = ScmpServerDemo.PRINT;
-  public static int PORT = ScmpServerDemo.PORT;
 
   /**
    * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
@@ -34,7 +33,7 @@ public class SegmentServiceDemo {
   public static boolean USE_MOCK_TOPOLOGY = false;
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    // COntrol service IPs
+    // Control service IPs
     String csAddr110 = "127.0.0.11:31000";
     String csAddr111 = "127.0.0.18:31006";
     String csAddr112 = "[fd00:f00d:cafe::7f00:a]:31010";
