@@ -92,4 +92,17 @@ public class ToStringUtil {
     //    }
     return s;
   }
+
+  public static String toString(byte[] ba) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    for (int i = 0; i < ba.length - 2; i++) {
+      int ub = Byte.toUnsignedInt(ba[i]);
+      sb.append(Integer.toHexString(ub)).append(", ");
+    }
+    int ub = Byte.toUnsignedInt(ba[ba.length - 1]);
+    sb.append(Integer.toHexString(ub)).append(", ");
+    sb.append("]");
+    return sb.toString();
+  }
 }

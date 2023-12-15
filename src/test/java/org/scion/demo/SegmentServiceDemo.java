@@ -15,7 +15,11 @@
 package org.scion.demo;
 
 import java.io.*;
+import java.util.List;
 import org.scion.*;
+import org.scion.demo.inspector.PathHeaderScion;
+import org.scion.demo.util.ToStringUtil;
+import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockDNS;
 
 public class SegmentServiceDemo {
@@ -33,7 +37,7 @@ public class SegmentServiceDemo {
     // COntrol service IPs
     String csAddr110 = "127.0.0.11:31000";
     String csAddr111 = "127.0.0.18:31006";
-    String csAddr112 = "[fd00:f00d:cafe::7]:30255";
+    String csAddr112 = "[fd00:f00d:cafe::7f00:a]:31010";
     long ia110 = ScionUtil.parseIA("1-ff00:0:110");
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");
@@ -77,12 +81,28 @@ public class SegmentServiceDemo {
     long dstCore = dstIsdAs & maskWild;
 
     // println("111 -> core");
-    ss.getSegments(srcIsdAs, srcCore);
-    // println("core -> core");
-    ss.getSegments(srcCore, dstCore);
-    // println("core -> 112");
-    //dstCore = ScionUtil.parseIA("66-2:0:10"); // TODO remove
-    ss.getSegments(dstCore, dstIsdAs);
+    //    ss.getSegments(srcIsdAs, srcCore);
+    //    // println("core -> core");
+    //    ss.getSegments(srcCore, dstCore);
+    //    // println("core -> 112");
+    //    //dstCore = ScionUtil.parseIA("66-2:0:10"); // TODO remove
+    //    ss.getSegments(dstCore, dstIsdAs);
+
+    List<Daemon.Path> list = ss.getPathListCS(srcIsdAs, dstIsdAs);
+    for (Daemon.Path path : list) {
+      System.out.println("Path CS: " + ToStringUtil.toString(path.getRaw().toByteArray()));
+      PathHeaderScion phs = new PathHeaderScion();
+      phs.read(path.getRaw().asReadOnlyByteBuffer());
+      System.out.println(phs.toString());
+    }
+
+    //    ScionService ssD = Scion.newServiceWithDaemon("127.0.0.19:30255");
+    //    for (Daemon.Path path : ssD.getPathListDaemon(srcIsdAs, dstIsdAs)) {
+    //      System.out.println("Path DA: " + ToStringUtil.toString(path.getRaw().toByteArray()));
+    //      PathHeaderScion phs = new PathHeaderScion();
+    //      phs.read(path.getRaw().asReadOnlyByteBuffer());
+    //      System.out.println(phs.toString());
+    //    }
   }
 
   private static void println(String msg) {

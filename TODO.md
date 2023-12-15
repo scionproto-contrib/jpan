@@ -64,6 +64,7 @@
   - E>g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
 - Run testing with IPv6 again? -> MockNetwork 
+- Move Scmp in main folder, add MessageClasses and enums (and send(channel, scmp) methods?)
 
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
@@ -86,6 +87,7 @@ Discuss required for 0.1.0:
 - Fuzzing
 - Remove daemon requirement -> support connecting directly to control service
 - remove "internals" package
+- For stand-alon path query, we should cache localAS->localCore paths.
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...

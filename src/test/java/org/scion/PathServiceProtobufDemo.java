@@ -70,7 +70,7 @@ public class PathServiceProtobufDemo {
   }
 
   private void testPathsDaemon(long srcIA, long dstIA) throws ScionException {
-    List<Daemon.Path> paths = daemon.getPathList(srcIA, dstIA);
+    List<Daemon.Path> paths = daemon.getPathListDaemon(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
