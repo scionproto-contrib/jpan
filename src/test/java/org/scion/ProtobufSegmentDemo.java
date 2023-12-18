@@ -15,6 +15,7 @@
 package org.scion;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Timestamp;
 import io.grpc.Grpc;
 import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
@@ -50,12 +51,17 @@ public class ProtobufSegmentDemo {
     long iaCyberex = ScionUtil.parseIA("71-2:0:49");
 
     ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
-    demo.getSegments(iaETH, toWildcard(iaETH));
+    // demo.getSegments(iaETH, toWildcard(iaETH));
+    demo.getSegments(toCore(iaETH), toWildcard(iaAnapayaHK));
     //    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110);
     //    demo.getSegments(ia110, ia111);
   }
 
   private static long toWildcard(long ia) {
+    return (ia >> 48) << 48;
+  }
+
+  private static long toCore(long ia) {
     return (ia >> 48) << 48;
   }
 
@@ -103,12 +109,12 @@ public class ProtobufSegmentDemo {
               System.out.println(
                   "    AS: signed="
                       + sm.getHeaderAndBody().size()
-                      + "   s-> "
+                      + "   signature size="
                       + sm.getSignature().size());
-              System.out.println(
-                  "    Header/Body=" + Arrays.toString(sm.getHeaderAndBody().toByteArray()));
-              System.out.println(
-                  "    Signature  =" + Arrays.toString(sm.getSignature().toByteArray()));
+              // System.out.println(
+              //     "    Header/Body=" + Arrays.toString(sm.getHeaderAndBody().toByteArray()));
+              // System.out.println(
+              //     "    Signature  =" + Arrays.toString(sm.getSignature().toByteArray()));
 
               Signed.HeaderAndBodyInternal habi =
                   Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
@@ -117,13 +123,12 @@ public class ProtobufSegmentDemo {
               // habi.getBody().size());
               Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
               // TODO body for signature verification?!?
+              Timestamp ts = header.getTimestamp();
               System.out.println(
                   "    AS header: "
                       + header.getSignatureAlgorithm()
-                      + "  ts[s:ns]"
-                      + header.getTimestamp().getSeconds()
-                      + ":"
-                      + header.getTimestamp().getNanos()
+                      + "  time="
+                      + Instant.ofEpochSecond(ts.getSeconds(), ts.getNanos())
                       + "  meta="
                       + header.getMetadata().size()
                       + "  data="
@@ -152,6 +157,27 @@ public class ProtobufSegmentDemo {
                         + hf.getIngress()
                         + " egress="
                         + hf.getEgress());
+              }
+              if (body.hasExtensions()) {
+                SegExtensions.PathSegmentExtensions pse = body.getExtensions();
+                if (pse.hasStaticInfo()) {
+                  SegExtensions.StaticInfoExtension sie = pse.getStaticInfo();
+                  System.out.println(
+                      "    Static: latencies="
+                          + sie.getLatency().getIntraCount()
+                          + "/"
+                          + sie.getLatency().getInterCount()
+                          + "  bandwidth="
+                          + sie.getBandwidth().getIntraCount()
+                          + "/"
+                          + sie.getBandwidth().getInterCount()
+                          + "  geo="
+                          + sie.getGeoCount()
+                          + "  interfaces="
+                          + sie.getLinkTypeCount()
+                          + "  note="
+                          + sie.getNote());
+                }
               }
             }
             if (asEntry.hasUnsigned()) {

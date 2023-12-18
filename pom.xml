@@ -15,7 +15,6 @@
         <scion.dnsjava.version>3.5.3</scion.dnsjava.version>
         <scion.google-java-format.version>1.18.1</scion.google-java-format.version>
         <scion.io-grpc.version>1.59.0</scion.io-grpc.version>
-        <scion.jackson.version>2.15.3</scion.jackson.version>
         <scion.junit.version>5.10.1</scion.junit.version>
         <scion.protobuf.version>3.23.0</scion.protobuf.version>
         <scion.os72-protoc.version>3.11.4</scion.os72-protoc.version>
@@ -118,12 +117,6 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
             <version>${scion.io-grpc.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${scion.jackson.version}</version>
         </dependency>
 
         <!-- Required for compilation with Java 9 or later SDKs-->

@@ -14,9 +14,8 @@
 
 package org.scion;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,6 +24,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xbill.DNS.*;
@@ -42,13 +42,6 @@ class ScionBootstrapper {
   private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
   private static final String STR_X_SCION = "x-sciondiscovery";
   private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
-  private final String topologyServiceAddress;
-  private String localIsdAs;
-  private int localMtu;
-
-  private final List<ServiceNode> controlServices = new ArrayList<>();
-  private final List<ServiceNode> discoveryServices = new ArrayList<>();
-
   private static final String baseURL = "";
   private static final String topologyEndpoint = "topology";
   private static final String signedTopologyEndpoint = "topology.signed";
@@ -57,6 +50,13 @@ class ScionBootstrapper {
   private static final String topologyJSONFileName = "topology.json";
   private static final String signedTopologyFileName = "topology.signed";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
+
+  private final String topologyServiceAddress;
+  private String localIsdAs;
+  private int localMtu;
+  private final List<ServiceNode> controlServices = new ArrayList<>();
+  private final List<ServiceNode> discoveryServices = new ArrayList<>();
+  private final List<BorderRouter> borderRouters = new ArrayList<>();
 
   public long getLocalIsdAs() {
     return ScionUtil.parseIA(localIsdAs);
@@ -177,7 +177,7 @@ class ScionBootstrapper {
 
   private void init() {
     try {
-      getTopology();
+      parseTopologyFile(getTopologyFile());
     } catch (IOException e) {
       throw new ScionRuntimeException("Error while getting topology file: " + e.getMessage(), e);
     }
@@ -191,6 +191,13 @@ class ScionBootstrapper {
     return controlServices.get(0).ipString;
   }
 
+  public String getBorderRouterAddress(int interfaceId) {
+    for (BorderRouter br : borderRouters) {
+      // TODO
+    }
+    throw new ScionRuntimeException("No router found with ID " + interfaceId);
+  }
+
   public void refreshTopology() {
     // TODO check timeout from dig netsec-w37w3w.inf.ethz.ch?
     // TODO verify local DNS?? How?
@@ -198,82 +205,48 @@ class ScionBootstrapper {
     throw new UnsupportedOperationException();
   }
 
-  private void getTopology() throws IOException {
+  private String getTopologyFile() throws IOException {
     LOG.info("Getting topology from bootstrap server: " + topologyServiceAddress);
     controlServices.clear();
     discoveryServices.clear();
     // TODO https????
     URL url = new URL("http://" + topologyServiceAddress + "/" + baseURL + topologyEndpoint);
-    String topologyFile = fetchTopologyFile(url);
+    return fetchTopologyFile(url);
+  }
 
-    ObjectMapper om = new ObjectMapper();
-    JsonParser p = om.reader().createParser(topologyFile);
-    p.nextToken();
-    int depth = 0;
-    while (p.hasCurrentToken()) {
-      JsonToken t = p.currentToken();
-      if ("control_service".equals(p.currentName()) && t.isStructStart()) {
-        p.nextToken();
-        while (!"control_service".equals(p.currentName())) {
-          controlServices.add(readControlServer(p));
+  private void parseTopologyFile(String topologyFile) throws IOException {
+    JsonElement jsonTree = com.google.gson.JsonParser.parseString(topologyFile);
+    if (jsonTree.isJsonObject()) {
+      JsonObject o = jsonTree.getAsJsonObject();
+      localIsdAs = o.get("isd_as").getAsString();
+      localMtu = o.get("mtu").getAsInt();
+      JsonObject brs = o.get("border_routers").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
+        JsonObject br = e.getValue().getAsJsonObject();
+        JsonObject ints = br.get("interfaces").getAsJsonObject();
+        List<BorderRouterInterface> interfaces = new ArrayList<>();
+        for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
+          JsonObject ife = ifEntry.getValue().getAsJsonObject();
+          // TODO bandwidth, mtu, ... etc
+          JsonObject underlay = ife.getAsJsonObject("underlay");
+          interfaces.add(
+              new BorderRouterInterface(
+                  ifEntry.getKey(),
+                  underlay.get("public").getAsString(),
+                  underlay.get("remote").getAsString()));
         }
-      } else if ("discovery_service".equals(p.currentName()) && t.isStructStart()) {
-        p.nextToken();
-        while (!"discovery_service".equals(p.currentName())) {
-          discoveryServices.add(readControlServer(p));
-        }
-      } else if ("isd_as".equals(p.currentName()) && depth == 1) {
-        p.nextToken();
-        assertString("isd_as", p.currentName());
-        localIsdAs = p.getValueAsString();
-      } else if ("mtu".equals(p.currentName()) && depth == 1) {
-        p.nextToken();
-        assertString("mtu", p.currentName());
-        localMtu = p.getIntValue();
-      } else if (t.isStructStart()) {
-        depth++;
-      } else if (t.isStructEnd()) {
-        depth--;
+        borderRouters.add(new BorderRouter(e.getKey(), interfaces));
       }
-      p.nextToken();
-    }
-  }
-
-  private static ServiceNode readControlServer(JsonParser p) throws IOException {
-    //  "control_service": {
-    //    "cs64-2_0_9-1": {
-    //      "addr": "192.168.53.20:30252"
-    //    },
-    //    "cs64-2_0_9-2": {
-    //      "addr": "192.168.53.35:30252"
-    //    }
-    //  },
-
-    // CS name
-    String csName = p.getValueAsString();
-    p.nextToken();
-    assertString(csName, p.currentName());
-    assertString("{", p.getText());
-    p.nextToken();
-
-    // CS address
-    assertString("addr", p.currentName());
-    assertString("addr", p.getValueAsString());
-    p.nextToken();
-    String csAddress = p.getValueAsString();
-    assertString("addr", p.currentName());
-    p.nextToken();
-
-    // end
-    assertString(csName, p.currentName());
-    assertString("}", p.getText());
-    p.nextToken();
-    return new ServiceNode(csName, csAddress);
-  }
-
-  private static void assertString(String s1, String s2) {
-    if (!s1.equals(s2)) {
-      throw new IllegalStateException("Expected \"" + s1 + "\" but got \"" + s2 + "\"");
+      JsonObject css = o.get("control_service").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> e : css.entrySet()) {
+        JsonObject cs = e.getValue().getAsJsonObject();
+        controlServices.add(new ServiceNode(e.getKey(), cs.get("addr").getAsString()));
+      }
+      JsonObject dss = o.get("discovery_service").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> e : dss.entrySet()) {
+        JsonObject ds = e.getValue().getAsJsonObject();
+        discoveryServices.add(new ServiceNode(e.getKey(), ds.get("addr").getAsString()));
+      }
     }
   }
 
@@ -329,5 +302,27 @@ class ScionBootstrapper {
       sb.append("Discovery server: ").append(sn).append('\n');
     }
     return sb.toString();
+  }
+
+  private class BorderRouter {
+    private final String name;
+    private final List<BorderRouterInterface> interfaces;
+
+    public BorderRouter(String name, List<BorderRouterInterface> interfaces) {
+      this.name = name;
+      this.interfaces = interfaces;
+    }
+  }
+
+  private class BorderRouterInterface {
+    final int id;
+    final String publicUnderlay;
+    final String remoteUnderlay;
+
+    public BorderRouterInterface(String id, String publicU, String remoteU) {
+      this.id = Integer.parseInt(id);
+      this.publicUnderlay = publicU;
+      this.remoteUnderlay = remoteU;
+    }
   }
 }

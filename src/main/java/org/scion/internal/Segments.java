@@ -297,6 +297,32 @@ public class Segments {
     return found;
   }
 
+  private static List<Seg.PathSegment> getStatistics(
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
+      long srcIsdAs,
+      long dstIsdAs)
+      throws ScionException {
+    if (srcIsdAs == dstIsdAs) {
+      return Collections.emptyList();
+    }
+    Seg.SegmentsRequest request =
+        Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
+    Seg.SegmentsResponse response;
+    try {
+      response = segmentStub.segments(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
+    }
+
+    List<Seg.PathSegment> pathSegments = new ArrayList<>();
+    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
+        response.getSegmentsMap().entrySet()) {
+      pathSegments.addAll(seg.getValue().getSegmentsList());
+    }
+
+    return pathSegments;
+  }
+
   private static List<Seg.PathSegment> getSegments(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
@@ -343,6 +369,7 @@ public class Segments {
 
     if (srcIsdAs == dstIsdAs) {
       // case A
+      // TODO return *empty* path!
       return Collections.emptyList();
     }
     if (srcCore == dstCore) {
