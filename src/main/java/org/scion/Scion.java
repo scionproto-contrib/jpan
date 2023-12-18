@@ -46,11 +46,11 @@ public final class Scion {
   }
 
   /**
-   * @param hostAndPort of the control service.
+   * @param hostAndPort of the bootstrap server.
    * @return new ScionService instance
    */
   @Deprecated // TODO not really implemented yet
-  public static CloseableService newServiceWithControlServiceIP(String hostAndPort) {
+  public static CloseableService newServiceWithBootstrapServerIP(String hostAndPort) {
     return new CloseableService(hostAndPort, ScionService.Mode.BOOTSTRAP_SERVER_IP);
   }
 

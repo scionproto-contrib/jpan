@@ -60,6 +60,7 @@ public class ScionService {
 
   private static ScionService DEFAULT;
 
+  private final ScionBootstrapper bootstrapper;
   // TODO create subclasses for these two?
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
@@ -80,19 +81,23 @@ public class ScionService {
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
+      bootstrapper = null;
       LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
     } else if (mode == Mode.BOOTSTRAP_VIA_DNS) {
-      ScionBootsrapper boot = ScionBootsrapper.createServiceViaDns(addressOrHost);
-      String csHost = boot.getControlServerAddress();
-      localIsdAs.set(boot.getLocalIsdAs());
+      bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
+      String csHost = bootstrapper.getControlServerAddress();
+      localIsdAs.set(bootstrapper.getLocalIsdAs());
       // TODO InsecureChannelCredentials?
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
     } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
+      bootstrapper = ScionBootstrapper.createViaBootstrapServerIP(addressOrHost);
+      String csHost = bootstrapper.getControlServerAddress();
+      localIsdAs.set(bootstrapper.getLocalIsdAs());
       // TODO InsecureChannelCredentials?
-      channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
+      channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info(

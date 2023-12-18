@@ -37,13 +37,12 @@ import org.xbill.DNS.Record;
  *
  * @see Scion.CloseableService
  */
-class ScionBootsrapper {
+class ScionBootstrapper {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ScionBootsrapper.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
   private static final String STR_X_SCION = "x-sciondiscovery";
   private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
-  private static ScionBootsrapper DEFAULT;
-  private final InetSocketAddress topologyService;
+  private final String topologyServiceAddress;
   private String localIsdAs;
   private int localMtu;
 
@@ -71,14 +70,21 @@ class ScionBootsrapper {
       this.name = name;
       this.ipString = ipString;
     }
+
+    @Override
+    public String toString() {
+      return "{" + "name='" + name + '\'' + ", ipString='" + ipString + '\'' + '}';
+    }
+
+    //    @Override
+    //    public String toString() {
+    //      return name + " " + super.toString();
+    //    }
   }
 
-  protected ScionBootsrapper(InetSocketAddress topologyService) {
-    if (topologyService == null) {
-      throw new IllegalArgumentException("Topology service address is null.");
-    }
-    this.topologyService = topologyService;
-    LOG.info("Bootstrapper service started on " + topologyService);
+  protected ScionBootstrapper(String topologyServiceAddress) {
+    this.topologyServiceAddress = topologyServiceAddress;
+    init();
   }
 
   /**
@@ -87,23 +93,15 @@ class ScionBootsrapper {
    *
    * @return default instance
    */
-  static synchronized ScionBootsrapper createServiceViaDns(String host) {
-    if (DEFAULT == null) {
-      InetSocketAddress topoAddress = bootstrapViaDNS(host);
-      DEFAULT = new ScionBootsrapper(topoAddress);
-    }
-    return DEFAULT;
+  static synchronized ScionBootstrapper createViaDns(String host) {
+    return new ScionBootstrapper(bootstrapViaDNS(host));
   }
 
-  //  static synchronized ScionBootsrapper createServiceViaBootstrapServerIP(String host) {
-  //    if (DEFAULT == null) {
-  //      InetSocketAddress topoAddress = new InetSocketAddress(host);
-  //      DEFAULT = new ScionBootsrapper(topoAddress);
-  //    }
-  //    return DEFAULT;
-  //  }
+  static synchronized ScionBootstrapper createViaBootstrapServerIP(String hostAndPort) {
+    return new ScionBootstrapper(hostAndPort);
+  }
 
-  private static InetSocketAddress bootstrapViaDNS(String hostName) {
+  private static String bootstrapViaDNS(String hostName) {
     try {
       Record[] records = new Lookup(hostName, Type.NAPTR).run();
       if (records == null) {
@@ -120,7 +118,7 @@ class ScionBootsrapper {
           if ("A".equals(naptrFlag) || "AAAA".equals(naptrFlag)) {
             String flag = naptrFlag;
             InetAddress addr = queryTopoServerDNS(flag, host);
-            return new InetSocketAddress(addr, port);
+            return addr.getHostAddress() + ":" + port;
           }
           // keep going and collect more hints
         }
@@ -177,38 +175,35 @@ class ScionBootsrapper {
     throw new ScionRuntimeException("Could not find bootstrap TXT port record");
   }
 
-  public String getControlServerAddress() {
+  private void init() {
     try {
-      getTopology(topologyService);
+      getTopology();
     } catch (IOException e) {
-      throw new ScionRuntimeException("Error while getting topologyu file: " + e.getMessage(), e);
+      throw new ScionRuntimeException("Error while getting topology file: " + e.getMessage(), e);
     }
     if (controlServices.isEmpty()) {
       throw new ScionRuntimeException(
-          "No control servers found in topology provided by " + topologyService);
+          "No control servers found in topology provided by " + topologyServiceAddress);
     }
+  }
 
-    System.out.println("Topology: ISD/AS=" + localIsdAs + "  mtu=" + localMtu);
-    for (ServiceNode cs : controlServices) {
-      System.out.println("Control service: " + cs.name + "   " + cs.ipString);
-    }
-    for (ServiceNode cs : discoveryServices) {
-      System.out.println("Discovery service: " + cs.name + "   " + cs.ipString);
-    }
+  public String getControlServerAddress() {
     return controlServices.get(0).ipString;
-    // return discoveryServices.get(0).ipString;
   }
 
   public void refreshTopology() {
     // TODO check timeout from dig netsec-w37w3w.inf.ethz.ch?
     // TODO verify local DNS?? How?
+    // init();
     throw new UnsupportedOperationException();
   }
 
-  private void getTopology(InetSocketAddress addr) throws IOException {
+  private void getTopology() throws IOException {
+    LOG.info("Getting topology from bootstrap server: " + topologyServiceAddress);
     controlServices.clear();
     discoveryServices.clear();
-    URL url = buildTopologyURL(addr);
+    // TODO https????
+    URL url = new URL("http://" + topologyServiceAddress + "/" + baseURL + topologyEndpoint);
     String topologyFile = fetchTopologyFile(url);
 
     ObjectMapper om = new ObjectMapper();
@@ -282,13 +277,6 @@ class ScionBootsrapper {
     }
   }
 
-  private static URL buildTopologyURL(InetSocketAddress addr) throws MalformedURLException {
-    String urlPath = baseURL + topologyEndpoint;
-    String s =
-        "http://" + addr.getAddress().getHostAddress() + ":" + addr.getPort() + "/" + urlPath;
-    return new URL(s);
-  }
-
   private static String fetchTopologyFile(URL url) throws IOException {
     HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
     httpURLConnection.setRequestMethod("GET");
@@ -310,5 +298,36 @@ class ScionBootsrapper {
     in.close();
 
     return response.toString();
+  }
+
+  @Override
+  public String toString() {
+    //    StringBuilder sb = new StringBuilder();
+    //    sb.append("ScionBootstrapper{");
+    //    sb.append("topologyServiceAddress='").append(topologyServiceAddress).append('\'');
+    //    sb.append(", localIsdAs='").append(localIsdAs).append('\'');
+    //    sb.append(", localMtu=").append(localMtu);
+    //    sb.append(", controlServices={");
+    //    for (ServiceNode sn : controlServices) {
+    //      sb.append(sn).append(",");
+    //    }
+    //    sb.append('}');
+    //    sb.append(", discoveryServices={");
+    //    for (ServiceNode sn : discoveryServices) {
+    //      sb.append(sn).append(",");
+    //    }
+    //    sb.append('}');
+    //    return sb.toString();
+    StringBuilder sb = new StringBuilder();
+    sb.append("Topo Server: ").append(topologyServiceAddress).append("\n");
+    sb.append("ISD/AS: ").append(localIsdAs).append('\n');
+    sb.append("MTU: ").append(localMtu).append('\n');
+    for (ServiceNode sn : controlServices) {
+      sb.append("Control server:   ").append(sn).append('\n');
+    }
+    for (ServiceNode sn : discoveryServices) {
+      sb.append("Discovery server: ").append(sn).append('\n');
+    }
+    return sb.toString();
   }
 }

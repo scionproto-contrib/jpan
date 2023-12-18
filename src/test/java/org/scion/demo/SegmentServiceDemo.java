@@ -41,7 +41,8 @@ public class SegmentServiceDemo {
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");
 
-    String csETH = "192.168.53.20:30252";
+    // String csETH = "192.168.53.20:30252";
+    String bootETH = "129.132.121.175:8041";
     long iaETH = ScionUtil.parseIA("64-2:0:9");
     long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
     long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
@@ -58,15 +59,16 @@ public class SegmentServiceDemo {
     } else {
       // DemoTopology.configureTiny110_112();
       // MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-      doClientStuff(csETH, iaETH, iaGEANT);
+      doClientStuff(bootETH, iaETH, iaGEANT);
       // doClientStuff(csAddr111, ia111, ia112);
       // DemoTopology.shutDown();
     }
   }
 
-  private static void doClientStuff(String csAddress, long srcIsdAs, long dstIsdAs)
+  private static void doClientStuff(String bootAddress, long srcIsdAs, long dstIsdAs)
       throws IOException {
-    ScionService ss = Scion.newServiceWithControlServiceIP(csAddress);
+    // ScionService ss = Scion.newServiceWithDNS("inf.ethz.ch");
+    ScionService ss = Scion.newServiceWithBootstrapServerIP(bootAddress);
     //    System.out.println(
     //        "ISD/AS=" + ss.getLocalIsdAs() + "  " + ScionUtil.toStringIA(ss.getLocalIsdAs()));
     // TODO avoid argument!

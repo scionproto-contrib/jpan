@@ -243,32 +243,27 @@ public class ScionServiceTest {
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
 
     ScionService ss = Scion.newServiceWithDNS("inf.ethz.ch");
-
-    // TODO
-    //   - default to (inf).ethz.ch
-    //   - default to http (not https)?
-
     List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
     assertNotNull(paths);
     assertFalse(paths.isEmpty());
+
+    // TODO test path
   }
 
   @Test
   void bootstrapViaControlServiceIP() throws IOException {
+    String bootETH = "129.132.121.175:8041";
     String csETH = "192.168.53.20:30252";
     long iaETH = ScionUtil.parseIA("64-2:0:9");
     long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
     long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
 
-    ScionService ss = Scion.newServiceWithControlServiceIP(csETH);
-
-    // TODO
-    //   - default to (inf).ethz.ch
-    //   - default to http (not https)?
-
+    ScionService ss = Scion.newServiceWithBootstrapServerIP(bootETH);
     List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
     assertNotNull(paths);
     assertFalse(paths.isEmpty());
+
+    // TODO test path
   }
 }
