@@ -42,7 +42,7 @@ public final class Scion {
    */
   @Deprecated // TODO not really implemented yet
   public static CloseableService newServiceWithDNS(String hostName) {
-    return new CloseableService(hostName, ScionService.Mode.CONTROL_SERVICE_DNS);
+    return new CloseableService(hostName, ScionService.Mode.BOOTSTRAP_VIA_DNS);
   }
 
   /**
@@ -51,7 +51,7 @@ public final class Scion {
    */
   @Deprecated // TODO not really implemented yet
   public static CloseableService newServiceWithControlServiceIP(String hostAndPort) {
-    return new CloseableService(hostAndPort, ScionService.Mode.CONTROL_SERVICE_IP);
+    return new CloseableService(hostAndPort, ScionService.Mode.BOOTSTRAP_SERVER_IP);
   }
 
   public static class CloseableService extends ScionService implements AutoCloseable {

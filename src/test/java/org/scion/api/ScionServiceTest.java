@@ -22,7 +22,6 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.testutil.MockDaemon;
@@ -235,27 +234,41 @@ public class ScionServiceTest {
     }
   }
 
-  @Disabled
   @Test
   void bootstrapViaDnsDirect() throws IOException {
+    String csETH = "192.168.53.20:30252";
+    long iaETH = ScionUtil.parseIA("64-2:0:9");
+    long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
+    long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
+    long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
+
     ScionService ss = Scion.newServiceWithDNS("inf.ethz.ch");
 
     // TODO
     //   - default to (inf).ethz.ch
     //   - default to http (not https)?
 
-    ss.getSegments(5, 15);
+    List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
+    assertNotNull(paths);
+    assertFalse(paths.isEmpty());
   }
 
-  @Disabled
   @Test
   void bootstrapViaControlServiceIP() throws IOException {
-    ScionService ss = Scion.newServiceWithControlServiceIP("192.168.53.20:30252");
+    String csETH = "192.168.53.20:30252";
+    long iaETH = ScionUtil.parseIA("64-2:0:9");
+    long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
+    long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
+    long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
+
+    ScionService ss = Scion.newServiceWithControlServiceIP(csETH);
 
     // TODO
     //   - default to (inf).ethz.ch
     //   - default to http (not https)?
 
-    ss.getSegments(5, 15);
+    List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
+    assertNotNull(paths);
+    assertFalse(paths.isEmpty());
   }
 }

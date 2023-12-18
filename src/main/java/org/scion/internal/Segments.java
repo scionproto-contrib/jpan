@@ -16,66 +16,87 @@ package org.scion.internal;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.scion.ScionException;
 import org.scion.proto.control_plane.Seg;
+import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.crypto.Signed;
 import org.scion.proto.daemon.Daemon;
 
 public class Segments {
-  public static List<Daemon.Path> getPathMultiISD(
-      Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsUp,
-      Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsCore,
-      Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsDown,
+  public static List<Daemon.Path> combineThreeSegments(
+      List<Seg.PathSegment> segmentsUp,
+      List<Seg.PathSegment> segmentsCore,
+      List<Seg.PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs)
-      throws ScionException, InvalidProtocolBufferException {
+      throws ScionException {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
     MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
 
     List<Daemon.Path> paths = new ArrayList<>();
-    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg : segmentsCore) {
-      for (Seg.PathSegment pathSeg : seg.getValue().getSegmentsList()) {
-        long[] IAs = getEndingIAs(pathSeg);
+    for (Seg.PathSegment pathSeg : segmentsCore) {
+      long[] IAs = getEndingIAs(pathSeg);
 
-        if (upSegments.get(IAs[0]) == null || downSegments.get(IAs[1]) == null) {
-          // This should not happen, we have a core segment that has no matching
-          // up/down segments
-          throw new IllegalStateException(); // TODO actually, this appears to be happening!
-          // continue;
-        }
-        buildPath(paths, upSegments.get(IAs[0]), pathSeg, downSegments.get(IAs[1]));
+      if (upSegments.get(IAs[0]) == null || downSegments.get(IAs[1]) == null) {
+        // This should not happen, we have a core segment that has no matching
+        // up/down segments
+        throw new IllegalStateException(); // TODO actually, this appears to be happening!
+        // continue;
+      }
+      buildPath(paths, upSegments.get(IAs[0]), pathSeg, downSegments.get(IAs[1]));
+    }
+    return paths;
+  }
+
+  /**
+   * Creates path from two segments. E.g. Up+Core or Core+Down.
+   *
+   * @param segments0 Up or Core segments
+   * @param segments1 Core or Down segments
+   * @param srcIsdAs src ISD/AS
+   * @param dstIsdAs src ISD/AS
+   * @return Paths
+   * @throws ScionException In case of deserialization problem
+   */
+  public static List<Daemon.Path> combineTwoSegments(
+      List<Seg.PathSegment> segments0,
+      List<Seg.PathSegment> segments1,
+      long srcIsdAs,
+      long dstIsdAs)
+      throws ScionException {
+    // Map IsdAs to pathSegment
+    MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
+
+    List<Daemon.Path> paths = new ArrayList<>();
+    for (Seg.PathSegment pathSegment0 : segments0) {
+      long[] IAs = getEndingIAs(pathSegment0);
+      if (IAs[0] != srcIsdAs && IAs[1] != srcIsdAs) {
+        continue; // discard
+      }
+      long coreIsdAs = IAs[0] == srcIsdAs ? IAs[1] : IAs[0];
+      if (segmentsMap1.get(coreIsdAs) == null) {
+        // ignore, this should not happen.
+        continue;
+      }
+      for (Seg.PathSegment pathSegment1 : segmentsMap1.get(coreIsdAs)) {
+        paths.add(buildPath(pathSegment0, pathSegment1, null));
       }
     }
     return paths;
   }
 
-  public static List<Daemon.Path> getPathSingleISD(
-      Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsUp,
-      Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsDown,
-      long srcIsdAs,
-      long dstIsdAs)
-      throws ScionException, InvalidProtocolBufferException {
-    // Map IsdAs to pathSegment
-    MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
-
+  public static List<Daemon.Path> combineSegment(List<Seg.PathSegment> segments)
+      throws ScionException {
     List<Daemon.Path> paths = new ArrayList<>();
-    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> segUp : segmentsUp) {
-      for (Seg.PathSegment pathSegUp : segUp.getValue().getSegmentsList()) {
-        long coreIsdAs = getOtherIsdAs(srcIsdAs, pathSegUp);
-        if (downSegments.get(coreIsdAs) == null) {
-          // ignore, this should not happen.
-          continue;
-        }
-        for (Seg.PathSegment segDown : downSegments.get(coreIsdAs)) {
-          paths.add(buildPath(pathSegUp, null, segDown));
-        }
-      }
+    for (Seg.PathSegment pathSegment : segments) {
+      paths.add(buildPath(pathSegment, null, null));
     }
     return paths;
   }
@@ -85,7 +106,7 @@ public class Segments {
       List<Seg.PathSegment> segmentsUp,
       Seg.PathSegment segCore,
       List<Seg.PathSegment> segmentsDown)
-      throws InvalidProtocolBufferException {
+      throws ScionException {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
         paths.add(buildPath(segUp, segCore, segDown));
@@ -94,15 +115,14 @@ public class Segments {
   }
 
   private static Daemon.Path buildPath(
-      Seg.PathSegment segUp, Seg.PathSegment segCore, Seg.PathSegment segDown)
-      throws InvalidProtocolBufferException {
+      Seg.PathSegment seg0, Seg.PathSegment seg1, Seg.PathSegment seg2) throws ScionException {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
     // path meta header
-    int hopCount0 = segUp.getAsEntriesCount();
-    int hopCount1 = segCore == null ? 0 : segCore.getAsEntriesCount();
-    int hopCount2 = segDown.getAsEntriesCount();
+    int hopCount0 = seg0.getAsEntriesCount();
+    int hopCount1 = seg1 == null ? 0 : seg1.getAsEntriesCount();
+    int hopCount2 = seg2 == null ? 0 : seg2.getAsEntriesCount();
     int i0;
     if (hopCount1 > 0) {
       i0 = (hopCount0 << 12) | (hopCount1 << 6) | hopCount2;
@@ -118,21 +138,21 @@ public class Segments {
       // E.g. only coreSegments or only downSegments or core+down
       throw new UnsupportedOperationException();
     }
-    writeInfoField(raw, segUp, true);
+    writeInfoField(raw, seg0, true);
     if (hopCount1 > 0) {
-      writeInfoField(raw, segCore, false);
+      writeInfoField(raw, seg1, false);
     }
     if (hopCount2 > 0) {
-      writeInfoField(raw, segDown, false);
+      writeInfoField(raw, seg2, false);
     }
 
     // hop fields
-    writeHopFields(raw, segUp, true);
+    writeHopFields(raw, seg0, true);
     if (hopCount1 > 0) {
-      writeHopFields(raw, segCore, false);
+      writeHopFields(raw, seg1, false);
     }
     if (hopCount2 > 0) {
-      writeHopFields(raw, segDown, false);
+      writeHopFields(raw, seg2, false);
     }
 
     raw.flip();
@@ -150,26 +170,36 @@ public class Segments {
   }
 
   private static void writeInfoField(ByteBuffer raw, Seg.PathSegment pathSegment, boolean reversed)
-      throws InvalidProtocolBufferException {
-    Seg.SegmentInformation infoUp = Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
-    int inf0 = ((reversed ? 0 : 1) << 24) | infoUp.getSegmentId();
-    raw.putInt(inf0);
-    // TODO in the daemon's path, all segments have the same timestamp....
-    raw.putInt((int) infoUp.getTimestamp()); // TODO does this work? casting to int?
+      throws ScionException {
+    try {
+      Seg.SegmentInformation infoUp =
+          Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
+      int inf0 = ((reversed ? 0 : 1) << 24) | infoUp.getSegmentId();
+      raw.putInt(inf0);
+      // TODO in the daemon's path, all segments have the same timestamp....
+      raw.putInt((int) infoUp.getTimestamp()); // TODO does this work? casting to int?
+    } catch (InvalidProtocolBufferException e) {
+      throw new ScionException(e);
+    }
   }
 
   private static void writeHopFields(ByteBuffer raw, Seg.PathSegment pathSegment, boolean reversed)
-      throws InvalidProtocolBufferException {
+      throws ScionException {
     final int n = pathSegment.getAsEntriesCount();
     for (int i = 0; i < n; i++) {
       Seg.ASEntry asEntry = pathSegment.getAsEntriesList().get(reversed ? (n - i - 1) : i);
       // Let's assumed they are all signed // TODO?
       Signed.SignedMessage sm = asEntry.getSigned();
-      Signed.HeaderAndBodyInternal habi =
-          Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
-      // Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
-      // TODO body for signature verification?!?
-      Seg.ASEntrySignedBody body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
+      Seg.ASEntrySignedBody body = null;
+      try {
+        Signed.HeaderAndBodyInternal habi =
+            Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
+        // Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
+        // TODO body for signature verification?!?
+        body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
+      } catch (InvalidProtocolBufferException e) {
+        throw new ScionException(e);
+      }
       // Seg.HopEntry hopEntry = body.getHopEntry();
       Seg.HopField hopField = body.getHopEntry().getHopField();
 
@@ -184,86 +214,21 @@ public class Segments {
     }
   }
 
-  //    private static class PathSegmentMeta {
-  //        final long firstIsdAs;
-  //        final long lastIsdAs;
-  //        final boolean reversed;
-  //        final Seg.PathSegment pathSegment;
-  //        final List<Seg.ASEntrySignedBody> signedBodies;
-  //        final Seg.SegmentInformation segmentInformation;
-  //
-  //
-  //        static PathSegmentMeta create(long srcIsdAs, Seg.PathSegment protoSegment) throws
-  // ScionException {
-  //            List<Seg.ASEntrySignedBody> signedBodies = new
-  // ArrayList<>(protoSegment.getAsEntriesCount());
-  //            for (Seg.ASEntry asEntry : protoSegment.getAsEntriesList()) {
-  //                // Let's assumed they are all signed // TODO?
-  //                Signed.SignedMessage sm = asEntry.getSigned();
-  //                Signed.HeaderAndBodyInternal habi =
-  //                        Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
-  //                // Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
-  //                // TODO body for signature verification?!?
-  //                Seg.ASEntrySignedBody body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
-  //                signedBodies.add(body);
-  //            }
-  //            if (signedBodies.isEmpty()) {
-  //                throw new ScionException("Invalid path found, contains no Hops.");
-  //            }
-  //
-  //            Seg.ASEntrySignedBody firstBody = signedBodies.get(0);
-  //            long firstIsdAs = signedBodies.get(0).getIsdAs();
-  //            long lastIsdAs = signedBodies.get(signedBodies.size() - 1).getIsdAs();
-  //            boolean reversed = firstBody.getIsdAs() != srcIsdAs;
-  //            if (firstIsdAs != srcIsdAs && lastIsdAs != srcIsdAs) {
-  //                throw new ScionException("Invalid path found, does not have required ISD/AS.");
-  //            }
-  //
-  //
-  //
-  //            Seg.ASEntry asEntryFirst = protoSegment.getAsEntries(0);
-  //            Seg.ASEntry asEntryLast = protoSegment.getAsEntries(protoSegment.getAsEntriesCount()
-  // - 1);
-  //            if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
-  //                throw new UnsupportedOperationException("Unsigned entries not (yet) supported");
-  // // TODO
-  //            }
-  //            Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
-  //            Seg.ASEntrySignedBody bodyLast = getBody(asEntryFirst.getSigned());
-  //
-  //
-  //            PathSegmentMeta psm = new PathSegmentMeta();
-  //        }
-  //
-  //        private PathSegmentMeta(long firstIsdAs, long lastIsdAs, boolean reversed,
-  // Seg.PathSegment pathSegment, Seg.ASEntrySignedBody signedBody, Seg.SegmentInformation
-  // segmentInformation) {
-  //            this.firstIsdAs = firstIsdAs;
-  //            this.lastIsdAs = lastIsdAs;
-  //            this.reversed = reversed;
-  //            this.pathSegment = pathSegment;
-  //            this.signedBodies = signedBody;
-  //            this.segmentInformation = segmentInformation;
-  //        }
-  //    }
-
   private static MultiMap<Long, Seg.PathSegment> createSegmentsMap(
-      Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segments, long knownIsdAs)
-      throws ScionException {
+      List<Seg.PathSegment> segments, long knownIsdAs) throws ScionException {
     MultiMap<Long, Seg.PathSegment> map = new MultiMap<>();
-    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg : segments) {
-      for (Seg.PathSegment pathSeg : seg.getValue().getSegmentsList()) {
-        long unknownIsdAs = getOtherIsdAs(knownIsdAs, pathSeg);
-        map.put(unknownIsdAs, pathSeg);
-      }
+    for (Seg.PathSegment pathSeg : segments) {
+      long unknownIsdAs = getOtherIsdAs(knownIsdAs, pathSeg);
+      map.put(unknownIsdAs, pathSeg);
     }
     return map;
   }
 
+  // TODO use results from getEndingIAs()!
   private static long getOtherIsdAs(long isdAs, Seg.PathSegment seg) throws ScionException {
     // Either the first or the last ISD/AS is the one we are looking for.
     if (seg.getAsEntriesCount() < 2) {
-      throw new ScionException("Segment has < 2 hops.");
+      throw new UnsupportedOperationException("Segment has < 2 hops.");
     }
     Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
     Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
@@ -282,22 +247,139 @@ public class Segments {
    * @return first and last ISD/AS of the path segment
    * @throws ScionException in case of parsing error
    */
-  private static long[] getEndingIAs(Seg.PathSegment seg) throws ScionException {
+  static long[] getEndingIAs(Seg.PathSegment seg) throws ScionException {
     Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
     Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
     if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
       throw new UnsupportedOperationException("Unsigned entries not (yet) supported"); // TODO
     }
     Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
-    Seg.ASEntrySignedBody bodyLast = getBody(asEntryFirst.getSigned());
+    Seg.ASEntrySignedBody bodyLast = getBody(asEntryLast.getSigned());
     return new long[] {bodyFirst.getIsdAs(), bodyLast.getIsdAs()};
+  }
+
+  public static long[] getEndingIAs(List<Seg.PathSegment> segments) throws ScionException {
+    long[] IAs = new long[2 * segments.size()];
+    int i = 0;
+    for (Seg.PathSegment seg : segments) {
+      Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
+      Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
+      if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
+        throw new UnsupportedOperationException("Unsigned entries not (yet) supported"); // TODO
+      }
+      Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
+      Seg.ASEntrySignedBody bodyLast = getBody(asEntryLast.getSigned());
+
+      // TODO i++
+      IAs[i] = bodyFirst.getIsdAs();
+      IAs[i + 1] = bodyLast.getIsdAs();
+      i += 2;
+    }
+    return IAs;
   }
 
   private static Seg.ASEntrySignedBody getBody(Signed.SignedMessage sm) throws ScionException {
     try {
-      return Seg.ASEntrySignedBody.parseFrom(sm.getHeaderAndBody());
+      Signed.HeaderAndBodyInternal habi =
+          Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
+      return Seg.ASEntrySignedBody.parseFrom(habi.getBody());
     } catch (InvalidProtocolBufferException e) {
       throw new ScionException(e);
     }
+  }
+
+  public static boolean[] containsIsdAs(long[] IAs, long srcIsdAs, long dstIsdAs) {
+    boolean[] found = new boolean[] {false, false};
+    for (long ia : IAs) {
+      found[0] |= ia == srcIsdAs;
+      found[1] |= ia == dstIsdAs;
+    }
+    return found;
+  }
+
+  private static List<Seg.PathSegment> getSegments(
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
+      long srcIsdAs,
+      long dstIsdAs)
+      throws ScionException {
+    if (srcIsdAs == dstIsdAs) {
+      return Collections.emptyList();
+    }
+    Seg.SegmentsRequest request =
+        Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
+    Seg.SegmentsResponse response;
+    try {
+      response = segmentStub.segments(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
+    }
+
+    List<Seg.PathSegment> pathSegments = new ArrayList<>();
+    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
+        response.getSegmentsMap().entrySet()) {
+      pathSegments.addAll(seg.getValue().getSegmentsList());
+    }
+
+    return pathSegments;
+  }
+
+  public static List<Daemon.Path> getPaths(
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
+      long srcIsdAs,
+      long dstIsdAs)
+      throws ScionException {
+    // Cases:
+    // A: src==dst
+    // B: srcISD==dstISD; dst==core
+    // C: srcISD==dstISD; src==core
+    // D: srcISD==dstISD; src==core, dst==core
+    // E: srcISD==dstISD;
+    // F: srcISD!=dstISD; dst==core
+    // G: srcISD!=dstISD; src==core
+    // H: srcISD!=dstISD;
+    long maskISD = -1L << 48;
+    long srcCore = srcIsdAs & maskISD;
+    long dstCore = dstIsdAs & maskISD;
+
+    if (srcIsdAs == dstIsdAs) {
+      // case A
+      return Collections.emptyList();
+    }
+    if (srcCore == dstCore) {
+      // cases B, C, D, E
+      List<Seg.PathSegment> segmentsUp = getSegments(segmentStub, srcIsdAs, srcCore);
+      long[] upIAs = Segments.getEndingIAs(segmentsUp);
+      boolean[] localCores = Segments.containsIsdAs(upIAs, srcIsdAs, dstIsdAs);
+      if (localCores[0] || localCores[1]) {
+        // SRC and/or DST are local cores.
+        // done: cases (A), B, C, D
+        return Segments.combineSegment(segmentsUp);
+      }
+      // case E
+      List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstCore, dstIsdAs);
+      return Segments.combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs);
+    }
+
+    // remaining cases: F, G, H
+    List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, srcCore, dstCore);
+    long[] coreIAs = Segments.getEndingIAs(segmentsCore);
+    boolean[] localCores = Segments.containsIsdAs(coreIAs, srcIsdAs, dstIsdAs);
+
+    if (localCores[0] && localCores[1]) {
+      // src & dst are both core ASs
+      return Segments.combineSegment(segmentsCore);
+    }
+
+    List<Seg.PathSegment> segmentsUp =
+        localCores[0] ? null : getSegments(segmentStub, srcIsdAs, srcCore);
+    List<Seg.PathSegment> segmentsDown =
+        localCores[1] ? null : getSegments(segmentStub, dstCore, dstIsdAs);
+    if (segmentsDown == null) {
+      return Segments.combineTwoSegments(segmentsUp, segmentsCore, srcIsdAs, dstIsdAs);
+    } else if (segmentsUp == null) {
+      return Segments.combineTwoSegments(segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
+    }
+    return Segments.combineThreeSegments(
+        segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
   }
 }

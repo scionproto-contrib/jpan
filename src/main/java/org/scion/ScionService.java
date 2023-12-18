@@ -21,20 +21,14 @@ import static org.scion.ScionConstants.ENV_DAEMON_PORT;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
 import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.scion.internal.Segments;
-import org.scion.proto.control_plane.Seg;
-import org.scion.proto.control_plane.SegExtensions;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
-import org.scion.proto.control_plane.experimental.SegDetachedExtensions;
-import org.scion.proto.crypto.Signed;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -76,8 +70,8 @@ public class ScionService {
 
   protected enum Mode {
     DAEMON,
-    CONTROL_SERVICE_IP,
-    CONTROL_SERVICE_DNS
+    BOOTSTRAP_SERVER_IP,
+    BOOTSTRAP_VIA_DNS
   }
 
   protected ScionService(String addressOrHost, Mode mode) {
@@ -87,14 +81,16 @@ public class ScionService {
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
       LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
-    } else if (mode == Mode.CONTROL_SERVICE_DNS) {
-      String csHost = ScionBootsrapper.defaultService(addressOrHost).getControlServerAddress();
+    } else if (mode == Mode.BOOTSTRAP_VIA_DNS) {
+      ScionBootsrapper boot = ScionBootsrapper.createServiceViaDns(addressOrHost);
+      String csHost = boot.getControlServerAddress();
+      localIsdAs.set(boot.getLocalIsdAs());
       // TODO InsecureChannelCredentials?
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
-    } else if (mode == Mode.CONTROL_SERVICE_IP) {
+    } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
       // TODO InsecureChannelCredentials?
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
@@ -431,151 +427,9 @@ public class ScionService {
     return ScionUtil.parseIA(txtEntry.substring(7, posComma));
   }
 
-  @Deprecated // TODO experimental, do not use
-  public String bootstrapViaDNS(String hostName) {
-    return ScionBootsrapper.defaultService(hostName).getControlServerAddress();
-  }
-
-  @Deprecated // TODO do not use
-  public Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> getSegments(
-      long srcIsdAs, long dstIsdAs) throws ScionException {
-    // LOG.info("*** GetASInfo ***");
-    System.out.println(
-        "Requesting segments: "
-            + ScionUtil.toStringIA(srcIsdAs)
-            + " -> "
-            + ScionUtil.toStringIA(dstIsdAs));
-    if (srcIsdAs == dstIsdAs) {
-      return Collections.emptySet();
-    }
-    Seg.SegmentsRequest request =
-        Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
-    Seg.SegmentsResponse response;
-    try {
-      response = segmentStub.segments(request);
-    } catch (StatusRuntimeException e) {
-      throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
-    }
-
-    try {
-      for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
-          response.getSegmentsMap().entrySet()) {
-        System.out.println(
-            "SEG: key=" + seg.getKey() + " -> n=" + seg.getValue().getSegmentsCount());
-        for (Seg.PathSegment pseg : seg.getValue().getSegmentsList()) {
-          System.out.println("  PathSeg: size=" + pseg.getSegmentInfo().size());
-          Seg.SegmentInformation segInf = Seg.SegmentInformation.parseFrom(pseg.getSegmentInfo());
-          System.out.println(
-              "    SegInfo:  ts="
-                  + Instant.ofEpochSecond(segInf.getTimestamp())
-                  + "  id="
-                  + segInf.getSegmentId());
-          for (Seg.ASEntry asEntry : pseg.getAsEntriesList()) {
-            if (asEntry.hasSigned()) {
-              Signed.SignedMessage sm = asEntry.getSigned();
-              //              System.out.println(
-              //                  "    AS: signed="
-              //                      + sm.getHeaderAndBody().size()
-              //                      + "   s-> "
-              //                      + sm.getSignature().size());
-              //              System.out.println(
-              //                  "    Header/Body=" +
-              // Arrays.toString(sm.getHeaderAndBody().toByteArray()));
-              //              System.out.println(
-              //                  "    Signature  =" +
-              // Arrays.toString(sm.getSignature().toByteArray()));
-
-              Signed.HeaderAndBodyInternal habi =
-                  Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
-              //              System.out.println(
-              //                  "      habi: " + habi.getHeader().size() + " " +
-              // habi.getBody().size());
-              Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
-              // TODO body for signature verification?!?
-              System.out.println(
-                  "    AS header: "
-                      + header.getSignatureAlgorithm()
-                      + "  ts[s:ns]"
-                      + header.getTimestamp().getSeconds()
-                      + ":"
-                      + header.getTimestamp().getNanos()
-                      + "  meta="
-                      + header.getMetadata().size()
-                      + "  data="
-                      + header.getAssociatedDataLength());
-
-              Seg.ASEntrySignedBody body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
-              System.out.println(
-                  "    AS Body: IA="
-                      + ScionUtil.toStringIA(body.getIsdAs())
-                      + " nextIA="
-                      + ScionUtil.toStringIA(body.getNextIsdAs())
-                      + " nPeers="
-                      + body.getPeerEntriesCount()
-                      + "  mtu="
-                      + body.getMtu());
-              Seg.HopEntry he = body.getHopEntry();
-              System.out.println(
-                  "      HopEntry: " + he.hasHopField() + " mtu=" + he.getIngressMtu());
-
-              if (he.hasHopField()) {
-                Seg.HopField hf = he.getHopField();
-                System.out.println(
-                    "        HopField: exp="
-                        + hf.getExpTime()
-                        + " ingress="
-                        + hf.getIngress()
-                        + " egress="
-                        + hf.getEgress());
-              }
-            }
-            if (asEntry.hasUnsigned()) {
-              SegExtensions.PathSegmentUnsignedExtensions psue = asEntry.getUnsigned();
-              System.out.println("    AS: hasEpic=" + psue.hasEpic());
-              if (psue.hasEpic()) {
-                SegDetachedExtensions.EPICDetachedExtension epic = psue.getEpic();
-                System.out.println("      EPIC: " + epic.getAuthHopEntry().size() + "    ...");
-              }
-            }
-          }
-        }
-      }
-    } catch (InvalidProtocolBufferException e) {
-      throw new ScionException(e);
-    }
-
-    return response.getSegmentsMap().entrySet();
-  }
-
   // TODO do not expose proto types on API
   @Deprecated
   public List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) throws ScionException {
-    long maskISD = -1L << 48;
-    long srcCore = srcIsdAs & maskISD;
-    long dstCore = dstIsdAs & maskISD;
-
-    System.out.println("---------------------- getPathListCS() --------------------------");
-    System.out.println(ScionUtil.toStringIA(srcIsdAs) + " -> localCore");
-    Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsUp =
-        getSegments(srcIsdAs, srcCore);
-    Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsCore = null;
-    if (srcCore != dstCore) {
-      System.out.println("core -> core");
-      segmentsCore = getSegments(srcCore, dstCore);
-    }
-    System.out.println("core -> 112");
-    Set<Map.Entry<Integer, Seg.SegmentsResponse.Segments>> segmentsDown =
-        getSegments(dstCore, dstIsdAs);
-
-    try {
-      if (srcCore != dstCore) {
-        return Segments.getPathMultiISD(segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
-      }
-      // TODO !!!!!
-      //   if the dst-AS is a core, do not request down segments
-      return Segments.getPathSingleISD(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs);
-    } catch (InvalidProtocolBufferException e) {
-      throw new ScionException(e);
-    }
+    return Segments.getPaths(segmentStub, srcIsdAs, dstIsdAs);
   }
 }

@@ -59,6 +59,10 @@ class ScionBootsrapper {
   private static final String signedTopologyFileName = "topology.signed";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
 
+  public long getLocalIsdAs() {
+    return ScionUtil.parseIA(localIsdAs);
+  }
+
   private static class ServiceNode {
     final String name;
     final String ipString;
@@ -83,13 +87,21 @@ class ScionBootsrapper {
    *
    * @return default instance
    */
-  static synchronized ScionBootsrapper defaultService(String host) {
+  static synchronized ScionBootsrapper createServiceViaDns(String host) {
     if (DEFAULT == null) {
-      InetSocketAddress csAddress = bootstrapViaDNS(host);
-      DEFAULT = new ScionBootsrapper(csAddress);
+      InetSocketAddress topoAddress = bootstrapViaDNS(host);
+      DEFAULT = new ScionBootsrapper(topoAddress);
     }
     return DEFAULT;
   }
+
+  //  static synchronized ScionBootsrapper createServiceViaBootstrapServerIP(String host) {
+  //    if (DEFAULT == null) {
+  //      InetSocketAddress topoAddress = new InetSocketAddress(host);
+  //      DEFAULT = new ScionBootsrapper(topoAddress);
+  //    }
+  //    return DEFAULT;
+  //  }
 
   private static InetSocketAddress bootstrapViaDNS(String hostName) {
     try {

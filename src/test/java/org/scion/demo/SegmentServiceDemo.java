@@ -43,7 +43,6 @@ public class SegmentServiceDemo {
 
     String csETH = "192.168.53.20:30252";
     long iaETH = ScionUtil.parseIA("64-2:0:9");
-    // TODO isGEANT breaks, maybe because it is a core AS?
     long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
     long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
@@ -59,7 +58,7 @@ public class SegmentServiceDemo {
     } else {
       // DemoTopology.configureTiny110_112();
       // MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-      doClientStuff(csETH, iaETH, iaAnapayaHK);
+      doClientStuff(csETH, iaETH, iaGEANT);
       // doClientStuff(csAddr111, ia111, ia112);
       // DemoTopology.shutDown();
     }

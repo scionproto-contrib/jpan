@@ -23,7 +23,7 @@ import org.scion.proto.daemon.Daemon;
  * Small demo that requests and prints information from the path service daemon. The arguments are
  * tailored to be used with the "tiny" topology.
  */
-public class PathServiceProtobufDemo {
+public class ProtobufPathDemo {
 
   private final ScionService daemon;
 
@@ -33,7 +33,7 @@ public class PathServiceProtobufDemo {
     long srcIA = ScionUtil.parseIA("1-ff00:0:111");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon111)) {
-      PathServiceProtobufDemo demo = new PathServiceProtobufDemo(daemon);
+      ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
@@ -44,7 +44,7 @@ public class PathServiceProtobufDemo {
     }
   }
 
-  public PathServiceProtobufDemo(ScionService daemon) {
+  public ProtobufPathDemo(ScionService daemon) {
     this.daemon = daemon;
   }
 

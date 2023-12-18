@@ -65,12 +65,20 @@
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
 - Run testing with IPv6 again? -> MockNetwork 
 - Move Scmp in main folder, add MessageClasses and enums (and send(channel, scmp) methods?)
+- TODO get ISD/AS from CS? Maybe via SVC?
+
 
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
   - Especially for expired paths / revoked paths / broken paths?  
 
 ### 0.2.0
+- Segments:
+  - Sorting by weight (see graph.go:195)
+  - Consider peering
+  - Look at newDMG (graph.go:89)
+  - Order by expiration date? (netip.go:41)
+  - Consider shortcuts and on-paths (book sec 5.5, pp105 ff)
 - Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
   - dig NAPTR inf.ethz.ch
   - Contact netsec-w37w3w.inf.ethz.ch for topology file
