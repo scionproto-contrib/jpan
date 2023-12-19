@@ -12,92 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
-
-import java.nio.ByteBuffer;
-import org.scion.Path;
+package org.scion;
 
 public class Scmp {
 
-  public static void buildExtensionHeader(ByteBuffer buffer, Constants.HdrTypes nextHdr) {
-    int len = 8;
-    buffer.put(ByteUtil.toByte(nextHdr.code));
-    buffer.put(ByteUtil.toByte(((len + 3) / 4) - 1));
-    buffer.putShort((short) 0); // TODO this should be variable length!
-    buffer.putInt(0);
-  }
-
-  public static void buildScmpPing(
-      ByteBuffer buffer, int identifier, int sequenceNumber, ByteBuffer data) {
-    buffer.put(ByteUtil.toByte(ScmpType.INFO_128.code));
-    buffer.put(ByteUtil.toByte(0));
-    buffer.putShort((short) 0); // TODO checksum
-    buffer.putShort((short) identifier); // unsigned
-    buffer.putShort((short) sequenceNumber); // unsigned
-    buffer.put(data);
-  }
-
-  public static void buildScmpTraceroute(ByteBuffer buffer, int identifier, int sequenceNumber) {
-    buffer.put(ByteUtil.toByte(ScmpType.INFO_130.code));
-    buffer.put(ByteUtil.toByte(0));
-    buffer.putShort((short) 0); // TODO checksum
-    buffer.putShort((short) identifier); // unsigned
-    buffer.putShort((short) sequenceNumber); // unsigned
-
-    // add 16 byte placeholder
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    // |              ISD              |                               |
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+         AS                    +
-    // |                                                               |
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    // |                                                               |
-    // +                          Interface ID                         |
-    // |                                                               |
-    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    buffer.putLong(0);
-    buffer.putLong(0);
-  }
-
-  /**
-   * Reads a SCMP message from the packet. Consumes the byte buffer.
-   *
-   * @param data packet data
-   * @param path receive path
-   * @return ScmpMessage object
-   */
-  public static ScmpMessage consume(ByteBuffer data, Path path) {
-    int type = data.get();
-    int code = data.get();
-    data.getShort(); // checksum
-    // TODO validate checksum
-
-    ScmpType st = ScmpType.parse(type);
-    ScmpCode sc = ScmpCode.parse(type, code);
-    int short1 = ByteUtil.toUnsigned(data.getShort());
-    int short2 = ByteUtil.toUnsigned(data.getShort());
-    switch (st) {
-      case INFO_128:
-      case INFO_129:
-        // TODO read data section
-        byte[] scmpData = new byte[0];
-        return new ScmpEcho(sc, short1, short2, path, scmpData);
-      case INFO_130:
-      case INFO_131:
-        return new ScmpTraceroute(sc, short1, short2, path);
-      default:
-        return new ScmpMessage(sc, short1, short2, path);
-    }
-  }
-
   interface ParseEnum {
 
-    int code();
+    int id();
 
     static <E extends ParseEnum> E parse(Class<E> e, int code) {
       E[] values = e.getEnumConstants();
       for (int i = 0; i < values.length; i++) {
         E pe = values[i];
-        if (pe.code() == code) {
+        if (pe.id() == code) {
           return pe;
         }
       }
@@ -126,21 +53,21 @@ public class Scmp {
     INFO_201(201, "Private Experimentation"),
     INFO_255(255, "Reserved for expansion of SCMP informational messages");
 
-    final int code;
+    final int id;
     final String text;
 
-    ScmpType(int code, String text) {
-      this.code = code;
+    ScmpType(int id, String text) {
+      this.id = id;
       this.text = text;
     }
 
-    public static ScmpType parse(int code) {
-      return ParseEnum.parse(ScmpType.class, code);
+    public static ScmpType parse(int id) {
+      return ParseEnum.parse(ScmpType.class, id);
     }
 
     @Override
-    public int code() {
-      return code;
+    public int id() {
+      return id;
     }
 
     public String getText() {
@@ -149,7 +76,7 @@ public class Scmp {
 
     @Override
     public String toString() {
-      return code + ":'" + text + '\'';
+      return id + ":'" + text + '\'';
     }
   }
 
@@ -198,12 +125,12 @@ public class Scmp {
     TYPE_131(131, 0, "");
 
     final int type;
-    final int code;
+    final int id;
     final String text;
 
     ScmpCode(int type, int code, String text) {
       this.type = type;
-      this.code = code;
+      this.id = code;
       this.text = text;
     }
 
@@ -211,7 +138,7 @@ public class Scmp {
       ScmpCode[] values = ScmpCode.class.getEnumConstants();
       for (int i = 0; i < values.length; i++) {
         ScmpCode pe = values[i];
-        if (pe.code() == code && pe.type == type) {
+        if (pe.id() == code && pe.type == type) {
           return pe;
         }
       }
@@ -219,8 +146,12 @@ public class Scmp {
     }
 
     @Override
+    public int id() {
+      return id;
+    }
+
     public int code() {
-      return code;
+      return id;
     }
 
     public String getText() {
@@ -229,7 +160,7 @@ public class Scmp {
 
     @Override
     public String toString() {
-      return type + ":" + code + ":'" + text + '\'';
+      return type + ":" + id + ":'" + text + '\'';
     }
   }
 
@@ -239,7 +170,8 @@ public class Scmp {
     final int sequenceNumber;
     final Path path;
 
-    ScmpMessage(ScmpCode typeCode, int identifier, int sequenceNumber, Path path) {
+    /** DO NOT USE! */
+    public ScmpMessage(ScmpCode typeCode, int identifier, int sequenceNumber, Path path) {
       this.typeCode = typeCode;
       this.identifier = identifier;
       this.sequenceNumber = sequenceNumber;
@@ -266,7 +198,8 @@ public class Scmp {
   public static class ScmpEcho extends ScmpMessage {
     byte[] data;
 
-    ScmpEcho(ScmpCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
+    /** DO NOT USE! */
+    public ScmpEcho(ScmpCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
     }
@@ -277,7 +210,8 @@ public class Scmp {
   }
 
   public static class ScmpTraceroute extends ScmpMessage {
-    ScmpTraceroute(ScmpCode typeCode, int identifier, int sequenceNumber, Path path) {
+    /** DO NOT USE! */
+    public ScmpTraceroute(ScmpCode typeCode, int identifier, int sequenceNumber, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
     }
   }

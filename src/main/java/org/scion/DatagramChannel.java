@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import org.scion.internal.Constants;
 import org.scion.internal.ExtensionHeader;
 import org.scion.internal.ScionHeaderParser;
-import org.scion.internal.Scmp;
+import org.scion.internal.ScmpParser;
 
 public class DatagramChannel implements ByteChannel, Closeable {
 
@@ -236,7 +236,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   private void receiveScmp(Path path) {
-    Scmp.ScmpMessage scmpMsg = Scmp.consume(buffer, path);
+    Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
     if (scmpMsg instanceof Scmp.ScmpEcho) {
       if (pingListener != null) {
         pingListener.accept((Scmp.ScmpEcho) scmpMsg);
@@ -297,7 +297,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     // EchoHeader = 8 + data
     int len = 8 + data.remaining();
     Path actualPath = buildHeader(path, len, Constants.HdrTypes.SCMP);
-    Scmp.buildScmpPing(buffer, getLocalAddress().getPort(), sequenceNumber, data);
+    ScmpParser.buildScmpPing(buffer, getLocalAddress().getPort(), sequenceNumber, data);
     buffer.flip();
     channel.disconnect(); // TODO !!!!!!!!
     channel.send(buffer, actualPath.getFirstHopAddress());
@@ -307,8 +307,8 @@ public class DatagramChannel implements ByteChannel, Closeable {
     // TracerouteHeader=24
     int len = 24;
     Path actualPath = buildHeader(path, len, Constants.HdrTypes.HOP_BY_HOP);
-    Scmp.buildExtensionHeader(buffer, Constants.HdrTypes.SCMP);
-    Scmp.buildScmpTraceroute(buffer, getLocalAddress().getPort(), sequenceNumber);
+    ScmpParser.buildExtensionHeader(buffer, Constants.HdrTypes.SCMP);
+    ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), sequenceNumber);
 
     buffer.flip();
     channel.send(buffer, actualPath.getFirstHopAddress());

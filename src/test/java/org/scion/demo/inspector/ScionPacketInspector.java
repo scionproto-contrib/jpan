@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import org.scion.internal.Scmp;
+import org.scion.internal.ScmpParser;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
@@ -100,7 +100,7 @@ public class ScionPacketInspector {
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       int offset = scionHeader.hdrLenBytes();
       data.position(offset);
-      Scmp.consume(data, null); // TODO provide path?
+      ScmpParser.consume(data, null); // TODO provide path?
       System.out.println("Packet: DROPPED: SCMP");
       return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {

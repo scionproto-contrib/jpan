@@ -18,7 +18,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.*;
-import org.scion.internal.Scmp;
+import org.scion.Scmp;
 import org.scion.testutil.MockDNS;
 
 public class ScmpEchoDemo {

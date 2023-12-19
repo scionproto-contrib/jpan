@@ -31,11 +31,12 @@ import org.scion.proto.daemon.Daemon;
 
 public class Segments {
   private static List<Daemon.Path> combineThreeSegments(
-          List<Seg.PathSegment> segmentsUp,
-          List<Seg.PathSegment> segmentsCore,
-          List<Seg.PathSegment> segmentsDown,
-          long srcIsdAs,
-          long dstIsdAs, ScionBootstrapper brLookup)
+      List<Seg.PathSegment> segmentsUp,
+      List<Seg.PathSegment> segmentsCore,
+      List<Seg.PathSegment> segmentsDown,
+      long srcIsdAs,
+      long dstIsdAs,
+      ScionBootstrapper brLookup)
       throws ScionException {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
@@ -61,17 +62,18 @@ public class Segments {
    *
    * @param segments0 Up or Core segments
    * @param segments1 Core or Down segments
-   * @param srcIsdAs  src ISD/AS
-   * @param dstIsdAs  src ISD/AS
+   * @param srcIsdAs src ISD/AS
+   * @param dstIsdAs src ISD/AS
    * @param brLookup
    * @return Paths
    * @throws ScionException In case of deserialization problem
    */
   private static List<Daemon.Path> combineTwoSegments(
-          List<Seg.PathSegment> segments0,
-          List<Seg.PathSegment> segments1,
-          long srcIsdAs,
-          long dstIsdAs, ScionBootstrapper brLookup)
+      List<Seg.PathSegment> segments0,
+      List<Seg.PathSegment> segments1,
+      long srcIsdAs,
+      long dstIsdAs,
+      ScionBootstrapper brLookup)
       throws ScionException {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
@@ -94,8 +96,8 @@ public class Segments {
     return paths;
   }
 
-  private static List<Daemon.Path> combineSegment(List<Seg.PathSegment> segments, ScionBootstrapper brLookup)
-      throws ScionException {
+  private static List<Daemon.Path> combineSegment(
+      List<Seg.PathSegment> segments, ScionBootstrapper brLookup) throws ScionException {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : segments) {
       paths.add(buildPath(pathSegment, null, null, brLookup));
@@ -104,10 +106,11 @@ public class Segments {
   }
 
   private static void buildPath(
-          List<Daemon.Path> paths,
-          List<Seg.PathSegment> segmentsUp,
-          Seg.PathSegment segCore,
-          List<Seg.PathSegment> segmentsDown, ScionBootstrapper brLookup)
+      List<Daemon.Path> paths,
+      List<Seg.PathSegment> segmentsUp,
+      Seg.PathSegment segCore,
+      List<Seg.PathSegment> segmentsDown,
+      ScionBootstrapper brLookup)
       throws ScionException {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
@@ -117,7 +120,8 @@ public class Segments {
   }
 
   private static Daemon.Path buildPath(
-          Seg.PathSegment seg0, Seg.PathSegment seg1, Seg.PathSegment seg2, ScionBootstrapper brLookup) throws ScionException {
+      Seg.PathSegment seg0, Seg.PathSegment seg1, Seg.PathSegment seg2, ScionBootstrapper brLookup)
+      throws ScionException {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -180,7 +184,6 @@ public class Segments {
     //    path.setInternalHops();
     //    path.setNotes();
     // First hop
-
 
     return path.build();
   }
@@ -346,9 +349,10 @@ public class Segments {
   }
 
   public static List<Daemon.Path> getPaths(
-          SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
-          ScionBootstrapper brLookup, long srcIsdAs,
-          long dstIsdAs)
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
+      ScionBootstrapper brLookup,
+      long srcIsdAs,
+      long dstIsdAs)
       throws ScionException {
     // Cases:
     // A: src==dst

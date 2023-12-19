@@ -17,7 +17,7 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 import org.scion.*;
-import org.scion.internal.Scmp;
+import org.scion.Scmp;
 import org.scion.testutil.MockDNS;
 
 public class ScmpTracerouteDemo {

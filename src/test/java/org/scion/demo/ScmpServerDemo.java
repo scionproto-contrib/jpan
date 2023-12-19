@@ -21,7 +21,7 @@ import java.util.Arrays;
 import org.scion.DatagramChannel;
 import org.scion.ResponsePath;
 import org.scion.ScionUtil;
-import org.scion.internal.Scmp;
+import org.scion.Scmp;
 
 /** A demo server that responds to SCMP ECHO and TRACEROUTE requests. */
 public class ScmpServerDemo {

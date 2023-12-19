@@ -27,7 +27,6 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.scion.internal.ScionBootstrapper;
 import org.scion.internal.Segments;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;

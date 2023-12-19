@@ -25,7 +25,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.scion.Scion;
 import org.scion.ScionException;
 import org.scion.ScionRuntimeException;
