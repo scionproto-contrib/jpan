@@ -169,7 +169,7 @@ public class ScionServiceTest {
   @Test
   void getScionAddress() throws ScionException {
     // TODO this test makes a DNS call _and_ it depends on ETH having a specific ISD/AS/IP
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
     assertNotNull(sAddr);
@@ -183,7 +183,7 @@ public class ScionServiceTest {
   void getScionAddress_Mock() throws ScionException {
     // Test that DNS injection via properties works
     // TODO do injection here instead of @BeforeAll
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
     assertNotNull(sAddr);
@@ -195,7 +195,7 @@ public class ScionServiceTest {
 
   @Test
   void getScionAddress_Failure_IpOnly() {
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     Exception ex =
         assertThrows(ScionException.class, () -> pathService.getScionAddress("127.12.12.12"));
@@ -204,7 +204,7 @@ public class ScionServiceTest {
 
   @Test
   void getScionAddress_Failure_NoScion() {
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TODO this may fail if google supports SCION...
     Exception exception =
         assertThrows(ScionException.class, () -> pathService.getScionAddress("google.com"));
@@ -223,7 +223,7 @@ public class ScionServiceTest {
   }
 
   private void testInvalidTxtEntry(String txtEntry) {
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     String host = "127.0.0.55";
     try {
       System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);

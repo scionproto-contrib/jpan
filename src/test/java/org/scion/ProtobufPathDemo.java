@@ -17,6 +17,7 @@ package org.scion;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 
 /**
@@ -91,13 +92,15 @@ public class ProtobufPathDemo {
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
       }
+      System.out.println("    raw: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
     }
   }
 
   private void testPathsControlService(long srcIA, long dstIA) throws ScionException {
     String addr110 = "127.0.0.11:31000";
     String addr111 = "127.0.0.18:31006";
-    ScionService csSercice = Scion.newServiceWithBootstrapServerIP(addr111);
+    // ScionService csSercice = Scion.newServiceWithBootstrapServerIP(addr111);
+    ScionService csSercice = Scion.newServiceWithTopologyFile("topology-tiny-111.json");
     List<Daemon.Path> paths = csSercice.getPathListCS(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
@@ -119,6 +122,7 @@ public class ProtobufPathDemo {
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
       }
+      System.out.println("    raw: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
     }
   }
 

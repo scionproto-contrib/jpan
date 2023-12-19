@@ -24,9 +24,11 @@ import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
 import io.grpc.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.scion.internal.ScionBootstrapper;
 import org.scion.internal.Segments;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -59,7 +61,7 @@ public class ScionService {
   private static final String DAEMON_PORT =
       ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
 
-  private static ScionService DEFAULT;
+  private static final AtomicReference<ScionService> DEFAULT = new AtomicReference<>();
 
   private final ScionBootstrapper bootstrapper;
   // TODO create subclasses for these two?
@@ -73,7 +75,8 @@ public class ScionService {
   protected enum Mode {
     DAEMON,
     BOOTSTRAP_SERVER_IP,
-    BOOTSTRAP_VIA_DNS
+    BOOTSTRAP_VIA_DNS,
+    BOOTSTRAP_VIA_TOPO_FILE
   }
 
   protected ScionService(String addressOrHost, Mode mode) {
@@ -84,8 +87,17 @@ public class ScionService {
       segmentStub = null;
       bootstrapper = null;
       LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
-    } else if (mode == Mode.BOOTSTRAP_VIA_DNS) {
-      bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
+    } else {
+      if (mode == Mode.BOOTSTRAP_VIA_DNS) {
+        bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
+      } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
+        bootstrapper = ScionBootstrapper.createViaBootstrapServerIP(addressOrHost);
+      } else if (mode == Mode.BOOTSTRAP_VIA_TOPO_FILE) {
+        java.nio.file.Path file = Paths.get(addressOrHost);
+        bootstrapper = ScionBootstrapper.createViaTopoFile(file);
+      } else {
+        throw new UnsupportedOperationException();
+      }
       String csHost = bootstrapper.getControlServerAddress();
       localIsdAs.set(bootstrapper.getLocalIsdAs());
       // TODO InsecureChannelCredentials?
@@ -93,19 +105,9 @@ public class ScionService {
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
-    } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
-      bootstrapper = ScionBootstrapper.createViaBootstrapServerIP(addressOrHost);
-      String csHost = bootstrapper.getControlServerAddress();
-      localIsdAs.set(bootstrapper.getLocalIsdAs());
-      // TODO InsecureChannelCredentials?
-      channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
-      daemonStub = null;
-      segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
-      LOG.info(
-          "Path service started with control service " + channel.toString() + " " + addressOrHost);
-    } else {
-      throw new UnsupportedOperationException();
     }
+    DEFAULT.compareAndSet(null, this);
+    addShutdownHook();
   }
 
   /**
@@ -114,21 +116,26 @@ public class ScionService {
    *
    * @return default instance
    */
-  public static synchronized ScionService defaultService() {
-    if (DEFAULT == null) {
-      DEFAULT = new ScionService(DAEMON_HOST + ":" + DAEMON_PORT, Mode.DAEMON);
-      Runtime.getRuntime()
-          .addShutdownHook(
-              new Thread(
-                  () -> {
-                    try {
-                      DEFAULT.close();
-                    } catch (IOException e) {
-                      e.printStackTrace(System.err);
-                    }
-                  }));
+  static synchronized ScionService defaultService() {
+    // This is not 100% thread safe, but the worst that can happen is that
+    // we call close() on a Service that has already been closed.
+    if (DEFAULT.get() == null) {
+      DEFAULT.compareAndSet(null, new ScionService(DAEMON_HOST + ":" + DAEMON_PORT, Mode.DAEMON));
     }
-    return DEFAULT;
+    return DEFAULT.get();
+  }
+
+  private void addShutdownHook() {
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(
+                () -> {
+                  try {
+                    DEFAULT.get().close();
+                  } catch (IOException e) {
+                    e.printStackTrace(System.err);
+                  }
+                }));
   }
 
   Daemon.ASResponse getASInfo() throws ScionException {

@@ -67,6 +67,7 @@
   only the expired parts.
 - Add an expiration date to topo files!
   -> BRs, CS, DSs may change!
+  -> Should we use the TTL of the DNS NAPTR record?
 
 ## Plan
 

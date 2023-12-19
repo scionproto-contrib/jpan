@@ -71,7 +71,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getLocalAddress_notLocalhost() throws IOException {
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
     InetSocketAddress firstHop = new InetSocketAddress("1.1.1.1", dummyPort);

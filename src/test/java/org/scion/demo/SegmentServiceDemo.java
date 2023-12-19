@@ -92,7 +92,7 @@ public class SegmentServiceDemo {
 
     List<Daemon.Path> list = ss.getPathListCS(srcIsdAs, dstIsdAs);
     for (Daemon.Path path : list) {
-      System.out.println("Path CS: " + ToStringUtil.toString(path.getRaw().toByteArray()));
+      System.out.println("Path CS: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
       PathHeaderScion phs = new PathHeaderScion();
       phs.read(path.getRaw().asReadOnlyByteBuffer());
       System.out.println(phs.toString());

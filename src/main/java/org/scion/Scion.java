@@ -54,6 +54,15 @@ public final class Scion {
     return new CloseableService(hostAndPort, ScionService.Mode.BOOTSTRAP_SERVER_IP);
   }
 
+  /**
+   * @param filePath name (and location) of the topology json file.
+   * @return new ScionService instance
+   */
+  @Deprecated // TODO not really implemented yet
+  public static CloseableService newServiceWithTopologyFile(String filePath) {
+    return new CloseableService(filePath, ScionService.Mode.BOOTSTRAP_VIA_TOPO_FILE);
+  }
+
   public static class CloseableService extends ScionService implements AutoCloseable {
 
     private CloseableService(String address, Mode mode) {

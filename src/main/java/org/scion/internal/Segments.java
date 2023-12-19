@@ -64,7 +64,7 @@ public class Segments {
    * @param segments1 Core or Down segments
    * @param srcIsdAs src ISD/AS
    * @param dstIsdAs src ISD/AS
-   * @param brLookup
+   * @param brLookup border router lookup resource
    * @return Paths
    * @throws ScionException In case of deserialization problem
    */
@@ -128,6 +128,7 @@ public class Segments {
     Seg.SegmentInformation info0 = getInfo(seg0);
     Seg.SegmentInformation info1 = seg1 == null ? null : getInfo(seg1);
     Seg.SegmentInformation info2 = seg2 == null ? null : getInfo(seg2);
+    Seg.SegmentInformation[] infos = new Seg.SegmentInformation[] {info0, info1, info2};
 
     // path meta header
     int hopCount0 = seg0.getAsEntriesCount();

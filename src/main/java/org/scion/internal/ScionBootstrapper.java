@@ -20,11 +20,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.scion.Scion;
 import org.scion.ScionException;
 import org.scion.ScionRuntimeException;
@@ -92,7 +96,7 @@ public class ScionBootstrapper {
     }
   }
 
-  private final String topologyServiceAddress;
+  private final String topologyResource;
   private String localIsdAs;
   private int localMtu;
   private final List<ServiceNode> controlServices = new ArrayList<>();
@@ -104,8 +108,13 @@ public class ScionBootstrapper {
   }
 
   protected ScionBootstrapper(String topologyServiceAddress) {
-    this.topologyServiceAddress = topologyServiceAddress;
+    this.topologyResource = topologyServiceAddress;
     init();
+  }
+
+  protected ScionBootstrapper(java.nio.file.Path file) {
+    this.topologyResource = file.toString();
+    init(file);
   }
 
   /**
@@ -120,6 +129,10 @@ public class ScionBootstrapper {
 
   public static synchronized ScionBootstrapper createViaBootstrapServerIP(String hostAndPort) {
     return new ScionBootstrapper(hostAndPort);
+  }
+
+  public static synchronized ScionBootstrapper createViaTopoFile(java.nio.file.Path file) {
+    return new ScionBootstrapper(file);
   }
 
   private static String bootstrapViaDNS(String hostName) {
@@ -205,7 +218,39 @@ public class ScionBootstrapper {
     }
     if (controlServices.isEmpty()) {
       throw new ScionRuntimeException(
-          "No control servers found in topology provided by " + topologyServiceAddress);
+          "No control servers found in topology provided by " + topologyResource);
+    }
+  }
+
+  private void init(java.nio.file.Path file) {
+    try {
+      if (!Files.exists(file)) {
+        // fallback, try resource folder
+        ClassLoader classLoader = getClass().getClassLoader();
+        URL resource = classLoader.getResource(file.toString());
+        if (resource != null) {
+          java.nio.file.Path newFile = Paths.get(resource.toURI());
+          file = newFile;
+        }
+      }
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+
+    try {
+      StringBuilder contentBuilder = new StringBuilder();
+      try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
+        stream.forEach(s -> contentBuilder.append(s).append("\n"));
+      } catch (IOException e) {
+        throw new ScionRuntimeException(
+            "Error reading topology file found at: " + file.toAbsolutePath());
+      }
+      parseTopologyFile(contentBuilder.toString());
+    } catch (IOException e) {
+      throw new ScionRuntimeException("Error while getting topology file: " + e.getMessage(), e);
+    }
+    if (controlServices.isEmpty()) {
+      throw new ScionRuntimeException("No control service found in topology filet: " + file);
     }
   }
 
@@ -228,11 +273,11 @@ public class ScionBootstrapper {
   }
 
   private String getTopologyFile() throws IOException {
-    LOG.info("Getting topology from bootstrap server: " + topologyServiceAddress);
+    LOG.info("Getting topology from bootstrap server: " + topologyResource);
     controlServices.clear();
     discoveryServices.clear();
     // TODO https????
-    URL url = new URL("http://" + topologyServiceAddress + "/" + baseURL + topologyEndpoint);
+    URL url = new URL("http://" + topologyResource + "/" + baseURL + topologyEndpoint);
     return fetchTopologyFile(url);
   }
 
@@ -322,7 +367,7 @@ public class ScionBootstrapper {
     //    sb.append('}');
     //    return sb.toString();
     StringBuilder sb = new StringBuilder();
-    sb.append("Topo Server: ").append(topologyServiceAddress).append("\n");
+    sb.append("Topo Server: ").append(topologyResource).append("\n");
     sb.append("ISD/AS: ").append(localIsdAs).append('\n');
     sb.append("MTU: ").append(localMtu).append('\n');
     for (ServiceNode sn : controlServices) {
