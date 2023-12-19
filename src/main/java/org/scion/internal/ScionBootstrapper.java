@@ -14,6 +14,7 @@
 
 package org.scion.internal;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.io.BufferedReader;
@@ -98,14 +99,11 @@ public class ScionBootstrapper {
 
   private final String topologyResource;
   private String localIsdAs;
+  private boolean isCoreAs;
   private int localMtu;
   private final List<ServiceNode> controlServices = new ArrayList<>();
   private final List<ServiceNode> discoveryServices = new ArrayList<>();
   private final List<BorderRouter> borderRouters = new ArrayList<>();
-
-  public long getLocalIsdAs() {
-    return ScionUtil.parseIA(localIsdAs);
-  }
 
   protected ScionBootstrapper(String topologyServiceAddress) {
     this.topologyResource = topologyServiceAddress;
@@ -258,6 +256,14 @@ public class ScionBootstrapper {
     return controlServices.get(0).ipString;
   }
 
+  public boolean isCoreAS() {
+    return isCoreAs;
+  }
+
+  public long getLocalIsdAs() {
+    return ScionUtil.parseIA(localIsdAs);
+  }
+
   public String getBorderRouterAddress(int interfaceId) {
     for (BorderRouter br : borderRouters) {
       // TODO
@@ -314,6 +320,12 @@ public class ScionBootstrapper {
         JsonObject ds = e.getValue().getAsJsonObject();
         discoveryServices.add(new ServiceNode(e.getKey(), ds.get("addr").getAsString()));
       }
+      JsonArray attr = safeGet(o, "attributes").getAsJsonArray();
+      for (int i = 0; i < attr.size(); i++) {
+        if ("core".equals(attr.get(i).getAsString())) {
+          isCoreAs = true;
+        }
+      }
     }
   }
 
@@ -369,6 +381,7 @@ public class ScionBootstrapper {
     StringBuilder sb = new StringBuilder();
     sb.append("Topo Server: ").append(topologyResource).append("\n");
     sb.append("ISD/AS: ").append(localIsdAs).append('\n');
+    sb.append("Core: ").append(isCoreAs).append('\n');
     sb.append("MTU: ").append(localMtu).append('\n');
     for (ServiceNode sn : controlServices) {
       sb.append("Control server:   ").append(sn).append('\n');
