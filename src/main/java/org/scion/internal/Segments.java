@@ -31,11 +31,11 @@ import org.scion.proto.daemon.Daemon;
 
 public class Segments {
   private static List<Daemon.Path> combineThreeSegments(
-      List<Seg.PathSegment> segmentsUp,
-      List<Seg.PathSegment> segmentsCore,
-      List<Seg.PathSegment> segmentsDown,
-      long srcIsdAs,
-      long dstIsdAs)
+          List<Seg.PathSegment> segmentsUp,
+          List<Seg.PathSegment> segmentsCore,
+          List<Seg.PathSegment> segmentsDown,
+          long srcIsdAs,
+          long dstIsdAs, ScionBootstrapper brLookup)
       throws ScionException {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
@@ -51,7 +51,7 @@ public class Segments {
         throw new IllegalStateException(); // TODO actually, this appears to be happening!
         // continue;
       }
-      buildPath(paths, upSegments.get(IAs[0]), pathSeg, downSegments.get(IAs[1]));
+      buildPath(paths, upSegments.get(IAs[0]), pathSeg, downSegments.get(IAs[1]), brLookup);
     }
     return paths;
   }
@@ -61,16 +61,17 @@ public class Segments {
    *
    * @param segments0 Up or Core segments
    * @param segments1 Core or Down segments
-   * @param srcIsdAs src ISD/AS
-   * @param dstIsdAs src ISD/AS
+   * @param srcIsdAs  src ISD/AS
+   * @param dstIsdAs  src ISD/AS
+   * @param brLookup
    * @return Paths
    * @throws ScionException In case of deserialization problem
    */
   private static List<Daemon.Path> combineTwoSegments(
-      List<Seg.PathSegment> segments0,
-      List<Seg.PathSegment> segments1,
-      long srcIsdAs,
-      long dstIsdAs)
+          List<Seg.PathSegment> segments0,
+          List<Seg.PathSegment> segments1,
+          long srcIsdAs,
+          long dstIsdAs, ScionBootstrapper brLookup)
       throws ScionException {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
@@ -87,36 +88,36 @@ public class Segments {
         continue;
       }
       for (Seg.PathSegment pathSegment1 : segmentsMap1.get(coreIsdAs)) {
-        paths.add(buildPath(pathSegment0, pathSegment1, null));
+        paths.add(buildPath(pathSegment0, pathSegment1, null, brLookup));
       }
     }
     return paths;
   }
 
-  private static List<Daemon.Path> combineSegment(List<Seg.PathSegment> segments)
+  private static List<Daemon.Path> combineSegment(List<Seg.PathSegment> segments, ScionBootstrapper brLookup)
       throws ScionException {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : segments) {
-      paths.add(buildPath(pathSegment, null, null));
+      paths.add(buildPath(pathSegment, null, null, brLookup));
     }
     return paths;
   }
 
   private static void buildPath(
-      List<Daemon.Path> paths,
-      List<Seg.PathSegment> segmentsUp,
-      Seg.PathSegment segCore,
-      List<Seg.PathSegment> segmentsDown)
+          List<Daemon.Path> paths,
+          List<Seg.PathSegment> segmentsUp,
+          Seg.PathSegment segCore,
+          List<Seg.PathSegment> segmentsDown, ScionBootstrapper brLookup)
       throws ScionException {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
-        paths.add(buildPath(segUp, segCore, segDown));
+        paths.add(buildPath(segUp, segCore, segDown, brLookup));
       }
     }
   }
 
   private static Daemon.Path buildPath(
-      Seg.PathSegment seg0, Seg.PathSegment seg1, Seg.PathSegment seg2) throws ScionException {
+          Seg.PathSegment seg0, Seg.PathSegment seg1, Seg.PathSegment seg2, ScionBootstrapper brLookup) throws ScionException {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -128,12 +129,7 @@ public class Segments {
     int hopCount0 = seg0.getAsEntriesCount();
     int hopCount1 = seg1 == null ? 0 : seg1.getAsEntriesCount();
     int hopCount2 = seg2 == null ? 0 : seg2.getAsEntriesCount();
-    int i0;
-    if (hopCount1 > 0) {
-      i0 = (hopCount0 << 12) | (hopCount1 << 6) | hopCount2;
-    } else {
-      i0 = (hopCount0 << 12) | (hopCount2 << 6);
-    }
+    int i0 = (hopCount0 << 12) | (hopCount1 << 6) | hopCount2;
     raw.putInt(i0);
 
     // info fields
@@ -183,6 +179,8 @@ public class Segments {
     //    path.setLatency();
     //    path.setInternalHops();
     //    path.setNotes();
+    // First hop
+
 
     return path.build();
   }
@@ -348,9 +346,9 @@ public class Segments {
   }
 
   public static List<Daemon.Path> getPaths(
-      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
-      long srcIsdAs,
-      long dstIsdAs)
+          SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
+          ScionBootstrapper brLookup, long srcIsdAs,
+          long dstIsdAs)
       throws ScionException {
     // Cases:
     // A: src==dst
@@ -378,11 +376,11 @@ public class Segments {
       if (localCores[0] || localCores[1]) {
         // SRC and/or DST are local cores.
         // done: cases (A), B, C, D
-        return Segments.combineSegment(segmentsUp);
+        return Segments.combineSegment(segmentsUp, brLookup);
       }
       // case E
       List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstCore, dstIsdAs);
-      return Segments.combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs);
+      return Segments.combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
     }
 
     // remaining cases: F, G, H
@@ -392,7 +390,7 @@ public class Segments {
 
     if (localCores[0] && localCores[1]) {
       // src & dst are both core ASs
-      return Segments.combineSegment(segmentsCore);
+      return Segments.combineSegment(segmentsCore, brLookup);
     }
 
     List<Seg.PathSegment> segmentsUp =
@@ -400,11 +398,11 @@ public class Segments {
     List<Seg.PathSegment> segmentsDown =
         localCores[1] ? null : getSegments(segmentStub, dstCore, dstIsdAs);
     if (segmentsDown == null) {
-      return Segments.combineTwoSegments(segmentsUp, segmentsCore, srcIsdAs, dstIsdAs);
+      return Segments.combineTwoSegments(segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, brLookup);
     } else if (segmentsUp == null) {
-      return Segments.combineTwoSegments(segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
+      return Segments.combineTwoSegments(segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
     }
     return Segments.combineThreeSegments(
-        segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
+        segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
   }
 }

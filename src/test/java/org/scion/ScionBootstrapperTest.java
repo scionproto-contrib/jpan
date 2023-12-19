@@ -17,6 +17,7 @@ package org.scion;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+import org.scion.internal.ScionBootstrapper;
 
 public class ScionBootstrapperTest {
 

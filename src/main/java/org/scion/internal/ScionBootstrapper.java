@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion;
+package org.scion.internal;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -25,6 +25,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.scion.Scion;
+import org.scion.ScionException;
+import org.scion.ScionRuntimeException;
+import org.scion.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xbill.DNS.*;
@@ -37,7 +42,7 @@ import org.xbill.DNS.Record;
  *
  * @see Scion.CloseableService
  */
-class ScionBootstrapper {
+public class ScionBootstrapper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
   private static final String STR_X_SCION = "x-sciondiscovery";
@@ -110,11 +115,11 @@ class ScionBootstrapper {
    *
    * @return default instance
    */
-  static synchronized ScionBootstrapper createViaDns(String host) {
+  public static synchronized ScionBootstrapper createViaDns(String host) {
     return new ScionBootstrapper(bootstrapViaDNS(host));
   }
 
-  static synchronized ScionBootstrapper createViaBootstrapServerIP(String hostAndPort) {
+  public static synchronized ScionBootstrapper createViaBootstrapServerIP(String hostAndPort) {
     return new ScionBootstrapper(hostAndPort);
   }
 
