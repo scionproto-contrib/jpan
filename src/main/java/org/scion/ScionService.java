@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.scion.internal.ScionBootstrapper;
 import org.scion.internal.Segments;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -61,7 +60,8 @@ public class ScionService {
   private static final String DAEMON_PORT =
       ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
 
-  private static final AtomicReference<ScionService> DEFAULT = new AtomicReference<>();
+  private static final Object LOCK = new Object();
+  private static ScionService DEFAULT = null;
 
   private final ScionBootstrapper bootstrapper;
   // TODO create subclasses for these two?
@@ -71,6 +71,7 @@ public class ScionService {
   private final ManagedChannel channel;
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
+  private final Thread shutdownHook;
 
   protected enum Mode {
     DAEMON,
@@ -106,8 +107,12 @@ public class ScionService {
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
     }
-    DEFAULT.compareAndSet(null, this);
-    addShutdownHook();
+    shutdownHook = addShutdownHook();
+    synchronized (LOCK) {
+      if (DEFAULT == null) {
+        DEFAULT = this;
+      }
+    }
   }
 
   /**
@@ -116,26 +121,42 @@ public class ScionService {
    *
    * @return default instance
    */
-  static synchronized ScionService defaultService() {
-    // This is not 100% thread safe, but the worst that can happen is that
-    // we call close() on a Service that has already been closed.
-    if (DEFAULT.get() == null) {
-      DEFAULT.compareAndSet(null, new ScionService(DAEMON_HOST + ":" + DAEMON_PORT, Mode.DAEMON));
+  static ScionService defaultService() {
+    synchronized (LOCK) {
+      // This is not 100% thread safe, but the worst that can happen is that
+      // we call close() on a Service that has already been closed.
+      if (DEFAULT == null) {
+        DEFAULT = new ScionService(DAEMON_HOST + ":" + DAEMON_PORT, Mode.DAEMON);
+      }
+      return DEFAULT;
     }
-    return DEFAULT.get();
   }
 
-  private void addShutdownHook() {
-    Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread(
-                () -> {
-                  try {
-                    DEFAULT.get().close();
-                  } catch (IOException e) {
-                    e.printStackTrace(System.err);
-                  }
-                }));
+  private Thread addShutdownHook() {
+    Thread hook =
+        new Thread(
+            () -> {
+              try {
+                DEFAULT.close();
+              } catch (IOException e) {
+                e.printStackTrace(System.err);
+              }
+            });
+    Runtime.getRuntime().addShutdownHook(hook);
+    return hook;
+  }
+
+  public void close() throws IOException {
+    try {
+      if (!channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)) {
+        if (!channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)) {
+          LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
+        }
+      }
+      Runtime.getRuntime().removeShutdownHook(shutdownHook);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
   }
 
   Daemon.ASResponse getASInfo() throws ScionException {
@@ -268,18 +289,6 @@ public class ScionService {
       localIsdAs.set(getASInfo().getIsdAs());
     }
     return localIsdAs.get();
-  }
-
-  public void close() throws IOException {
-    try {
-      if (!channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)) {
-        if (!channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)) {
-          LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-        }
-      }
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
   }
 
   /**

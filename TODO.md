@@ -111,6 +111,7 @@ Discuss required for 0.1.0:
 - remove "internals" package
 - For stand-alone path query, we should cache localAS->localCore paths.
 - For stand-alone, fill meta/proto properly
+- Consider removing DEFAULT ScionService?
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...
