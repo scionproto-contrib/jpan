@@ -30,7 +30,7 @@ import org.scion.proto.crypto.Signed;
 import org.scion.proto.daemon.Daemon;
 
 public class Segments {
-  public static List<Daemon.Path> combineThreeSegments(
+  private static List<Daemon.Path> combineThreeSegments(
       List<Seg.PathSegment> segmentsUp,
       List<Seg.PathSegment> segmentsCore,
       List<Seg.PathSegment> segmentsDown,
@@ -66,7 +66,7 @@ public class Segments {
    * @return Paths
    * @throws ScionException In case of deserialization problem
    */
-  public static List<Daemon.Path> combineTwoSegments(
+  private static List<Daemon.Path> combineTwoSegments(
       List<Seg.PathSegment> segments0,
       List<Seg.PathSegment> segments1,
       long srcIsdAs,
@@ -93,7 +93,7 @@ public class Segments {
     return paths;
   }
 
-  public static List<Daemon.Path> combineSegment(List<Seg.PathSegment> segments)
+  private static List<Daemon.Path> combineSegment(List<Seg.PathSegment> segments)
       throws ScionException {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : segments) {
@@ -312,39 +312,13 @@ public class Segments {
     }
   }
 
-  public static boolean[] containsIsdAs(long[] IAs, long srcIsdAs, long dstIsdAs) {
+  private static boolean[] containsIsdAs(long[] IAs, long srcIsdAs, long dstIsdAs) {
     boolean[] found = new boolean[] {false, false};
     for (long ia : IAs) {
       found[0] |= ia == srcIsdAs;
       found[1] |= ia == dstIsdAs;
     }
     return found;
-  }
-
-  private static List<Seg.PathSegment> getStatistics(
-      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
-      long srcIsdAs,
-      long dstIsdAs)
-      throws ScionException {
-    if (srcIsdAs == dstIsdAs) {
-      return Collections.emptyList();
-    }
-    Seg.SegmentsRequest request =
-        Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
-    Seg.SegmentsResponse response;
-    try {
-      response = segmentStub.segments(request);
-    } catch (StatusRuntimeException e) {
-      throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
-    }
-
-    List<Seg.PathSegment> pathSegments = new ArrayList<>();
-    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
-        response.getSegmentsMap().entrySet()) {
-      pathSegments.addAll(seg.getValue().getSegmentsList());
-    }
-
-    return pathSegments;
   }
 
   private static List<Seg.PathSegment> getSegments(

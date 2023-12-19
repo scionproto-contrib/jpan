@@ -51,15 +51,26 @@ class ScionBootstrapper {
   private static final String signedTopologyFileName = "topology.signed";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
 
-  private final String topologyServiceAddress;
-  private String localIsdAs;
-  private int localMtu;
-  private final List<ServiceNode> controlServices = new ArrayList<>();
-  private final List<ServiceNode> discoveryServices = new ArrayList<>();
-  private final List<BorderRouter> borderRouters = new ArrayList<>();
+  private static class BorderRouter {
+    private final String name;
+    private final List<BorderRouterInterface> interfaces;
 
-  public long getLocalIsdAs() {
-    return ScionUtil.parseIA(localIsdAs);
+    public BorderRouter(String name, List<BorderRouterInterface> interfaces) {
+      this.name = name;
+      this.interfaces = interfaces;
+    }
+  }
+
+  private static class BorderRouterInterface {
+    final int id;
+    final String publicUnderlay;
+    final String remoteUnderlay;
+
+    public BorderRouterInterface(String id, String publicU, String remoteU) {
+      this.id = Integer.parseInt(id);
+      this.publicUnderlay = publicU;
+      this.remoteUnderlay = remoteU;
+    }
   }
 
   private static class ServiceNode {
@@ -75,11 +86,17 @@ class ScionBootstrapper {
     public String toString() {
       return "{" + "name='" + name + '\'' + ", ipString='" + ipString + '\'' + '}';
     }
+  }
 
-    //    @Override
-    //    public String toString() {
-    //      return name + " " + super.toString();
-    //    }
+  private final String topologyServiceAddress;
+  private String localIsdAs;
+  private int localMtu;
+  private final List<ServiceNode> controlServices = new ArrayList<>();
+  private final List<ServiceNode> discoveryServices = new ArrayList<>();
+  private final List<BorderRouter> borderRouters = new ArrayList<>();
+
+  public long getLocalIsdAs() {
+    return ScionUtil.parseIA(localIsdAs);
   }
 
   protected ScionBootstrapper(String topologyServiceAddress) {
@@ -116,8 +133,7 @@ class ScionBootstrapper {
           String naptrFlag = nr.getFlags();
           int port = queryTXT(hostName);
           if ("A".equals(naptrFlag) || "AAAA".equals(naptrFlag)) {
-            String flag = naptrFlag;
-            InetAddress addr = queryTopoServerDNS(flag, host);
+            InetAddress addr = queryTopoServerDNS(naptrFlag, host);
             return addr.getHostAddress() + ":" + port;
           }
           // keep going and collect more hints
@@ -138,6 +154,7 @@ class ScionBootstrapper {
       }
       for (int i = 0; i < recordsA.length; i++) {
         ARecord ar = (ARecord) recordsA[i];
+        // TODO just return the first one for now
         return ar.getAddress();
       }
     } else if ("AAAA".equals(flag)) {
@@ -147,6 +164,7 @@ class ScionBootstrapper {
       }
       for (int i = 0; i < recordsA.length; i++) {
         ARecord ar = (ARecord) recordsA[i];
+        // TODO just return the first one for now
         return ar.getAddress();
       }
     } else {
@@ -302,27 +320,5 @@ class ScionBootstrapper {
       sb.append("Discovery server: ").append(sn).append('\n');
     }
     return sb.toString();
-  }
-
-  private class BorderRouter {
-    private final String name;
-    private final List<BorderRouterInterface> interfaces;
-
-    public BorderRouter(String name, List<BorderRouterInterface> interfaces) {
-      this.name = name;
-      this.interfaces = interfaces;
-    }
-  }
-
-  private class BorderRouterInterface {
-    final int id;
-    final String publicUnderlay;
-    final String remoteUnderlay;
-
-    public BorderRouterInterface(String id, String publicU, String remoteU) {
-      this.id = Integer.parseInt(id);
-      this.publicUnderlay = publicU;
-      this.remoteUnderlay = remoteU;
-    }
   }
 }
