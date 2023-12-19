@@ -71,7 +71,7 @@ public class ScionService {
   private final ManagedChannel channel;
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
-  private final Thread shutdownHook;
+  private Thread shutdownHook;
 
   protected enum Mode {
     DAEMON,
@@ -137,6 +137,7 @@ public class ScionService {
         new Thread(
             () -> {
               try {
+                DEFAULT.shutdownHook = null;
                 DEFAULT.close();
               } catch (IOException e) {
                 e.printStackTrace(System.err);
@@ -153,7 +154,9 @@ public class ScionService {
           LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
         }
       }
-      Runtime.getRuntime().removeShutdownHook(shutdownHook);
+      if (shutdownHook != null) {
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+      }
     } catch (InterruptedException e) {
       throw new IOException(e);
     }

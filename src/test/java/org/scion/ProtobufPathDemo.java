@@ -97,6 +97,7 @@ public class ProtobufPathDemo {
   }
 
   private void testPathsControlService(long srcIA, long dstIA) throws ScionException {
+    System.out.println("testPathsControlService()");
     String addr110 = "127.0.0.11:31000";
     String addr111 = "127.0.0.18:31006";
     // ScionService csSercice = Scion.newServiceWithBootstrapServerIP(addr111);
