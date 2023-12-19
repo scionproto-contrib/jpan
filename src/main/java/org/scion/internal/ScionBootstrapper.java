@@ -240,12 +240,12 @@ public class ScionBootstrapper {
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(topologyFile);
     if (jsonTree.isJsonObject()) {
       JsonObject o = jsonTree.getAsJsonObject();
-      localIsdAs = o.get("isd_as").getAsString();
-      localMtu = o.get("mtu").getAsInt();
-      JsonObject brs = o.get("border_routers").getAsJsonObject();
+      localIsdAs = safeGet(o, "isd_as").getAsString();
+      localMtu = safeGet(o, "mtu").getAsInt();
+      JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
         JsonObject br = e.getValue().getAsJsonObject();
-        JsonObject ints = br.get("interfaces").getAsJsonObject();
+        JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
         List<BorderRouterInterface> interfaces = new ArrayList<>();
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
           JsonObject ife = ifEntry.getValue().getAsJsonObject();
@@ -259,17 +259,25 @@ public class ScionBootstrapper {
         }
         borderRouters.add(new BorderRouter(e.getKey(), interfaces));
       }
-      JsonObject css = o.get("control_service").getAsJsonObject();
+      JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
         JsonObject cs = e.getValue().getAsJsonObject();
         controlServices.add(new ServiceNode(e.getKey(), cs.get("addr").getAsString()));
       }
-      JsonObject dss = o.get("discovery_service").getAsJsonObject();
+      JsonObject dss = safeGet(o, "discovery_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : dss.entrySet()) {
         JsonObject ds = e.getValue().getAsJsonObject();
         discoveryServices.add(new ServiceNode(e.getKey(), ds.get("addr").getAsString()));
       }
     }
+  }
+
+  private static JsonElement safeGet(JsonObject o, String name) {
+    JsonElement e = o.get(name);
+    if (e == null) {
+      throw new ScionRuntimeException("Entry not found in topology file: " + name);
+    }
+    return e;
   }
 
   private static String fetchTopologyFile(URL url) throws IOException {
