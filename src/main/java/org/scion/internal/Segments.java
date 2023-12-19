@@ -16,6 +16,7 @@ package org.scion.internal;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Timestamp;
 import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -119,6 +120,10 @@ public class Segments {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
+    Seg.SegmentInformation info0 = getInfo(seg0);
+    Seg.SegmentInformation info1 = seg1 == null ? null : getInfo(seg1);
+    Seg.SegmentInformation info2 = seg2 == null ? null : getInfo(seg2);
+
     // path meta header
     int hopCount0 = seg0.getAsEntriesCount();
     int hopCount1 = seg1 == null ? 0 : seg1.getAsEntriesCount();
@@ -138,69 +143,76 @@ public class Segments {
       // E.g. only coreSegments or only downSegments or core+down
       throw new UnsupportedOperationException();
     }
-    writeInfoField(raw, seg0, true);
-    if (hopCount1 > 0) {
-      writeInfoField(raw, seg1, false);
+    writeInfoField(raw, info0, true);
+    if (info1 != null) {
+      writeInfoField(raw, info1, false);
     }
-    if (hopCount2 > 0) {
-      writeInfoField(raw, seg2, false);
+    if (info2 != null) {
+      writeInfoField(raw, info2, false);
     }
 
     // hop fields
-    writeHopFields(raw, seg0, true);
-    if (hopCount1 > 0) {
-      writeHopFields(raw, seg1, false);
+    // TODO clean up: Create [] of seg/info and loop inside write() method
+    ByteUtil.MutInt minMtu = new ByteUtil.MutInt(Integer.MAX_VALUE);
+    ByteUtil.MutInt minExpirationDelta = new ByteUtil.MutInt(Byte.MAX_VALUE);
+    writeHopFields(raw, seg0, true, minExpirationDelta, minMtu);
+    long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
+    if (seg1 != null) {
+      minExpirationDelta.v = Byte.MAX_VALUE;
+      writeHopFields(raw, seg1, false, minExpirationDelta, minMtu);
+      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
-    if (hopCount2 > 0) {
-      writeHopFields(raw, seg2, false);
+    if (seg2 != null) {
+      minExpirationDelta.v = Byte.MAX_VALUE;
+      writeHopFields(raw, seg2, false, minExpirationDelta, minMtu);
+      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
 
     raw.flip();
     path.setRaw(ByteString.copyFrom(raw));
 
+    // Expiration
+    path.setExpiration(Timestamp.newBuilder().setSeconds(minExp).build());
+    // TODO assert != Integer.MAX_VALUE, same for expiration!
+    path.setMtu(minMtu.v);
+
     // TODO implement this
     //    path.setInterface(Daemon.Interface.newBuilder().setAddress().build());
     //    path.addInterfaces(Daemon.PathInterface.newBuilder().setId().setIsdAs().build());
     //    segUp.getSegmentInfo();
-    //    path.setExpiration();
-    //    path.setMtu();
     //    path.setLatency();
+    //    path.setInternalHops();
+    //    path.setNotes();
 
     return path.build();
   }
 
-  private static void writeInfoField(ByteBuffer raw, Seg.PathSegment pathSegment, boolean reversed)
-      throws ScionException {
-    try {
-      Seg.SegmentInformation infoUp =
-          Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
-      int inf0 = ((reversed ? 0 : 1) << 24) | infoUp.getSegmentId();
-      raw.putInt(inf0);
-      // TODO in the daemon's path, all segments have the same timestamp....
-      raw.putInt((int) infoUp.getTimestamp()); // TODO does this work? casting to int?
-    } catch (InvalidProtocolBufferException e) {
-      throw new ScionException(e);
-    }
+  private static long calcExpTime(long baseTime, int deltaTime) {
+    return baseTime + (long) (1 + deltaTime) * 24 * 60 * 60 / 256;
   }
 
-  private static void writeHopFields(ByteBuffer raw, Seg.PathSegment pathSegment, boolean reversed)
+  private static void writeInfoField(
+      ByteBuffer raw, Seg.SegmentInformation info, boolean reversed) {
+    int inf0 = ((reversed ? 0 : 1) << 24) | info.getSegmentId();
+    raw.putInt(inf0);
+    // TODO in the daemon's path, all segments have the same timestamp....
+    raw.putInt((int) info.getTimestamp()); // TODO does this work? casting to int?
+  }
+
+  private static void writeHopFields(
+      ByteBuffer raw,
+      Seg.PathSegment pathSegment,
+      boolean reversed,
+      ByteUtil.MutInt minExp,
+      ByteUtil.MutInt minMtu)
       throws ScionException {
     final int n = pathSegment.getAsEntriesCount();
     for (int i = 0; i < n; i++) {
       Seg.ASEntry asEntry = pathSegment.getAsEntriesList().get(reversed ? (n - i - 1) : i);
       // Let's assumed they are all signed // TODO?
       Signed.SignedMessage sm = asEntry.getSigned();
-      Seg.ASEntrySignedBody body = null;
-      try {
-        Signed.HeaderAndBodyInternal habi =
-            Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
-        // Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
-        // TODO body for signature verification?!?
-        body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
-      } catch (InvalidProtocolBufferException e) {
-        throw new ScionException(e);
-      }
-      // Seg.HopEntry hopEntry = body.getHopEntry();
+      Seg.ASEntrySignedBody body = getBody(sm);
+      Seg.HopEntry hopEntry = body.getHopEntry();
       Seg.HopField hopField = body.getHopEntry().getHopField();
 
       raw.put((byte) 0);
@@ -211,6 +223,8 @@ public class Segments {
       for (int j = 0; j < 6; j++) {
         raw.put(mac.byteAt(j));
       }
+      minExp.v = Math.min(minExp.v, hopField.getExpTime());
+      minMtu.v = Math.min(minMtu.v, hopEntry.getIngressMtu());
     }
   }
 
@@ -282,7 +296,17 @@ public class Segments {
     try {
       Signed.HeaderAndBodyInternal habi =
           Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
+      // Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
+      // TODO body for signature verification?!?
       return Seg.ASEntrySignedBody.parseFrom(habi.getBody());
+    } catch (InvalidProtocolBufferException e) {
+      throw new ScionException(e);
+    }
+  }
+
+  private static Seg.SegmentInformation getInfo(Seg.PathSegment pathSegment) throws ScionException {
+    try {
+      return Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
     } catch (InvalidProtocolBufferException e) {
       throw new ScionException(e);
     }

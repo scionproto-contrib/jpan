@@ -16,6 +16,15 @@ package org.scion.internal;
 
 public class ByteUtil {
 
+  /** Mutable integer. */
+  public static class MutInt {
+    public int v;
+
+    MutInt(int v) {
+      this.v = v;
+    }
+  }
+
   /**
    * Reads some bits from an integer and returns them as another integer, shifted right such that
    * the least significant extracted bit becomes the least significant bit in the output.

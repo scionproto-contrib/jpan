@@ -56,6 +56,18 @@
 - Related to previous: Should receive()/send() be specific about RequestPath/ResponsePath?
   I.e. hide complexity vs being specific....   check Effective Java?   
 
+## Ideas
+- Why are CSs distributing Segments?
+  Because that is what beacons return? For historical reasons?
+  It seems much more efficient to distribute a graph 
+  (less bandwidth, can be directly digested by the daemons, possibly more complete than the segments)
+  We may also choose do distribute the WHOLE graph (depending on how big it is), the daemons can use it
+  for *all* path queries.
+  Updates/refresh (after changes/expiration) are also cheaper, we don´t resend the whole segment but
+  only the expired parts.
+- Add an expiration date to topo files!
+  -> BRs, CS, DSs may change!
+
 ## Plan
 
 ### 0.1.0
@@ -91,6 +103,7 @@ Discuss required for 0.1.0:
 - DNS /etc/scion/hosts e.g.:
   71-2:0:4a,[127.0.0.1]	www.netsys.ovgu.de netsys.ovgu.de
   71-2:0:48,[127.0.0.1]	dfw.source.kernel.org
+- DNS with other options, see book p328ff, Section 13.2.3
 - UDP checksum validation + creation
 - Fuzzing
 - Remove daemon requirement -> support connecting directly to control service
