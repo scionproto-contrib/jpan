@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.scion.internal.DNSHelper;
 import org.scion.internal.ScionBootstrapper;
 import org.scion.internal.Segments;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -35,8 +36,6 @@ import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xbill.DNS.*;
-import org.xbill.DNS.Record;
 
 /**
  * The ScionService provides information such as: <br>
@@ -60,6 +59,7 @@ public class ScionService {
   private static final String DAEMON_PORT =
       ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
 
+  private static final String DNS_TXT_KEY = "scion";
   private static final Object LOCK = new Object();
   private static ScionService DEFAULT = null;
 
@@ -304,7 +304,7 @@ public class ScionService {
     // "scion=64-2:0:9,129.132.230.98"
 
     // Look for TXT in application properties
-    String txtFromProperties = findTxtRecordInProperties(hostName);
+    String txtFromProperties = findTxtRecordInProperties(hostName, DNS_TXT_KEY);
     if (txtFromProperties != null) {
       return parseTxtRecordToIA(txtFromProperties);
     }
@@ -315,12 +315,12 @@ public class ScionService {
     }
 
     // DNS lookup
-    String txtFromDNS = findTxtRecordViaDNS(hostName);
+    String txtFromDNS = DNSHelper.queryTXT(hostName, DNS_TXT_KEY);
     if (txtFromDNS != null) {
       return parseTxtRecordToIA(txtFromDNS);
     }
 
-    throw new ScionException("Host has no SCION TXT entry: " + hostName);
+    throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
   }
 
   /**
@@ -333,7 +333,7 @@ public class ScionService {
     // "scion=64-2:0:9,129.132.230.98"
 
     // Look for TXT in application properties
-    String txtFromProperties = findTxtRecordInProperties(hostName);
+    String txtFromProperties = findTxtRecordInProperties(hostName, DNS_TXT_KEY);
     if (txtFromProperties != null) {
       return parseTxtRecord(txtFromProperties, hostName);
     }
@@ -344,12 +344,12 @@ public class ScionService {
     }
 
     // DNS lookup
-    String txtFromDNS = findTxtRecordViaDNS(hostName);
+    String txtFromDNS = DNSHelper.queryTXT(hostName, DNS_TXT_KEY);
     if (txtFromDNS != null) {
       return parseTxtRecord(txtFromDNS, hostName);
     }
 
-    throw new ScionException("Host has no SCION TXT entry: " + hostName);
+    throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
   }
 
   private boolean isLocalhost(String hostName) {
@@ -360,45 +360,8 @@ public class ScionService {
         || "ip6-localhost".equals(hostName);
   }
 
-  private String findTxtRecordViaDNS(String hostName) throws ScionException {
-    try {
-      Record[] records = new Lookup(hostName, Type.TXT).run();
-      if (records == null) {
-        throw new ScionException("No DNS TXT entry found for host: " + hostName);
-      }
-      for (int i = 0; i < records.length; i++) {
-        TXTRecord txt = (TXTRecord) records[i];
-        String entry = txt.rdataToString();
-        if (entry.startsWith("\"scion=")) {
-          return entry;
-        }
-      }
-    } catch (TextParseException e) {
-      throw new ScionException("Error parsing TXT entry: " + e.getMessage());
-    }
-    // TODO add /etc/scion-hosts or /etc/scion/hosts
-
-    // Java 8
-    //    List nameServers = ResolverConfiguration.open().nameservers();
-    //    List searchNames = ResolverConfiguration.open().searchlist();
-    //    System.out.println("NS: ");
-    //    nameServers.forEach((dns)->System.out.println(dns));
-    //    System.out.println("SL: ");
-    //    searchNames.forEach((dns)->System.out.println(dns));
-    //    System.out.println("DNS: ");
-
-    //    // Java 9+
-    //    java.net.InetAddress.NameService;
-    //
-    //    // Java 18+
-    //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
-    //    InetAddressResolver r = new InetAddressResolver();
-
-    return null;
-  }
-
-  private String findTxtRecordInProperties(String hostName) {
-    String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
+  private String findTxtRecordInProperties(String hostName, String key) throws ScionException {
+    String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_MOCK_DNS_TXT);
     if (props == null) {
       return null;
     }
@@ -426,8 +389,11 @@ public class ScionService {
       } else {
         txtRecord = props.substring(posStart + 1);
       }
+      if (!txtRecord.startsWith("\"" + key + "=") || !txtRecord.endsWith("\"")) {
+        throw new ScionException("Invalid TXT entry: " + txtRecord);
+      }
       // No more checking here, we assume that properties are save
-      return txtRecord;
+      return txtRecord.substring(key.length() + 2, txtRecord.length() - 1);
     }
     return null;
   }
@@ -435,21 +401,20 @@ public class ScionService {
   private ScionAddress parseTxtRecord(String txtEntry, String hostName) throws ScionException {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
-    if (!txtEntry.startsWith("\"scion=") || !txtEntry.endsWith("\"") || posComma < 0) {
+    if (posComma < 0) {
       throw new ScionException("Invalid TXT entry: " + txtEntry);
     }
-    long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));
-    return ScionAddress.create(
-        isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
+    long isdAs = ScionUtil.parseIA(txtEntry.substring(0, posComma));
+    return ScionAddress.create(isdAs, hostName, txtEntry.substring(posComma + 1));
   }
 
   private long parseTxtRecordToIA(String txtEntry) throws ScionException {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
-    if (!txtEntry.startsWith("\"scion=") || !txtEntry.endsWith("\"") || posComma < 0) {
+    if (posComma < 0) {
       throw new ScionException("Invalid TXT entry: " + txtEntry);
     }
-    return ScionUtil.parseIA(txtEntry.substring(7, posComma));
+    return ScionUtil.parseIA(txtEntry.substring(0, posComma));
   }
 
   // TODO do not expose proto types on API

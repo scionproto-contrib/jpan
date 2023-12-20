@@ -27,7 +27,7 @@ import org.scion.testutil.ExamplePacket;
  */
 public class PackageVisibilityHelper {
 
-  public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_DNS_MOCK;
+  public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_MOCK_DNS_TXT;
 
   public static InetSocketAddress getDstAddress(ByteBuffer packet) throws UnknownHostException {
     return ScionHeaderParser.extractDestinationSocketAddress(packet);

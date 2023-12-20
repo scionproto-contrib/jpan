@@ -24,7 +24,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
+import org.scion.internal.DNSHelper;
 import org.scion.testutil.MockDaemon;
+import org.scion.testutil.MockTopologyServer;
 
 public class ScionServiceTest {
 
@@ -210,7 +212,7 @@ public class ScionServiceTest {
         assertThrows(ScionException.class, () -> pathService.getScionAddress("google.com"));
 
     String actualMessage = exception.getMessage();
-    assertTrue(actualMessage.contains("Host has no SCION"));
+    assertTrue(actualMessage.contains("No DNS TXT entry \"scion\" found for"), actualMessage);
   }
 
   @Test
@@ -241,11 +243,25 @@ public class ScionServiceTest {
     long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
     long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
+    String asHost = "my-as-host.org";
 
-    ScionService ss = Scion.newServiceWithDNS("inf.ethz.ch");
-    List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
-    assertNotNull(paths);
-    assertFalse(paths.isEmpty());
+    try (MockTopologyServer topoServer = MockTopologyServer.start()) {
+      InetSocketAddress topoAddr = topoServer.getAddress();
+      DNSHelper.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+
+      if (true) {
+        // TODO Create MockControlServer!
+        throw new UnsupportedOperationException();
+      }
+
+      try (Scion.CloseableService ss = Scion.newServiceWithDNS(asHost)) {
+        // destination address = 123.123.123.123 because we don´t care for getting a path
+        List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
+        assertNotNull(paths);
+        assertFalse(paths.isEmpty());
+      }
+      assertEquals(1, topoServer.getAndResetCallCount());
+    }
 
     // TODO test path
   }
@@ -259,11 +275,19 @@ public class ScionServiceTest {
     long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
 
-    ScionService ss = Scion.newServiceWithBootstrapServerIP(bootETH);
-    List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
-    assertNotNull(paths);
-    assertFalse(paths.isEmpty());
+    String asHost = "my-as-host.org";
 
+    try (MockTopologyServer topoServer = MockTopologyServer.start()) {
+      InetSocketAddress topoAddr = topoServer.getAddress();
+      DNSHelper.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+
+      try (Scion.CloseableService ss = Scion.newServiceWithBootstrapServerIP(bootETH)) {
+        List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
+        assertNotNull(paths);
+        assertFalse(paths.isEmpty());
+      }
+      assertEquals(1, topoServer.getAndResetCallCount());
+    }
     // TODO test path
   }
 }

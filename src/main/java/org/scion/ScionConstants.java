@@ -29,8 +29,8 @@ public final class ScionConstants {
   public static final int DEFAULT_PATH_EXPIRY_MARGIN = 2;
 
   /**
-   * Non-public property that allows specifying DNS entries for debugging Example with two entries:
-   * server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
+   * Non-public property that allows specifying DNS TXT entries for debugging Example with two
+   * entries: server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
    */
-  static final String DEBUG_PROPERTY_DNS_MOCK = "DEBUG_SCION_DNS_MOCK";
+  static final String DEBUG_PROPERTY_MOCK_DNS_TXT = "DEBUG_SCION_MOCK_DNS_TXT";
 }
