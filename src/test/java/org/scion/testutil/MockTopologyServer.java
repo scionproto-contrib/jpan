@@ -17,6 +17,7 @@ package org.scion.testutil;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
@@ -24,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -39,8 +41,23 @@ public class MockTopologyServer implements Closeable {
   private static final Logger logger = LoggerFactory.getLogger(MockTopologyServer.class.getName());
   private final ExecutorService server;
   private final AtomicInteger callCount = new AtomicInteger();
+  private final CountDownLatch barrier = new CountDownLatch(1);
   private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
-  private TopologyServerImpl serverInstance;
+
+  public MockTopologyServer(Path topoFile) {
+    getAndResetCallCount();
+    server = Executors.newSingleThreadExecutor();
+    TopologyServerImpl serverInstance = new TopologyServerImpl(readTopologyFile(topoFile));
+    server.submit(serverInstance);
+
+    try {
+      // Wait for sever socket address to be ready
+      barrier.await();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+    logger.info("Server started, listening on " + serverSocket);
+  }
 
   public static MockTopologyServer start() throws IOException {
     return new MockTopologyServer(Paths.get("topology-tiny-111.json"));
@@ -50,35 +67,15 @@ public class MockTopologyServer implements Closeable {
     return new MockTopologyServer(topoFile);
   }
 
-  public MockTopologyServer(Path topoFile) {
-    getAndResetCallCount();
-    server = Executors.newSingleThreadExecutor();
-    serverInstance = new TopologyServerImpl(readTopologyFile(topoFile));
-    server.submit(serverInstance);
-
-    while (serverSocket.get() == null) {
-      try {
-        Thread.sleep(10);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    logger.info("Server started, listening on " + serverSocket);
-  }
-
   @Override
   public void close() {
-    server.shutdown();
     try {
+      server.shutdownNow();
       if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
-        server.shutdownNow();
-        if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
-          logger.error("Topology server did not terminate");
-        }
+        logger.error("Topology server did not terminate");
       }
       logger.info("Topology server shut down");
     } catch (InterruptedException ie) {
-      server.shutdownNow();
       Thread.currentThread().interrupt();
     }
   }
@@ -98,8 +95,7 @@ public class MockTopologyServer implements Closeable {
         ClassLoader classLoader = getClass().getClassLoader();
         URL resource = classLoader.getResource(file.toString());
         if (resource != null) {
-          java.nio.file.Path newFile = Paths.get(resource.toURI());
-          file = newFile;
+          file = Paths.get(resource.toURI());
         }
       }
     } catch (URISyntaxException e) {
@@ -125,10 +121,12 @@ public class MockTopologyServer implements Closeable {
 
     @Override
     public void run() {
+      InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 23432);
       try (ServerSocketChannel chnLocal = ServerSocketChannel.open().bind(null)) {
         chnLocal.configureBlocking(true);
         ByteBuffer buffer = ByteBuffer.allocate(66000);
         serverSocket.set((InetSocketAddress) chnLocal.getLocalAddress());
+        barrier.countDown();
         logger.info("Topology server started on port " + chnLocal.getLocalAddress());
         while (true) {
           SocketChannel ss = chnLocal.accept();
@@ -160,8 +158,10 @@ public class MockTopologyServer implements Closeable {
           callCount.incrementAndGet();
         }
 
+      } catch (ClosedByInterruptException e) {
+        throw new RuntimeException(e);
       } catch (IOException e) {
-        e.printStackTrace();
+        logger.error(e.getMessage());
         throw new RuntimeException(e);
       } finally {
         logger.info("Shutting down topology server");

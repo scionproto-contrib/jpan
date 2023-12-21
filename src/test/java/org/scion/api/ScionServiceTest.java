@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
+import org.scion.demo.util.ToStringUtil;
 import org.scion.internal.DNSHelper;
 import org.scion.testutil.MockControlServer;
 import org.scion.testutil.MockDaemon;
@@ -240,13 +241,7 @@ public class ScionServiceTest {
 
   @Test
   void bootstrapViaDnsDirect() throws IOException {
-    String csETH = "192.168.53.20:30252";
-    long iaETH = ScionUtil.parseIA("64-2:0:9");
-    long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
-    long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
-    long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
-    long iaSrc = ScionUtil.parseIA("1-ff00:0:110");
-    long iaDst = ScionUtil.parseIA("1-ff00:0:111");
+    long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     String asHost = "my-as-host.org";
 
     // TODO FIX misunderstanding with core AS
@@ -254,23 +249,20 @@ public class ScionServiceTest {
     //   - a core AS always has AS-nubmer != 0 !!!!!
     //   Fix this is Segments.java
 
-    MockControlServer cs = null;
     try (MockTopologyServer topoServer =
         MockTopologyServer.start(Paths.get("topology-dummy.json"))) {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSHelper.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-
-      cs = MockControlServer.start(31006); // TODO get port from topo
-
-      try (Scion.CloseableService ss = Scion.newServiceWithDNS(asHost)) {
-        // destination address = 123.123.123.123 because we don´t care for getting a path
-        List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
-        assertNotNull(paths);
-        assertFalse(paths.isEmpty());
+      try (MockControlServer cs = MockControlServer.start(31006)) { // TODO get port from topo
+        try (Scion.CloseableService ss = Scion.newServiceWithDNS(asHost)) {
+          // destination address = 123.123.123.123 because we don´t care for getting a path
+          List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
+          assertNotNull(paths);
+          assertFalse(paths.isEmpty());
+        }
+        assertEquals(1, topoServer.getAndResetCallCount());
+        assertEquals(1, cs.getAndResetCallCount());
       }
-      assertEquals(1, topoServer.getAndResetCallCount());
-    } finally {
-      cs.close();
     }
 
     // TODO test path
@@ -278,25 +270,23 @@ public class ScionServiceTest {
 
   @Test
   void bootstrapViaControlServiceIP() throws IOException {
-    String bootETH = "129.132.121.175:8041";
-    String csETH = "192.168.53.20:30252";
-    long iaETH = ScionUtil.parseIA("64-2:0:9");
-    long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
-    long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
-    long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
-
+    long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     String asHost = "my-as-host.org";
 
     try (MockTopologyServer topoServer = MockTopologyServer.start()) {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSHelper.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-
-      try (Scion.CloseableService ss = Scion.newServiceWithBootstrapServerIP(bootETH)) {
-        List<RequestPath> paths = ss.getPaths(iaGEANT, new byte[] {123, 123, 123, 123}, 12345);
-        assertNotNull(paths);
-        assertFalse(paths.isEmpty());
+      try (MockControlServer cs = MockControlServer.start(31006)) { // TODO get port from topo
+        try (Scion.CloseableService ss =
+            Scion.newServiceWithBootstrapServerIP(ToStringUtil.toAddressPort(topoAddr))) {
+          // destination address = 123.123.123.123 because we don´t care for getting a path
+          List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
+          assertNotNull(paths);
+          assertFalse(paths.isEmpty());
+        }
+        assertEquals(1, topoServer.getAndResetCallCount());
+        assertEquals(1, cs.getAndResetCallCount());
       }
-      assertEquals(1, topoServer.getAndResetCallCount());
     }
     // TODO test path
   }

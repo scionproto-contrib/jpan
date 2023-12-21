@@ -59,51 +59,13 @@ public class ScionBootstrapper {
   private static final String topologyJSONFileName = "topology.json";
   private static final String signedTopologyFileName = "topology.signed";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
-
-  private static class BorderRouter {
-    private final String name;
-    private final List<BorderRouterInterface> interfaces;
-
-    public BorderRouter(String name, List<BorderRouterInterface> interfaces) {
-      this.name = name;
-      this.interfaces = interfaces;
-    }
-  }
-
-  private static class BorderRouterInterface {
-    final int id;
-    final String publicUnderlay;
-    final String remoteUnderlay;
-
-    public BorderRouterInterface(String id, String publicU, String remoteU) {
-      this.id = Integer.parseInt(id);
-      this.publicUnderlay = publicU;
-      this.remoteUnderlay = remoteU;
-    }
-  }
-
-  private static class ServiceNode {
-    final String name;
-    final String ipString;
-
-    ServiceNode(String name, String ipString) {
-      this.name = name;
-      this.ipString = ipString;
-    }
-
-    @Override
-    public String toString() {
-      return "{" + "name='" + name + '\'' + ", ipString='" + ipString + '\'' + '}';
-    }
-  }
-
   private final String topologyResource;
-  private String localIsdAs;
-  private boolean isCoreAs;
-  private int localMtu;
   private final List<ServiceNode> controlServices = new ArrayList<>();
   private final List<ServiceNode> discoveryServices = new ArrayList<>();
   private final List<BorderRouter> borderRouters = new ArrayList<>();
+  private String localIsdAs;
+  private boolean isCoreAs;
+  private int localMtu;
 
   protected ScionBootstrapper(String topologyServiceAddress) {
     this.topologyResource = topologyServiceAddress;
@@ -164,7 +126,7 @@ public class ScionBootstrapper {
     return null;
   }
 
-  private static int queryTXT(String hostName) throws IOException {
+  private static int queryTXT(String hostName) {
     String txtEntry = DNSHelper.queryTXT(hostName, STR_X_SCION);
     if (txtEntry == null) {
       throw new ScionRuntimeException(
@@ -175,6 +137,43 @@ public class ScionBootstrapper {
       throw new ScionRuntimeException("Error parsing TXT entry: " + txtEntry);
     }
     return port;
+  }
+
+  private static JsonElement safeGet(JsonObject o, String name) {
+    JsonElement e = o.get(name);
+    if (e == null) {
+      throw new ScionRuntimeException("Entry not found in topology file: " + name);
+    }
+    return e;
+  }
+
+  private static String fetchTopologyFile(URL url) throws IOException {
+    HttpURLConnection httpURLConnection = null;
+    try {
+      httpURLConnection = (HttpURLConnection) url.openConnection();
+      httpURLConnection.setRequestMethod("GET");
+      httpURLConnection.setConnectTimeout((int) httpRequestTimeout.toMillis());
+
+      int responseCode = httpURLConnection.getResponseCode();
+      if (responseCode != HttpURLConnection.HTTP_OK) { // success
+        throw new ScionException(
+            "GET request failed (" + responseCode + ") on topology server: " + url);
+      }
+
+      try (BufferedReader in =
+          new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()))) {
+        StringBuilder response = new StringBuilder();
+        String inputLine;
+        while ((inputLine = in.readLine()) != null) {
+          response.append(inputLine); // .append(System.lineSeparator());
+        }
+        return response.toString();
+      }
+    } finally {
+      if (httpURLConnection != null) {
+        httpURLConnection.disconnect();
+      }
+    }
   }
 
   private void init() {
@@ -196,26 +195,21 @@ public class ScionBootstrapper {
         ClassLoader classLoader = getClass().getClassLoader();
         URL resource = classLoader.getResource(file.toString());
         if (resource != null) {
-          java.nio.file.Path newFile = Paths.get(resource.toURI());
-          file = newFile;
+          file = Paths.get(resource.toURI());
         }
       }
     } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
+      throw new ScionRuntimeException(e);
     }
 
-    try {
-      StringBuilder contentBuilder = new StringBuilder();
-      try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
-        stream.forEach(s -> contentBuilder.append(s).append("\n"));
-      } catch (IOException e) {
-        throw new ScionRuntimeException(
-            "Error reading topology file found at: " + file.toAbsolutePath());
-      }
-      parseTopologyFile(contentBuilder.toString());
+    StringBuilder contentBuilder = new StringBuilder();
+    try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
+      stream.forEach(s -> contentBuilder.append(s).append("\n"));
     } catch (IOException e) {
-      throw new ScionRuntimeException("Error while getting topology file: " + e.getMessage(), e);
+      throw new ScionRuntimeException(
+          "Error reading topology file found at: " + file.toAbsolutePath());
     }
+    parseTopologyFile(contentBuilder.toString());
     if (controlServices.isEmpty()) {
       throw new ScionRuntimeException("No control service found in topology filet: " + file);
     }
@@ -256,7 +250,7 @@ public class ScionBootstrapper {
     return fetchTopologyFile(url);
   }
 
-  private void parseTopologyFile(String topologyFile) throws IOException {
+  private void parseTopologyFile(String topologyFile) {
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(topologyFile);
     if (jsonTree.isJsonObject()) {
       JsonObject o = jsonTree.getAsJsonObject();
@@ -298,58 +292,8 @@ public class ScionBootstrapper {
     }
   }
 
-  private static JsonElement safeGet(JsonObject o, String name) {
-    JsonElement e = o.get(name);
-    if (e == null) {
-      throw new ScionRuntimeException("Entry not found in topology file: " + name);
-    }
-    return e;
-  }
-
-  private static String fetchTopologyFile(URL url) throws IOException {
-    LOG.info("Getting topology from bootstrap server-XX: " + url); // TODO remove
-    HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
-    httpURLConnection.setRequestMethod("GET");
-    httpURLConnection.setConnectTimeout((int) httpRequestTimeout.toMillis());
-
-    int responseCode = httpURLConnection.getResponseCode();
-    if (responseCode != HttpURLConnection.HTTP_OK) { // success
-      throw new ScionException(
-          "GET request failed (" + responseCode + ") on topology server: " + url);
-    }
-
-    BufferedReader in =
-        new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
-    StringBuilder response = new StringBuilder();
-    String inputLine;
-    while ((inputLine = in.readLine()) != null) {
-      response.append(inputLine); // .append(System.lineSeparator());
-    }
-    in.close();
-    httpURLConnection.disconnect(); // TODO finally
-    LOG.info("Getting topology from bootstrap server-XcX: " + response.toString()); // TODO remove
-
-    return response.toString();
-  }
-
   @Override
   public String toString() {
-    //    StringBuilder sb = new StringBuilder();
-    //    sb.append("ScionBootstrapper{");
-    //    sb.append("topologyServiceAddress='").append(topologyServiceAddress).append('\'');
-    //    sb.append(", localIsdAs='").append(localIsdAs).append('\'');
-    //    sb.append(", localMtu=").append(localMtu);
-    //    sb.append(", controlServices={");
-    //    for (ServiceNode sn : controlServices) {
-    //      sb.append(sn).append(",");
-    //    }
-    //    sb.append('}');
-    //    sb.append(", discoveryServices={");
-    //    for (ServiceNode sn : discoveryServices) {
-    //      sb.append(sn).append(",");
-    //    }
-    //    sb.append('}');
-    //    return sb.toString();
     StringBuilder sb = new StringBuilder();
     sb.append("Topo Server: ").append(topologyResource).append("\n");
     sb.append("ISD/AS: ").append(localIsdAs).append('\n');
@@ -362,5 +306,42 @@ public class ScionBootstrapper {
       sb.append("Discovery server: ").append(sn).append('\n');
     }
     return sb.toString();
+  }
+
+  private static class BorderRouter {
+    private final String name;
+    private final List<BorderRouterInterface> interfaces;
+
+    public BorderRouter(String name, List<BorderRouterInterface> interfaces) {
+      this.name = name;
+      this.interfaces = interfaces;
+    }
+  }
+
+  private static class BorderRouterInterface {
+    final int id;
+    final String publicUnderlay;
+    final String remoteUnderlay;
+
+    public BorderRouterInterface(String id, String publicU, String remoteU) {
+      this.id = Integer.parseInt(id);
+      this.publicUnderlay = publicU;
+      this.remoteUnderlay = remoteU;
+    }
+  }
+
+  private static class ServiceNode {
+    final String name;
+    final String ipString;
+
+    ServiceNode(String name, String ipString) {
+      this.name = name;
+      this.ipString = ipString;
+    }
+
+    @Override
+    public String toString() {
+      return "{" + "name='" + name + '\'' + ", ipString='" + ipString + '\'' + '}';
+    }
   }
 }

@@ -34,29 +34,16 @@ import org.slf4j.LoggerFactory;
 
 public class MockControlServer implements AutoCloseable {
 
-  //  public static final String DEFAULT_IP = "127.0.0.15";
-  //  public static final int DEFAULT_PORT = 31000;
-  //  public static final InetSocketAddress DEFAULT_ADDRESS =
-  //      new InetSocketAddress(DEFAULT_IP, DEFAULT_PORT);
-  //  public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
   private static final Logger logger = LoggerFactory.getLogger(MockControlServer.class.getName());
-  private static final AtomicInteger callCount = new AtomicInteger();
-  private static final byte[] PATH_RAW_TINY_110_112 = {
-    0, 0, 32, 0, 1, 0, 11, 16,
-    101, 83, 118, -81, 0, 63, 0, 0,
-    0, 2, 118, -21, 86, -46, 89, 0,
-    0, 63, 0, 1, 0, 0, -8, 2,
-    -114, 25, 76, -122,
-  };
-  public static MockControlServer DEFAULT = null;
+  private final AtomicInteger callCount = new AtomicInteger();
   private final InetSocketAddress address;
+  // TODO remove or use
   private final List<InetSocketAddress> borderRouters;
   private Server server;
 
   private MockControlServer(InetSocketAddress address) {
     this.address = address;
     this.borderRouters = new ArrayList<>();
-    // this.borderRouters.add(new InetSocketAddress("127.0.0.10", 31004));
   }
 
   private MockControlServer(InetSocketAddress address, List<InetSocketAddress> borderRouters) {
@@ -64,30 +51,12 @@ public class MockControlServer implements AutoCloseable {
     this.borderRouters = borderRouters;
   }
 
-  private static void setEnvironment() {
-    //    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
-    //    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
-  }
-
   public static MockControlServer start(int port) throws IOException {
-    if (DEFAULT != null) {
-      throw new NullPointerException();
-    }
-    setEnvironment();
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
-    DEFAULT = new MockControlServer(addr);
-    DEFAULT.startInternal();
-    return DEFAULT;
+    return new MockControlServer(addr).startInternal();
   }
 
-  public static void closeDefault() throws IOException {
-    if (DEFAULT != null) {
-      DEFAULT.close();
-      DEFAULT = null;
-    }
-  }
-
-  public static int getAndResetCallCount() {
+  public int getAndResetCallCount() {
     return callCount.getAndSet(0);
   }
 
@@ -132,7 +101,7 @@ public class MockControlServer implements AutoCloseable {
     }
   }
 
-  static class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
+  private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
     final List<String> borderRouters;
 
     ControlServiceImpl(List<String> borderRouters) {

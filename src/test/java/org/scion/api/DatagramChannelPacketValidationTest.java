@@ -82,8 +82,7 @@ class DatagramChannelPacketValidationTest {
   }
 
   @Test
-  void receive_validationFails_nonBlocking_noThrow()
-      throws IOException, InterruptedException {
+  void receive_validationFails_nonBlocking_noThrow() throws IOException, InterruptedException {
     // silently drop bad packets
     receive_validationFails_isBlocking_noThrow(false, false);
   }
@@ -95,8 +94,7 @@ class DatagramChannelPacketValidationTest {
   }
 
   @Test
-  void receive_validationFails_isBlocking_noThrow()
-      throws IOException, InterruptedException {
+  void receive_validationFails_isBlocking_noThrow() throws IOException, InterruptedException {
     // silently drop bad packets
     receive_validationFails_isBlocking_noThrow(false, true);
   }
