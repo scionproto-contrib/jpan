@@ -15,6 +15,8 @@
 package org.scion;
 
 import com.google.protobuf.ByteString;
+
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -34,8 +36,8 @@ public class PackageVisibilityHelper {
   }
 
   public static RequestPath createDummyPath() {
-    return createDummyPath(
-        0, ExamplePacket.SRC_HOST, 55555, new byte[0], new InetSocketAddress(12345));
+    InetSocketAddress dstAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    return createDummyPath(0, ExamplePacket.SRC_HOST, 55555, new byte[0], dstAddr);
   }
 
   public static RequestPath createDummyPath(

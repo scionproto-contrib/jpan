@@ -221,7 +221,7 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
-    long dstIsdAs = getIsdAs(dstAddress.getHostName());
+    long dstIsdAs = getIsdAs(dstAddress.getHostString());
     return getPaths(dstIsdAs, dstAddress);
   }
 

@@ -212,7 +212,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void isConnected_InetSocket() throws IOException {
+  void isConnected_InetSocket() throws IOException {
     //    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
     //    InetSocketAddress address = new InetSocketAddress("::1", 12345);
     // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
@@ -243,7 +243,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void isConnected_Path() throws IOException {
+  void isConnected_Path() throws IOException {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());
@@ -270,7 +270,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void getService() throws IOException {
+  void getService() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertEquals(Scion.defaultService(), channel.getService());
       ScionService service2 = Scion.newServiceWithDaemon("127.0.0.2");
@@ -281,7 +281,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void getPathPolicy() throws IOException {
+  void getPathPolicy() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertEquals(PathPolicy.DEFAULT, channel.getPathPolicy());
       assertEquals(PathPolicy.FIRST, channel.getPathPolicy());
@@ -292,7 +292,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void receive_bufferTooSmall() throws IOException {
+  void receive_bufferTooSmall() throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn =
@@ -315,7 +315,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void read_bufferTooSmall() throws IOException {
+  void read_bufferTooSmall() throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn =
@@ -339,34 +339,38 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void send_bufferTooLarge() {
+  void send_bufferTooLarge() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65500);
     buffer.limit(buffer.capacity());
     try (DatagramChannel channel = DatagramChannel.open()) {
       Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
-      assertTrue(ex.getMessage().contains("Message too long"));
+      String msg = ex.getMessage();
+      // Linux vs Windows(?)
+      assertTrue(msg.contains("too long") || msg.contains("larger than"), ex.getMessage());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   @Test
-  public void write_bufferToLarge() {
+  void write_bufferToLarge() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65500);
     buffer.limit(buffer.capacity());
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.connect(addr);
       Exception ex = assertThrows(IOException.class, () -> channel.write(buffer));
-      assertTrue(ex.getMessage().contains("Message too long"), ex.getMessage());
+      String msg = ex.getMessage();
+      // Linux vs Windows(?)
+      assertTrue(msg.contains("too long") || msg.contains("larger than"), ex.getMessage());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   @Test
-  public void read_NotConnectedFails() throws IOException {
+  void read_NotConnectedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertThrows(NotYetConnectedException.class, () -> channel.read(buffer));
@@ -374,7 +378,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void read_ChannelClosedFails() throws IOException {
+  void read_ChannelClosedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.close();
@@ -383,7 +387,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void write_NotConnectedFails() throws IOException {
+  void write_NotConnectedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertThrows(NotYetConnectedException.class, () -> channel.write(buffer));
@@ -391,7 +395,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void write_ChannelClosedFails() throws IOException {
+  void write_ChannelClosedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.close();
@@ -488,7 +492,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  public void geCurrentPath() {
+  void geCurrentPath() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (DatagramChannel channel = DatagramChannel.open()) {
