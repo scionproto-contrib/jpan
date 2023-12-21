@@ -26,7 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.demo.util.ToStringUtil;
-import org.scion.internal.DNSHelper;
+import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockTopologyServer;
@@ -252,7 +252,7 @@ public class ScionServiceTest {
     try (MockTopologyServer topoServer =
         MockTopologyServer.start(Paths.get("topology-dummy.json"))) {
       InetSocketAddress topoAddr = topoServer.getAddress();
-      DNSHelper.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+      DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       try (MockControlServer cs = MockControlServer.start(31006)) { // TODO get port from topo
         try (Scion.CloseableService ss = Scion.newServiceWithDNS(asHost)) {
           // destination address = 123.123.123.123 because we don´t care for getting a path
@@ -263,6 +263,8 @@ public class ScionServiceTest {
         assertEquals(1, topoServer.getAndResetCallCount());
         assertEquals(1, cs.getAndResetCallCount());
       }
+    } finally {
+      DNSUtil.clear();
     }
 
     // TODO test path
@@ -275,7 +277,7 @@ public class ScionServiceTest {
 
     try (MockTopologyServer topoServer = MockTopologyServer.start()) {
       InetSocketAddress topoAddr = topoServer.getAddress();
-      DNSHelper.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+      DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       try (MockControlServer cs = MockControlServer.start(31006)) { // TODO get port from topo
         try (Scion.CloseableService ss =
             Scion.newServiceWithBootstrapServerIP(ToStringUtil.toAddressPort(topoAddr))) {
@@ -287,6 +289,8 @@ public class ScionServiceTest {
         assertEquals(1, topoServer.getAndResetCallCount());
         assertEquals(1, cs.getAndResetCallCount());
       }
+    } finally {
+      DNSUtil.clear();
     }
     // TODO test path
   }

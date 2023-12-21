@@ -15,11 +15,15 @@
 package org.scion.internal;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import org.scion.ScionRuntimeException;
-import org.xbill.DNS.*;
+import org.xbill.DNS.AAAARecord;
+import org.xbill.DNS.ARecord;
+import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Record;
+import org.xbill.DNS.TXTRecord;
+import org.xbill.DNS.TextParseException;
+import org.xbill.DNS.Type;
 
 public class DNSHelper {
 
@@ -70,85 +74,5 @@ public class DNSHelper {
       throw new ScionRuntimeException("Illegal flag, should be A or AAAA: " + flag);
     }
     return null;
-  }
-
-  public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort)
-      throws TextParseException, UnknownHostException {
-    {
-      // NAPTR:
-      // flags=A
-      // service=x-sciondiscovery:tcp
-      // regExp=
-      // order=1
-      // pref=1
-      // repl=netsec-w37w3w.inf.ethz.ch.
-      // addName=netsec-w37w3w.inf.ethz.ch.
-      // dClass=1
-      // name=inf.ethz.ch.
-      // ttl=2533
-
-      String AS_HOST = asHost; // "iinf.ethz.ch.";
-      String REPL_HOST = "topohost.x.y."; // "netsec-w37w3w.inf.ethz.ch."
-      Cache c = new Cache(DClass.IN);
-
-      Name name = Name.fromString(AS_HOST + ".");
-      Name replacement = new Name(REPL_HOST);
-
-      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, "x-sciondiscovery=" + topoPort);
-      c.addRecord(txt, 10);
-
-      InetAddress addr = InetAddress.getByAddress(topoAddr);
-      String naptrFlag;
-      if (addr instanceof Inet4Address) {
-        ARecord a = new ARecord(replacement, DClass.IN, 5000, addr);
-        c.addRecord(a, 10);
-        naptrFlag = "A";
-      } else {
-        AAAARecord a = new AAAARecord(replacement, DClass.IN, 5000, addr);
-        c.addRecord(a, 10);
-        naptrFlag = "AAAA";
-      }
-
-      NAPTRRecord nr2 =
-          new NAPTRRecord(
-              name, DClass.IN, 5000, 1, 1, naptrFlag, "x-sciondiscovery:tcp", "", replacement);
-      c.addRecord(nr2, 10);
-
-      Lookup.setDefaultCache(c, DClass.IN);
-
-      // TODO clean up
-      //      System.out.println("NAme: " + name);
-      //    }
-      //
-      //    {
-      // String hostName = "iinf.ethz.ch";
-      //      Record[] nrRecords = new Lookup(AS_HOST, Type.NAPTR).run();
-      //      NAPTRRecord nr = (NAPTRRecord) nrRecords[0];
-      //      System.out.println(
-      //          "NAPTR2: "
-      //              + nr.getFlags()
-      //              + " "
-      //              + nr.getService()
-      //              + " reg="
-      //              + nr.getRegexp()
-      //              + " o="
-      //              + nr.getOrder()
-      //              + "  pref="
-      //              + nr.getPreference()
-      //              + "  repl="
-      //              + nr.getReplacement()
-      //              + "  addN="
-      //              + nr.getAdditionalName()
-      //              + "  "
-      //              + nr.getDClass()
-      //              + "  "
-      //              + nr.getName()
-      //              + "  ttl="
-      //              + nr.getTTL());
-      //
-      //      Record[] txtRecords = new Lookup(asHost, Type.TXT).run();
-      //      TXTRecord txtR = (TXTRecord) txtRecords[0];
-      //      System.out.println("TXT: " + txtR);
-    }
   }
 }
