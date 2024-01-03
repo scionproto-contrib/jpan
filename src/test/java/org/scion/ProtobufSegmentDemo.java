@@ -51,8 +51,8 @@ public class ProtobufSegmentDemo {
     long iaCyberex = ScionUtil.parseIA("71-2:0:49");
 
     ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
-    // demo.getSegments(iaETH, toWildcard(iaETH));
-    demo.getSegments(toCore(iaETH), toWildcard(iaAnapayaHK));
+    demo.getSegments(iaETH, toWildcard(iaETH));
+    // demo.getSegments(toCore(iaETH), toWildcard(iaAnapayaHK));
     //    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110);
     //    demo.getSegments(ia110, ia111);
   }
@@ -93,7 +93,7 @@ public class ProtobufSegmentDemo {
       for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
           response.getSegmentsMap().entrySet()) {
         System.out.println(
-            "SEG: key=" + seg.getKey() + " -> n=" + seg.getValue().getSegmentsCount());
+            "SEG: key=" + Seg.SegmentType.forNumber(seg.getKey()) + " -> n=" + seg.getValue().getSegmentsCount());
         for (Seg.PathSegment pathSegment : seg.getValue().getSegmentsList()) {
           System.out.println("  PathSeg: size=" + pathSegment.getSegmentInfo().size());
           Seg.SegmentInformation segInf =

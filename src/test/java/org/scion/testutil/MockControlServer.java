@@ -22,6 +22,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -40,6 +42,7 @@ public class MockControlServer implements AutoCloseable {
   // TODO remove or use
   private final List<InetSocketAddress> borderRouters;
   private Server server;
+  private ControlServiceImpl controlServer;
 
   private MockControlServer(InetSocketAddress address) {
     this.address = address;
@@ -64,9 +67,10 @@ public class MockControlServer implements AutoCloseable {
     List<String> brStr =
         borderRouters.stream().map(br -> br.toString().substring(1)).collect(Collectors.toList());
     int port = address.getPort();
+    controlServer = new MockControlServer.ControlServiceImpl(brStr);
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
-            .addService(new MockControlServer.ControlServiceImpl(brStr))
+            .addService(controlServer)
             .build()
             .start();
     logger.info("Server started, listening on " + address);
@@ -101,8 +105,17 @@ public class MockControlServer implements AutoCloseable {
     }
   }
 
+  public void addResponse(long srcIA, long dstIA, Seg.SegmentsResponse response) {
+    this.controlServer.addResponse(srcIA, dstIA, response);
+  }
+
+  public void clearSegments() {
+    this.controlServer.clearSegments();
+  }
+
   private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
     final List<String> borderRouters;
+    final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
 
     ControlServiceImpl(List<String> borderRouters) {
       this.borderRouters = borderRouters;
@@ -115,43 +128,60 @@ public class MockControlServer implements AutoCloseable {
       String dstIsdAsStr = ScionUtil.toStringIA(req.getDstIsdAs());
       logger.info("Segment request: " + srcIsdAsStr + " -> " + dstIsdAsStr);
       callCount.incrementAndGet();
-      Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
 
-      ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-      Seg.HopField hopField0 = Seg.HopField.newBuilder().setMac(mac0).build();
-      Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hopField0).build();
-      Seg.ASEntrySignedBody asSigneBody0 =
-          Seg.ASEntrySignedBody.newBuilder()
-              .setIsdAs(req.getSrcIsdAs())
-              .setHopEntry(hopEntry0)
-              .build();
-      Signed.HeaderAndBodyInternal habi0 =
-          Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
-      Signed.SignedMessage sm0 =
-          Signed.SignedMessage.newBuilder().setHeaderAndBody(habi0.toByteString()).build();
-      Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
-
-      ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-      Seg.HopField hopField1 = Seg.HopField.newBuilder().setMac(mac1).build();
-      Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hopField1).build();
-      Seg.ASEntrySignedBody asSigneBody1 =
-          Seg.ASEntrySignedBody.newBuilder()
-              .setIsdAs(req.getDstIsdAs())
-              .setHopEntry(hopEntry1)
-              .build();
-      Signed.HeaderAndBodyInternal habi1 =
-          Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
-      Signed.SignedMessage sm1 =
-          Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
-      Seg.ASEntry asEntry1 = Seg.ASEntry.newBuilder().setSigned(sm1).build();
-
-      Seg.PathSegment pathSegment =
-          Seg.PathSegment.newBuilder().addAsEntries(asEntry0).addAsEntries(asEntry1).build();
-      Seg.SegmentsResponse.Segments segments =
-          Seg.SegmentsResponse.Segments.newBuilder().addSegments(pathSegment).build();
-      replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_CORE_VALUE, segments);
-      responseObserver.onNext(replyBuilder.build());
+      if (responses.isEmpty()) {
+        responseObserver.onNext(defaultResponse(req.getSrcIsdAs(), req.getDstIsdAs()));
+      } else {
+        responseObserver.onNext(responses.get(req.getSrcIsdAs() + " <-> " + req.getDstIsdAs()));
+      }
       responseObserver.onCompleted();
     }
+
+    public void addResponse(long srcIA, long dstIA, Seg.SegmentsResponse response) {
+      responses.put(srcIA + " <-> " + dstIA, response);
+    }
+
+    public void clearSegments() {
+      responses.clear();
+    }
+  }
+
+  private static Seg.SegmentsResponse defaultResponse(long srcIA, long dstIA) {
+    Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
+
+    ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
+    Seg.HopField hopField0 = Seg.HopField.newBuilder().setMac(mac0).build();
+    Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hopField0).build();
+    Seg.ASEntrySignedBody asSigneBody0 =
+            Seg.ASEntrySignedBody.newBuilder()
+                    .setIsdAs(srcIA)
+                    .setHopEntry(hopEntry0)
+                    .build();
+    Signed.HeaderAndBodyInternal habi0 =
+            Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
+    Signed.SignedMessage sm0 =
+            Signed.SignedMessage.newBuilder().setHeaderAndBody(habi0.toByteString()).build();
+    Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
+
+    ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
+    Seg.HopField hopField1 = Seg.HopField.newBuilder().setMac(mac1).build();
+    Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hopField1).build();
+    Seg.ASEntrySignedBody asSigneBody1 =
+            Seg.ASEntrySignedBody.newBuilder()
+                    .setIsdAs(dstIA)
+                    .setHopEntry(hopEntry1)
+                    .build();
+    Signed.HeaderAndBodyInternal habi1 =
+            Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
+    Signed.SignedMessage sm1 =
+            Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
+    Seg.ASEntry asEntry1 = Seg.ASEntry.newBuilder().setSigned(sm1).build();
+
+    Seg.PathSegment pathSegment =
+            Seg.PathSegment.newBuilder().addAsEntries(asEntry0).addAsEntries(asEntry1).build();
+    Seg.SegmentsResponse.Segments segments =
+            Seg.SegmentsResponse.Segments.newBuilder().addSegments(pathSegment).build();
+    replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_CORE_VALUE, segments);
+    return replyBuilder.build();
   }
 }

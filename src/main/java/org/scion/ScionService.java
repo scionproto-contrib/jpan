@@ -417,9 +417,8 @@ public class ScionService {
     return ScionUtil.parseIA(txtEntry.substring(0, posComma));
   }
 
-  // TODO do not expose proto types on API
-  @Deprecated
-  public List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) throws ScionException {
+  // Do not expose proto types on API!
+  List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) throws ScionException {
     return Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
   }
 }

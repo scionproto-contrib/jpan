@@ -14,15 +14,15 @@
 
 package org.scion.testutil;
 
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import org.xbill.DNS.*;
 
 public class DNSUtil {
 
   public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort)
-      throws TextParseException, UnknownHostException {
+      throws IOException {
 
     // NAPTR:
     // flags=A

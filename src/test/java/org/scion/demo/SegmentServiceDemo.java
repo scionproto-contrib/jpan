@@ -90,7 +90,7 @@ public class SegmentServiceDemo {
     //    //dstCore = ScionUtil.parseIA("66-2:0:10"); // TODO remove
     //    ss.getSegments(dstCore, dstIsdAs);
 
-    List<Daemon.Path> list = ss.getPathListCS(srcIsdAs, dstIsdAs);
+    List<Daemon.Path> list = PackageVisibilityHelper.getPathListCS(ss, srcIsdAs, dstIsdAs);
     for (Daemon.Path path : list) {
       System.out.println("Path CS: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
       PathHeaderScion phs = new PathHeaderScion();
