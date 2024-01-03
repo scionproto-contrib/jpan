@@ -37,7 +37,7 @@ public class ScionBootstrapperTest {
 
     assertEquals(iaETH, sb.getLocalIsdAs());
     assertEquals(csETH, sb.getControlServerAddress());
-    assertFalse(sb.isCoreAS());
+    assertFalse(sb.isLocalAsCore());
   }
 
   @Test
@@ -47,6 +47,6 @@ public class ScionBootstrapperTest {
 
     assertEquals(ScionUtil.parseIA("1-ff00:0:110"), sb.getLocalIsdAs());
     assertEquals("127.0.0.11:31000", sb.getControlServerAddress());
-    assertTrue(sb.isCoreAS());
+    assertTrue(sb.isLocalAsCore());
   }
 }

@@ -261,7 +261,7 @@ public class ScionServiceTest {
           assertFalse(paths.isEmpty());
         }
         assertEquals(1, topoServer.getAndResetCallCount());
-        assertEquals(1, cs.getAndResetCallCount());
+        assertEquals(2, cs.getAndResetCallCount());
       }
     } finally {
       DNSUtil.clear();
@@ -287,7 +287,7 @@ public class ScionServiceTest {
           assertFalse(paths.isEmpty());
         }
         assertEquals(1, topoServer.getAndResetCallCount());
-        assertEquals(1, cs.getAndResetCallCount());
+        assertEquals(2, cs.getAndResetCallCount());
       }
     } finally {
       DNSUtil.clear();

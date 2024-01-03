@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.scion.ScionException;
+import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.crypto.Signed;
@@ -323,6 +324,10 @@ public class Segments {
     return found;
   }
 
+  private static boolean[] containsIsdAs(List<Seg.PathSegment> segments, long srcIsdAs, long dstIsdAs) throws ScionException {
+    return containsIsdAs(getEndingIAs(segments), srcIsdAs, dstIsdAs);
+  }
+
   private static List<Seg.PathSegment> getSegments(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
@@ -365,28 +370,61 @@ public class Segments {
     // G: srcISD!=dstISD; src==core
     // H: srcISD!=dstISD;
     long maskISD = -1L << 48;
-    long srcCore = srcIsdAs & maskISD;
-    long dstCore = dstIsdAs & maskISD;
+    long srcWildcard = srcIsdAs & maskISD;
+    long dstWildcard = dstIsdAs & maskISD;
+    int srcISD = ScionUtil.extractIsd(srcIsdAs);
+    int dstISD = ScionUtil.extractIsd(dstIsdAs);
 
     if (srcIsdAs == dstIsdAs) {
       // case A
       // TODO return *empty* path!
       return Collections.emptyList();
     }
-    if (srcCore == dstCore) {
+    if (srcISD == dstISD) {
       // cases B, C, D, E
-      List<Seg.PathSegment> segmentsUp = getSegments(segmentStub, srcIsdAs, srcCore);
-      long[] upIAs = Segments.getEndingIAs(segmentsUp);
-      boolean[] localCores = Segments.containsIsdAs(upIAs, srcIsdAs, dstIsdAs);
-      if (localCores[0] || localCores[1]) {
-        // SRC and/or DST are local cores.
-        // done: cases (A), B, C, D
-        return Segments.combineSegment(segmentsUp, brLookup);
+      // TODO in future we can find out whether an AS is CORE by parsing the TRC files:
+      //      https://docs.anapaya.net/en/latest/resources/isd-as-assignments/#as-assignments
+      //     ./bazel-bin/scion-pki/cmd/scion-pki/scion-pki_/scion-pki trc inspect
+      //         ../../Downloads/ISD64.bundle
+
+      if (brLookup.isLocalAsCore()) {
+        // cases C, D
+        // TODO we should first find out whether DST is also core
+        List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, srcIsdAs, srcWildcard);
+        long[] coreIAs = Segments.getEndingIAs(segmentsCore);
+        boolean[] coreHasIA = Segments.containsIsdAs(coreIAs, srcIsdAs, dstIsdAs);
+        if (coreHasIA[1]) {
+          // case D: DST is core
+          return Segments.combineSegment(segmentsCore, brLookup);
+        } else {
+          // case C: DST is not core
+          // We have to query down segments because SRC may not have a segment connected to DST
+          List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, srcWildcard, dstIsdAs);
+          boolean[] downHasIA = Segments.containsIsdAs(segmentsDown, srcIsdAs, dstIsdAs);
+          if (downHasIA[0]) {
+            return Segments.combineSegment(segmentsDown, brLookup);
+          }
+          return Segments.combineTwoSegments(
+              segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
+        }
+      } else {
+        // cases B, E
+        // TODO we should first find out whether DST is core -> avoid using wildcard
+        List<Seg.PathSegment> segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
+        boolean[] containsIsdAs = Segments.containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
+        if (containsIsdAs[1]) {
+          // case B: DST is core
+          return Segments.combineSegment(segmentsUp, brLookup);
+        } else {
+          // case E: DST is not core
+          List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, srcWildcard, dstIsdAs);
+          return Segments.combineTwoSegments(
+              segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
+        }
       }
-      // case E
-      List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstCore, dstIsdAs);
-      return Segments.combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
     }
+    long srcCore = srcWildcard; // TODO remove
+    long dstCore = dstWildcard; // TODO remove
 
     // remaining cases: F, G, H
     List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, srcCore, dstCore);

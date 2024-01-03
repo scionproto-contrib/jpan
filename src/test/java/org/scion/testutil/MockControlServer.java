@@ -105,8 +105,9 @@ public class MockControlServer implements AutoCloseable {
     }
   }
 
-  public void addResponse(long srcIA, long dstIA, Seg.SegmentsResponse response) {
-    this.controlServer.addResponse(srcIA, dstIA, response);
+  public void addResponse(long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore,
+                          Seg.SegmentsResponse response) {
+    this.controlServer.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
   }
 
   public void clearSegments() {
@@ -137,8 +138,20 @@ public class MockControlServer implements AutoCloseable {
       responseObserver.onCompleted();
     }
 
-    public void addResponse(long srcIA, long dstIA, Seg.SegmentsResponse response) {
+    public void addResponse(long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore, Seg.SegmentsResponse response) {
+      long maskISD = -1L << 48;
+      long srcWildcard = srcIA & maskISD;
+      long dstWildcard = dstIA & maskISD;
       responses.put(key(srcIA, dstIA), response);
+      if (dstIsCore) {
+        responses.put(key(srcIA, dstWildcard), response);
+      }
+      if (srcIsCore) {
+        responses.put(key(srcWildcard, dstIA), response);
+      }
+      if (srcIsCore && dstIsCore) {
+        responses.put(key(srcWildcard, dstWildcard), response);
+      }
     }
 
     public void clearSegments() {

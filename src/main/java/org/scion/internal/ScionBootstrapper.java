@@ -219,7 +219,7 @@ public class ScionBootstrapper {
     return controlServices.get(0).ipString;
   }
 
-  public boolean isCoreAS() {
+  public boolean isLocalAsCore() {
     return isCoreAs;
   }
 

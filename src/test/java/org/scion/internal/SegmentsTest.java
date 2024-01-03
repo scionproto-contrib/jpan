@@ -72,6 +72,8 @@ public class SegmentsTest {
   @AfterEach
   public void afterEach() {
     controlServer.clearSegments();
+    topoServer.getAndResetCallCount();
+    controlServer.getAndResetCallCount();
   }
 
   @AfterAll
@@ -81,8 +83,9 @@ public class SegmentsTest {
     DNSUtil.clear();
   }
 
+  @Disabled
   @Test
-  public void caseB_Up() throws IOException {
+  public void caseB_Up_Production() throws IOException {
     //    Requesting segments: 64-2:0:9 -> 64-0:0:0
     //    SEG: key=1 -> n=2
     //    PathSeg: size=10
@@ -110,7 +113,7 @@ public class SegmentsTest {
     //         HopEntry: true mtu=1472
     //           HopField: exp=63 ingress=2 egress=0
     long srcIA = ScionUtil.parseIA("64-2:0:9");
-    long dstIA = ScionUtil.parseIA("64-0:0:0");
+    long dstIA = ScionUtil.parseIA("64-0:0:0"); // TODO this is a wildcard address...
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 5));
     Seg.ASEntry ase00 = buildASEntry("64-0:0:22f", "64-2:0:9", 9000, he00);
     Seg.HopEntry he01 = buildHopEntry(9000, buildHopField(63, 1, 0));
@@ -124,7 +127,7 @@ public class SegmentsTest {
     Seg.PathSegment path1 = buildPath(30722, ase10, ase11);
 
     controlServer.addResponse(
-        srcIA, dstIA, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0, path1));
+        srcIA, false, dstIA, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0, path1));
 
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
@@ -135,6 +138,42 @@ public class SegmentsTest {
     assertEquals(1, controlServer.getAndResetCallCount());
   }
 
+  @Test
+  void caseB_Up() throws IOException {
+    //  Requesting segments: 1-ff00:0:111 -> 1-ff00:0:110
+    //  SEG: key=SEGMENT_TYPE_UP -> n=1
+    //  PathSeg: size=10
+    //  SegInfo:  ts=2024-01-03T14:51:44Z  id=31466
+    //    AS: signed=92   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:51:44.085068203Z
+    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=1
+    //    AS: signed=89   signature size=70
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:51:44.587225332Z
+    //    AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1280
+    //        HopField: exp=63 ingress=41 egress=0
+
+    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
+    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
+    Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
+    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
+    Seg.PathSegment path0 = buildPath(31466, ase00, ase01);
+
+    controlServer.addResponse(
+        srcIA, false, dstIA, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(1, controlServer.getAndResetCallCount());
+  }
 
   @Test
   void caseC_Down() throws IOException {
@@ -162,7 +201,7 @@ public class SegmentsTest {
     Seg.PathSegment path0 = buildPath(17889, ase00, ase01);
 
     controlServer.addResponse(
-            srcIA, dstIA, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+        srcIA, true, dstIA, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
 
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
@@ -170,7 +209,7 @@ public class SegmentsTest {
       assertFalse(paths.isEmpty());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
   }
 
   @Test
@@ -183,7 +222,7 @@ public class SegmentsTest {
       assertTrue(paths.isEmpty());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(0, controlServer.getAndResetCallCount());
   }
 
   @Test
@@ -196,7 +235,7 @@ public class SegmentsTest {
       assertTrue(paths.isEmpty());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(0, controlServer.getAndResetCallCount());
   }
 
   private static Seg.HopField buildHopField(int expiry, int ingress, int egress) {
