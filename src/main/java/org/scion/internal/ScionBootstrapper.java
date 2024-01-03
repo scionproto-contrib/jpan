@@ -110,11 +110,11 @@ public class ScionBootstrapper {
           String naptrFlag = nr.getFlags();
           int port = queryTXT(hostName);
           if ("A".equals(naptrFlag)) {
-            InetAddress addr = DNSHelper.queryAOrAaaa(naptrFlag, host);
+            InetAddress addr = DNSHelper.queryA(host);
             return addr.getHostAddress() + ":" + port;
           }
           if ("AAAA".equals(naptrFlag)) {
-            InetAddress addr = DNSHelper.queryAOrAaaa(naptrFlag, host);
+            InetAddress addr = DNSHelper.queryAAAA(host);
             return "[" + addr.getHostAddress() + "]:" + port;
           } // keep going and collect more hints
         }

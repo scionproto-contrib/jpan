@@ -49,29 +49,28 @@ public class DNSHelper {
     return null;
   }
 
-  public static InetAddress queryAOrAaaa(String flag, String hostName) throws IOException {
-    if ("A".equals(flag)) {
-      Record[] recordsA = new Lookup(hostName, Type.A).run();
-      if (recordsA == null) {
-        throw new ScionRuntimeException("No DNS A entry found for host: " + hostName);
-      }
-      for (int i = 0; i < recordsA.length; i++) {
-        ARecord ar = (ARecord) recordsA[i];
-        // TODO just return the first one for now
-        return ar.getAddress();
-      }
-    } else if ("AAAA".equals(flag)) {
-      Record[] recordsA = new Lookup(hostName, Type.AAAA).run();
-      if (recordsA == null) {
-        throw new ScionRuntimeException("No DNS AAAA entry found for host: " + hostName);
-      }
-      for (int i = 0; i < recordsA.length; i++) {
-        AAAARecord ar = (AAAARecord) recordsA[i];
-        // TODO just return the first one for now
-        return ar.getAddress();
-      }
-    } else {
-      throw new ScionRuntimeException("Illegal flag, should be A or AAAA: " + flag);
+  public static InetAddress queryA(String hostName) throws IOException {
+    Record[] recordsA = new Lookup(hostName, Type.A).run();
+    if (recordsA == null) {
+      throw new ScionRuntimeException("No DNS A entry found for host: " + hostName);
+    }
+    for (int i = 0; i < recordsA.length; i++) {
+      ARecord ar = (ARecord) recordsA[i];
+      // TODO just return the first one for now
+      return ar.getAddress();
+    }
+    return null;
+  }
+
+  public static InetAddress queryAAAA(String hostName) throws IOException {
+    Record[] recordsA = new Lookup(hostName, Type.AAAA).run();
+    if (recordsA == null) {
+      throw new ScionRuntimeException("No DNS AAAA entry found for host: " + hostName);
+    }
+    for (int i = 0; i < recordsA.length; i++) {
+      AAAARecord ar = (AAAARecord) recordsA[i];
+      // TODO just return the first one for now
+      return ar.getAddress();
     }
     return null;
   }
