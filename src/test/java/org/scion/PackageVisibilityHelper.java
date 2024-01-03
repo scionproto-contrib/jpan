@@ -20,9 +20,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.scion.internal.ScionHeaderParser;
-import org.scion.internal.Segments;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 
@@ -33,7 +31,8 @@ public class PackageVisibilityHelper {
 
   public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_MOCK_DNS_TXT;
 
-  public static List<Daemon.Path> getPathListCS(ScionService ss, long srcIsdAs, long dstIsdAs) throws ScionException {
+  public static List<Daemon.Path> getPathListCS(ScionService ss, long srcIsdAs, long dstIsdAs)
+      throws ScionException {
     return ss.getPathListCS(srcIsdAs, dstIsdAs);
   }
 

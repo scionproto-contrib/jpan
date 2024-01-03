@@ -324,7 +324,8 @@ public class Segments {
     return found;
   }
 
-  private static boolean[] containsIsdAs(List<Seg.PathSegment> segments, long srcIsdAs, long dstIsdAs) throws ScionException {
+  private static boolean[] containsIsdAs(
+      List<Seg.PathSegment> segments, long srcIsdAs, long dstIsdAs) throws ScionException {
     return containsIsdAs(getEndingIAs(segments), srcIsdAs, dstIsdAs);
   }
 

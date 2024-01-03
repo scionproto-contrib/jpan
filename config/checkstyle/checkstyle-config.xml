@@ -19,5 +19,6 @@
 <!--        <property name="headerFile" value="java.header.txt"/>-->
         <property name="headerFile" value="${base_dir}/config/checkstyle/java.header.txt"/>
         <property name="fileExtensions" value="java"/>
+        <property name="ignoreLines" value="1"/>
     </module>
 </module>

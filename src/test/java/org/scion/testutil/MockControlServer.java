@@ -105,8 +105,8 @@ public class MockControlServer implements AutoCloseable {
     }
   }
 
-  public void addResponse(long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore,
-                          Seg.SegmentsResponse response) {
+  public void addResponse(
+      long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore, Seg.SegmentsResponse response) {
     this.controlServer.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
   }
 
@@ -138,7 +138,12 @@ public class MockControlServer implements AutoCloseable {
       responseObserver.onCompleted();
     }
 
-    public void addResponse(long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore, Seg.SegmentsResponse response) {
+    public void addResponse(
+        long srcIA,
+        boolean srcIsCore,
+        long dstIA,
+        boolean dstIsCore,
+        Seg.SegmentsResponse response) {
       long maskISD = -1L << 48;
       long srcWildcard = srcIA & maskISD;
       long dstWildcard = dstIA & maskISD;
@@ -170,34 +175,28 @@ public class MockControlServer implements AutoCloseable {
     Seg.HopField hopField0 = Seg.HopField.newBuilder().setMac(mac0).build();
     Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hopField0).build();
     Seg.ASEntrySignedBody asSigneBody0 =
-            Seg.ASEntrySignedBody.newBuilder()
-                    .setIsdAs(srcIA)
-                    .setHopEntry(hopEntry0)
-                    .build();
+        Seg.ASEntrySignedBody.newBuilder().setIsdAs(srcIA).setHopEntry(hopEntry0).build();
     Signed.HeaderAndBodyInternal habi0 =
-            Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
+        Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
     Signed.SignedMessage sm0 =
-            Signed.SignedMessage.newBuilder().setHeaderAndBody(habi0.toByteString()).build();
+        Signed.SignedMessage.newBuilder().setHeaderAndBody(habi0.toByteString()).build();
     Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
 
     ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
     Seg.HopField hopField1 = Seg.HopField.newBuilder().setMac(mac1).build();
     Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hopField1).build();
     Seg.ASEntrySignedBody asSigneBody1 =
-            Seg.ASEntrySignedBody.newBuilder()
-                    .setIsdAs(dstIA)
-                    .setHopEntry(hopEntry1)
-                    .build();
+        Seg.ASEntrySignedBody.newBuilder().setIsdAs(dstIA).setHopEntry(hopEntry1).build();
     Signed.HeaderAndBodyInternal habi1 =
-            Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
+        Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
     Signed.SignedMessage sm1 =
-            Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
+        Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
     Seg.ASEntry asEntry1 = Seg.ASEntry.newBuilder().setSigned(sm1).build();
 
     Seg.PathSegment pathSegment =
-            Seg.PathSegment.newBuilder().addAsEntries(asEntry0).addAsEntries(asEntry1).build();
+        Seg.PathSegment.newBuilder().addAsEntries(asEntry0).addAsEntries(asEntry1).build();
     Seg.SegmentsResponse.Segments segments =
-            Seg.SegmentsResponse.Segments.newBuilder().addSegments(pathSegment).build();
+        Seg.SegmentsResponse.Segments.newBuilder().addSegments(pathSegment).build();
     replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_CORE_VALUE, segments);
     return replyBuilder.build();
   }

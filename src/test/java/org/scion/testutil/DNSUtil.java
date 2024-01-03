@@ -21,8 +21,7 @@ import org.xbill.DNS.*;
 
 public class DNSUtil {
 
-  public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort)
-      throws IOException {
+  public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort) throws IOException {
 
     // NAPTR:
     // flags=A
