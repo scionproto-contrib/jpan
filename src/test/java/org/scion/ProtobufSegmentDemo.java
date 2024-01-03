@@ -45,16 +45,17 @@ public class ProtobufSegmentDemo {
 
     String csETH = "192.168.53.20:30252";
     long iaETH = ScionUtil.parseIA("64-2:0:9");
+    long iaETH_CORE = ScionUtil.parseIA("64-0:0:22f");
     long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
     long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
     long iaCyberex = ScionUtil.parseIA("71-2:0:49");
 
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
-    demo.getSegments(iaETH, toWildcard(iaETH));
+    // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
+    // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(toCore(iaETH), toWildcard(iaAnapayaHK));
-    //    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110);
-    //    demo.getSegments(ia110, ia111);
+    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr111);
+    demo.getSegments(ia111, ia111);
   }
 
   private static long toWildcard(long ia) {

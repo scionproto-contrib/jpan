@@ -132,17 +132,21 @@ public class MockControlServer implements AutoCloseable {
       if (responses.isEmpty()) {
         responseObserver.onNext(defaultResponse(req.getSrcIsdAs(), req.getDstIsdAs()));
       } else {
-        responseObserver.onNext(responses.get(req.getSrcIsdAs() + " <-> " + req.getDstIsdAs()));
+        responseObserver.onNext(responses.get(key(req.getSrcIsdAs(), req.getDstIsdAs())));
       }
       responseObserver.onCompleted();
     }
 
     public void addResponse(long srcIA, long dstIA, Seg.SegmentsResponse response) {
-      responses.put(srcIA + " <-> " + dstIA, response);
+      responses.put(key(srcIA, dstIA), response);
     }
 
     public void clearSegments() {
       responses.clear();
+    }
+
+    private String key(long ia0, long ia1) {
+      return ia0 + " -> " + ia1;
     }
   }
 

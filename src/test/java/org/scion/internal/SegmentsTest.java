@@ -82,7 +82,7 @@ public class SegmentsTest {
   }
 
   @Test
-  public void caseB() throws IOException {
+  public void caseB_Up() throws IOException {
     //    Requesting segments: 64-2:0:9 -> 64-0:0:0
     //    SEG: key=1 -> n=2
     //    PathSeg: size=10
@@ -130,6 +130,70 @@ public class SegmentsTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(1, controlServer.getAndResetCallCount());
+  }
+
+
+  @Test
+  void caseC_Down() throws IOException {
+    //  Requesting segments: 1-ff00:0:110 -> 1-ff00:0:111
+    //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
+    //  PathSeg: size=10
+    //  SegInfo:  ts=2024-01-03T14:27:54Z  id=17889
+    //    AS: signed=92   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:27:54.197517906Z
+    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=1
+    //    AS: signed=89   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:27:54.696855774Z
+    //    AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1280
+    //        HopField: exp=63 ingress=41 egress=0
+
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
+    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
+    Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
+    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
+    Seg.PathSegment path0 = buildPath(17889, ase00, ase01);
+
+    controlServer.addResponse(
+            srcIA, dstIA, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(1, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseD_SameCoreAS() throws IOException {
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      assertNotNull(paths);
+      assertTrue(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(1, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseE_SameNonCoreAS() throws IOException {
+    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      assertNotNull(paths);
+      assertTrue(paths.isEmpty());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());
