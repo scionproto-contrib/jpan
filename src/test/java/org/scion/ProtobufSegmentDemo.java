@@ -63,8 +63,10 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
     ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr111_minimal);
-    //demo.getSegments(ia110, ia112);
-    demo.getSegments(toWildcard(ia110), ia120);
+    //demo.getSegments(ia110, ia121);
+    //demo.getSegments(ia111, toWildcard(ia111));
+    //demo.getSegments(toWildcard(ia121), ia121);
+    demo.getSegments(ia110, toWildcard(ia120));
   }
 
   private static long toWildcard(long ia) {

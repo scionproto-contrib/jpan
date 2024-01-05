@@ -65,9 +65,9 @@ public class SegmentsMinimalTest {
   /** ISD 1 - non-core AS */
   protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");
   /** ISD 2 - core AS */
-  protected static final long AS_210 = ScionUtil.parseIA("1-ff00:0:210");
+  protected static final long AS_210 = ScionUtil.parseIA("2-ff00:0:210");
   /** ISD 2 - non-core AS */
-  protected static final long AS_211 = ScionUtil.parseIA("1-ff00:0:211");
+  protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
 
   protected static MockControlServer controlServer;
 
