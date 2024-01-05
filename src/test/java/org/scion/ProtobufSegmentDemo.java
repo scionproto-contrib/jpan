@@ -36,12 +36,20 @@ public class ProtobufSegmentDemo {
 
   public static void main(String[] args) throws ScionException {
     // Control service IPs
-    String csAddr110 = "127.0.0.11:31000";
-    String csAddr111 = "127.0.0.18:31006";
-    String csAddr112 = "[fd00:f00d:cafe::7f00:a]:31010";
+    String csAddr110_tiny = "127.0.0.11:31000";
+    String csAddr111_tiny = "127.0.0.18:31006";
+    String csAddr112_tiny = "[fd00:f00d:cafe::7f00:a]:31010";
+    String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
+    String csAddr111_default = "[fd00:f00d:cafe::7f00:1c]:31022";
+    String csAddr110_minimal = "127.0.0.20:31000";
+    String csAddr111_minimal = "127.0.0.26:31016";
     long ia110 = ScionUtil.parseIA("1-ff00:0:110");
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");
+    long ia120 = ScionUtil.parseIA("1-ff00:0:120");
+    long ia121 = ScionUtil.parseIA("1-ff00:0:121");
+    long ia210 = ScionUtil.parseIA("2-ff00:0:210");
+    long ia211 = ScionUtil.parseIA("2-ff00:0:211");
 
     String csETH = "192.168.53.20:30252";
     long iaETH = ScionUtil.parseIA("64-2:0:9");
@@ -53,16 +61,13 @@ public class ProtobufSegmentDemo {
 
     // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
     // demo.getSegments(iaETH, iaETH_CORE);
-    // demo.getSegments(toCore(iaETH), toWildcard(iaAnapayaHK));
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr111);
-    demo.getSegments(ia111, ia112);
+    // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
+    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr111_minimal);
+    // demo.getSegments(ia120, ia210);
+    demo.getSegments(toWildcard(ia210), ia211);
   }
 
   private static long toWildcard(long ia) {
-    return (ia >> 48) << 48;
-  }
-
-  private static long toCore(long ia) {
     return (ia >> 48) << 48;
   }
 

@@ -121,7 +121,6 @@ public class MockTopologyServer implements Closeable {
 
     @Override
     public void run() {
-      InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 23432);
       try (ServerSocketChannel chnLocal = ServerSocketChannel.open().bind(null)) {
         chnLocal.configureBlocking(true);
         ByteBuffer buffer = ByteBuffer.allocate(66000);
@@ -144,9 +143,9 @@ public class MockTopologyServer implements Closeable {
             out.append("HTTP/1.1 200 OK\n");
             out.append("Connection: close\n");
             out.append("Content-Type: text/plain\n");
-            out.append("Content-Length:" + topologyFile.length() + "\n");
+            out.append("Content-Length:").append(topologyFile.length()).append("\n");
             out.append("\n");
-            out.append(topologyFile + "\n");
+            out.append(topologyFile).append("\n");
 
             buffer.put(out.toString().getBytes());
             buffer.flip();
