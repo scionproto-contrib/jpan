@@ -67,7 +67,7 @@ public class SegmentsTest {
     //   - a core AS always has AS-nubmer != 0 !!!!!
     //   Fix this is Segments.java
 
-    topoServer = MockTopologyServer.start(Paths.get("topology-dummy.json"));
+    topoServer = MockTopologyServer.start(Paths.get("topologies/dummy.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(31006); // TODO get port from topo

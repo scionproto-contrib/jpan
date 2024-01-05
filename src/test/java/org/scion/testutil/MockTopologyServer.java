@@ -60,7 +60,7 @@ public class MockTopologyServer implements Closeable {
   }
 
   public static MockTopologyServer start() throws IOException {
-    return new MockTopologyServer(Paths.get("topology-tiny-111.json"));
+    return new MockTopologyServer(Paths.get("topologies/scionproto-tiny-111.json"));
   }
 
   public static MockTopologyServer start(Path topoFile) throws IOException {

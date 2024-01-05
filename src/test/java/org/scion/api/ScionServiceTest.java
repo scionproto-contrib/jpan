@@ -250,7 +250,7 @@ public class ScionServiceTest {
     //   Fix this is Segments.java
 
     try (MockTopologyServer topoServer =
-        MockTopologyServer.start(Paths.get("topology-dummy.json"))) {
+        MockTopologyServer.start(Paths.get("topologies/dummy.json"))) {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       try (MockControlServer cs = MockControlServer.start(31006)) { // TODO get port from topo

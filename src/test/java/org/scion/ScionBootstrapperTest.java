@@ -32,7 +32,7 @@ public class ScionBootstrapperTest {
     long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
 
     // ScionBootstrapper sb = ScionBootstrapper.createViaBootstrapServerIP(bootETH);
-    java.nio.file.Path topoFile = Paths.get("topology-ETH.json");
+    java.nio.file.Path topoFile = Paths.get("topologies/ETH.json");
     ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
 
     assertEquals(iaETH, sb.getLocalIsdAs());
@@ -42,7 +42,7 @@ public class ScionBootstrapperTest {
 
   @Test
   void testTiny110() {
-    java.nio.file.Path topoFile = Paths.get("topology-tiny-110.json");
+    java.nio.file.Path topoFile = Paths.get("topologies/scionproto-tiny-110.json");
     ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
 
     assertEquals(ScionUtil.parseIA("1-ff00:0:110"), sb.getLocalIsdAs());
