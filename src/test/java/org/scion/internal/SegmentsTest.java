@@ -41,37 +41,44 @@ import org.scion.testutil.MockControlServer;
 import org.scion.testutil.MockTopologyServer;
 
 /**
- * Cases: <br>
- * A (-): src == dst <br>
- * B (UP): srcISD == dstISD; dst == core <br>
- * C (DOWN): srcISD == dstISD; src == core <br>
- * D (CORE): srcISD == dstISD; src == core, dst == core <br>
- * E (-): srcISD == dstISD; <br>
- * F (UP, CORE): srcISD != dstISD; dst == core <br>
- * G (CORE, DOWN): srcISD != dstISD; src == core <br>
- * H (UP, CORE, DOWN): srcISD != dstISD;
+ * Test cases: <br>
+ * A (-): srcISD == dstISD; src == dst; (same ISD, same AS)<br>
+ * B (UP): srcISD == dstISD; dst == core; (same ISD, dst is core)<br>
+ * C (DOWN): srcISD == dstISD; src == core; (same ISD, dst is core)<br>
+ * D (CORE): srcISD == dstISD; src == core, dst == core; (same ISD, src/dst are cores)<br>
+ * E (UP, DOWN): srcISD == dstISD; (same ISD, src/dst are non-cores)<br>
+ * F (UP, CORE): srcISD != dstISD; dst == core; (different ISDs, dst is core)<br>
+ * G (CORE, DOWN): srcISD != dstISD; src == core; (different ISDs, src is cores)<br>
+ * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
+ * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
 public class SegmentsTest {
   private static final String AS_HOST = "my-as-host.org";
+  private static final long ZERO = ScionUtil.parseIA("0-0:0:0");
+  /** ISD 1 - core AS */
   private static final long TINY_110 = ScionUtil.parseIA("1-ff00:0:110");
+  /** ISD 1 - non-core AS */
   private static final long TINY_111 = ScionUtil.parseIA("1-ff00:0:111");
+  /** ISD 1 - non-core AS */
+  private static final long TINY_112 = ScionUtil.parseIA("1-ff00:0:112");
+  /** ISD 1 - core AS */
+  private static final long TINY_120 = ScionUtil.parseIA("1-ff00:0:120");
+  /** ISD 1 - non-core AS */
+  private static final long TINY_121 = ScionUtil.parseIA("1-ff00:0:121");
+  /** ISD 2 - core AS */
+  private static final long TINY_210 = ScionUtil.parseIA("1-ff00:0:210");
+  /** ISD 2 - non-core AS */
+  private static final long TINY_211 = ScionUtil.parseIA("1-ff00:0:211");
 
   private static MockTopologyServer topoServer;
   private static MockControlServer controlServer;
 
   @BeforeAll
   public static void beforeAll() throws IOException {
-
-    // TODO FIX misunderstanding with core AS
-    //   - 1<<48 give the ISD, but NOT the coreAS
-    //   - a core AS always has AS-nubmer != 0 !!!!!
-    //   Fix this is Segments.java
-
     topoServer = MockTopologyServer.start(Paths.get("topologies/dummy.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(31006); // TODO get port from topo
-    // controlServer.addSegments(1, 2, Seg.SegmentsResponse.newBuilder().build());
   }
 
   @AfterEach
@@ -144,31 +151,7 @@ public class SegmentsTest {
   }
 
   @Test
-  void caseB_Up() throws IOException {
-    addResponseTiny();
-    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_111, TINY_110);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
-    }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
-  }
-
-  @Test
-  void caseC_Down() throws IOException {
-    addResponseTiny();
-    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_110, TINY_111);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
-    }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
-  }
-
-  @Test
-  void caseD_SameCoreAS() throws IOException {
+  void caseA_SameCoreAS() throws IOException {
     addResponseTiny();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_110, TINY_110);
@@ -180,7 +163,7 @@ public class SegmentsTest {
   }
 
   @Test
-  void caseE_SameNonCoreAS() throws IOException {
+  void caseA_SameNonCoreAS() throws IOException {
     addResponseTiny();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_111, TINY_111);
@@ -189,6 +172,67 @@ public class SegmentsTest {
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(0, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseB_SameIsd_Up() throws IOException {
+    addResponseTiny();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_111, TINY_110);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(1, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseC_SameIsd_Down() throws IOException {
+    addResponseTiny();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_110, TINY_111);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
+  }
+
+
+  @Test
+  void caseD_SameIsd_Core() throws IOException {
+    addResponseTiny();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_110, TINY_120);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseE_SameIsd_UpDown_OneCoreAS() throws IOException {
+    addResponseTiny();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_111, TINY_112);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseE_SameIsd_UpDownTwoCoreAS() throws IOException {
+    addResponseTiny();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_111, TINY_121);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
   }
 
   private static Seg.HopField buildHopField(int expiry, int ingress, int egress) {
@@ -282,16 +326,14 @@ public class SegmentsTest {
     //      HopEntry: true mtu=1280
     //        HopField: exp=63 ingress=41 egress=0
 
-    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
-    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
+    Seg.ASEntry ase00 = buildASEntry(TINY_110, TINY_111, 1400, he00);
     Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
-    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
+    Seg.ASEntry ase01 = buildASEntry(TINY_111, ZERO, 1472, he01);
     Seg.PathSegment path0 = buildPath(31466, ase00, ase01);
 
     controlServer.addResponse(
-        srcIA, false, dstIA, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+        TINY_111, false, TINY_110, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 
   private void addResponseTinyDown() {
@@ -310,15 +352,13 @@ public class SegmentsTest {
     //      HopEntry: true mtu=1280
     //        HopField: exp=63 ingress=41 egress=0
 
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:111");
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
-    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
+    Seg.ASEntry ase00 = buildASEntry(TINY_110, TINY_111, 1400, he00);
     Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
-    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
+    Seg.ASEntry ase01 = buildASEntry(TINY_111, ZERO, 1472, he01);
     Seg.PathSegment path0 = buildPath(17889, ase00, ase01);
 
     controlServer.addResponse(
-        srcIA, true, dstIA, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+        TINY_110, true, TINY_111, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 }
