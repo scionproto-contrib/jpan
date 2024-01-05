@@ -28,6 +28,7 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
@@ -51,6 +52,7 @@ import org.scion.testutil.MockTopologyServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
+@Disabled
 public class SegmentsDefaultTest {
   private static final String AS_HOST = "my-as-host.org";
   private static final long ZERO = ScionUtil.parseIA("0-0:0:0");

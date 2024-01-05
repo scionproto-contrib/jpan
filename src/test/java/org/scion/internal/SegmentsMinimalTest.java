@@ -15,29 +15,15 @@
 package org.scion.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.scion.PackageVisibilityHelper;
-import org.scion.Scion;
 import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.crypto.Signed;
-import org.scion.proto.daemon.Daemon;
-import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
-import org.scion.testutil.MockTopologyServer;
 
 /**
  * Test cases: <br>
@@ -209,12 +195,14 @@ public class SegmentsMinimalTest {
     //    PathSeg: size=9
     //    SegInfo:  ts=2024-01-05T15:02:17Z  id=5701
     //      AS: signed=93   signature size=71
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:17.455400479Z  meta=0  data=9
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:17.455400479Z
+    // meta=0  data=9
     //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:112  mtu=1472
     //        HopEntry: true mtu=0
     //          HopField: exp=63 ingress=0 egress=3
     //      AS: signed=90   signature size=71
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:20.450271904Z  meta=0  data=173
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:20.450271904Z
+    // meta=0  data=173
     //      AS Body: IA=1-ff00:0:112 nextIA=0-0:0:0  mtu=1450
     //        HopEntry: true mtu=1472
     //          HopField: exp=63 ingress=453 egress=0
@@ -225,7 +213,7 @@ public class SegmentsMinimalTest {
     Seg.PathSegment path0 = buildPath(5701, ase00, ase01);
 
     controlServer.addResponse(
-            AS_110, true, AS_112, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+        AS_110, true, AS_112, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 
   private void addResponse110_120() {
@@ -234,12 +222,14 @@ public class SegmentsMinimalTest {
     //    PathSeg: size=10
     //    SegInfo:  ts=2024-01-05T15:02:54Z  id=26755
     //      AS: signed=93   signature size=72
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.462275285Z  meta=0  data=10
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.462275285Z
+    // meta=0  data=10
     //      AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
     //        HopEntry: true mtu=0
     //          HopField: exp=63 ingress=0 egress=10
     //      AS: signed=89   signature size=71
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.951643890Z  meta=0  data=175
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.951643890Z
+    // meta=0  data=175
     //      AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
     //        HopEntry: true mtu=1472
     //          HopField: exp=63 ingress=1 egress=0

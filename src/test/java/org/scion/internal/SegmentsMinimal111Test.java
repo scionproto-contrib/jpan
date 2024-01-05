@@ -116,6 +116,6 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       assertFalse(paths.isEmpty());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
   }
 }

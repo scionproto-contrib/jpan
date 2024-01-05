@@ -63,9 +63,9 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
     ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr111_minimal);
-    //demo.getSegments(ia110, ia121);
-    //demo.getSegments(ia111, toWildcard(ia111));
-    //demo.getSegments(toWildcard(ia121), ia121);
+    // demo.getSegments(ia110, ia121);
+    // demo.getSegments(ia111, toWildcard(ia111));
+    // demo.getSegments(toWildcard(ia121), ia121);
     demo.getSegments(ia110, toWildcard(ia120));
   }
 

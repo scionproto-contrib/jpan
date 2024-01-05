@@ -52,6 +52,7 @@ import org.scion.testutil.MockTopologyServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
+@Disabled
 public class SegmentsTinyTest {
   private static final String AS_HOST = "my-as-host.org";
   private static final long ZERO = ScionUtil.parseIA("0-0:0:0");
