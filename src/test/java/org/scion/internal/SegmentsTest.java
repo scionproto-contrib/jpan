@@ -53,6 +53,8 @@ import org.scion.testutil.MockTopologyServer;
  */
 public class SegmentsTest {
   private static final String AS_HOST = "my-as-host.org";
+  private static final long TINY_110 = ScionUtil.parseIA("1-ff00:0:110");
+  private static final long TINY_111 = ScionUtil.parseIA("1-ff00:0:111");
 
   private static MockTopologyServer topoServer;
   private static MockControlServer controlServer;
@@ -143,34 +145,9 @@ public class SegmentsTest {
 
   @Test
   void caseB_Up() throws IOException {
-    //  Requesting segments: 1-ff00:0:111 -> 1-ff00:0:110
-    //  SEG: key=SEGMENT_TYPE_UP -> n=1
-    //  PathSeg: size=10
-    //  SegInfo:  ts=2024-01-03T14:51:44Z  id=31466
-    //    AS: signed=92   signature size=72
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:51:44.085068203Z
-    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
-    //      HopEntry: true mtu=0
-    //        HopField: exp=63 ingress=0 egress=1
-    //    AS: signed=89   signature size=70
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:51:44.587225332Z
-    //    AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
-    //      HopEntry: true mtu=1280
-    //        HopField: exp=63 ingress=41 egress=0
-
-    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
-    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
-    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
-    Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
-    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
-    Seg.PathSegment path0 = buildPath(31466, ase00, ase01);
-
-    controlServer.addResponse(
-        srcIA, false, dstIA, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
-
+    addResponseTiny();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_111, TINY_110);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
     }
@@ -180,34 +157,9 @@ public class SegmentsTest {
 
   @Test
   void caseC_Down() throws IOException {
-    //  Requesting segments: 1-ff00:0:110 -> 1-ff00:0:111
-    //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
-    //  PathSeg: size=10
-    //  SegInfo:  ts=2024-01-03T14:27:54Z  id=17889
-    //    AS: signed=92   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:27:54.197517906Z
-    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
-    //      HopEntry: true mtu=0
-    //        HopField: exp=63 ingress=0 egress=1
-    //    AS: signed=89   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:27:54.696855774Z
-    //    AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
-    //      HopEntry: true mtu=1280
-    //        HopField: exp=63 ingress=41 egress=0
-
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:111");
-    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
-    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
-    Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
-    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
-    Seg.PathSegment path0 = buildPath(17889, ase00, ase01);
-
-    controlServer.addResponse(
-        srcIA, true, dstIA, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
-
+    addResponseTiny();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_110, TINY_111);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
     }
@@ -217,10 +169,9 @@ public class SegmentsTest {
 
   @Test
   void caseD_SameCoreAS() throws IOException {
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
+    addResponseTiny();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_110, TINY_110);
       assertNotNull(paths);
       assertTrue(paths.isEmpty());
     }
@@ -230,10 +181,9 @@ public class SegmentsTest {
 
   @Test
   void caseE_SameNonCoreAS() throws IOException {
-    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+    addResponseTiny();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, srcIA, dstIA);
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, TINY_111, TINY_111);
       assertNotNull(paths);
       assertTrue(paths.isEmpty());
     }
@@ -309,5 +259,66 @@ public class SegmentsTest {
     Instant now = Instant.now();
     // TODO correct? Set nanos?
     return Timestamp.newBuilder().setSeconds(now.getEpochSecond()).setNanos(now.getNano()).build();
+  }
+
+  private void addResponseTiny() {
+    addResponseTinyUp();
+    addResponseTinyDown();
+  }
+
+  private void addResponseTinyUp() {
+    //  Requesting segments: 1-ff00:0:111 -> 1-ff00:0:110
+    //  SEG: key=SEGMENT_TYPE_UP -> n=1
+    //  PathSeg: size=10
+    //  SegInfo:  ts=2024-01-03T14:51:44Z  id=31466
+    //    AS: signed=92   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:51:44.085068203Z
+    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=1
+    //    AS: signed=89   signature size=70
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:51:44.587225332Z
+    //    AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1280
+    //        HopField: exp=63 ingress=41 egress=0
+
+    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
+    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
+    Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
+    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
+    Seg.PathSegment path0 = buildPath(31466, ase00, ase01);
+
+    controlServer.addResponse(
+        srcIA, false, dstIA, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+  }
+
+  private void addResponseTinyDown() {
+    //  Requesting segments: 1-ff00:0:110 -> 1-ff00:0:111
+    //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
+    //  PathSeg: size=10
+    //  SegInfo:  ts=2024-01-03T14:27:54Z  id=17889
+    //    AS: signed=92   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:27:54.197517906Z
+    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=1
+    //    AS: signed=89   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-03T14:27:54.696855774Z
+    //    AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1280
+    //        HopField: exp=63 ingress=41 egress=0
+
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 1));
+    Seg.ASEntry ase00 = buildASEntry("1-ff00:0:110", "1-ff00:0:111", 1400, he00);
+    Seg.HopEntry he01 = buildHopEntry(1280, buildHopField(63, 41, 0));
+    Seg.ASEntry ase01 = buildASEntry("1-ff00:0:111", "0-0:0:0", 1472, he01);
+    Seg.PathSegment path0 = buildPath(17889, ase00, ase01);
+
+    controlServer.addResponse(
+        srcIA, true, dstIA, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 }
