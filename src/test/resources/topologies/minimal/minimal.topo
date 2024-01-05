@@ -28,7 +28,7 @@ ASes:
 links:
   - {a: "1-ff00:0:110#1",     b: "1-ff00:0:120-A#10",   linkAtoB: CORE}
   - {a: "1-ff00:0:110#2",     b: "1-ff00:0:111-A#111", linkAtoB: CHILD}
-  - {a: "1-ff00:0:110#3",     b: "1-ff00:0:120#453",   linkAtoB: CORE}
+  - {a: "1-ff00:0:110#3",     b: "1-ff00:0:112#453",   linkAtoB: CHILD}
   - {a: "1-ff00:0:120-A#1",   b: "2-ff00:0:210-B#105", linkAtoB: CORE}
   - {a: "1-ff00:0:120#2",     b: "1-ff00:0:121-B#104", linkAtoB: CHILD}
   - {a: "2-ff00:0:210#450",   b: "2-ff00:0:211#503",   linkAtoB: CHILD}

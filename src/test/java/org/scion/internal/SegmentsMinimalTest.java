@@ -139,6 +139,7 @@ public class SegmentsMinimalTest {
   protected void addResponses() {
     addResponse111_110();
     addResponse110_111();
+    addResponse110_112();
     addResponse110_120();
     addResponse120_121();
     addResponse110_210();
@@ -201,51 +202,56 @@ public class SegmentsMinimalTest {
         AS_110, true, AS_111, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 
-  private void addResponse110_120() {
-    //    Requesting segments: 1-ff00:0:110 -> 1-ff00:0:120
-    //    SEG: key=SEGMENT_TYPE_CORE -> n=2
-    //    PathSeg: size=10
-    //    SegInfo:  ts=2024-01-05T12:55:49Z  id=59311
-    //      AS: signed=94   signature size=72
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T12:55:49.642890952Z
-    // meta=0  data=10
-    //      AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
+  private void addResponse110_112() {
+    //    Requesting segments: 1-0:0:0 -> 1-ff00:0:112
+    //    Requesting segments: 1-ff00:0:110 -> 1-ff00:0:112
+    //    SEG: key=SEGMENT_TYPE_DOWN -> n=1
+    //    PathSeg: size=9
+    //    SegInfo:  ts=2024-01-05T15:02:17Z  id=5701
+    //      AS: signed=93   signature size=71
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:17.455400479Z  meta=0  data=9
+    //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:112  mtu=1472
     //        HopEntry: true mtu=0
-    //          HopField: exp=63 ingress=0 egress=453
-    //      AS: signed=89   signature size=70
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T12:55:53.415147525Z
-    // meta=0  data=176
-    //      AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
+    //          HopField: exp=63 ingress=0 egress=3
+    //      AS: signed=90   signature size=71
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:20.450271904Z  meta=0  data=173
+    //      AS Body: IA=1-ff00:0:112 nextIA=0-0:0:0  mtu=1450
     //        HopEntry: true mtu=1472
-    //          HopField: exp=63 ingress=3 egress=0
+    //          HopField: exp=63 ingress=453 egress=0
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 3));
+    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_112, 1472, he00);
+    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 453, 0));
+    Seg.ASEntry ase01 = buildASEntry(AS_112, ZERO, 1450, he01);
+    Seg.PathSegment path0 = buildPath(5701, ase00, ase01);
+
+    controlServer.addResponse(
+            AS_110, true, AS_112, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+  }
+
+  private void addResponse110_120() {
+    //    Requesting segments: 1-0:0:0 -> 1-ff00:0:120
+    //    SEG: key=SEGMENT_TYPE_CORE -> n=1
     //    PathSeg: size=10
-    //    SegInfo:  ts=2024-01-05T12:55:49Z  id=19744
+    //    SegInfo:  ts=2024-01-05T15:02:54Z  id=26755
     //      AS: signed=93   signature size=72
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T12:55:49.643149572Z
-    // meta=0  data=10
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.462275285Z  meta=0  data=10
     //      AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
     //        HopEntry: true mtu=0
     //          HopField: exp=63 ingress=0 egress=10
-    //      AS: signed=89   signature size=70
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T12:55:53.414951943Z
-    // meta=0  data=175
+    //      AS: signed=89   signature size=71
+    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.951643890Z  meta=0  data=175
     //      AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
     //        HopEntry: true mtu=1472
     //          HopField: exp=63 ingress=1 egress=0
 
-    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 453));
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 10));
     Seg.ASEntry ase00 = buildASEntry(AS_120, AS_110, 1472, he00);
-    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 3, 0));
+    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 1, 0));
     Seg.ASEntry ase01 = buildASEntry(AS_110, ZERO, 1472, he01);
-    Seg.PathSegment path0 = buildPath(59311, ase00, ase01);
-    Seg.HopEntry he10 = buildHopEntry(0, buildHopField(63, 0, 10));
-    Seg.ASEntry ase10 = buildASEntry(AS_120, AS_110, 1472, he10);
-    Seg.HopEntry he11 = buildHopEntry(1472, buildHopField(63, 1, 0));
-    Seg.ASEntry ase11 = buildASEntry(AS_110, ZERO, 1472, he11);
-    Seg.PathSegment path1 = buildPath(19744, ase10, ase11);
+    Seg.PathSegment path0 = buildPath(26755, ase00, ase01);
 
     controlServer.addResponse(
-        AS_110, true, AS_120, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0, path1));
+        AS_110, true, AS_120, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 
   private void addResponse120_121() {

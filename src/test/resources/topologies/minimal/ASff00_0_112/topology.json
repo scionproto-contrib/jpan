@@ -4,13 +4,28 @@
   "mtu": 1450,
   "control_service": {
     "cs1-ff00_0_112-1": {
-      "addr": "127.0.0.33:31020"
+      "addr": "127.0.0.34:31018"
     }
   },
   "discovery_service": {
     "cs1-ff00_0_112-1": {
-      "addr": "127.0.0.33:31020"
+      "addr": "127.0.0.34:31018"
     }
   },
-  "border_routers": {}
+  "border_routers": {
+    "br1-ff00_0_112-1": {
+      "internal_addr": "127.0.0.33:31020",
+      "interfaces": {
+        "453": {
+          "underlay": {
+            "public": "127.0.0.9:50000",
+            "remote": "127.0.0.8:50000"
+          },
+          "isd_as": "1-ff00:0:110",
+          "link_to": "parent",
+          "mtu": 1472
+        }
+      }
+    }
+  }
 }

@@ -42,7 +42,7 @@ public class ProtobufSegmentDemo {
     String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
     String csAddr111_default = "[fd00:f00d:cafe::7f00:1c]:31022";
     String csAddr110_minimal = "127.0.0.20:31000";
-    String csAddr111_minimal = "127.0.0.26:31016";
+    String csAddr111_minimal = "127.0.0.26:31014";
     long ia110 = ScionUtil.parseIA("1-ff00:0:110");
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");
@@ -63,8 +63,8 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
     ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr111_minimal);
-    // demo.getSegments(ia120, ia210);
-    demo.getSegments(toWildcard(ia210), ia211);
+    //demo.getSegments(ia110, ia112);
+    demo.getSegments(toWildcard(ia110), ia120);
   }
 
   private static long toWildcard(long ia) {

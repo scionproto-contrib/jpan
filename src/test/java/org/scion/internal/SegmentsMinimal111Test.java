@@ -54,7 +54,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
         MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_111/topology.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(21016); // TODO get port from topo
+    controlServer = MockControlServer.start(31014); // TODO get port from topo
   }
 
   @AfterEach
