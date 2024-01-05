@@ -500,30 +500,17 @@ public class Segments {
       //        }
       //      }
     }
-    long srcCore = srcWildcard; // TODO remove
-    long dstCore = dstWildcard; // TODO remove
-
     // remaining cases: F, G, H
-    List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, srcCore, dstCore);
-    long[] coreIAs = Segments.getEndingIAs(segmentsCore);
-    boolean[] localCores = Segments.containsIsdAs(coreIAs, srcIsdAs, dstIsdAs);
-
-    if (localCores[0] && localCores[1]) {
-      // src & dst are both core ASs
-      return Segments.combineSegment(segmentsCore, brLookup);
+    List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
+    boolean[] localCores = Segments.containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
+    segments.add(segmentsCore);
+    if (localCores[1]) {
+      return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
     }
 
-    List<Seg.PathSegment> segmentsUp =
-        localCores[0] ? null : getSegments(segmentStub, srcIsdAs, srcCore);
-    List<Seg.PathSegment> segmentsDown =
-        localCores[1] ? null : getSegments(segmentStub, dstCore, dstIsdAs);
-    if (segmentsDown == null) {
-      return Segments.combineTwoSegments(segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, brLookup);
-    } else if (segmentsUp == null) {
-      return Segments.combineTwoSegments(segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
-    }
-    return Segments.combineThreeSegments(
-        segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
+    List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstWildcard, dstIsdAs);
+    segments.add(segmentsDown);
+    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
   }
 
   private static long toWildcard(long isdAs) {

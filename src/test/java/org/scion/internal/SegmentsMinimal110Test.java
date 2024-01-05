@@ -105,4 +105,54 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());
   }
+
+
+  @Test
+  void caseG_DifferentIsd_CoreDown_1_Hop() throws IOException {
+    addResponses();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_211);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseG_DifferentIsd_CoreDown_2_Hop() throws IOException {
+    addResponses();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_211);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
+  }
+
+
+  @Test
+  void caseI_DifferentIsd_Core_1_Hop() throws IOException {
+    addResponses();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_210);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(1, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseI_DifferentIsd_Core_2_Hop() throws IOException {
+    addResponses();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_210);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(1, controlServer.getAndResetCallCount());
+  }
 }

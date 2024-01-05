@@ -66,7 +66,7 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(ia110, ia121);
     // demo.getSegments(ia111, toWildcard(ia111));
     // demo.getSegments(toWildcard(ia121), ia121);
-    demo.getSegments(ia110, toWildcard(ia120));
+    demo.getSegments(toWildcard(ia120), toWildcard(ia210));
   }
 
   private static long toWildcard(long ia) {
