@@ -301,7 +301,7 @@ public class SegmentsMinimalTest {
     Seg.PathSegment path0 = buildPath(15767, ase00, ase01, ase02);
 
     controlServer.addResponse(
-        AS_120, true, AS_210, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path0));
+        AS_110, true, AS_210, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path0));
   }
 
   private void addResponse210_211() {

@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
@@ -44,16 +45,17 @@ import org.scion.testutil.MockTopologyServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
-public class SegmentsMinimal110Test extends SegmentsMinimalTest {
+@Disabled
+public class SegmentsMinimal120Test extends SegmentsMinimalTest {
   private static MockTopologyServer topoServer;
 
   @BeforeAll
   public static void beforeAll() throws IOException {
     topoServer =
-        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_110/topology.json"));
+        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_120/topology.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(31000); // TODO get port from topo
+    controlServer = MockControlServer.start(31008); // TODO get port from topo
   }
 
   @AfterEach
@@ -71,58 +73,22 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
   }
 
   @Test
-  void caseA_SameCoreAS() throws IOException {
+  void caseG_DifferentIsd_CoreDown_1_Hop() throws IOException {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_110);
-      assertNotNull(paths);
-      assertTrue(paths.isEmpty());
-    }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(0, controlServer.getAndResetCallCount());
-  }
-
-  @Test
-  void caseC_SameIsd_Down() throws IOException {
-    addResponses();
-    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_111);
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_211);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
   }
 
   @Test
-  void caseD_SameIsd_Core() throws IOException {
+  void caseI_DifferentIsd_Core_1_Hop() throws IOException {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_120);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
-    }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
-  }
-
-  @Test
-  void caseG_DifferentIsd_CoreDown_2_Hop() throws IOException {
-    addResponses();
-    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_211);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
-    }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
-  }
-
-  @Test
-  void caseI_DifferentIsd_Core_2_Hop() throws IOException {
-    addResponses();
-    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_210);
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_210);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
     }

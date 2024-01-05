@@ -434,7 +434,6 @@ public class Segments {
         // okay, we need CORE!
         segments.remove(segments.size() - 1);
         List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
-        boolean[] coreHasIA = containsIsdAs(segmentsCore, from, dstIsdAs);
         segments.add(segmentsCore);
         segments.add(segmentsCoreOrDown);
         return combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
@@ -452,53 +451,8 @@ public class Segments {
         // We have to query down segments because SRC may not have a segment connected to DST
         List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, from, dstIsdAs);
         segments.add(segmentsDown);
-        //        boolean[] downHasIA = Segments.containsIsdAs(segmentsDown, srcIsdAs, dstIsdAs);
-        //        if (downHasIA[0]) {
-        //          return Segments.combineSegment(segmentsDown, brLookup);
-        //        }
-        //        return Segments.combineTwoSegments(
-        //                segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
         return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
       }
-
-      //      if (brLookup.isLocalAsCore()) {
-      //        // cases C, D
-      //        List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, srcIsdAs,
-      // srcWildcard);
-      //        long[] coreIAs = Segments.getEndingIAs(segmentsCore);
-      //        boolean[] coreHasIA = Segments.containsIsdAs(coreIAs, srcIsdAs, dstIsdAs);
-      //        if (coreHasIA[1]) {
-      //          // case D: DST is core
-      //          return Segments.combineSegment(segmentsCore, brLookup);
-      //        } else {
-      //          // case C: DST is not core
-      //          // We have to query down segments because SRC may not have a segment connected to
-      // DST
-      //          List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, srcWildcard,
-      // dstIsdAs);
-      //          boolean[] downHasIA = Segments.containsIsdAs(segmentsDown, srcIsdAs, dstIsdAs);
-      //          if (downHasIA[0]) {
-      //            return Segments.combineSegment(segmentsDown, brLookup);
-      //          }
-      //          return Segments.combineTwoSegments(
-      //              segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
-      //        }
-      //      } else {
-      //        // cases B, E
-      //        // TODO we should first find out whether DST is core -> avoid using wildcard
-      //        List<Seg.PathSegment> segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
-      //        boolean[] containsIsdAs = Segments.containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
-      //        if (containsIsdAs[1]) {
-      //          // case B: DST is core
-      //          return Segments.combineSegment(segmentsUp, brLookup);
-      //        } else {
-      //          // case E: DST is not core
-      //          List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, srcWildcard,
-      // dstIsdAs);
-      //          return Segments.combineTwoSegments(
-      //              segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, brLookup);
-      //        }
-      //      }
     }
     // remaining cases: F, G, H
     List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
