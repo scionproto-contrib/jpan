@@ -229,9 +229,13 @@ public class ScionBootstrapper {
 
   public String getBorderRouterAddress(int interfaceId) {
     for (BorderRouter br : borderRouters) {
-      // TODO
+      for (BorderRouterInterface brif : br.interfaces) {
+        if (brif.id == interfaceId) {
+          return br.internalAddress;
+        }
+      }
     }
-    throw new ScionRuntimeException("No router found with ID " + interfaceId);
+    throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
   }
 
   public void refreshTopology() {
@@ -259,6 +263,7 @@ public class ScionBootstrapper {
       JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
         JsonObject br = e.getValue().getAsJsonObject();
+        String addr = safeGet(br, "internal_addr").getAsString();
         JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
         List<BorderRouterInterface> interfaces = new ArrayList<>();
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
@@ -271,7 +276,7 @@ public class ScionBootstrapper {
                   underlay.get("public").getAsString(),
                   underlay.get("remote").getAsString()));
         }
-        borderRouters.add(new BorderRouter(e.getKey(), interfaces));
+        borderRouters.add(new BorderRouter(e.getKey(), addr, interfaces));
       }
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
@@ -310,10 +315,12 @@ public class ScionBootstrapper {
 
   private static class BorderRouter {
     private final String name;
+    private final String internalAddress;
     private final List<BorderRouterInterface> interfaces;
 
-    public BorderRouter(String name, List<BorderRouterInterface> interfaces) {
+    public BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
       this.name = name;
+      this.internalAddress = addr;
       this.interfaces = interfaces;
     }
   }

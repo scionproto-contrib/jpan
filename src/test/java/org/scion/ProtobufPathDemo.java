@@ -41,12 +41,12 @@ public class ProtobufPathDemo {
     long ia210 = ScionUtil.parseIA("2-ff00:0:210");
     long ia211 = ScionUtil.parseIA("2-ff00:0:211");
 
-    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon111_minimal)) {
+    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon110_minimal)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(ia111, ia110);
+      demo.testPathsDaemon(ia110, ia111);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -89,7 +89,7 @@ public class ProtobufPathDemo {
       for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
         System.out.println(
             "    pathIf: "
-                + i
+                + i++
                 + ": "
                 + pathIf.getId()
                 + " "
@@ -99,6 +99,13 @@ public class ProtobufPathDemo {
       }
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
+      }
+      for (Daemon.LinkType linkType : path.getLinkTypeList()) {
+        System.out.println(
+            "    linkType: "
+                + linkType.getNumber()
+                + " "
+                + linkType.getValueDescriptor().getName());
       }
       System.out.println("    raw: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
       System.out.println("    raw: " + ToStringUtil.toStringByte(path.getRaw().toByteArray()));

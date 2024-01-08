@@ -176,16 +176,16 @@ public class Segments {
     // TODO clean up: Create [] of seg/info and loop inside write() method
     ByteUtil.MutInt minMtu = new ByteUtil.MutInt(Integer.MAX_VALUE);
     ByteUtil.MutInt minExpirationDelta = new ByteUtil.MutInt(Byte.MAX_VALUE);
-    writeHopFields(raw, seg0, true, minExpirationDelta, minMtu);
+    writeHopFields(path, raw, seg0, true, minExpirationDelta, minMtu);
     long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     if (seg1 != null) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(raw, seg1, false, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, seg1, false, minExpirationDelta, minMtu);
       minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
     if (seg2 != null) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(raw, seg2, false, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, seg2, false, minExpirationDelta, minMtu);
       minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
 
@@ -194,8 +194,7 @@ public class Segments {
 
     // Expiration
     path.setExpiration(Timestamp.newBuilder().setSeconds(minExp).build());
-    // TODO assert != Integer.MAX_VALUE, same for expiration!
-    path.setMtu(minMtu.v);
+    path.setMtu(minMtu.v == Integer.MAX_VALUE ? 0 : minMtu.v);
 
     // TODO implement this
     //    path.setInterface(Daemon.Interface.newBuilder().setAddress().build());
@@ -205,6 +204,10 @@ public class Segments {
     //    path.setInternalHops();
     //    path.setNotes();
     // First hop
+    String firstHop = brLookup.getBorderRouterAddress((int) path.getInterfaces(0).getId());
+    Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
+    Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
+    path.setInterface(interfaceAddr);
 
     return path.build();
   }
@@ -222,6 +225,7 @@ public class Segments {
   }
 
   private static void writeHopFields(
+      Daemon.Path.Builder path,
       ByteBuffer raw,
       Seg.PathSegment pathSegment,
       boolean reversed,
@@ -246,7 +250,17 @@ public class Segments {
         raw.put(mac.byteAt(j));
       }
       minExp.v = Math.min(minExp.v, hopField.getExpTime());
-      minMtu.v = Math.min(minMtu.v, hopEntry.getIngressMtu());
+      // TODO implement for "reversed"?
+      // if (i < n - 1) {  // TODO correct? The last one always appear to be 0
+      //   minMtu.v = Math.min(minMtu.v, hopEntry.getIngressMtu());
+      // }
+      minMtu.v = Math.min(minMtu.v, body.getMtu());
+
+      path.addInterfaces(
+          Daemon.PathInterface.newBuilder()
+              .setId(reversed ? hopField.getIngress() : hopField.getEgress())
+              .setIsdAs(body.getIsdAs())
+              .build());
     }
   }
 

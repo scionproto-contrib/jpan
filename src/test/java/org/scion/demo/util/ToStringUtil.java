@@ -14,7 +14,6 @@
 
 package org.scion.demo.util;
 
-import org.scion.internal.ByteUtil;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -120,7 +119,7 @@ public class ToStringUtil {
   public static String toStringHex(byte[] ba) {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    for (int i = 0; i < ba.length - 2; i++) {
+    for (int i = 0; i < ba.length - 1; i++) {
       int ub = Byte.toUnsignedInt(ba[i]);
       sb.append("0x").append(Integer.toHexString(ub)).append(", ");
     }
@@ -133,7 +132,7 @@ public class ToStringUtil {
   public static String toStringByte(byte[] ba) {
     StringBuilder sb = new StringBuilder();
     sb.append("{");
-    for (int i = 0; i < ba.length - 2; i++) {
+    for (int i = 0; i < ba.length - 1; i++) {
       sb.append(ba[i]).append(", ");
     }
     sb.append(ba[ba.length - 1]);

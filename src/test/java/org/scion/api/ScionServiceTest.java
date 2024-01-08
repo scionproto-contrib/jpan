@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -243,17 +242,10 @@ public class ScionServiceTest {
   void bootstrapViaDnsDirect() throws IOException {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     String asHost = "my-as-host.org";
-
-    // TODO FIX misunderstanding with core AS
-    //   - 1<<48 give the ISD, but NOT the coreAS
-    //   - a core AS always has AS-nubmer != 0 !!!!!
-    //   Fix this is Segments.java
-
-    try (MockTopologyServer topoServer =
-        MockTopologyServer.start(Paths.get("topologies/dummy.json"))) {
+    try (MockTopologyServer topoServer = MockTopologyServer.start("topologies/dummy.json")) {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-      try (MockControlServer cs = MockControlServer.start(31006)) { // TODO get port from topo
+      try (MockControlServer cs = MockControlServer.start(topoServer.getControlServerPort())) {
         try (Scion.CloseableService ss = Scion.newServiceWithDNS(asHost)) {
           // destination address = 123.123.123.123 because we don´t care for getting a path
           List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
@@ -275,10 +267,10 @@ public class ScionServiceTest {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     String asHost = "my-as-host.org";
 
-    try (MockTopologyServer topoServer = MockTopologyServer.start()) {
+    try (MockTopologyServer topoServer = MockTopologyServer.start("topologies/dummy.json")) {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-      try (MockControlServer cs = MockControlServer.start(31006)) { // TODO get port from topo
+      try (MockControlServer cs = MockControlServer.start(topoServer.getControlServerPort())) {
         try (Scion.CloseableService ss =
             Scion.newServiceWithBootstrapServerIP(ToStringUtil.toAddressPort(topoAddr))) {
           // destination address = 123.123.123.123 because we don´t care for getting a path
@@ -287,7 +279,7 @@ public class ScionServiceTest {
           assertFalse(paths.isEmpty());
         }
         assertEquals(1, topoServer.getAndResetCallCount());
-        assertEquals(2, cs.getAndResetCallCount());
+        assertEquals(1, cs.getAndResetCallCount());
       }
     } finally {
       DNSUtil.clear();

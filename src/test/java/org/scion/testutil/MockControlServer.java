@@ -183,7 +183,7 @@ public class MockControlServer implements AutoCloseable {
     Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
 
     ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hopField1 = Seg.HopField.newBuilder().setMac(mac1).build();
+    Seg.HopField hopField1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(123).build();
     Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hopField1).build();
     Seg.ASEntrySignedBody asSigneBody1 =
         Seg.ASEntrySignedBody.newBuilder().setIsdAs(dstIA).setHopEntry(hopEntry1).build();

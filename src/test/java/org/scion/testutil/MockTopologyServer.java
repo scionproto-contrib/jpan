@@ -14,6 +14,8 @@
 
 package org.scion.testutil;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -25,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.scion.ScionRuntimeException;
+import org.scion.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +47,8 @@ public class MockTopologyServer implements Closeable {
   private final AtomicInteger callCount = new AtomicInteger();
   private final CountDownLatch barrier = new CountDownLatch(1);
   private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
+  private String controlServer;
+  private long localIsdAs;
 
   public MockTopologyServer(Path topoFile) {
     getAndResetCallCount();
@@ -67,6 +73,10 @@ public class MockTopologyServer implements Closeable {
     return new MockTopologyServer(topoFile);
   }
 
+  public static MockTopologyServer start(String topoFile) throws IOException {
+    return new MockTopologyServer(Paths.get(topoFile));
+  }
+
   @Override
   public void close() {
     try {
@@ -82,6 +92,10 @@ public class MockTopologyServer implements Closeable {
 
   public InetSocketAddress getAddress() {
     return serverSocket.get();
+  }
+
+  public int getControlServerPort() {
+    return Integer.parseInt(controlServer.substring(controlServer.indexOf(':') + 1));
   }
 
   public int getAndResetCallCount() {
@@ -109,7 +123,50 @@ public class MockTopologyServer implements Closeable {
       throw new ScionRuntimeException(
           "Error reading topology file found at: " + file.toAbsolutePath());
     }
+    parseTopologyFile(contentBuilder.toString());
     return contentBuilder.toString();
+  }
+
+  private void parseTopologyFile(String topologyFile) {
+    JsonElement jsonTree = com.google.gson.JsonParser.parseString(topologyFile);
+    if (jsonTree.isJsonObject()) {
+      JsonObject o = jsonTree.getAsJsonObject();
+      localIsdAs = ScionUtil.parseIA(safeGet(o, "isd_as").getAsString());
+      // localMtu = safeGet(o, "mtu").getAsInt();
+      // JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
+      //      for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
+      //        JsonObject br = e.getValue().getAsJsonObject();
+      //        String addr = safeGet(br, "internal_addr").getAsString();
+      //        JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
+      //        List<ScionBootstrapper.BorderRouterInterface> interfaces = new ArrayList<>();
+      //        for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
+      //          JsonObject ife = ifEntry.getValue().getAsJsonObject();
+      //          // TODO bandwidth, mtu, ... etc
+      //          JsonObject underlay = ife.getAsJsonObject("underlay");
+      //          interfaces.add(
+      //              new ScionBootstrapper.BorderRouterInterface(
+      //                  ifEntry.getKey(),
+      //                  underlay.get("public").getAsString(),
+      //                  underlay.get("remote").getAsString()));
+      //        }
+      //        borderRouters.add(new ScionBootstrapper.BorderRouter(e.getKey(), addr, interfaces));
+      //      }
+      JsonObject css = safeGet(o, "control_service").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> e : css.entrySet()) {
+        JsonObject cs = e.getValue().getAsJsonObject();
+        controlServer = cs.get("addr").getAsString();
+        // controlServices.add(
+        //     new ScionBootstrapper.ServiceNode(e.getKey(), cs.get("addr").getAsString()));
+      }
+    }
+  }
+
+  private static JsonElement safeGet(JsonObject o, String name) {
+    JsonElement e = o.get(name);
+    if (e == null) {
+      throw new ScionRuntimeException("Entry not found in topology file: " + name);
+    }
+    return e;
   }
 
   private class TopologyServerImpl implements Runnable {

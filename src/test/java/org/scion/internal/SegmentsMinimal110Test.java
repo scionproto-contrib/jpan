@@ -89,6 +89,39 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_111);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
+      //  Available paths to 1-ff00:0:111
+      //  2 Hops:
+      //  [0] Hops: [1-ff00:0:110 2>111 1-ff00:0:111] MTU: 1472 NextHop: 127.0.0.18:31004
+      //             Status: alive LocalIP: 127.0.0.1
+
+      //      ASInfo found: 561850441793808 1-ff00:0:110  core=true  mtu=1472
+      //      Interfaces found: 3
+      //      Interface: 3 -> address: "127.0.0.19:31006"
+      //      Interface: 1 -> address: "127.0.0.17:31002"
+      //      Interface: 2 -> address: "127.0.0.18:31004"
+      //      Services found: 1
+      //      ListService: control
+      //      Service: 127.0.0.20:31000
+      //      Paths found: 1
+      //      Path:  exp=seconds: 1704747225
+      //      mtu=1472
+      //      Path: interfaces = 127.0.0.18:31004
+      //      Path: first hop = 127.0.0.18:31004
+      //      pathIf: 0: 2 561850441793808  1-ff00:0:110
+      //      pathIf: 1: 111 561850441793809  1-ff00:0:111
+      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //      raw: [
+      //      0x0, 0x0, 0x20, 0x0, 0x1, 0x0, 0xea, 0x3c,
+      //      0x65, 0x9c, 0xc, 0x99, 0x0, 0x3f, 0x0, 0x0,
+      //      0x0, 0x2, 0x73, 0x52, 0x68, 0x90, 0xb0, 0x35,
+      //      0x0, 0x3f, 0x0, 0x6f, 0x0, 0x0, 0x6a, 0xde,
+      //      0xc, 0xa3, 0x38, 0x61]
+
+      byte[] raw = {0, 0, 32, 0, 1, 0, -22, 60,
+              101, -100, 12, -103, 0, 63, 0, 0,
+              0, 2, 115, 82, 104, -112, -80, 53,
+              0, 63, 0, 111, 0, 0, 106, -34,
+              12, -93, 56, 97};
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());
@@ -101,6 +134,11 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_120);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
+      //  Available paths to 1-ff00:0:120
+      //  2 Hops:
+      //  [0] Hops: [1-ff00:0:110 1>10 1-ff00:0:120] MTU: 1472 NextHop: 127.0.0.17:31002
+      //             Status: alive LocalIP: 127.0.0.1
+
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());
@@ -113,6 +151,10 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_211);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
+      //  Available paths to 2-ff00:0:211
+      //  4 Hops:
+      //  [0] Hops: [1-ff00:0:110 1>10 1-ff00:0:120 1>105 2-ff00:0:210 450>503 2-ff00:0:211]
+      //             MTU: 1280 NextHop: 127.0.0.17:31002 Status: alive LocalIP: 127.0.0.1
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(2, controlServer.getAndResetCallCount());
@@ -125,6 +167,10 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_210);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
+      //  Available paths to 2-ff00:0:210
+      //  3 Hops:
+      //  [0] Hops: [1-ff00:0:110 1>10 1-ff00:0:120 1>105 2-ff00:0:210] MTU: 1280
+      //             NextHop: 127.0.0.17:31002 Status: alive LocalIP: 127.0.0.1
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());
