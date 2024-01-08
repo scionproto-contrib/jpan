@@ -18,12 +18,12 @@
     "br1-ff00_0_111-1": {
       "internal_addr": "127.0.0.17:31008",
       "interfaces": {
-        "123": {
+        "4": {
           "underlay": {
             "public": "127.0.0.5:50000",
             "remote": "127.0.0.4:50000"
           },
-          "isd_as": "1-ff00:0:110",
+          "isd_as": "1-ff00:0:112",
           "link_to": "parent",
           "mtu": 1280
         }

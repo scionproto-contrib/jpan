@@ -117,11 +117,10 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
       //      0x0, 0x3f, 0x0, 0x6f, 0x0, 0x0, 0x6a, 0xde,
       //      0xc, 0xa3, 0x38, 0x61]
 
-      byte[] raw = {0, 0, 32, 0, 1, 0, -22, 60,
-              101, -100, 12, -103, 0, 63, 0, 0,
-              0, 2, 115, 82, 104, -112, -80, 53,
-              0, 63, 0, 111, 0, 0, 106, -34,
-              12, -93, 56, 97};
+      byte[] raw = {
+        0, 0, 32, 0, 1, 0, -22, 60, 101, -100, 12, -103, 0, 63, 0, 0, 0, 2, 115, 82, 104, -112, -80,
+        53, 0, 63, 0, 111, 0, 0, 106, -34, 12, -93, 56, 97
+      };
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());

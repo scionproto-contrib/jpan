@@ -14,7 +14,6 @@
 
 package org.scion.demo.util;
 
-
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

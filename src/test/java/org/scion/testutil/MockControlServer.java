@@ -172,8 +172,8 @@ public class MockControlServer implements AutoCloseable {
     Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
 
     ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hopField0 = Seg.HopField.newBuilder().setMac(mac0).build();
-    Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hopField0).build();
+    Seg.HopField hop0 = Seg.HopField.newBuilder().setMac(mac0).setIngress(3).setEgress(4).build();
+    Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hop0).build();
     Seg.ASEntrySignedBody asSigneBody0 =
         Seg.ASEntrySignedBody.newBuilder().setIsdAs(srcIA).setHopEntry(hopEntry0).build();
     Signed.HeaderAndBodyInternal habi0 =
@@ -183,8 +183,8 @@ public class MockControlServer implements AutoCloseable {
     Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
 
     ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hopField1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(123).build();
-    Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hopField1).build();
+    Seg.HopField hop1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(5).setEgress(6).build();
+    Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hop1).build();
     Seg.ASEntrySignedBody asSigneBody1 =
         Seg.ASEntrySignedBody.newBuilder().setIsdAs(dstIA).setHopEntry(hopEntry1).build();
     Signed.HeaderAndBodyInternal habi1 =

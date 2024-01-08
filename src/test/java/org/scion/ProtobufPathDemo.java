@@ -33,6 +33,7 @@ public class ProtobufPathDemo {
     String daemon111_tiny = "127.0.0.19:30255";
     String daemon110_minimal = "127.0.0.21:30255";
     String daemon111_minimal = "127.0.0.27:30255";
+    String daemon210_minimal = "127.0.0.60:30255";
     long ia110 = ScionUtil.parseIA("1-ff00:0:110");
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");

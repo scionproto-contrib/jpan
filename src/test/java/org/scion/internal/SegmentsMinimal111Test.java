@@ -119,6 +119,29 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     //    2 Hops:
     //    [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110] MTU: 1472 NextHop: 127.0.0.25:31016 ...
 
+    //  // INFO: 110--->111
+    //  ASInfo found: 561850441793808 1-ff00:0:110  core=true  mtu=1472
+    //  Interfaces found: 3
+    //  Interface: 2 -> address: "127.0.0.18:31004"
+    //  Interface: 3 -> address: "127.0.0.19:31006"
+    //  Interface: 1 -> address: "127.0.0.17:31002"
+    //  Services found: 1
+    //  ListService: control
+    //  Service: 127.0.0.20:31000
+    //  Paths found: 1
+    //  Path:  exp=seconds: 1704752044
+    //  mtu=1472
+    //  Path: interfaces = 127.0.0.18:31004
+    //  Path: first hop = 127.0.0.18:31004
+    //  pathIf: 0: 2 561850441793808  1-ff00:0:110
+    //  pathIf: 1: 111 561850441793809  1-ff00:0:111
+    //  linkType: 0 LINK_TYPE_UNSPECIFIED
+    //  raw: [0x0, 0x0, 0x20, 0x0, 0x1, 0x0, 0x6, 0x19, 0x65, 0x9c, 0x1f, 0x6c, 0x0, 0x3f, 0x0, 0x0,
+    // 0x0, 0x2, 0xf3, 0x59, 0x16, 0x7b, 0x88, 0x0, 0x0, 0x3f, 0x0, 0x6f, 0x0, 0x0, 0x10, 0xb7,
+    // 0x87, 0x19, 0x6, 0x54]
+    //  raw: {0, 0, 32, 0, 1, 0, 6, 25, 101, -100, 31, 108, 0, 63, 0, 0, 0, 2, -13, 89, 22, 123,
+    // -120, 0, 0, 63, 0, 111, 0, 0, 16, -73, -121, 25, 6, 84}
+
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());
   }
@@ -203,6 +226,76 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //  4 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120 1>105 2-ff00:0:210]
       //            MTU: 1280 NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
+
+      // 111 ---> 210
+      //  ASInfo found: 561850441793809 1-ff00:0:111  core=false  mtu=1472
+      //  Interfaces found: 1
+      //      Interface: 111 -> address: "127.0.0.25:31016"
+      //  Services found: 1
+      //  ListService: control
+      //      Service: 127.0.0.26:31014
+      //  Paths found: 1
+      //  Path:  exp=seconds: 1704751940
+      //    mtu=1280
+      //  Path: interfaces = 127.0.0.25:31016
+      //  Path: first hop = 127.0.0.25:31016
+      //      pathIf: 0: 111 561850441793809  1-ff00:0:111
+      //      pathIf: 1: 2 561850441793808  1-ff00:0:110
+      //      pathIf: 2: 1 561850441793808  1-ff00:0:110
+      //      pathIf: 3: 10 561850441793824  1-ff00:0:120
+      //      pathIf: 4: 1 561850441793824  1-ff00:0:120
+      //      pathIf: 5: 105 843325418504720  2-ff00:0:210
+      //      hop: 6: 0
+      //      hop: 6: 0
+      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //      raw: [0x0, 0x0, 0x20, 0xc0, 0x0, 0x0, 0x4a, 0xfc, 0x65, 0x9c, 0x1f, 0x7, 0x0, 0x0,
+      // 0x42, 0x97, 0x65, 0x9c, 0x1f, 0x4, 0x0, 0x3f, 0x0, 0x6f, 0x0, 0x0, 0xb9, 0xe9, 0x56, 0xd7,
+      // 0x2c, 0x9c, 0x0, 0x3f, 0x0, 0x0, 0x0, 0x2, 0xe3, 0xac, 0xbd, 0x12, 0x3, 0xa6, 0x0, 0x3f,
+      // 0x0, 0x1, 0x0, 0x0, 0x13, 0xf9, 0x11, 0xe8, 0xc0, 0xe7, 0x0, 0x3f, 0x0, 0x1, 0x0, 0xa,
+      // 0x47, 0x1, 0x5, 0x2, 0xcd, 0xa6, 0x0, 0x3f, 0x0, 0x0, 0x0, 0x69, 0x70, 0x63, 0xcb, 0x19,
+      // 0x70, 0xc8]
+      //      raw: {0, 0, 32, -64, 0, 0, 74, -4, 101, -100, 31, 7, 0, 0, 66, -105, 101, -100, 31, 4,
+      // 0, 63, 0, 111, 0, 0, -71, -23, 86, -41, 44, -100, 0, 63, 0, 0, 0, 2, -29, -84, -67, 18, 3,
+      // -90, 0, 63, 0, 1, 0, 0, 19, -7, 17, -24, -64, -25, 0, 63, 0, 1, 0, 10, 71, 1, 5, 2, -51,
+      // -90, 0, 63, 0, 0, 0, 105, 112, 99, -53, 25, 112, -56}
+
+      // 210 ---> 111
+      //        ASInfo found: 843325418504720 2-ff00:0:210  core=true  mtu=1280
+      //  Interfaces found: 2
+      //      Interface: 450 -> address: "127.0.0.58:31030"
+      //      Interface: 105 -> address: "127.0.0.57:31028"
+      //  Services found: 1
+      //  ListService: control
+      //      Service: 127.0.0.59:31026
+      //  Paths found: 1
+      //  Path:  exp=seconds: 1704751737
+      //    mtu=1280
+      //  Path: interfaces = 127.0.0.57:31028
+      //  Path: first hop = 127.0.0.57:31028
+      //      pathIf: 0: 105 843325418504720  2-ff00:0:210
+      //      pathIf: 1: 1 561850441793824  1-ff00:0:120
+      //      pathIf: 2: 10 561850441793824  1-ff00:0:120
+      //      pathIf: 3: 1 561850441793808  1-ff00:0:110
+      //      pathIf: 4: 2 561850441793808  1-ff00:0:110
+      //      pathIf: 5: 111 561850441793809  1-ff00:0:111
+      //      hop: 6: 0
+      //      hop: 6: 0
+      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //      raw: [0x0, 0x0, 0x30, 0x80, 0x0, 0x0, 0x65, 0x45, 0x65, 0x9c, 0x1e, 0x39, 0x1, 0x0,
+      // 0xb2, 0x3a, 0x65, 0x9c, 0x1e, 0x3e, 0x0, 0x3f, 0x0, 0x69, 0x0, 0x0, 0x57, 0xa6, 0x89, 0x5f,
+      // 0x6d, 0xc9, 0x0, 0x3f, 0x0, 0xa, 0x0, 0x1, 0x9, 0xe5, 0x70, 0xcc, 0x83, 0x12, 0x0, 0x3f,
+      // 0x0, 0x0, 0x0, 0x1, 0xda, 0x8c, 0xc5, 0x61, 0xde, 0x25, 0x0, 0x3f, 0x0, 0x0, 0x0, 0x2,
+      // 0x5f, 0xf0, 0x6, 0xd9, 0xf8, 0x5f, 0x0, 0x3f, 0x0, 0x6f, 0x0, 0x0, 0x86, 0x9d, 0xfa, 0xda,
+      // 0x88, 0xaa]
+      //      raw: {0, 0, 48, -128, 0, 0, 101, 69, 101, -100, 30, 57, 1, 0, -78, 58, 101, -100, 30,
+      // 62, 0, 63, 0, 105, 0, 0, 87, -90, -119, 95, 109, -55, 0, 63, 0, 10, 0, 1, 9, -27, 112, -52,
+      // -125, 18, 0, 63, 0, 0, 0, 1, -38, -116, -59, 97, -34, 37, 0, 63, 0, 0, 0, 2, 95, -16, 6,
+      // -39, -8, 95, 0, 63, 0, 111, 0, 0, -122, -99, -6, -38, -120, -86}
+
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(2, controlServer.getAndResetCallCount());
