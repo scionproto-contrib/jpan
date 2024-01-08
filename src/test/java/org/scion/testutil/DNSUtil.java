@@ -35,13 +35,11 @@ public class DNSUtil {
     // name=inf.ethz.ch.
     // ttl=2533
 
-    String AS_HOST = asHost; // "iinf.ethz.ch.";
-    String REPL_HOST = "topohost.x.y."; // "netsec-w37w3w.inf.ethz.ch."
+
+    Name name = Name.fromString(asHost + "."); // "iinf.ethz.ch.";
+    Name replacement = new Name("topohost.x.y."); // "netsec-w37w3w.inf.ethz.ch."
+
     Cache c = new Cache(DClass.IN);
-
-    Name name = Name.fromString(AS_HOST + ".");
-    Name replacement = new Name(REPL_HOST);
-
     TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, "x-sciondiscovery=" + topoPort);
     c.addRecord(txt, 10);
 

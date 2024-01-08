@@ -139,7 +139,7 @@ public class MockTopologyServer implements Closeable {
             logger.info("Topology server serves file to " + srcAddress);
             buffer.clear();
 
-            StringBuffer out = new StringBuffer();
+            StringBuilder out = new StringBuilder();
             out.append("HTTP/1.1 200 OK\n");
             out.append("Connection: close\n");
             out.append("Content-Type: text/plain\n");
