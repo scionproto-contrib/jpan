@@ -76,12 +76,8 @@
   - implement callbacks (+ option to NOT ignore)
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
-- Run testing with IPv6 again? -> MockNetwork 
-- Move Scmp in main folder, add MessageClasses and enums (and send(channel, scmp) methods?)
+  - Test!
 - TODO get ISD/AS from CS? Maybe via SVC?
-- Fix notion of "core" in Segments.java. We are getting the "ISD", nor the coreIA!
-  -> Core AS can of course have non-zero AS values.
-
 
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
