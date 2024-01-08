@@ -294,4 +294,13 @@ public class ScionServiceTest {
     }
     // TODO test path
   }
+
+  @Test
+  void openChannel() throws IOException {
+    try (Scion.CloseableService service = Scion.newServiceWithDaemon("127.0.0.2")) {
+      try (DatagramChannel channel = service.openChannel()) {
+        assertEquals(service, channel.getService());
+      }
+    }
+  }
 }

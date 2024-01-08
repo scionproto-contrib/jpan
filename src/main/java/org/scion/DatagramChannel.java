@@ -53,8 +53,17 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return new DatagramChannel();
   }
 
+  public static DatagramChannel open(ScionService service) throws IOException {
+    return new DatagramChannel(service);
+  }
+
   protected DatagramChannel() throws IOException {
-    channel = java.nio.channels.DatagramChannel.open();
+    this.channel = java.nio.channels.DatagramChannel.open();
+  }
+
+  protected DatagramChannel(ScionService service) throws IOException {
+    this.channel = java.nio.channels.DatagramChannel.open();
+    this.service = service;
   }
 
   /**

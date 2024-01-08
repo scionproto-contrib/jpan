@@ -64,7 +64,7 @@ public class ScionService {
   private static ScionService DEFAULT = null;
 
   private final ScionBootstrapper bootstrapper;
-  // TODO create subclasses for these two?
+  // TODO create subclasses for these two? We can only have either one of them, not both.
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
 
@@ -160,6 +160,10 @@ public class ScionService {
     } catch (InterruptedException e) {
       throw new IOException(e);
     }
+  }
+
+  public DatagramChannel openChannel() throws IOException {
+    return DatagramChannel.open(this);
   }
 
   Daemon.ASResponse getASInfo() throws ScionException {
@@ -417,7 +421,7 @@ public class ScionService {
     return ScionUtil.parseIA(txtEntry.substring(0, posComma));
   }
 
-  // Do not expose proto types on API!
+  // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) throws ScionException {
     return Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
   }

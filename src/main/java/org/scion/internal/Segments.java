@@ -468,8 +468,7 @@ public class Segments {
   }
 
   private static long toWildcard(long isdAs) {
-    long maskISD = -1L << 48;
-    return isdAs & maskISD;
+    return (isdAs >>> 48) << 48;
   }
 
   private static boolean isWildcard(long isdAs) {

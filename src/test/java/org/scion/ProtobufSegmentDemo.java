@@ -70,7 +70,7 @@ public class ProtobufSegmentDemo {
   }
 
   private static long toWildcard(long ia) {
-    return (ia >> 48) << 48;
+    return (ia >>> 48) << 48;
   }
 
   public ProtobufSegmentDemo(String csAddress) {
