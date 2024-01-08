@@ -197,11 +197,6 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     assertEquals(2, controlServer.getAndResetCallCount());
   }
 
-  private void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
-    assertEquals(id, path.getInterfaces(i).getId());
-    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
-  }
-
   @Test
   void caseE_SameIsd_UpDownTwoCoreAS() throws IOException {
     addResponses();
@@ -383,5 +378,10 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     assertEquals(egress, rawBB.getShort()); // Hop0 egress
     assertNotEquals(0, rawBB.getShort()); // Hop0 MAC
     assertNotEquals(0, rawBB.getInt()); // Hop0 MAC
+  }
+
+  private void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
+    assertEquals(id, path.getInterfaces(i).getId());
+    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
   }
 }
