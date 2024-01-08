@@ -14,11 +14,11 @@
 
 package org.scion.internal;
 
-import static org.scion.Scmp.ScmpCode;
 import static org.scion.Scmp.ScmpEcho;
 import static org.scion.Scmp.ScmpMessage;
 import static org.scion.Scmp.ScmpTraceroute;
 import static org.scion.Scmp.ScmpType;
+import static org.scion.Scmp.ScmpTypeCode;
 
 import java.nio.ByteBuffer;
 import org.scion.Path;
@@ -78,7 +78,7 @@ public class ScmpParser {
     // TODO validate checksum
 
     ScmpType st = ScmpType.parse(type);
-    ScmpCode sc = ScmpCode.parse(type, code);
+    ScmpTypeCode sc = ScmpTypeCode.parse(type, code);
     int short1 = ByteUtil.toUnsigned(data.getShort());
     int short2 = ByteUtil.toUnsigned(data.getShort());
     switch (st) {

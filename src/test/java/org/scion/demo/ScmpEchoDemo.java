@@ -52,7 +52,7 @@ public class ScmpEchoDemo {
   }
 
   private static void errorListener(Scmp.ScmpMessage msg) {
-    println("SCMP error: " + msg.getType().getText());
+    println("SCMP error: " + msg.getTypeCode().getText());
   }
 
   private static void doClientStuff() throws IOException {

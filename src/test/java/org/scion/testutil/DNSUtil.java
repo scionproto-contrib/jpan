@@ -35,7 +35,6 @@ public class DNSUtil {
     // name=inf.ethz.ch.
     // ttl=2533
 
-
     Name name = Name.fromString(asHost + "."); // "iinf.ethz.ch.";
     Name replacement = new Name("topohost.x.y."); // "netsec-w37w3w.inf.ethz.ch."
 

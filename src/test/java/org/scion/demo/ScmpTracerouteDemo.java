@@ -55,7 +55,7 @@ public class ScmpTracerouteDemo {
 
   private static void errorListener(Scmp.ScmpMessage msg) {
     if (PRINT) {
-      System.out.println("SCMP error: " + msg.getType().getText());
+      System.out.println("SCMP error: " + msg.getTypeCode().getText());
     }
   }
 

@@ -19,7 +19,7 @@ import static org.scion.demo.inspector.ByteUtil.*;
 import java.nio.ByteBuffer;
 import org.scion.Scmp;
 
-public class ScionSCMPHeader {
+public class ScmpHeader {
   // 8 bit
   private int type;
   // 8 bit
@@ -34,8 +34,8 @@ public class ScionSCMPHeader {
     checksum = readInt(i0, 16, 16);
     // TODO validate checksum
     // TODO read InfoBlock/DataBlock
-    System.out.println("Found SCMP: " + getType() + " -> " + getCode());
-    System.out.println("To read:" + data.remaining());
+    // System.out.println("Found SCMP: " + getType() + " -> " + getCode());
+    // System.out.println("To read:" + data.remaining());
   }
 
   @Override
@@ -47,7 +47,7 @@ public class ScionSCMPHeader {
     return Scmp.ScmpType.parse(type);
   }
 
-  public Scmp.ScmpCode getCode() {
-    return Scmp.ScmpCode.parse(type, code);
+  public Scmp.ScmpTypeCode getCode() {
+    return Scmp.ScmpTypeCode.parse(type, code);
   }
 }

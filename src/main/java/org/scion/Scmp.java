@@ -80,7 +80,7 @@ public class Scmp {
     }
   }
 
-  public enum ScmpCode implements ParseEnum {
+  public enum ScmpTypeCode implements ParseEnum {
     // SCMP type 1 messages:
     TYPE_1_CODE_0(1, 0, "No route to destination"),
     TYPE_1_CODE_1(1, 1, "Communication administratively denied"),
@@ -128,16 +128,16 @@ public class Scmp {
     final int id;
     final String text;
 
-    ScmpCode(int type, int code, String text) {
+    ScmpTypeCode(int type, int code, String text) {
       this.type = type;
       this.id = code;
       this.text = text;
     }
 
-    public static ScmpCode parse(int type, int code) {
-      ScmpCode[] values = ScmpCode.class.getEnumConstants();
+    public static ScmpTypeCode parse(int type, int code) {
+      ScmpTypeCode[] values = ScmpTypeCode.class.getEnumConstants();
       for (int i = 0; i < values.length; i++) {
-        ScmpCode pe = values[i];
+        ScmpTypeCode pe = values[i];
         if (pe.id() == code && pe.type == type) {
           return pe;
         }
@@ -154,6 +154,10 @@ public class Scmp {
       return id;
     }
 
+    public int type() {
+      return type;
+    }
+
     public String getText() {
       return text;
     }
@@ -165,13 +169,13 @@ public class Scmp {
   }
 
   public static class ScmpMessage {
-    final ScmpCode typeCode;
+    final ScmpTypeCode typeCode;
     final int identifier;
     final int sequenceNumber;
     final Path path;
 
     /** DO NOT USE! */
-    public ScmpMessage(ScmpCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public ScmpMessage(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this.typeCode = typeCode;
       this.identifier = identifier;
       this.sequenceNumber = sequenceNumber;
@@ -186,7 +190,7 @@ public class Scmp {
       return sequenceNumber;
     }
 
-    public ScmpCode getType() {
+    public ScmpTypeCode getTypeCode() {
       return typeCode;
     }
 
@@ -199,7 +203,8 @@ public class Scmp {
     byte[] data;
 
     /** DO NOT USE! */
-    public ScmpEcho(ScmpCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
+    public ScmpEcho(
+        ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
     }
@@ -211,7 +216,7 @@ public class Scmp {
 
   public static class ScmpTraceroute extends ScmpMessage {
     /** DO NOT USE! */
-    public ScmpTraceroute(ScmpCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public ScmpTraceroute(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
     }
   }

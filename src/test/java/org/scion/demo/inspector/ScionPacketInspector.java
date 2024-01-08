@@ -25,6 +25,7 @@ public class ScionPacketInspector {
   private final PathHeaderScion pathHeaderScion = new PathHeaderScion();
   private final PathHeaderOneHopPath pathHeaderOneHop = new PathHeaderOneHopPath();
   private final OverlayHeader overlayHeaderUdp = new OverlayHeader();
+  private final ScmpHeader scmpHeader = new ScmpHeader();
   private byte[] payload;
 
   public static ScionPacketInspector createEmpty() {
@@ -104,16 +105,15 @@ public class ScionPacketInspector {
       System.out.println("Packet: DROPPED: SCMP");
       return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
-      System.out.println("Packet EndToEnd");
+      // System.out.println("Packet EndToEnd");
       ExtensionHeader e2eHeader = new ExtensionHeader();
       e2eHeader.read(data);
-      System.out.println(e2eHeader);
+      // System.out.println(e2eHeader);
       if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
-        ScionSCMPHeader scmpHdr = new ScionSCMPHeader();
-        scmpHdr.read(data);
-        System.out.println("SCMP:");
-        System.out.println("    type: " + scmpHdr.getType().getText());
-        System.out.println("    code: " + scmpHdr.getCode());
+        scmpHeader.read(data);
+        //        System.out.println("SCMP:");
+        //        System.out.println("    type: " + scmpHeader.getType().getText());
+        //        System.out.println("    code: " + scmpHeader.getCode());
       } else {
         System.out.println("Packet: DROPPED not implemented: " + scionHeader.nextHeader().name());
         return false;
@@ -158,5 +158,9 @@ public class ScionPacketInspector {
     pathHeaderScion.write(newData);
     overlayHeaderUdp.write(newData, userData.length);
     newData.put(userData);
+  }
+
+  public ScmpHeader getScmpHeader() {
+    return scmpHeader;
   }
 }
