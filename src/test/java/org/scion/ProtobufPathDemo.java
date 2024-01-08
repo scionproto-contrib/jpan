@@ -29,17 +29,25 @@ public class ProtobufPathDemo {
   private final ScionService daemon;
 
   public static void main(String[] args) {
-    String daemon110 = "127.0.0.12:30255";
-    String daemon111 = "127.0.0.19:30255";
-    long srcIA = ScionUtil.parseIA("1-ff00:0:111");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon111)) {
+    String daemon110_tiny = "127.0.0.12:30255";
+    String daemon111_tiny = "127.0.0.19:30255";
+    String daemon110_minimal = "127.0.0.21:30255";
+    String daemon111_minimal = "127.0.0.27:30255";
+    long ia110 = ScionUtil.parseIA("1-ff00:0:110");
+    long ia111 = ScionUtil.parseIA("1-ff00:0:111");
+    long ia112 = ScionUtil.parseIA("1-ff00:0:112");
+    long ia120 = ScionUtil.parseIA("1-ff00:0:120");
+    long ia121 = ScionUtil.parseIA("1-ff00:0:121");
+    long ia210 = ScionUtil.parseIA("2-ff00:0:210");
+    long ia211 = ScionUtil.parseIA("2-ff00:0:211");
+
+    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon111_minimal)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(srcIA, dstIA);
-      demo.testPathsControlService(srcIA, dstIA);
+      demo.testPathsDaemon(ia111, ia110);
+      // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -93,6 +101,7 @@ public class ProtobufPathDemo {
         System.out.println("    hop: " + i + ": " + hop);
       }
       System.out.println("    raw: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
+      System.out.println("    raw: " + ToStringUtil.toStringByte(path.getRaw().toByteArray()));
     }
   }
 
