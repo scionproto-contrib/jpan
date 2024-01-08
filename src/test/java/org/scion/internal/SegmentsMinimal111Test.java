@@ -93,16 +93,16 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_110);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
-      Daemon.Path path = paths.get(0);
       //      Paths found: 1
       //      Path:  exp=seconds: 1704738253
       //      mtu=1472
       //      Path: first hop = 127.0.0.25:31016
       //      pathIf: 0: 111 561850441793809  1-ff00:0:111
       //      pathIf: 0: 2 561850441793808  1-ff00:0:110
-      ByteBuffer rawBB = paths.get(0).getRaw().asReadOnlyByteBuffer();
+      Daemon.Path path = paths.get(0);
+      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
-      checkInfo(rawBB, 18215);
+      checkInfo(rawBB, 18215, 0);
       checkHopField(rawBB, 111, 0);
       checkHopField(rawBB, 0, 2);
       assertEquals(0, rawBB.remaining());
@@ -113,6 +113,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       assertEquals(ScionUtil.parseIA("1-ff00:0:111"), path.getInterfaces(0).getIsdAs());
       assertEquals(0, path.getInterfaces(1).getId());
       assertEquals(ScionUtil.parseIA("1-ff00:0:110"), path.getInterfaces(1).getIsdAs());
+      assertEquals(2, path.getInterfacesCount());
     }
     //    scion showpaths 1-ff00:0:110 --sciond 127.0.0.27:30255
     //    Available paths to 1-ff00:0:110
@@ -158,19 +159,47 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 3>453 1-ff00:0:112] MTU: 1450
       //            NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
 
-      //      byte[] rawExpected = {
-      //        0, 0, 32, 0, 0, 0, -49, 44,
-      //        101, -101, -14, 88, 0, 63, 0, 111,
-      //        0, 0, -9, 121, -36, 67, -12, 18,
-      //        0, 63, 0, 0, 0, 2, -91, 8,
-      //        -124, -9, 92, 28
-      //      };
-      //      byte[] rawPath = paths.get(0).getRaw().toByteArray();
-      //      System.out.println(ToStringUtil.toStringHex(rawExpected));
-      //      System.out.println(ToStringUtil.toStringHex(rawPath));
+      //  Paths found: 1
+      //  Path:  exp=seconds: 1704755061
+      //  mtu=1450
+      //  Path: interfaces = 127.0.0.19:31006
+      //  Path: first hop = 127.0.0.19:31006
+      //  pathIf: 0: 3 561850441793808  1-ff00:0:110
+      //  pathIf: 1: 453 561850441793810  1-ff00:0:112
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  raw: {
+      //  0, 0, 32, 0, 1, 0, -74, -34,
+      //  101, -100, 43, 53, 0, 63, 0, 0,
+      //  0, 3, 59, -84, -106, 11, -118, -64,
+      //  0, 63, 1, -59, 0, 0, 18, 115,
+      //  -44, 72, -15, 122}
+
+      Daemon.Path path = paths.get(0);
+      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      checkMetaHeader(rawBB, 2, 2, 0);
+      checkInfo(rawBB, 18215, 0);
+      checkInfo(rawBB, 5701, 1);
+      checkHopField(rawBB, 111, 0);
+      checkHopField(rawBB, 0, 2);
+      checkHopField(rawBB, 0, 3);
+      checkHopField(rawBB, 453, 0);
+      assertEquals(0, rawBB.remaining());
+
+      assertEquals(1450, path.getMtu());
+      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 111, "1-ff00:0:111");
+      checkInterface(path, 1, 0, "1-ff00:0:110");
+      checkInterface(path, 2, 3, "1-ff00:0:110");
+      checkInterface(path, 3, 0, "1-ff00:0:112");
+      assertEquals(4, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(2, controlServer.getAndResetCallCount());
+  }
+
+  private void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
+    assertEquals(id, path.getInterfaces(i).getId());
+    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
   }
 
   @Test
@@ -341,8 +370,9 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     assertEquals(bits, rawBB.getInt()); // MetaHeader
   }
 
-  private static void checkInfo(ByteBuffer rawBB, int segmentId) {
-    assertEquals(0, rawBB.getShort()); // Info0 flags etc
+  private static void checkInfo(ByteBuffer rawBB, int segmentId, int flags) {
+    assertEquals(flags, rawBB.get()); // Info0 flags
+    assertEquals(0, rawBB.get()); // Info0 etc
     assertEquals(segmentId, rawBB.getShort()); // Info0 SegID
     assertNotEquals(0, rawBB.getInt()); // Info0 timestamp
   }
