@@ -37,16 +37,16 @@ import org.scion.testutil.MockControlServer;
 import org.scion.testutil.MockTopologyServer;
 
 /**
- * Test cases: <br>
- * A (-): srcISD == dstISD; src == dst; (same ISD, same AS)<br>
- * B (UP): srcISD == dstISD; dst == core; (same ISD, dst is core)<br>
- * C (DOWN): srcISD == dstISD; src == core; (same ISD, dst is core)<br>
- * D (CORE): srcISD == dstISD; src == core, dst == core; (same ISD, src/dst are cores)<br>
- * E (UP, DOWN): srcISD == dstISD; (same ISD, src/dst are non-cores)<br>
- * F (UP, CORE): srcISD != dstISD; dst == core; (different ISDs, dst is core)<br>
- * G (CORE, DOWN): srcISD != dstISD; src == core; (different ISDs, src is cores)<br>
- * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
- * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
+ * Test cases: (with references to book p105 Fig. 5.8)<br>
+ * A (-): srcISD == dstISD; src == dst; (same ISD, same AS); Book: -<br>
+ * B (UP): srcISD == dstISD; dst == core; (same ISD, dst is core); Book: -<br>
+ * C (DOWN): srcISD == dstISD; src == core; (same ISD, dst is core); Book: 2b<br>
+ * D (CORE): srcISD == dstISD; src == core, dst == core; (same ISD, src/dst are cores); Book: 1c<br>
+ * E (UP, DOWN): srcISD == dstISD; (same ISD, src/dst are non-cores); Book: 1d,2a,4a<br>
+ * F (UP, CORE): srcISD != dstISD; dst == core; (different ISDs, dst is core); Book: 1b<br>
+ * G (CORE, DOWN): srcISD != dstISD; src == core; (different ISDs, src is cores); Book: -<br>
+ * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
+ * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores); Book: 1c<br>
  */
 public class SegmentsMinimal111Test extends SegmentsMinimalTest {
 
@@ -58,7 +58,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
         MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_111/topology.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(31014); // TODO get port from topo
+    controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
 
   @AfterEach
@@ -80,8 +80,15 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_111);
-      assertNotNull(paths);
-      assertTrue(paths.isEmpty());
+      //  ListService: control
+      //  Service: 127.0.0.26:31014
+      //  Paths found: 1
+      //  Path:  exp=seconds: 1704893251  mtu=1472
+      //  Path: first hop =
+      Daemon.Path path = paths.get(0);
+      assertEquals(0, path.getRaw().size());
+      assertEquals(1472, path.getMtu());
+      assertEquals(0, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(0, controlServer.getAndResetCallCount());
@@ -92,16 +99,12 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_110);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
       //    scion showpaths 1-ff00:0:110 --sciond 127.0.0.27:30255
       //    Available paths to 1-ff00:0:110
       //    2 Hops:
       //    [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110] MTU: 1472 NextHop: 127.0.0.25:31016 ...
 
-      //  Path:  exp=seconds: 1704824845
-      //  mtu=1472
-      //  Path: interfaces = 127.0.0.25:31016
+      //  Path:  exp=seconds: 1704824845  mtu=1472
       //  Path: first hop = 127.0.0.25:31016
       //  pathIf: 0: 111 561850441793809  1-ff00:0:111
       //  pathIf: 1: 2 561850441793808  1-ff00:0:110
@@ -141,16 +144,12 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_112);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
       //  Available paths to 1-ff00:0:112
       //  3 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 3>453 1-ff00:0:112] MTU: 1450
       //            NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
 
-      //  Path:  exp=seconds: 1704824845
-      //  mtu=1450
-      //  Path: interfaces = 127.0.0.25:31016
+      //  Path:  exp=seconds: 1704824845  mtu=1450
       //  Path: first hop = 127.0.0.25:31016
       //  pathIf: 0: 111 561850441793809  1-ff00:0:111
       //  pathIf: 1: 2 561850441793808  1-ff00:0:110
@@ -170,12 +169,8 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
         0, 63, 1, -59, 0, 0, -97, -34,
         -17, -101, -5, -55
       };
-      System.out.println(ToStringUtil.pathLong(raw));
-      System.out.println(ToStringUtil.path(raw));
 
       Daemon.Path path = paths.get(0);
-      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 2, 0);
       checkInfo(rawBB, 18215, 0);
@@ -206,9 +201,6 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_121);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
-
       //  Available paths to 1-ff00:0:121
       //  4 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120 2>104 1-ff00:0:121]
@@ -221,9 +213,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //             MTU: 1472 NextHop: 127.0.0.49:31024 Status: alive LocalIP: 127.0.0.1
 
       //  Paths found: 1
-      //  Path:  exp=seconds: 1704812464
-      //  mtu=1472
-      //  Path: interfaces = 127.0.0.25:31016
+      //  Path:  exp=seconds: 1704812464  mtu=1472
       //  Path: first hop = 127.0.0.25:31016
       //  pathIf: 0: 111 561850441793809  1-ff00:0:111
       //  pathIf: 1: 2 561850441793808  1-ff00:0:110
@@ -251,12 +241,8 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
         0, 63, 0, 104, 0, 0, 103, 64,
         -82, 31, -47, -111
       };
-      System.out.println(ToStringUtil.pathLong(raw));
-      System.out.println(ToStringUtil.path(raw));
 
       Daemon.Path path = paths.get(0);
-      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 2, 2);
       checkInfo(rawBB, 18215, 0);
@@ -310,24 +296,13 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_210);
-      assertNotNull(paths);
-      assertFalse(paths.isEmpty());
       //  Available paths to 2-ff00:0:210
       //  4 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120 1>105 2-ff00:0:210]
       //            MTU: 1280 NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
 
       // 111 ---> 210
-      //  ASInfo found: 561850441793809 1-ff00:0:111  core=false  mtu=1472
-      //  Interfaces found: 1
-      //      Interface: 111 -> address: "127.0.0.25:31016"
-      //  Services found: 1
-      //  ListService: control
-      //      Service: 127.0.0.26:31014
-      //  Paths found: 1
-      //  Path:  exp=seconds: 1704751940
-      //    mtu=1280
-      //  Path: interfaces = 127.0.0.25:31016
+      //  Path:  exp=seconds: 1704751940    mtu=1280
       //  Path: first hop = 127.0.0.25:31016
       //      pathIf: 0: 111 561850441793809  1-ff00:0:111
       //      pathIf: 1: 2 561850441793808  1-ff00:0:110
@@ -335,15 +310,49 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //      pathIf: 3: 10 561850441793824  1-ff00:0:120
       //      pathIf: 4: 1 561850441793824  1-ff00:0:120
       //      pathIf: 5: 105 843325418504720  2-ff00:0:210
-      //      hop: 6: 0
-      //      hop: 6: 0
+      //      hop: 0: 0
+      //      hop: 1: 0
       //      linkType: 0 LINK_TYPE_UNSPECIFIED
       //      linkType: 0 LINK_TYPE_UNSPECIFIED
       //      linkType: 0 LINK_TYPE_UNSPECIFIED
-      //      raw: {0, 0, 32, -64, 0, 0, 74, -4, 101, -100, 31, 7, 0, 0, 66, -105, 101, -100, 31, 4,
-      // 0, 63, 0, 111, 0, 0, -71, -23, 86, -41, 44, -100, 0, 63, 0, 0, 0, 2, -29, -84, -67, 18, 3,
-      // -90, 0, 63, 0, 1, 0, 0, 19, -7, 17, -24, -64, -25, 0, 63, 0, 1, 0, 10, 71, 1, 5, 2, -51,
-      // -90, 0, 63, 0, 0, 0, 105, 112, 99, -53, 25, 112, -56}
+      byte[] raw = {
+        0, 0, 32, -64, 0, 0, 26, 64, 101, -99, 65, 20, 0, 0, 73, -32, 101, -99, 60, -26, 0, 63, 0,
+        111, 0, 0, -125, -97, -127, -100, 94, 96, 0, 63, 0, 0, 0, 2, -84, -93, 125, -61, 39, -121,
+        0, 63, 0, 1, 0, 0, 3, -61, -123, 7, 43, -86, 0, 63, 0, 1, 0, 10, 57, 76, 2, -79, -103, -74,
+        0, 63, 0, 0, 0, 105, -3, 121, 91, -24, 121, 6
+      };
+
+      System.out.println(ToStringUtil.pathLong(raw));
+      System.out.println(ToStringUtil.path(raw));
+
+      Daemon.Path path = paths.get(0);
+      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
+      //      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      //      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
+      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      checkMetaHeader(rawBB, 2, 3, 0);
+      checkInfo(rawBB, 18215, 0);
+      checkInfo(rawBB, 15767, 0);
+      checkHopField(rawBB, 111, 0);
+      checkHopField(rawBB, 0, 2);
+      checkHopField(rawBB, 1, 0);
+      checkHopField(rawBB, 1, 10);
+      checkHopField(rawBB, 0, 105);
+      assertEquals(0, rawBB.remaining());
+
+      // compare with recorded byte[]
+      checkRaw(raw, path.getRaw().toByteArray());
+
+      assertEquals(1280, path.getMtu());
+      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 111, "1-ff00:0:111");
+      checkInterface(path, 1, 2, "1-ff00:0:110");
+      checkInterface(path, 2, 1, "1-ff00:0:110");
+      checkInterface(path, 3, 10, "1-ff00:0:120");
+      checkInterface(path, 4, 1, "1-ff00:0:120");
+      checkInterface(path, 5, 105, "2-ff00:0:210");
+      assertEquals(4, path.getInterfacesCount());
 
       // 210 ---> 111
       //        ASInfo found: 843325418504720 2-ff00:0:210  core=true  mtu=1280
@@ -354,9 +363,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //  ListService: control
       //      Service: 127.0.0.59:31026
       //  Paths found: 1
-      //  Path:  exp=seconds: 1704751737
-      //    mtu=1280
-      //  Path: interfaces = 127.0.0.57:31028
+      //  Path:  exp=seconds: 1704751737    mtu=1280
       //  Path: first hop = 127.0.0.57:31028
       //      pathIf: 0: 105 843325418504720  2-ff00:0:210
       //      pathIf: 1: 1 561850441793824  1-ff00:0:120
@@ -364,8 +371,8 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //      pathIf: 3: 1 561850441793808  1-ff00:0:110
       //      pathIf: 4: 2 561850441793808  1-ff00:0:110
       //      pathIf: 5: 111 561850441793809  1-ff00:0:111
-      //      hop: 6: 0
-      //      hop: 6: 0
+      //      hop: 0: 0
+      //      hop: 1: 0
       //      linkType: 0 LINK_TYPE_UNSPECIFIED
       //      linkType: 0 LINK_TYPE_UNSPECIFIED
       //      linkType: 0 LINK_TYPE_UNSPECIFIED
@@ -408,6 +415,77 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120 1>105 2-ff00:0:210 450>503
       //             2-ff00:0:211] MTU: 1280 NextHop: 127.0.0.25:31016
       //             Status: alive LocalIP: 127.0.0.1
+
+      //  Path:  exp=1704833279 / 2024-01-09T20:47:59Z  mtu=1280
+      //  Path: first hop = 127.0.0.25:31016
+      //  pathIf: 0: 111 561850441793809  1-ff00:0:111
+      //  pathIf: 1: 2 561850441793808  1-ff00:0:110
+      //  pathIf: 2: 1 561850441793808  1-ff00:0:110
+      //  pathIf: 3: 10 561850441793824  1-ff00:0:120
+      //  pathIf: 4: 1 561850441793824  1-ff00:0:120
+      //  pathIf: 5: 105 843325418504720  2-ff00:0:210
+      //  pathIf: 6: 450 843325418504720  2-ff00:0:210
+      //  pathIf: 7: 503 843325418504721  2-ff00:0:211
+      //  hop: 0: 0
+      //  hop: 1: 0
+      //  hop: 2: 0
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      byte[] raw = {
+        0, 0, 32, -62, 0, 0, 80, -24,
+        101, -99, 92, -60, 0, 0, 6, -54,
+        101, -99, 92, -65, 1, 0, 81, -35,
+        101, -99, 92, -59, 0, 63, 0, 111,
+        0, 0, 23, -84, 56, -100, -119, 61,
+        0, 63, 0, 0, 0, 2, 20, 83,
+        -17, -103, 39, -4, 0, 63, 0, 1,
+        0, 0, -19, -116, -107, -86, 72, -118,
+        0, 63, 0, 1, 0, 10, 99, 94,
+        -119, -69, -59, -103, 0, 63, 0, 0,
+        0, 105, 110, -26, 14, -101, -48, 52,
+        0, 63, 0, 0, 1, -62, 100, -117,
+        41, -13, -27, -53, 0, 63, 1, -9,
+        0, 0, 45, -106, -114, -48, 6, -35
+      };
+
+      System.out.println(ToStringUtil.pathLong(raw));
+      System.out.println(ToStringUtil.path(raw));
+
+      Daemon.Path path = paths.get(0);
+      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
+      //      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      //      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
+      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      checkMetaHeader(rawBB, 2, 3, 2);
+      checkInfo(rawBB, 18215, 0);
+      checkInfo(rawBB, 15767, 0);
+      checkInfo(rawBB, 15299, 1);
+      checkHopField(rawBB, 111, 0);
+      checkHopField(rawBB, 0, 2);
+      checkHopField(rawBB, 1, 0);
+      checkHopField(rawBB, 1, 10);
+      checkHopField(rawBB, 0, 105);
+      checkHopField(rawBB, 0, 450);
+      checkHopField(rawBB, 503, 0);
+      assertEquals(0, rawBB.remaining());
+
+      // compare with recorded byte[]
+      checkRaw(raw, path.getRaw().toByteArray());
+
+      assertEquals(1280, path.getMtu());
+      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 111, "1-ff00:0:111");
+      checkInterface(path, 1, 2, "1-ff00:0:110");
+      checkInterface(path, 2, 1, "1-ff00:0:110");
+      checkInterface(path, 3, 10, "1-ff00:0:120");
+      checkInterface(path, 4, 1, "1-ff00:0:120");
+      checkInterface(path, 5, 105, "2-ff00:0:210");
+      checkInterface(path, 6, 405, "2-ff00:0:210");
+      checkInterface(path, 7, 503, "2-ff00:0:211");
+      assertEquals(8, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(3, controlServer.getAndResetCallCount());

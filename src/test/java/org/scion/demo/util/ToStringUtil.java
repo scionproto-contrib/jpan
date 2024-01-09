@@ -126,8 +126,10 @@ public class ToStringUtil {
       int ub = Byte.toUnsignedInt(ba[i]);
       sb.append("0x").append(Integer.toHexString(ub)).append(", ");
     }
-    int ub = Byte.toUnsignedInt(ba[ba.length - 1]);
-    sb.append("0x").append(Integer.toHexString(ub));
+    if (ba.length > 0) {
+      int ub = Byte.toUnsignedInt(ba[ba.length - 1]);
+      sb.append("0x").append(Integer.toHexString(ub));
+    }
     sb.append("]");
     return sb.toString();
   }
@@ -138,7 +140,9 @@ public class ToStringUtil {
     for (int i = 0; i < ba.length - 1; i++) {
       sb.append(ba[i]).append(", ");
     }
-    sb.append(ba[ba.length - 1]);
+    if (ba.length > 0) {
+      sb.append(ba[ba.length - 1]);
+    }
     sb.append("}");
     return sb.toString();
   }
@@ -153,11 +157,6 @@ public class ToStringUtil {
     InfoField info2 = ph.getInfoField(2);
 
     int[] segLen = {ph.getSegLen(0), ph.getSegLen(1), ph.getSegLen(2)};
-
-    int sl0 = ph.getSegLen(0);
-    int sl1 = ph.getSegLen(1);
-    int sl2 = ph.getSegLen(2);
-    info0.getFlagC();
     sb.append("c0:").append(info0.getFlagC()).append(" ");
     sb.append("c1:").append(info1.getFlagC()).append(" ");
     sb.append("c2:").append(info2.getFlagC()).append(" ");

@@ -238,6 +238,10 @@ public class ScionBootstrapper {
     throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
   }
 
+  public int getLocalMtu() {
+    return this.localMtu;
+  }
+
   public void refreshTopology() {
     // TODO check timeout from dig netsec-w37w3w.inf.ethz.ch?
     // TODO verify local DNS?? How?

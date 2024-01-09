@@ -19,6 +19,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.*;
 import org.scion.ScionException;
 import org.scion.ScionUtil;
@@ -173,7 +174,7 @@ public class Segments {
 
     // hop fields
     // TODO clean up: Create [] of seg/info and loop inside write() method
-    ByteUtil.MutInt minMtu = new ByteUtil.MutInt(Integer.MAX_VALUE);
+    ByteUtil.MutInt minMtu = new ByteUtil.MutInt(brLookup.getLocalMtu());
     ByteUtil.MutInt minExpirationDelta = new ByteUtil.MutInt(Byte.MAX_VALUE);
     writeHopFields(path, raw, seg0, reversed0, minExpirationDelta, minMtu);
     long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
@@ -193,11 +194,9 @@ public class Segments {
 
     // Expiration
     path.setExpiration(Timestamp.newBuilder().setSeconds(minExp).build());
-    path.setMtu(minMtu.v == Integer.MAX_VALUE ? 0 : minMtu.v);
+    path.setMtu(minMtu.v);
 
     // TODO implement this
-    //    path.setInterface(Daemon.Interface.newBuilder().setAddress().build());
-    //    path.addInterfaces(Daemon.PathInterface.newBuilder().setId().setIsdAs().build());
     //    segUp.getSegmentInfo();
     //    path.setLatency();
     //    path.setInternalHops();
@@ -437,14 +436,21 @@ public class Segments {
 
     if (srcIsdAs == dstIsdAs) {
       // case A
-      // TODO return *empty* path!
-      return Collections.emptyList();
+      // return empty path
+      List<Daemon.Path> paths = new ArrayList<>();
+      Daemon.Path.Builder path = Daemon.Path.newBuilder();
+      path.setMtu(brLookup.getLocalMtu());
+      Instant now = Instant.now();
+      path.setExpiration(Timestamp.newBuilder().setSeconds(now.getEpochSecond()).build());
+      paths.add(path.build());
+      return paths;
     }
 
     // TODO in future we can find out whether an AS is CORE by parsing the TRC files:
     //      https://docs.anapaya.net/en/latest/resources/isd-as-assignments/#as-assignments
     //     ./bazel-bin/scion-pki/cmd/scion-pki/scion-pki_/scion-pki trc inspect
     //         ../../Downloads/ISD64.bundle
+    //     Or we use logic. If SRC is not CORE then DST must be CORE.
 
     long from = srcIsdAs;
     long to = dstIsdAs;

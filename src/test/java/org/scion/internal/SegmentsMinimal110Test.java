@@ -75,8 +75,10 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_110);
-      assertNotNull(paths);
-      assertTrue(paths.isEmpty());
+      Daemon.Path path = paths.get(0);
+      assertEquals(0, path.getRaw().size());
+      assertEquals(1472, path.getMtu());
+      assertEquals(0, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(0, controlServer.getAndResetCallCount());

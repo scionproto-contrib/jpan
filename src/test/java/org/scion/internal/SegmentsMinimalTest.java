@@ -290,6 +290,30 @@ public class SegmentsMinimalTest {
     //        HopEntry: true mtu=1472
     //          HopField: exp=63 ingress=1 egress=0
 
+    // TODO NEW
+    //  Requesting segments: 1-ff00:0:110 -> 2-ff00:0:210
+    //  SEG: key=SEGMENT_TYPE_CORE -> n=1
+    //  PathSeg: size=10
+    //  SegInfo:  ts=2024-01-09T17:02:56Z  id=56881
+    //  AS: signed=94   signature size=72
+    //  AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-09T17:02:56.090413326Z
+    // meta=0  data=10
+    //  AS Body: IA=2-ff00:0:210 nextIA=1-ff00:0:120  mtu=1280
+    //  HopEntry: true mtu=0
+    //  HopField: exp=63 ingress=0 egress=105
+    //  AS: signed=98   signature size=70
+    //  AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-09T17:02:58.079038029Z
+    // meta=0  data=176
+    //  AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
+    //  HopEntry: true mtu=1472
+    //  HopField: exp=63 ingress=1 egress=10
+    //  AS: signed=88   signature size=71
+    //  AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-09T17:03:00.070004279Z
+    // meta=0  data=344
+    //  AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
+    //  HopEntry: true mtu=1472
+    //  HopField: exp=63 ingress=1 egress=0
+
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 105));
     Seg.ASEntry ase00 = buildASEntry(AS_210, AS_120, 1280, he00);
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 1, 10));
