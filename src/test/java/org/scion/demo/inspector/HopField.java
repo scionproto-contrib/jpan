@@ -134,4 +134,12 @@ public class HopField {
     consEgress = 0;
     mac = 0;
   }
+
+  public int getIngress() {
+    return consIngress;
+  }
+
+  public int getEgress() {
+    return consEgress;
+  }
 }

@@ -42,12 +42,12 @@ public class ProtobufPathDemo {
     long ia210 = ScionUtil.parseIA("2-ff00:0:210");
     long ia211 = ScionUtil.parseIA("2-ff00:0:211");
 
-    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon110_minimal)) {
+    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon111_minimal)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(ia110, ia112);
+      demo.testPathsDaemon(ia111, ia112);
       // raw: {0, 0, 32, 0, 0, 0, 81, -76, 101, -100, 36, 37, 0, 63, 0, 111, 0, 0, -123, 125, 45,
       // 92, -108, -6, 0, 63, 0, 0, 0, 2, 43, 55, 115, 76, -73, 23}
       // raw: {0, 0, 32, 0, 1, 0, 34, 7, 101, -100, 41, 90, 0, 63, 0, 0, 0, 3, -118, 38, 80, -89,

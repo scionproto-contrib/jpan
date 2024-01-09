@@ -158,10 +158,14 @@ public class Segments {
       // E.g. only coreSegments or only downSegments or core+down
       throw new UnsupportedOperationException();
     }
-    boolean reversed0 = isReversed(seg0, brLookup.getLocalIsdAs());
+    long[] endingASes = new long[2];
+    boolean reversed0 = isReversed(seg0, brLookup.getLocalIsdAs(), endingASes);
     writeInfoField(raw, info0, reversed0);
+    boolean reversed1 = false;
     if (info1 != null) {
-      writeInfoField(raw, info1, false);
+      long ending0 = reversed0 ? endingASes[0] : endingASes[1];
+      reversed1 = isReversed(seg1, ending0, endingASes);
+      writeInfoField(raw, info1, reversed1);
     }
     if (info2 != null) {
       writeInfoField(raw, info2, false);
@@ -175,7 +179,7 @@ public class Segments {
     long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     if (seg1 != null) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, seg1, false, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, seg1, reversed1, minExpirationDelta, minMtu);
       minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
     if (seg2 != null) {
@@ -207,17 +211,18 @@ public class Segments {
     return path.build();
   }
 
-  private static boolean isReversed(Seg.PathSegment pathSegment, long startIA)
+  private static boolean isReversed(Seg.PathSegment pathSegment, long startIA, long[] isdAs)
       throws ScionException {
     // Let's assumed they are all signed // TODO?
     Seg.ASEntry asEntry0 = pathSegment.getAsEntriesList().get(0);
     Seg.ASEntrySignedBody body0 = getBody(asEntry0.getSigned());
+    Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
+    Seg.ASEntrySignedBody bodyN = getBody(asEntryN.getSigned());
+    isdAs[0] = body0.getIsdAs();
+    isdAs[1] = bodyN.getIsdAs();
     if (body0.getIsdAs() == startIA) {
       return false;
-    }
-    Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
-    Seg.ASEntrySignedBody body = getBody(asEntryN.getSigned());
-    if (body.getIsdAs() == startIA) {
+    } else if (bodyN.getIsdAs() == startIA) {
       return true;
     }
     // TODO support "middle" IAs
@@ -268,11 +273,13 @@ public class Segments {
       // }
       minMtu.v = Math.min(minMtu.v, body.getMtu());
 
-      path.addInterfaces(
-          Daemon.PathInterface.newBuilder()
-              .setId(reversed ? hopField.getIngress() : hopField.getEgress())
-              .setIsdAs(body.getIsdAs())
-              .build());
+      Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
+      if (i % 2 == 0) {
+        pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
+      } else {
+        pib.setId(reversed ? hopField.getEgress() : hopField.getIngress());
+      }
+      path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
     }
   }
 

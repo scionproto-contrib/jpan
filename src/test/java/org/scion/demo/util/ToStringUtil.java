@@ -17,6 +17,10 @@ package org.scion.demo.util;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import org.scion.demo.inspector.HopField;
+import org.scion.demo.inspector.InfoField;
+import org.scion.demo.inspector.PathHeaderScion;
 
 public class ToStringUtil {
 
@@ -137,5 +141,51 @@ public class ToStringUtil {
     sb.append(ba[ba.length - 1]);
     sb.append("}");
     return sb.toString();
+  }
+
+  public static String path(byte[] raw) {
+    PathHeaderScion ph = new PathHeaderScion();
+    ph.read(ByteBuffer.wrap(raw));
+    StringBuilder sb = new StringBuilder();
+    sb.append("Hops: [");
+    InfoField info0 = ph.getInfoField(0);
+    InfoField info1 = ph.getInfoField(1);
+    InfoField info2 = ph.getInfoField(2);
+
+    int[] segLen = {ph.getSegLen(0), ph.getSegLen(1), ph.getSegLen(2)};
+
+    int sl0 = ph.getSegLen(0);
+    int sl1 = ph.getSegLen(1);
+    int sl2 = ph.getSegLen(2);
+    info0.getFlagC();
+    sb.append("c0:").append(info0.getFlagC()).append(" ");
+    sb.append("c1:").append(info1.getFlagC()).append(" ");
+    sb.append("c2:").append(info2.getFlagC()).append(" ");
+
+    int offset = 0;
+    for (int j = 0; j < segLen.length; j++) {
+      boolean flagC = ph.getInfoField(j).getFlagC();
+      for (int i = offset; i < offset + segLen[j]; i += 2) {
+        HopField hfE = ph.getHopField(i);
+        HopField hfI = ph.getHopField(i + 1);
+        if (flagC) {
+          sb.append(hfE.getEgress()).append(">").append(hfI.getIngress());
+        } else {
+          sb.append(hfE.getIngress()).append(">").append(hfI.getEgress());
+        }
+        if (i < ph.getHopCount() - 2) {
+          sb.append(" ");
+        }
+      }
+      offset += segLen[j];
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+
+  public static String pathLong(byte[] raw) {
+    PathHeaderScion ph = new PathHeaderScion();
+    ph.read(ByteBuffer.wrap(raw));
+    return ph.toString();
   }
 }
