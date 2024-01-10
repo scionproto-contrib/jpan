@@ -48,7 +48,7 @@ public class ProtobufPathDemo {
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(ia111, ia211);
+      demo.testPathsDaemon(ia111, ia210);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);

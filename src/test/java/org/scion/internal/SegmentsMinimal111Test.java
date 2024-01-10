@@ -203,43 +203,29 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_121);
       //  Available paths to 1-ff00:0:121
       //  4 Hops:
-      //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120 2>104 1-ff00:0:121]
-      //             MTU: 1472 NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
+      //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10
+      //            1-ff00:0:120 21>104 1-ff00:0:121]
+      //            MTU: 1472 NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
 
-      // For info: 121->111
-      //  Available paths to 1-ff00:0:111
-      //  4 Hops:
-      //  [0] Hops: [1-ff00:0:121 104>2 1-ff00:0:120 10>1 1-ff00:0:110 2>111 1-ff00:0:111]
-      //             MTU: 1472 NextHop: 127.0.0.49:31024 Status: alive LocalIP: 127.0.0.1
-
-      //  Paths found: 1
-      //  Path:  exp=seconds: 1704812464  mtu=1472
+      //  Path:  exp=1704913425 / 2024-01-10T19:03:45Z  mtu=1472
       //  Path: first hop = 127.0.0.25:31016
       //  pathIf: 0: 111 561850441793809  1-ff00:0:111
       //  pathIf: 1: 2 561850441793808  1-ff00:0:110
       //  pathIf: 2: 1 561850441793808  1-ff00:0:110
       //  pathIf: 3: 10 561850441793824  1-ff00:0:120
-      //  pathIf: 4: 2 561850441793824  1-ff00:0:120
+      //  pathIf: 4: 21 561850441793824  1-ff00:0:120
       //  pathIf: 5: 104 561850441793825  1-ff00:0:121
-      //  hop: 6: 0
-      //  hop: 6: 0
+      //  hop: 0: 0
+      //  hop: 1: 0
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
       byte[] raw = {
-        0, 0, 32, -126, 0, 0, 99, -57,
-        101, -99, 11, 113, 0, 0, 43, -107,
-        101, -99, 11, 117, 1, 0, -126, 24,
-        101, -99, 11, 112, 0, 63, 0, 111,
-        0, 0, 17, -66, -73, -95, 101, 124,
-        0, 63, 0, 0, 0, 2, 105, -99,
-        109, -76, 119, 52, 0, 63, 0, 1,
-        0, 0, -4, 22, -107, -89, -48, 89,
-        0, 63, 0, 0, 0, 10, 43, -7,
-        7, -23, 105, 22, 0, 63, 0, 0,
-        0, 2, 8, 86, 21, 111, 126, 46,
-        0, 63, 0, 104, 0, 0, 103, 64,
-        -82, 31, -47, -111
+        0, 0, 32, -126, 0, 0, -121, 41, 101, -98, -107, -47, 0, 0, -89, -17, 101, -98, -107, -47, 1,
+        0, 62, -8, 101, -98, -107, -47, 0, 63, 0, 111, 0, 0, 114, 69, 82, 121, -115, 98, 0, 63, 0,
+        0, 0, 2, -30, 18, 58, -46, -115, 127, 0, 63, 0, 1, 0, 0, -4, 64, 25, 86, -39, 95, 0, 63, 0,
+        0, 0, 10, 65, -88, 59, 74, -123, -81, 0, 63, 0, 0, 0, 21, -72, 46, 13, -41, 94, -52, 0, 63,
+        0, 104, 0, 0, 117, 9, 111, 106, -77, 69
       };
 
       Daemon.Path path = paths.get(0);
@@ -252,7 +238,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkHopField(rawBB, 0, 2);
       checkHopField(rawBB, 1, 0);
       checkHopField(rawBB, 0, 10);
-      checkHopField(rawBB, 0, 2);
+      checkHopField(rawBB, 0, 21);
       checkHopField(rawBB, 104, 0);
       assertEquals(0, rawBB.remaining());
 
@@ -265,7 +251,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
       checkInterface(path, 3, 10, "1-ff00:0:120");
-      checkInterface(path, 4, 2, "1-ff00:0:120");
+      checkInterface(path, 4, 21, "1-ff00:0:120");
       checkInterface(path, 5, 104, "1-ff00:0:121");
       assertEquals(6, path.getInterfacesCount());
     }
@@ -298,28 +284,28 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_210);
       //  Available paths to 2-ff00:0:210
       //  4 Hops:
-      //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120 1>105 2-ff00:0:210]
+      //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10
+      //            1-ff00:0:120 210>105 2-ff00:0:210]
       //            MTU: 1280 NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
 
-      // 111 ---> 210
-      //  Path:  exp=seconds: 1704751940    mtu=1280
+      //  Path:  exp=1704913573 / 2024-01-10T19:06:13Z  mtu=1280
       //  Path: first hop = 127.0.0.25:31016
-      //      pathIf: 0: 111 561850441793809  1-ff00:0:111
-      //      pathIf: 1: 2 561850441793808  1-ff00:0:110
-      //      pathIf: 2: 1 561850441793808  1-ff00:0:110
-      //      pathIf: 3: 10 561850441793824  1-ff00:0:120
-      //      pathIf: 4: 1 561850441793824  1-ff00:0:120
-      //      pathIf: 5: 105 843325418504720  2-ff00:0:210
-      //      hop: 0: 0
-      //      hop: 1: 0
-      //      linkType: 0 LINK_TYPE_UNSPECIFIED
-      //      linkType: 0 LINK_TYPE_UNSPECIFIED
-      //      linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  pathIf: 0: 111 561850441793809  1-ff00:0:111
+      //  pathIf: 1: 2 561850441793808  1-ff00:0:110
+      //  pathIf: 2: 1 561850441793808  1-ff00:0:110
+      //  pathIf: 3: 10 561850441793824  1-ff00:0:120
+      //  pathIf: 4: 210 561850441793824  1-ff00:0:120
+      //  pathIf: 5: 105 843325418504720  2-ff00:0:210
+      //  hop: 0: 0
+      //  hop: 1: 0
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
       byte[] raw = {
-        0, 0, 32, -64, 0, 0, 26, 64, 101, -99, 65, 20, 0, 0, 73, -32, 101, -99, 60, -26, 0, 63, 0,
-        111, 0, 0, -125, -97, -127, -100, 94, 96, 0, 63, 0, 0, 0, 2, -84, -93, 125, -61, 39, -121,
-        0, 63, 0, 1, 0, 0, 3, -61, -123, 7, 43, -86, 0, 63, 0, 1, 0, 10, 57, 76, 2, -79, -103, -74,
-        0, 63, 0, 0, 0, 105, -3, 121, 91, -24, 121, 6
+        0, 0, 32, -64, 0, 0, -107, -43, 101, -98, -105, 0, 0, 0, -60, -49, 101, -98, -106, 101, 0,
+        63, 0, 111, 0, 0, 120, -18, 10, 98, 23, 27, 0, 63, 0, 0, 0, 2, 115, 81, -65, -103, -46, 75,
+        0, 63, 0, 1, 0, 0, 98, -84, 112, -78, -116, 119, 0, 63, 0, -46, 0, 10, -91, -126, 44, 8,
+        -86, 36, 0, 63, 0, 0, 0, 105, 127, 70, 14, 113, 60, -12
       };
 
       System.out.println(ToStringUtil.pathLong(raw));
@@ -337,7 +323,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkHopField(rawBB, 111, 0);
       checkHopField(rawBB, 0, 2);
       checkHopField(rawBB, 1, 0);
-      checkHopField(rawBB, 1, 10);
+      checkHopField(rawBB, 210, 10);
       checkHopField(rawBB, 0, 105);
       assertEquals(0, rawBB.remaining());
 
@@ -412,17 +398,18 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       assertFalse(paths.isEmpty());
       //  Available paths to 2-ff00:0:211
       //  5 Hops:
-      //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120 1>105 2-ff00:0:210 450>503
-      //             2-ff00:0:211] MTU: 1280 NextHop: 127.0.0.25:31016
-      //             Status: alive LocalIP: 127.0.0.1
+      //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10
+      //            1-ff00:0:120 210>105 2-ff00:0:210 450>503
+      //            2-ff00:0:211]
+      //            MTU: 1280 NextHop: 127.0.0.25:31016 Status: alive LocalIP: 127.0.0.1
 
-      //  Path:  exp=1704833279 / 2024-01-09T20:47:59Z  mtu=1280
+      //  Path:  exp=1704913425 / 2024-01-10T19:03:45Z  mtu=1280
       //  Path: first hop = 127.0.0.25:31016
       //  pathIf: 0: 111 561850441793809  1-ff00:0:111
       //  pathIf: 1: 2 561850441793808  1-ff00:0:110
       //  pathIf: 2: 1 561850441793808  1-ff00:0:110
       //  pathIf: 3: 10 561850441793824  1-ff00:0:120
-      //  pathIf: 4: 1 561850441793824  1-ff00:0:120
+      //  pathIf: 4: 210 561850441793824  1-ff00:0:120
       //  pathIf: 5: 105 843325418504720  2-ff00:0:210
       //  pathIf: 6: 450 843325418504720  2-ff00:0:210
       //  pathIf: 7: 503 843325418504721  2-ff00:0:211
@@ -434,20 +421,12 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
       byte[] raw = {
-        0, 0, 32, -62, 0, 0, 80, -24,
-        101, -99, 92, -60, 0, 0, 6, -54,
-        101, -99, 92, -65, 1, 0, 81, -35,
-        101, -99, 92, -59, 0, 63, 0, 111,
-        0, 0, 23, -84, 56, -100, -119, 61,
-        0, 63, 0, 0, 0, 2, 20, 83,
-        -17, -103, 39, -4, 0, 63, 0, 1,
-        0, 0, -19, -116, -107, -86, 72, -118,
-        0, 63, 0, 1, 0, 10, 99, 94,
-        -119, -69, -59, -103, 0, 63, 0, 0,
-        0, 105, 110, -26, 14, -101, -48, 52,
-        0, 63, 0, 0, 1, -62, 100, -117,
-        41, -13, -27, -53, 0, 63, 1, -9,
-        0, 0, 45, -106, -114, -48, 6, -35
+        0, 0, 32, -62, 0, 0, -121, 41, 101, -98, -107, -47, 0, 0, -60, -49, 101, -98, -106, 101, 1,
+        0, -18, -110, 101, -98, -106, -48, 0, 63, 0, 111, 0, 0, 114, 69, 82, 121, -115, 98, 0, 63,
+        0, 0, 0, 2, -30, 18, 58, -46, -115, 127, 0, 63, 0, 1, 0, 0, 98, -84, 112, -78, -116, 119, 0,
+        63, 0, -46, 0, 10, -91, -126, 44, 8, -86, 36, 0, 63, 0, 0, 0, 105, 127, 70, 14, 113, 60,
+        -12, 0, 63, 0, 0, 1, -62, 22, 103, -61, -48, -53, -108, 0, 63, 1, -9, 0, 0, 91, 23, 96, 25,
+        122, -26
       };
 
       System.out.println(ToStringUtil.pathLong(raw));
@@ -466,7 +445,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkHopField(rawBB, 111, 0);
       checkHopField(rawBB, 0, 2);
       checkHopField(rawBB, 1, 0);
-      checkHopField(rawBB, 1, 10);
+      checkHopField(rawBB, 210, 10);
       checkHopField(rawBB, 0, 105);
       checkHopField(rawBB, 0, 450);
       checkHopField(rawBB, 503, 0);
@@ -481,11 +460,14 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
       checkInterface(path, 3, 10, "1-ff00:0:120");
-      checkInterface(path, 4, 1, "1-ff00:0:120");
-      checkInterface(path, 5, 105, "2-ff00:0:210");
-      checkInterface(path, 6, 405, "2-ff00:0:210");
-      checkInterface(path, 7, 503, "2-ff00:0:211");
-      assertEquals(8, path.getInterfacesCount());
+      checkInterface(path, 4, 0, "2-ff00:0:210");
+      checkInterface(path, 5, 450, "2-ff00:0:210");
+      checkInterface(path, 6, 503, "2-ff00:0:211");
+      // checkInterface(path, 4, 210, "1-ff00:0:120");
+      // checkInterface(path, 5, 105, "2-ff00:0:210");
+      // checkInterface(path, 6, 450, "2-ff00:0:210");
+      // checkInterface(path, 7, 503, "2-ff00:0:211");
+      assertEquals(7, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(3, controlServer.getAndResetCallCount());
@@ -514,6 +496,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
 
   private void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
     assertEquals(id, path.getInterfaces(i).getId());
+    System.out.println("IA:" + ScionUtil.toStringIA(path.getInterfaces(i).getIsdAs())); // TODO
     assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
   }
 

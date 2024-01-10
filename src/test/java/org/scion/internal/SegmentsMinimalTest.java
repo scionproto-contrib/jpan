@@ -216,20 +216,20 @@ public class SegmentsMinimalTest {
   }
 
   private void addResponse110_120() {
-    //    Requesting segments: 1-0:0:0 -> 1-ff00:0:120
-    //    SEG: key=SEGMENT_TYPE_CORE -> n=1
-    //    PathSeg: size=10
-    //    SegInfo:  ts=2024-01-05T15:02:54Z  id=26755
-    //      AS: signed=93   signature size=72
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.462275285Z
-    //      AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
-    //        HopEntry: true mtu=0
-    //          HopField: exp=63 ingress=0 egress=10
-    //      AS: signed=89   signature size=71
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:54.951643890Z
-    //      AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
-    //        HopEntry: true mtu=1472
-    //          HopField: exp=63 ingress=1 egress=0
+    //  Requesting segments: 1-ff00:0:110 -> 1-ff00:0:120
+    //  SEG: key=SEGMENT_TYPE_CORE -> n=1
+    //  PathSeg: size=9
+    //  SegInfo:  ts=2024-01-10T12:48:16Z  id=12530
+    //    AS: signed=93   signature size=70
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:48:16.681095815Z
+    //    AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=10
+    //    AS: signed=89   signature size=70
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:48:17.672710479Z
+    //    AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1472
+    //        HopField: exp=63 ingress=1 egress=0
 
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 10));
     Seg.ASEntry ase00 = buildASEntry(AS_120, AS_110, 1472, he00);
@@ -242,22 +242,22 @@ public class SegmentsMinimalTest {
   }
 
   private void addResponse120_121() {
-    //    Requesting segments: 1-ff00:0:120 -> 1-ff00:0:121
-    //    SEG: key=SEGMENT_TYPE_DOWN -> n=1
-    //    PathSeg: size=10
-    //    SegInfo:  ts=2024-01-05T13:01:14Z  id=48280
-    //      AS: signed=93   signature size=71
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T13:01:14.713317855Z
-    //      AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:121  mtu=1472
-    //        HopEntry: true mtu=0
-    //          HopField: exp=63 ingress=0 egress=2
-    //      AS: signed=89   signature size=70
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T13:01:14.936359914Z
-    //      AS Body: IA=1-ff00:0:121 nextIA=0-0:0:0  mtu=1472
-    //        HopEntry: true mtu=1472
-    //          HopField: exp=63 ingress=104 egress=0
+    //  Requesting segments: 1-ff00:0:120 -> 1-ff00:0:121
+    //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
+    //  PathSeg: size=10
+    //  SegInfo:  ts=2024-01-10T12:58:22Z  id=32941
+    //    AS: signed=92   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:58:22.183393999Z
+    //    AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:121  mtu=1472
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=21
+    //    AS: signed=89   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:58:23.693617219Z
+    //    AS Body: IA=1-ff00:0:121 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1472
+    //        HopField: exp=63 ingress=104 egress=0
 
-    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 2));
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 21));
     Seg.ASEntry ase00 = buildASEntry(AS_120, AS_121, 1472, he00);
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 104, 0));
     Seg.ASEntry ase01 = buildASEntry(AS_121, ZERO, 1472, he01);
@@ -270,53 +270,29 @@ public class SegmentsMinimalTest {
   }
 
   private void addResponse110_210() {
-    //    Requesting segments: 1-ff00:0:110 -> 2-0:0:0
-    //    SEG: key=SEGMENT_TYPE_CORE -> n=1
-    //    PathSeg: size=9
-    //    SegInfo:  ts=2024-01-05T13:09:51Z  id=15767
-    //      AS: signed=95   signature size=71
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T13:09:51.340886240Z
-    //      AS Body: IA=2-ff00:0:210 nextIA=1-ff00:0:120  mtu=1280
-    //        HopEntry: true mtu=0
-    //          HopField: exp=63 ingress=0 egress=105
-    //      AS: signed=99   signature size=70
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T13:09:51.832634011Z
-    //      AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
-    //        HopEntry: true mtu=1472
-    //          HopField: exp=63 ingress=1 egress=10
-    //      AS: signed=89   signature size=71
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T13:10:01.336466604Z
-    //      AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
-    //        HopEntry: true mtu=1472
-    //          HopField: exp=63 ingress=1 egress=0
-
-    // TODO NEW
     //  Requesting segments: 1-ff00:0:110 -> 2-ff00:0:210
     //  SEG: key=SEGMENT_TYPE_CORE -> n=1
     //  PathSeg: size=10
-    //  SegInfo:  ts=2024-01-09T17:02:56Z  id=56881
-    //  AS: signed=94   signature size=72
-    //  AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-09T17:02:56.090413326Z
-    // meta=0  data=10
-    //  AS Body: IA=2-ff00:0:210 nextIA=1-ff00:0:120  mtu=1280
-    //  HopEntry: true mtu=0
-    //  HopField: exp=63 ingress=0 egress=105
-    //  AS: signed=98   signature size=70
-    //  AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-09T17:02:58.079038029Z
-    // meta=0  data=176
-    //  AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
-    //  HopEntry: true mtu=1472
-    //  HopField: exp=63 ingress=1 egress=10
-    //  AS: signed=88   signature size=71
-    //  AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-09T17:03:00.070004279Z
-    // meta=0  data=344
-    //  AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
-    //  HopEntry: true mtu=1472
-    //  HopField: exp=63 ingress=1 egress=0
+    //  SegInfo:  ts=2024-01-10T12:59:43Z  id=47499
+    //    AS: signed=95   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:59:43.691626342Z
+    //    AS Body: IA=2-ff00:0:210 nextIA=1-ff00:0:120  mtu=1280
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=105
+    //    AS: signed=99   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:59:47.186763262Z
+    //    AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:110  mtu=1472
+    //      HopEntry: true mtu=1472
+    //        HopField: exp=63 ingress=210 egress=10
+    //    AS: signed=88   signature size=70
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:59:51.171109823Z
+    //    AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1472
+    //        HopField: exp=63 ingress=1 egress=0
 
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 105));
     Seg.ASEntry ase00 = buildASEntry(AS_210, AS_120, 1280, he00);
-    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 1, 10));
+    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 210, 10));
     Seg.ASEntry ase01 = buildASEntry(AS_120, AS_110, 1472, he01);
     Seg.HopEntry he02 = buildHopEntry(1472, buildHopField(63, 1, 0));
     Seg.ASEntry ase02 = buildASEntry(AS_110, ZERO, 1472, he02);
@@ -327,20 +303,20 @@ public class SegmentsMinimalTest {
   }
 
   private void addResponse210_211() {
-    //    Requesting segments: 2-0:0:0 -> 2-ff00:0:211
-    //    SEG: key=SEGMENT_TYPE_DOWN -> n=1
-    //    PathSeg: size=9
-    //    SegInfo:  ts=2024-01-05T13:19:57Z  id=15299
-    //      AS: signed=97   signature size=72
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T13:19:57.343548348Z
-    //      AS Body: IA=2-ff00:0:210 nextIA=2-ff00:0:211  mtu=1280
-    //        HopEntry: true mtu=0
-    //          HopField: exp=63 ingress=0 egress=450
-    //      AS: signed=92   signature size=72
-    //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T13:19:58.840436932Z
-    //      AS Body: IA=2-ff00:0:211 nextIA=0-0:0:0  mtu=1472
-    //        HopEntry: true mtu=1472
-    //          HopField: exp=63 ingress=503 egress=0
+    //  Requesting segments: 2-ff00:0:210 -> 2-ff00:0:211
+    //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
+    //  PathSeg: size=10
+    //  SegInfo:  ts=2024-01-10T13:01:13Z  id=59077
+    //    AS: signed=97   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T13:01:13.696099703Z
+    //    AS Body: IA=2-ff00:0:210 nextIA=2-ff00:0:211  mtu=1280
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=450
+    //    AS: signed=92   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T13:01:18.697075400Z
+    //    AS Body: IA=2-ff00:0:211 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1472
+    //        HopField: exp=63 ingress=503 egress=0
 
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 450));
     Seg.ASEntry ase00 = buildASEntry(AS_210, AS_211, 1280, he00);

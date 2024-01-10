@@ -27,13 +27,13 @@
           "link_to": "core",
           "mtu": 1472
         },
-        "1": {
+        "21": {
           "underlay": {
             "public": "127.0.0.10:50000",
             "remote": "127.0.0.11:50000"
           },
-          "isd_as": "2-ff00:0:210",
-          "link_to": "core",
+          "isd_as": "1-ff00:0:121",
+          "link_to": "child",
           "mtu": 1472
         }
       }
@@ -41,13 +41,13 @@
     "br1-ff00_0_120-2": {
       "internal_addr": "127.0.0.42:31012",
       "interfaces": {
-        "2": {
+        "210": {
           "underlay": {
             "public": "127.0.0.12:50000",
             "remote": "127.0.0.13:50000"
           },
-          "isd_as": "1-ff00:0:121",
-          "link_to": "child",
+          "isd_as": "2-ff00:0:210",
+          "link_to": "core",
           "mtu": 1472
         }
       }
