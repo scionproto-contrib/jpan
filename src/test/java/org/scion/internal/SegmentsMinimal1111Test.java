@@ -139,9 +139,9 @@ public class SegmentsMinimal1111Test extends SegmentsMinimalTest {
       assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
-      checkInterface(path, 2, 0, "1-ff00:0:110");
+      checkInterface(path, 2, 111, "1-ff00:0:111");
       checkInterface(path, 3, 2, "1-ff00:0:110");
-      assertEquals(3, path.getInterfacesCount());
+      assertEquals(4, path.getInterfacesCount());
     }
 
     assertEquals(1, topoServer.getAndResetCallCount());

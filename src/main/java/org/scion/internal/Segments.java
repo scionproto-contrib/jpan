@@ -250,7 +250,8 @@ public class Segments {
       throws ScionException {
     final int n = pathSegment.getAsEntriesCount();
     for (int i = 0; i < n; i++) {
-      Seg.ASEntry asEntry = pathSegment.getAsEntriesList().get(reversed ? (n - i - 1) : i);
+      int pos = reversed ? (n - i - 1) : i;
+      Seg.ASEntry asEntry = pathSegment.getAsEntriesList().get(pos);
       // Let's assumed they are all signed // TODO?
       Signed.SignedMessage sm = asEntry.getSigned();
       Seg.ASEntrySignedBody body = getBody(sm);
@@ -272,31 +273,68 @@ public class Segments {
       // }
       minMtu.v = Math.min(minMtu.v, body.getMtu());
 
-      Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
-      if (i % 2 == 0) {
+      boolean addInterfaces = (reversed && pos > 0) || (!reversed && pos < n - 1);
+      if (addInterfaces) {
+        Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
+        //      if (i % 2 == 0) {
+        //        System.out.println("IF-0: " + hopField.getIngress() + " / " +
+        // hopField.getEgress());
+        //        pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
+        //      } else {
+        //        System.out.println("IF-1: " + hopField.getIngress() + " / " +
+        // hopField.getEgress());
+        //        pib.setId(reversed ? hopField.getEgress() : hopField.getIngress());
+        //      }
+        //      if (i % 2 == 0) {
+        pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
+        //      } else {
+        //        System.out.println("IF-1: " + hopField.getIngress() + " / " +
+        // hopField.getEgress());
+        //        pib.setId(reversed ? hopField.getEgress() : hopField.getIngress());
+        //      }
+        path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
         System.out.println(
             "IF-0: "
                 + hopField.getIngress()
                 + " / "
                 + hopField.getEgress()
-                + " -> "
-                + (reversed ? hopField.getIngress() : hopField.getEgress())
-                + " path "
-                + System.identityHashCode(pathSegment));
-        pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
-      } else {
-        System.out.println(
-            "IF-1: "
-                + hopField.getIngress()
-                + " / "
-                + hopField.getEgress()
-                + " -> "
-                + (reversed ? hopField.getEgress() : hopField.getIngress())
-                + " path "
-                + System.identityHashCode(pathSegment));
-        pib.setId(reversed ? hopField.getEgress() : hopField.getIngress());
+                + " --> "
+                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
       }
-      path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
+      if (reversed && pos > 0) {
+        Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
+        Seg.ASEntry asEntry2 = pathSegment.getAsEntriesList().get(pos - 1);
+        // Let's assumed they are all signed // TODO?
+        Signed.SignedMessage sm2 = asEntry2.getSigned();
+        Seg.ASEntrySignedBody body2 = getBody(sm2);
+        Seg.HopField hopField2 = body2.getHopEntry().getHopField();
+        pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
+        path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
+        System.out.println(
+            "IF-20: "
+                + hopField2.getIngress()
+                + " / "
+                + hopField2.getEgress()
+                + " --> "
+                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
+      }
+      if (!reversed && pos < n - 1) {
+        Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
+        Seg.ASEntry asEntry2 = pathSegment.getAsEntriesList().get(pos + 1);
+        // Let's assumed they are all signed // TODO?
+        Signed.SignedMessage sm2 = asEntry2.getSigned();
+        Seg.ASEntrySignedBody body2 = getBody(sm2);
+        Seg.HopField hopField2 = body2.getHopEntry().getHopField();
+        pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
+        path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
+        System.out.println(
+            "IF-21: "
+                + hopField2.getIngress()
+                + " / "
+                + hopField2.getEgress()
+                + " --> "
+                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
+      }
     }
   }
 

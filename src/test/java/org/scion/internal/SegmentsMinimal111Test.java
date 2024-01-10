@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
-import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
@@ -308,14 +307,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
         -86, 36, 0, 63, 0, 0, 0, 105, 127, 70, 14, 113, 60, -12
       };
 
-      System.out.println(ToStringUtil.pathLong(raw));
-      System.out.println(ToStringUtil.path(raw));
-
       Daemon.Path path = paths.get(0);
-      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
-      //      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      //      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 3, 0);
       checkInfo(rawBB, 18215, 0);
@@ -336,10 +328,8 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
       checkInterface(path, 3, 10, "1-ff00:0:120");
-      checkInterface(path, 4, 0, "2-ff00:0:210");
-      assertEquals(5, path.getInterfacesCount()); // TODO!
-      // checkInterface(path, 4, 1, "1-ff00:0:120");
-      // checkInterface(path, 5, 105, "2-ff00:0:210");
+      checkInterface(path, 4, 210, "1-ff00:0:120");
+      checkInterface(path, 5, 105, "2-ff00:0:210");
       assertEquals(6, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
@@ -403,14 +393,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
         38
       };
 
-      System.out.println(ToStringUtil.pathLong(raw));
-      System.out.println(ToStringUtil.path(raw));
-
       Daemon.Path path = paths.get(0);
-      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
-      //      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      //      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 3, 2);
       checkInfo(rawBB, 18215, 0);
@@ -434,13 +417,10 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
       checkInterface(path, 3, 10, "1-ff00:0:120");
-      checkInterface(path, 4, 0, "2-ff00:0:210");
-      checkInterface(path, 5, 450, "2-ff00:0:210");
-      checkInterface(path, 6, 503, "2-ff00:0:211");
-      // checkInterface(path, 4, 210, "1-ff00:0:120");
-      // checkInterface(path, 5, 105, "2-ff00:0:210");
-      // checkInterface(path, 6, 450, "2-ff00:0:210");
-      // checkInterface(path, 7, 503, "2-ff00:0:211");
+      checkInterface(path, 4, 210, "1-ff00:0:120");
+      checkInterface(path, 5, 105, "2-ff00:0:210");
+      checkInterface(path, 6, 450, "2-ff00:0:210");
+      checkInterface(path, 7, 503, "2-ff00:0:211");
       assertEquals(8, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
