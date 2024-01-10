@@ -46,6 +46,9 @@ public class SegmentsMinimalTest {
   protected static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
 
   /** ISD 1 - non-core AS */
+  protected static final long AS_1111 = ScionUtil.parseIA("1-ff00:0:1111");
+
+  /** ISD 1 - non-core AS */
   protected static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
 
   /** ISD 1 - core AS */
@@ -128,6 +131,8 @@ public class SegmentsMinimalTest {
   }
 
   protected void addResponses() {
+    addResponse110_1111();
+
     addResponse111_110();
     addResponse110_111();
     addResponse110_112();
@@ -187,6 +192,41 @@ public class SegmentsMinimalTest {
 
     controlServer.addResponse(
         AS_110, true, AS_111, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_DOWN, path0));
+  }
+
+  private void addResponse110_1111() {
+    //  Requesting segments: 1-ff00:0:110 -> 1-ff00:0:1111
+    //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
+    //  PathSeg: size=9
+    //  SegInfo:  ts=2024-01-10T15:58:22Z  id=10619
+    //    AS: signed=93   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T15:58:22.423181708Z
+    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1472
+    //      HopEntry: true mtu=0
+    //        HopField: exp=63 ingress=0 egress=2
+    //    AS: signed=100   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T15:58:26.914337821Z
+    //    AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:1111  mtu=1472
+    //      HopEntry: true mtu=1472
+    //        HopField: exp=63 ingress=111 egress=1111
+    //    AS: signed=89   signature size=70
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T15:58:30.916549099Z
+    //    AS Body: IA=1-ff00:0:1111 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1472
+    //        HopField: exp=63 ingress=123 egress=0
+
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 2));
+    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_111, 0, he00);
+    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 111, 1111));
+    Seg.ASEntry ase01 = buildASEntry(AS_111, ZERO, 1472, he01);
+    Seg.HopEntry he02 = buildHopEntry(1472, buildHopField(63, 123, 0));
+    Seg.ASEntry ase02 = buildASEntry(AS_1111, ZERO, 1472, he02);
+    Seg.PathSegment path0 = buildPath(10619, ase00, ase01, ase02);
+
+    controlServer.addResponse(
+            AS_110, true, AS_1111, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_DOWN, path0));
+    controlServer.addResponse(
+            AS_1111, false, AS_110, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 
   private void addResponse110_112() {

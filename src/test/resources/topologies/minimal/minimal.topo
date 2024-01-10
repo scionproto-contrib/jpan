@@ -12,9 +12,15 @@ ASes:
     issuing: true
   "1-ff00:0:111":
     cert_issuer: 1-ff00:0:110
+  "1-ff00:0:1111":
+    cert_issuer: 1-ff00:0:110
+  "1-ff00:0:1112":
+    cert_issuer: 1-ff00:0:110
   "1-ff00:0:112":
     cert_issuer: 1-ff00:0:110
     mtu: 1450
+  "1-ff00:0:1121":
+    cert_issuer: 1-ff00:0:110
   "1-ff00:0:121":
     cert_issuer: 1-ff00:0:120
   "2-ff00:0:210":
@@ -32,3 +38,6 @@ links:
   - {a: "1-ff00:0:120-B#210", b: "2-ff00:0:210-A#105", linkAtoB: CORE}
   - {a: "1-ff00:0:120-A#21",  b: "1-ff00:0:121#104",   linkAtoB: CHILD}
   - {a: "2-ff00:0:210-B#450", b: "2-ff00:0:211#503",   linkAtoB: CHILD}
+  - {a: "1-ff00:0:111#1111",  b: "1-ff00:0:1111#123",  linkAtoB: CHILD}
+  - {a: "1-ff00:0:111#1112",  b: "1-ff00:0:1112#234",  linkAtoB: CHILD}
+  - {a: "1-ff00:0:112#1121",  b: "1-ff00:0:1121#345",  linkAtoB: CHILD}

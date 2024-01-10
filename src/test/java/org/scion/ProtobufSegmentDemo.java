@@ -41,11 +41,14 @@ public class ProtobufSegmentDemo {
     String csAddr112_tiny = "[fd00:f00d:cafe::7f00:a]:31010";
     String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
     String csAddr111_default = "[fd00:f00d:cafe::7f00:1c]:31022";
-    String csAddr110_minimal = "127.0.0.20:31000";
-    String csAddr111_minimal = "127.0.0.26:31014";
-    String csAddr210_minimal = "127.0.0.59:31026";
+    String csAddr110_minimal = "127.0.0.28:31000";
+    String csAddr111_minimal = "127.0.0.36:31014";
+    String csAddr1111_minimal = "127.0.0.42:31022";
+    String csAddr120_minimal = "127.0.0.75:31008";
+    String csAddr210_minimal = "127.0.0.91:31038";
     long ia110 = ScionUtil.parseIA("1-ff00:0:110");
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
+    long ia1111 = ScionUtil.parseIA("1-ff00:0:1111");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");
     long ia120 = ScionUtil.parseIA("1-ff00:0:120");
     long ia121 = ScionUtil.parseIA("1-ff00:0:121");
@@ -63,9 +66,9 @@ public class ProtobufSegmentDemo {
     // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
     // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr210_minimal);
+    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_minimal);
     // demo.getSegments(ia110, ia121);
-    demo.getSegments(ia210, ia211);
+    demo.getSegments(ia110, ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
   }

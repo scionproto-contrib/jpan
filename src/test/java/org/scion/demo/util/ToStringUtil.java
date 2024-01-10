@@ -164,7 +164,7 @@ public class ToStringUtil {
     int offset = 0;
     for (int j = 0; j < segLen.length; j++) {
       boolean flagC = ph.getInfoField(j).getFlagC();
-      for (int i = offset; i < offset + segLen[j]; i += 2) {
+      for (int i = offset; i < offset + segLen[j] - 1; i ++) {
         HopField hfE = ph.getHopField(i);
         HopField hfI = ph.getHopField(i + 1);
         if (flagC) {
@@ -172,7 +172,7 @@ public class ToStringUtil {
         } else {
           sb.append(hfE.getIngress()).append(">").append(hfI.getEgress());
         }
-        if (i < ph.getHopCount() - 2) {
+        if (i < ph.getHopCount() - 1) {
           sb.append(" ");
         }
       }

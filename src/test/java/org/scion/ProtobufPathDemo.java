@@ -32,23 +32,25 @@ public class ProtobufPathDemo {
   public static void main(String[] args) {
     String daemon110_tiny = "127.0.0.12:30255";
     String daemon111_tiny = "127.0.0.19:30255";
-    String daemon110_minimal = "127.0.0.21:30255";
-    String daemon111_minimal = "127.0.0.27:30255";
-    String daemon210_minimal = "127.0.0.60:30255";
+    String daemon110_minimal = "127.0.0.29:30255";
+    String daemon111_minimal = "127.0.0.37:30255";
+    String daemon1111_minimal = "127.0.0.43:30255";
+    String daemon210_minimal = "127.0.0.92:30255";
     long ia110 = ScionUtil.parseIA("1-ff00:0:110");
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
+    long ia1111 = ScionUtil.parseIA("1-ff00:0:1111");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");
     long ia120 = ScionUtil.parseIA("1-ff00:0:120");
     long ia121 = ScionUtil.parseIA("1-ff00:0:121");
     long ia210 = ScionUtil.parseIA("2-ff00:0:210");
     long ia211 = ScionUtil.parseIA("2-ff00:0:211");
 
-    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon111_minimal)) {
+    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon1111_minimal)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(ia111, ia210);
+      demo.testPathsDaemon(ia1111, ia110);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);

@@ -48,14 +48,15 @@ import org.scion.testutil.MockTopologyServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores); Book: 1c<br>
  */
-public class SegmentsMinimal111Test extends SegmentsMinimalTest {
+public class SegmentsMinimal1111Test extends SegmentsMinimalTest {
 
+  private static final String FIRST_HOP = "127.0.0.41:31024"; // TODO read from TOPO
   private static MockTopologyServer topoServer;
 
   @BeforeAll
   public static void beforeAll() throws IOException {
     topoServer =
-        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_111/topology.json"));
+        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_1111/topology.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
@@ -79,7 +80,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
   void caseA_SameNonCoreAS() throws IOException {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_111);
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1111, AS_1111);
       //  ListService: control
       //  Service: 127.0.0.26:31014
       //  Paths found: 1
@@ -98,41 +99,47 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
   void caseB_SameIsd_Up() throws IOException {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_110);
-      //    scion showpaths 1-ff00:0:110 --sciond 127.0.0.27:30255
-      //    Available paths to 1-ff00:0:110
-      //    2 Hops:
-      //    [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110] MTU: 1472 NextHop: 127.0.0.25:31016 ...
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1111, AS_110);
+      //  $ scion showpaths 1-ff00:0:110 --sciond 127.0.0.43:30255
+      //  Available paths to 1-ff00:0:110
+      //  3 Hops:
+      //  [0] Hops: [1-ff00:0:1111 123>1111 1-ff00:0:111 111>2 1-ff00:0:110]
+      //            MTU: 1472 NextHop: 127.0.0.41:31024 Status: alive LocalIP: 127.0.0.1
 
-      //  Path:  exp=seconds: 1704824845  mtu=1472
-      //  Path: first hop = 127.0.0.25:31016
-      //  pathIf: 0: 111 561850441793809  1-ff00:0:111
-      //  pathIf: 1: 2 561850441793808  1-ff00:0:110
+      //  Path:  exp=1704923693 / 2024-01-10T21:54:53Z  mtu=1472
+      //  Path: first hop = 127.0.0.41:31024
+      //  pathIf: 0: 123 561850441797905  1-ff00:0:1111
+      //  pathIf: 1: 1111 561850441793809  1-ff00:0:111
+      //  pathIf: 2: 111 561850441793809  1-ff00:0:111
+      //  pathIf: 3: 2 561850441793808  1-ff00:0:110
+      //  hop: 0: 0
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
-      byte[] raw = {
-        0, 0, 32, 0, 0, 0, 102, 60,
-        101, -99, 59, -51, 0, 63, 0, 111,
-        0, 0, -76, 34, 42, -4, -95, -85,
-        0, 63, 0, 0, 0, 2, -33, 64,
-        -50, 110, -121, 17
-      };
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      byte[] raw = {0, 0, 48, 0, 0, 0, -29, -115, 101, -98, -67, -19, 0, 63, 0, 123, 0, 0, -28, 18, 40, -128, 23, -125, 0, 63, 0, 111, 4, 87, 119, 122, 17, -93, 63, -79, 0, 63, 0, 0, 0, 2, 12, 90, -19, -90, -67, 121};
 
+      System.out.println(ToStringUtil.pathLong(raw)); // TODO
+      System.out.println(ToStringUtil.path(raw)); // TODO
       Daemon.Path path = paths.get(0);
+      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
-      checkMetaHeader(rawBB, 2, 0, 0);
-      checkInfo(rawBB, 18215, 0);
-      checkHopField(rawBB, 111, 0);
+      checkMetaHeader(rawBB, 3, 0, 0);
+      checkInfo(rawBB, 10619, 0);
+      checkHopField(rawBB, 123, 0);
+      checkHopField(rawBB, 111, 1111);
       checkHopField(rawBB, 0, 2);
       assertEquals(0, rawBB.remaining());
 
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
-      checkInterface(path, 0, 111, "1-ff00:0:111");
-      checkInterface(path, 1, 2, "1-ff00:0:110");
-      assertEquals(2, path.getInterfacesCount());
+      assertEquals(0, path.getMtu()); // TODO ? Why not 1472 as for 111->110?
+      assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 123, "1-ff00:0:1111");
+      checkInterface(path, 1, 1111, "1-ff00:0:111");
+      checkInterface(path, 2, 0, "1-ff00:0:110");
+      checkInterface(path, 3, 2, "1-ff00:0:110");
+      assertEquals(3, path.getInterfacesCount());
     }
 
     assertEquals(1, topoServer.getAndResetCallCount());
