@@ -49,7 +49,9 @@ public class ProtobufSegmentDemo {
     long ia110 = ScionUtil.parseIA("1-ff00:0:110");
     long ia111 = ScionUtil.parseIA("1-ff00:0:111");
     long ia1111 = ScionUtil.parseIA("1-ff00:0:1111");
+    long ia1112 = ScionUtil.parseIA("1-ff00:0:1112");
     long ia112 = ScionUtil.parseIA("1-ff00:0:112");
+    long ia1121 = ScionUtil.parseIA("1-ff00:0:1121");
     long ia120 = ScionUtil.parseIA("1-ff00:0:120");
     long ia121 = ScionUtil.parseIA("1-ff00:0:121");
     long ia210 = ScionUtil.parseIA("2-ff00:0:210");
@@ -68,7 +70,7 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
     ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_minimal);
     // demo.getSegments(ia110, ia121);
-    demo.getSegments(ia110, ia1111);
+    demo.getSegments(ia110, ia1121);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
   }
