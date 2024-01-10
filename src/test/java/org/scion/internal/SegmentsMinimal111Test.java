@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
-import org.scion.ScionUtil;
 import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
@@ -50,6 +49,7 @@ import org.scion.testutil.MockTopologyServer;
  */
 public class SegmentsMinimal111Test extends SegmentsMinimalTest {
 
+  private static final String BR_110 = "127.0.0.33:31016";
   private static MockTopologyServer topoServer;
 
   @BeforeAll
@@ -129,7 +129,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       assertEquals(2, path.getInterfacesCount());
@@ -185,7 +185,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1450, path.getMtu());
-      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 3, "1-ff00:0:110");
@@ -246,7 +246,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -331,15 +331,15 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
       checkInterface(path, 3, 10, "1-ff00:0:120");
       checkInterface(path, 4, 0, "2-ff00:0:210");
       assertEquals(5, path.getInterfacesCount()); // TODO!
-      //checkInterface(path, 4, 1, "1-ff00:0:120");
-      //checkInterface(path, 5, 105, "2-ff00:0:210");
+      // checkInterface(path, 4, 1, "1-ff00:0:120");
+      // checkInterface(path, 5, 105, "2-ff00:0:210");
       assertEquals(6, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
@@ -394,16 +394,14 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
-      byte[] raw2 = {
-        0, 0, 32, -62, 0, 0, -121, 41, 101, -98, -107, -47, 0, 0, -60, -49, 101, -98, -106, 101, 1,
-        0, -18, -110, 101, -98, -106, -48, 0, 63, 0, 111, 0, 0, 114, 69, 82, 121, -115, 98, 0, 63,
-        0, 0, 0, 2, -30, 18, 58, -46, -115, 127, 0, 63, 0, 1, 0, 0, 98, -84, 112, -78, -116, 119, 0,
-        63, 0, -46, 0, 10, -91, -126, 44, 8, -86, 36, 0, 63, 0, 0, 0, 105, 127, 70, 14, 113, 60,
-        -12, 0, 63, 0, 0, 1, -62, 22, 103, -61, -48, -53, -108, 0, 63, 1, -9, 0, 0, 91, 23, 96, 25,
-        122, -26
+      byte[] raw = {
+        0, 0, 32, -62, 0, 0, 55, 4, 101, -98, -78, -48, 0, 0, -93, 73, 101, -98, -78, -31, 1, 0,
+        -44, 9, 101, -98, -78, -25, 0, 63, 0, 111, 0, 0, 30, 24, -28, 1, -40, -81, 0, 63, 0, 0, 0,
+        2, -111, 103, -15, -45, -31, 52, 0, 63, 0, 1, 0, 0, -7, 108, -89, -126, 51, -13, 0, 63, 0,
+        -46, 0, 10, 121, 50, -4, 5, 8, 31, 0, 63, 0, 0, 0, 105, -70, -103, -111, 11, 89, -109, 0,
+        63, 0, 0, 1, -62, -38, -106, 40, 117, 39, -116, 0, 63, 1, -9, 0, 0, -80, -103, 89, 88, -21,
+        38
       };
-      byte[] raw = {0, 0, 32, -62, 0, 0, 55, 4, 101, -98, -78, -48, 0, 0, -93, 73, 101, -98, -78, -31, 1, 0, -44, 9, 101, -98, -78, -25, 0, 63, 0, 111, 0, 0, 30, 24, -28, 1, -40, -81, 0, 63, 0, 0, 0, 2, -111, 103, -15, -45, -31, 52, 0, 63, 0, 1, 0, 0, -7, 108, -89, -126, 51, -13, 0, 63, 0, -46, 0, 10, 121, 50, -4, 5, 8, 31, 0, 63, 0, 0, 0, 105, -70, -103, -111, 11, 89, -109, 0, 63, 0, 0, 1, -62, -38, -106, 40, 117, 39, -116, 0, 63, 1, -9, 0, 0, -80, -103, 89, 88, -21, 38};
-
 
       System.out.println(ToStringUtil.pathLong(raw));
       System.out.println(ToStringUtil.path(raw));
@@ -431,7 +429,7 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals("127.0.0.25:31016", path.getInterface().getAddress().getAddress());
+      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -447,72 +445,5 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(3, controlServer.getAndResetCallCount());
-  }
-
-  private static void checkMetaHeader(
-      ByteBuffer rawBB, int hopCount0, int hopCount1, int hopCount2) {
-    int bits = (((hopCount0 << 6) | hopCount1) << 6) | hopCount2;
-    assertEquals(bits, rawBB.getInt()); // MetaHeader
-  }
-
-  private static void checkInfo(ByteBuffer rawBB, int segmentId, int flags) {
-    assertEquals(flags, rawBB.get()); // Info0 flags
-    assertEquals(0, rawBB.get()); // Info0 etc
-    assertEquals(segmentId, ByteUtil.toUnsigned(rawBB.getShort())); // Info0 SegID
-    assertNotEquals(0, rawBB.getInt()); // Info0 timestamp
-  }
-
-  private static void checkHopField(ByteBuffer rawBB, int ingress, int egress) {
-    assertEquals(63, rawBB.getShort()); // Hop0 flags/expiry
-    assertEquals(ingress, rawBB.getShort()); // Hop0 ingress
-    assertEquals(egress, rawBB.getShort()); // Hop0 egress
-    assertNotEquals(0, rawBB.getShort()); // Hop0 MAC
-    assertNotEquals(0, rawBB.getInt()); // Hop0 MAC
-  }
-
-  private void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
-    assertEquals(id, path.getInterfaces(i).getId());
-    System.out.println("IA:" + ScionUtil.toStringIA(path.getInterfaces(i).getIsdAs())); // TODO
-    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
-  }
-
-  private void checkRaw(byte[] exp, byte[] act) {
-    // Path meta header
-    for (int i = 0; i < 4; i++) {
-      assertEquals(exp[i], act[i], "ofs=" + i);
-    }
-    int pmh = ByteBuffer.wrap(exp).getInt();
-    int s0 = (pmh << 14) >>> (12 + 14);
-    int s1 = (pmh << 20) >>> (6 + 20);
-    int s2 = (pmh << 26) >>> 26;
-    int s = s0 + s1 + s2;
-
-    int ofs = 4;
-
-    // info fields
-    assertEquals(exp[ofs], act[ofs++]); // flags
-    assertEquals(exp[ofs], act[ofs++]); // RSV
-    ofs += 6;
-    if (s1 > 0) {
-      assertEquals(exp[ofs], act[ofs++]);
-      assertEquals(exp[ofs], act[ofs++]);
-      ofs += 6;
-    }
-    if (s2 > 0) {
-      assertEquals(exp[ofs], act[ofs++]);
-      assertEquals(exp[ofs], act[ofs++]);
-      ofs += 6;
-    }
-
-    // hop fields
-    for (int h = 0; h < s; h++) {
-      for (int i = 0; i < 6; i++) {
-        assertEquals(exp[ofs], act[ofs++]);
-      }
-      ofs += 6;
-    }
-
-    assertEquals(ofs, exp.length);
-    assertEquals(ofs, act.length);
   }
 }

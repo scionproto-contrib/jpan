@@ -14,13 +14,18 @@
 
 package org.scion.internal;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Arrays;
 import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.crypto.Signed;
+import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.MockControlServer;
 
 /**
@@ -49,7 +54,13 @@ public class SegmentsMinimalTest {
   protected static final long AS_1111 = ScionUtil.parseIA("1-ff00:0:1111");
 
   /** ISD 1 - non-core AS */
+  protected static final long AS_1112 = ScionUtil.parseIA("1-ff00:0:1111");
+
+  /** ISD 1 - non-core AS */
   protected static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
+
+  /** ISD 1 - non-core AS */
+  protected static final long AS_1121 = ScionUtil.parseIA("1-ff00:0:1121");
 
   /** ISD 1 - core AS */
   protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
@@ -64,6 +75,73 @@ public class SegmentsMinimalTest {
   protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
 
   protected static MockControlServer controlServer;
+
+  protected static void checkMetaHeader(
+      ByteBuffer rawBB, int hopCount0, int hopCount1, int hopCount2) {
+    int bits = (((hopCount0 << 6) | hopCount1) << 6) | hopCount2;
+    assertEquals(bits, rawBB.getInt()); // MetaHeader
+  }
+
+  protected static void checkInfo(ByteBuffer rawBB, int segmentId, int flags) {
+    assertEquals(flags, rawBB.get()); // Info0 flags
+    assertEquals(0, rawBB.get()); // Info0 etc
+    assertEquals(segmentId, ByteUtil.toUnsigned(rawBB.getShort())); // Info0 SegID
+    assertNotEquals(0, rawBB.getInt()); // Info0 timestamp
+  }
+
+  protected static void checkHopField(ByteBuffer rawBB, int ingress, int egress) {
+    assertEquals(63, rawBB.getShort()); // Hop0 flags/expiry
+    assertEquals(ingress, rawBB.getShort()); // Hop0 ingress
+    assertEquals(egress, rawBB.getShort()); // Hop0 egress
+    assertNotEquals(0, rawBB.getShort()); // Hop0 MAC
+    assertNotEquals(0, rawBB.getInt()); // Hop0 MAC
+  }
+
+  protected static void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
+    assertEquals(id, path.getInterfaces(i).getId());
+    System.out.println("IA:" + ScionUtil.toStringIA(path.getInterfaces(i).getIsdAs())); // TODO
+    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
+  }
+
+  protected static void checkRaw(byte[] exp, byte[] act) {
+    // Path meta header
+    for (int i = 0; i < 4; i++) {
+      assertEquals(exp[i], act[i], "ofs=" + i);
+    }
+    int pmh = ByteBuffer.wrap(exp).getInt();
+    int s0 = (pmh << 14) >>> (12 + 14);
+    int s1 = (pmh << 20) >>> (6 + 20);
+    int s2 = (pmh << 26) >>> 26;
+    int s = s0 + s1 + s2;
+
+    int ofs = 4;
+
+    // info fields
+    assertEquals(exp[ofs], act[ofs++]); // flags
+    assertEquals(exp[ofs], act[ofs++]); // RSV
+    ofs += 6;
+    if (s1 > 0) {
+      assertEquals(exp[ofs], act[ofs++]);
+      assertEquals(exp[ofs], act[ofs++]);
+      ofs += 6;
+    }
+    if (s2 > 0) {
+      assertEquals(exp[ofs], act[ofs++]);
+      assertEquals(exp[ofs], act[ofs++]);
+      ofs += 6;
+    }
+
+    // hop fields
+    for (int h = 0; h < s; h++) {
+      for (int i = 0; i < 6; i++) {
+        assertEquals(exp[ofs], act[ofs++]);
+      }
+      ofs += 6;
+    }
+
+    assertEquals(ofs, exp.length);
+    assertEquals(ofs, act.length);
+  }
 
   private static Seg.HopField buildHopField(int expiry, int ingress, int egress) {
     ByteString mac = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
@@ -224,9 +302,9 @@ public class SegmentsMinimalTest {
     Seg.PathSegment path0 = buildPath(10619, ase00, ase01, ase02);
 
     controlServer.addResponse(
-            AS_110, true, AS_1111, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_DOWN, path0));
+        AS_110, true, AS_1111, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_DOWN, path0));
     controlServer.addResponse(
-            AS_1111, false, AS_110, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
+        AS_1111, false, AS_110, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 
   private void addResponse110_112() {

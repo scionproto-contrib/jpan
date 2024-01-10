@@ -274,12 +274,26 @@ public class Segments {
 
       Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
       if (i % 2 == 0) {
-        System.out.println("IF-0: " + hopField.getIngress() + " / " + hopField.getEgress() +
-        " -> " + (reversed ? hopField.getIngress() : hopField.getEgress()) + " path " + System.identityHashCode(pathSegment));
+        System.out.println(
+            "IF-0: "
+                + hopField.getIngress()
+                + " / "
+                + hopField.getEgress()
+                + " -> "
+                + (reversed ? hopField.getIngress() : hopField.getEgress())
+                + " path "
+                + System.identityHashCode(pathSegment));
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
       } else {
-        System.out.println("IF-1: " + hopField.getIngress() + " / " + hopField.getEgress() +
-                " -> " + (reversed ? hopField.getEgress() : hopField.getIngress()) + " path " + System.identityHashCode(pathSegment));
+        System.out.println(
+            "IF-1: "
+                + hopField.getIngress()
+                + " / "
+                + hopField.getEgress()
+                + " -> "
+                + (reversed ? hopField.getEgress() : hopField.getIngress())
+                + " path "
+                + System.identityHashCode(pathSegment));
         pib.setId(reversed ? hopField.getEgress() : hopField.getIngress());
       }
       path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
