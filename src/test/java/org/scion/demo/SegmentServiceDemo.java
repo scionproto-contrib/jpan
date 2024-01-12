@@ -68,7 +68,7 @@ public class SegmentServiceDemo {
   private static void doClientStuff(String bootAddress, long srcIsdAs, long dstIsdAs)
       throws IOException {
     // ScionService ss = Scion.newServiceWithDNS("inf.ethz.ch");
-    ScionService ss = Scion.newServiceWithBootstrapServerIP(bootAddress);
+    ScionService ss = Scion.newServiceWithBootstrapServer(bootAddress);
     //    System.out.println(
     //        "ISD/AS=" + ss.getLocalIsdAs() + "  " + ScionUtil.toStringIA(ss.getLocalIsdAs()));
     // TODO avoid argument!

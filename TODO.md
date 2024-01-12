@@ -77,8 +77,6 @@
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
   - Test!
-- TODO get ISD/AS from CS? Maybe via SVC?
-
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
   - Especially for expired paths / revoked paths / broken paths?  
@@ -90,10 +88,6 @@ Discuss required for 0.1.0:
   - Look at newDMG (graph.go:89)
   - Order by expiration date? (netip.go:41)
   - Consider shortcuts and on-paths (book sec 5.5, pp105 ff)
-- Bootstrapping: DNS, see https://github.com/netsec-ethz/bootstrapper
-  - dig NAPTR inf.ethz.ch
-  - Contact netsec-w37w3w.inf.ethz.ch for topology file
-  - Parse topology file for Control Server address
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
@@ -104,9 +98,8 @@ Discuss required for 0.1.0:
   71-2:0:48,[127.0.0.1]	dfw.source.kernel.org
 - DNS with other options, see book p328ff, Section 13.2.3
 - UDP checksum validation + creation
-- Fuzzing
-- Remove daemon requirement -> support connecting directly to control service
-- remove "internals" package
+- Fuzzing -> e.g. validate()
+- remove "internals" package?
 - For stand-alone path query, we should cache localAS->localCore paths.
 - For stand-alone, fill meta/proto properly
 - Consider removing DEFAULT ScionService?

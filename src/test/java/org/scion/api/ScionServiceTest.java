@@ -272,7 +272,7 @@ public class ScionServiceTest {
       DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       try (MockControlServer cs = MockControlServer.start(topoServer.getControlServerPort())) {
         try (Scion.CloseableService ss =
-            Scion.newServiceWithBootstrapServerIP(ToStringUtil.toAddressPort(topoAddr))) {
+            Scion.newServiceWithBootstrapServer(ToStringUtil.toAddressPort(topoAddr))) {
           // destination address = 123.123.123.123 because we don´t care for getting a path
           List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
           assertNotNull(paths);

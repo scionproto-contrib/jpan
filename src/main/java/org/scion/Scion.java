@@ -50,7 +50,7 @@ public final class Scion {
    * @return new ScionService instance
    */
   @Deprecated // TODO not really implemented yet
-  public static CloseableService newServiceWithBootstrapServerIP(String hostAndPort) {
+  public static CloseableService newServiceWithBootstrapServer(String hostAndPort) {
     return new CloseableService(hostAndPort, ScionService.Mode.BOOTSTRAP_SERVER_IP);
   }
 
