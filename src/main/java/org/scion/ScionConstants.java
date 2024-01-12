@@ -22,10 +22,30 @@ public final class ScionConstants {
   public static final String ENV_DAEMON_PORT = "SCION_DAEMON_PORT";
   public static final String DEFAULT_DAEMON_PORT = "30255";
 
-  /** Paths are refreshed when their expiry is less than X seconds away. */
-  public static final String PROPERTY_PATH_EXPIRY_MARGIN = "org.scion.channel.pathExpiryMargin";
 
-  public static final String ENV_PATH_EXPIRY_MARGIN = "SCION_CHANNEL_PATH_EXPIRY_MARGIN";
+  /** Address of bootstrap server (http), e.g. 192.168.42.42 */
+  public static final String PROPERTY_BOOTSTRAP_NAME = "org.scion.bootstrap.name";
+  /** Address of bootstrap server (http), e.g. 192.168.42.42 */
+  public static final String ENV_BOOTSTRAP_NAME = "SCION_BOOTSTRAP_NAME";
+
+
+  /** Host name of DNS entry with NAPTR record for bootstrap service. */
+  public static final String PROPERTY_BOOTSTRAP_NAPTR_NAME = "org.scion.bootstrap.naptr.name";
+  /** Host name of DNS entry with NAPTR record for bootstrap service. */
+  public static final String ENV_BOOTSTRAP_NAPTR_NAME = "SCION_BOOTSTRAP_NAPTR_NAME";
+
+
+  /** path/file name for topology file. */
+  public static final String PROPERTY_BOOTSTRAP_TOPO_FILE = "org.scion.bootstrap.topoFile";
+  /** path/file name for topology file. */
+  public static final String ENV_BOOTSTRAP_TOPO_FILE = "SCION_BOOTSTRAP_TOPO_FILE";
+
+
+  /** Paths are refreshed when their expiry is less than X seconds away. */
+  public static final String PROPERTY_PATH_EXPIRY_MARGIN = "org.scion.pathExpiryMargin";
+
+  /** Paths are refreshed when their expiry is less than X seconds away. */
+  public static final String ENV_PATH_EXPIRY_MARGIN = "SCION_PATH_EXPIRY_MARGIN";
   public static final int DEFAULT_PATH_EXPIRY_MARGIN = 2;
 
   /**

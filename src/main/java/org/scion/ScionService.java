@@ -14,13 +14,6 @@
 
 package org.scion;
 
-import static org.scion.ScionConstants.DEFAULT_DAEMON_HOST;
-import static org.scion.ScionConstants.DEFAULT_DAEMON_PORT;
-import static org.scion.ScionConstants.ENV_DAEMON_HOST;
-import static org.scion.ScionConstants.ENV_DAEMON_PORT;
-import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
-import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
-
 import io.grpc.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -28,6 +21,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.scion.internal.DNSHelper;
 import org.scion.internal.ScionBootstrapper;
 import org.scion.internal.Segments;
@@ -36,6 +30,8 @@ import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.scion.ScionConstants.*;
 
 /**
  * The ScionService provides information such as: <br>
@@ -54,10 +50,6 @@ import org.slf4j.LoggerFactory;
 public class ScionService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionService.class.getName());
-  private static final String DAEMON_HOST =
-      ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
-  private static final String DAEMON_PORT =
-      ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
 
   private static final String DNS_TXT_KEY = "scion";
   private static final Object LOCK = new Object();
@@ -125,10 +117,39 @@ public class ScionService {
     synchronized (LOCK) {
       // This is not 100% thread safe, but the worst that can happen is that
       // we call close() on a Service that has already been closed.
-      if (DEFAULT == null) {
-        DEFAULT = new ScionService(DAEMON_HOST + ":" + DAEMON_PORT, Mode.DAEMON);
+      if (DEFAULT != null) {
+        return DEFAULT;
       }
-      return DEFAULT;
+      // try daemon
+      String daemonHost =
+              ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
+      String daemonPort =
+              ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
+      if (daemonHost != null && !daemonHost.isEmpty() &&  daemonPort != null && !daemonPort.isEmpty()) {
+        System.out.println("Trying: DAEMON on"); // TODO
+        DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
+        return DEFAULT;
+      }
+      // try bootstrap service IP
+      String fileName = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE, null);
+      if (fileName != null) {
+        DEFAULT = new ScionService(fileName, Mode.BOOTSTRAP_VIA_TOPO_FILE);
+        return DEFAULT;
+      }
+
+      String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAME, ENV_BOOTSTRAP_NAME, null);
+      if (server != null) {
+        DEFAULT = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
+        return DEFAULT;
+      }
+
+      String naptrName = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME, null);
+      if (naptrName != null) {
+        DEFAULT = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
+        return DEFAULT;
+      }
+
+      throw new ScionRuntimeException("Could not connect to daemon or bootstrap resource.");
     }
   }
 

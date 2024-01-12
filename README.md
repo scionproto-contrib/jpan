@@ -43,24 +43,37 @@ Supported:
 - DatagramChannel support: read(), write(), receive(), send(), bind(), connnect(), ... 
 - Path selection policies
 - Path expiry/refresh
-- Border router switching
 - Packet validation
 - DNS/TXT scion entry lookup
 - Configurable:
   - daemon address
-  - Path expiry
+  - bootstrapping via topo file, bootstrapper IP or DNS 
+  - path expiry
 - Packet inspector for debugging
 - No "dispatcher"
 
 Missing:
 - DatagramChannel support for Selectors
 - DatagramSockets
-- SCMP error messages
-- SCMP info messages
-- Bootstrapping
+- Path construction with short-cuts, on-path, peering
 - EPIC
 - RHINE
 - ...
+
+## Getting started
+
+A simple client looks like this:
+```java
+InetSocketAddress addr = new InetSocketAddress(...);
+try (DatagramChannel channel = DatagramChannel.open()) {
+  channel.configureBlocking(true);
+  channel.connect(addr);
+  channel.write(ByteBuffer.wrap("Hello Scion".getBytes()));
+  ...
+  ByteBuffer response = ByteBuffer.allocate(1000);
+  channel.read(response); 
+}
+```
 
 ## DatagramChannel
 
@@ -73,7 +86,7 @@ Options are defined in `ScionSocketOptions`, see javadoc for details.
 | `SN_API_WRITE_TO_USER_BUFFER`    | `false` | Throw exception when receiving an invalid packet          | 
 | `SN_PATH_EXPIRY_MARGIN` | `2`     | A new path is requested if `now + margin > pathExpirationDate` | 
 
-## Performance Pitfalls
+## Performance pitfalls
 
 - **Using `SocketAddress` for `send()`**. `send(buffer, socketAddress)` is a convenience function. However, when sending 
   multiple packets to the same destination, one should use `path = send(buffer, path)` or `connect()` + `write()` in 
@@ -104,12 +117,33 @@ The server is located in `1-ff00:0:112` (IP [::1]:44444). The client is located 
 
 ## Configuration
 
-| Option            | Java property           | Environment variable | Default value |
-|-------------------|-------------------------|----------------------|---------------|
-| Path service host | `org.scion.daemon.host` | `SCION_DAEMON_HOST`  | 127.0.0.12    |
-| Path service port | `org.scion.daemon.port` | `SCION_DAEMON_PORT`  | 30255         | 
+### Bootstrapping / daemon
+In order to find paths and connect to the local AS, the application needs either a (local) 
+installation of the Scion Daemon (see here) or some other means to
+get bootstrap information.
 
-## FAQ / Trouble shooting
+The method `Scion.defaultService()` (internally called by `DatagramChannel.open()`) will 
+attempt to get network information in the following order until it succeeds:
+- Check for to daemon
+- Check for local topology file (if file name is given)
+- Check for bootstrap server address (if address is given)
+- Check for DNS NAPTR record (if record entry name is given)
+
+| Option                              | Java property                     | Environment variable         | Default value |
+|-------------------------------------|-----------------------------------|------------------------------|---------------|
+| Daemon host                         | `org.scion.daemon.host`           | `SCION_DAEMON_HOST`          | localhost     |
+| Daemon port                         | `org.scion.daemon.port`           | `SCION_DAEMON_PORT`          | 30255         | 
+| Bootstrap topology file path        | `org.scion.bootstrap.topoFile`    | `SCION_BOOTSTRAP_TOPO_FILE`  |               | 
+| Bootstrap server host               | `org.scion.bootstrap.host`        | `SCION_BOOTSTRAP_HOST`       |               |
+| Bootstrap DNS NAPTR entry host name | `org.scion.bootstrap.naptr.name ` | `SCION_BOOTSTRAP_NAPTR_NAME` |               | 
+
+### Other
+
+| Option                                                                                                                 | Java property           | Environment variable | Default value |
+|------------------------------------------------------------------------------------------------------------------------|-------------------------|----------------------|---------------|
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire with X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 2             |
+
+## FAQ / trouble shooting
 
 ### Cannot find symbol javax.annotation.Generated
 

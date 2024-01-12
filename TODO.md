@@ -105,7 +105,9 @@ Discuss required for 0.1.0:
 - Consider removing DEFAULT ScionService?
 - Make ScionService AutoCloseable? -> Avoid separate CloseableService class and it's usage in try().
 - Convenience: Implement Transparent service that tries SCION and, if not available,
-  returns a normal DatagramChannel.
+  returns a normal Java UDP DatagramChannel? Which Interface?
+- https for topology server?
+- Secure DNS requests?
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...

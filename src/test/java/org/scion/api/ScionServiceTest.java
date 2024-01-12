@@ -258,8 +258,6 @@ public class ScionServiceTest {
     } finally {
       DNSUtil.clear();
     }
-
-    // TODO test path
   }
 
   @Test
@@ -284,7 +282,6 @@ public class ScionServiceTest {
     } finally {
       DNSUtil.clear();
     }
-    // TODO test path
   }
 
   @Test
