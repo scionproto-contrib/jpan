@@ -24,11 +24,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
-import org.scion.demo.util.ToStringUtil;
-import org.scion.testutil.DNSUtil;
-import org.scion.testutil.MockControlServer;
 import org.scion.testutil.MockDaemon;
-import org.scion.testutil.MockTopologyServer;
 
 public class ScionServiceTest {
 
@@ -56,14 +52,9 @@ public class ScionServiceTest {
   @Test
   void testWrongDaemonAddress() throws IOException {
     String daemonAddr = "127.0.0.112:12345";
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
-      ScionException thrown =
-          assertThrows(ScionException.class, () -> client.getPaths(dstIA, dstAddress).get(0));
-      assertTrue(
-          thrown.getMessage().startsWith("Error while getting AS info:"), thrown.getMessage());
-    }
+    ScionRuntimeException thrown =
+        assertThrows(ScionRuntimeException.class, () -> Scion.newServiceWithDaemon(daemonAddr));
+    assertTrue(thrown.getMessage().startsWith("Error while getting AS info:"), thrown.getMessage());
   }
 
   @Test
@@ -239,57 +230,15 @@ public class ScionServiceTest {
   }
 
   @Test
-  void bootstrapViaDnsDirect() throws IOException {
-    long iaDst = ScionUtil.parseIA("1-ff00:0:112");
-    String asHost = "my-as-host.org";
-    try (MockTopologyServer topoServer = MockTopologyServer.start("topologies/dummy.json")) {
-      InetSocketAddress topoAddr = topoServer.getAddress();
-      DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-      try (MockControlServer cs = MockControlServer.start(topoServer.getControlServerPort())) {
-        try (Scion.CloseableService ss = Scion.newServiceWithDNS(asHost)) {
-          // destination address = 123.123.123.123 because we don´t care for getting a path
-          List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
-          assertNotNull(paths);
-          assertFalse(paths.isEmpty());
-        }
-        assertEquals(1, topoServer.getAndResetCallCount());
-        assertEquals(1, cs.getAndResetCallCount());
-      }
-    } finally {
-      DNSUtil.clear();
-    }
-  }
-
-  @Test
-  void bootstrapViaControlServiceIP() throws IOException {
-    long iaDst = ScionUtil.parseIA("1-ff00:0:112");
-    String asHost = "my-as-host.org";
-
-    try (MockTopologyServer topoServer = MockTopologyServer.start("topologies/dummy.json")) {
-      InetSocketAddress topoAddr = topoServer.getAddress();
-      DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-      try (MockControlServer cs = MockControlServer.start(topoServer.getControlServerPort())) {
-        try (Scion.CloseableService ss =
-            Scion.newServiceWithBootstrapServer(ToStringUtil.toAddressPort(topoAddr))) {
-          // destination address = 123.123.123.123 because we don´t care for getting a path
-          List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
-          assertNotNull(paths);
-          assertFalse(paths.isEmpty());
-        }
-        assertEquals(1, topoServer.getAndResetCallCount());
-        assertEquals(1, cs.getAndResetCallCount());
-      }
-    } finally {
-      DNSUtil.clear();
-    }
-  }
-
-  @Test
   void openChannel() throws IOException {
-    try (Scion.CloseableService service = Scion.newServiceWithDaemon("127.0.0.2")) {
+    MockDaemon.createAndStartDefault();
+    try (Scion.CloseableService service =
+        Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
       try (DatagramChannel channel = service.openChannel()) {
         assertEquals(service, channel.getService());
       }
+    } finally {
+      MockDaemon.closeDefault();
     }
   }
 }

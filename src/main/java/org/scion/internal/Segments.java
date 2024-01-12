@@ -21,7 +21,7 @@ import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.*;
-import org.scion.ScionException;
+import org.scion.ScionRuntimeException;
 import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -35,8 +35,7 @@ public class Segments {
       Seg.SegmentsResponse segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
-      ScionBootstrapper brLookup)
-      throws ScionException {
+      ScionBootstrapper brLookup) {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
     MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
@@ -69,15 +68,13 @@ public class Segments {
    * @param dstIsdAs src ISD/AS
    * @param brLookup border router lookup resource
    * @return Paths
-   * @throws ScionException In case of deserialization problem
    */
   private static List<Daemon.Path> combineTwoSegments(
       Seg.SegmentsResponse segments0,
       Seg.SegmentsResponse segments1,
       long srcIsdAs,
       long dstIsdAs,
-      ScionBootstrapper brLookup)
-      throws ScionException {
+      ScionBootstrapper brLookup) {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
@@ -100,7 +97,7 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineSegment(
-      Seg.SegmentsResponse segments, ScionBootstrapper brLookup) throws ScionException {
+      Seg.SegmentsResponse segments, ScionBootstrapper brLookup) {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : get(segments)) {
       paths.add(buildPath(pathSegment, null, null, brLookup));
@@ -109,8 +106,10 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineSegments(
-      List<Seg.SegmentsResponse> segments, long srcIsdAs, long dstIsdAs, ScionBootstrapper brLookup)
-      throws ScionException {
+      List<Seg.SegmentsResponse> segments,
+      long srcIsdAs,
+      long dstIsdAs,
+      ScionBootstrapper brLookup) {
     if (segments.size() == 1) {
       return combineSegment(segments.get(0), brLookup);
     } else if (segments.size() == 2) {
@@ -125,8 +124,7 @@ public class Segments {
       List<Seg.PathSegment> segmentsUp,
       Seg.PathSegment segCore,
       List<Seg.PathSegment> segmentsDown,
-      ScionBootstrapper brLookup)
-      throws ScionException {
+      ScionBootstrapper brLookup) {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
         paths.add(buildPath(segUp, segCore, segDown, brLookup));
@@ -135,8 +133,10 @@ public class Segments {
   }
 
   private static Daemon.Path buildPath(
-      Seg.PathSegment seg0, Seg.PathSegment seg1, Seg.PathSegment seg2, ScionBootstrapper brLookup)
-      throws ScionException {
+      Seg.PathSegment seg0,
+      Seg.PathSegment seg1,
+      Seg.PathSegment seg2,
+      ScionBootstrapper brLookup) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -210,8 +210,7 @@ public class Segments {
     return path.build();
   }
 
-  private static boolean isReversed(Seg.PathSegment pathSegment, long startIA, long[] isdAs)
-      throws ScionException {
+  private static boolean isReversed(Seg.PathSegment pathSegment, long startIA, long[] isdAs) {
     Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
@@ -244,8 +243,7 @@ public class Segments {
       Seg.PathSegment pathSegment,
       boolean reversed,
       ByteUtil.MutInt minExp,
-      ByteUtil.MutInt minMtu)
-      throws ScionException {
+      ByteUtil.MutInt minMtu) {
     final int n = pathSegment.getAsEntriesCount();
     for (int i = 0; i < n; i++) {
       int pos = reversed ? (n - i - 1) : i;
@@ -299,7 +297,7 @@ public class Segments {
   }
 
   private static MultiMap<Long, Seg.PathSegment> createSegmentsMap(
-      Seg.SegmentsResponse response, long knownIsdAs) throws ScionException {
+      Seg.SegmentsResponse response, long knownIsdAs) {
     MultiMap<Long, Seg.PathSegment> map = new MultiMap<>();
     for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> segmentsEntry :
         response.getSegmentsMap().entrySet()) {
@@ -312,7 +310,7 @@ public class Segments {
   }
 
   // TODO use results from getEndingIAs()!
-  private static long getOtherIsdAs(long isdAs, Seg.PathSegment seg) throws ScionException {
+  private static long getOtherIsdAs(long isdAs, Seg.PathSegment seg) {
     // Either the first or the last ISD/AS is the one we are looking for.
     if (seg.getAsEntriesCount() < 2) {
       throw new UnsupportedOperationException("Segment has < 2 hops.");
@@ -332,9 +330,8 @@ public class Segments {
   /**
    * @param seg path segment
    * @return first and last ISD/AS of the path segment
-   * @throws ScionException in case of parsing error
    */
-  static long[] getEndingIAs(Seg.PathSegment seg) throws ScionException {
+  static long[] getEndingIAs(Seg.PathSegment seg) {
     Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
     Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
     if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
@@ -346,7 +343,7 @@ public class Segments {
   }
 
   // TODO use primitive set!?!
-  public static Set<Long> getAllEndingIAs(Seg.SegmentsResponse segments) throws ScionException {
+  public static Set<Long> getAllEndingIAs(Seg.SegmentsResponse segments) {
     Set<Long> IAs = new HashSet<>();
     for (Seg.PathSegment seg : get(segments)) {
       Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
@@ -364,7 +361,7 @@ public class Segments {
     return IAs;
   }
 
-  private static Seg.ASEntrySignedBody getBody(Signed.SignedMessage sm) throws ScionException {
+  private static Seg.ASEntrySignedBody getBody(Signed.SignedMessage sm) {
     try {
       Signed.HeaderAndBodyInternal habi =
           Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
@@ -372,21 +369,21 @@ public class Segments {
       // TODO body for signature verification?!?
       return Seg.ASEntrySignedBody.parseFrom(habi.getBody());
     } catch (InvalidProtocolBufferException e) {
-      throw new ScionException(e);
+      throw new ScionRuntimeException(e);
     }
   }
 
-  private static Seg.ASEntrySignedBody getBody(Seg.ASEntry asEntry) throws ScionException {
+  private static Seg.ASEntrySignedBody getBody(Seg.ASEntry asEntry) {
     // Let's assumed they are all signed // TODO?
     Signed.SignedMessage sm = asEntry.getSigned();
     return getBody(sm);
   }
 
-  private static Seg.SegmentInformation getInfo(Seg.PathSegment pathSegment) throws ScionException {
+  private static Seg.SegmentInformation getInfo(Seg.PathSegment pathSegment) {
     try {
       return Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
     } catch (InvalidProtocolBufferException e) {
-      throw new ScionException(e);
+      throw new ScionRuntimeException(e);
     }
   }
 
@@ -400,15 +397,14 @@ public class Segments {
   }
 
   private static boolean[] containsIsdAs(
-      Seg.SegmentsResponse segments, long srcIsdAs, long dstIsdAs) throws ScionException {
+      Seg.SegmentsResponse segments, long srcIsdAs, long dstIsdAs) {
     return containsIsdAs(getAllEndingIAs(segments), srcIsdAs, dstIsdAs);
   }
 
   private static Seg.SegmentsResponse getSegments(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
-      long dstIsdAs)
-      throws ScionException {
+      long dstIsdAs) {
     if (srcIsdAs == dstIsdAs && !isWildcard(srcIsdAs)) {
       return null;
     }
@@ -422,7 +418,7 @@ public class Segments {
       }
       return response;
     } catch (StatusRuntimeException e) {
-      throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
+      throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
     }
   }
 
@@ -440,8 +436,7 @@ public class Segments {
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       ScionBootstrapper brLookup,
       long srcIsdAs,
-      long dstIsdAs)
-      throws ScionException {
+      long dstIsdAs) {
     // Cases:
     // A: src==dst
     // B: srcISD==dstISD; dst==core

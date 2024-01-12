@@ -15,7 +15,7 @@
 package org.scion.demo;
 
 import java.net.InetSocketAddress;
-import org.scion.ScionConstants;
+import org.scion.Constants;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockNetwork;
 
@@ -53,7 +53,7 @@ class DemoTopology {
   }
 
   private static void configurePathService(String address, int port) {
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, address);
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, String.valueOf(port));
+    System.setProperty(Constants.PROPERTY_DAEMON_HOST, address);
+    System.setProperty(Constants.PROPERTY_DAEMON_PORT, String.valueOf(port));
   }
 }

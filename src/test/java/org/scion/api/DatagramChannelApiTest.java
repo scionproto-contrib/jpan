@@ -273,9 +273,11 @@ class DatagramChannelApiTest {
   void getService() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertEquals(Scion.defaultService(), channel.getService());
-      ScionService service2 = Scion.newServiceWithDaemon("127.0.0.2");
+      ScionService service1 = channel.getService();
+      ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
       channel.setService(service2);
       assertEquals(service2, channel.getService());
+      assertNotEquals(service1, channel.getService());
       service2.close();
     }
   }

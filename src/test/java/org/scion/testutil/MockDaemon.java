@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import org.scion.ScionConstants;
+import org.scion.Constants;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -60,8 +60,8 @@ public class MockDaemon implements AutoCloseable {
   };
 
   private static void setEnvironment() {
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
+    System.setProperty(Constants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
+    System.setProperty(Constants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
   }
 
   public static MockDaemon createForBorderRouter(List<InetSocketAddress> borderRouter) {

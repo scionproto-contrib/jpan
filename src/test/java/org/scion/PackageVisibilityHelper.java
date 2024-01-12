@@ -29,7 +29,7 @@ import org.scion.testutil.ExamplePacket;
  */
 public class PackageVisibilityHelper {
 
-  public static final String DEBUG_PROPERTY_DNS_MOCK = ScionConstants.DEBUG_PROPERTY_MOCK_DNS_TXT;
+  public static final String DEBUG_PROPERTY_DNS_MOCK = Constants.DEBUG_PROPERTY_MOCK_DNS_TXT;
 
   public static List<Daemon.Path> getPathListCS(ScionService ss, long srcIsdAs, long dstIsdAs)
       throws ScionException {
