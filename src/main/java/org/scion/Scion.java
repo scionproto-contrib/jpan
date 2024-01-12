@@ -40,7 +40,6 @@ public final class Scion {
    * @param hostName of the host whose DNS entry contains hints for control service etc.
    * @return new ScionService instance
    */
-  @Deprecated // TODO not really implemented yet
   public static CloseableService newServiceWithDNS(String hostName) {
     return new CloseableService(hostName, ScionService.Mode.BOOTSTRAP_VIA_DNS);
   }
@@ -49,7 +48,6 @@ public final class Scion {
    * @param hostAndPort of the bootstrap server.
    * @return new ScionService instance
    */
-  @Deprecated // TODO not really implemented yet
   public static CloseableService newServiceWithBootstrapServer(String hostAndPort) {
     return new CloseableService(hostAndPort, ScionService.Mode.BOOTSTRAP_SERVER_IP);
   }
@@ -58,7 +56,6 @@ public final class Scion {
    * @param filePath name (and location) of the topology json file.
    * @return new ScionService instance
    */
-  @Deprecated // TODO not really implemented yet
   public static CloseableService newServiceWithTopologyFile(String filePath) {
     return new CloseableService(filePath, ScionService.Mode.BOOTSTRAP_VIA_TOPO_FILE);
   }
