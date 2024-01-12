@@ -95,7 +95,7 @@ public class SegmentServiceDemo {
       System.out.println("Path CS: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
       PathHeaderScion phs = new PathHeaderScion();
       phs.read(path.getRaw().asReadOnlyByteBuffer());
-      System.out.println(phs.toString());
+      println(phs.toString());
     }
 
     //    ScionService ssD = Scion.newServiceWithDaemon("127.0.0.19:30255");
