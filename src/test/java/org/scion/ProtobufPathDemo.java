@@ -27,7 +27,7 @@ import org.scion.proto.daemon.Daemon;
  */
 public class ProtobufPathDemo {
 
-  private final ScionService daemon;
+  private final ScionService service;
 
   public static void main(String[] args) {
     String daemon110_tiny = "127.0.0.12:30255";
@@ -59,12 +59,12 @@ public class ProtobufPathDemo {
     }
   }
 
-  public ProtobufPathDemo(ScionService daemon) {
-    this.daemon = daemon;
+  public ProtobufPathDemo(ScionService service) {
+    this.service = service;
   }
 
   private void testAsInfo() throws ScionException {
-    Daemon.ASResponse asInfo = daemon.getASInfo();
+    Daemon.ASResponse asInfo = service.getASInfo();
     System.out.println(
         "ASInfo found: "
             + asInfo.getIsdAs()
@@ -77,7 +77,7 @@ public class ProtobufPathDemo {
   }
 
   private void testInterfaces() throws ScionException {
-    Map<Long, Daemon.Interface> interfaces = daemon.getInterfaces();
+    Map<Long, Daemon.Interface> interfaces = service.getInterfaces();
     System.out.println("Interfaces found: " + interfaces.size());
     for (Map.Entry<Long, Daemon.Interface> entry : interfaces.entrySet()) {
       System.out.print("    Interface: " + entry.getKey() + " -> " + entry.getValue().getAddress());
@@ -85,7 +85,7 @@ public class ProtobufPathDemo {
   }
 
   private void testPathsDaemon(long srcIA, long dstIA) throws ScionException {
-    List<Daemon.Path> paths = daemon.getPathListDaemon(srcIA, dstIA);
+    List<Daemon.Path> paths = service.getPathListDaemon(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       Instant exp = Instant.ofEpochSecond(path.getExpiration().getSeconds());
@@ -158,7 +158,7 @@ public class ProtobufPathDemo {
   }
 
   private void testServices() throws ScionException {
-    Map<String, Daemon.ListService> services = daemon.getServices();
+    Map<String, Daemon.ListService> services = service.getServices();
     System.out.println("Services found: " + services.size());
     for (Map.Entry<String, Daemon.ListService> entry : services.entrySet()) {
       System.out.println("ListService: " + entry.getKey());

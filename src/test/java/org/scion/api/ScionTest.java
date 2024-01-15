@@ -37,6 +37,7 @@ public class ScionTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
+  private static final String TOPO_FILE = "topologies/scionproto-tiny-110.json";
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @BeforeAll
@@ -89,8 +90,6 @@ public class ScionTest {
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
     } finally {
-      System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-      System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
       Scion.closeDefault();
       MockDaemon.closeDefault();
     }
@@ -101,20 +100,15 @@ public class ScionTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
+    MockNetwork.startTiny();
     try {
-      MockNetwork.startTiny();
-      System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-      System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
-
-      System.setProperty(
-          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/scionproto-tiny-110.json");
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
       RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
       MockNetwork.stopTiny();
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     }
   }
 
@@ -123,12 +117,8 @@ public class ScionTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
+    MockNetwork.startTiny();
     try {
-      MockNetwork.startTiny();
-
-      System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-      System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
-
       String host;
       MockTopologyServer mts = MockNetwork.getTopoServer();
       if (mts.getAddress().getAddress() instanceof Inet6Address) {
@@ -145,7 +135,6 @@ public class ScionTest {
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
       MockNetwork.stopTiny();
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     }
   }
 
@@ -156,11 +145,8 @@ public class ScionTest {
     String asHost = "my-as-host.org";
 
     MockNetwork.startTiny();
-
-    try (MockTopologyServer mts = MockTopologyServer.start("topologies/scionproto-tiny-110.json")) {
-      System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-      System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
-
+    try {
+      MockTopologyServer mts = MockNetwork.getTopoServer();
       InetSocketAddress topoAddr = mts.getAddress();
       DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
 
@@ -180,13 +166,8 @@ public class ScionTest {
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
     MockNetwork.startTiny();
-
     try {
-      System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-      System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
-
-      System.setProperty(
-          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/scionproto-tiny-110.json");
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
       RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
@@ -200,8 +181,7 @@ public class ScionTest {
   void newServiceWithDNS() throws IOException {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     String asHost = "my-as-host.org";
-    try (MockTopologyServer topoServer =
-        MockTopologyServer.start("topologies/scionproto-tiny-110.json")) {
+    try (MockTopologyServer topoServer = MockTopologyServer.start(TOPO_FILE)) {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       try (MockControlServer cs = MockControlServer.start(topoServer.getControlServerPort())) {
@@ -224,8 +204,7 @@ public class ScionTest {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     String asHost = "my-as-host.org";
 
-    try (MockTopologyServer topoServer =
-        MockTopologyServer.start("topologies/scionproto-tiny-110.json")) {
+    try (MockTopologyServer topoServer = MockTopologyServer.start(TOPO_FILE)) {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.installNAPTR(asHost, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       try (MockControlServer cs = MockControlServer.start(topoServer.getControlServerPort())) {

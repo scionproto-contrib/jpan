@@ -247,10 +247,8 @@ public class ScionService {
     return getPathListCS(srcIsdAs, dstIsdAs);
   }
 
-  // TODO do not expose proto types on API
-  @Deprecated
-  public List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
-    // LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
+  // do not expose proto types on API
+  List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
     Daemon.PathsRequest request =
         Daemon.PathsRequest.newBuilder()
             .setSourceIsdAs(srcIsdAs)
