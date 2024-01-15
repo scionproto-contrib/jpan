@@ -28,6 +28,25 @@ import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.crypto.Signed;
 import org.scion.proto.daemon.Daemon;
 
+/**
+ * This class gets segment information from a path service and constructs paths.
+ * <p>
+ * Assumption:
+ * When requesting CORE segments (inter-ISD or intra-ISD), the path service will
+ * return at least one segment for every AS in the src-ISD to connecting to every AS in the
+ * dst-ISD. Intra-ISD this is ensured by mutual registration, inter-ISD this is ensured
+ * by sending PCB to all other core-AS.<br>
+ * Source: <a href="https://datatracker.ietf.org/doc/draft-dekater-scion-controlplane/">...</a>
+ * <p>
+ * 3.2.  Core Path-Segment Registration <br>
+ * The core beaconing process creates path segments from core AS to core
+ * AS.  These core-segments are then added to the control service path
+ * database of the core AS that created the segment, so that local and
+ * remote endpoints can obtain and use these core-segments. In contrast
+ * to the intra-ISD registration procedure, there is no need to register
+ * core-segments with other core ASes (as each core AS will receive PCBs
+ * originated from every other core AS). <p>
+ */
 public class Segments {
   private static List<Daemon.Path> combineThreeSegments(
       Seg.SegmentsResponse segmentsUp,
