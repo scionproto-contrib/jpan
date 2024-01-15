@@ -157,16 +157,11 @@ public class ScionService {
           ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
       String daemonPort =
           ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
-      if (daemonHost != null
-          && !daemonHost.isEmpty()
-          && daemonPort != null
-          && !daemonPort.isEmpty()) {
-        try {
-          DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
-          return DEFAULT;
-        } catch (ScionRuntimeException e) {
-          // Ignore
-        }
+      try {
+        DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
+        return DEFAULT;
+      } catch (ScionRuntimeException e) {
+        // Ignore
       }
 
       throw new ScionRuntimeException("Could not connect to daemon or bootstrap resource.");
