@@ -124,10 +124,13 @@ get bootstrap information.
 
 The method `Scion.defaultService()` (internally called by `DatagramChannel.open()`) will 
 attempt to get network information in the following order until it succeeds:
-- Check for to daemon
 - Check for local topology file (if file name is given)
 - Check for bootstrap server address (if address is given)
 - Check for DNS NAPTR record (if record entry name is given)
+- Check for to daemon
+
+The reason that the daemon is checked last is that it has a default setting (localhost:30255) while
+the other options are skipped if no property or environment variable is defined. 
 
 | Option                              | Java property                     | Environment variable         | Default value |
 |-------------------------------------|-----------------------------------|------------------------------|---------------|

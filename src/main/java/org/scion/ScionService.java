@@ -131,6 +131,27 @@ public class ScionService {
       if (DEFAULT != null) {
         return DEFAULT;
       }
+      // try bootstrap service IP
+      String fileName =
+          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
+      if (fileName != null) {
+        DEFAULT = new ScionService(fileName, Mode.BOOTSTRAP_TOPO_FILE);
+        return DEFAULT;
+      }
+
+      String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
+      if (server != null) {
+        DEFAULT = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
+        return DEFAULT;
+      }
+
+      String naptrName =
+          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
+      if (naptrName != null) {
+        DEFAULT = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
+        return DEFAULT;
+      }
+
       // try daemon
       String daemonHost =
           ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
@@ -146,26 +167,6 @@ public class ScionService {
         } catch (ScionRuntimeException e) {
           // Ignore
         }
-      }
-      // try bootstrap service IP
-      String fileName =
-          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE, null);
-      if (fileName != null) {
-        DEFAULT = new ScionService(fileName, Mode.BOOTSTRAP_TOPO_FILE);
-        return DEFAULT;
-      }
-
-      String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST, null);
-      if (server != null) {
-        DEFAULT = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
-        return DEFAULT;
-      }
-
-      String naptrName =
-          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME, null);
-      if (naptrName != null) {
-        DEFAULT = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
-        return DEFAULT;
       }
 
       throw new ScionRuntimeException("Could not connect to daemon or bootstrap resource.");

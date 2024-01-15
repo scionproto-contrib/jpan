@@ -48,6 +48,8 @@ public class MockNetwork {
   private static MockDaemon daemon = null;
   static final AtomicInteger nForwardTotal = new AtomicInteger();
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
+  private static MockTopologyServer topoServer;
+  private static MockControlServer controlServer;
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
@@ -87,9 +89,15 @@ public class MockNetwork {
     }
 
     MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
+
+    topoServer = MockTopologyServer.start("topologies/scionproto-tiny-110.json");
+    controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
 
   public static synchronized void stopTiny() {
+    controlServer.close();
+    topoServer.close();
+
     MockDNS.clear();
 
     if (daemon != null) {
@@ -129,6 +137,14 @@ public class MockNetwork {
 
   public static int getForwardCount(int routerId) {
     return nForwards.get(routerId);
+  }
+
+  public static MockTopologyServer getTopoServer() {
+    return topoServer;
+  }
+
+  public static MockControlServer getControlServer() {
+    return controlServer;
   }
 }
 

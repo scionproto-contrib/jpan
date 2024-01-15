@@ -91,6 +91,12 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
+- Consider SHIM support. SHIM is a compatbility component that supports
+  old border-router software (requiring a fixed port on the client, unless
+  the client is listening on this very port).  When SHIM is used, we cannot 
+  get the return address (server mode) from the received packet because we receive it 
+  from the SHIM i.o. the BR. Fix: Either have server use daemon of topofile to find
+  first hop, OR extend SHIM to accept and forward packets to the correct BR.
 - AS switching: handle localIsdAs code per Interface or IP
 - Path expiry: request new path asynchronously when old path is close to expiry
 - DNS /etc/scion/hosts e.g.:

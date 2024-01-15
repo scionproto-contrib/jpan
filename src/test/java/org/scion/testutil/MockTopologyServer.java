@@ -65,15 +65,15 @@ public class MockTopologyServer implements Closeable {
     logger.info("Server started, listening on " + serverSocket);
   }
 
-  public static MockTopologyServer start() throws IOException {
+  public static MockTopologyServer start() {
     return new MockTopologyServer(Paths.get("topologies/scionproto-tiny-111.json"));
   }
 
-  public static MockTopologyServer start(Path topoFile) throws IOException {
+  public static MockTopologyServer start(Path topoFile) {
     return new MockTopologyServer(topoFile);
   }
 
-  public static MockTopologyServer start(String topoFile) throws IOException {
+  public static MockTopologyServer start(String topoFile) {
     return new MockTopologyServer(Paths.get(topoFile));
   }
 

@@ -54,9 +54,13 @@ public class MockControlServer implements AutoCloseable {
     this.borderRouters = borderRouters;
   }
 
-  public static MockControlServer start(int port) throws IOException {
+  public static MockControlServer start(int port) {
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
-    return new MockControlServer(addr).startInternal();
+    try {
+      return new MockControlServer(addr).startInternal();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public int getAndResetCallCount() {
@@ -172,7 +176,7 @@ public class MockControlServer implements AutoCloseable {
     Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
 
     ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hop0 = Seg.HopField.newBuilder().setMac(mac0).setIngress(3).setEgress(4).build();
+    Seg.HopField hop0 = Seg.HopField.newBuilder().setMac(mac0).setIngress(3).setEgress(2).build();
     Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hop0).build();
     Seg.ASEntrySignedBody asSigneBody0 =
         Seg.ASEntrySignedBody.newBuilder().setIsdAs(srcIA).setHopEntry(hopEntry0).build();
@@ -183,7 +187,7 @@ public class MockControlServer implements AutoCloseable {
     Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
 
     ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hop1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(5).setEgress(6).build();
+    Seg.HopField hop1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(5).setEgress(3).build();
     Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hop1).build();
     Seg.ASEntrySignedBody asSigneBody1 =
         Seg.ASEntrySignedBody.newBuilder().setIsdAs(dstIA).setHopEntry(hopEntry1).build();

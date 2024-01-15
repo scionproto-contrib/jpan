@@ -42,6 +42,20 @@
           "mtu": 1472
         }
       }
+    },
+    "br1-ff00_0_110-3": {
+      "internal_addr": "127.0.0.10:31014",
+      "interfaces": {
+        "3": {
+          "underlay": {
+            "public": "[fd00:f00d:cafe::7f00:6]:50000",
+            "remote": "[fd00:f00d:cafe::7f00:7]:50000"
+          },
+          "isd_as": "1-ff00:0:112",
+          "link_to": "child",
+          "mtu": 1472
+        }
+      }
     }
   }
 }

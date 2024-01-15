@@ -104,7 +104,7 @@ public class ScionUtil {
     }
   }
 
-  private static String getPropertyOrEnv(String propertyName, String envName) {
+  public static String getPropertyOrEnv(String propertyName, String envName) {
     String value = System.getProperty(propertyName);
     return value != null ? value : System.getenv(envName);
   }
