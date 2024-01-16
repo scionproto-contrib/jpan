@@ -37,20 +37,16 @@ public class InspectorComposeTest {
   // Recorded before sending a packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
 
-  private static MockDaemon daemon;
-
   private Scion.CloseableService pathService = null;
 
   @BeforeAll
   public static void beforeAll() throws IOException {
-    daemon = MockDaemon.create().start();
+    MockDaemon.createAndStartDefault();
   }
 
   @AfterAll
   public static void afterAll() throws IOException {
-    if (daemon != null) {
-      daemon.close();
-    }
+    MockDaemon.closeDefault();
   }
 
   @AfterEach
@@ -80,16 +76,17 @@ public class InspectorComposeTest {
     // User side
     String hostname = "::1";
     int dstPort = 8080;
-    InetAddress address = InetAddress.getByName(hostname);
+    InetAddress dstAddress = InetAddress.getByName(hostname);
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
     byte[] sendBuf = msg.getBytes();
-    DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, address, dstPort);
+    DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, dstAddress, dstPort);
 
     // Socket internal - compose header data
-    pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
+    pathService = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path = pathService.getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
+    InetSocketAddress dstSocketAddress = new InetSocketAddress(dstAddress, dstPort);
+    byte[] path = pathService.getPaths(dstIA, dstSocketAddress).get(0).getRawPath();
     scionHeader.setSrcIA(srcIA);
     scionHeader.setDstIA(dstIA);
     InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
@@ -101,7 +98,7 @@ public class InspectorComposeTest {
     assertEquals(1, scionHeader.pathType().code());
     pathHeaderScion.writePath(data, path);
 
-    // Pseudo header
+    // Overlay header
     overlayHeaderUdp.write(data, userPacket.getLength(), 44444, dstPort);
 
     data.put(userPacket.getData(), 0, userPacket.getLength());

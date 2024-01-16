@@ -5,21 +5,9 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 * https://github.com/trensetim/quic
 * https://kachayev.github.io/quiche4j/
 
-## Dispatcher 
-
-**TODO Remove this section once dispatcher is removed**
-
-This library does not work with the dispatcher. For one, the dispatcher will
-likely be removed soon(ish). Also, the dispatcher uses UNix sockets, which are
-less easy to use in Java.
-
-If we decide we need dispatcher support, it may be easiest to
-adapt the dispatcher to allow connection via a normal port on local host, basically acting as
-a kind of reverse proxy.
-
 ## Daemon
-The implementation can (currently) use the daemon. However, since daemon installation may
-be cumbersome on platforms such as Android, we could directly connect to a path service.
+The implementation can use the daemon. Alternatively, since daemon installation may
+be cumbersome on platforms such as Android, we can directly connect to a control service.
 
 ## Library dependencies etc
 
@@ -33,8 +21,19 @@ be cumbersome on platforms such as Android, we could directly connect to a path 
     - Consider using `slfj4` logging framework for other classes: widely used ond flexible.
 - Use Junit 5.
 - Use Google style guide for code
-- We do **not** introduce custom exceptions. The rationale is that we want our API to be as similar
-  as possible as the standard networking API.
+- We use custom exceptions. However, to make the API as compatible with standard networking API
+  as possible, our Exceptions extend either IOException or RuntimeExcdeption.
+
+## Paths
+
+There are two types of paths (both inherit `Path`:
+- `RequestPath` are used to send initial request. They are retrieved from a path service and contain meta information.
+- `ResponsePath` are used to respond to a client request. They are extracted from Scion packets.
+
+`Path` contains a destination IA:IP:port, a raw path and a first hop IP:port.
+`RequestPath` also contains path meta information.
+`ResponsePath` also contains origin IA:IP:port.
+
 
 ## DatagramSocket
 
@@ -82,15 +81,13 @@ Datagram Socket design considerations:
 - Paths & Headers are retained for:
   - efficiency (when sending multiple times to the same destination)
   - reversing the path
-- Path are associated with ScionAddresses, not with DatagramChannels. That means:
+- Path are not associated with DatagramChannels. That means:
   - They can be reused in other Channels -> TODO they need to be thread-safe / immutable
   - An incoming path may be used to create a separate outgoing channel
-  - When a new ScionAddress instance is used, the path needs to be looked up again. 
   
 **Questions - TODO:**
-- Should a channel separately retain paths, as form of cache?
 - Should the PathService retain paths, as a form of cache?
-- WHen a client receives a packet and wants to send another one, should it reuse the original 
+- When a client receives a packet and wants to send another one, should it reuse the original 
   path or revert the incoming path? 
 
 # TODO
@@ -131,12 +128,3 @@ This is possible but usage is not transparent and inconvenient.
 ## Testing / fuzzing
 
 * TODO
-
-## Internal
-
-* [ ] Header classes could be consolidated, e.g. ScionHeader + AddressHeader.
-* [ ] Headers could store raw header info and extract data on the fly when required.
-      This safes space and simplifies. Problem: we either need to copy
-      the data[] in case we need the header data later (user's API calls, or when sending),
-      or we need to store key data from the header.
-      Solution: copy byte[] with header data instead of payload? Whichever is smaller???

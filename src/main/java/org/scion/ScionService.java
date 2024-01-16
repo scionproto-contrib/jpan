@@ -14,25 +14,34 @@
 
 package org.scion;
 
-import static org.scion.ScionConstants.DEFAULT_DAEMON_HOST;
-import static org.scion.ScionConstants.DEFAULT_DAEMON_PORT;
-import static org.scion.ScionConstants.ENV_DAEMON_HOST;
-import static org.scion.ScionConstants.ENV_DAEMON_PORT;
-import static org.scion.ScionConstants.PROPERTY_DAEMON_HOST;
-import static org.scion.ScionConstants.PROPERTY_DAEMON_PORT;
+import static org.scion.Constants.DEFAULT_DAEMON_HOST;
+import static org.scion.Constants.DEFAULT_DAEMON_PORT;
+import static org.scion.Constants.ENV_BOOTSTRAP_HOST;
+import static org.scion.Constants.ENV_BOOTSTRAP_NAPTR_NAME;
+import static org.scion.Constants.ENV_BOOTSTRAP_TOPO_FILE;
+import static org.scion.Constants.ENV_DAEMON_HOST;
+import static org.scion.Constants.ENV_DAEMON_PORT;
+import static org.scion.Constants.PROPERTY_BOOTSTRAP_HOST;
+import static org.scion.Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME;
+import static org.scion.Constants.PROPERTY_BOOTSTRAP_TOPO_FILE;
+import static org.scion.Constants.PROPERTY_DAEMON_HOST;
+import static org.scion.Constants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.net.InetSocketAddress;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.scion.internal.DNSHelper;
+import org.scion.internal.ScionBootstrapper;
+import org.scion.internal.Segments;
+import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xbill.DNS.*;
-import org.xbill.DNS.Record;
 
 /**
  * The ScionService provides information such as: <br>
@@ -51,24 +60,62 @@ import org.xbill.DNS.Record;
 public class ScionService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionService.class.getName());
-  private static final String DAEMON_HOST =
-      ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
-  private static final String DAEMON_PORT =
-      ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
 
-  private static ScionService DEFAULT;
+  private static final String DNS_TXT_KEY = "scion";
+  private static final Object LOCK = new Object();
+  private static ScionService DEFAULT = null;
 
-  private final DaemonServiceGrpc.DaemonServiceBlockingStub blockingStub;
+  private final ScionBootstrapper bootstrapper;
+  // TODO create subclasses for these two? We can only have either one of them, not both.
+  private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
+  private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
 
   private final ManagedChannel channel;
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
+  private Thread shutdownHook;
 
-  protected ScionService(String daemonAddress) {
-    // TODO InsecureChannelCredentials?
-    channel = Grpc.newChannelBuilder(daemonAddress, InsecureChannelCredentials.create()).build();
-    blockingStub = DaemonServiceGrpc.newBlockingStub(channel);
-    LOG.info("Path service started on " + channel.toString() + " " + daemonAddress);
+  protected enum Mode {
+    DAEMON,
+    BOOTSTRAP_SERVER_IP,
+    BOOTSTRAP_VIA_DNS,
+    BOOTSTRAP_TOPO_FILE
+  }
+
+  protected ScionService(String addressOrHost, Mode mode) {
+    if (mode == Mode.DAEMON) {
+      // TODO InsecureChannelCredentials?
+      channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
+      daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
+      segmentStub = null;
+      bootstrapper = null;
+      LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
+    } else {
+      if (mode == Mode.BOOTSTRAP_VIA_DNS) {
+        bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
+      } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
+        bootstrapper = ScionBootstrapper.createViaBootstrapServerIP(addressOrHost);
+      } else if (mode == Mode.BOOTSTRAP_TOPO_FILE) {
+        java.nio.file.Path file = Paths.get(addressOrHost);
+        bootstrapper = ScionBootstrapper.createViaTopoFile(file);
+      } else {
+        throw new UnsupportedOperationException();
+      }
+      String csHost = bootstrapper.getControlServerAddress();
+      localIsdAs.set(bootstrapper.getLocalIsdAs());
+      // TODO InsecureChannelCredentials?
+      channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
+      daemonStub = null;
+      segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
+      LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
+    }
+    shutdownHook = addShutdownHook();
+    getLocalIsdAs(); // Init
+    synchronized (LOCK) {
+      if (DEFAULT == null) {
+        DEFAULT = this;
+      }
+    }
   }
 
   /**
@@ -77,51 +124,131 @@ public class ScionService {
    *
    * @return default instance
    */
-  public static synchronized ScionService defaultService() {
-    if (DEFAULT == null) {
-      DEFAULT = new ScionService(DAEMON_HOST + ":" + DAEMON_PORT);
-      Runtime.getRuntime()
-          .addShutdownHook(
-              new Thread(
-                  () -> {
-                    try {
-                      DEFAULT.close();
-                    } catch (IOException e) {
-                      e.printStackTrace(System.err);
-                    }
-                  }));
+  static ScionService defaultService() {
+    synchronized (LOCK) {
+      // This is not 100% thread safe, but the worst that can happen is that
+      // we call close() on a Service that has already been closed.
+      if (DEFAULT != null) {
+        return DEFAULT;
+      }
+      // try bootstrap service IP
+      String fileName =
+          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
+      if (fileName != null) {
+        DEFAULT = new ScionService(fileName, Mode.BOOTSTRAP_TOPO_FILE);
+        return DEFAULT;
+      }
+
+      String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
+      if (server != null) {
+        DEFAULT = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
+        return DEFAULT;
+      }
+
+      String naptrName =
+          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
+      if (naptrName != null) {
+        DEFAULT = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
+        return DEFAULT;
+      }
+
+      // try daemon
+      String daemonHost =
+          ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
+      String daemonPort =
+          ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
+      try {
+        DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
+        return DEFAULT;
+      } catch (ScionRuntimeException e) {
+        // Ignore
+      }
+
+      throw new ScionRuntimeException("Could not connect to daemon or bootstrap resource.");
     }
-    return DEFAULT;
   }
 
-  Daemon.ASResponse getASInfo() throws ScionException {
+  public static void closeDefault() {
+    synchronized (LOCK) {
+      if (DEFAULT != null) {
+        try {
+          DEFAULT.close();
+        } catch (IOException e) {
+          throw new ScionRuntimeException(e);
+        } finally {
+          DEFAULT = null;
+        }
+      }
+    }
+  }
+
+  private Thread addShutdownHook() {
+    Thread hook =
+        new Thread(
+            () -> {
+              try {
+                DEFAULT.shutdownHook = null;
+                DEFAULT.close();
+              } catch (IOException e) {
+                e.printStackTrace(System.err);
+              }
+            });
+    Runtime.getRuntime().addShutdownHook(hook);
+    return hook;
+  }
+
+  public void close() throws IOException {
+    try {
+      if (!channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)) {
+        if (!channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)) {
+          LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
+        }
+      }
+      if (shutdownHook != null) {
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+      }
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
+  }
+
+  public DatagramChannel openChannel() throws IOException {
+    return DatagramChannel.open(this);
+  }
+
+  Daemon.ASResponse getASInfo() {
     // LOG.info("*** GetASInfo ***");
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
-      response = blockingStub.aS(request);
+      response = daemonStub.aS(request);
     } catch (StatusRuntimeException e) {
-      throw new ScionException("Error while getting AS info", e);
+      throw new ScionRuntimeException("Error while getting AS info: " + e.getMessage(), e);
     }
     return response;
   }
 
-  Map<Long, Daemon.Interface> getInterfaces() throws ScionException {
+  Map<Long, Daemon.Interface> getInterfaces() {
     // LOG.info("*** GetInterfaces ***");
     Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {
-      response = blockingStub.interfaces(request);
+      response = daemonStub.interfaces(request);
     } catch (StatusRuntimeException e) {
-      throw new ScionException(e);
+      throw new ScionRuntimeException(e);
     }
     return response.getInterfacesMap();
   }
 
-  // TODO do not expose proto types on API
-  List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) throws ScionException {
-    // LOG.info("*** GetPath: src={} dst={}", srcIsdAs, dstIsdAs);
+  private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
+    if (daemonStub != null) {
+      return getPathListDaemon(srcIsdAs, dstIsdAs);
+    }
+    return getPathListCS(srcIsdAs, dstIsdAs);
+  }
 
+  // do not expose proto types on API
+  List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
     Daemon.PathsRequest request =
         Daemon.PathsRequest.newBuilder()
             .setSourceIsdAs(srcIsdAs)
@@ -130,39 +257,72 @@ public class ScionService {
 
     Daemon.PathsResponse response;
     try {
-      response = blockingStub.paths(request);
+      response = daemonStub.paths(request);
     } catch (StatusRuntimeException e) {
-      throw new ScionException(e);
+      throw new ScionRuntimeException(e);
     }
 
     return response.getPathsList();
   }
 
   /**
-   * Request and return a path from the local ISD/AS to dstIsdAs.
+   * Requests paths from the local ISD/AS to the destination.
    *
-   * @param dstIsdAs Destination ISD + AS
-   * @return The first path is returned by the path service.
+   * @param dstAddress Destination IP address
+   * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long dstIsdAs) throws IOException {
-    return getPath(getLocalIsdAs(), dstIsdAs);
+  public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
+    long dstIsdAs = getIsdAs(dstAddress.getHostString());
+    return getPaths(dstIsdAs, dstAddress);
   }
 
   /**
-   * Request and return a path from srcIsdAs to dstIsdAs.
+   * Request paths from the local ISD/AS to the destination.
    *
-   * @param srcIsdAs Source ISD + AS
-   * @param dstIsdAs Destination ISD + AS
-   * @return The first path is returned by the path service or 'null' if no path could be found.
+   * @param dstIsdAs Destination ISD/AS
+   * @param dstAddress Destination IP address
+   * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public ScionPath getPath(long srcIsdAs, long dstIsdAs) throws IOException {
+  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress)
+      throws IOException {
+    return getPaths(dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort());
+  }
+
+  /**
+   * Request paths to the same destination as the provided path.
+   *
+   * @param path A path
+   * @return All paths returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public List<RequestPath> getPaths(RequestPath path) throws IOException {
+    return getPaths(
+        path.getDestinationIsdAs(), path.getDestinationAddress(), path.getDestinationPort());
+  }
+
+  /**
+   * Request paths from the local ISD/AS to the destination.
+   *
+   * @param dstIsdAs Destination ISD/AS
+   * @param dstAddress Destination IP address
+   * @param dstPort Destination port
+   * @return All paths returned by the path service.
+   * @throws IOException if an errors occurs while querying paths.
+   */
+  public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort)
+      throws IOException {
+    long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {
-      return null;
+      return Collections.emptyList();
     }
-    return new ScionPath(paths.get(0), srcIsdAs, dstIsdAs);
+    List<RequestPath> scionPaths = new ArrayList<>(paths.size());
+    for (int i = 0; i < paths.size(); i++) {
+      scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress, dstPort));
+    }
+    return scionPaths;
   }
 
   Map<String, Daemon.ListService> getServices() throws ScionException {
@@ -170,14 +330,14 @@ public class ScionService {
     Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
     Daemon.ServicesResponse response;
     try {
-      response = blockingStub.services(request);
+      response = daemonStub.services(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException(e);
     }
     return response.getServicesMap();
   }
 
-  public long getLocalIsdAs() throws ScionException {
+  public long getLocalIsdAs() {
     if (localIsdAs.get() == ISD_AS_NOT_SET) {
       // Yes, this may be called multiple time by different threads, but it should be
       // faster than `synchronize`.
@@ -186,18 +346,36 @@ public class ScionService {
     return localIsdAs.get();
   }
 
-  protected void close() throws IOException {
-    try {
-      channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      throw new IOException(e);
+  /**
+   * @param hostName hostName of the host to resolve
+   * @return A ScionAddress
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  public long getIsdAs(String hostName) throws ScionException {
+    // $ dig +short TXT ethz.ch | grep "scion="
+    // "scion=64-2:0:9,129.132.230.98"
+
+    // Look for TXT in application properties
+    String txtFromProperties = findTxtRecordInProperties(hostName, DNS_TXT_KEY);
+    if (txtFromProperties != null) {
+      return parseTxtRecordToIA(txtFromProperties);
     }
+
+    // Use local ISD/AS for localhost addresses
+    if (isLocalhost(hostName)) {
+      return getLocalIsdAs();
+    }
+
+    // DNS lookup
+    String txtFromDNS = DNSHelper.queryTXT(hostName, DNS_TXT_KEY);
+    if (txtFromDNS != null) {
+      return parseTxtRecordToIA(txtFromDNS);
+    }
+
+    throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
   }
 
   /**
-   * TODO Have a Daemon singleton + Move this method into ScionAddress + Create ScionSocketAddress
-   * class.
-   *
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
@@ -206,59 +384,36 @@ public class ScionService {
     // $ dig +short TXT ethz.ch | grep "scion="
     // "scion=64-2:0:9,129.132.230.98"
 
-    // Look for TXT in properties
-    String txtFromProperties = findTxtRecordInProperties(hostName);
+    // Look for TXT in application properties
+    String txtFromProperties = findTxtRecordInProperties(hostName, DNS_TXT_KEY);
     if (txtFromProperties != null) {
       return parseTxtRecord(txtFromProperties, hostName);
     }
 
     // Use local ISD/AS for localhost addresses
-    if (hostName.startsWith("127.0.0.")
-        || "::1".equals(hostName)
-        || "0:0:0:0:0:0:0:1".equals(hostName)) {
-      long isdAs = ScionService.defaultService().getLocalIsdAs();
-      return ScionAddress.create(isdAs, hostName, hostName);
+    if (isLocalhost(hostName)) {
+      return ScionAddress.create(getLocalIsdAs(), hostName, hostName);
     }
 
     // DNS lookup
-    try {
-      Record[] records = new Lookup(hostName, Type.TXT).run();
-      if (records == null) {
-        throw new ScionException("No DNS TXT entry found for host: " + hostName);
-      }
-      for (int i = 0; i < records.length; i++) {
-        TXTRecord txt = (TXTRecord) records[i];
-        String entry = txt.rdataToString();
-        if (entry.startsWith("\"scion=")) {
-          return parseTxtRecord(entry, hostName);
-        }
-      }
-    } catch (TextParseException e) {
-      throw new ScionException("Error parsing TXT entry: " + e.getMessage());
+    String txtFromDNS = DNSHelper.queryTXT(hostName, DNS_TXT_KEY);
+    if (txtFromDNS != null) {
+      return parseTxtRecord(txtFromDNS, hostName);
     }
-    // TODO add /etc/scion-hosts or /etc/scion/hosts
 
-    // Java 8
-    //    List nameServers = ResolverConfiguration.open().nameservers();
-    //    List searchNames = ResolverConfiguration.open().searchlist();
-    //    System.out.println("NS: ");
-    //    nameServers.forEach((dns)->System.out.println(dns));
-    //    System.out.println("SL: ");
-    //    searchNames.forEach((dns)->System.out.println(dns));
-    //    System.out.println("DNS: ");
-
-    //    // Java 9+
-    //    java.net.InetAddress.NameService;
-    //
-    //    // Java 18+
-    //    InetAddressResolverProvider p = InetAddressResolverProvider.Configuration;
-    //    InetAddressResolver r = new InetAddressResolver();
-
-    throw new ScionException("Host has no SCION TXT entry: " + hostName);
+    throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
   }
 
-  private String findTxtRecordInProperties(String hostName) {
-    String props = System.getProperty(ScionConstants.DEBUG_PROPERTY_DNS_MOCK);
+  private boolean isLocalhost(String hostName) {
+    return hostName.startsWith("127.0.0.")
+        || "::1".equals(hostName)
+        || "0:0:0:0:0:0:0:1".equals(hostName)
+        || "localhost".equals(hostName)
+        || "ip6-localhost".equals(hostName);
+  }
+
+  private String findTxtRecordInProperties(String hostName, String key) throws ScionException {
+    String props = System.getProperty(Constants.DEBUG_PROPERTY_MOCK_DNS_TXT);
     if (props == null) {
       return null;
     }
@@ -286,20 +441,36 @@ public class ScionService {
       } else {
         txtRecord = props.substring(posStart + 1);
       }
+      if (!txtRecord.startsWith("\"" + key + "=") || !txtRecord.endsWith("\"")) {
+        throw new ScionException("Invalid TXT entry: " + txtRecord);
+      }
       // No more checking here, we assume that properties are save
-      return txtRecord;
+      return txtRecord.substring(key.length() + 2, txtRecord.length() - 1);
     }
     return null;
   }
 
-  private ScionAddress parseTxtRecord(String txtEntry, String hostName) throws ScionException {
+  private ScionAddress parseTxtRecord(String txtEntry, String hostName) {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
-    if (!txtEntry.startsWith("\"scion=") || !txtEntry.endsWith("\"") || posComma < 0) {
-      throw new ScionException("Invalid TXT entry: " + txtEntry);
+    if (posComma < 0) {
+      throw new ScionRuntimeException("Invalid TXT entry: " + txtEntry);
     }
-    long isdAs = ScionUtil.parseIA(txtEntry.substring(7, posComma));
-    return ScionAddress.create(
-        isdAs, hostName, txtEntry.substring(posComma + 1, txtEntry.length() - 1));
+    long isdAs = ScionUtil.parseIA(txtEntry.substring(0, posComma));
+    return ScionAddress.create(isdAs, hostName, txtEntry.substring(posComma + 1));
+  }
+
+  private long parseTxtRecordToIA(String txtEntry) {
+    // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
+    int posComma = txtEntry.indexOf(',');
+    if (posComma < 0) {
+      throw new ScionRuntimeException("Invalid TXT entry: " + txtEntry);
+    }
+    return ScionUtil.parseIA(txtEntry.substring(0, posComma));
+  }
+
+  // Do not expose protobuf types on API!
+  List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
+    return Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
   }
 }

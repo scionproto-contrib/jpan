@@ -72,7 +72,7 @@ public class OverlayHeader {
 
   @Override
   public String toString() {
-    return "UdpPseudoHeader{"
+    return "UdpOverlayHeader{"
         + "srcPort="
         + srcPort
         + ", dstPort="

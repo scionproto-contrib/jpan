@@ -18,19 +18,25 @@ import static org.scion.internal.ByteUtil.*;
 
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.ScionPath;
-import org.scion.ScionSocketAddress;
+import org.scion.ResponsePath;
 
 /** Utility methods for reading and writing the Common Header and Address Header. */
 public class ScionHeaderParser {
-  public static void readUserData(ByteBuffer data, ByteBuffer userBuffer) {
-    int start = data.position();
-    int i1 = data.getInt(start + 4);
+
+  /**
+   * Extract the user payload data without changing the buffer's position.
+   *
+   * @param data The datagram to read from.
+   * @param userBuffer Buffer in which to write the user payload.
+   */
+  public static void extractUserPayload(ByteBuffer data, ByteBuffer userBuffer) {
+    int i1 = data.getInt(4);
     int hdrLen = readInt(i1, 8, 8);
     int hdrLenBytes = hdrLen * 4;
 
     int udpHeaderLength = 8;
-    int payLoadStart = start + hdrLenBytes + udpHeaderLength;
+    int payLoadStart = hdrLenBytes + udpHeaderLength;
+    int pos = data.position();
     data.position(payLoadStart);
     int maxUserLen = userBuffer.remaining();
     if (data.limit() - payLoadStart <= maxUserLen) {
@@ -41,20 +47,22 @@ public class ScionHeaderParser {
       userBuffer.put(data);
       data.limit(oldLimit);
     }
-    data.position(start);
+    data.position(pos);
   }
 
   /**
+   * Extract the remote socket address without changing the buffer's position.
+   *
    * @param data The datagram to read from.
    * @return A new ScionSocketAddress including raw path.
    */
   // TODO this is a bit weird to have the firstHopAddress here....
-  public static ScionSocketAddress readRemoteSocketAddress(
-      ByteBuffer data, InetSocketAddress firstHopAddress) throws UnknownHostException {
-    int start = data.position();
+  public static ResponsePath extractRemoteSocketAddress(
+      ByteBuffer data, InetSocketAddress firstHopAddress) {
+    int pos = data.position();
 
-    int i1 = data.getInt(start + 4);
-    int i2 = data.getInt(start + 8);
+    int i1 = data.getInt(4);
+    int i2 = data.getInt(8);
     int hdrLen = readInt(i1, 8, 8);
     int hdrLenBytes = hdrLen * 4;
     int dl = readInt(i2, 10, 2);
@@ -68,34 +76,48 @@ public class ScionHeaderParser {
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr
 
-    long dstIsdAs = data.getLong(start + 12);
-    long srcIsdAs = data.getLong(start + 20);
+    long dstIsdAs = data.getLong(12);
+    long srcIsdAs = data.getLong(20);
 
-    // skip dstAddress
-    int skip = (dl + 1) * 4;
-    data.position(start + 28 + skip);
+    // dstAddress
+    data.position(28);
+    byte[] bytesDst = new byte[(dl + 1) * 4];
+    data.get(bytesDst);
 
     // remote address
     byte[] bytesSrc = new byte[(sl + 1) * 4];
     data.get(bytesSrc);
-    InetAddress addr = InetAddress.getByAddress(bytesSrc);
 
     // raw path
-    byte[] path = new byte[start + hdrLenBytes - data.position()];
+    byte[] path = new byte[hdrLenBytes - data.position()];
     data.get(path);
     reversePathInPlace(ByteBuffer.wrap(path));
 
     // get remote port from UDP overlay
-    data.position(start + hdrLenBytes);
+    data.position(hdrLenBytes);
     int srcPort = Short.toUnsignedInt(data.getShort());
+    int dstPort = Short.toUnsignedInt(data.getShort());
 
     // rewind to original offset
-    data.position(start);
-    return ScionSocketAddress.create(
-        srcIsdAs, addr, srcPort, ScionPath.create(path, dstIsdAs, srcIsdAs, firstHopAddress));
+    data.position(pos);
+    // Swap src and dst.
+    return ResponsePath.create(
+        path, dstIsdAs, bytesDst, dstPort, srcIsdAs, bytesSrc, srcPort, firstHopAddress);
   }
 
-  public static InetSocketAddress readDestinationSocketAddress(ByteBuffer data)
+  /**
+   * Extract the next header type without changing the buffer's position.
+   *
+   * @param data The datagram to read from.
+   * @return The type of the next header.
+   */
+  public static Constants.HdrTypes extractNextHeader(ByteBuffer data) {
+    int nextHeader = data.get(4);
+    nextHeader = nextHeader >= 0 ? nextHeader : nextHeader + 256;
+    return Constants.HdrTypes.parse(nextHeader);
+  }
+
+  public static InetSocketAddress extractDestinationSocketAddress(ByteBuffer data)
       throws UnknownHostException {
     int start = data.position();
 
@@ -127,11 +149,23 @@ public class ScionHeaderParser {
     return new InetSocketAddress(dstIP, dstPort);
   }
 
+  /**
+   * Extract the header length without changing the buffer's position.
+   *
+   * @param data The packet buffer
+   * @return the length of the SCION common + address + path header in bytes
+   */
+  public static int extractHeaderLength(ByteBuffer data) {
+    int hdrLen = data.getInt(4);
+    return hdrLen * 4;
+  }
+
   public static String validate(ByteBuffer data) {
     // TODO this approach to error handling is not ideal.
     //   Flooding a receiver with bad packets may cause unnecessary CPU and
     //   garbage collection cost due to creation of error messages.
     //   --> return isDropBadPackets ? "" : report(String ... args);
+
     final String PRE = "SCION packet validation failed: ";
     int start = data.position();
     if (data.limit() - start < 12 + 16 + 8) {
@@ -148,8 +182,11 @@ public class ScionHeaderParser {
     // int trafficLClass = readInt(i0, 4, 8);
     // int flowId = readInt(i0, 12, 20);
     int nextHeader = readInt(i1, 0, 8);
-    if (nextHeader != 17) {
-      return PRE + "nextHeader: expected 17, got " + nextHeader;
+    if (nextHeader != Constants.HdrTypes.UDP.code()
+        && nextHeader != Constants.HdrTypes.HOP_BY_HOP.code()
+        && nextHeader != Constants.HdrTypes.END_TO_END.code()
+        && nextHeader != Constants.HdrTypes.SCMP.code()) {
+      return PRE + "nextHeader: expected {17, 200, 201, 202}, got " + nextHeader;
     }
     int hdrLen = readInt(i1, 8, 8);
     int hdrLenBytes = hdrLen * 4;
@@ -243,11 +280,12 @@ public class ScionHeaderParser {
       int userPacketLength,
       int pathHeaderLength,
       long srcIsdAs,
-      InetAddress srcAddress,
+      byte[] srcAddress,
       long dstIsdAs,
-      InetAddress dstAddress) {
-    int sl = srcAddress instanceof Inet4Address ? 0 : 3;
-    int dl = dstAddress instanceof Inet4Address ? 0 : 3;
+      byte[] dstAddress,
+      Constants.HdrTypes hdrType) {
+    int sl = srcAddress.length / 4 - 1;
+    int dl = dstAddress.length / 4 - 1;
 
     int i0 = 0;
     int i1 = 0;
@@ -256,15 +294,10 @@ public class ScionHeaderParser {
     i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
     i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
-    i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP PseudoHeader
+    i1 = writeInt(i1, 0, 8, hdrType.code); // NextHdr = 17 is for UDP OverlayHeader
     int newHdrLen = (calcLen(pathHeaderLength, dl, sl) - 1) / 4 + 1;
     i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
-    i1 =
-        writeInt(
-            i1,
-            16,
-            16,
-            userPacketLength + 8); // PayloadLen  // TODO? hardcoded PseudoHeaderLength....
+    i1 = writeInt(i1, 16, 16, userPacketLength); // PayloadLen (+ overlay!)
     data.putInt(i1);
     i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
     i2 = writeInt(i2, 8, 2, 0); // DT
@@ -279,10 +312,8 @@ public class ScionHeaderParser {
     data.putLong(srcIsdAs);
 
     // HostAddr
-    byte[] dstBytes = dstAddress.getAddress();
-    data.put(dstBytes);
-    byte[] srcBytes = srcAddress.getAddress();
-    data.put(srcBytes);
+    data.put(dstAddress);
+    data.put(srcAddress);
   }
 
   private static int calcLen(int pathHeaderLength, int sl, int dl) {

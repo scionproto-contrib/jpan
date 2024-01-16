@@ -40,7 +40,7 @@ public class InspectorParseAndReplyTest {
     scionHeader.read(data);
     assertEquals(1, scionHeader.pathType().code());
     pathHeaderScion.read(data);
-    // Pseudo header
+    // Overlay header
     overlayHeaderUdp.read(data);
 
     byte[] payload = new byte[data.remaining()];

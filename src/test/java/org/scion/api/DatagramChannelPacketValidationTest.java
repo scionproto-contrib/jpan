@@ -17,6 +17,8 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -32,13 +34,13 @@ import org.scion.testutil.ExamplePacket;
 
 class DatagramChannelPacketValidationTest {
 
+  private static final String MSG = ExamplePacket.MSG;
+  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
   private final AtomicReference<SocketAddress> localAddress = new AtomicReference<>();
   private final AtomicInteger receiveCount = new AtomicInteger();
   private final AtomicInteger receiveBadCount = new AtomicInteger();
   private final AtomicReference<Exception> failure = new AtomicReference<>();
   private CountDownLatch barrier;
-  private static final String MSG = ExamplePacket.MSG;
-  private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
 
   @BeforeEach
   public void beforeEach() {
@@ -80,27 +82,25 @@ class DatagramChannelPacketValidationTest {
   }
 
   @Test
-  public void receive_validationFails_nonBlocking_noThrow()
-      throws IOException, InterruptedException {
+  void receive_validationFails_nonBlocking_noThrow() throws IOException, InterruptedException {
     // silently drop bad packets
     receive_validationFails_isBlocking_noThrow(false, false);
   }
 
   @Test
-  public void receive_validationFails_nonBlocking_throw() throws IOException, InterruptedException {
+  void receive_validationFails_nonBlocking_throw() throws IOException, InterruptedException {
     // throw exception when receiving bad packet
     receive_validationFails_isBlocking_noThrow(true, false);
   }
 
   @Test
-  public void receive_validationFails_isBlocking_noThrow()
-      throws IOException, InterruptedException {
+  void receive_validationFails_isBlocking_noThrow() throws IOException, InterruptedException {
     // silently drop bad packets
     receive_validationFails_isBlocking_noThrow(false, true);
   }
 
   @Test
-  public void receive_validationFails_isBlocking_throw() throws IOException, InterruptedException {
+  void receive_validationFails_isBlocking_throw() throws IOException, InterruptedException {
     // throw exception when receiving bad packet
     receive_validationFails_isBlocking_noThrow(true, true);
   }
@@ -140,9 +140,9 @@ class DatagramChannelPacketValidationTest {
                 try (DatagramChannel channel = DatagramChannel.open()) {
                   channel.configureBlocking(isBlocking);
                   if (openThrowOnBadPacket) {
-                    channel.setOption(ScionSocketOptions.API_THROW_PARSER_FAILURE, true);
+                    channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
                   }
-                  channel.bind(null);
+                  channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
                   localAddress.set(channel.getLocalAddress());
                   barrier.countDown();
 

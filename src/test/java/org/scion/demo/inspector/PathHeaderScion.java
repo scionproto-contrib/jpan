@@ -205,4 +205,38 @@ public class PathHeaderScion {
     currHF = 0;
     data.put(path);
   }
+
+  public InfoField getInfoField(int i) {
+    switch (i) {
+      case 0:
+        return info0;
+      case 1:
+        return info1;
+      case 2:
+        return info2;
+      default:
+        throw new IllegalArgumentException("i=" + i);
+    }
+  }
+
+  public int getHopCount() {
+    return nHops;
+  }
+
+  public HopField getHopField(int i) {
+    return hops[i];
+  }
+
+  public int getSegLen(int i) {
+    switch (i) {
+      case 0:
+        return seg0Len;
+      case 1:
+        return seg1Len;
+      case 2:
+        return seg2Len;
+      default:
+        throw new IllegalArgumentException("i=" + i);
+    }
+  }
 }

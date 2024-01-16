@@ -18,14 +18,14 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.DatagramChannel;
+import org.scion.Path;
 
 public class ScionPingPongChannelServer {
 
   public static boolean PRINT = true;
 
   public static DatagramChannel startServer() throws IOException {
-    // InetSocketAddress address = new InetSocketAddress("localhost", 44444);
-    InetSocketAddress address = new InetSocketAddress("::1", 44444);
+    InetSocketAddress address = new InetSocketAddress("::1", ScionPingPongChannelClient.PORT);
     DatagramChannel server = DatagramChannel.open().bind(address);
 
     if (PRINT) {
@@ -35,8 +35,8 @@ public class ScionPingPongChannelServer {
     return server;
   }
 
-  public static void sendMessage(
-      DatagramChannel channel, String msg, InetSocketAddress serverAddress) throws IOException {
+  public static void sendMessage(DatagramChannel channel, String msg, Path serverAddress)
+      throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     channel.send(buffer, serverAddress);
     if (PRINT) {
@@ -44,12 +44,12 @@ public class ScionPingPongChannelServer {
     }
   }
 
-  public static InetSocketAddress receiveMessage(DatagramChannel server) throws IOException {
+  public static Path receiveMessage(DatagramChannel server) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     if (PRINT) {
       System.out.println("Waiting ...");
     }
-    InetSocketAddress remoteAddress = server.receive(buffer);
+    Path remoteAddress = server.receive(buffer);
     String message = extractMessage(buffer);
     if (PRINT) {
       System.out.println("Received from client at: " + remoteAddress + "  message: " + message);
@@ -68,7 +68,7 @@ public class ScionPingPongChannelServer {
 
   public static void main(String[] args) throws IOException {
     DatagramChannel channel = startServer();
-    InetSocketAddress remoteAddress = receiveMessage(channel);
+    Path remoteAddress = receiveMessage(channel);
     sendMessage(channel, "Re: Hello scion", remoteAddress);
     channel.disconnect();
   }
