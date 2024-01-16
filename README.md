@@ -144,7 +144,7 @@ the other options are skipped if no property or environment variable is defined.
 
 | Option                                                                                                                 | Java property           | Environment variable | Default value |
 |------------------------------------------------------------------------------------------------------------------------|-------------------------|----------------------|---------------|
-| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire with X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 2             |
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire with X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 10           |
 
 ## FAQ / trouble shooting
 

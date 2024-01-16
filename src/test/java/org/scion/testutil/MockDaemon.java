@@ -163,6 +163,7 @@ public class MockDaemon implements AutoCloseable {
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
       if (req.getSourceIsdAs() == SRC_IA && req.getDestinationIsdAs() == DST_IA) {
         for (String brAddress : borderRouters) {
+          long expiry = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
           Daemon.Path p0 =
               Daemon.Path.newBuilder()
                   .setInterface(
@@ -174,8 +175,7 @@ public class MockDaemon implements AutoCloseable {
                   .addInterfaces(
                       Daemon.PathInterface.newBuilder().setId(1).setIsdAs(DST_IA).build())
                   .setRaw(rawPath)
-                  .setExpiration(
-                      Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond() + 5).build())
+                  .setExpiration(Timestamp.newBuilder().setSeconds(expiry).build())
                   .build();
           replyBuilder.addPaths(p0);
         }

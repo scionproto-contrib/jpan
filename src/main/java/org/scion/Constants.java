@@ -43,7 +43,8 @@ public final class Constants {
   /** Paths are refreshed when their expiry is less than X seconds away. */
   public static final String ENV_PATH_EXPIRY_MARGIN = "SCION_PATH_EXPIRY_MARGIN";
 
-  public static final int DEFAULT_PATH_EXPIRY_MARGIN = 2;
+  /** Time (in seconds) before expiration at which a paths is automatically renewed. */
+  public static final int DEFAULT_PATH_EXPIRY_MARGIN = 10;
 
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
