@@ -17,6 +17,8 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicLong;
 import org.scion.*;
 import org.scion.Scmp;
 import org.scion.testutil.MockDNS;
@@ -24,40 +26,73 @@ import org.scion.testutil.MockDNS;
 public class ScmpEchoDemo {
 
   private static final boolean PRINT = ScmpServerDemo.PRINT;
-  public static int PORT = ScmpServerDemo.PORT;
+  private static final int PORT = ScmpServerDemo.PORT;
+  private static final AtomicLong now = new AtomicLong();
 
   /**
    * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
    * service via ScionProto "tiny" topology
    */
-  public static boolean USE_MOCK_TOPOLOGY = false;
+  private enum Mode {
+    MOCK_TOPOLOGY,
+    TINY,
+    PRODUCTION
+  }
+
+  private static Mode mode = Mode.TINY;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     // Demo setup
-    if (USE_MOCK_TOPOLOGY) {
-      DemoTopology.configureMock();
-      MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-      doClientStuff();
-      DemoTopology.shutDown();
-    } else {
-      DemoTopology.configureTiny110_112();
-      MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-      doClientStuff();
-      DemoTopology.shutDown();
+    mode = Mode.PRODUCTION;
+    switch (mode) {
+      case MOCK_TOPOLOGY:
+        {
+          DemoTopology.configureMock();
+          MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+          doClientStuff();
+          DemoTopology.shutDown();
+          break;
+        }
+      case TINY:
+        {
+          DemoTopology.configureTiny110_112();
+          MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+          doClientStuff();
+          DemoTopology.shutDown();
+          break;
+        }
+      case PRODUCTION:
+        {
+          // Scion.newServiceWithDNS("inf.ethz.ch");
+          Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+          doClientStuff();
+          break;
+        }
     }
   }
 
   private static void echoListener(Scmp.ScmpEcho msg) {
-    println("Received ECHO: " + msg.getIdentifier() + "/" + msg.getSequenceNumber());
+    long millies = Instant.now().toEpochMilli() - now.get();
+    println(
+        "Received ECHO: "
+            + msg.getIdentifier()
+            + "/"
+            + msg.getSequenceNumber()
+            + " - "
+            + millies
+            + "ms");
   }
 
   private static void errorListener(Scmp.ScmpMessage msg) {
-    println("SCMP error: " + msg.getTypeCode().getText());
+    long millies = Instant.now().toEpochMilli() - now.get();
+    Scmp.ScmpTypeCode code = msg.getTypeCode();
+    println("SCMP error (after " + millies + "ms): " + code.getText() + " (" + code + ")");
   }
 
   private static void doClientStuff() throws IOException {
     //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
-    InetSocketAddress local = new InetSocketAddress("127.0.0.1", 34567);
+    // InetSocketAddress local = new InetSocketAddress("127.0.0.1", 34567);
+    InetSocketAddress local = new InetSocketAddress("0.0.0.0", 30041);
     try (DatagramChannel channel = DatagramChannel.open().bind(local)) {
       channel.configureBlocking(true);
 
@@ -65,6 +100,15 @@ public class ScmpEchoDemo {
 
       // InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.10", 31004);
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+
+      long iaETH = ScionUtil.parseIA("64-2:0:9");
+      long iaETH_CORE = ScionUtil.parseIA("64-0:0:22f");
+      long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
+      long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
+      long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
+      long iaCyberex = ScionUtil.parseIA("71-2:0:49");
+
+      isdAs = iaAnapayaHK;
 
       // Tiny topology SCMP
       //      InetSocketAddress serverAddress = new InetSocketAddress("[fd00:f00d:cafe::7f00:9]",
@@ -80,8 +124,9 @@ public class ScmpEchoDemo {
       println("Sending echo request ...");
       // TODO match id + sn
       ByteBuffer data = ByteBuffer.allocate(8);
-      data.putLong(123456);
+      data.putLong(30041);
       data.flip();
+      now.set(Instant.now().toEpochMilli());
       channel.sendEchoRequest(path, 0, data);
 
       println("Waiting at " + channel.getLocalAddress() + " ...");

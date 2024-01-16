@@ -156,7 +156,7 @@ public class ScionHeaderParser {
    * @return the length of the SCION common + address + path header in bytes
    */
   public static int extractHeaderLength(ByteBuffer data) {
-    int hdrLen = data.getInt(4);
+    byte hdrLen = data.get(5);
     return hdrLen * 4;
   }
 
@@ -366,7 +366,7 @@ public class ScionHeaderParser {
     if (seg1LenR > 0) {
       data.putLong(info1R ^ currDirMask);
     }
-    if (seg1LenR > 0) {
+    if (seg2LenR > 0) {
       data.putLong(info2R ^ currDirMask);
     }
 

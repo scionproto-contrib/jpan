@@ -27,6 +27,8 @@ import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.crypto.Signed;
 import org.scion.proto.daemon.Daemon;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class gets segment information from a path service and constructs paths.
@@ -47,6 +49,8 @@ import org.scion.proto.daemon.Daemon;
  * <p>
  */
 public class Segments {
+  private static final Logger LOG = LoggerFactory.getLogger(Segments.class.getName());
+
   private static List<Daemon.Path> combineThreeSegments(
       Seg.SegmentsResponse segmentsUp,
       Seg.SegmentsResponse segmentsCore,
@@ -289,13 +293,13 @@ public class Segments {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
         path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
-        System.out.println(
-            "IF-0: "
-                + hopField.getIngress()
-                + " / "
-                + hopField.getEgress()
-                + " --> "
-                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
+        //        System.out.println(
+        //            "IF-0: "
+        //                + hopField.getIngress()
+        //                + " / "
+        //                + hopField.getEgress()
+        //                + " --> "
+        //                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
         int pos2 = reversed ? pos - 1 : pos + 1;
@@ -303,13 +307,13 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
-        System.out.println(
-            "IF-2: "
-                + hopField2.getIngress()
-                + " / "
-                + hopField2.getEgress()
-                + " --> "
-                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
+        //        System.out.println(
+        //            "IF-2: "
+        //                + hopField2.getIngress()
+        //                + " / "
+        //                + hopField2.getEgress()
+        //                + " --> "
+        //                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
       }
     }
   }
@@ -423,6 +427,10 @@ public class Segments {
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
       long dstIsdAs) {
+    LOG.info(
+        "Requesting segments: {} {}",
+        ScionUtil.toStringIA(srcIsdAs),
+        ScionUtil.toStringIA(dstIsdAs));
     if (srcIsdAs == dstIsdAs && !isWildcard(srcIsdAs)) {
       return null;
     }
@@ -431,7 +439,7 @@ public class Segments {
     try {
       Seg.SegmentsResponse response = segmentStub.segments(request);
       if (response.getSegmentsMap().size() > 1) {
-        // TODO fix! there are many places where we use the horrible get()
+        // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();
       }
       return response;
