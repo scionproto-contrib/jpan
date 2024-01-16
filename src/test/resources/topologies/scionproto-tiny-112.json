@@ -1,0 +1,31 @@
+{
+  "attributes": [],
+  "isd_as": "1-ff00:0:112",
+  "mtu": 1472,
+  "control_service": {
+    "cs1-ff00_0_112-1": {
+      "addr": "[fd00:f00d:cafe::7f00:a]:31010"
+    }
+  },
+  "discovery_service": {
+    "cs1-ff00_0_112-1": {
+      "addr": "[fd00:f00d:cafe::7f00:a]:31010"
+    }
+  },
+  "border_routers": {
+    "br1-ff00_0_112-1": {
+      "internal_addr": "[fd00:f00d:cafe::7f00:9]:31012",
+      "interfaces": {
+        "1": {
+          "underlay": {
+            "public": "[fd00:f00d:cafe::7f00:5]:50000",
+            "remote": "[fd00:f00d:cafe::7f00:4]:50000"
+          },
+          "isd_as": "1-ff00:0:110",
+          "link_to": "parent",
+          "mtu": 1472
+        }
+      }
+    }
+  }
+}

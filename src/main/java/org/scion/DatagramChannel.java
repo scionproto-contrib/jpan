@@ -18,151 +18,329 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
+import java.time.Instant;
+import java.util.function.Consumer;
+import org.scion.internal.ExtensionHeader;
 import org.scion.internal.ScionHeaderParser;
+import org.scion.internal.ScmpParser;
 
 public class DatagramChannel implements ByteChannel, Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  private boolean isBound = false;
-  private ScionSocketAddress remoteScionAddress;
-  private final ByteBuffer buffer = ByteBuffer.allocate(66000); // TODO allocate direct?
+  private boolean isConnected = false;
+  private InetSocketAddress connection;
+  private RequestPath path;
+  private final ByteBuffer buffer = ByteBuffer.allocateDirect(66000);
   private boolean cfgReportFailedValidation = false;
+  private PathPolicy pathPolicy = PathPolicy.DEFAULT;
+  private ScionService service;
+  private int cfgExpirationSafetyMargin =
+      ScionUtil.getPropertyOrEnv(
+          Constants.PROPERTY_PATH_EXPIRY_MARGIN,
+          Constants.ENV_PATH_EXPIRY_MARGIN,
+          Constants.DEFAULT_PATH_EXPIRY_MARGIN);
+
+  private Consumer<Scmp.ScmpEcho> pingListener;
+  private Consumer<Scmp.ScmpTraceroute> traceListener;
+  private Consumer<Scmp.ScmpMessage> errorListener;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
   }
 
-  protected DatagramChannel() throws IOException {
-    channel = java.nio.channels.DatagramChannel.open();
+  public static DatagramChannel open(ScionService service) throws IOException {
+    return new DatagramChannel(service);
   }
 
-  public synchronized ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
-    SocketAddress srcAddress;
-    String validationResult;
-    do {
+  protected DatagramChannel() throws IOException {
+    this.channel = java.nio.channels.DatagramChannel.open();
+  }
+
+  protected DatagramChannel(ScionService service) throws IOException {
+    this.channel = java.nio.channels.DatagramChannel.open();
+    this.service = service;
+  }
+
+  /**
+   * Set the path policy. The default path policy is set in PathPolicy.DEFAULT, which currently
+   * means to use the first path returned by the daemon or control service. If the channel is
+   * connected, this method will request a new path using the new policy.
+   *
+   * @param pathPolicy the new path policy
+   * @see PathPolicy#DEFAULT
+   */
+  public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
+    this.pathPolicy = pathPolicy;
+    if (path != null) {
+      updatePath(path);
+    }
+  }
+
+  public synchronized PathPolicy getPathPolicy() {
+    return this.pathPolicy;
+  }
+
+  public synchronized void setService(ScionService service) {
+    this.service = service;
+  }
+
+  public synchronized ScionService getService() {
+    if (service == null) {
+      service = Scion.defaultService();
+    }
+    return this.service;
+  }
+
+  public synchronized DatagramChannel bind(InetSocketAddress address) throws IOException {
+    channel.bind(address);
+    return this;
+  }
+
+  // TODO we return `void` here. If we implement SelectableChannel
+  //  this can be changed to return SelectableChannel.
+  public synchronized void configureBlocking(boolean block) throws IOException {
+    channel.configureBlocking(block);
+  }
+
+  public synchronized boolean isBlocking() {
+    return channel.isBlocking();
+  }
+
+  public synchronized InetSocketAddress getLocalAddress() throws IOException {
+    return (InetSocketAddress) channel.getLocalAddress();
+  }
+
+  public synchronized void disconnect() throws IOException {
+    channel.disconnect();
+    connection = null;
+    isConnected = false;
+    path = null;
+  }
+
+  @Override
+  public synchronized boolean isOpen() {
+    return channel.isOpen();
+  }
+
+  @Override
+  // TODO not synchronized yet, think about a more fine grained lock (see JDK Channel impl)
+  public void close() throws IOException {
+    channel.disconnect();
+    channel.close();
+    isConnected = false;
+    connection = null;
+    path = null;
+  }
+
+  /**
+   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
+   * border router (first hop) instead of the remote host.
+   *
+   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * instead it calls bind(). That means this method does NOT perform any additional security checks
+   * associated with connect(), only those associated with bind().
+   *
+   * @param addr Address of remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   */
+  public synchronized DatagramChannel connect(SocketAddress addr) throws IOException {
+    checkConnected(false);
+    if (!(addr instanceof InetSocketAddress)) {
+      throw new IllegalArgumentException(
+          "connect() requires an InetSocketAddress or a ScionSocketAddress.");
+    }
+    return connect(pathPolicy.filter(getService().getPaths((InetSocketAddress) addr)));
+  }
+
+  /**
+   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
+   * border router (first hop) instead of the remote host. - The path will be replaced with a new
+   * path once it is expired.
+   *
+   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
+   * instead it calls bind(). That means this method does NOT perform any additional security checks
+   * associated with connect(), only those associated with bind().
+   *
+   * @param path Path to the remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   */
+  public synchronized DatagramChannel connect(RequestPath path) throws IOException {
+    checkConnected(false);
+    this.path = path;
+    isConnected = true;
+    connection = path.getFirstHopAddress();
+    channel.connect(connection);
+    return this;
+  }
+
+  /**
+   * Get the currently connected path.
+   *
+   * @return the current Path or `null` if not path is connected.
+   */
+  public synchronized Path getCurrentPath() {
+    return path;
+  }
+
+  public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
+    while (true) {
       buffer.clear();
-      srcAddress = channel.receive(buffer);
+      InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
       if (srcAddress == null) {
         // this indicates nothing is available
         return null;
       }
       buffer.flip();
 
-      // validateResult != null indicates a problem with the packet
-      validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
-      if (validationResult != null && cfgReportFailedValidation) {
-        throw new ScionException(validationResult);
+      String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null) {
+        if (cfgReportFailedValidation) {
+          throw new ScionException(validationResult);
+        }
+        continue;
       }
-    } while (validationResult != null);
 
-    ScionHeaderParser.readUserData(buffer, userBuffer);
-    ScionSocketAddress addr =
-        ScionHeaderParser.readRemoteSocketAddress(buffer, (InetSocketAddress) srcAddress);
-    buffer.clear();
-    return addr;
+      org.scion.internal.Constants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+      ResponsePath path = ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
+      if (hdrType == org.scion.internal.Constants.HdrTypes.UDP) {
+        ScionHeaderParser.extractUserPayload(buffer, userBuffer);
+        buffer.clear();
+        return path;
+      } else {
+        // From here on we use linear reading using the buffer's own position mechanism
+        buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+        receiveNonDataPacket(hdrType, path);
+      }
+    }
   }
 
-  private InetSocketAddress checkAddress(SocketAddress address) {
-    if (!(address instanceof InetSocketAddress)) {
-      throw new IllegalArgumentException("Address must be of type InetSocketAddress");
+  private void receiveNonDataPacket(
+      org.scion.internal.Constants.HdrTypes hdrType, ResponsePath path) throws ScionException {
+    switch (hdrType) {
+      case HOP_BY_HOP:
+      case END_TO_END:
+        receiveExtension(path);
+        break;
+      case SCMP:
+        receiveScmp(path);
+        break;
+      default:
+        if (cfgReportFailedValidation) {
+          throw new ScionException("Unknown nextHdr: " + hdrType);
+        }
     }
-    return (InetSocketAddress) address;
+  }
+
+  private void receiveExtension(ResponsePath path) throws ScionException {
+    ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
+    // Currently we are not doing much here except hoping for an SCMP header
+    receiveNonDataPacket(extHdr.nextHdr(), path);
+  }
+
+  private void receiveScmp(Path path) {
+    Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
+    if (scmpMsg instanceof Scmp.ScmpEcho) {
+      if (pingListener != null) {
+        pingListener.accept((Scmp.ScmpEcho) scmpMsg);
+      }
+    } else if (scmpMsg instanceof Scmp.ScmpTraceroute) {
+      if (traceListener != null) {
+        traceListener.accept((Scmp.ScmpTraceroute) scmpMsg);
+      }
+    } else {
+      if (errorListener != null) {
+        errorListener.accept(scmpMsg);
+      }
+    }
   }
 
   /**
-   * Attempts to send the content of the buffer to the destinationAddress.
+   * Attempts to send the content of the buffer to the destinationAddress. This method will request
+   * a new path for each call.
    *
-   * @param buffer Data to send
+   * @param srcBuffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
    *     that the ISD/AS information can be retrieved.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public synchronized void send(ByteBuffer buffer, SocketAddress destination) throws IOException {
-    if (destination instanceof ScionSocketAddress) {
-      send(buffer, (ScionSocketAddress) destination);
-    } else {
-      InetSocketAddress dstAddress = checkAddress(destination);
-      send(buffer, ScionSocketAddress.create(dstAddress));
+  public synchronized void send(ByteBuffer srcBuffer, SocketAddress destination)
+      throws IOException {
+    if (!(destination instanceof InetSocketAddress)) {
+      throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
+    send(srcBuffer, pathPolicy.filter(getService().getPaths((InetSocketAddress) destination)));
   }
 
-  private void send(ByteBuffer buffer, ScionSocketAddress dstAddress) throws IOException {
-    // TODO do we need to create separate channels for each border router or can we "connect" to
-    //  different ones from a single channel? Do we need to connect explicitly?
-    //  What happens if, for the same path, we suddenly get a different border router recommended,
-    //  do we need to create a new channel and reconnect?
-
-    // get local IP
-    if (!channel.isConnected() && !isBound) {
-      InetSocketAddress underlayAddress = dstAddress.getPath().getFirstHopAddress();
-      channel.connect(underlayAddress);
-    }
-
-    int payloadLength = buffer.remaining();
-    ByteBuffer output = this.buffer;
-    output.clear();
-    writeHeader(output, getLocalAddress(), dstAddress, payloadLength);
-    output.put(buffer);
-    output.flip();
-
-    // send packet
-    channel.send(output, dstAddress.getPath().getFirstHopAddress());
-    buffer.position(buffer.limit());
+  /**
+   * Attempts to send the content of the buffer to the destinationAddress.
+   *
+   * @param srcBuffer Data to send
+   * @param path Path to destination. If this is a Request path and it is expired then it will
+   *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
+   * @return either the path argument or a new path if the path was an expired RequestPath. Note
+   *     that ResponsePaths are not checked for expiration.
+   * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
+   *     cannot be resolved to an ISD/AS.
+   * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
+   */
+  public synchronized Path send(ByteBuffer srcBuffer, Path path) throws IOException {
+    // + 8 for UDP overlay header length
+    Path actualPath =
+        buildHeader(path, srcBuffer.remaining() + 8, org.scion.internal.Constants.HdrTypes.UDP);
+    buffer.put(srcBuffer);
+    buffer.flip();
+    channel.send(buffer, actualPath.getFirstHopAddress());
+    return actualPath;
   }
 
-  public DatagramChannel bind(InetSocketAddress address) throws IOException {
-    // bind() is called by java.net.DatagramSocket even for clients (with 0.0.0.0:0).
-    // We need to avoid this.
-    if (address != null && address.getPort() != 0) {
-      channel.bind(address);
-      isBound = true;
-    } else {
-      channel.bind(null);
-    }
-    return this;
+  public synchronized void sendEchoRequest(Path path, int sequenceNumber, ByteBuffer data)
+      throws IOException {
+    // EchoHeader = 8 + data
+    int len = 8 + data.remaining();
+    Path actualPath = buildHeader(path, len, org.scion.internal.Constants.HdrTypes.SCMP);
+    ScmpParser.buildScmpPing(buffer, getLocalAddress().getPort(), sequenceNumber, data);
+    buffer.flip();
+    channel.disconnect(); // TODO !!!!!!!!
+    channel.send(buffer, actualPath.getFirstHopAddress());
   }
 
-  // TODO we return `void` here. If we implement SelectableChannel
-  //  this can be changed to return SelectableChannel.
-  public void configureBlocking(boolean block) throws IOException {
-    channel.configureBlocking(block);
+  public synchronized void sendTracerouteRequest(Path path, int sequenceNumber) throws IOException {
+    // TracerouteHeader=24
+    int len = 24;
+    Path actualPath = buildHeader(path, len, org.scion.internal.Constants.HdrTypes.HOP_BY_HOP);
+    ScmpParser.buildExtensionHeader(buffer, org.scion.internal.Constants.HdrTypes.SCMP);
+    ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), sequenceNumber);
+
+    buffer.flip();
+    channel.send(buffer, actualPath.getFirstHopAddress());
   }
 
-  public InetSocketAddress getLocalAddress() throws IOException {
-    return (InetSocketAddress) channel.getLocalAddress();
+  public synchronized Consumer<Scmp.ScmpEcho> setEchoListener(Consumer<Scmp.ScmpEcho> listener) {
+    Consumer<Scmp.ScmpEcho> old = pingListener;
+    pingListener = listener;
+    return old;
   }
 
-  public void disconnect() throws IOException {
-    channel.disconnect();
+  public synchronized Consumer<Scmp.ScmpTraceroute> setTracerouteListener(
+      Consumer<Scmp.ScmpTraceroute> listener) {
+    Consumer<Scmp.ScmpTraceroute> old = traceListener;
+    traceListener = listener;
+    return old;
   }
 
-  @Override
-  public boolean isOpen() {
-    return channel.isOpen();
-  }
-
-  @Override
-  public void close() throws IOException {
-    channel.close();
-  }
-
-  public DatagramChannel connect(SocketAddress addr) throws IOException {
-    if (addr instanceof ScionSocketAddress) {
-      remoteScionAddress = (ScionSocketAddress) addr;
-    } else if (addr instanceof InetSocketAddress) {
-      InetSocketAddress inetAddress = (InetSocketAddress) addr;
-      remoteScionAddress = ScionSocketAddress.create(inetAddress);
-    } else {
-      throw new IllegalArgumentException(
-          "connect() requires an InetSocketAddress or a ScionSocketAddress.");
-    }
-    channel.connect(remoteScionAddress.getPath().getFirstHopAddress());
-    return this;
+  public synchronized Consumer<Scmp.ScmpMessage> setScmpErrorListener(
+      Consumer<Scmp.ScmpMessage> listener) {
+    Consumer<Scmp.ScmpMessage> old = errorListener;
+    errorListener = listener;
+    return old;
   }
 
   /**
@@ -171,29 +349,25 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @param dst The ByteBuffer that should contain data from the stream.
    * @return The number of bytes that were read into the buffer or -1 if end of stream was reached.
    * @throws NotYetConnectedException If the channel is not connected.
-   * @throws java.nio.channels.ClosedChannelException If the channel is closed.
+   * @throws java.nio.channels.ClosedChannelException If the channel is closed, e.g. by calling
+   *     interrupt during read().
    * @throws IOException If some IOError occurs.
    * @see java.nio.channels.DatagramChannel#read(ByteBuffer)
+   * @see ByteChannel#read(ByteBuffer)
    */
   @Override
-  public int read(ByteBuffer dst) throws IOException {
+  public synchronized int read(ByteBuffer dst) throws IOException {
     checkOpen();
-    checkConnected();
+    checkConnected(true);
 
-    buffer.clear();
-    int bytesRead = channel.read(buffer);
-    if (bytesRead == -1) {
-      return -1;
-    }
-    int len = dst.position();
-    buffer.flip();
-    ScionHeaderParser.readUserData(buffer, dst);
-    buffer.clear();
-    return dst.position() - len;
+    int oldPos = dst.position();
+    receive(dst);
+    return dst.position() - oldPos;
   }
 
   /**
-   * Write the content of a ByteBuffer to a connection.
+   * Write the content of a ByteBuffer to a connection. This method uses the path that was provided
+   * or looked up during `connect()`. The path will automatically be refreshed when expired.
    *
    * @param src The data to send
    * @return The number of bytes written.
@@ -203,18 +377,21 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @see java.nio.channels.DatagramChannel#write(ByteBuffer[])
    */
   @Override
-  public int write(ByteBuffer src) throws IOException {
+  public synchronized int write(ByteBuffer src) throws IOException {
     checkOpen();
-    checkConnected();
+    checkConnected(true);
 
-    buffer.clear();
     int len = src.remaining();
-    writeHeader(buffer, getLocalAddress(), remoteScionAddress, len);
+    // + 8 for UDP overlay header length
+    buildHeader(path, len + 8, org.scion.internal.Constants.HdrTypes.UDP);
     buffer.put(src);
     buffer.flip();
-    channel.write(buffer);
-    buffer.clear();
-    return len;
+
+    int sent = channel.write(buffer);
+    if (sent < buffer.limit() || buffer.remaining() > 0) {
+      throw new ScionException("Failed to send all data.");
+    }
+    return len - buffer.remaining();
   }
 
   private void checkOpen() throws ClosedChannelException {
@@ -223,23 +400,28 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
   }
 
-  private void checkConnected() {
-    if (!channel.isConnected()) {
-      throw new NotYetConnectedException();
+  private void checkConnected(boolean requiredState) {
+    if (requiredState != isConnected) {
+      if (isConnected) {
+        throw new AlreadyConnectedException();
+      } else {
+        throw new NotYetConnectedException();
+      }
     }
   }
 
-  public boolean isConnected() {
-    return channel.isConnected();
+  public synchronized boolean isConnected() {
+    return isConnected;
   }
 
-  public <T> DatagramChannel setOption(SocketOption<T> option, T t) throws IOException {
+  public synchronized <T> DatagramChannel setOption(SocketOption<T> option, T t)
+      throws IOException {
     if (option instanceof ScionSocketOptions.SciSocketOption) {
-      if (ScionSocketOptions.API_THROW_PARSER_FAILURE.equals(option)) {
+      if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
         cfgReportFailedValidation = (Boolean) t;
-      } else if (ScionSocketOptions.API_WRITE_TO_USER_BUFFER.equals(option)) {
-        // TODO This would allow reading directly into the user buffer. Advantages:
-        //     a) Omit copying step buffer-userBuffer; b) user can see SCION header.
+      } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
+        cfgExpirationSafetyMargin = (Integer) t;
+      } else {
         throw new UnsupportedOperationException();
       }
     } else {
@@ -248,24 +430,80 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return this;
   }
 
-  private static void writeHeader(
-      ByteBuffer data,
-      InetSocketAddress srcSocketAddress,
-      ScionSocketAddress dstSocketAddress,
-      int payloadLength)
+  /**
+   * @param path path
+   * @param payloadLength payload length
+   * @return argument path or a new path if the argument path was expired
+   * @throws IOException in case of IOException.
+   */
+  private Path buildHeader(
+      Path path, int payloadLength, org.scion.internal.Constants.HdrTypes hdrType)
       throws IOException {
-    // TODO request new path after a while? Yes! respect path expiry! -> Do that in ScionService!
+    buffer.clear();
+    long srcIA;
+    byte[] srcAddress;
+    int srcPort;
+    if (path instanceof ResponsePath) {
+      // We could get source IA, address and port locally but it seems cleaner to
+      // to get the from the inverted header.
+      ResponsePath rPath = (ResponsePath) path;
+      srcIA = rPath.getSourceIsdAs();
+      srcAddress = rPath.getSourceAddress();
+      srcPort = rPath.getSourcePort();
+    } else {
+      // For sending request path we need to have a valid local external address.
+      // For a valid local external address we need to be connected.
+      if (!isConnected) {
+        isConnected = true;
+        connection = path.getFirstHopAddress();
+        channel.connect(connection);
+      }
 
-    long srcIA = dstSocketAddress.getPath().getSourceIsdAs();
-    long dstIA = dstSocketAddress.getIsdAs();
-    int srcPort = srcSocketAddress.getPort();
-    int dstPort = dstSocketAddress.getPort();
-    InetAddress srcAddress = srcSocketAddress.getAddress();
-    InetAddress dstAddress = dstSocketAddress.getAddress();
+      // check path expiration
+      path = ensureUpToDate((RequestPath) path);
+      srcIA = getService().getLocalIsdAs();
+      // Get external host address. This must be done *after* refreshing the path!
+      InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+      srcAddress = srcSocketAddress.getAddress().getAddress();
+      srcPort = srcSocketAddress.getPort();
+    }
 
-    byte[] path = dstSocketAddress.getPath().getRawPath();
-    ScionHeaderParser.write(data, payloadLength, path.length, srcIA, srcAddress, dstIA, dstAddress);
-    ScionHeaderParser.writePath(data, path);
-    ScionHeaderParser.writeUdpOverlayHeader(data, payloadLength, srcPort, dstPort);
+    long dstIA = path.getDestinationIsdAs();
+    byte[] dstAddress = path.getDestinationAddress();
+    int dstPort = path.getDestinationPort();
+
+    byte[] rawPath = path.getRawPath();
+    ScionHeaderParser.write(
+        buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress, hdrType);
+    ScionHeaderParser.writePath(buffer, rawPath);
+
+    if (hdrType == org.scion.internal.Constants.HdrTypes.UDP) {
+      ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
+    }
+
+    return path;
+  }
+
+  private Path ensureUpToDate(RequestPath path) throws IOException {
+    if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
+      return path;
+    }
+    return updatePath(path);
+  }
+
+  private Path updatePath(RequestPath path) throws IOException {
+    // expired, get new path
+    RequestPath newPath = pathPolicy.filter(getService().getPaths(path));
+
+    if (isConnected) { // equal to !isBound at this point
+      if (!newPath.getFirstHopAddress().equals(this.connection)) {
+        // TODO only reconnect if firstHop is on different interface....?!
+        channel.disconnect();
+        this.connection = newPath.getFirstHopAddress();
+        channel.connect(this.connection);
+      }
+      this.path = newPath;
+    }
+    return newPath;
   }
 }

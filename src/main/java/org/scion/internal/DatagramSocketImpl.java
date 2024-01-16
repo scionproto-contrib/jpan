@@ -19,7 +19,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import org.scion.DatagramChannel;
-import org.scion.ScionSocketAddress;
+import org.scion.Path;
 
 public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
 
@@ -114,15 +114,16 @@ public class DatagramSocketImpl extends java.net.DatagramSocketImpl {
     ByteBuffer buf =
         ByteBuffer.wrap(
             datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength());
-    ScionSocketAddress a = channel.receive(buf);
+    Path a = channel.receive(buf);
     // System.out.println("buf:" + buf.limit() + "  p=" + buf.position() + "  rem=" +
     // buf.remaining());
     buf.flip();
     // System.out.println("buf-f:" + buf.limit() + "  p=" + buf.position() + "  rem=" +
     // buf.remaining());
     datagramPacket.setLength(buf.limit()); // TODO offset?
-    datagramPacket.setPort(a.getPort());
-    datagramPacket.setAddress(a.getAddress()); // TODO setSocketAddress() ?
+    datagramPacket.setPort(a.getDestinationPort());
+    datagramPacket.setAddress(
+        InetAddress.getByAddress(a.getDestinationAddress())); // TODO setPath() ?
   }
 
   /**

@@ -14,14 +14,22 @@
 
 package org.scion.testutil;
 
+import static org.scion.testutil.ExamplePacket.DST_IA;
+import static org.scion.testutil.ExamplePacket.SRC_IA;
+
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.scion.ScionConstants;
+import java.util.stream.Collectors;
+import org.scion.Constants;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -31,15 +39,17 @@ public class MockDaemon implements AutoCloseable {
 
   private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
 
-  public static final InetSocketAddress DEFAULT_ADDRESS =
-      new InetSocketAddress("127.0.0.15", 30255);
-  public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
   public static final String DEFAULT_IP = "127.0.0.15";
   public static final int DEFAULT_PORT = 30255;
+  public static final InetSocketAddress DEFAULT_ADDRESS =
+      new InetSocketAddress(DEFAULT_IP, DEFAULT_PORT);
+  public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
+
+  public static MockDaemon DEFAULT = null;
 
   private final InetSocketAddress address;
   private Server server;
-  private final InetSocketAddress borderRouter;
+  private final List<InetSocketAddress> borderRouters;
   private static final AtomicInteger callCount = new AtomicInteger();
   private static final byte[] PATH_RAW_TINY_110_112 = {
     0, 0, 32, 0, 1, 0, 11, 16,
@@ -50,36 +60,49 @@ public class MockDaemon implements AutoCloseable {
   };
 
   private static void setEnvironment() {
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
-    System.setProperty(ScionConstants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
+    System.setProperty(Constants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
+    System.setProperty(Constants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
   }
 
-  public static MockDaemon create() {
-    setEnvironment();
-    return new MockDaemon(DEFAULT_ADDRESS);
-  }
-
-  public static MockDaemon createForBorderRouter(InetSocketAddress borderRouter) {
+  public static MockDaemon createForBorderRouter(List<InetSocketAddress> borderRouter) {
     setEnvironment();
     return new MockDaemon(DEFAULT_ADDRESS, borderRouter);
   }
 
-  private MockDaemon(InetSocketAddress address) {
-    this.address = address;
-    this.borderRouter = new InetSocketAddress("127.0.0.10", 31004);
+  public static void createAndStartDefault() throws IOException {
+    if (DEFAULT != null) {
+      throw new NullPointerException();
+    }
+    setEnvironment();
+    DEFAULT = new MockDaemon(DEFAULT_ADDRESS);
+    DEFAULT.start();
   }
 
-  private MockDaemon(InetSocketAddress address, InetSocketAddress borderRouter) {
+  public static void closeDefault() throws IOException {
+    if (DEFAULT != null) {
+      DEFAULT.close();
+      DEFAULT = null;
+    }
+  }
+
+  private MockDaemon(InetSocketAddress address) {
     this.address = address;
-    this.borderRouter = borderRouter;
+    this.borderRouters = new ArrayList<>();
+    this.borderRouters.add(new InetSocketAddress("127.0.0.10", 31004));
+  }
+
+  private MockDaemon(InetSocketAddress address, List<InetSocketAddress> borderRouters) {
+    this.address = address;
+    this.borderRouters = borderRouters;
   }
 
   public MockDaemon start() throws IOException {
-    String br = borderRouter.toString().substring(1);
+    List<String> brStr =
+        borderRouters.stream().map(br -> br.toString().substring(1)).collect(Collectors.toList());
     int port = address.getPort();
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
-            .addService(new MockDaemon.DaemonImpl(br))
+            .addService(new MockDaemon.DaemonImpl(brStr))
             .build()
             .start();
     logger.info("Server started, listening on " + address);
@@ -123,10 +146,10 @@ public class MockDaemon implements AutoCloseable {
   }
 
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
-    final String borderRouter;
+    final List<String> borderRouters;
 
-    DaemonImpl(String borderRouter) {
-      this.borderRouter = borderRouter;
+    DaemonImpl(List<String> borderRouters) {
+      this.borderRouters = borderRouters;
     }
 
     @Override
@@ -138,21 +161,24 @@ public class MockDaemon implements AutoCloseable {
       callCount.incrementAndGet();
       ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
-      if (req.getSourceIsdAs() == 561850441793808L
-          && req.getDestinationIsdAs() == 561850441793810L) {
-        Daemon.Path p0 =
-            Daemon.Path.newBuilder()
-                .setInterface(
-                    Daemon.Interface.newBuilder()
-                        .setAddress(Daemon.Underlay.newBuilder().setAddress(borderRouter).build())
-                        .build())
-                .addInterfaces(
-                    Daemon.PathInterface.newBuilder().setId(2).setIsdAs(561850441793808L).build())
-                .addInterfaces(
-                    Daemon.PathInterface.newBuilder().setId(1).setIsdAs(561850441793810L).build())
-                .setRaw(rawPath)
-                .build();
-        replyBuilder.addPaths(p0);
+      if (req.getSourceIsdAs() == SRC_IA && req.getDestinationIsdAs() == DST_IA) {
+        for (String brAddress : borderRouters) {
+          long expiry = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
+          Daemon.Path p0 =
+              Daemon.Path.newBuilder()
+                  .setInterface(
+                      Daemon.Interface.newBuilder()
+                          .setAddress(Daemon.Underlay.newBuilder().setAddress(brAddress).build())
+                          .build())
+                  .addInterfaces(
+                      Daemon.PathInterface.newBuilder().setId(2).setIsdAs(SRC_IA).build())
+                  .addInterfaces(
+                      Daemon.PathInterface.newBuilder().setId(1).setIsdAs(DST_IA).build())
+                  .setRaw(rawPath)
+                  .setExpiration(Timestamp.newBuilder().setSeconds(expiry).build())
+                  .build();
+          replyBuilder.addPaths(p0);
+        }
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();

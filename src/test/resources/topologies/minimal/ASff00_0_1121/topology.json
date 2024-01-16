@@ -1,0 +1,34 @@
+{
+  "attributes": [],
+  "isd_as": "1-ff00:0:1121",
+  "mtu": 1472,
+  "test_dispatcher": true,
+  "endhost_start_port": 1024,
+  "endhost_end_port": 65535,
+  "control_service": {
+    "cs1-ff00_0_1121-1": {
+      "addr": "127.0.0.66:31036"
+    }
+  },
+  "discovery_service": {
+    "cs1-ff00_0_1121-1": {
+      "addr": "127.0.0.66:31036"
+    }
+  },
+  "border_routers": {
+    "br1-ff00_0_1121-1": {
+      "internal_addr": "127.0.0.65:31038",
+      "interfaces": {
+        "345": {
+          "underlay": {
+            "public": "127.0.0.15:50000",
+            "remote": "127.0.0.14:50000"
+          },
+          "isd_as": "1-ff00:0:112",
+          "link_to": "parent",
+          "mtu": 1472
+        }
+      }
+    }
+  }
+}

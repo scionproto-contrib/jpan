@@ -14,58 +14,51 @@
 
 package org.scion.demo;
 
-import java.io.*;
-import java.net.*;
-import org.scion.DatagramSocket;
-import org.scion.ScionSocketAddress;
-import org.scion.ScionUtil;
-import org.scion.testutil.MockDNS;
-
 @Deprecated // This does not work.
 public class ScionPingPongSocketClient {
 
-  public static void main(String[] args) throws IOException {
-    DemoTopology.configureMock(); // Tiny111_112();
-    MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-    ScionPingPongSocketClient client = new ScionPingPongSocketClient();
-    client.run();
-  }
-
-  private void run() throws IOException {
-    // String serverHostname = "::1";
-    String serverHostname = "0:0:0:0:0:0:0:1";
-    int serverPort = 44444;
-
-    try {
-      // InetAddress serverAddress2 = InetAddress.getByName(serverHostname);
-      ScionSocketAddress serverAddress =
-          ScionSocketAddress.create(ScionUtil.parseIA("1-ff00:0:112"), serverHostname, serverPort);
-      DatagramSocket socket = new DatagramSocket(null);
-
-      while (true) {
-        String msg = "Hello there!";
-        byte[] sendBuf = msg.getBytes();
-        DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
-        socket.send(request);
-        System.out.println("Sent!");
-
-        System.out.println("Receiving ... (" + socket.getLocalSocketAddress() + ")");
-        byte[] buffer = new byte[512];
-        DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-        socket.receive(response);
-
-        String pong = new String(buffer, 0, response.getLength());
-
-        System.out.println(pong);
-
-        Thread.sleep(1000);
-      }
-
-    } catch (SocketTimeoutException e) {
-      System.out.println("Timeout error: " + e.getMessage());
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-  }
+  //  public static void main(String[] args) throws IOException {
+  //    DemoTopology.configureMock(); // Tiny111_112();
+  //    MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+  //    ScionPingPongSocketClient client = new ScionPingPongSocketClient();
+  //    client.run();
+  //  }
+  //
+  //  private void run() throws IOException {
+  //    // String serverHostname = "::1";
+  //    String serverHostname = "0:0:0:0:0:0:0:1";
+  //    int serverPort = 44444;
+  //
+  //    try {
+  //      // InetAddress serverAddress2 = InetAddress.getByName(serverHostname);
+  //      Path serverAddress =
+  //          Path.create(ScionUtil.parseIA("1-ff00:0:112"), serverHostname, serverPort);
+  //      DatagramSocket socket = new DatagramSocket(null);
+  //
+  //      while (true) {
+  //        String msg = "Hello there!";
+  //        byte[] sendBuf = msg.getBytes();
+  //        DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
+  //        socket.send(request);
+  //        System.out.println("Sent!");
+  //
+  //        System.out.println("Receiving ... (" + socket.getLocalSocketAddress() + ")");
+  //        byte[] buffer = new byte[512];
+  //        DatagramPacket response = new DatagramPacket(buffer, buffer.length);
+  //        socket.receive(response);
+  //
+  //        String pong = new String(buffer, 0, response.getLength());
+  //
+  //        System.out.println(pong);
+  //
+  //        Thread.sleep(1000);
+  //      }
+  //
+  //    } catch (SocketTimeoutException e) {
+  //      System.out.println("Timeout error: " + e.getMessage());
+  //      throw new RuntimeException(e);
+  //    } catch (InterruptedException e) {
+  //      throw new RuntimeException(e);
+  //    }
+  //  }
 }

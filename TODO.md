@@ -1,71 +1,151 @@
-# Problems
-
-- How do we handle Interface switchover (e.g. WLAN -> 5G)?
-  Is it enough to always call getLocalAddress() ?
-- Download server / Streaming server. What happens if path breaks?
-  How does server get a new path? Is it common for a client to 
-  keep sending requests with the latest (working) path?
-
-- How do I get the local external IP? Make it configurable?
-- DNS calls are awkward, outsource to Daemon?!?
-  -> Android: We may not have a daemon -> do everything inside JVM 
-- Expired path, what to do?
-  - Server side: just keep using it? -> problematic with write() which may be reused infinitely
-  - Client side: 
-    - try to automatically get a new path? Concurrently to avoid hickups?
-    - Define callback for user?
-    - throw exception????  -> probably not a good idea
-- We cannot really use "connect()" because the first hop may change if the path changes...? 
-- It seems we cannot use DatagramSocketImpl for implementing a Scion DatagramSocket.
-  Instead we may simply implement a class that is *similar* to DatagramSocket, e.g.
-  with enforcing bind()/connect() before send()/receive() and enforcing that connect() uses
-  ScionSocketAddresses. Problematic: how to handle path on server side?
-
 # TODO
 - Handle expired paths
   - Provide callback for user? -> Maybe useful if path was selected manually
     and if it changes.
-- Test path switching, e.g. with 2nd BR
+  - Handle SCMP reporting a failed path -> request new one!
+- Test 
+  - PathPolicies
+- Truncate PROTO files! 
 - TEST router failure: ....?  MTU too big, TTL run out, packet inconsistent, ...?
-- MOVE Channel to ".channel"
-- CHECK if getLocalAddress() returns an external IP when connecting to a remote host.
+- MOVE Channel to ".channel"?
 - TEST concurrent path/as/DNS lookup
 - TEST concurrent use of single channel.
-- ScionPacketParser.strip()/augment(): 
-  - strip(buffer) sets position() and returns address/path
-  - augment(buffer, address+path) inserts scionHeader 
-
-- Daemon on mobile? Java?
-- Make configurable: client uses own path vs reversed server path.
+- IMPORTANT: In non-blocking mode, the channel should probably block if it received a partial Scion-header?
+  Or not? This would be an attack, send a partial header would block the receiver....
+  We could just buffer a partial header until it is complete... 
 - Merge Scion + ScionService?
+- Remove slf4j from API?
+- Why ScionAddress? ScionAddress has two properties:
+  - It has Isd/As info
+  - It represents an IP from a DNS/TXT lookup!
 
-- Lookup FlowID -> mandatory - MTU?
+## Reconsider bind/connect
+- We should be able to do any off bind(null), bind(port), bind(IP, port)
+- Problem: connect() ESTABLISHES a connection to a specific IP/port, disallowing
+  incoming packets from any other source.
+  - (WILL BE FIXED:) This is problematic for ping, where answers come via dispatcher
+  - ....?
+- Multipath: connect to multiple BRs...??!?!?!
+- Multi AS: connect to 
 
-## Now
-- Implement interfaces from nio.DatagramChannel
-- Implement DNS
-  - Entries can go into local /etc/host or /etc/scion-hosts(?)
-  - For SCION there is RHINE as a DNS equivalent but it is deprecated
-- Look into Selectors:  https://www.baeldung.com/java-nio-selector
-- Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
-- Add socket.send(packet, dstIsdAs);
-- UDP checksum for overlay packet?
+- PING: It is fine to manually specify local IP (as scion ping command does)
+
+# TODO #2
+- TODO Fix: getPath for src&dst in same AS-ISD
+  What does daemon return as first hop in this case:
+  - The destination IP?
+  - Still the BR IP, and then forwards it? 
+    -> check behaviour of TINY  
+- TODO setTTL or similar
+- TODO test SCMP
+- TODO test Bootstrapping
+- TODO document stand-alon feature (no daemon or local installation required)
+
+## Known Shortcomings
+
+- ScionService always returns the same localIsdAs number, even when the interface changes or
+  a new IP is assigned. How does it work with mobile phones?
+  Is assigning new IPs a thing? 
+
+## Questions
+- What to do on server if path is expired? Currently we just don't check and send anyway.
+- Should I have separate ServerChannel & ClientChannel classes
+  - ServerChannel has receive()/send()/bind()
+  - ClientChannel has read()/write()/connect()
+  - This would be cleaner but may be confusing and
+- Related to previous: Should receive()/send() be specific about RequestPath/ResponsePath?
+  I.e. hide complexity vs being specific....   check Effective Java?   
+
+## Ideas
+- Why are CSs distributing Segments?
+  Because that is what beacons return? For historical reasons?
+  It seems much more efficient to distribute a graph 
+  (less bandwidth, can be directly digested by the daemons, possibly more complete than the segments)
+  We may also choose do distribute the WHOLE graph (depending on how big it is), the daemons can use it
+  for *all* path queries.
+  Updates/refresh (after changes/expiration) are also cheaper, we don´t resend the whole segment but
+  only the expired parts.
+- Add an expiration date to topo files!
+  -> BRs, CS, DSs may change!
+  -> Should we use the TTL of the DNS NAPTR record?
+
+## Plan
+
+### 0.1.0
+- SCMP error handling (only error, not info)
+  - implement callbacks (+ option to NOT ignore)
+  - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
+  - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
+  - Test!
+Discuss required for 0.1.0:
+- SCMP errors handling (above)
+  - Especially for expired paths / revoked paths / broken paths?  
+
+### 0.2.0
+- Segments:
+  - Sorting by weight (see graph.go:195)
+  - Consider peering
+  - Look at newDMG (graph.go:89)
+  - Order by expiration date? (netip.go:41)
+  - Consider shortcuts and on-paths (book sec 5.5, pp105 ff)
+- Selector support
+  - Implement interfaces from nio.DatagramChannel
+  - Look into Selectors:  https://www.baeldung.com/java-nio-selector
+- Consider SHIM support. SHIM is a compatbility component that supports
+  old border-router software (requiring a fixed port on the client, unless
+  the client is listening on this very port).  When SHIM is used, we cannot 
+  get the return address (server mode) from the received packet because we receive it 
+  from the SHIM i.o. the BR. Fix: Either have server use daemon of topofile to find
+  first hop, OR extend SHIM to accept and forward packets to the correct BR.
+- AS switching: handle localIsdAs code per Interface or IP
+- Path expiry: request new path asynchronously when old path is close to expiry
+- DNS /etc/scion/hosts e.g.:
+  71-2:0:4a,[127.0.0.1]	www.netsys.ovgu.de netsys.ovgu.de
+  71-2:0:48,[127.0.0.1]	dfw.source.kernel.org
+- DNS with other options, see book p328ff, Section 13.2.3
+- UDP checksum validation + creation
+- Fuzzing -> e.g. validate()
+- remove "internals" package?
+- For stand-alone path query, we should cache localAS->localCore paths.
+- For stand-alone, fill meta/proto properly
+- Consider removing DEFAULT ScionService?
+- Make ScionService AutoCloseable? -> Avoid separate CloseableService class and it's usage in try().
+- Convenience: Implement Transparent service that tries SCION and, if not available,
+  returns a normal Java UDP DatagramChannel? Which Interface?
+- https for topology server?
+- Secure DNS requests?
+
+### 0.3.0
+- SCMP info handling: ping, traceroute, ...
+- SCMP error _sending_ e.h. in case of corrupt packet
+- DatagramSocket
+  - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
+  - Add socket.send(packet, dstIsdAs); ?
+  - It seems we cannot use DatagramSocketImpl for implementing a Scion DatagramSocket.
+    Instead we may simply implement a class that is *similar* to DatagramSocket, e.g.
+    with enforcing bind()/connect() before send()/receive() and enforcing that connect() uses
+    ScionSocketAddresses. Problematic: how to handle path on server side?
+- Reproducible build
+- RHINE?
+
+### 0.4.0
+- Multipathing
+- EPIC, Hidden paths
+- SPAO end-to-end option -> Later, not used at the moment
+- MAC validation?
+- Replace Protobuf:
+  - Protobuf-lite: https://github.com/protocolbuffers/protobuf/blob/main/java/lite.md
+  - QuickBuffers: https://github.com/HebiRobotics/QuickBuffers/tree/main/benchmarks
+  - FlatBuffers
+
+
 
 ## Then
 
 - Multipathing: We probably ignore that for now. Multipathing can be done in
   many different ways, it may be difficult to design a one-size-fits-all API.
   E.g. "Hercules" uses a round-robin fashion with multiple path to fire UDP packets. 
-  
-- Inherit DatagramSocket? 
-- Extract path info from server socket in order to support multiple clients
 - MulticastSocket / MulticastChannel (?)
-- Send SCMP on error? Probably yes, e.g. "Parameter Problem" when processing
-  extension headers (which are only processed ayt end-hosts)
-- Abuse socket/channel.setOption() to set path policies?
-- ScionService: extend API
-- Remove PathHeaderOneHop
-- SCMP ping, traceroute?
 
 - For Android look into
   - android.net.Network: 
@@ -81,18 +161,6 @@
   Security checks (see also class javadoc). Do weed need these? Isn't this
   handled by the underlying DatagramChannel? Isn't this deprecated in Java 17?
   -> Simply declare that we only support JDK 17+ for this reason?
-- UDP Checksum validation? UDP checksum creation?
-
-## Finally
-
-- SPAO end-to-end option -> Later, not used at the moment
-- MAC validation?
-
-# Open Questions
-
-- Add ISD/AS lookup to daemon API ?!?
-- How to determine the srcIP ? It depends on the interface....
-
 
 # General TODO
 
@@ -114,11 +182,6 @@
 
 
 ## Design
-- Decide how to handle 
-  - SCMP errors -> Exception? Log? Ignore?
-  - Large packets, e 
-- Path selection & path policies
-
 - Where to place generated proto files? They are currently in `target` but could be in `scr/java`...
 
 
@@ -128,3 +191,4 @@
 - Daemon.proto
   - Expiration is a 96bit Timestamp, optimize?
   - Latencies are 96bit Durations, optimize?
+ 

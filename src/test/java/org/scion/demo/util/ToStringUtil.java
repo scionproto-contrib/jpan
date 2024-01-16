@@ -14,6 +14,14 @@
 
 package org.scion.demo.util;
 
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import org.scion.demo.inspector.HopField;
+import org.scion.demo.inspector.InfoField;
+import org.scion.demo.inspector.PathHeaderScion;
+
 public class ToStringUtil {
 
   public static String toStringIPv4(int ip) {
@@ -91,5 +99,92 @@ public class ToStringUtil {
     //      }
     //    }
     return s;
+  }
+
+  /**
+   * Turns an InetSocketAddress into a String. Specifically, it surrounds the numeric code of IPv6
+   * addresses with [], e.g. [0:0:0:0:0:0:0:0]:12345.
+   *
+   * @param addr socket address
+   * @return address:port
+   */
+  public static String toAddressPort(InetSocketAddress addr) {
+    InetAddress inetAddress = addr.getAddress();
+    if (inetAddress instanceof Inet6Address) {
+      String host = inetAddress.getHostAddress();
+      if (host.contains(":") && !host.endsWith("]")) {
+        return "[" + host + "]:" + addr.getPort();
+      }
+    }
+    return inetAddress.getHostAddress() + ":" + addr.getPort();
+  }
+
+  public static String toStringHex(byte[] ba) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    for (int i = 0; i < ba.length - 1; i++) {
+      int ub = Byte.toUnsignedInt(ba[i]);
+      sb.append("0x").append(Integer.toHexString(ub)).append(", ");
+    }
+    if (ba.length > 0) {
+      int ub = Byte.toUnsignedInt(ba[ba.length - 1]);
+      sb.append("0x").append(Integer.toHexString(ub));
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+
+  public static String toStringByte(byte[] ba) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    for (int i = 0; i < ba.length - 1; i++) {
+      sb.append(ba[i]).append(", ");
+    }
+    if (ba.length > 0) {
+      sb.append(ba[ba.length - 1]);
+    }
+    sb.append("}");
+    return sb.toString();
+  }
+
+  public static String path(byte[] raw) {
+    PathHeaderScion ph = new PathHeaderScion();
+    ph.read(ByteBuffer.wrap(raw));
+    StringBuilder sb = new StringBuilder();
+    sb.append("Hops: [");
+    InfoField info0 = ph.getInfoField(0);
+    InfoField info1 = ph.getInfoField(1);
+    InfoField info2 = ph.getInfoField(2);
+
+    int[] segLen = {ph.getSegLen(0), ph.getSegLen(1), ph.getSegLen(2)};
+    sb.append("c0:").append(info0.getFlagC()).append(" ");
+    sb.append("c1:").append(info1.getFlagC()).append(" ");
+    sb.append("c2:").append(info2.getFlagC()).append(" ");
+
+    int offset = 0;
+    for (int j = 0; j < segLen.length; j++) {
+      boolean flagC = ph.getInfoField(j).getFlagC();
+      for (int i = offset; i < offset + segLen[j] - 1; i++) {
+        HopField hfE = ph.getHopField(i);
+        HopField hfI = ph.getHopField(i + 1);
+        if (flagC) {
+          sb.append(hfE.getEgress()).append(">").append(hfI.getIngress());
+        } else {
+          sb.append(hfE.getIngress()).append(">").append(hfI.getEgress());
+        }
+        if (i < ph.getHopCount() - 1) {
+          sb.append(" ");
+        }
+      }
+      offset += segLen[j];
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+
+  public static String pathLong(byte[] raw) {
+    PathHeaderScion ph = new PathHeaderScion();
+    ph.read(ByteBuffer.wrap(raw));
+    return ph.toString();
   }
 }

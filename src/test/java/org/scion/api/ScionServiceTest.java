@@ -17,19 +17,13 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.PackageVisibilityHelper;
-import org.scion.Scion;
-import org.scion.ScionAddress;
-import org.scion.ScionException;
-import org.scion.ScionPath;
-import org.scion.ScionService;
-import org.scion.ScionUtil;
-import org.scion.proto.daemon.Daemon;
+import org.scion.*;
 import org.scion.testutil.MockDaemon;
 
 public class ScionServiceTest {
@@ -58,91 +52,119 @@ public class ScionServiceTest {
   @Test
   void testWrongDaemonAddress() throws IOException {
     String daemonAddr = "127.0.0.112:12345";
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      ScionException thrown =
-          assertThrows(ScionException.class, () -> client.getPath(srcIA, dstIA));
-      assertEquals(
-          "io.grpc.StatusRuntimeException: UNAVAILABLE: io exception", thrown.getMessage());
-    }
+    ScionRuntimeException thrown =
+        assertThrows(ScionRuntimeException.class, () -> Scion.newServiceWithDaemon(daemonAddr));
+    assertTrue(thrown.getMessage().startsWith("Error while getting AS info:"), thrown.getMessage());
   }
 
   @Test
   void testDaemonCreationIPv6() throws IOException {
-    MockDaemon daemon = MockDaemon.create();
-    daemon.start();
+    MockDaemon.createAndStartDefault();
     String daemonAddr = "[::1]:" + DEFAULT_PORT;
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      ScionPath path = client.getPath(srcIA, dstIA);
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
+      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
-      assertEquals(1, MockDaemon.getAndResetCallCount());
+      // local AS + path
+      assertEquals(2, MockDaemon.getAndResetCallCount());
     } finally {
-      daemon.close();
+      MockDaemon.closeDefault();
     }
   }
 
   @Test
   void testDaemonCreationIPv4() throws IOException {
-    MockDaemon daemon = MockDaemon.create();
-    daemon.start();
+    MockDaemon.createAndStartDefault();
     String daemonAddr = "127.0.0.1:" + DEFAULT_PORT;
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    try (Scion.CloseableService client = Scion.newServiceForAddress(daemonAddr)) {
-      ScionPath path = client.getPath(srcIA, dstIA);
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
+      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
-      assertEquals(1, MockDaemon.getAndResetCallCount());
+      // local AS + path
+      assertEquals(2, MockDaemon.getAndResetCallCount());
     } finally {
-      daemon.close();
+      MockDaemon.closeDefault();
     }
   }
 
   @Test
   void getPath() throws IOException {
-    MockDaemon daemon = MockDaemon.create().start();
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockDaemon.createAndStartDefault();
+    try {
+      // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+      RequestPath path;
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      try (Scion.CloseableService client =
+          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+        path = client.getPaths(dstIA, dstAddress).get(0);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
-    // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-    List<Daemon.Path> paths;
-    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    try (Scion.CloseableService client =
-        Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR)) {
-      paths = PackageVisibilityHelper.getPathList(client, srcIA, dstIA);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      // Expected:
+      //    Paths found: 1
+      //    Path: first hop = 127.0.0.10:31004
+      //    0: 2 561850441793808
+      //    0: 1 561850441793810
+      assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
+      // assertEquals(srcIA, path.getSourceIsdAs());
+      assertEquals(dstIA, path.getDestinationIsdAs());
+      assertEquals(36, path.getRawPath().length);
+
+      assertEquals("127.0.0.10:31004", path.getInterface().getAddress());
+      assertEquals(2, path.getInterfacesList().size());
+      // assertEquals(1, viewer.getInternalHopsList().size());
+      // assertEquals(0, viewer.getMtu());
+      // assertEquals(0, viewer.getLinkTypeList().size());
+
+      // localAS & path
+      assertEquals(2, MockDaemon.getAndResetCallCount());
+    } finally {
+      MockDaemon.closeDefault();
     }
+  }
 
-    // Expected:
-    //    Paths found: 1
-    //    Path: first hop = 127.0.0.10:31004
-    //    0: 2 561850441793808
-    //    0: 1 561850441793810
+  @Test
+  void getPaths() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockDaemon.createAndStartDefault();
+    try {
+      // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+      List<RequestPath> paths;
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      try (Scion.CloseableService client =
+          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+        paths = client.getPaths(dstIA, dstAddress);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
-    assertEquals(1, paths.size());
-    Daemon.Path path0 = paths.get(0);
-    assertEquals("127.0.0.10:31004", path0.getInterface().getAddress().getAddress());
+      // Expected:
+      //    Paths found: 1
+      //    Path: first hop = 127.0.0.10:31004
+      //    0: 2 561850441793808
+      //    0: 1 561850441793810
+      assertEquals(1, paths.size());
+      for (RequestPath path : paths) {
+        assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
+        // assertEquals(srcIA, path.getSourceIsdAs());
+        assertEquals(dstIA, path.getDestinationIsdAs());
+      }
 
-    //    System.out.println("Paths found: " + paths.size());
-    //    for (Daemon.Path path : paths) {
-    //      System.out.println("Path: first hop = " +
-    // path.getInterface().getAddress().getAddress());
-    //      int i = 0;
-    //      for (Daemon.PathInterface segment : path.getInterfacesList()) {
-    //        System.out.println("    " + i + ": " + segment.getId() + " " + segment.getIsdAs());
-    //      }
-    //    }
-
-    assertEquals(1, MockDaemon.getAndResetCallCount());
-    daemon.close();
+      // get local AS, get PATH
+      assertEquals(2, MockDaemon.getAndResetCallCount());
+    } finally {
+      MockDaemon.closeDefault();
+    }
   }
 
   @Test
   void getScionAddress() throws ScionException {
     // TODO this test makes a DNS call _and_ it depends on ETH having a specific ISD/AS/IP
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
     assertNotNull(sAddr);
@@ -156,7 +178,7 @@ public class ScionServiceTest {
   void getScionAddress_Mock() throws ScionException {
     // Test that DNS injection via properties works
     // TODO do injection here instead of @BeforeAll
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
     assertNotNull(sAddr);
@@ -168,7 +190,7 @@ public class ScionServiceTest {
 
   @Test
   void getScionAddress_Failure_IpOnly() {
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     Exception ex =
         assertThrows(ScionException.class, () -> pathService.getScionAddress("127.12.12.12"));
@@ -177,13 +199,13 @@ public class ScionServiceTest {
 
   @Test
   void getScionAddress_Failure_NoScion() {
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     // TODO this may fail if google supports SCION...
     Exception exception =
         assertThrows(ScionException.class, () -> pathService.getScionAddress("google.com"));
 
     String actualMessage = exception.getMessage();
-    assertTrue(actualMessage.contains("Host has no SCION"));
+    assertTrue(actualMessage.contains("No DNS TXT entry \"scion\" found for"), actualMessage);
   }
 
   @Test
@@ -196,7 +218,7 @@ public class ScionServiceTest {
   }
 
   private void testInvalidTxtEntry(String txtEntry) {
-    ScionService pathService = ScionService.defaultService();
+    ScionService pathService = Scion.defaultService();
     String host = "127.0.0.55";
     try {
       System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);
@@ -204,6 +226,19 @@ public class ScionServiceTest {
       assertTrue(ex.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+    }
+  }
+
+  @Test
+  void openChannel() throws IOException {
+    MockDaemon.createAndStartDefault();
+    try (Scion.CloseableService service =
+        Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+      try (DatagramChannel channel = service.openChannel()) {
+        assertEquals(service, channel.getService());
+      }
+    } finally {
+      MockDaemon.closeDefault();
     }
   }
 }

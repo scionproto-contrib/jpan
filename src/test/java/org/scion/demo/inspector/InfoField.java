@@ -119,4 +119,8 @@ public class InfoField {
   public boolean hasConstructionDirection() {
     return c;
   }
+
+  public boolean getFlagC() {
+    return c;
+  }
 }

@@ -1,0 +1,86 @@
+{
+  "attributes": [],
+  "isd_as": "1-ff00:0:111",
+  "mtu": 1472,
+  "control_service": {
+    "cs1-ff00_0_111-1": {
+      "addr": "[fd00:f00d:cafe::7f00:1c]:31022"
+    }
+  },
+  "discovery_service": {
+    "cs1-ff00_0_111-1": {
+      "addr": "[fd00:f00d:cafe::7f00:1c]:31022"
+    }
+  },
+  "border_routers": {
+    "br1-ff00_0_111-1": {
+      "internal_addr": "[fd00:f00d:cafe::7f00:19]:31024",
+      "interfaces": {
+        "104": {
+          "underlay": {
+            "public": "127.0.0.8:50000",
+            "remote": "127.0.0.9:50000"
+          },
+          "isd_as": "1-ff00:0:120",
+          "link_to": "parent",
+          "mtu": 1472
+        },
+        "101": {
+          "underlay": {
+            "public": "[fd00:f00d:cafe::7f00:6]:50000",
+            "remote": "[fd00:f00d:cafe::7f00:7]:50000"
+          },
+          "isd_as": "2-ff00:0:211",
+          "link_to": "peer",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_111-2": {
+      "internal_addr": "[fd00:f00d:cafe::7f00:1a]:31026",
+      "interfaces": {
+        "105": {
+          "underlay": {
+            "public": "[fd00:f00d:cafe::7f00:8]:50000",
+            "remote": "[fd00:f00d:cafe::7f00:9]:50000"
+          },
+          "isd_as": "1-ff00:0:130",
+          "link_to": "parent",
+          "mtu": 1472
+        },
+        "103": {
+          "underlay": {
+            "public": "127.0.0.10:50000",
+            "remote": "127.0.0.11:50000"
+          },
+          "isd_as": "1-ff00:0:112",
+          "link_to": "child",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_111-3": {
+      "internal_addr": "[fd00:f00d:cafe::7f00:1b]:31028",
+      "interfaces": {
+        "100": {
+          "underlay": {
+            "public": "127.0.0.12:50000",
+            "remote": "127.0.0.13:50000"
+          },
+          "isd_as": "1-ff00:0:121",
+          "link_to": "peer",
+          "mtu": 1472
+        },
+        "102": {
+          "underlay": {
+            "public": "127.0.0.14:50000",
+            "remote": "127.0.0.15:50000"
+          },
+          "isd_as": "2-ff00:0:211",
+          "link_to": "peer",
+          "mtu": 1472
+        }
+      }
+    }
+  }
+}

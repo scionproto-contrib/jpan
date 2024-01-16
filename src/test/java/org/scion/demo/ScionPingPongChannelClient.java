@@ -17,12 +17,19 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.DatagramChannel;
+import org.scion.*;
 import org.scion.testutil.MockDNS;
 
 public class ScionPingPongChannelClient {
 
   public static boolean PRINT = true;
+  public static int PORT = 44444;
+
+  /**
+   * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
+   * service via ScionProto "tiny" topology
+   */
+  public static boolean USE_MOCK_TOPOLOGY = false;
 
   private static String extractMessage(ByteBuffer buffer) {
     buffer.flip();
@@ -37,8 +44,8 @@ public class ScionPingPongChannelClient {
     return client;
   }
 
-  public static void sendMessage(
-      DatagramChannel client, String msg, InetSocketAddress serverAddress) throws IOException {
+  public static void sendMessage(DatagramChannel client, String msg, Path serverAddress)
+      throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     client.send(buffer, serverAddress);
     if (PRINT) {
@@ -48,7 +55,7 @@ public class ScionPingPongChannelClient {
 
   public static void receiveMessage(DatagramChannel channel) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
-    SocketAddress remoteAddress = channel.receive(buffer);
+    Path remoteAddress = channel.receive(buffer);
     String message = extractMessage(buffer);
     if (PRINT) {
       System.out.println("Received from server at: " + remoteAddress + "  message: " + message);
@@ -56,30 +63,29 @@ public class ScionPingPongChannelClient {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    // True: connect to ScionPingPongChannelServer via Java mock topology
-    // False: connect to any service via ScionProto "tiny" topology
-    boolean useMockTopology = true;
     // Demo setup
-    if (useMockTopology) {
+    if (USE_MOCK_TOPOLOGY) {
       DemoTopology.configureMock();
-      MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-      doClientStuff(44444);
+      MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+      doClientStuff();
       DemoTopology.shutDown();
     } else {
       DemoTopology.configureTiny110_112();
       MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-      doClientStuff(8080);
+      doClientStuff();
       DemoTopology.shutDown();
     }
   }
 
-  private static void doClientStuff(int port) throws IOException {
+  private static void doClientStuff() throws IOException {
     DatagramChannel channel = startClient();
     String msg = "Hello scion";
-    InetSocketAddress serverAddress = new InetSocketAddress("::1", port);
-    // ScionSocketAddress serverAddress = ScionSocketAddress.create("1-ff00:0:112", "::1", 44444);
+    InetSocketAddress serverAddress = new InetSocketAddress("::1", PORT);
+    long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+    // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
+    Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
 
-    sendMessage(channel, msg, serverAddress);
+    sendMessage(channel, msg, path);
 
     if (PRINT) {
       System.out.println("Waiting ...");

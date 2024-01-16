@@ -33,19 +33,16 @@ public class HeaderComposeTest {
   // Recorded before sending a packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
 
-  private static MockDaemon daemon;
   private Scion.CloseableService pathService = null;
 
   @BeforeAll
   public static void beforeAll() throws IOException {
-    daemon = MockDaemon.create().start();
+    MockDaemon.createAndStartDefault();
   }
 
   @AfterAll
   public static void afterAll() throws IOException {
-    if (daemon != null) {
-      daemon.close();
-    }
+    MockDaemon.closeDefault();
   }
 
   @AfterEach
@@ -68,27 +65,34 @@ public class HeaderComposeTest {
     ByteBuffer p = ByteBuffer.allocate(500);
 
     // User side
-    String hostname = "::1";
     int dstPort = 8080;
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
     ByteBuffer userPacket = ByteBuffer.allocate(msg.length());
     userPacket.put(msg.getBytes());
+    byte[] srcAddress = new byte[] {127, 0, 0, 1};
+    byte[] dstAddress = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+    InetSocketAddress dstSocketAddress =
+        new InetSocketAddress(InetAddress.getByAddress(dstAddress), dstPort);
 
     // Socket internal - compose header data
-    pathService = Scion.newServiceForAddress(MockDaemon.DEFAULT_ADDRESS_STR);
+    pathService = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path = pathService.getPath(ScionUtil.parseIA("1-ff00:0:112")).getRawPath();
-
-    InetAddress srcAddress = InetAddress.getByName("127.0.0.1");
-    InetAddress dstAddress = InetAddress.getByName(hostname);
+    byte[] path = pathService.getPaths(dstIA, dstSocketAddress).get(0).getRawPath();
 
     // Socket internal = write header
     ScionHeaderParser.write(
-        p, userPacket.limit(), path.length, srcIA, srcAddress, dstIA, dstAddress);
+        p,
+        userPacket.limit() + 8,
+        path.length,
+        srcIA,
+        srcAddress,
+        dstIA,
+        dstAddress,
+        Constants.HdrTypes.UDP);
     ScionHeaderParser.writePath(p, path);
 
-    // Pseudo header
+    // Overlay header
     ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 44444, dstPort);
 
     // add payload
