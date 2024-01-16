@@ -101,7 +101,6 @@ public class ScionPacketInspector {
       int offset = scionHeader.hdrLenBytes();
       data.position(offset);
       scmpHeader.read(data);
-      System.out.println("Packet: DROPPED: SCMP");
       return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
       // System.out.println("Packet EndToEnd");

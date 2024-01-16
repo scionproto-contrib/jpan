@@ -29,9 +29,8 @@ import org.scion.Scmp;
 import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.internal.ScionHeaderParser;
 
-@Disabled
 public class SCMPTest {
-  private static final byte[] PING_HK = {
+  private static final byte[] PING_ERROR_4_51_HK = {
     0, 0, 0, 1, -54, 35, 0, -80,
     1, 0, 0, 0, 0, 64, 0, 2,
     0, 0, 0, 9, 0, 64, 0, 2,
@@ -76,11 +75,11 @@ public class SCMPTest {
 
   @Test
   public void echo_error_invalidMAC() throws IOException {
-    ScionPacketInspector spi = ScionPacketInspector.readPacket(ByteBuffer.wrap(PING_HK));
+    ScionPacketInspector spi = ScionPacketInspector.readPacket(ByteBuffer.wrap(PING_ERROR_4_51_HK));
     assertEquals(Scmp.ScmpTypeCode.TYPE_4_CODE_51, spi.getScmpHeader().getCode());
 
     // Test that error can be parsed without throwing an exception
-    ByteBuffer buffer = ByteBuffer.wrap(PING_HK);
+    ByteBuffer buffer = ByteBuffer.wrap(PING_ERROR_4_51_HK);
     InetAddress srcAddr = Inet4Address.getByAddress(new byte[] {0, 0, 0, 0});
     InetSocketAddress srcAddress = new InetSocketAddress(srcAddr, 12345);
     ResponsePath path = ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
