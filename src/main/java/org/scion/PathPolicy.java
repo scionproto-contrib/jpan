@@ -23,10 +23,6 @@ public interface PathPolicy {
   PathPolicy MIN_HOPS = new MinHopCount();
   PathPolicy DEFAULT = MIN_HOPS;
 
-  PathPolicy X = paths -> paths.stream()
-          .min(Comparator.comparing(path -> path.getInternalHopsList().size()))
-          .orElseThrow(NoSuchElementException::new);
-
   class First implements PathPolicy {
     public RequestPath filter(List<RequestPath> paths) {
       return paths.stream().findFirst().orElseThrow(NoSuchElementException::new);
