@@ -78,7 +78,10 @@
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
   - Test!
 - Document or improve ERROR: "TRC NOT FOUND" when requesting path to non-existing AS (down segment?) 
-- Document:local scionproto-network returns no path -> recreate with -c topology! 
+- Document:local scionproto-network returns no path -> recreate with -c topology!
+- Docs:
+  https://github.com/marcfrei/scion-time#setting-up-a-scion-test-environment
+  https://github.com/netsec-ethz/lightning-filter#develop
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
   - Especially for expired paths / revoked paths / broken paths?  
@@ -93,7 +96,7 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
-- Consider SHIM support. SHIM is a compatbility component that supports
+- Consider SHIM support. SHIM is a compatibility component that supports
   old border-router software (requiring a fixed port on the client, unless
   the client is listening on this very port).  When SHIM is used, we cannot 
   get the return address (server mode) from the received packet because we receive it 
