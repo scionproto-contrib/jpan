@@ -63,20 +63,20 @@ public class ScmpEchoDemo {
           break;
         }
       case MINIMAL_PROTO:
-      {
-        // Scion.newServiceWithDNS("inf.ethz.ch");
-        Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
+        {
+          // Scion.newServiceWithDNS("inf.ethz.ch");
+          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
 
-        doClientStuff();
-        break;
-      }
+          doClientStuff();
+          break;
+        }
       case PRODUCTION:
-      {
-        // Scion.newServiceWithDNS("inf.ethz.ch");
-        Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
-        doClientStuff();
-        break;
-      }
+        {
+          // Scion.newServiceWithDNS("inf.ethz.ch");
+          Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+          doClientStuff();
+          break;
+        }
     }
   }
 
@@ -118,13 +118,13 @@ public class ScmpEchoDemo {
       long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
       long iaCyberex = ScionUtil.parseIA("71-2:0:49");
 
-//      long iaMinimal120 = ScionUtil.parseIA("1-ff00:0:120");
-//      long iaMinimal210 = ScionUtil.parseIA("2-ff00:0:210");
+      //      long iaMinimal120 = ScionUtil.parseIA("1-ff00:0:120");
+      //      long iaMinimal210 = ScionUtil.parseIA("2-ff00:0:210");
       long iaMinimal211 = ScionUtil.parseIA("2-ff00:0:211");
-//
-//      isdAs = iaAnapayaHK;
+      //
+      //      isdAs = iaAnapayaHK;
       isdAs = iaMinimal211;
-//      isdAs = iaMinimal120;
+      //      isdAs = iaMinimal120;
 
       // Tiny topology SCMP
       //      InetSocketAddress serverAddress = new InetSocketAddress("[fd00:f00d:cafe::7f00:9]",
