@@ -21,6 +21,9 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import org.scion.*;
 import org.scion.Scmp;
+import org.scion.demo.inspector.PathHeaderScion;
+import org.scion.demo.inspector.ScionPacketInspector;
+import org.scion.demo.util.ToStringUtil;
 import org.scion.testutil.MockDNS;
 
 public class ScmpEchoDemo {
@@ -64,8 +67,8 @@ public class ScmpEchoDemo {
         }
       case MINIMAL_PROTO:
         {
-          // Scion.newServiceWithDNS("inf.ethz.ch");
-          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
+          //Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
+          Scion.newServiceWithDaemon("127.0.0.29:30255");
 
           doClientStuff();
           break;
