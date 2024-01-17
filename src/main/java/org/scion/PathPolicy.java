@@ -21,14 +21,15 @@ public interface PathPolicy {
   PathPolicy MAX_BANDWIDTH = new MaxBandwith();
   PathPolicy MIN_LATENCY = new MinLatency();
   PathPolicy MIN_HOPS = new MinHopCount();
-  PathPolicy DEFAULT = FIRST;
+  PathPolicy DEFAULT = MIN_HOPS;
+
+  PathPolicy X = paths -> paths.stream()
+          .min(Comparator.comparing(path -> path.getInternalHopsList().size()))
+          .orElseThrow(NoSuchElementException::new);
 
   class First implements PathPolicy {
     public RequestPath filter(List<RequestPath> paths) {
-      if (paths.isEmpty()) {
-        throw new NoSuchElementException();
-      }
-      return paths.get(0);
+      return paths.stream().findFirst().orElseThrow(NoSuchElementException::new);
     }
   }
 

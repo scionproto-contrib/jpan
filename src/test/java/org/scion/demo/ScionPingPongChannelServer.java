@@ -35,12 +35,12 @@ public class ScionPingPongChannelServer {
     return server;
   }
 
-  public static void sendMessage(DatagramChannel channel, String msg, Path serverAddress)
+  public static void sendMessage(DatagramChannel channel, String msg, Path path)
       throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
-    channel.send(buffer, serverAddress);
+    channel.send(buffer, path);
     if (PRINT) {
-      System.out.println("Sent to client at: " + serverAddress + "  message: " + msg);
+      System.out.println("Sent to client at: " + path + "  message: " + msg);
     }
   }
 

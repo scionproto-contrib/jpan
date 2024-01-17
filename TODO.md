@@ -77,6 +77,8 @@
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
   - Test!
+- Document or improve ERROR: "TRC NOT FOUND" when requesting path to non-existing AS (down segment?) 
+- Document:local scionproto-network returns no path -> recreate with -c topology! 
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
   - Especially for expired paths / revoked paths / broken paths?  

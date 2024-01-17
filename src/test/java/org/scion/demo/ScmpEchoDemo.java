@@ -36,6 +36,7 @@ public class ScmpEchoDemo {
   private enum Mode {
     MOCK_TOPOLOGY,
     TINY,
+    MINIMAL_PROTO, // Try to connect to "minimal" scionproto network
     PRODUCTION
   }
 
@@ -43,7 +44,7 @@ public class ScmpEchoDemo {
 
   public static void main(String[] args) throws IOException, InterruptedException {
     // Demo setup
-    mode = Mode.PRODUCTION;
+    mode = Mode.MINIMAL_PROTO;
     switch (mode) {
       case MOCK_TOPOLOGY:
         {
@@ -61,13 +62,21 @@ public class ScmpEchoDemo {
           DemoTopology.shutDown();
           break;
         }
+      case MINIMAL_PROTO:
+      {
+        // Scion.newServiceWithDNS("inf.ethz.ch");
+        Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
+
+        doClientStuff();
+        break;
+      }
       case PRODUCTION:
-        {
-          // Scion.newServiceWithDNS("inf.ethz.ch");
-          Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
-          doClientStuff();
-          break;
-        }
+      {
+        // Scion.newServiceWithDNS("inf.ethz.ch");
+        Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+        doClientStuff();
+        break;
+      }
     }
   }
 
@@ -90,10 +99,11 @@ public class ScmpEchoDemo {
   }
 
   private static void doClientStuff() throws IOException {
+    ScionService sv = Scion.defaultService();
     //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
     // InetSocketAddress local = new InetSocketAddress("127.0.0.1", 34567);
-    InetSocketAddress local = new InetSocketAddress("0.0.0.0", 30041);
-    try (DatagramChannel channel = DatagramChannel.open().bind(local)) {
+    InetSocketAddress local = new InetSocketAddress("0.0.0.0", 30041 + 5);
+    try (DatagramChannel channel = sv.openChannel().bind(local)) {
       channel.configureBlocking(true);
 
       InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
@@ -108,7 +118,13 @@ public class ScmpEchoDemo {
       long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
       long iaCyberex = ScionUtil.parseIA("71-2:0:49");
 
-      isdAs = iaAnapayaHK;
+//      long iaMinimal120 = ScionUtil.parseIA("1-ff00:0:120");
+//      long iaMinimal210 = ScionUtil.parseIA("2-ff00:0:210");
+      long iaMinimal211 = ScionUtil.parseIA("2-ff00:0:211");
+//
+//      isdAs = iaAnapayaHK;
+      isdAs = iaMinimal211;
+//      isdAs = iaMinimal120;
 
       // Tiny topology SCMP
       //      InetSocketAddress serverAddress = new InetSocketAddress("[fd00:f00d:cafe::7f00:9]",
@@ -116,7 +132,7 @@ public class ScmpEchoDemo {
       //      long isdAs = ScionUtil.parseIA("1-ff00:0:112");
 
       // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
-      Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
+      Path path = sv.getPaths(isdAs, serverAddress).get(0);
 
       channel.setScmpErrorListener(ScmpEchoDemo::errorListener);
       channel.setEchoListener(ScmpEchoDemo::echoListener);

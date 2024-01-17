@@ -87,6 +87,10 @@ public class ByteUtil {
     return (byte) (code <= 127 ? code : code - 256);
   }
 
+  public static int toUnsigned(byte code) {
+    return code >= 0 ? code : ((int) code) + (1 << 8);
+  }
+
   public static int toUnsigned(short code) {
     return code >= 0 ? code : ((int) code) + (1 << 16);
   }
