@@ -112,7 +112,7 @@ public class ScmpEchoDemo {
     String echoMsgStr = msg.getIdentifier() + "/" + msg.getSequenceNumber();
     println("Received ECHO: " + echoMsgStr + " - " + millies + "ms");
     try {
-      Thread.currentThread().sleep(1000);
+      Thread.sleep(1000);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
@@ -125,7 +125,7 @@ public class ScmpEchoDemo {
     String echoMsgStr = msg.getIdentifier() + "/" + msg.getSequenceNumber();
     println("Received TRACEROUTE: " + echoMsgStr + " - " + millies + "ms");
     try {
-      Thread.currentThread().sleep(1000);
+      Thread.sleep(1000);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
