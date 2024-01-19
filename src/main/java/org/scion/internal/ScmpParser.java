@@ -72,8 +72,8 @@ public class ScmpParser {
    * @return ScmpMessage object
    */
   public static ScmpMessage consume(ByteBuffer data, Path path) {
-    int type = data.get();
-    int code = data.get();
+    int type = ByteUtil.toUnsigned(data.get());
+    int code = ByteUtil.toUnsigned(data.get());
     data.getShort(); // checksum
     // TODO validate checksum
 

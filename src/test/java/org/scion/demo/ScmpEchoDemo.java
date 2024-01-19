@@ -18,140 +18,182 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.scion.*;
 import org.scion.Scmp;
-import org.scion.demo.inspector.PathHeaderScion;
-import org.scion.demo.inspector.ScionPacketInspector;
-import org.scion.demo.util.ToStringUtil;
 import org.scion.testutil.MockDNS;
 
 public class ScmpEchoDemo {
 
   private static final boolean PRINT = ScmpServerDemo.PRINT;
   private static final int PORT = ScmpServerDemo.PORT;
-  private static final AtomicLong now = new AtomicLong();
+  private final AtomicLong now = new AtomicLong();
+  private final ByteBuffer sendBuffer = ByteBuffer.allocateDirect(8);
+  private final int localPort;
+  private DatagramChannel channel;
+  private InetSocketAddress destinationAddress;
+  private final long destinationIA;
+  private final ScionService service;
 
   /**
    * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
    * service via ScionProto "tiny" topology
    */
-  private enum Mode {
-    MOCK_TOPOLOGY,
-    TINY,
+  private enum Network {
+    MOCK_TOPOLOGY, // SCION Java JUnit mock network
+    TINY_PROTO, // Try to connect to "tiny" scionproto network
     MINIMAL_PROTO, // Try to connect to "minimal" scionproto network
-    PRODUCTION
+    PRODUCTION // production network
   }
 
-  private static Mode mode = Mode.TINY;
+  private enum Mode {
+    ECHO,
+    TRACEROUTE
+  }
+
+  public ScmpEchoDemo(long destinationIA) {
+    this(destinationIA, 12345);
+  }
+
+  public ScmpEchoDemo(long destinationIA, int port) {
+    this.destinationIA = destinationIA;
+    localPort = port;
+    service = Scion.defaultService();
+  }
+
+  private static Network network = Network.TINY_PROTO;
+  private static Mode mode = Mode.ECHO;
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    // Demo setup
-    mode = Mode.MINIMAL_PROTO;
-    switch (mode) {
+    // network = Mode.MINIMAL_PROTO;
+    network = Network.PRODUCTION;
+    switch (network) {
       case MOCK_TOPOLOGY:
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          doClientStuff();
+          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.ia110);
+          demo.doClientStuff();
           DemoTopology.shutDown();
           break;
         }
-      case TINY:
+      case TINY_PROTO:
         {
           DemoTopology.configureTiny110_112();
           MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-          doClientStuff();
+          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.ia110);
+          demo.doClientStuff();
           DemoTopology.shutDown();
           break;
         }
       case MINIMAL_PROTO:
         {
-          //Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
-          Scion.newServiceWithDaemon("127.0.0.29:30255");
-
-          doClientStuff();
+          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_111/topology.json");
+          // Scion.newServiceWithDaemon(DemoConstants.daemon111_minimal);
+          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.ia110);
+          demo.doClientStuff();
           break;
         }
       case PRODUCTION:
         {
           // Scion.newServiceWithDNS("inf.ethz.ch");
           Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
-          doClientStuff();
+          // Port must be 30041 for networks that expect a dispatcher
+          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.iaOVGU, 30041);
+          demo.doClientStuff();
           break;
         }
     }
   }
 
-  private static void echoListener(Scmp.ScmpEcho msg) {
+  private void echoListener(Scmp.ScmpEcho msg) {
     long millies = Instant.now().toEpochMilli() - now.get();
-    println(
-        "Received ECHO: "
-            + msg.getIdentifier()
-            + "/"
-            + msg.getSequenceNumber()
-            + " - "
-            + millies
-            + "ms");
+    String echoMsgStr = msg.getIdentifier() + "/" + msg.getSequenceNumber();
+    println("Received ECHO: " + echoMsgStr + " - " + millies + "ms");
+    try {
+      Thread.currentThread().sleep(1000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+    send();
   }
 
-  private static void errorListener(Scmp.ScmpMessage msg) {
+  private void traceListener(Scmp.ScmpTraceroute msg) {
+    long millies = Instant.now().toEpochMilli() - now.get();
+    String echoMsgStr = msg.getIdentifier() + "/" + msg.getSequenceNumber();
+    println("Received TRACEROUTE: " + echoMsgStr + " - " + millies + "ms");
+    try {
+      Thread.currentThread().sleep(1000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+    send();
+  }
+
+  private void errorListener(Scmp.ScmpMessage msg) {
     long millies = Instant.now().toEpochMilli() - now.get();
     Scmp.ScmpTypeCode code = msg.getTypeCode();
     println("SCMP error (after " + millies + "ms): " + code.getText() + " (" + code + ")");
+    System.exit(1);
   }
 
-  private static void doClientStuff() throws IOException {
-    ScionService sv = Scion.defaultService();
+  private void doClientStuff() throws IOException {
     //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
     // InetSocketAddress local = new InetSocketAddress("127.0.0.1", 34567);
-    InetSocketAddress local = new InetSocketAddress("0.0.0.0", 30041 + 5);
-    try (DatagramChannel channel = sv.openChannel().bind(local)) {
+    InetSocketAddress local = new InetSocketAddress("0.0.0.0", localPort);
+    try (DatagramChannel channel = service.openChannel().bind(local)) {
       channel.configureBlocking(true);
+      this.channel = channel;
 
-      InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
+      // InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
+      destinationAddress =
+          new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), PORT);
 
       // InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.10", 31004);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
-
-      long iaETH = ScionUtil.parseIA("64-2:0:9");
-      long iaETH_CORE = ScionUtil.parseIA("64-0:0:22f");
-      long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
-      long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
-      long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
-      long iaCyberex = ScionUtil.parseIA("71-2:0:49");
-
-      //      long iaMinimal120 = ScionUtil.parseIA("1-ff00:0:120");
-      //      long iaMinimal210 = ScionUtil.parseIA("2-ff00:0:210");
-      long iaMinimal211 = ScionUtil.parseIA("2-ff00:0:211");
-      //
-      //      isdAs = iaAnapayaHK;
-      isdAs = iaMinimal211;
-      //      isdAs = iaMinimal120;
 
       // Tiny topology SCMP
       //      InetSocketAddress serverAddress = new InetSocketAddress("[fd00:f00d:cafe::7f00:9]",
       // 31012);
-      //      long isdAs = ScionUtil.parseIA("1-ff00:0:112");
 
       // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
-      Path path = sv.getPaths(isdAs, serverAddress).get(0);
 
-      channel.setScmpErrorListener(ScmpEchoDemo::errorListener);
-      channel.setEchoListener(ScmpEchoDemo::echoListener);
+      channel.setScmpErrorListener(this::errorListener);
+      channel.setEchoListener(this::echoListener);
+      channel.setTracerouteListener(this::traceListener);
 
-      println("Sending echo request ...");
-      // TODO match id + sn
-      ByteBuffer data = ByteBuffer.allocate(8);
-      data.putLong(30041);
-      data.flip();
-      now.set(Instant.now().toEpochMilli());
-      channel.sendEchoRequest(path, 0, data);
+      String fromStr = ScionUtil.toStringIA(service.getLocalIsdAs());
+      String toStr = ScionUtil.toStringIA(destinationIA) + " " + destinationAddress;
+      println("Sending " + mode.name() + " request from " + fromStr + " to " + toStr + " ...");
+
+      send();
 
       println("Waiting at " + channel.getLocalAddress() + " ...");
       channel.receive(null);
 
       channel.disconnect();
+    }
+  }
+
+  private void send() {
+    List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
+    Path path = paths.get(0);
+
+    sendBuffer.clear();
+    sendBuffer.putLong(localPort);
+    sendBuffer.flip();
+    now.set(Instant.now().toEpochMilli());
+    try {
+      // TODO why pass in path???????! Why not channel.default path?
+      if (mode == Mode.ECHO) {
+        channel.sendEchoRequest(path, 0, sendBuffer);
+      } else {
+        channel.sendTracerouteRequest(path, 0);
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

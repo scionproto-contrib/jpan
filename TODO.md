@@ -77,7 +77,11 @@
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
   - Test!
-- Document or improve ERROR: "TRC NOT FOUND" when requesting path to non-existing AS (down segment?) 
+  - FIX: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
+  - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
+    (it needs to be reversed + the SegID needs to be XORed)
+  - Fix: Remove TRACE demo and fix invalid packet size in SCMP demo
+- FIX: Document or improve ERROR: "TRC NOT FOUND" when requesting path to non-existing AS (down segment?) 
 - Document:local scionproto-network returns no path -> recreate with -c topology!
 - Docs:
   https://github.com/marcfrei/scion-time#setting-up-a-scion-test-environment

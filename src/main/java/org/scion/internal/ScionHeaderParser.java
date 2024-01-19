@@ -112,8 +112,7 @@ public class ScionHeaderParser {
    * @return The type of the next header.
    */
   public static Constants.HdrTypes extractNextHeader(ByteBuffer data) {
-    int nextHeader = data.get(4);
-    nextHeader = nextHeader >= 0 ? nextHeader : nextHeader + 256;
+    int nextHeader = ByteUtil.toUnsigned(data.get(4));
     return Constants.HdrTypes.parse(nextHeader);
   }
 
@@ -156,7 +155,7 @@ public class ScionHeaderParser {
    * @return the length of the SCION common + address + path header in bytes
    */
   public static int extractHeaderLength(ByteBuffer data) {
-    byte hdrLen = data.get(5);
+    int hdrLen = ByteUtil.toUnsigned(data.get(5));
     return hdrLen * 4;
   }
 

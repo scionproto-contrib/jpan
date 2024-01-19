@@ -22,6 +22,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 import java.time.Instant;
 import java.util.*;
+import org.scion.demo.DemoConstants;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegExtensions;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -35,42 +36,12 @@ public class ProtobufSegmentDemo {
   private final ManagedChannel channel;
 
   public static void main(String[] args) throws ScionException {
-    // Control service IPs
-    String csAddr110_tiny = "127.0.0.11:31000";
-    String csAddr111_tiny = "127.0.0.18:31006";
-    String csAddr112_tiny = "[fd00:f00d:cafe::7f00:a]:31010";
-    String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
-    String csAddr111_default = "[fd00:f00d:cafe::7f00:1c]:31022";
-    String csAddr110_minimal = "127.0.0.28:31000";
-    String csAddr111_minimal = "127.0.0.36:31014";
-    String csAddr1111_minimal = "127.0.0.42:31022";
-    String csAddr120_minimal = "127.0.0.75:31008";
-    String csAddr210_minimal = "127.0.0.91:31038";
-    long ia110 = ScionUtil.parseIA("1-ff00:0:110");
-    long ia111 = ScionUtil.parseIA("1-ff00:0:111");
-    long ia1111 = ScionUtil.parseIA("1-ff00:0:1111");
-    long ia1112 = ScionUtil.parseIA("1-ff00:0:1112");
-    long ia112 = ScionUtil.parseIA("1-ff00:0:112");
-    long ia1121 = ScionUtil.parseIA("1-ff00:0:1121");
-    long ia120 = ScionUtil.parseIA("1-ff00:0:120");
-    long ia121 = ScionUtil.parseIA("1-ff00:0:121");
-    long ia210 = ScionUtil.parseIA("2-ff00:0:210");
-    long ia211 = ScionUtil.parseIA("2-ff00:0:211");
-
-    String csETH = "192.168.53.20:30252";
-    long iaETH = ScionUtil.parseIA("64-2:0:9");
-    long iaETH_CORE = ScionUtil.parseIA("64-0:0:22f");
-    long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
-    long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
-    long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
-    long iaCyberex = ScionUtil.parseIA("71-2:0:49");
-
     // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
     // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_minimal);
+    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(DemoConstants.csAddr110_minimal);
     // demo.getSegments(ia110, ia121);
-    demo.getSegments(ia110, ia1121);
+    demo.getSegments(DemoConstants.ia110, DemoConstants.ia1121);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
   }

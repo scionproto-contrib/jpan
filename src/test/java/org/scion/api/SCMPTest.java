@@ -90,36 +90,70 @@ public class SCMPTest {
   @Test
   public void test_110_221() {
     // Constructed:
-    byte[] rawC = {0, 0, 48, -128, 0, 0, -20, -120, 101, -89, -1, 40, 1, 0, 1, -128, 101, -89, -1, 35, 0, 63, 0, 1, 0, 0, 92, 14, 25, -45, -114, -2, 0, 63, 0, -46, 0, 10, 80, 102, -98, 105, -104, 63, 0, 63, 0, 0, 0, 105, -73, 104, 23, -123, -124, -5, 0, 63, 0, 0, 1, -62, -76, 53, 48, -6, 108, -46, 0, 63, 1, -9, 0, 0, 122, -101, -88, 24, 66, 53};
+    byte[] rawC = {
+      0, 0, 48, -128, 0, 0, -20, -120, 101, -89, -1, 40, 1, 0, 1, -128, 101, -89, -1, 35, 0, 63, 0,
+      1, 0, 0, 92, 14, 25, -45, -114, -2, 0, 63, 0, -46, 0, 10, 80, 102, -98, 105, -104, 63, 0, 63,
+      0, 0, 0, 105, -73, 104, 23, -123, -124, -5, 0, 63, 0, 0, 1, -62, -76, 53, 48, -6, 108, -46, 0,
+      63, 1, -9, 0, 0, 122, -101, -88, 24, 66, 53
+    };
     //  Path: Path header:   currINF=0  currHP=0  reserved=0  seg0Len=3  seg1Len=2  seg2Len=0
-    //  info0=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, P=false, C=false, reserved=0, segID=60552, timestamp=1705508648}
-    //  info1=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, P=false, C=true, reserved=0, segID=384, timestamp=1705508643}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=1, consEgress=0, mac=101215632592638}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=210, consEgress=10, mac=88401674606655}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=0, consEgress=105, mac=201657699108091}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=0, consEgress=450, mac=198140547984594}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=503, consEgress=0, mac=134808958681653}
+    //  info0=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false,
+    // P=false, C=false, reserved=0, segID=60552, timestamp=1705508648}
+    //  info1=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false,
+    // P=false, C=true, reserved=0, segID=384, timestamp=1705508643}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=1, consEgress=0, mac=101215632592638}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=210, consEgress=10, mac=88401674606655}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=0, consEgress=105, mac=201657699108091}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=0, consEgress=450, mac=198140547984594}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=503, consEgress=0, mac=134808958681653}
 
-    //  byte[] raw = {0, 0, 48, -128, 0, 0, 74, -34, 101, -88, 0, 98, 1, 0, 57, -71, 101, -88, 0, 71, 0, 63, 0, 1, 0, 0, 32, 82, 48, 71, 92, -89, 0, 63, 0, -46, 0, 10, 19, 19, -32, 44, 94, -46, 0, 63, 0, 0, 0, 105, 3, 10, -115, -95, 123, -38, 0, 63, 0, 0, 1, -62, 60, -60, -72, 1, 68, 115, 0, 63, 1, -9, 0, 0, -120, 37, -109, 93, -34, 113}
+    //  byte[] raw = {0, 0, 48, -128, 0, 0, 74, -34, 101, -88, 0, 98, 1, 0, 57, -71, 101, -88, 0,
+    // 71, 0, 63, 0, 1, 0, 0, 32, 82, 48, 71, 92, -89, 0, 63, 0, -46, 0, 10, 19, 19, -32, 44, 94,
+    // -46, 0, 63, 0, 0, 0, 105, 3, 10, -115, -95, 123, -38, 0, 63, 0, 0, 1, -62, 60, -60, -72, 1,
+    // 68, 115, 0, 63, 1, -9, 0, 0, -120, 37, -109, 93, -34, 113}
     //  Path: Path header:   currINF=0  currHP=0  reserved=0  seg0Len=3  seg1Len=2  seg2Len=0
-    //  info0=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, P=false, C=false, reserved=0, segID=19166, timestamp=1705508962}
-    //  info1=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, P=false, C=true, reserved=0, segID=14777, timestamp=1705508935}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=1, consEgress=0, mac=35537369390247}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=210, consEgress=10, mac=20976086310610}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=0, consEgress=105, mac=3343860726746}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=0, consEgress=450, mac=66815598347379}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=503, consEgress=0, mac=149694967570033}
+    //  info0=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false,
+    // P=false, C=false, reserved=0, segID=19166, timestamp=1705508962}
+    //  info1=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false,
+    // P=false, C=true, reserved=0, segID=14777, timestamp=1705508935}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=1, consEgress=0, mac=35537369390247}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=210, consEgress=10, mac=20976086310610}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=0, consEgress=105, mac=3343860726746}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=0, consEgress=450, mac=66815598347379}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=503, consEgress=0, mac=149694967570033}
 
     // Daemon:
-    byte[] rawD = {0, 0, 48, -128, 0, 0, -116, -7, 101, -89, -1, -82, 1, 0, 1, -128, 101, -89, -1, 35, 0, 63, 0, 1, 0, 0, 94, 121, 68, 75, 63, 93, 0, 63, 0, -46, 0, 10, -95, -112, 64, 86, 104, -11, 0, 63, 0, 0, 0, 105, 106, 123, 120, -36, 116, -79, 0, 63, 0, 0, 1, -62, -76, 53, 48, -6, 108, -46, 0, 63, 1, -9, 0, 0, 122, -101, -88, 24, 66, 53};
+    byte[] rawD = {
+      0, 0, 48, -128, 0, 0, -116, -7, 101, -89, -1, -82, 1, 0, 1, -128, 101, -89, -1, 35, 0, 63, 0,
+      1, 0, 0, 94, 121, 68, 75, 63, 93, 0, 63, 0, -46, 0, 10, -95, -112, 64, 86, 104, -11, 0, 63, 0,
+      0, 0, 105, 106, 123, 120, -36, 116, -79, 0, 63, 0, 0, 1, -62, -76, 53, 48, -6, 108, -46, 0,
+      63, 1, -9, 0, 0, 122, -101, -88, 24, 66, 53
+    };
     //  Path: Path header:   currINF=0  currHP=0  reserved=0  seg0Len=3  seg1Len=2  seg2Len=0
-    //  info0=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, P=false, C=false, reserved=0, segID=36089, timestamp=1705508782}
-    //  info1=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, P=false, C=true, reserved=0, segID=384, timestamp=1705508643}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=1, consEgress=0, mac=103874929835869}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=210, consEgress=10, mac=177640926767349}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=0, consEgress=105, mac=117078541235377}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=0, consEgress=450, mac=198140547984594}
-    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false, E=false, expiryTime=63, consIngress=503, consEgress=0, mac=134808958681653}
+    //  info0=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false,
+    // P=false, C=false, reserved=0, segID=36089, timestamp=1705508782}
+    //  info1=InfoField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false,
+    // P=false, C=true, reserved=0, segID=384, timestamp=1705508643}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=1, consEgress=0, mac=103874929835869}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=210, consEgress=10, mac=177640926767349}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=0, consEgress=105, mac=117078541235377}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=0, consEgress=450, mac=198140547984594}
+    //  hop=HopField{r0=false, r1=false, r2=false, r3=false, r4=false, r5=false, r6=false, I=false,
+    // E=false, expiryTime=63, consIngress=503, consEgress=0, mac=134808958681653}
   }
 
   @Disabled

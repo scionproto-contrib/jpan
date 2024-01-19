@@ -308,7 +308,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     Path actualPath = buildHeader(path, len, org.scion.internal.Constants.HdrTypes.SCMP);
     ScmpParser.buildScmpPing(buffer, getLocalAddress().getPort(), sequenceNumber, data);
     buffer.flip();
-    channel.disconnect(); // TODO !!!!!!!!
     channel.send(buffer, actualPath.getFirstHopAddress());
   }
 
@@ -318,7 +317,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     Path actualPath = buildHeader(path, len, org.scion.internal.Constants.HdrTypes.HOP_BY_HOP);
     ScmpParser.buildExtensionHeader(buffer, org.scion.internal.Constants.HdrTypes.SCMP);
     ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), sequenceNumber);
-
     buffer.flip();
     channel.send(buffer, actualPath.getFirstHopAddress());
   }

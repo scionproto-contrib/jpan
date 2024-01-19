@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.scion.demo.DemoConstants;
 import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 
@@ -30,29 +31,13 @@ public class ProtobufPathDemo {
   private final ScionService service;
 
   public static void main(String[] args) {
-    String daemon110_tiny = "127.0.0.12:30255";
-    String daemon111_tiny = "127.0.0.19:30255";
-    String daemon110_minimal = "127.0.0.29:30255";
-    String daemon111_minimal = "127.0.0.37:30255";
-    String daemon1111_minimal = "127.0.0.43:30255";
-    String daemon210_minimal = "127.0.0.92:30255";
-    long ia110 = ScionUtil.parseIA("1-ff00:0:110");
-    long ia111 = ScionUtil.parseIA("1-ff00:0:111");
-    long ia1111 = ScionUtil.parseIA("1-ff00:0:1111");
-    long ia1112 = ScionUtil.parseIA("1-ff00:0:1112");
-    long ia112 = ScionUtil.parseIA("1-ff00:0:112");
-    long ia1121 = ScionUtil.parseIA("1-ff00:0:1121");
-    long ia120 = ScionUtil.parseIA("1-ff00:0:120");
-    long ia121 = ScionUtil.parseIA("1-ff00:0:121");
-    long ia210 = ScionUtil.parseIA("2-ff00:0:210");
-    long ia211 = ScionUtil.parseIA("2-ff00:0:211");
-
-    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(daemon1111_minimal)) {
+    try (Scion.CloseableService daemon =
+        Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(ia1111, ia1121);
+      demo.testPathsDaemon(DemoConstants.ia1111, DemoConstants.ia1121);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -125,7 +110,7 @@ public class ProtobufPathDemo {
     }
   }
 
-  private void testPathsControlService(long srcIA, long dstIA) throws ScionException {
+  private void testPathsControlService(long srcIA, long dstIA) {
     System.out.println("testPathsControlService()");
     String addr110 = "127.0.0.11:31000";
     String addr111 = "127.0.0.18:31006";

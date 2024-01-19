@@ -285,8 +285,7 @@ public class ScionService {
    * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress)
-      throws IOException {
+  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress) {
     return getPaths(dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort());
   }
 
@@ -311,8 +310,7 @@ public class ScionService {
    * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort)
-      throws IOException {
+  public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort) {
     long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {

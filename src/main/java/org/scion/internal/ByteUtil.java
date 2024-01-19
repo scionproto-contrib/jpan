@@ -87,6 +87,14 @@ public class ByteUtil {
     return (byte) (code <= 127 ? code : code - 256);
   }
 
+  public static short toShort(long code) {
+    return (short) (code <= Short.MAX_VALUE ? code : (code - (1 << Short.SIZE)));
+  }
+
+  public static int toInt(long code) {
+    return (int) (code <= Integer.MAX_VALUE ? code : (code - (1L << Integer.SIZE)));
+  }
+
   public static int toUnsigned(byte code) {
     return code >= 0 ? code : ((int) code) + (1 << 8);
   }

@@ -14,9 +14,9 @@
 
         <scion.dnsjava.version>3.5.3</scion.dnsjava.version>
         <scion.google-java-format.version>1.18.1</scion.google-java-format.version>
-        <scion.io-grpc.version>1.59.0</scion.io-grpc.version>
+        <scion.io-grpc.version>1.61.0</scion.io-grpc.version>
         <scion.junit.version>5.10.1</scion.junit.version>
-        <scion.protobuf.version>3.23.0</scion.protobuf.version>
+        <scion.protobuf.version>3.25.2</scion.protobuf.version>
         <scion.os72-protoc.version>3.11.4</scion.os72-protoc.version>
         <scion.slf4j.version>2.0.9</scion.slf4j.version>
 
@@ -97,7 +97,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protoc</artifactId>
-            <version>3.24.0</version>
+            <version>${scion.protobuf.version}</version>
             <type>pom</type>
         </dependency>
 

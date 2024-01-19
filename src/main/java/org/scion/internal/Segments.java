@@ -195,19 +195,23 @@ public class Segments {
     }
 
     // hop fields
+    int bytePosSegID = 6; // 4 bytes path head + 2 byte flag in first info field
     // TODO clean up: Create [] of seg/info and loop inside write() method
     ByteUtil.MutInt minMtu = new ByteUtil.MutInt(brLookup.getLocalMtu());
     ByteUtil.MutInt minExpirationDelta = new ByteUtil.MutInt(Byte.MAX_VALUE);
-    writeHopFields(path, raw, seg0, reversed0, minExpirationDelta, minMtu);
+    writeHopFields(path, raw, bytePosSegID, seg0, reversed0, minExpirationDelta, minMtu);
+    bytePosSegID += 8;
+    // xorSegID(raw, 0, path, )
     long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     if (seg1 != null) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, seg1, reversed1, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, bytePosSegID, seg1, reversed1, minExpirationDelta, minMtu);
+      bytePosSegID += 8;
       minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
     if (seg2 != null) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, seg2, false, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, bytePosSegID, seg2, false, minExpirationDelta, minMtu);
       minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
 
@@ -256,12 +260,13 @@ public class Segments {
     int inf0 = ((reversed ? 0 : 1) << 24) | info.getSegmentId();
     raw.putInt(inf0);
     // TODO in the daemon's path, all segments have the same timestamp....
-    raw.putInt((int) info.getTimestamp()); // TODO does this work? casting to int?
+    raw.putInt(ByteUtil.toInt(info.getTimestamp()));
   }
 
   private static void writeHopFields(
       Daemon.Path.Builder path,
       ByteBuffer raw,
+      int bytePosSegID,
       Seg.PathSegment pathSegment,
       boolean reversed,
       ByteUtil.MutInt minExp,
@@ -274,12 +279,16 @@ public class Segments {
       Seg.HopField hopField = body.getHopEntry().getHopField();
 
       raw.put((byte) 0);
-      raw.put((byte) hopField.getExpTime()); // TODO cast to byte,...?
-      raw.putShort((short) hopField.getIngress());
-      raw.putShort((short) hopField.getEgress());
+      raw.put(ByteUtil.toByte(hopField.getExpTime()));
+      raw.putShort(ByteUtil.toShort(hopField.getIngress()));
+      raw.putShort(ByteUtil.toShort(hopField.getEgress()));
       ByteString mac = hopField.getMac();
       for (int j = 0; j < 6; j++) {
         raw.put(mac.byteAt(j));
+      }
+      if (reversed && i > 0) {
+        raw.put(bytePosSegID, ByteUtil.toByte(raw.get(bytePosSegID) ^ mac.byteAt(0)));
+        raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
       minExp.v = Math.min(minExp.v, hopField.getExpTime());
       // TODO implement for "reversed"?
@@ -500,6 +509,7 @@ public class Segments {
     List<Seg.SegmentsResponse> segments = new ArrayList<>();
     if (!brLookup.isLocalAsCore()) {
       // get UP segments
+      // TODO find out if dstIsAs is core and directly ask for it.
       Seg.SegmentsResponse segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
       boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
       if (containsIsdAs[1]) {
