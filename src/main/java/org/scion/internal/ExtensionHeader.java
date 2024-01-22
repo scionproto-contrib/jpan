@@ -55,8 +55,8 @@ public class ExtensionHeader {
         + '}';
   }
 
-  public Constants.HdrTypes nextHdr() {
-    return Constants.HdrTypes.parse(nextHdr);
+  public InternalConstants.HdrTypes nextHdr() {
+    return InternalConstants.HdrTypes.parse(nextHdr);
   }
 
   public int getExtLenBytes() {

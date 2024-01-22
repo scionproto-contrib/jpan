@@ -20,6 +20,7 @@ import org.scion.*;
 import org.scion.Scmp;
 import org.scion.testutil.MockDNS;
 
+@Deprecated // TODO remove
 public class ScmpTracerouteDemo {
 
   private static final boolean PRINT = ScmpServerDemo.PRINT;
@@ -60,30 +61,30 @@ public class ScmpTracerouteDemo {
   }
 
   private static void doClientStuff() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
-      channel.configureBlocking(true);
-
-      InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:112");
-      // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
-      Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
-
-      channel.setScmpErrorListener(ScmpTracerouteDemo::errorListener);
-      channel.setTracerouteListener(ScmpTracerouteDemo::traceListener);
-
-      if (PRINT) {
-        System.out.println("Client running on: " + channel.getLocalAddress());
-        System.out.println("Sending traceroute request ...");
-      }
-      // TODO match id + sn
-      channel.sendTracerouteRequest(path, 0);
-
-      if (PRINT) {
-        System.out.println("Waiting ...");
-      }
-      channel.receive(null);
-
-      channel.disconnect();
-    }
+    //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
+    //      channel.configureBlocking(true);
+    //
+    //      InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
+    //      long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+    //      // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
+    //      Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
+    //
+    //      channel.setScmpErrorListener(ScmpTracerouteDemo::errorListener);
+    //      channel.setTracerouteListener(ScmpTracerouteDemo::traceListener);
+    //
+    //      if (PRINT) {
+    //        System.out.println("Client running on: " + channel.getLocalAddress());
+    //        System.out.println("Sending traceroute request ...");
+    //      }
+    //      // TODO match id + sn
+    //      channel.sendTracerouteRequest(path, 0, null);
+    //
+    //      if (PRINT) {
+    //        System.out.println("Waiting ...");
+    //      }
+    //      channel.receive(null);
+    //
+    //      channel.disconnect();
+    //    }
   }
 }

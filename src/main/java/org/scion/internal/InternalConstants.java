@@ -14,7 +14,7 @@
 
 package org.scion.internal;
 
-public interface Constants {
+public interface InternalConstants {
 
   interface ParseEnum {
 

@@ -23,7 +23,8 @@ import org.scion.ResponsePath;
 import org.scion.ScionUtil;
 import org.scion.Scmp;
 
-/** A demo server that responds to SCMP ECHO and TRACEROUTE requests. */
+/** A demo server that responds to SCMP ECHO requests. */
+@Deprecated // TODO remove
 public class ScmpServerDemo {
 
   public static final int PORT = 55555;
@@ -54,27 +55,6 @@ public class ScmpServerDemo {
     }
   }
 
-  public void reflectTraceroute(Scmp.ScmpTraceroute msg) {
-    try {
-      ResponsePath path = (ResponsePath) msg.getPath();
-      if (PRINT) {
-        System.out.println(
-            "Received TRACEROUTE from client: "
-                + ScionUtil.toStringIA(path.getDestinationIsdAs())
-                + " "
-                + Arrays.toString(path.getDestinationAddress())
-                + " "
-                + path.getDestinationPort());
-      }
-      channel.sendTracerouteRequest(path, msg.getSequenceNumber());
-      if (PRINT) {
-        System.out.println("Sent TRACEROUTE to client");
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public static void main(String[] args) throws IOException {
     new ScmpServerDemo().run();
   }
@@ -84,7 +64,6 @@ public class ScmpServerDemo {
     try (DatagramChannel channel = DatagramChannel.open().bind(address)) {
       this.channel = channel;
       channel.setEchoListener(this::reflectEcho);
-      channel.setTracerouteListener(this::reflectTraceroute);
       if (PRINT) {
         System.out.println("Server started at: " + address);
       }

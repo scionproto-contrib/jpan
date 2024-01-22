@@ -14,6 +14,9 @@
 
 package org.scion;
 
+import java.io.IOException;
+import java.util.List;
+
 public class Scmp {
 
   interface ParseEnum {
@@ -119,10 +122,11 @@ public class Scmp {
 
     TYPE_5(5, 0, ""),
     TYPE_6(6, 0, ""),
-    TYPE_128(128, 0, ""),
-    TYPE_129(129, 0, ""),
-    TYPE_130(130, 0, ""),
-    TYPE_131(131, 0, "");
+
+    TYPE_128(128, 0, "Echo Request"),
+    TYPE_129(129, 0, "Echo Reply"),
+    TYPE_130(130, 0, "Traceroute Request"),
+    TYPE_131(131, 0, "Traceroute Reply");
 
     final int type;
     final int id;
@@ -215,9 +219,78 @@ public class Scmp {
   }
 
   public static class ScmpTraceroute extends ScmpMessage {
+
+    private final long isdAs;
+    private final long ifID;
+
     /** DO NOT USE! */
     public ScmpTraceroute(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
-      super(typeCode, identifier, sequenceNumber, path);
+      this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
+
+    public ScmpTraceroute(
+        ScmpTypeCode typeCode,
+        int identifier,
+        int sequenceNumber,
+        long isdAs,
+        long ifID,
+        Path path) {
+      super(typeCode, identifier, sequenceNumber, path);
+      this.isdAs = isdAs;
+      this.ifID = ifID;
+    }
+
+    public long getIsdAs() {
+      return isdAs;
+    }
+
+    public long getIfID() {
+      return ifID;
+    }
+
+    @Override
+    public String toString() {
+      String echoMsgStr = getTypeCode().getText();
+      echoMsgStr += " scmp_seq=" + getSequenceNumber();
+      echoMsgStr += " " + ScionUtil.toStringIA(getIsdAs()) + " IfID=" + getIfID();
+      return echoMsgStr;
+    }
+  }
+
+  public static class Result<T extends Scmp.ScmpMessage> {
+    public final T message;
+    public final long nanoSeconds;
+
+    public Result(T message, long nanoSeconds) {
+      this.message = message;
+      this.nanoSeconds = nanoSeconds;
+    }
+  }
+
+  /**
+   * Send a SCMP traceroute request.
+   *
+   * @param path Path to destination
+   * @return List of returned messages and time that has passed
+   * @throws IOException In case of IOException, e.g. SCMP error.
+   */
+  @Deprecated
+  public static List<Result<Scmp.ScmpTraceroute>> sendTracerouteRequest(RequestPath path)
+      throws IOException {
+    return new ScmpChannel(path).sendTraceroute();
+  }
+
+  /**
+   * Send a SCMP traceroute request.
+   *
+   * @param path Path to destination
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return List of returned messages and time that has passed
+   * @throws IOException In case of IOException, e.g. SCMP error.
+   */
+  @Deprecated
+  public static List<Result<Scmp.ScmpTraceroute>> sendTracerouteRequest(
+      RequestPath path, int listeningPort) throws IOException {
+    return new ScmpChannel(path, listeningPort).sendTraceroute();
   }
 }
