@@ -222,30 +222,66 @@ public class DatagramChannel implements ByteChannel, Closeable {
     }
   }
 
-  private void receiveNonDataPacket(InternalConstants.HdrTypes hdrType, ResponsePath path)
+  synchronized Scmp.ScmpMessage receiveScmp() throws IOException {
+    while (true) {
+      buffer.clear();
+      InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
+      if (srcAddress == null) {
+        // this indicates nothing is available
+        return null;
+      }
+      buffer.flip();
+
+      String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null) {
+        if (cfgReportFailedValidation) {
+          throw new ScionException(validationResult);
+        }
+        continue;
+      }
+
+      InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+      ResponsePath path = ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
+      if (hdrType == InternalConstants.HdrTypes.UDP) {
+        // ignore
+        buffer.clear();
+      } else {
+        // From here on we use linear reading using the buffer's own position mechanism
+        buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+        Object result = receiveNonDataPacket(hdrType, path);
+        if (result instanceof Scmp.ScmpMessage) {
+          return (Scmp.ScmpMessage) result;
+        }
+        // ignore
+      }
+    }
+  }
+
+  private Object receiveNonDataPacket(InternalConstants.HdrTypes hdrType, ResponsePath path)
       throws ScionException {
     switch (hdrType) {
       case HOP_BY_HOP:
       case END_TO_END:
-        receiveExtension(path);
-        break;
+        return receiveExtension(path);
+        // break;
       case SCMP:
-        receiveScmp(path);
-        break;
+        return receiveScmp(path);
+        // break;
       default:
         if (cfgReportFailedValidation) {
           throw new ScionException("Unknown nextHdr: " + hdrType);
         }
     }
+    return null;
   }
 
-  private void receiveExtension(ResponsePath path) throws ScionException {
+  private Object receiveExtension(ResponsePath path) throws ScionException {
     ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
     // Currently we are not doing much here except hoping for an SCMP header
-    receiveNonDataPacket(extHdr.nextHdr(), path);
+    return receiveNonDataPacket(extHdr.nextHdr(), path);
   }
 
-  private void receiveScmp(Path path) {
+  private Scmp.ScmpMessage receiveScmp(Path path) {
     Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
     if (scmpMsg instanceof Scmp.ScmpEcho) {
       if (pingListener != null) {
@@ -260,6 +296,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
         errorListener.accept(scmpMsg);
       }
     }
+    return scmpMsg;
   }
 
   /**
@@ -312,8 +349,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.send(buffer, actualPath.getFirstHopAddress());
   }
 
-  @Deprecated
-  public void sendTracerouteRequest(Path path, int interfaceNumber, PathHeaderParser.Node node)
+  void sendTracerouteRequest(Path path, int interfaceNumber, PathHeaderParser.Node node)
       throws IOException {
     // TracerouteHeader=24
     int len = 24;

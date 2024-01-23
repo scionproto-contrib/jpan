@@ -53,7 +53,7 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.PRODUCTION;
+  private static final Network network = Network.MINIMAL_PROTO;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     switch (network) {
@@ -81,6 +81,7 @@ public class ScmpEchoDemo {
           //          Scion.newServiceWithDaemon(DemoConstants.daemon111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
           demo.doClientStuff(DemoConstants.ia211);
+          // demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
@@ -113,6 +114,36 @@ public class ScmpEchoDemo {
   private String getPassedMillies() {
     long nanos = Instant.now().getNano() - nowNanos.get();
     return String.format("%.4f", nanos / (double) 1_000_000);
+  }
+
+  // TODO This method uses the new SCMP API but adds 4-5ms per ping.... ?!?!?!
+  private void runDemo(long destinationIA) throws IOException {
+    ScionService service = Scion.defaultService();
+    // dummy address
+    InetSocketAddress destinationAddress =
+        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
+    List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
+    RequestPath path = paths.get(0);
+
+    System.out.println("Listening at port " + localPort + " ...");
+
+    ByteBuffer data = ByteBuffer.allocate(0);
+    try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
+      for (int i = 0; i < 5; i++) {
+        Scmp.Result<Scmp.ScmpEcho> result = scmpChannel.sendEchoRequest(i, data);
+        Scmp.ScmpEcho msg = result.message;
+        String millis = String.format("%.4f", result.nanoSeconds / (double) 1_000_000);
+        String echoMsgStr = msg.getTypeCode().getText();
+        echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
+        echoMsgStr += " time=" + millis + "ms";
+        println("Received: " + echoMsgStr);
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
   }
 
   private void doClientStuff(long destinationIA) throws IOException {

@@ -277,7 +277,7 @@ public class Scmp {
   @Deprecated
   public static List<Result<Scmp.ScmpTraceroute>> sendTracerouteRequest(RequestPath path)
       throws IOException {
-    return new ScmpChannel(path).sendTraceroute();
+    return new ScmpChannel(path).sendTracerouteRequest();
   }
 
   /**
@@ -291,6 +291,29 @@ public class Scmp {
   @Deprecated
   public static List<Result<Scmp.ScmpTraceroute>> sendTracerouteRequest(
       RequestPath path, int listeningPort) throws IOException {
-    return new ScmpChannel(path, listeningPort).sendTraceroute();
+    return new ScmpChannel(path, listeningPort).sendTracerouteRequest();
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param path Path to destination
+   * @return New SCMP channel
+   */
+  @Deprecated
+  public static ScmpChannel createChannel(RequestPath path) throws IOException {
+    return new ScmpChannel(path);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param path Path to destination
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  @Deprecated
+  public static ScmpChannel createChannel(RequestPath path, int listeningPort) throws IOException {
+    return new ScmpChannel(path, listeningPort);
   }
 }

@@ -69,7 +69,7 @@ public class ScmpTracerouteDemo {
           Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
           // Scion.newServiceWithDaemon(DemoConstants.daemon110_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(DemoConstants.iaOVGU);
+          demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
@@ -94,16 +94,17 @@ public class ScmpTracerouteDemo {
 
     System.out.println("Listening at port " + localPort + " ...");
 
-    List<Scmp.Result<Scmp.ScmpTraceroute>> results = Scmp.sendTracerouteRequest(path, localPort);
-    for (Scmp.Result<Scmp.ScmpTraceroute> r : results) {
-      Scmp.ScmpTraceroute msg = r.message;
-      String millies = String.format("%.4f", r.nanoSeconds / (double) 1_000_000);
-
-      String echoMsgStr = msg.getTypeCode().getText();
-      echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
-      echoMsgStr += " " + ScionUtil.toStringIA(msg.getIsdAs()) + " IfID=" + msg.getIfID();
-      echoMsgStr += " time=" + millies + "ms";
-      println("Received: " + echoMsgStr);
+    try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
+      List<Scmp.Result<Scmp.ScmpTraceroute>> results = scmpChannel.sendTracerouteRequest();
+      for (Scmp.Result<Scmp.ScmpTraceroute> r : results) {
+        Scmp.ScmpTraceroute msg = r.message;
+        String millis = String.format("%.4f", r.nanoSeconds / (double) 1_000_000);
+        String echoMsgStr = msg.getTypeCode().getText();
+        echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
+        echoMsgStr += " " + ScionUtil.toStringIA(msg.getIsdAs()) + " IfID=" + msg.getIfID();
+        echoMsgStr += " time=" + millis + "ms";
+        println("Received: " + echoMsgStr);
+      }
     }
   }
 
