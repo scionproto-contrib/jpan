@@ -25,7 +25,6 @@ public class ScmpTracerouteDemo {
 
   public static final boolean PRINT = true;
   private final int localPort;
-  private final long destinationIA;
 
   private enum Network {
     MOCK_TOPOLOGY, // SCION Java JUnit mock network
@@ -34,13 +33,12 @@ public class ScmpTracerouteDemo {
     PRODUCTION // production network
   }
 
-  public ScmpTracerouteDemo(long destinationIA) {
-    this(destinationIA, 12345);
+  public ScmpTracerouteDemo() {
+    this(12345);
   }
 
-  public ScmpTracerouteDemo(long destinationIA, int port) {
-    this.destinationIA = destinationIA;
-    localPort = port;
+  public ScmpTracerouteDemo(int localPort) {
+    this.localPort = localPort;
   }
 
   private static final Network network = Network.MINIMAL_PROTO;
@@ -53,8 +51,8 @@ public class ScmpTracerouteDemo {
           //          MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.ia110);
-          demo.runDemo();
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          demo.runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
         }
@@ -62,16 +60,16 @@ public class ScmpTracerouteDemo {
         {
           // Scion.newServiceWithTopologyFile("topologies/scionproto-tiny-110.json");
           Scion.newServiceWithDaemon(DemoConstants.daemon110_tiny);
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.ia110);
-          demo.runDemo();
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          demo.runDemo(DemoConstants.ia110);
           break;
         }
       case MINIMAL_PROTO:
         {
           Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
           // Scion.newServiceWithDaemon(DemoConstants.daemon110_minimal);
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.iaOVGU);
-          demo.runDemo();
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          demo.runDemo(DemoConstants.iaOVGU);
           break;
         }
       case PRODUCTION:
@@ -79,14 +77,14 @@ public class ScmpTracerouteDemo {
           // Scion.newServiceWithDNS("inf.ethz.ch");
           Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.iaOVGU, 30041);
-          demo.runDemo();
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
+          demo.runDemo(DemoConstants.iaOVGU);
           break;
         }
     }
   }
 
-  private void runDemo() throws IOException {
+  private void runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // dummy address
     InetSocketAddress destinationAddress =

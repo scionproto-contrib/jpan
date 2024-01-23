@@ -32,7 +32,6 @@ public class ScmpEchoDemo {
   private final ByteBuffer sendBuffer = ByteBuffer.allocateDirect(8);
   private final int localPort;
   private DatagramChannel channel;
-  private final long destinationIA;
   private Path path;
 
   /**
@@ -46,16 +45,15 @@ public class ScmpEchoDemo {
     PRODUCTION // production network
   }
 
-  public ScmpEchoDemo(long destinationIA) {
-    this(destinationIA, 12345);
+  public ScmpEchoDemo() {
+    this(12345);
   }
 
-  public ScmpEchoDemo(long destinationIA, int port) {
-    this.destinationIA = destinationIA;
-    localPort = port;
+  public ScmpEchoDemo(int localPort) {
+    this.localPort = localPort;
   }
 
-  private static final Network network = Network.MINIMAL_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     switch (network) {
@@ -63,8 +61,8 @@ public class ScmpEchoDemo {
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.ia110);
-          demo.doClientStuff();
+          ScmpEchoDemo demo = new ScmpEchoDemo();
+          demo.doClientStuff(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
         }
@@ -72,8 +70,8 @@ public class ScmpEchoDemo {
         {
           DemoTopology.configureTiny110_112();
           MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.ia110);
-          demo.doClientStuff();
+          ScmpEchoDemo demo = new ScmpEchoDemo();
+          demo.doClientStuff(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
         }
@@ -81,8 +79,8 @@ public class ScmpEchoDemo {
         {
           Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_111/topology.json");
           //          Scion.newServiceWithDaemon(DemoConstants.daemon111_minimal);
-          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.ia211);
-          demo.doClientStuff();
+          ScmpEchoDemo demo = new ScmpEchoDemo();
+          demo.doClientStuff(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
@@ -90,8 +88,8 @@ public class ScmpEchoDemo {
           // Scion.newServiceWithDNS("inf.ethz.ch");
           Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
-          ScmpEchoDemo demo = new ScmpEchoDemo(DemoConstants.iaOVGU, 30041);
-          demo.doClientStuff();
+          ScmpEchoDemo demo = new ScmpEchoDemo(30041);
+          demo.doClientStuff(DemoConstants.iaOVGU);
           break;
         }
     }
@@ -117,7 +115,7 @@ public class ScmpEchoDemo {
     return String.format("%.4f", nanos / (double) 1_000_000);
   }
 
-  private void doClientStuff() throws IOException {
+  private void doClientStuff(long destinationIA) throws IOException {
     //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
     // InetSocketAddress local = new InetSocketAddress("127.0.0.1", 34567);
     InetSocketAddress local = new InetSocketAddress("0.0.0.0", localPort);
