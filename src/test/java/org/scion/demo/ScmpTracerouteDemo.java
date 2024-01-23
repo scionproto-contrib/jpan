@@ -23,7 +23,7 @@ import org.scion.testutil.MockDNS;
 
 public class ScmpTracerouteDemo {
 
-  private static final boolean PRINT = ScmpServerDemo.PRINT;
+  public static final boolean PRINT = true;
   private final int localPort;
   private final long destinationIA;
 
@@ -54,7 +54,7 @@ public class ScmpTracerouteDemo {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.ia110);
-          demo.doClientStuff();
+          demo.runDemo();
           DemoTopology.shutDown();
           break;
         }
@@ -63,8 +63,7 @@ public class ScmpTracerouteDemo {
           // Scion.newServiceWithTopologyFile("topologies/scionproto-tiny-110.json");
           Scion.newServiceWithDaemon(DemoConstants.daemon110_tiny);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.ia110);
-          demo.doClientStuff();
-          DemoTopology.shutDown();
+          demo.runDemo();
           break;
         }
       case MINIMAL_PROTO:
@@ -72,7 +71,7 @@ public class ScmpTracerouteDemo {
           Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
           // Scion.newServiceWithDaemon(DemoConstants.daemon110_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.iaOVGU);
-          demo.doClientStuff();
+          demo.runDemo();
           break;
         }
       case PRODUCTION:
@@ -81,13 +80,13 @@ public class ScmpTracerouteDemo {
           Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.iaOVGU, 30041);
-          demo.doClientStuff();
+          demo.runDemo();
           break;
         }
     }
   }
 
-  private void doClientStuff() throws IOException {
+  private void runDemo() throws IOException {
     ScionService service = Scion.defaultService();
     // dummy address
     InetSocketAddress destinationAddress =

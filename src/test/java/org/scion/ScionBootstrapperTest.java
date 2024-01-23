@@ -17,12 +17,14 @@ package org.scion;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Paths;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.demo.DemoConstants;
 import org.scion.internal.ScionBootstrapper;
 
 public class ScionBootstrapperTest {
 
+  @Disabled // This requires access to the SCION production network
   @Test
   void testETH_bootstrapServer() {
     String bootETH = "129.132.121.175:8041";

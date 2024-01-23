@@ -26,8 +26,8 @@ import org.scion.testutil.MockDNS;
 
 public class ScmpEchoDemo {
 
-  private static final boolean PRINT = ScmpServerDemo.PRINT;
-  private static final int PORT = ScmpServerDemo.PORT;
+  private static final boolean PRINT = true;
+  private static final int PORT = 12345;
   private final AtomicLong nowNanos = new AtomicLong();
   private final ByteBuffer sendBuffer = ByteBuffer.allocateDirect(8);
   private final int localPort;

@@ -50,7 +50,7 @@ public class ScionServiceTest {
   }
 
   @Test
-  void testWrongDaemonAddress() throws IOException {
+  void testWrongDaemonAddress() {
     String daemonAddr = "127.0.0.112:12345";
     ScionRuntimeException thrown =
         assertThrows(ScionRuntimeException.class, () -> Scion.newServiceWithDaemon(daemonAddr));

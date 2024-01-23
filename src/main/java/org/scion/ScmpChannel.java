@@ -15,7 +15,6 @@
 package org.scion;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
@@ -31,7 +30,7 @@ class ScmpChannel {
   private int currentInterface;
   private final int localPort;
   private DatagramChannel channel;
-  private RequestPath path;
+  private final RequestPath path;
   private List<PathHeaderParser.Node> nodes;
 
   private final List<Scmp.Result<Scmp.ScmpTraceroute>> result = new ArrayList<>();
@@ -48,7 +47,7 @@ class ScmpChannel {
 
   private void traceListener(Scmp.ScmpTraceroute msg) {
     long nanos = Instant.now().getNano() - nowNanos.get();
-    result.add(new Scmp.Result(msg, nanos));
+    result.add(new Scmp.Result<>(msg, nanos));
     send();
   }
 
@@ -56,11 +55,6 @@ class ScmpChannel {
     error = msg;
     Thread.currentThread().interrupt();
     throw new RuntimeException();
-  }
-
-  private String getPassedMillies() {
-    long nanos = Instant.now().getNano() - nowNanos.get();
-    return String.format("%.4f", nanos / (double) 1_000_000);
   }
 
   public List<Scmp.Result<Scmp.ScmpTraceroute>> sendTraceroute() throws IOException {
@@ -73,8 +67,6 @@ class ScmpChannel {
       channel.setScmpErrorListener(this::errorListener);
       channel.setTracerouteListener(this::traceListener);
 
-      InetSocketAddress destinationAddress =
-          new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 23456);
       nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
 
       Thread thread =
