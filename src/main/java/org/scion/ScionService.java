@@ -223,6 +223,9 @@ public class ScionService {
     try {
       response = daemonStub.aS(request);
     } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode() == Status.Code.UNAVAILABLE) {
+        throw new ScionRuntimeException("Could not connect to SCION daemon: " + e.getMessage(), e);
+      }
       throw new ScionRuntimeException("Error while getting AS info: " + e.getMessage(), e);
     }
     return response;

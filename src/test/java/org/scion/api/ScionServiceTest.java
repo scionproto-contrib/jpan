@@ -54,7 +54,7 @@ public class ScionServiceTest {
     String daemonAddr = "127.0.0.112:12345";
     ScionRuntimeException thrown =
         assertThrows(ScionRuntimeException.class, () -> Scion.newServiceWithDaemon(daemonAddr));
-    assertTrue(thrown.getMessage().startsWith("Error while getting AS info:"), thrown.getMessage());
+    assertTrue(thrown.getMessage().startsWith("Could not connect"), thrown.getMessage());
   }
 
   @Test

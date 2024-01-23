@@ -77,10 +77,9 @@
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
   - Test!
-  - FIX: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
+  - BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)
-  - Fix: Remove TRACE demo and fix invalid packet size in SCMP demo
 - FIX: Document or improve ERROR: "TRC NOT FOUND" when requesting path to non-existing AS (down segment?) 
 - Document:local scionproto-network returns no path -> recreate with -c topology!
 - Docs:
@@ -123,6 +122,8 @@ Discuss required for 0.1.0:
   returns a normal Java UDP DatagramChannel? Which Interface?
 - https for topology server?
 - Secure DNS requests?
+- Reconsider handling of expired path on server side. Try requesting a new path?
+  Throw exception? Callback?
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...

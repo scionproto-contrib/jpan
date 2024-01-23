@@ -17,6 +17,7 @@ package org.scion.internal;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -453,6 +454,16 @@ public class Segments {
       }
       return response;
     } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)
+          && e.getMessage().contains("TRC not found")) {
+        String msg = ScionUtil.toStringIA(srcIsdAs) + " / " + ScionUtil.toStringIA(dstIsdAs);
+        throw new ScionRuntimeException(
+            "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+      }
+      if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
+        throw new ScionRuntimeException(
+            "Error while getting Segments: cannot connect to SCION network", e);
+      }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
     }
   }

@@ -16,75 +16,103 @@ package org.scion.demo;
 
 import java.io.*;
 import java.net.*;
+import java.util.List;
 import org.scion.*;
 import org.scion.Scmp;
 import org.scion.testutil.MockDNS;
 
-@Deprecated // TODO remove
 public class ScmpTracerouteDemo {
 
   private static final boolean PRINT = ScmpServerDemo.PRINT;
-  public static int PORT = ScmpServerDemo.PORT;
+  private final int localPort;
+  private final long destinationIA;
 
-  /**
-   * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
-   * service via ScionProto "tiny" topology
-   */
-  public static boolean USE_MOCK_TOPOLOGY = false;
+  private enum Network {
+    MOCK_TOPOLOGY, // SCION Java JUnit mock network
+    TINY_PROTO, // Try to connect to "tiny" scionproto network
+    MINIMAL_PROTO, // Try to connect to "minimal" scionproto network
+    PRODUCTION // production network
+  }
+
+  public ScmpTracerouteDemo(long destinationIA) {
+    this(destinationIA, 12345);
+  }
+
+  public ScmpTracerouteDemo(long destinationIA, int port) {
+    this.destinationIA = destinationIA;
+    localPort = port;
+  }
+
+  private static final Network network = Network.MINIMAL_PROTO;
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    // Demo setup
-    if (USE_MOCK_TOPOLOGY) {
-      DemoTopology.configureMock();
-      MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-      doClientStuff();
-      DemoTopology.shutDown();
-    } else {
-      DemoTopology.configureTiny110_112();
-      MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-      doClientStuff();
-      DemoTopology.shutDown();
+    switch (network) {
+      case MOCK_TOPOLOGY:
+        {
+          //          DemoTopology.configureTiny110_112();
+          //          MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
+          DemoTopology.configureMock();
+          MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.ia110);
+          demo.doClientStuff();
+          DemoTopology.shutDown();
+          break;
+        }
+      case TINY_PROTO:
+        {
+          // Scion.newServiceWithTopologyFile("topologies/scionproto-tiny-110.json");
+          Scion.newServiceWithDaemon(DemoConstants.daemon110_tiny);
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.ia110);
+          demo.doClientStuff();
+          DemoTopology.shutDown();
+          break;
+        }
+      case MINIMAL_PROTO:
+        {
+          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
+          // Scion.newServiceWithDaemon(DemoConstants.daemon110_minimal);
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.iaOVGU);
+          demo.doClientStuff();
+          break;
+        }
+      case PRODUCTION:
+        {
+          // Scion.newServiceWithDNS("inf.ethz.ch");
+          Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+          // Port must be 30041 for networks that expect a dispatcher
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(DemoConstants.iaOVGU, 30041);
+          demo.doClientStuff();
+          break;
+        }
     }
   }
 
-  private static void traceListener(Scmp.ScmpTraceroute msg) {
+  private void doClientStuff() throws IOException {
+    ScionService service = Scion.defaultService();
+    // dummy address
+    InetSocketAddress destinationAddress =
+        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
+    List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
+    RequestPath path = paths.get(0);
+
+    System.out.println("Listening at port " + localPort + " ...");
+
+    List<Scmp.Result<Scmp.ScmpTraceroute>> results = Scmp.sendTracerouteRequest(path, localPort);
+    for (Scmp.Result<Scmp.ScmpTraceroute> r : results) {
+      Scmp.ScmpTraceroute msg = r.message;
+      String millies = String.format("%.4f", r.nanoSeconds / (double) 1_000_000);
+
+      String echoMsgStr = msg.getTypeCode().getText();
+      echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
+      echoMsgStr += " " + ScionUtil.toStringIA(msg.getIsdAs()) + " IfID=" + msg.getIfID();
+      echoMsgStr += " time=" + millies + "ms";
+      println("Received: " + echoMsgStr);
+    }
+  }
+
+  private static void println(String msg) {
     if (PRINT) {
-      System.out.println(
-          "Received TRACEROUTE: " + msg.getIdentifier() + "/" + msg.getSequenceNumber());
+      System.out.println(msg);
     }
-  }
-
-  private static void errorListener(Scmp.ScmpMessage msg) {
-    if (PRINT) {
-      System.out.println("SCMP error: " + msg.getTypeCode().getText());
-    }
-  }
-
-  private static void doClientStuff() throws IOException {
-    //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
-    //      channel.configureBlocking(true);
-    //
-    //      InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
-    //      long isdAs = ScionUtil.parseIA("1-ff00:0:112");
-    //      // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
-    //      Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
-    //
-    //      channel.setScmpErrorListener(ScmpTracerouteDemo::errorListener);
-    //      channel.setTracerouteListener(ScmpTracerouteDemo::traceListener);
-    //
-    //      if (PRINT) {
-    //        System.out.println("Client running on: " + channel.getLocalAddress());
-    //        System.out.println("Sending traceroute request ...");
-    //      }
-    //      // TODO match id + sn
-    //      channel.sendTracerouteRequest(path, 0, null);
-    //
-    //      if (PRINT) {
-    //        System.out.println("Waiting ...");
-    //      }
-    //      channel.receive(null);
-    //
-    //      channel.disconnect();
-    //    }
   }
 }
