@@ -17,22 +17,15 @@ package org.scion;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.scion.internal.PathHeaderParser;
 
 public class ScmpChannel implements AutoCloseable {
-  private final AtomicLong nowNanos = new AtomicLong();
-  private int currentInterface;
   private final DatagramChannel channel;
   private final RequestPath path;
-  private List<PathHeaderParser.Node> nodes;
-  private List<Scmp.Result<Scmp.ScmpTraceroute>> traceResults;
-  private final AtomicReference<Scmp.ScmpMessage> error = new AtomicReference<>();
+  private Scmp.ScmpMessage error;
 
   ScmpChannel(RequestPath path) throws IOException {
     this(path, 12345);
@@ -47,14 +40,8 @@ public class ScmpChannel implements AutoCloseable {
     channel.setScmpErrorListener(this::errorListener);
   }
 
-  private void traceListener(Scmp.ScmpTraceroute msg) {
-    long nanos = Instant.now().getNano() - nowNanos.get();
-    traceResults.add(new Scmp.Result<>(msg, nanos));
-    sendTraceRequest();
-  }
-
   private void errorListener(Scmp.ScmpMessage msg) {
-    error.set(msg);
+    error = msg;
     Thread.currentThread().interrupt();
     throw new RuntimeException();
   }
@@ -65,68 +52,47 @@ public class ScmpChannel implements AutoCloseable {
       channel.connect(path);
     }
     // TODO setOption(SO_TIMEOUT);
-    nowNanos.set(Instant.now().getNano());
+    long sendNanos = Instant.now().getNano();
     // TODO why pass in path???????! Why not channel.default path?
     channel.sendEchoRequest(path, sequenceNumber, data);
 
     Scmp.ScmpEcho msg = (Scmp.ScmpEcho) channel.receiveScmp();
-    long nanos = Instant.now().getNano() - nowNanos.get();
+    long nanos = Instant.now().getNano() - sendNanos;
 
-    if (error.get() != null) {
+    if (error != null) {
       // I know, this is not completely thread safe...
-      throw new IOException(error.get().getTypeCode().getText());
+      throw new IOException(error.getTypeCode().getText());
     }
     return new Scmp.Result<>(msg, nanos);
   }
 
   public List<Scmp.Result<Scmp.ScmpTraceroute>> sendTracerouteRequest() throws IOException {
-    traceResults = new ArrayList<>();
+    List<Scmp.Result<Scmp.ScmpTraceroute>> traceResults = new ArrayList<>();
     try {
-      channel.setTracerouteListener(this::traceListener);
-      nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
+      List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
 
-      // TODO remove threading and use channel.receiveScmp() instead
-      Thread thread =
-          new Thread(
-              () -> {
-                sendTraceRequest();
+      for (int i = 0; i < path.getInterfacesList().size(); i++) {
+        long sendNanos = Instant.now().getNano();
+        try {
+          // TODO why pass in path???????! Why not channel.default path?
+          channel.sendTracerouteRequest(path, i, nodes.get(i));
 
-                try {
-                  channel.receive(null);
-                } catch (ClosedByInterruptException e) {
-                  // Ignore
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
-      thread.start();
-      thread.join();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+          Scmp.ScmpTraceroute msg = (Scmp.ScmpTraceroute) channel.receiveScmp();
+          long nanos = Instant.now().getNano() - sendNanos;
+          traceResults.add(new Scmp.Result<>(msg, nanos));
+
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
     } finally {
       channel.setTracerouteListener(null);
     }
-    if (error.get() != null) {
+    if (error != null) {
       // I know, this is not completely thread safe...
-      throw new IOException(error.get().getTypeCode().getText());
+      throw new IOException(error.getTypeCode().getText());
     }
     return traceResults;
-  }
-
-  private void sendTraceRequest() {
-    if (currentInterface >= path.getInterfacesList().size()) {
-      Thread.currentThread().interrupt();
-      return;
-    }
-
-    nowNanos.set(Instant.now().getNano());
-    try {
-      // TODO why pass in path???????! Why not channel.default path?
-      channel.sendTracerouteRequest(path, currentInterface, nodes.get(currentInterface));
-      currentInterface++;
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   @Override

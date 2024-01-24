@@ -191,69 +191,63 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
-    while (true) {
-      buffer.clear();
-      InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
-      if (srcAddress == null) {
-        // this indicates nothing is available
-        return null;
-      }
-      buffer.flip();
-
-      String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
-      if (validationResult != null) {
-        if (cfgReportFailedValidation) {
-          throw new ScionException(validationResult);
-        }
-        continue;
-      }
-
-      InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-      ResponsePath path = ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
-      if (hdrType == InternalConstants.HdrTypes.UDP) {
-        ScionHeaderParser.extractUserPayload(buffer, userBuffer);
-        buffer.clear();
-        return path;
-      } else {
-        // From here on we use linear reading using the buffer's own position mechanism
-        buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-        receiveNonDataPacket(hdrType, path);
-      }
+    ResponsePath path = receiveFromChannel(InternalConstants.HdrTypes.UDP);
+    if (path == null) {
+      return null; // non-blocking, nothing available
     }
+    ScionHeaderParser.extractUserPayload(buffer, userBuffer);
+    buffer.clear();
+    return path;
   }
 
   synchronized Scmp.ScmpMessage receiveScmp() throws IOException {
+    ResponsePath path = receiveFromChannel(InternalConstants.HdrTypes.SCMP);
+    if (path == null) {
+      return null; // non-blocking, nothing available
+    }
+    return receiveScmp(path);
+  }
+
+  private ResponsePath receiveFromChannel(InternalConstants.HdrTypes expectedHdrType)
+      throws IOException {
     while (true) {
       buffer.clear();
       InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
       if (srcAddress == null) {
-        // this indicates nothing is available
+        // this indicates nothing is available - non-blocking mode
         return null;
       }
       buffer.flip();
 
       String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null && cfgReportFailedValidation) {
+        throw new ScionException(validationResult);
+      }
       if (validationResult != null) {
-        if (cfgReportFailedValidation) {
-          throw new ScionException(validationResult);
-        }
         continue;
       }
 
       InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-      ResponsePath path = ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
-      if (hdrType == InternalConstants.HdrTypes.UDP) {
-        // ignore
-        buffer.clear();
-      } else {
-        // From here on we use linear reading using the buffer's own position mechanism
-        buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-        Object result = receiveNonDataPacket(hdrType, path);
-        if (result instanceof Scmp.ScmpMessage) {
-          return (Scmp.ScmpMessage) result;
-        }
-        // ignore
+      if (hdrType == InternalConstants.HdrTypes.UDP && expectedHdrType == hdrType) {
+        return ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
       }
+
+      // From here on we use linear reading using the buffer's position() mechanism
+      buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+      if (hdrType == InternalConstants.HdrTypes.END_TO_END
+          || hdrType == InternalConstants.HdrTypes.HOP_BY_HOP) {
+        ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
+        // Currently we are not doing much here except hoping for an SCMP header
+        hdrType = extHdr.nextHdr();
+        if (hdrType != InternalConstants.HdrTypes.SCMP) {
+          throw new UnsupportedOperationException("Extension header not supported: " + hdrType);
+        }
+      }
+
+      if (hdrType == expectedHdrType) {
+        return ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
+      }
+      receiveScmp(path);
     }
   }
 
@@ -351,17 +345,11 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
   void sendTracerouteRequest(Path path, int interfaceNumber, PathHeaderParser.Node node)
       throws IOException {
-    // TracerouteHeader=24
+    // TracerouteHeader = 24
     int len = 24;
-    // TODO we are modifying the raw path here, this is bad! It breaks normal usage.
+    // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
     //   we should only modify the outgoing packet.
-    // TODO we should ensure that only  ONE hop field is modified!
     byte[] raw = path.getRawPath();
-
-    //      System.out.println("Hops: " + PathHeaderParser.getHopCount(raw) + "  flag=" +
-    // node.hopFlags + "   r=" + node.constDirFlag
-    //      + "  ifn=" + interfaceNumber + "   hopFlagPos=" + node.posHopFlags);
-    // PathHeaderParser.setHopFieldFlags(raw, hopId, flag);
     raw[node.posHopFlags] = node.hopFlags;
     Path actualPath = buildHeader(path, len, InternalConstants.HdrTypes.SCMP);
     ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), interfaceNumber);
@@ -369,7 +357,6 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.send(buffer, actualPath.getFirstHopAddress());
     // Clean up!  // TODO this is really bad!
     raw[node.posHopFlags] = 0;
-    // PathHeaderParser.setHopFieldFlags(path.getRawPath(), hopId, (byte) 0);
   }
 
   public synchronized Consumer<Scmp.ScmpEcho> setEchoListener(Consumer<Scmp.ScmpEcho> listener) {
