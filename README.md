@@ -8,7 +8,7 @@
 
 # SCION Java client
 
-A Java client for [SCION](https://scion.org).
+A Java client for [SCION](https://scion.org). More information about SCION can be found [here](https://docs.scion.org).
 
 ### WARNING
 This client can directly connect to SCION **without dispatcher**.

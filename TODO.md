@@ -120,6 +120,7 @@ Discuss required for 0.1.0:
 - Make ScionService AutoCloseable? -> Avoid separate CloseableService class and it's usage in try().
 - Convenience: Implement Transparent service that tries SCION and, if not available,
   returns a normal Java UDP DatagramChannel? Which Interface?
+- Transparent fallback to plain IP if target is in same AS?
 - https for topology server?
 - Secure DNS requests?
 - Reconsider handling of expired path on server side. Try requesting a new path?

@@ -27,7 +27,7 @@ public class ScionPingPongChannelClient {
 
   /**
    * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
-   * service via ScionProto "tiny" topology
+   * service via ScionProto "tiny" topology.
    */
   public static boolean USE_MOCK_TOPOLOGY = false;
 
