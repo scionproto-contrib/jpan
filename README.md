@@ -104,8 +104,27 @@ Some demos can be found in [src/test/java/org/scion/demo](src/test/java/org/scio
 
 
 - Reference manual: https://docs.scion.org
+- Reference implementation of SCION: https://github.com/scionproto/scion
 - SCIONLab, a global testbed for SCION applications: https://www.scionlab.org/
 - Awesome SCION, a collection of SCION projects: https://github.com/scionproto/awesome-scion 
+
+### Real world testing and evaluation
+
+The JUnit tests in this Java project use a very rudimentary simulated network.
+For proper testing it is recommended to use one of the following:
+
+- [scionproto](https://github.com/scionproto/scion), the reference implementation of SCION, comes 
+  with a framework that allows defining a topology and running a local network with daemons, control 
+  servers, border routers and more, see [docs](https://docs.scion.org/en/latest/dev/run.html).
+- [SCIONlab](https://www.scionlab.org/) is a world wide testing framework for SCION. You can define your own AS
+  and use the whole network. It runs as overlay over normal internet so it has limited 
+  security guarantees and possibly reduced performance compared to native SCION.
+- [SCIERA](https://sciera.readthedocs.io/) is a network of Universities with SCION connection. It is part
+  part of the global SCION  network
+- [EDGE](https://docs.anapaya.net/en/latest/getting-started/aws/) on [AWS](https://aws.amazon.com/de/blogs/alps/connecting-scion-networks-to-aws-environments/) offers SCION node in some countries. 
+  These are also connected to the global SCION network.
+
+
 
 ## DatagramChannel
 
