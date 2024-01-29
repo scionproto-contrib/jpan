@@ -34,10 +34,6 @@ public class ScmpEchoDemo {
   private DatagramChannel channel;
   private Path path;
 
-  /**
-   * True: connect to ScionPingPongChannelServer via Java mock topology False: connect to any
-   * service via ScionProto "tiny" topology
-   */
   private enum Network {
     MOCK_TOPOLOGY, // SCION Java JUnit mock network
     TINY_PROTO, // Try to connect to "tiny" scionproto network

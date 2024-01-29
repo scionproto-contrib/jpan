@@ -18,6 +18,13 @@ import org.scion.ScionUtil;
 
 public class DemoConstants {
 
+  public enum Network {
+    MOCK_TOPOLOGY, // SCION Java JUnit mock network
+    TINY_PROTO, // Try to connect to "tiny" scionproto network
+    MINIMAL_PROTO, // Try to connect to "minimal" scionproto network
+    PRODUCTION // production network
+  }
+
   // ----------------  ISD/AS for local test networks ----------------
   public static final long ia110 = ScionUtil.parseIA("1-ff00:0:110");
   public static final long ia111 = ScionUtil.parseIA("1-ff00:0:111");
