@@ -77,8 +77,8 @@ public class ScmpEchoDemo {
         }
       case MINIMAL_PROTO:
         {
-          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_111/topology.json");
-          //          Scion.newServiceWithDaemon(DemoConstants.daemon111_minimal);
+          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_1111/topology.json");
+          // Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
           demo.doClientStuff(DemoConstants.ia211);
           // demo.runDemo(DemoConstants.ia211);

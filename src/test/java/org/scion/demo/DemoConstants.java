@@ -58,6 +58,8 @@ public class DemoConstants {
   public static final long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
   public static final long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
   public static final long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
+  public static final long iaEquinix = ScionUtil.parseIA("71-2:0:48");
   public static final long iaCyberex = ScionUtil.parseIA("71-2:0:49");
+  public static final long iaPrinceton = ScionUtil.parseIA(ScionUtil.toStringIA(71, 88));
   public static final String csETH = "192.168.53.20:30252";
 }

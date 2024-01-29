@@ -31,7 +31,7 @@ public class PathHeaderParser {
 
     int count = 1;
     count += seg1Len > 0 ? 1 : 0;
-    count += seg2Len > 0 ? 2 : 0;
+    count += seg2Len > 0 ? 1 : 0;
     return count;
   }
 

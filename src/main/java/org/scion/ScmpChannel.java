@@ -87,10 +87,10 @@ public class ScmpChannel implements AutoCloseable {
       }
     } finally {
       channel.setTracerouteListener(null);
-    }
-    if (error != null) {
-      // I know, this is not completely thread safe...
-      throw new IOException(error.getTypeCode().getText());
+      if (error != null) {
+        // I know, this is not completely thread safe...
+        throw new IOException(error.getTypeCode().getText());
+      }
     }
     return traceResults;
   }

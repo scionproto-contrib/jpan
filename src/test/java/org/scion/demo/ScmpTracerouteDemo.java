@@ -66,19 +66,19 @@ public class ScmpTracerouteDemo {
         }
       case MINIMAL_PROTO:
         {
-          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_110/topology.json");
-          // Scion.newServiceWithDaemon(DemoConstants.daemon110_minimal);
+          // Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_111/topology.json");
+          Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
         {
-          // Scion.newServiceWithDNS("inf.ethz.ch");
-          Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+          Scion.newServiceWithDNS("inf.ethz.ch");
+          // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
-          demo.runDemo(DemoConstants.iaOVGU);
+          demo.runDemo(DemoConstants.iaAnapayaHK);
           break;
         }
     }
@@ -90,6 +90,12 @@ public class ScmpTracerouteDemo {
     InetSocketAddress destinationAddress =
         new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
     List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
+    if (paths.isEmpty()) {
+      // TODO should not be empty
+      String src = ScionUtil.toStringIA(service.getLocalIsdAs());
+      String dst = ScionUtil.toStringIA(destinationIA);
+      throw new IOException("No path found from " + src + " to " + dst);
+    }
     RequestPath path = paths.get(0);
 
     System.out.println("Listening at port " + localPort + " ...");
