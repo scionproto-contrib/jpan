@@ -60,10 +60,10 @@ public interface PathPolicy {
     }
   }
 
-  class Isd implements PathPolicy {
+  class IsdAllow implements PathPolicy {
     private final Set<Integer> allowedIsds;
 
-    public Isd(Set<Integer> allowedIsds) {
+    public IsdAllow(Set<Integer> allowedIsds) {
       this.allowedIsds = allowedIsds;
     }
 
@@ -78,7 +78,33 @@ public interface PathPolicy {
     private boolean checkPath(RequestPath path) {
       for (RequestPath.PathInterface pif : path.getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
-        if (allowedIsds.contains(isd)) {
+        if (!allowedIsds.contains(isd)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  class IsdDisallow implements PathPolicy {
+    private final Set<Integer> disallowedIsds;
+
+    public IsdDisallow(Set<Integer> disallowedIsds) {
+      this.disallowedIsds = disallowedIsds;
+    }
+
+    @Override
+    public RequestPath filter(List<RequestPath> paths) {
+      return paths.stream()
+          .filter(this::checkPath)
+          .findAny()
+          .orElseThrow(NoSuchElementException::new);
+    }
+
+    private boolean checkPath(RequestPath path) {
+      for (RequestPath.PathInterface pif : path.getInterfacesList()) {
+        int isd = (int) (pif.getIsdAs() >>> 48);
+        if (disallowedIsds.contains(isd)) {
           return false;
         }
       }

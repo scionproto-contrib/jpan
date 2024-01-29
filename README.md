@@ -17,10 +17,12 @@ It provides functionality similar to
 ### Planned features
 - `DatagramSocket` and `DatagramPacket`
 - `Selector` for `DatagramChannel`
-- Path creation with short-cuts, on-path and peering routes  
+- Path creation with short-cuts, on-path and peering routes
+- `/etc/scion/hosts` and `/etc/hosts`, see https://github.com/netsec-ethz/scion-apps
 - Improve docs, demos and testing
 - EPIC, path authentication and other SCION features
 - TCP
+- Many more
 
 ### WARNING
 This client can directly connect to SCION **without dispatcher**.
