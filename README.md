@@ -8,7 +8,19 @@
 
 # SCION Java client
 
-A Java client for [SCION](https://scion.org). More information about SCION can be found [here](https://docs.scion.org).
+This library is pure Java network stack for using [SCION](https://scion.org). More information about SCION can be found [here](https://docs.scion.org).
+It provides functionality similar to 
+[snet (golang)](https://pkg.go.dev/github.com/scionproto/scion/pkg/snet),
+[PAN (golang)](https://pkg.go.dev/github.com/netsec-ethz/scion-apps/pkg/pan) and 
+[scion-rs (Rust)](https://github.com/MystenLabs/scion-rs). 
+
+### Planned features
+- `DatagramSocket` and `DatagramPacket`
+- `Selector` for `DatagramChannel`
+- Path creation with short-cuts, on-path and peering routes  
+- Improve docs, demos and testing
+- EPIC, path authentication and other SCION features
+- TCP
 
 ### WARNING
 This client can directly connect to SCION **without dispatcher**.
@@ -216,3 +228,7 @@ Compilation failure: Compilation failure:
 This can be fixed by building with Java JDK 1.8.
 
 
+## License
+
+This project is licensed under the Apache License, Version 2.0 
+(see [LICENSE](LICENSE) or https://www.apache.org/licenses/LICENSE-2.0).
