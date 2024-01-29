@@ -140,16 +140,50 @@ For proper testing it is recommended to use one of the following:
 
 ## DatagramChannel
 
+### Destinations
+In order to find a path to a destination IP, a `DatagramChannel` or `DatagramSocket` must know the 
+ISD/AS numbers of the destination.
+
+
+If the destination host has a DNS TXT entry for SCION then this be used to determine the 
+destination ISD/AS.
+Alternatively, the ISD/AS can be specified explicitly.
+
+#### DNS lookup
+```
+$ dig TXT ethz.ch
+...
+ethz.ch.		610	IN	TXT	"scion=64-2:0:9,129.132.230.98"
+...
+```
+
+```
+InetSocketAddress serverAddress = new InetSocketAddress("ethz.ch", 80);​
+channel.connect(serverAddress);
+```
+
+
+#### Explicit ISD/AS specification
+
+We can use the ISD/AS directly to request a path:
+```
+long isdAs = ScionUtil.parseIA("64-2:0:9");
+InetSocketAddress serverAddress = new InetSocketAddress("129.132.19.216", 80);​
+Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
+channel.connect(path);
+```
+
+
 ### Demo application - ping pong
 
 There is a simple ping pong client-server application in `src/test/demo`.
 
-It has some hardcoded ports/IP so it works only with the scionlab tiny.topo and only with the dispatcher-free
-version of scionlab: https://github.com/scionproto/scion/pull/4344
+It has some hardcoded ports/IP so it works only with the scionLab tiny.topo and only with the dispatcher-free
+version of scionLab: https://github.com/scionproto/scion/pull/4344
 
 The client and server connects directly to the border router (without dispatcher).
 
-The server is located in `1-ff00:0:112` (IP [::1]:44444). The client is located in `1-ff00:0:110`.
+The server is located in `1-ff00:0:112` (IP `[::1]:44444`). The client is located in `1-ff00:0:110`.
 
 ### Options
 
