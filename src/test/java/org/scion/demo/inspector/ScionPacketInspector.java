@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import org.scion.internal.ScmpParser;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
@@ -101,8 +100,7 @@ public class ScionPacketInspector {
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       int offset = scionHeader.hdrLenBytes();
       data.position(offset);
-      ScmpParser.consume(data, null); // TODO provide path?
-      System.out.println("Packet: DROPPED: SCMP");
+      scmpHeader.read(data);
       return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
       // System.out.println("Packet EndToEnd");

@@ -20,12 +20,26 @@ import java.nio.ByteBuffer;
 import org.scion.DatagramChannel;
 import org.scion.Path;
 
-public class ScionPingPongChannelServer {
+public class PingPongChannelServer {
 
   public static boolean PRINT = true;
+  private static final int SERVER_PORT = 44444;
+  public static DemoConstants.Network NETWORK = DemoConstants.Network.MINIMAL_PROTO;
 
-  public static DatagramChannel startServer() throws IOException {
-    InetSocketAddress address = new InetSocketAddress("::1", ScionPingPongChannelClient.PORT);
+  public static InetSocketAddress getServerAddress(DemoConstants.Network network) {
+    switch (network) {
+      case MOCK_TOPOLOGY:
+      case TINY_PROTO:
+        return new InetSocketAddress("::1", SERVER_PORT);
+      case MINIMAL_PROTO:
+        return new InetSocketAddress("127.0.0.1", SERVER_PORT);
+      default:
+        throw new UnsupportedOperationException();
+    }
+  }
+
+  private static DatagramChannel startServer() throws IOException {
+    InetSocketAddress address = getServerAddress(NETWORK);
     DatagramChannel server = DatagramChannel.open().bind(address);
 
     if (PRINT) {
@@ -35,16 +49,16 @@ public class ScionPingPongChannelServer {
     return server;
   }
 
-  public static void sendMessage(DatagramChannel channel, String msg, Path serverAddress)
+  private static void sendMessage(DatagramChannel channel, String msg, Path path)
       throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
-    channel.send(buffer, serverAddress);
+    channel.send(buffer, path);
     if (PRINT) {
-      System.out.println("Sent to client at: " + serverAddress + "  message: " + msg);
+      System.out.println("Sent to client at: " + path + "  message: " + msg);
     }
   }
 
-  public static Path receiveMessage(DatagramChannel server) throws IOException {
+  private static Path receiveMessage(DatagramChannel server) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     if (PRINT) {
       System.out.println("Waiting ...");

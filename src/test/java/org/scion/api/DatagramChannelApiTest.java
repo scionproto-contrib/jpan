@@ -286,9 +286,9 @@ class DatagramChannelApiTest {
   void getPathPolicy() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertEquals(PathPolicy.DEFAULT, channel.getPathPolicy());
-      assertEquals(PathPolicy.FIRST, channel.getPathPolicy());
-      channel.setPathPolicy(PathPolicy.MIN_HOPS);
       assertEquals(PathPolicy.MIN_HOPS, channel.getPathPolicy());
+      channel.setPathPolicy(PathPolicy.MAX_BANDWIDTH);
+      assertEquals(PathPolicy.MAX_BANDWIDTH, channel.getPathPolicy());
       // TODO test that path policy is actually used
     }
   }

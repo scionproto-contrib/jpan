@@ -17,6 +17,7 @@ package org.scion.internal;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -27,6 +28,8 @@ import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.crypto.Signed;
 import org.scion.proto.daemon.Daemon;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class gets segment information from a path service and constructs paths.
@@ -47,6 +50,8 @@ import org.scion.proto.daemon.Daemon;
  * <p>
  */
 public class Segments {
+  private static final Logger LOG = LoggerFactory.getLogger(Segments.class.getName());
+
   private static List<Daemon.Path> combineThreeSegments(
       Seg.SegmentsResponse segmentsUp,
       Seg.SegmentsResponse segmentsCore,
@@ -191,19 +196,23 @@ public class Segments {
     }
 
     // hop fields
+    int bytePosSegID = 6; // 4 bytes path head + 2 byte flag in first info field
     // TODO clean up: Create [] of seg/info and loop inside write() method
     ByteUtil.MutInt minMtu = new ByteUtil.MutInt(brLookup.getLocalMtu());
     ByteUtil.MutInt minExpirationDelta = new ByteUtil.MutInt(Byte.MAX_VALUE);
-    writeHopFields(path, raw, seg0, reversed0, minExpirationDelta, minMtu);
+    writeHopFields(path, raw, bytePosSegID, seg0, reversed0, minExpirationDelta, minMtu);
+    bytePosSegID += 8;
+    // xorSegID(raw, 0, path, )
     long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     if (seg1 != null) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, seg1, reversed1, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, bytePosSegID, seg1, reversed1, minExpirationDelta, minMtu);
+      bytePosSegID += 8;
       minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
     if (seg2 != null) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, seg2, false, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, bytePosSegID, seg2, false, minExpirationDelta, minMtu);
       minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
     }
 
@@ -239,7 +248,7 @@ public class Segments {
     } else if (bodyN.getIsdAs() == startIA) {
       return true;
     }
-    // TODO support "middle" IAs
+    // TODO support short-cut and on-path IAs
     throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
   }
 
@@ -252,12 +261,13 @@ public class Segments {
     int inf0 = ((reversed ? 0 : 1) << 24) | info.getSegmentId();
     raw.putInt(inf0);
     // TODO in the daemon's path, all segments have the same timestamp....
-    raw.putInt((int) info.getTimestamp()); // TODO does this work? casting to int?
+    raw.putInt(ByteUtil.toInt(info.getTimestamp()));
   }
 
   private static void writeHopFields(
       Daemon.Path.Builder path,
       ByteBuffer raw,
+      int bytePosSegID,
       Seg.PathSegment pathSegment,
       boolean reversed,
       ByteUtil.MutInt minExp,
@@ -270,12 +280,16 @@ public class Segments {
       Seg.HopField hopField = body.getHopEntry().getHopField();
 
       raw.put((byte) 0);
-      raw.put((byte) hopField.getExpTime()); // TODO cast to byte,...?
-      raw.putShort((short) hopField.getIngress());
-      raw.putShort((short) hopField.getEgress());
+      raw.put(ByteUtil.toByte(hopField.getExpTime()));
+      raw.putShort(ByteUtil.toShort(hopField.getIngress()));
+      raw.putShort(ByteUtil.toShort(hopField.getEgress()));
       ByteString mac = hopField.getMac();
       for (int j = 0; j < 6; j++) {
         raw.put(mac.byteAt(j));
+      }
+      if (reversed && i > 0) {
+        raw.put(bytePosSegID, ByteUtil.toByte(raw.get(bytePosSegID) ^ mac.byteAt(0)));
+        raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
       minExp.v = Math.min(minExp.v, hopField.getExpTime());
       // TODO implement for "reversed"?
@@ -289,13 +303,13 @@ public class Segments {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
         path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
-        System.out.println(
-            "IF-0: "
-                + hopField.getIngress()
-                + " / "
-                + hopField.getEgress()
-                + " --> "
-                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
+        //        System.out.println(
+        //            "IF-0: "
+        //                + hopField.getIngress()
+        //                + " / "
+        //                + hopField.getEgress()
+        //                + " --> "
+        //                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
         int pos2 = reversed ? pos - 1 : pos + 1;
@@ -303,13 +317,13 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
-        System.out.println(
-            "IF-2: "
-                + hopField2.getIngress()
-                + " / "
-                + hopField2.getEgress()
-                + " --> "
-                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
+        //        System.out.println(
+        //            "IF-2: "
+        //                + hopField2.getIngress()
+        //                + " / "
+        //                + hopField2.getEgress()
+        //                + " --> "
+        //                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
       }
     }
   }
@@ -367,7 +381,7 @@ public class Segments {
       Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
       Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
       if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
-        throw new UnsupportedOperationException("Unsigned entries not (yet) supported"); // TODO
+        throw new UnsupportedOperationException("Unsigned entries are not supported");
       }
       Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
       Seg.ASEntrySignedBody bodyLast = getBody(asEntryLast.getSigned());
@@ -383,8 +397,6 @@ public class Segments {
     try {
       Signed.HeaderAndBodyInternal habi =
           Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
-      // Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
-      // TODO body for signature verification?!?
       return Seg.ASEntrySignedBody.parseFrom(habi.getBody());
     } catch (InvalidProtocolBufferException e) {
       throw new ScionRuntimeException(e);
@@ -392,7 +404,7 @@ public class Segments {
   }
 
   private static Seg.ASEntrySignedBody getBody(Seg.ASEntry asEntry) {
-    // Let's assumed they are all signed // TODO?
+    // Let's assumed they are all signed
     Signed.SignedMessage sm = asEntry.getSigned();
     return getBody(sm);
   }
@@ -423,6 +435,10 @@ public class Segments {
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
       long dstIsdAs) {
+    LOG.info(
+        "Requesting segments: {} {}",
+        ScionUtil.toStringIA(srcIsdAs),
+        ScionUtil.toStringIA(dstIsdAs));
     if (srcIsdAs == dstIsdAs && !isWildcard(srcIsdAs)) {
       return null;
     }
@@ -431,11 +447,21 @@ public class Segments {
     try {
       Seg.SegmentsResponse response = segmentStub.segments(request);
       if (response.getSegmentsMap().size() > 1) {
-        // TODO fix! there are many places where we use the horrible get()
+        // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();
       }
       return response;
     } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)
+          && e.getMessage().contains("TRC not found")) {
+        String msg = ScionUtil.toStringIA(srcIsdAs) + " / " + ScionUtil.toStringIA(dstIsdAs);
+        throw new ScionRuntimeException(
+            "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+      }
+      if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
+        throw new ScionRuntimeException(
+            "Error while getting Segments: cannot connect to SCION network", e);
+      }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
     }
   }
@@ -492,6 +518,7 @@ public class Segments {
     List<Seg.SegmentsResponse> segments = new ArrayList<>();
     if (!brLookup.isLocalAsCore()) {
       // get UP segments
+      // TODO find out if dstIsAs is core and directly ask for it.
       Seg.SegmentsResponse segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
       boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
       if (containsIsdAs[1]) {

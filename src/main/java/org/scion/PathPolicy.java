@@ -21,14 +21,11 @@ public interface PathPolicy {
   PathPolicy MAX_BANDWIDTH = new MaxBandwith();
   PathPolicy MIN_LATENCY = new MinLatency();
   PathPolicy MIN_HOPS = new MinHopCount();
-  PathPolicy DEFAULT = FIRST;
+  PathPolicy DEFAULT = MIN_HOPS;
 
   class First implements PathPolicy {
     public RequestPath filter(List<RequestPath> paths) {
-      if (paths.isEmpty()) {
-        throw new NoSuchElementException();
-      }
-      return paths.get(0);
+      return paths.stream().findFirst().orElseThrow(NoSuchElementException::new);
     }
   }
 
@@ -63,10 +60,10 @@ public interface PathPolicy {
     }
   }
 
-  class Isd implements PathPolicy {
+  class IsdAllow implements PathPolicy {
     private final Set<Integer> allowedIsds;
 
-    public Isd(Set<Integer> allowedIsds) {
+    public IsdAllow(Set<Integer> allowedIsds) {
       this.allowedIsds = allowedIsds;
     }
 
@@ -81,7 +78,33 @@ public interface PathPolicy {
     private boolean checkPath(RequestPath path) {
       for (RequestPath.PathInterface pif : path.getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
-        if (allowedIsds.contains(isd)) {
+        if (!allowedIsds.contains(isd)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  class IsdDisallow implements PathPolicy {
+    private final Set<Integer> disallowedIsds;
+
+    public IsdDisallow(Set<Integer> disallowedIsds) {
+      this.disallowedIsds = disallowedIsds;
+    }
+
+    @Override
+    public RequestPath filter(List<RequestPath> paths) {
+      return paths.stream()
+          .filter(this::checkPath)
+          .findAny()
+          .orElseThrow(NoSuchElementException::new);
+    }
+
+    private boolean checkPath(RequestPath path) {
+      for (RequestPath.PathInterface pif : path.getInterfacesList()) {
+        int isd = (int) (pif.getIsdAs() >>> 48);
+        if (disallowedIsds.contains(isd)) {
           return false;
         }
       }

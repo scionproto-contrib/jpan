@@ -222,9 +222,6 @@ public class PingPongHelper {
 
   public static void defaultServer(DatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
-    //    System.out.println(
-    //        "SERVER: --- USER - Waiting for packet --------------------- "
-    //            + Thread.currentThread().getName());
     Path address = channel.receive(request);
 
     request.flip();
@@ -232,9 +229,6 @@ public class PingPongHelper {
     assertTrue(msg.startsWith(MSG), msg);
     assertTrue(MSG.length() + 3 >= msg.length());
 
-    //    System.out.println(
-    //        "SERVER: --- USER - Sending packet ---------------------- "
-    //            + Thread.currentThread().getName());
     request.flip();
     channel.send(request, address);
   }

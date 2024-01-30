@@ -111,10 +111,9 @@ public class ScionHeaderParser {
    * @param data The datagram to read from.
    * @return The type of the next header.
    */
-  public static Constants.HdrTypes extractNextHeader(ByteBuffer data) {
-    int nextHeader = data.get(4);
-    nextHeader = nextHeader >= 0 ? nextHeader : nextHeader + 256;
-    return Constants.HdrTypes.parse(nextHeader);
+  public static InternalConstants.HdrTypes extractNextHeader(ByteBuffer data) {
+    int nextHeader = ByteUtil.toUnsigned(data.get(4));
+    return InternalConstants.HdrTypes.parse(nextHeader);
   }
 
   public static InetSocketAddress extractDestinationSocketAddress(ByteBuffer data)
@@ -156,7 +155,7 @@ public class ScionHeaderParser {
    * @return the length of the SCION common + address + path header in bytes
    */
   public static int extractHeaderLength(ByteBuffer data) {
-    int hdrLen = data.getInt(4);
+    int hdrLen = ByteUtil.toUnsigned(data.get(5));
     return hdrLen * 4;
   }
 
@@ -182,10 +181,10 @@ public class ScionHeaderParser {
     // int trafficLClass = readInt(i0, 4, 8);
     // int flowId = readInt(i0, 12, 20);
     int nextHeader = readInt(i1, 0, 8);
-    if (nextHeader != Constants.HdrTypes.UDP.code()
-        && nextHeader != Constants.HdrTypes.HOP_BY_HOP.code()
-        && nextHeader != Constants.HdrTypes.END_TO_END.code()
-        && nextHeader != Constants.HdrTypes.SCMP.code()) {
+    if (nextHeader != InternalConstants.HdrTypes.UDP.code()
+        && nextHeader != InternalConstants.HdrTypes.HOP_BY_HOP.code()
+        && nextHeader != InternalConstants.HdrTypes.END_TO_END.code()
+        && nextHeader != InternalConstants.HdrTypes.SCMP.code()) {
       return PRE + "nextHeader: expected {17, 200, 201, 202}, got " + nextHeader;
     }
     int hdrLen = readInt(i1, 8, 8);
@@ -283,7 +282,7 @@ public class ScionHeaderParser {
       byte[] srcAddress,
       long dstIsdAs,
       byte[] dstAddress,
-      Constants.HdrTypes hdrType) {
+      InternalConstants.HdrTypes hdrType) {
     int sl = srcAddress.length / 4 - 1;
     int dl = dstAddress.length / 4 - 1;
 
@@ -366,7 +365,7 @@ public class ScionHeaderParser {
     if (seg1LenR > 0) {
       data.putLong(info1R ^ currDirMask);
     }
-    if (seg1LenR > 0) {
+    if (seg2LenR > 0) {
       data.putLong(info2R ^ currDirMask);
     }
 

@@ -33,8 +33,8 @@ public class ExtensionHeader {
    */
   public static ExtensionHeader consume(ByteBuffer data) {
     ExtensionHeader eh = new ExtensionHeader();
-    eh.nextHdr = data.get();
-    eh.extLen = data.get();
+    eh.nextHdr = ByteUtil.toUnsigned(data.get());
+    eh.extLen = ByteUtil.toUnsigned(data.get());
     eh.extLenBytes = (eh.extLen + 1) * 4;
     eh.options = ((long) ByteUtil.toUnsigned(data.getShort()) << 32) | data.getInt();
     // skip the rest
@@ -55,8 +55,8 @@ public class ExtensionHeader {
         + '}';
   }
 
-  public Constants.HdrTypes nextHdr() {
-    return Constants.HdrTypes.parse(nextHdr);
+  public InternalConstants.HdrTypes nextHdr() {
+    return InternalConstants.HdrTypes.parse(nextHdr);
   }
 
   public int getExtLenBytes() {

@@ -14,6 +14,7 @@
 
 package org.scion;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 public final class Scion {
@@ -82,7 +83,7 @@ public final class Scion {
     return new CloseableService(filePath, ScionService.Mode.BOOTSTRAP_TOPO_FILE);
   }
 
-  public static class CloseableService extends ScionService implements AutoCloseable {
+  public static class CloseableService extends ScionService implements Closeable {
 
     private CloseableService(String address, Mode mode) {
       super(address, mode);

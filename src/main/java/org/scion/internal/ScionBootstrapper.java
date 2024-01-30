@@ -108,6 +108,7 @@ public class ScionBootstrapper {
         if (STR_X_SCION_TCP.equals(naptrService)) {
           String host = nr.getReplacement().toString();
           String naptrFlag = nr.getFlags();
+          LOG.info("Found DNS entry: " + naptrService);
           int port = queryTXT(hostName);
           if ("A".equals(naptrFlag)) {
             InetAddress addr = DNSHelper.queryA(host);

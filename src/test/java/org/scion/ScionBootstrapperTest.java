@@ -17,26 +17,31 @@ package org.scion;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Paths;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.scion.demo.DemoConstants;
 import org.scion.internal.ScionBootstrapper;
 
 public class ScionBootstrapperTest {
 
+  @Disabled // This requires access to the SCION production network
   @Test
-  void testETH() {
+  void testETH_bootstrapServer() {
     String bootETH = "129.132.121.175:8041";
-    String csETH = "192.168.53.20:30252";
-    long iaETH = ScionUtil.parseIA("64-2:0:9");
-    long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
-    long iaOVGU = ScionUtil.parseIA("71-2:0:4a");
-    long iaAnapayaHK = ScionUtil.parseIA("66-2:0:11");
+    ScionBootstrapper sb = ScionBootstrapper.createViaBootstrapServerIP(bootETH);
 
-    // ScionBootstrapper sb = ScionBootstrapper.createViaBootstrapServerIP(bootETH);
+    assertEquals(DemoConstants.iaETH, sb.getLocalIsdAs());
+    assertEquals(DemoConstants.csETH, sb.getControlServerAddress());
+    assertFalse(sb.isLocalAsCore());
+  }
+
+  @Test
+  void testETH_topoFile() {
     java.nio.file.Path topoFile = Paths.get("topologies/ETH.json");
     ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
 
-    assertEquals(iaETH, sb.getLocalIsdAs());
-    assertEquals(csETH, sb.getControlServerAddress());
+    assertEquals(DemoConstants.iaETH, sb.getLocalIsdAs());
+    assertEquals(DemoConstants.csETH, sb.getControlServerAddress());
     assertFalse(sb.isLocalAsCore());
   }
 

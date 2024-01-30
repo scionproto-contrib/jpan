@@ -17,8 +17,7 @@ package org.scion;
 import java.net.SocketOption;
 
 public final class ScionSocketOptions {
-  // TODO rename to ScionChannelOptions?
-  // TODO options for Daemon/BorderRouter ports/IPs?
+  // TODO options for Daemon ports/IPs?
 
   /**
    * If set to 'true', the Scion header parser will throw errors when encountering problems while
