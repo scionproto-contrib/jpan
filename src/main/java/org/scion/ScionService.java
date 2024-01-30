@@ -223,6 +223,9 @@ public class ScionService {
     try {
       response = daemonStub.aS(request);
     } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode() == Status.Code.UNAVAILABLE) {
+        throw new ScionRuntimeException("Could not connect to SCION daemon: " + e.getMessage(), e);
+      }
       throw new ScionRuntimeException("Error while getting AS info: " + e.getMessage(), e);
     }
     return response;
@@ -283,10 +286,8 @@ public class ScionService {
    * @param dstIsdAs Destination ISD/AS
    * @param dstAddress Destination IP address
    * @return All paths returned by the path service.
-   * @throws IOException if an errors occurs while querying paths.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress)
-      throws IOException {
+  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress) {
     return getPaths(dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort());
   }
 
@@ -295,9 +296,8 @@ public class ScionService {
    *
    * @param path A path
    * @return All paths returned by the path service.
-   * @throws IOException if an errors occurs while querying paths.
    */
-  public List<RequestPath> getPaths(RequestPath path) throws IOException {
+  public List<RequestPath> getPaths(RequestPath path) {
     return getPaths(
         path.getDestinationIsdAs(), path.getDestinationAddress(), path.getDestinationPort());
   }
@@ -309,10 +309,8 @@ public class ScionService {
    * @param dstAddress Destination IP address
    * @param dstPort Destination port
    * @return All paths returned by the path service.
-   * @throws IOException if an errors occurs while querying paths.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort)
-      throws IOException {
+  public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort) {
     long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
     if (paths.isEmpty()) {

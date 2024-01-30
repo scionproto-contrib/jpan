@@ -8,6 +8,11 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 ## Daemon
 The implementation can use the daemon. Alternatively, since daemon installation may
 be cumbersome on platforms such as Android, we can directly connect to a control service.
+An alternative for mobile devices could be a non-local daemon that is hosted by the mobile provider.
+This may work but may open opportunities for sid-channel attacks on the daemon.
+Also, when roaming, the provider may not actually support SCION. In this case the
+device would need to connect to some kind of gateway to connect to either a daemon or
+at least a topology server + control server.
 
 ## Library dependencies etc
 

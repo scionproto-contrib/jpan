@@ -77,6 +77,14 @@
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
   - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
   - Test!
+  - BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
+  - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
+    (it needs to be reversed + the SegID needs to be XORed)
+- FIX: Document or improve ERROR: "TRC NOT FOUND" when requesting path to non-existing AS (down segment?) 
+- Document:local scionproto-network returns no path -> recreate with -c topology!
+- Docs:
+  https://github.com/marcfrei/scion-time#setting-up-a-scion-test-environment
+  https://github.com/netsec-ethz/lightning-filter#develop
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
   - Especially for expired paths / revoked paths / broken paths?  
@@ -91,7 +99,7 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
-- Consider SHIM support. SHIM is a compatbility component that supports
+- Consider SHIM support. SHIM is a compatibility component that supports
   old border-router software (requiring a fixed port on the client, unless
   the client is listening on this very port).  When SHIM is used, we cannot 
   get the return address (server mode) from the received packet because we receive it 
@@ -112,8 +120,13 @@ Discuss required for 0.1.0:
 - Make ScionService AutoCloseable? -> Avoid separate CloseableService class and it's usage in try().
 - Convenience: Implement Transparent service that tries SCION and, if not available,
   returns a normal Java UDP DatagramChannel? Which Interface?
+- Transparent fallback to plain IP if target is in same AS?
 - https for topology server?
 - Secure DNS requests?
+- Reconsider handling of expired path on server side. Try requesting a new path?
+  Throw exception? Callback?
+- Make multi-module project for demos & inspector (also channel vs socket?)
+  -> see JDO for releasing only some modules for a release.
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...

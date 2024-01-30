@@ -25,6 +25,8 @@ import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
 import java.util.function.Consumer;
 import org.scion.internal.ExtensionHeader;
+import org.scion.internal.InternalConstants;
+import org.scion.internal.PathHeaderParser;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.internal.ScmpParser;
 
@@ -189,61 +191,91 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
+    ResponsePath path = receiveFromChannel(InternalConstants.HdrTypes.UDP);
+    if (path == null) {
+      return null; // non-blocking, nothing available
+    }
+    ScionHeaderParser.extractUserPayload(buffer, userBuffer);
+    buffer.clear();
+    return path;
+  }
+
+  synchronized Scmp.ScmpMessage receiveScmp() throws IOException {
+    ResponsePath path = receiveFromChannel(InternalConstants.HdrTypes.SCMP);
+    if (path == null) {
+      return null; // non-blocking, nothing available
+    }
+    return receiveScmp(path);
+  }
+
+  private ResponsePath receiveFromChannel(InternalConstants.HdrTypes expectedHdrType)
+      throws IOException {
     while (true) {
       buffer.clear();
       InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
       if (srcAddress == null) {
-        // this indicates nothing is available
+        // this indicates nothing is available - non-blocking mode
         return null;
       }
       buffer.flip();
 
       String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null && cfgReportFailedValidation) {
+        throw new ScionException(validationResult);
+      }
       if (validationResult != null) {
-        if (cfgReportFailedValidation) {
-          throw new ScionException(validationResult);
-        }
         continue;
       }
 
-      org.scion.internal.Constants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-      ResponsePath path = ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
-      if (hdrType == org.scion.internal.Constants.HdrTypes.UDP) {
-        ScionHeaderParser.extractUserPayload(buffer, userBuffer);
-        buffer.clear();
-        return path;
-      } else {
-        // From here on we use linear reading using the buffer's own position mechanism
-        buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-        receiveNonDataPacket(hdrType, path);
+      InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+      if (hdrType == InternalConstants.HdrTypes.UDP && expectedHdrType == hdrType) {
+        return ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
       }
+
+      // From here on we use linear reading using the buffer's position() mechanism
+      buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+      if (hdrType == InternalConstants.HdrTypes.END_TO_END
+          || hdrType == InternalConstants.HdrTypes.HOP_BY_HOP) {
+        ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
+        // Currently we are not doing much here except hoping for an SCMP header
+        hdrType = extHdr.nextHdr();
+        if (hdrType != InternalConstants.HdrTypes.SCMP) {
+          throw new UnsupportedOperationException("Extension header not supported: " + hdrType);
+        }
+      }
+
+      if (hdrType == expectedHdrType) {
+        return ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
+      }
+      receiveScmp(path);
     }
   }
 
-  private void receiveNonDataPacket(
-      org.scion.internal.Constants.HdrTypes hdrType, ResponsePath path) throws ScionException {
+  private Object receiveNonDataPacket(InternalConstants.HdrTypes hdrType, ResponsePath path)
+      throws ScionException {
     switch (hdrType) {
       case HOP_BY_HOP:
       case END_TO_END:
-        receiveExtension(path);
-        break;
+        return receiveExtension(path);
+        // break;
       case SCMP:
-        receiveScmp(path);
-        break;
+        return receiveScmp(path);
+        // break;
       default:
         if (cfgReportFailedValidation) {
           throw new ScionException("Unknown nextHdr: " + hdrType);
         }
     }
+    return null;
   }
 
-  private void receiveExtension(ResponsePath path) throws ScionException {
+  private Object receiveExtension(ResponsePath path) throws ScionException {
     ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
     // Currently we are not doing much here except hoping for an SCMP header
-    receiveNonDataPacket(extHdr.nextHdr(), path);
+    return receiveNonDataPacket(extHdr.nextHdr(), path);
   }
 
-  private void receiveScmp(Path path) {
+  private Scmp.ScmpMessage receiveScmp(Path path) {
     Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
     if (scmpMsg instanceof Scmp.ScmpEcho) {
       if (pingListener != null) {
@@ -258,6 +290,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
         errorListener.accept(scmpMsg);
       }
     }
+    return scmpMsg;
   }
 
   /**
@@ -293,8 +326,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
    */
   public synchronized Path send(ByteBuffer srcBuffer, Path path) throws IOException {
     // + 8 for UDP overlay header length
-    Path actualPath =
-        buildHeader(path, srcBuffer.remaining() + 8, org.scion.internal.Constants.HdrTypes.UDP);
+    Path actualPath = buildHeader(path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
     buffer.put(srcBuffer);
     buffer.flip();
     channel.send(buffer, actualPath.getFirstHopAddress());
@@ -305,22 +337,26 @@ public class DatagramChannel implements ByteChannel, Closeable {
       throws IOException {
     // EchoHeader = 8 + data
     int len = 8 + data.remaining();
-    Path actualPath = buildHeader(path, len, org.scion.internal.Constants.HdrTypes.SCMP);
+    Path actualPath = buildHeader(path, len, InternalConstants.HdrTypes.SCMP);
     ScmpParser.buildScmpPing(buffer, getLocalAddress().getPort(), sequenceNumber, data);
     buffer.flip();
-    channel.disconnect(); // TODO !!!!!!!!
     channel.send(buffer, actualPath.getFirstHopAddress());
   }
 
-  public synchronized void sendTracerouteRequest(Path path, int sequenceNumber) throws IOException {
-    // TracerouteHeader=24
+  void sendTracerouteRequest(Path path, int interfaceNumber, PathHeaderParser.Node node)
+      throws IOException {
+    // TracerouteHeader = 24
     int len = 24;
-    Path actualPath = buildHeader(path, len, org.scion.internal.Constants.HdrTypes.HOP_BY_HOP);
-    ScmpParser.buildExtensionHeader(buffer, org.scion.internal.Constants.HdrTypes.SCMP);
-    ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), sequenceNumber);
-
+    // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
+    //   we should only modify the outgoing packet.
+    byte[] raw = path.getRawPath();
+    raw[node.posHopFlags] = node.hopFlags;
+    Path actualPath = buildHeader(path, len, InternalConstants.HdrTypes.SCMP);
+    ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), interfaceNumber);
     buffer.flip();
     channel.send(buffer, actualPath.getFirstHopAddress());
+    // Clean up!  // TODO this is really bad!
+    raw[node.posHopFlags] = 0;
   }
 
   public synchronized Consumer<Scmp.ScmpEcho> setEchoListener(Consumer<Scmp.ScmpEcho> listener) {
@@ -383,7 +419,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
     int len = src.remaining();
     // + 8 for UDP overlay header length
-    buildHeader(path, len + 8, org.scion.internal.Constants.HdrTypes.UDP);
+    buildHeader(path, len + 8, InternalConstants.HdrTypes.UDP);
     buffer.put(src);
     buffer.flip();
 
@@ -436,8 +472,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @return argument path or a new path if the argument path was expired
    * @throws IOException in case of IOException.
    */
-  private Path buildHeader(
-      Path path, int payloadLength, org.scion.internal.Constants.HdrTypes hdrType)
+  private Path buildHeader(Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     buffer.clear();
     long srcIA;
@@ -477,7 +512,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
         buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress, hdrType);
     ScionHeaderParser.writePath(buffer, rawPath);
 
-    if (hdrType == org.scion.internal.Constants.HdrTypes.UDP) {
+    if (hdrType == InternalConstants.HdrTypes.UDP) {
       ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
     }
 
