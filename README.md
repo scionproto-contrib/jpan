@@ -1,10 +1,6 @@
 
 
-***Under construction. Do not use.***
-
-***Under construction. Do not use.***
-
-***Under construction. Do not use.***
+***Not officially released yet***
 
 # SCION Java client
 
