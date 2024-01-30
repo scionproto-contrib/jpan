@@ -248,7 +248,7 @@ public class Segments {
     } else if (bodyN.getIsdAs() == startIA) {
       return true;
     }
-    // TODO support "middle" IAs
+    // TODO support short-cut and on-path IAs
     throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
   }
 
@@ -381,7 +381,7 @@ public class Segments {
       Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
       Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
       if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
-        throw new UnsupportedOperationException("Unsigned entries not (yet) supported"); // TODO
+        throw new UnsupportedOperationException("Unsigned entries are not supported");
       }
       Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
       Seg.ASEntrySignedBody bodyLast = getBody(asEntryLast.getSigned());
@@ -397,8 +397,6 @@ public class Segments {
     try {
       Signed.HeaderAndBodyInternal habi =
           Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
-      // Signed.Header header = Signed.Header.parseFrom(habi.getHeader());
-      // TODO body for signature verification?!?
       return Seg.ASEntrySignedBody.parseFrom(habi.getBody());
     } catch (InvalidProtocolBufferException e) {
       throw new ScionRuntimeException(e);
@@ -406,7 +404,7 @@ public class Segments {
   }
 
   private static Seg.ASEntrySignedBody getBody(Seg.ASEntry asEntry) {
-    // Let's assumed they are all signed // TODO?
+    // Let's assumed they are all signed
     Signed.SignedMessage sm = asEntry.getSigned();
     return getBody(sm);
   }
