@@ -143,25 +143,14 @@ public class ScmpEchoDemo {
   }
 
   private void doClientStuff(long destinationIA) throws IOException {
-    //    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
-    // InetSocketAddress local = new InetSocketAddress("127.0.0.1", 34567);
     InetSocketAddress local = new InetSocketAddress("0.0.0.0", localPort);
     ScionService service = Scion.defaultService();
     try (DatagramChannel channel = service.openChannel().bind(local)) {
       channel.configureBlocking(true);
       this.channel = channel;
 
-      // InetSocketAddress serverAddress = new InetSocketAddress(ScmpServerDemo.hostName, PORT);
       InetSocketAddress destinationAddress =
           new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), PORT);
-
-      // InetSocketAddress serverAddress = new InetSocketAddress("127.0.0.10", 31004);
-
-      // Tiny topology SCMP
-      //      InetSocketAddress serverAddress = new InetSocketAddress("[fd00:f00d:cafe::7f00:9]",
-      // 31012);
-
-      // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
 
       channel.setScmpErrorListener(this::errorListener);
       channel.setEchoListener(this::echoListener);
@@ -188,7 +177,6 @@ public class ScmpEchoDemo {
     sendBuffer.flip();
     nowNanos.set(Instant.now().getNano());
     try {
-      // TODO why pass in path???????! Why not channel.default path?
       channel.sendEchoRequest(path, 0, sendBuffer);
     } catch (IOException e) {
       throw new RuntimeException(e);

@@ -91,7 +91,6 @@ public class ScmpTracerouteDemo {
         new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
     List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
-      // TODO should not be empty
       String src = ScionUtil.toStringIA(service.getLocalIsdAs());
       String dst = ScionUtil.toStringIA(destinationIA);
       throw new IOException("No path found from " + src + " to " + dst);
