@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import org.scion.DatagramChannel;
 import org.scion.Path;
 
-public class ScionPingPongChannelServer {
+public class PingPongChannelServer {
 
   public static boolean PRINT = true;
   private static final int SERVER_PORT = 44444;

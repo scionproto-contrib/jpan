@@ -25,15 +25,15 @@ public class PingPongDemoTest {
   @Test
   public void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
-    ScionPingPongChannelServer.PRINT = false;
-    ScionPingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
-    ScionPingPongChannelClient.PRINT = false;
-    ScionPingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
+    PingPongChannelServer.PRINT = false;
+    PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
+    PingPongChannelClient.PRINT = false;
+    PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
     Thread server =
         new Thread(
             () -> {
               try {
-                ScionPingPongChannelServer.main(null);
+                PingPongChannelServer.main(null);
               } catch (IOException e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);
@@ -47,7 +47,7 @@ public class PingPongDemoTest {
         new Thread(
             () -> {
               try {
-                ScionPingPongChannelClient.main(null);
+                PingPongChannelClient.main(null);
               } catch (IOException | InterruptedException e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);

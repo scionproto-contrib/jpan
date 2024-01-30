@@ -20,11 +20,11 @@ import java.nio.ByteBuffer;
 import org.scion.*;
 import org.scion.testutil.MockDNS;
 
-public class ScionPingPongChannelClient {
+public class PingPongChannelClient {
 
   public static boolean PRINT = true;
 
-  public static DemoConstants.Network NETWORK = ScionPingPongChannelServer.NETWORK;
+  public static DemoConstants.Network NETWORK = PingPongChannelServer.NETWORK;
 
   private static String extractMessage(ByteBuffer buffer) {
     buffer.flip();
@@ -91,7 +91,7 @@ public class ScionPingPongChannelClient {
   private static void doClientStuff(long destinationIA) throws IOException {
     DatagramChannel channel = startClient();
     String msg = "Hello scion";
-    InetSocketAddress serverAddress = ScionPingPongChannelServer.getServerAddress(NETWORK);
+    InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
     // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
     Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
 

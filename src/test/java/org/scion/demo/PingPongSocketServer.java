@@ -19,10 +19,10 @@ import java.net.*;
 import org.scion.DatagramSocket;
 
 @Deprecated // This does not work.
-public class ScionPingPongSocketServer {
+public class PingPongSocketServer {
   private final DatagramSocket socket;
 
-  public ScionPingPongSocketServer(int port, InetAddress localAddress) throws SocketException {
+  public PingPongSocketServer(int port, InetAddress localAddress) throws SocketException {
     socket = new DatagramSocket(port, localAddress);
   }
 
@@ -35,7 +35,7 @@ public class ScionPingPongSocketServer {
     // System.out.println("IPv4: " + (localAddress instanceof Inet4Address));
     // InetAddress localAddress = InetAddress.getByName("fd00:f00d:cafe::7f00:c");
     try {
-      ScionPingPongSocketServer server = new ScionPingPongSocketServer(port, localAddress);
+      PingPongSocketServer server = new PingPongSocketServer(port, localAddress);
       server.service();
     } catch (SocketException ex) {
       System.out.println("Socket error: " + ex.getMessage());

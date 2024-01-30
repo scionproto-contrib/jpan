@@ -15,12 +15,12 @@
 package org.scion.demo;
 
 @Deprecated // This does not work.
-public class ScionPingPongSocketClient {
+public class PingPongSocketClient {
 
   //  public static void main(String[] args) throws IOException {
   //    DemoTopology.configureMock(); // Tiny111_112();
   //    MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-  //    ScionPingPongSocketClient client = new ScionPingPongSocketClient();
+  //    PingPongSocketClient client = new PingPongSocketClient();
   //    client.run();
   //  }
   //
