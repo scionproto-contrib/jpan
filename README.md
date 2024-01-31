@@ -104,14 +104,13 @@ try (DatagramChannel channel = DatagramChannel.open()) {
 
 Some demos can be found in [src/test/java/org/scion/demo](src/test/java/org/scion/demo).
 
-- `DatagramChannel` ping pong [client](src/test/java/org/scion/demo/ScionPingPongChannelClient.java) 
-  and [server](src/test/java/org/scion/demo/ScionPingPongChannelServer.java)
+- `DatagramChannel` ping pong [client](src/test/java/org/scion/demo/PingPongChannelClient.java) 
+  and [server](src/test/java/org/scion/demo/PingPongChannelServer.java)
 - [SCMP echo](src/test/java/org/scion/demo/ScmpEchoDemo.java)
 - [SCMP traceroute](src/test/java/org/scion/demo/ScmpTracerouteDemo.java)
 
 
 ### General documentation
-
 
 - Reference manual: https://docs.scion.org
 - Reference implementation of SCION: https://github.com/scionproto/scion

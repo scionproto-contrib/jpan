@@ -13,7 +13,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <scion.dnsjava.version>3.5.3</scion.dnsjava.version>
-        <scion.google-java-format.version>1.18.1</scion.google-java-format.version>
+        <scion.google-java-format.version>1.19.2</scion.google-java-format.version>
         <scion.io-grpc.version>1.61.0</scion.io-grpc.version>
         <scion.junit.version>5.10.1</scion.junit.version>
         <scion.protobuf.version>3.25.2</scion.protobuf.version>
@@ -282,6 +282,7 @@
                 <configuration>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <preparationProfiles>release-prepare</preparationProfiles>
                     <releaseProfiles>release-perform</releaseProfiles>
                 </configuration>
             </plugin>
