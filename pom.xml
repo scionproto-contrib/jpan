@@ -4,7 +4,7 @@
 
     <groupId>org.scion</groupId>
     <artifactId>scion-java-client</artifactId>
-    <version>0.0.1-ALPHA</version>
+    <version>0.0.2-ALPHA-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -54,7 +54,7 @@
         <connection>scm:git:git@github.com:netsec-ethz/scion-java-client.git</connection>
         <developerConnection>scm:git:git@github.com:netsec-ethz/scion-java-client.git
         </developerConnection>
-        <tag>v0.0.1-ALPHA</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
