@@ -9,7 +9,7 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 The implementation can use the daemon. Alternatively, since daemon installation may
 be cumbersome on platforms such as Android, we can directly connect to a control service.
 An alternative for mobile devices could be a non-local daemon that is hosted by the mobile provider.
-This may work but may open opportunities for sid-channel attacks on the daemon.
+This may work but may open opportunities for side-channel attacks on the daemon.
 Also, when roaming, the provider may not actually support SCION. In this case the
 device would need to connect to some kind of gateway to connect to either a daemon or
 at least a topology server + control server.
@@ -33,7 +33,7 @@ at least a topology server + control server.
 
 There are two types of paths (both inherit `Path`:
 - `RequestPath` are used to send initial request. They are retrieved from a path service and contain meta information.
-- `ResponsePath` are used to respond to a client request. They are extracted from Scion packets.
+- `ResponsePath` are used to respond to a client request. They are extracted from SCION packets.
 
 `Path` contains a destination IA:IP:port, a raw path and a first hop IP:port.
 `RequestPath` also contains path meta information.
@@ -50,7 +50,7 @@ Some problems with DatagramSocket:
   we cannot associate a path with a datagram. The Socket will have to remember **all** incoming
   paths so that it has a path when returning a datagram to a client.
   This may improve somewhat in future if we get reverse lookup for IP addresses -> ISD/AS; 
-  this would allows the socket to forget paths and get new ones from the reverse lookup.
+  this would allow the socket to forget paths and get new ones from the reverse lookup.
 - It is not possible to subclass InetAddress which is the address type that is store inside 
   DatagramPackets.
 
@@ -62,9 +62,9 @@ Datagram Socket design considerations:
     the nio implementation only when it is available (running on JDK 15 or later).
     See also deprecation note: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
 
-- **Copy buffers?** We copy a packet's data array do a new DataGramPacket for the user.
+- **Copy buffers?** We copy a packet's data array to a new DatagramPacket for the user.
   The alternative would be to use offset/length, however, this would not be really
-  pluggable because user would need respect SCION header sizes when creating buffers for packets.
+  pluggable because user would need to respect SCION header sizes when creating buffers for packets.
   - Replacing the buffer in the user's packet is bad, this may be surprising for users
   - Using the buffer directly to read SCION packets is also bad because it may be too small
   - --> We definitely need to copy.
@@ -107,7 +107,7 @@ Datagram Socket design considerations:
 
 **DatagramSockets are currently not supported and may never be supported**. 
 DatagramSockets have no means of handling paths transparently (see discussion above).
-That means we would need additional functions for sending/receiving Scion packets.
+That means we would need additional functions for sending/receiving SCION packets.
 This is possible but usage is not transparent and inconvenient. 
 
 * [ ] Multicast support, check
