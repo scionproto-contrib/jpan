@@ -72,6 +72,7 @@
 ## Plan
 
 ### 0.1.0
+- rename artifact from "scion-java-client" to "client"
 - SCMP error handling (only error, not info)
   - implement callbacks (+ option to NOT ignore)
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"

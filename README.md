@@ -10,6 +10,15 @@ It provides functionality similar to
 [PAN (Go)](https://pkg.go.dev/github.com/netsec-ethz/scion-apps/pkg/pan) and 
 [scion-rs (Rust)](https://github.com/MystenLabs/scion-rs). 
 
+The following artifact contains the complete SCION Java client:
+``` 
+<dependency>
+    <groupId>org.scion</groupId>
+    <artifactId>scion-java-client</artifactId>
+    <version>0.1.0-ALPHA</version>
+</dependency>
+```
+
 ### Planned features
 - `DatagramSocket` and `DatagramPacket`
 - `Selector` for `DatagramChannel`
