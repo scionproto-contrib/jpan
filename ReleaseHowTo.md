@@ -18,10 +18,10 @@
    - Run `mvn release:perform`
    - Log in to https://s01.oss.sonatype.org, 
      - go to "Staging Repositories"
-     - Inspect the release
-     - Press "Close"
-     - Press "Release"
-   - Confirm that the packe has been released on https://central.sonatype.com/ 
+     - Inspect the release (may take a minute + "Refresh" to appear)
+     - Press "Close" (may take a minute + "Refresh" to be available)
+     - Press "Release" (may take a minute + "Refresh" to be available)
+   - Confirm that the artifact has become available on https://central.sonatype.com/ 
      (this may take a few hours).
  
 4) Post Release  
