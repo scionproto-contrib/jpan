@@ -6,8 +6,8 @@
 
 This library is pure Java network stack for using [SCION](https://scion.org). More information about SCION can be found [here](https://docs.scion.org).
 It provides functionality similar to 
-[snet (golang)](https://pkg.go.dev/github.com/scionproto/scion/pkg/snet),
-[PAN (golang)](https://pkg.go.dev/github.com/netsec-ethz/scion-apps/pkg/pan) and 
+[snet (Go)](https://pkg.go.dev/github.com/scionproto/scion/pkg/snet),
+[PAN (Go)](https://pkg.go.dev/github.com/netsec-ethz/scion-apps/pkg/pan) and 
 [scion-rs (Rust)](https://github.com/MystenLabs/scion-rs). 
 
 ### Planned features
@@ -35,17 +35,17 @@ The Java client can be used in one of the following ways:
 - If you need a local SCION installation (Go implementation),
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding
-  to forward incoming data your Java application port. The application port must not be 30041.
+  to forward incoming data to your Java application port. The application port must not be 30041.
 
 ## API
 
 The central classes of the API are:
 
 - `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
-  `Channel` and `ByteChannel`. Scattering. gathering, multicast and selectors are currently not
+  `Channel` and `ByteChannel`. Scattering, gathering, multicast and selectors are currently not
   supported.
 - `Path`, `RequestPath`, `ResponsePath`: The notion of path is slightly different than in other 
-    parts of Scion. A `Path` contains a route to a destination ("raw path") plus the full 
+    parts of SCION. A `Path` contains a route to a destination ("raw path") plus the full 
     destination, i.e. IP-address and port.
   - `RequestPath` is a `Path` with meta information (bandwidth, geo info, etc).
   - `ResponsePath` is a `Path` with source IA, IP & port.
@@ -65,7 +65,7 @@ The central classes of the API are:
 
 ### Features
 Supported:
-- DatagramChannel support: read(), write(), receive(), send(), bind(), connnect(), ... 
+- DatagramChannel support: read(), write(), receive(), send(), bind(), connect(), ... 
 - Path selection policies
 - Path expiry/refresh
 - Packet validation
@@ -125,13 +125,14 @@ For proper testing it is recommended to use one of the following:
 - [scionproto](https://github.com/scionproto/scion), the reference implementation of SCION, comes 
   with a framework that allows defining a topology and running a local network with daemons, control 
   servers, border routers and more, see [docs](https://docs.scion.org/en/latest/dev/run.html).
+- [SEED](https://github.com/seed-labs/seed-emulator/tree/master/examples/scion) is a network
+  emulator that can emulate SCION networks.
 - [SCIONlab](https://www.scionlab.org/) is a world wide testing framework for SCION. You can define your own AS
   and use the whole network. It runs as overlay over normal internet so it has limited 
   security guarantees and possibly reduced performance compared to native SCION.
 - [SCIERA](https://sciera.readthedocs.io/) is a network of Universities with SCION connection. It is part
   part of the global SCION  network
-- [EDGE](https://docs.anapaya.net/en/latest/getting-started/aws/) on [AWS](https://aws.amazon.com/de/blogs/alps/connecting-scion-networks-to-aws-environments/) offers SCION node in some countries. 
-  These are also connected to the global SCION network.
+- [AWS](https://aws.amazon.com/de/blogs/alps/connecting-scion-networks-to-aws-environments/) offers SCION nodes with connection to the global SCION network.
 
 
 
@@ -175,10 +176,10 @@ channel.connect(path);
 
 There is a simple ping pong client-server application in `src/test/demo`.
 
-It has some hardcoded ports/IP so it works only with the scionLab tiny.topo and only with the dispatcher-free
-version of scionLab: https://github.com/scionproto/scion/pull/4344
+It has some hardcoded ports/IP so it works only with the scionproto `tiny.topo` and only with the 
+dispatcher-free version of scionproto: https://github.com/scionproto/scion/pull/4344
 
-The client and server connects directly to the border router (without dispatcher).
+The client and server communicate directly with the border router (without dispatcher).
 
 The server is located in `1-ff00:0:112` (IP `[::1]:44444`). The client is located in `1-ff00:0:110`.
 
@@ -207,9 +208,9 @@ Options are defined in `ScionSocketOptions`, see javadoc for details.
 ## Configuration
 
 ### Bootstrapping / daemon
-In order to find paths and connect to the local AS, the application needs either a (local) 
-installation of the Scion Daemon (see here) or some other means to
-get bootstrap information.
+In order to find paths and connect to the local AS, the application needs either a [local 
+installation of SCION](https://docs.scion.org/en/latest/dev/run.html) 
+or some other means to get bootstrap information.
 
 The method `Scion.defaultService()` (internally called by `DatagramChannel.open()`) will 
 attempt to get network information in the following order until it succeeds:
@@ -231,9 +232,9 @@ the other options are skipped if no property or environment variable is defined.
 
 ### Other
 
-| Option                                                                                                                 | Java property           | Environment variable | Default value |
-|------------------------------------------------------------------------------------------------------------------------|-------------------------|----------------------|---------------|
-| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire with X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 10           |
+| Option                                                                                                               | Java property           | Environment variable | Default value |
+|----------------------------------------------------------------------------------------------------------------------|-------------------------|----------------------|---------------|
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 10           |
 
 ## FAQ / trouble shooting
 
