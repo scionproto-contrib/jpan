@@ -26,9 +26,9 @@ public class PingPongDemoTest {
   public void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
     PingPongChannelServer.PRINT = false;
-    PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
+    PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
     PingPongChannelClient.PRINT = false;
-    PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
+    PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
     Thread server =
         new Thread(
             () -> {

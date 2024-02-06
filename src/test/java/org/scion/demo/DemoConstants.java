@@ -20,6 +20,7 @@ public class DemoConstants {
 
   public enum Network {
     MOCK_TOPOLOGY, // SCION Java JUnit mock network
+    MOCK_TOPOLOGY_IPV4, // SCION Java JUnit mock network, IPv4 only
     TINY_PROTO, // Try to connect to "tiny" scionproto network
     MINIMAL_PROTO, // Try to connect to "minimal" scionproto network
     PRODUCTION // production network
