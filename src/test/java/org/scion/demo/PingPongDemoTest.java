@@ -18,17 +18,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 
 public class PingPongDemoTest {
+
+  @BeforeAll
+  public static void beforeAll() {
+    ScionService.closeDefault();
+  }
 
   @Test
   public void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
     PingPongChannelServer.PRINT = false;
-    PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
+    PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
     PingPongChannelClient.PRINT = false;
-    PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY;
+    PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
     Thread server =
         new Thread(
             () -> {

@@ -60,6 +60,14 @@ public class PingPongChannelClient {
   public static void main(String[] args) throws IOException, InterruptedException {
     // Demo setup
     switch (NETWORK) {
+      case MOCK_TOPOLOGY_IPV4:
+        {
+          DemoTopology.configureMock(true);
+          MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+          doClientStuff(DemoConstants.ia112);
+          DemoTopology.shutDown();
+          break;
+        }
       case MOCK_TOPOLOGY:
         {
           DemoTopology.configureMock();
@@ -92,7 +100,6 @@ public class PingPongChannelClient {
     DatagramChannel channel = startClient();
     String msg = "Hello scion";
     InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
-    // ScionSocketAddress serverAddress = ScionSocketAddress.create(isdAs, "::1", 44444);
     Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
 
     sendMessage(channel, msg, path);

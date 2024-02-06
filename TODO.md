@@ -72,9 +72,6 @@
 ## Plan
 
 ### 0.1.0
-- Fix CI failure (it works locally and used to work up until the release)
-- Fix 2023->2024 in headers
-- rename artifact from "scion-java-client" to "client"
 - SCMP error handling (only error, not info)
   - implement callbacks (+ option to NOT ignore)
   - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
