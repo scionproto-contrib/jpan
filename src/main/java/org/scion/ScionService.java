@@ -129,18 +129,21 @@ public class ScionService {
       // This is not 100% thread safe, but the worst that can happen is that
       // we call close() on a Service that has already been closed.
       if (DEFAULT != null) {
+        System.out.println("defaultService()-1"); // TODO
         return DEFAULT;
       }
       // try bootstrap service IP
       String fileName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
       if (fileName != null) {
+        System.out.println("defaultService()-2 " + fileName); // TODO
         DEFAULT = new ScionService(fileName, Mode.BOOTSTRAP_TOPO_FILE);
         return DEFAULT;
       }
 
       String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
       if (server != null) {
+        System.out.println("defaultService()-3 " + server); // TODO
         DEFAULT = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
         return DEFAULT;
       }
@@ -148,6 +151,7 @@ public class ScionService {
       String naptrName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
       if (naptrName != null) {
+        System.out.println("defaultService()-4 " + naptrName); // TODO
         DEFAULT = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
         return DEFAULT;
       }
@@ -158,6 +162,7 @@ public class ScionService {
       String daemonPort =
           ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
       try {
+        System.out.println("defaultService()-5 " + daemonHost + " "  + daemonPort); // TODO
         DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
         return DEFAULT;
       } catch (ScionRuntimeException e) {
