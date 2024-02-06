@@ -31,6 +31,7 @@ public class PingPongChannelServer {
       case MOCK_TOPOLOGY:
       case TINY_PROTO:
         return new InetSocketAddress("::1", SERVER_PORT);
+      case MOCK_TOPOLOGY_IPV4:
       case MINIMAL_PROTO:
         return new InetSocketAddress("127.0.0.1", SERVER_PORT);
       default:

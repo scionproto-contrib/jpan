@@ -40,12 +40,16 @@ class DemoTopology {
     return cfg;
   }
 
-  static DemoTopology configureMock() {
+  static DemoTopology configureMock(boolean remoteIPv4) {
     DemoTopology cfg = new DemoTopology();
-    MockNetwork.startTiny(true, false);
+    MockNetwork.startTiny(true, remoteIPv4);
     cfg.clientDaemonAddress = MockDaemon.DEFAULT_ADDRESS;
     //    cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
     return cfg;
+  }
+
+  static DemoTopology configureMock() {
+    return configureMock(false);
   }
 
   static void shutDown() {

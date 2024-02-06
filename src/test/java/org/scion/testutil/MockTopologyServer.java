@@ -178,7 +178,11 @@ public class MockTopologyServer implements Closeable {
 
     @Override
     public void run() {
-      try (ServerSocketChannel chnLocal = ServerSocketChannel.open().bind(null)) {
+      try (ServerSocketChannel chnLocal = ServerSocketChannel.open()) {
+        // Explicit binding to "localhost" to avoid automatic binding to IPv6 which is not
+        // supported by GitHub CI (https://github.com/actions/runner-images/issues/668).
+        InetSocketAddress local = new InetSocketAddress(InetAddress.getLocalHost(), 45678);
+        chnLocal.bind(local);
         chnLocal.configureBlocking(true);
         ByteBuffer buffer = ByteBuffer.allocate(66000);
         serverSocket.set((InetSocketAddress) chnLocal.getLocalAddress());
@@ -196,15 +200,18 @@ public class MockTopologyServer implements Closeable {
             logger.info("Topology server serves file to " + srcAddress);
             buffer.clear();
 
-            StringBuilder out = new StringBuilder();
-            out.append("HTTP/1.1 200 OK\n");
-            out.append("Connection: close\n");
-            out.append("Content-Type: text/plain\n");
-            out.append("Content-Length:").append(topologyFile.length()).append("\n");
-            out.append("\n");
-            out.append(topologyFile).append("\n");
+            String out =
+                "HTTP/1.1 200 OK\n"
+                    + "Connection: close\n"
+                    + "Content-Type: text/plain\n"
+                    + "Content-Length:"
+                    + topologyFile.length()
+                    + "\n"
+                    + "\n"
+                    + topologyFile
+                    + "\n";
 
-            buffer.put(out.toString().getBytes());
+            buffer.put(out.getBytes());
             buffer.flip();
             ss.write(buffer);
           } else {

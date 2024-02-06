@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
+  [#9](https://github.com/tzaeschke/phtree-cpp/pull/9)
+
+### Fixed
+- CI failures on JDK 8. [#10](https://github.com/tzaeschke/phtree-cpp/pull/10)
 
 ## [0.1.0-ALPHA] - 2024-02-01
 
