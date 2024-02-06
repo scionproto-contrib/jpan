@@ -83,8 +83,7 @@
   - BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)
-- FIX: Document or improve ERROR: "TRC NOT FOUND" when requesting path to non-existing AS (down segment?) 
-- Document:local scionproto-network returns no path -> recreate with -c topology!
+  - FIX: API ping takes 4-5 extra milliseconds
 - Docs:
   https://github.com/marcfrei/scion-time#setting-up-a-scion-test-environment
   https://github.com/netsec-ethz/lightning-filter#develop
