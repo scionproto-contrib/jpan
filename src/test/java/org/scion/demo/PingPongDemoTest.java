@@ -18,9 +18,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 
 public class PingPongDemoTest {
+
+  @BeforeAll
+  public static void beforeAll() {
+    ScionService.closeDefault();
+  }
 
   @Test
   public void test() throws InterruptedException {

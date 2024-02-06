@@ -162,7 +162,7 @@ public class ScionService {
       String daemonPort =
           ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
       try {
-        System.out.println("defaultService()-5 " + daemonHost + " "  + daemonPort); // TODO
+        System.out.println("defaultService()-5 " + daemonHost + " " + daemonPort); // TODO
         DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
         return DEFAULT;
       } catch (ScionRuntimeException e) {
