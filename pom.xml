@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.scion</groupId>
-    <artifactId>scion-java-client</artifactId>
+    <artifactId>client</artifactId>
     <version>0.1.1-ALPHA-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -53,7 +53,7 @@
         <developer>
             <id>tzaeschke</id>
             <name>Tilmann Zäschke</name>
-            <email>zilmann@ethz.ch</email>
+            <email>ztilmann@ethz.ch</email>
             <organization>ETH Zurich</organization>
             <timezone>1</timezone>
         </developer>
