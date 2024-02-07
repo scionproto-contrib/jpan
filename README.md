@@ -1,8 +1,9 @@
 
 
-***Not officially released yet***
 
 # SCION Java client
+
+[![codecov](https://codecov.io/gh/netsec-ethz/scion-java-client/graph/badge.svg?token=3U8J50E4N5)](https://codecov.io/gh/netsec-ethz/scion-java-client)
 
 This library is pure Java network stack for using [SCION](https://scion.org). More information about SCION can be found [here](https://docs.scion.org).
 It provides functionality similar to 
