@@ -188,8 +188,10 @@ public class ScionService {
         new Thread(
             () -> {
               try {
-                DEFAULT.shutdownHook = null;
-                DEFAULT.close();
+                if (DEFAULT != null) {
+                  DEFAULT.shutdownHook = null;
+                  DEFAULT.close();
+                }
               } catch (IOException e) {
                 e.printStackTrace(System.err);
               }
