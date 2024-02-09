@@ -90,7 +90,7 @@ public class ScionService {
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
       bootstrapper = null;
-      LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
+      LOG.info("Path service started with daemon {} {}", channel, addressOrHost);
     } else {
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
         bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
@@ -108,10 +108,20 @@ public class ScionService {
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
-      LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
+      LOG.info("Path service started with control service {} {}", channel, csHost);
     }
     shutdownHook = addShutdownHook();
-    getLocalIsdAs(); // Init
+    try {
+      getLocalIsdAs(); // Init
+    } catch (RuntimeException e) {
+      // If this fails for whatever reason we want to make sure that the channel is closed.
+      try {
+        close();
+      } catch (IOException ex) {
+        // Ignore, we just want to get out.
+      }
+      throw e;
+    }
     synchronized (LOCK) {
       if (DEFAULT == null) {
         DEFAULT = this;
@@ -193,7 +203,7 @@ public class ScionService {
                   DEFAULT.close();
                 }
               } catch (IOException e) {
-                e.printStackTrace(System.err);
+                // Ignore, we just want to get out.
               }
             });
     Runtime.getRuntime().addShutdownHook(hook);
@@ -211,6 +221,7 @@ public class ScionService {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IOException(e);
     }
   }
@@ -220,7 +231,6 @@ public class ScionService {
   }
 
   Daemon.ASResponse getASInfo() {
-    // LOG.info("*** GetASInfo ***");
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
@@ -235,7 +245,6 @@ public class ScionService {
   }
 
   Map<Long, Daemon.Interface> getInterfaces() {
-    // LOG.info("*** GetInterfaces ***");
     Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {
