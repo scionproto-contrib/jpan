@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
+import org.scion.Constants;
 import org.scion.ScionRuntimeException;
 import org.scion.ScionUtil;
 import org.slf4j.Logger;
@@ -42,6 +43,9 @@ import org.slf4j.LoggerFactory;
 
 public class MockTopologyServer implements Closeable {
 
+  public static final String TOPO_HOST = "my-topo-host.org";
+  public static final String TOPOFILE_TINY_110 = "topologies/scionproto-tiny-110.json";
+  public static final String TOPOFILE_TINY_111 = "topologies/scionproto-tiny-111.json";
   private static final Logger logger = LoggerFactory.getLogger(MockTopologyServer.class.getName());
   private final ExecutorService server;
   private final AtomicInteger callCount = new AtomicInteger();
@@ -50,7 +54,7 @@ public class MockTopologyServer implements Closeable {
   private String controlServer;
   private long localIsdAs;
 
-  public MockTopologyServer(Path topoFile) {
+  private MockTopologyServer(Path topoFile, boolean installNaptr) {
     getAndResetCallCount();
     server = Executors.newSingleThreadExecutor();
     TopologyServerImpl serverInstance = new TopologyServerImpl(readTopologyFile(topoFile));
@@ -62,23 +66,35 @@ public class MockTopologyServer implements Closeable {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+
+    if (installNaptr) {
+      InetSocketAddress topoAddr = serverSocket.get();
+      DNSUtil.installNAPTR(TOPO_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, TOPO_HOST);
+    }
+
     logger.info("Server started, listening on " + serverSocket);
   }
 
   public static MockTopologyServer start() {
-    return new MockTopologyServer(Paths.get("topologies/scionproto-tiny-111.json"));
+    return new MockTopologyServer(Paths.get(TOPOFILE_TINY_111), false);
   }
 
   public static MockTopologyServer start(Path topoFile) {
-    return new MockTopologyServer(topoFile);
+    return new MockTopologyServer(topoFile, false);
   }
 
   public static MockTopologyServer start(String topoFile) {
-    return new MockTopologyServer(Paths.get(topoFile));
+    return new MockTopologyServer(Paths.get(topoFile), false);
+  }
+
+  public static MockTopologyServer start(String topoFile, boolean installNaptr) {
+    return new MockTopologyServer(Paths.get(topoFile), installNaptr);
   }
 
   @Override
   public void close() {
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     try {
       server.shutdownNow();
       if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -88,6 +104,7 @@ public class MockTopologyServer implements Closeable {
     } catch (InterruptedException ie) {
       Thread.currentThread().interrupt();
     }
+    DNSUtil.clear();
   }
 
   public InetSocketAddress getAddress() {

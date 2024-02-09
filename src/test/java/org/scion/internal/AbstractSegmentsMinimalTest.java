@@ -40,7 +40,7 @@ import org.scion.testutil.MockControlServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
-public class SegmentsMinimalTest {
+public abstract class AbstractSegmentsMinimalTest {
   protected static final String AS_HOST = "my-as-host.org";
   protected static final long ZERO = ScionUtil.parseIA("0-0:0:0");
 

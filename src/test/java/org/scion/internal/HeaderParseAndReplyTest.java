@@ -19,12 +19,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.Path;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
 
-public class HeaderParseAndReplyTest {
+class HeaderParseAndReplyTest {
 
   // Original incoming packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
@@ -32,9 +34,15 @@ public class HeaderParseAndReplyTest {
   // reversed packet
   private static final byte[] reversedBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   /** Parse a packet and create a response packet with reversed path. */
   @Test
-  public void testParseAndReply() throws IOException {
+  void testParseAndReply() throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(packetBytes);
     InetSocketAddress firstHop = new InetSocketAddress("127.0.0.42", 23456);
 

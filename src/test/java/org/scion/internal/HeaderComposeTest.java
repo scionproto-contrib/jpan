@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDaemon;
@@ -40,11 +41,6 @@ public class HeaderComposeTest {
     MockDaemon.createAndStartDefault();
   }
 
-  @AfterAll
-  public static void afterAll() throws IOException {
-    MockDaemon.closeDefault();
-  }
-
   @AfterEach
   public void afterEach() {
     // path service
@@ -58,9 +54,16 @@ public class HeaderComposeTest {
     }
   }
 
+  @AfterAll
+  public static void afterAll() throws IOException {
+    MockDaemon.closeDefault();
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   /** Compose a packet from scratch. */
   @Test
-  public void testCompose() throws IOException {
+  void testCompose() throws IOException {
     MockDaemon.getAndResetCallCount(); // reset counter
     ByteBuffer p = ByteBuffer.allocate(500);
 

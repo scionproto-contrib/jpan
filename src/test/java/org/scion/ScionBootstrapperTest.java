@@ -17,12 +17,19 @@ package org.scion;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Paths;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.demo.DemoConstants;
 import org.scion.internal.ScionBootstrapper;
 
-public class ScionBootstrapperTest {
+class ScionBootstrapperTest {
+
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
 
   @Disabled // This requires access to the SCION production network
   @Test

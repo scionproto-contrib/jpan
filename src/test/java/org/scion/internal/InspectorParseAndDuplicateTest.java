@@ -19,15 +19,23 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.DatagramPacket;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
 import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;
 import org.scion.testutil.ExamplePacket;
 
-public class InspectorParseAndDuplicateTest {
+class InspectorParseAndDuplicateTest {
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
+
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
 
   /**
    * Parse a packet and create a duplicate from the parse packet. The generated content should be
@@ -35,7 +43,7 @@ public class InspectorParseAndDuplicateTest {
    * inspector.
    */
   @Test
-  public void testParseAndDuplicate() {
+  void testParseAndDuplicate() {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();

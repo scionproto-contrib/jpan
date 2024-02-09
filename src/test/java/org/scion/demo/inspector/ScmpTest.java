@@ -18,7 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 import org.scion.Scmp;
 
 public class ScmpTest {
@@ -80,8 +82,14 @@ public class ScmpTest {
         111, 32, 115, 99, 105, 111, 110,
       };
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   @Test
-  public void testScmpError_WrongPacketSize() throws IOException {
+  void testScmpError_WrongPacketSize() throws IOException {
     ByteBuffer data = ByteBuffer.wrap(SCMP_PKT_SIZE).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();
@@ -90,7 +98,7 @@ public class ScmpTest {
   }
 
   @Test
-  public void testScmpError_WrongPacketSize2() throws IOException {
+  void testScmpError_WrongPacketSize2() throws IOException {
     ByteBuffer data = ByteBuffer.wrap(SCMP_PACKET_SIZE2).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();

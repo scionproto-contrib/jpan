@@ -22,9 +22,11 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.ResponsePath;
+import org.scion.ScionService;
 import org.scion.Scmp;
 import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.internal.ScionHeaderParser;
@@ -73,8 +75,14 @@ public class SCMPTest {
     0, 0, 117, 89,
   };
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   @Test
-  public void echo_error_invalidMAC() throws IOException {
+  void echo_error_invalidMAC() throws IOException {
     ScionPacketInspector spi = ScionPacketInspector.readPacket(ByteBuffer.wrap(PING_ERROR_4_51_HK));
     System.out.println(spi);
     assertEquals(Scmp.ScmpTypeCode.TYPE_4_CODE_51, spi.getScmpHeader().getCode());
@@ -88,7 +96,7 @@ public class SCMPTest {
   }
 
   @Test
-  public void test_110_221() {
+  void test_110_221() {
     // Constructed:
     byte[] rawC = {
       0, 0, 48, -128, 0, 0, -20, -120, 101, -89, -1, 40, 1, 0, 1, -128, 101, -89, -1, 35, 0, 63, 0,
@@ -158,37 +166,37 @@ public class SCMPTest {
 
   @Disabled
   @Test
-  public void echo() {
+  void echo() {
     // TODO
   }
 
   @Disabled
   @Test
-  public void traceroute() {
+  void traceroute() {
     // TODO
   }
 
   @Disabled
   @Test
-  public void error_WrongSrcIsdAs() {
+  void error_WrongSrcIsdAs() {
     // TODO
   }
 
   @Disabled
   @Test
-  public void error_WrongPacketSize() {
+  void error_WrongPacketSize() {
     // TODO
   }
 
   @Disabled
   @Test
-  public void error_WrongPacketTooLarge() {
+  void error_WrongPacketTooLarge() {
     // TODO
   }
 
   @Disabled
   @Test
-  public void testProcessingRules() {
+  void testProcessingRules() {
     // https://scion.docs.anapaya.net/en/latest/protocols/scmp.html
   }
 }

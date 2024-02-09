@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.crypto.Signed;
@@ -94,11 +95,13 @@ public class SegmentsTinyTest {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @Disabled
   @Test
-  public void caseB_Up_Production() throws IOException {
+  void caseB_Up_Production() throws IOException {
     //    Requesting segments: 64-2:0:9 -> 64-0:0:0
     //    SEG: key=1 -> n=2
     //    PathSeg: size=10

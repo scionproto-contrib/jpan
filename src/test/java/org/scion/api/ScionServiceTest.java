@@ -24,7 +24,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
+import org.scion.testutil.DNSUtil;
+import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
+import org.scion.testutil.MockTopologyServer;
 
 public class ScionServiceTest {
 
@@ -34,13 +37,15 @@ public class ScionServiceTest {
 
   @BeforeAll
   public static void beforeAll() {
-    System.setProperty(
-        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
+    //    System.setProperty(
+    //        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
   }
 
   @AfterAll
   public static void afterAll() {
     System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @BeforeEach
@@ -163,69 +168,98 @@ public class ScionServiceTest {
 
   @Test
   void getScionAddress() throws ScionException {
-    // TODO this test makes a DNS call _and_ it depends on ETH having a specific ISD/AS/IP
-    ScionService pathService = Scion.defaultService();
-    // TXT entry: "scion=64-2:0:9,129.132.230.98"
-    ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
-    assertNotNull(sAddr);
-    assertEquals(64, sAddr.getIsd());
-    assertEquals("64-2:0:9", ScionUtil.toStringIA(sAddr.getIsdAs()));
-    assertEquals("/129.132.230.98", sAddr.getInetAddress().toString());
-    assertEquals("ethz.ch", sAddr.getHostName());
+    // This test makes a DNS call _and_ it depends on ETH having a specific ISD/AS/IP
+    // -> We fake the DNS
+    String dnsEntry = "ethz.ch=\"scion=64-2:0:9,129.132.230.98\"";
+    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, dnsEntry);
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
+
+    try {
+      ScionService pathService = Scion.defaultService();
+      // TXT entry: "scion=64-2:0:9,129.132.230.98"
+      ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
+      assertNotNull(sAddr);
+      assertEquals(64, sAddr.getIsd());
+      assertEquals("64-2:0:9", ScionUtil.toStringIA(sAddr.getIsdAs()));
+      assertEquals("/129.132.230.98", sAddr.getInetAddress().toString());
+      assertEquals("ethz.ch", sAddr.getHostName());
+    } finally {
+      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
+      ScionService.closeDefault();
+    }
   }
 
   @Test
-  void getScionAddress_Mock() throws ScionException {
+  void getScionAddress_Mock() throws IOException {
     // Test that DNS injection via properties works
-    // TODO do injection here instead of @BeforeAll
-    ScionService pathService = Scion.defaultService();
-    // TXT entry: "scion=64-2:0:9,129.132.230.98"
-    ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
-    assertNotNull(sAddr);
-    assertEquals(1, sAddr.getIsd());
-    assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
-    assertEquals("/127.0.0.1", sAddr.getInetAddress().toString());
-    assertEquals(SCION_HOST, sAddr.getHostName());
+    System.setProperty(
+        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, SCION_HOST);
+    MockDNS.install("1-ff00:0:110", SCION_HOST, "127.0.0.1");
+    DNSUtil.installNAPTR(SCION_HOST, new byte[] {127, 0, 0, 1}, 12345);
+    try {
+      ScionService pathService = Scion.defaultService();
+      // TXT entry: "scion=64-2:0:9,129.132.230.98"
+      ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
+      assertNotNull(sAddr);
+      assertEquals(1, sAddr.getIsd());
+      assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
+      assertEquals("/127.0.0.1", sAddr.getInetAddress().toString());
+      assertEquals(SCION_HOST, sAddr.getHostName());
+    } finally {
+      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+      MockDNS.clear();
+      DNSUtil.clear();
+      ScionService.closeDefault();
+    }
   }
 
   @Test
   void getScionAddress_Failure_IpOnly() {
-    ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
     Exception ex =
-        assertThrows(ScionException.class, () -> pathService.getScionAddress("127.12.12.12"));
-    assertTrue(ex.getMessage().contains("No DNS"), ex.getMessage());
+        assertThrows(
+            ScionRuntimeException.class,
+            () -> Scion.defaultService().getScionAddress("127.12.12.12"));
+    assertTrue(ex.getMessage().contains("DNS"), ex.getMessage());
   }
 
   @Test
   void getScionAddress_Failure_NoScion() {
-    ScionService pathService = Scion.defaultService();
-    // TODO this may fail if google supports SCION...
     Exception exception =
-        assertThrows(ScionException.class, () -> pathService.getScionAddress("google.com"));
+        assertThrows(
+            ScionRuntimeException.class,
+            () -> Scion.defaultService().getScionAddress("google.com"));
 
     String actualMessage = exception.getMessage();
-    assertTrue(actualMessage.contains("No DNS TXT entry \"scion\" found for"), actualMessage);
+    assertTrue(actualMessage.contains("DNS"), actualMessage);
   }
 
   @Test
   void getScionAddress_Failure_InvalidTXT() {
+    Scion.closeDefault();
     testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55\"");
-    testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55");
-    testInvalidTxtEntry("\"XXXscion=1-xxxx:0:110,127.0.0.55\"");
-    testInvalidTxtEntry("\"XXXscion=1-ff:00:0:110,127.0.0.55\"");
-    testInvalidTxtEntry("\"XXXscion=1-ff:00:0:110,127.55\"");
+    testInvalidTxtEntry("\"scion=1-ff00:0:110,127.0.0.55");
+    testInvalidTxtEntry("\"scion=1-xxxx:0:110,127.0.0.55\"");
+    testInvalidTxtEntry("\"scion=1-ff:00:0:110,127.0.0.55\"");
+    testInvalidTxtEntry("\"scion=1-ff:00:0:110,127.55\"");
   }
 
   private void testInvalidTxtEntry(String txtEntry) {
-    ScionService pathService = Scion.defaultService();
     String host = "127.0.0.55";
+    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);
+    // Use any topo file
+    MockTopologyServer topo = MockTopologyServer.start(MockTopologyServer.TOPOFILE_TINY_110, true);
     try {
-      System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);
+      ScionService pathService = Scion.defaultService();
       Exception ex = assertThrows(ScionException.class, () -> pathService.getScionAddress(host));
       assertTrue(ex.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+      ScionService.closeDefault();
+      // MockNetwork.stopTiny();
+      topo.close();
     }
   }
 

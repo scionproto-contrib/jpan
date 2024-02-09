@@ -18,17 +18,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
-public class ByteUtilTest {
+class ByteUtilTest {
 
   @Test
-  public void testReadInt() {
+  void testReadInt() {
     int i0 = 0xFEDCBA98;
     int i = ByteUtil.readInt(i0, 8, 8);
     assertEquals(0xDC, i);
   }
 
   @Test
-  public void testWriteToInt() {
+  void testWriteToInt() {
     int i0 = 0;
     i0 = ByteUtil.writeBool(i0, 7, true);
     assertEquals(0x01000000, i0, Integer.toBinaryString(i0));
@@ -37,7 +37,7 @@ public class ByteUtilTest {
   }
 
   @Test
-  public void testWriteToLong() {
+  void testWriteToLong() {
     long l0 = ByteUtil.writeInt(0L, 16, 16, 0x8585);
     assertEquals(0x0000858500000000L, l0, Long.toHexString(l0));
 

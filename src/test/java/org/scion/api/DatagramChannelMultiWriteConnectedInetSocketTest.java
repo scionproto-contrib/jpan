@@ -21,16 +21,24 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.Path;
+import org.scion.ScionService;
 import org.scion.testutil.PingPongHelper;
 
 /** Test read()/write() operations on DatagramChannel connected with an InetSocketAddress. */
 class DatagramChannelMultiWriteConnectedInetSocketTest {
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   @Test
-  public void test() {
+  void test() {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn = this::client;
     PingPongHelper pph = new PingPongHelper(1, 10, 10);
