@@ -126,6 +126,7 @@ Discuss required for 0.1.0:
   Throw exception? Callback?
 - Make multi-module project for demos & inspector (also channel vs socket?)
   -> see JDO for releasing only some modules for a release.
+- Support authentication for control servers
 
 ### 0.3.0
 - SCMP info handling: ping, traceroute, ...

@@ -127,8 +127,8 @@ public class ScmpEchoDemo {
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
       for (int i = 0; i < 5; i++) {
         Scmp.Result<Scmp.ScmpEcho> result = scmpChannel.sendEchoRequest(i, data);
-        Scmp.ScmpEcho msg = result.message;
-        String millis = String.format("%.4f", result.nanoSeconds / (double) 1_000_000);
+        Scmp.ScmpEcho msg = result.getMessage();
+        String millis = String.format("%.4f", result.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
         echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
         echoMsgStr += " time=" + millis + "ms";

@@ -51,13 +51,13 @@ public class ScionHeaderParser {
   }
 
   /**
-   * Extract the remote socket address without changing the buffer's position.
+   * Extract the remote socket address and path without changing the buffer's position.
    *
    * @param data The datagram to read from.
    * @return A new ScionSocketAddress including raw path.
    */
   // TODO this is a bit weird to have the firstHopAddress here....
-  public static ResponsePath extractRemoteSocketAddress(
+  public static ResponsePath extractResponsePath(
       ByteBuffer data, InetSocketAddress firstHopAddress) {
     int pos = data.position();
 

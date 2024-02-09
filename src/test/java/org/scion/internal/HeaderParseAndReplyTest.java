@@ -48,7 +48,7 @@ class HeaderParseAndReplyTest {
 
     ByteBuffer userRcvBuffer = ByteBuffer.allocate(10000);
     ScionHeaderParser.extractUserPayload(buffer, userRcvBuffer);
-    Path remoteAddr = ScionHeaderParser.extractRemoteSocketAddress(buffer, firstHop);
+    Path remoteAddr = ScionHeaderParser.extractResponsePath(buffer, firstHop);
     userRcvBuffer.flip();
 
     // payload

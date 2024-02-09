@@ -102,8 +102,8 @@ public class ScmpTracerouteDemo {
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
       List<Scmp.Result<Scmp.ScmpTraceroute>> results = scmpChannel.sendTracerouteRequest();
       for (Scmp.Result<Scmp.ScmpTraceroute> r : results) {
-        Scmp.ScmpTraceroute msg = r.message;
-        String millis = String.format("%.4f", r.nanoSeconds / (double) 1_000_000);
+        Scmp.ScmpTraceroute msg = r.getMessage();
+        String millis = String.format("%.4f", r.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
         echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
         echoMsgStr += " " + ScionUtil.toStringIA(msg.getIsdAs()) + " IfID=" + msg.getIfID();

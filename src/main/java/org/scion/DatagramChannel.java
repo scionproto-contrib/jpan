@@ -229,7 +229,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
 
       InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
       if (hdrType == InternalConstants.HdrTypes.UDP && expectedHdrType == hdrType) {
-        return ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
+        return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       }
 
       // From here on we use linear reading using the buffer's position() mechanism
@@ -245,7 +245,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
       }
 
       if (hdrType == expectedHdrType) {
-        return ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
+        return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       }
       receiveScmp(path);
     }

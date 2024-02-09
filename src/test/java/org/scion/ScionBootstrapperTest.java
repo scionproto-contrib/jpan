@@ -31,30 +31,6 @@ class ScionBootstrapperTest {
     ScionService.closeDefault();
   }
 
-  @Disabled // This requires access to the SCION production network
-  @Test
-  void testETH_bootstrapServer() {
-    String bootETH = "129.132.121.175:8041";
-    ScionBootstrapper sb = ScionBootstrapper.createViaBootstrapServerIP(bootETH);
-
-    assertEquals(DemoConstants.iaETH, sb.getLocalIsdAs());
-    assertEquals(DemoConstants.csETH, sb.getControlServerAddress());
-    assertFalse(sb.isLocalAsCore());
-  }
-
-  @Disabled
-  @Test
-  void testETH_topoFile() {
-    // TODO get ETH.json from topo server
-
-    //    java.nio.file.Path topoFile = Paths.get("topologies/ETH.json");
-    //    ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
-    //
-    //    assertEquals(DemoConstants.iaETH, sb.getLocalIsdAs());
-    //    assertEquals(DemoConstants.csETH, sb.getControlServerAddress());
-    //    assertFalse(sb.isLocalAsCore());
-  }
-
   @Test
   void testTiny110() {
     java.nio.file.Path topoFile = Paths.get("topologies/scionproto-tiny-110.json");

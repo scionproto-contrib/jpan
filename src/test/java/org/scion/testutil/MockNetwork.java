@@ -17,6 +17,7 @@ package org.scion.testutil;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -31,6 +32,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Collectors;
 import org.scion.PackageVisibilityHelper;
+import org.scion.ResponsePath;
+import org.scion.Scmp;
+import org.scion.internal.ScionHeaderParser;
+import org.scion.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,7 +189,6 @@ class MockBorderRouter implements Runnable {
   MockBorderRouter(int id, int port1, int port2, boolean ipv4_1, boolean ipv4_2) {
     this.id = id;
     this.name = "BorderRouter-" + id;
-    Thread.currentThread().setName(name);
     this.port1 = port1;
     this.port2 = port2;
     this.ipv4_1 = ipv4_1;
@@ -193,6 +197,7 @@ class MockBorderRouter implements Runnable {
 
   @Override
   public void run() {
+    Thread.currentThread().setName(name);
     InetSocketAddress bind1 = new InetSocketAddress(ipv4_1 ? "localhost" : "::1", port1);
     InetSocketAddress bind2 = new InetSocketAddress(ipv4_2 ? "localhost" : "::1", port2);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
@@ -224,20 +229,19 @@ class MockBorderRouter implements Runnable {
             }
 
             buffer.flip();
-            InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
-            logger.info(
-                name
-                    + " forwarding "
-                    + buffer.remaining()
-                    + " bytes from "
-                    + srcAddress
-                    + " to "
-                    + dstAddress);
 
-            outgoing.send(buffer, dstAddress);
-            buffer.clear();
-            MockNetwork.nForwardTotal.incrementAndGet();
-            MockNetwork.nForwards.incrementAndGet(id);
+            switch (PackageVisibilityHelper.getNextHdr(buffer)) {
+              case UDP:
+                handleUdp(buffer, srcAddress, outgoing);
+                break;
+              case SCMP:
+                handleScmp(buffer, srcAddress, outgoing);
+                break;
+              default:
+                logger.error(
+                    "HDR not supported: " + PackageVisibilityHelper.getNextHdr(buffer).code());
+                throw new UnsupportedOperationException();
+            }
           }
           iter.remove();
         }
@@ -247,6 +251,47 @@ class MockBorderRouter implements Runnable {
     } finally {
       logger.info("Shutting down router");
     }
+  }
+
+  private void handleUdp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
+      throws IOException {
+    InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
+    logger.info(
+        name
+            + " forwarding "
+            + buffer.remaining()
+            + " bytes from "
+            + srcAddress
+            + " to "
+            + dstAddress);
+
+    outgoing.send(buffer, dstAddress);
+    buffer.clear();
+    MockNetwork.nForwardTotal.incrementAndGet();
+    MockNetwork.nForwards.incrementAndGet(id);
+  }
+
+  private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
+          throws IOException {
+    // From here on we use linear reading using the buffer's position() mechanism
+    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+    ResponsePath path = PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
+    Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
+    logger.info(" received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
+
+    if (scmpMsg instanceof Scmp.ScmpEcho) {
+      outgoing.send(buffer, srcAddress);
+      buffer.clear();
+    } else if (scmpMsg instanceof Scmp.ScmpTraceroute) {
+      // TODO return traceroute
+    } else {
+      // TODO forward error???
+    }
+
+//    outgoing.send(buffer, dstAddress);
+//    buffer.clear();
+//    MockNetwork.nForwardTotal.incrementAndGet();
+//    MockNetwork.nForwards.incrementAndGet(id);
   }
 
   public int getPort1() {

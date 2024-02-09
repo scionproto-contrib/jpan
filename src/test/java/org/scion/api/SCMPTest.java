@@ -14,22 +14,22 @@
 
 package org.scion.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.List;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.scion.ResponsePath;
-import org.scion.ScionService;
-import org.scion.Scmp;
+import org.scion.*;
 import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.internal.ScionHeaderParser;
+import org.scion.testutil.MockNetwork;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class SCMPTest {
   private static final byte[] PING_ERROR_4_51_HK = {
@@ -91,7 +91,7 @@ public class SCMPTest {
     ByteBuffer buffer = ByteBuffer.wrap(PING_ERROR_4_51_HK);
     InetAddress srcAddr = Inet4Address.getByAddress(new byte[] {0, 0, 0, 0});
     InetSocketAddress srcAddress = new InetSocketAddress(srcAddr, 12345);
-    ResponsePath path = ScionHeaderParser.extractRemoteSocketAddress(buffer, srcAddress);
+    ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
     assertNotNull(path);
   }
 
@@ -166,7 +166,26 @@ public class SCMPTest {
 
   @Disabled
   @Test
-  void echo() {
+  void echo() throws IOException {
+    MockNetwork.startTiny();
+
+    try {
+      ScionService service = Scion.defaultService();
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      //InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345)
+      List<RequestPath> paths = service.getPaths(dstIA, new byte[]{0, 0,0,0}, 12345);
+
+      ScmpChannel channel = Scmp.createChannel(paths.get(0));
+      byte[] data = new byte[]{1, 2, 3, 4, 5};
+      Scmp.Result<Scmp.ScmpEcho> result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
+      assertEquals(42, result.getMessage().getSequenceNumber());
+      assertEquals(Scmp.ScmpTypeCode.TYPE_129, result.getMessage().getTypeCode());
+      assertTrue(result.getNanoSeconds() > 0);
+      assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+      assertArrayEquals(data, result.getMessage().getData());
+    } finally {
+      MockNetwork.stopTiny();
+    }
     // TODO
   }
 
