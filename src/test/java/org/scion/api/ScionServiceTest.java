@@ -190,13 +190,13 @@ public class ScionServiceTest {
   @Test
   void getScionAddress_Failure_IpOnly() {
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
-    Exception ex = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+    Exception ex = assertThrows(ScionRuntimeException.class, Scion::defaultService);
     assertTrue(ex.getMessage().contains("DNS"), ex.getMessage());
   }
 
   @Test
   void getScionAddress_Failure_NoScion() {
-    Exception exception = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+    Exception exception = assertThrows(ScionRuntimeException.class, Scion::defaultService);
 
     String actualMessage = exception.getMessage();
     assertTrue(actualMessage.contains("DNS"), actualMessage);

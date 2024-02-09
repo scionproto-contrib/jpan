@@ -96,7 +96,7 @@ public class ScionTest {
   }
 
   @Test
-  void defaultService_topoFile() throws IOException {
+  void defaultService_topoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
@@ -139,7 +139,7 @@ public class ScionTest {
   }
 
   @Test
-  void defaultService_bootstrapNaptrRecord() throws IOException {
+  void defaultService_bootstrapNaptrRecord() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
@@ -154,7 +154,7 @@ public class ScionTest {
   }
 
   @Test
-  void defaultService_bootstrapTopoFile() throws IOException {
+  void defaultService_bootstrapTopoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
