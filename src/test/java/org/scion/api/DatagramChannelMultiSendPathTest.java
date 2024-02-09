@@ -19,16 +19,24 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.Path;
+import org.scion.ScionService;
 import org.scion.testutil.PingPongHelper;
 
 /** Test receive()/send(Path) operations on DatagramChannel. */
 class DatagramChannelMultiSendPathTest {
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   @Test
-  public void test() {
+  void test() {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn = this::client;
     PingPongHelper pph = new PingPongHelper(1, 20, 50);

@@ -19,14 +19,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
 
 public class ScionPacketInspectorTest {
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   @Test
-  public void test() throws IOException {
+  void test() throws IOException {
     // client
     ByteBuffer composed = compose("Hello scion".getBytes());
 

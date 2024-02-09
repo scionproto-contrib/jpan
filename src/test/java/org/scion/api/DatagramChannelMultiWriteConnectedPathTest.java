@@ -19,10 +19,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
 import org.scion.Path;
 import org.scion.RequestPath;
+import org.scion.ScionService;
 import org.scion.testutil.PingPongHelper;
 
 /** Test read()/write() operations on DatagramChannel connected with a path. */
@@ -30,8 +32,14 @@ class DatagramChannelMultiWriteConnectedPathTest {
 
   private static final String MSG = "Hello world!";
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   @Test
-  public void test() {
+  void test() {
     PingPongHelper.Server serverFn = this::server;
     PingPongHelper.Client clientFn = this::client;
     PingPongHelper pph = new PingPongHelper(1, 10, 10);

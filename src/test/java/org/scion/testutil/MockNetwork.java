@@ -51,6 +51,15 @@ public class MockNetwork {
   private static MockTopologyServer topoServer;
   private static MockControlServer controlServer;
 
+  public enum Mode {
+    /** Start daemon */
+    DAEMON,
+    /** Install bootstrap server with DNS NAPTR record */
+    NAPTR,
+    /** Install bootstrap server */
+    BOOTSTRAP
+  }
+
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
    * (considered local) with "1-ff00:0:112" (remote). This also installs a DNS TXT record for
@@ -61,6 +70,14 @@ public class MockNetwork {
   }
 
   public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
+    startTiny(localIPv4, remoteIPv4, Mode.DAEMON);
+  }
+
+  public static synchronized void startTiny(Mode mode) {
+    startTiny(true, true, mode);
+  }
+
+  private static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4, Mode mode) {
     if (routers != null) {
       throw new IllegalStateException();
     }
@@ -90,13 +107,18 @@ public class MockNetwork {
 
     MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
 
-    topoServer = MockTopologyServer.start("topologies/scionproto-tiny-110.json");
-    controlServer = MockControlServer.start(topoServer.getControlServerPort());
+    if (mode == Mode.NAPTR || mode == Mode.BOOTSTRAP) {
+      topoServer =
+          MockTopologyServer.start(MockTopologyServer.TOPOFILE_TINY_110, mode == Mode.NAPTR);
+      controlServer = MockControlServer.start(topoServer.getControlServerPort());
+    }
   }
 
   public static synchronized void stopTiny() {
-    controlServer.close();
-    topoServer.close();
+    if (topoServer != null) {
+      controlServer.close();
+      topoServer.close();
+    }
 
     MockDNS.clear();
 

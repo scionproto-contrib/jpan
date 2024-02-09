@@ -14,12 +14,20 @@
 
 package org.scion.testutil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 
-public class PingPongHelperTest {
+class PingPongHelperTest {
+
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
 
   @Test
-  public void test() throws InterruptedException {
+  void test() {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn = PingPongHelper::defaultClient;
     PingPongHelper pph = new PingPongHelper(1, 1, 10);

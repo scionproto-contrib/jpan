@@ -18,20 +18,28 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.DatagramPacket;
 import java.nio.ByteBuffer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
 import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionHeader;
 import org.scion.testutil.ExamplePacket;
 
-public class InspectorParseAndReplyTest {
+class InspectorParseAndReplyTest {
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
   private static final byte[] responseBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG;
 
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
+
   /** Parse a packet and create a reply packet. */
   @Test
-  public void testParseAndReply() {
+  void testParseAndReply() {
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();
     OverlayHeader overlayHeaderUdp = new OverlayHeader();

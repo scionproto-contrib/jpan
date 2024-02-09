@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.demo.inspector.Constants;
 import org.scion.demo.inspector.OverlayHeader;
@@ -32,7 +33,7 @@ import org.scion.demo.inspector.ScionHeader;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDaemon;
 
-public class InspectorComposeTest {
+class InspectorComposeTest {
 
   // Recorded before sending a packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
@@ -47,6 +48,8 @@ public class InspectorComposeTest {
   @AfterAll
   public static void afterAll() throws IOException {
     MockDaemon.closeDefault();
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @AfterEach
@@ -64,7 +67,7 @@ public class InspectorComposeTest {
 
   /** Compose a packet from scratch using the inspector classes. */
   @Test
-  public void testCompose() throws IOException {
+  void testCompose() throws IOException {
     MockDaemon.getAndResetCallCount(); // reset counter
     ScionHeader scionHeader = new ScionHeader();
     PathHeaderScion pathHeaderScion = new PathHeaderScion();

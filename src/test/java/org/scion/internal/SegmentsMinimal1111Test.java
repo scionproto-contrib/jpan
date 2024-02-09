@@ -14,7 +14,6 @@
 
 package org.scion.internal;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -28,6 +27,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
@@ -46,7 +46,7 @@ import org.scion.testutil.MockTopologyServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores); Book: 1c<br>
  */
-public class SegmentsMinimal1111Test extends SegmentsMinimalTest {
+public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
 
   private static final String FIRST_HOP = "127.0.0.41:31024"; // TODO read from TOPO
   private static MockTopologyServer topoServer;
@@ -72,6 +72,8 @@ public class SegmentsMinimal1111Test extends SegmentsMinimalTest {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @Test

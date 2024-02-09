@@ -21,7 +21,7 @@ import org.xbill.DNS.*;
 
 public class DNSUtil {
 
-  public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort) throws IOException {
+  public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort) {
 
     // NAPTR:
     // flags=A
@@ -35,31 +35,35 @@ public class DNSUtil {
     // name=inf.ethz.ch.
     // ttl=2533
 
-    Name name = Name.fromString(asHost + "."); // "iinf.ethz.ch.";
-    Name replacement = new Name("topohost.x.y."); // "netsec-w37w3w.inf.ethz.ch."
+    try {
+      Name name = Name.fromString(asHost + "."); // "iinf.ethz.ch.";
+      Name replacement = new Name("topohost.x.y."); // "netsec-w37w3w.inf.ethz.ch."
 
-    Cache c = new Cache(DClass.IN);
-    TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, "x-sciondiscovery=" + topoPort);
-    c.addRecord(txt, 10);
+      Cache c = new Cache(DClass.IN);
+      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, "x-sciondiscovery=" + topoPort);
+      c.addRecord(txt, 10);
 
-    InetAddress addr = InetAddress.getByAddress(topoAddr);
-    String naptrFlag;
-    if (addr instanceof Inet4Address) {
-      ARecord a = new ARecord(replacement, DClass.IN, 5000, addr);
-      c.addRecord(a, 10);
-      naptrFlag = "A";
-    } else {
-      AAAARecord a = new AAAARecord(replacement, DClass.IN, 5000, addr);
-      c.addRecord(a, 10);
-      naptrFlag = "AAAA";
+      InetAddress addr = InetAddress.getByAddress(topoAddr);
+      String naptrFlag;
+      if (addr instanceof Inet4Address) {
+        ARecord a = new ARecord(replacement, DClass.IN, 5000, addr);
+        c.addRecord(a, 10);
+        naptrFlag = "A";
+      } else {
+        AAAARecord a = new AAAARecord(replacement, DClass.IN, 5000, addr);
+        c.addRecord(a, 10);
+        naptrFlag = "AAAA";
+      }
+
+      NAPTRRecord nr2 =
+          new NAPTRRecord(
+              name, DClass.IN, 5000, 1, 1, naptrFlag, "x-sciondiscovery:tcp", "", replacement);
+      c.addRecord(nr2, 10);
+
+      Lookup.setDefaultCache(c, DClass.IN);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-
-    NAPTRRecord nr2 =
-        new NAPTRRecord(
-            name, DClass.IN, 5000, 1, 1, naptrFlag, "x-sciondiscovery:tcp", "", replacement);
-    c.addRecord(nr2, 10);
-
-    Lookup.setDefaultCache(c, DClass.IN);
   }
 
   public static void clear() {

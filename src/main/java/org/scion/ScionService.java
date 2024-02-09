@@ -64,6 +64,7 @@ public class ScionService {
   private static final String DNS_TXT_KEY = "scion";
   private static final Object LOCK = new Object();
   private static ScionService DEFAULT = null;
+  private static final String ERR_INVALID_TXT = "Invalid TXT entry: ";
 
   private final ScionBootstrapper bootstrapper;
   // TODO create subclasses for these two? We can only have either one of them, not both.
@@ -89,7 +90,7 @@ public class ScionService {
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
       bootstrapper = null;
-      LOG.info("Path service started with daemon " + channel.toString() + " " + addressOrHost);
+      LOG.info("Path service started with daemon {} {}", channel, addressOrHost);
     } else {
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
         bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
@@ -107,10 +108,20 @@ public class ScionService {
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
-      LOG.info("Path service started with control service " + channel.toString() + " " + csHost);
+      LOG.info("Path service started with control service {} {}", channel, csHost);
     }
     shutdownHook = addShutdownHook();
-    getLocalIsdAs(); // Init
+    try {
+      getLocalIsdAs(); // Init
+    } catch (RuntimeException e) {
+      // If this fails for whatever reason we want to make sure that the channel is closed.
+      try {
+        close();
+      } catch (IOException ex) {
+        // Ignore, we just want to get out.
+      }
+      throw e;
+    }
     synchronized (LOCK) {
       if (DEFAULT == null) {
         DEFAULT = this;
@@ -164,7 +175,7 @@ public class ScionService {
         // Ignore
       }
 
-      throw new ScionRuntimeException("Could not connect to daemon or bootstrap resource.");
+      throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
   }
 
@@ -187,10 +198,12 @@ public class ScionService {
         new Thread(
             () -> {
               try {
-                DEFAULT.shutdownHook = null;
-                DEFAULT.close();
+                if (DEFAULT != null) {
+                  DEFAULT.shutdownHook = null;
+                  DEFAULT.close();
+                }
               } catch (IOException e) {
-                e.printStackTrace(System.err);
+                // Ignore, we just want to get out.
               }
             });
     Runtime.getRuntime().addShutdownHook(hook);
@@ -208,6 +221,7 @@ public class ScionService {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IOException(e);
     }
   }
@@ -217,7 +231,6 @@ public class ScionService {
   }
 
   Daemon.ASResponse getASInfo() {
-    // LOG.info("*** GetASInfo ***");
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
@@ -232,7 +245,6 @@ public class ScionService {
   }
 
   Map<Long, Daemon.Interface> getInterfaces() {
-    // LOG.info("*** GetInterfaces ***");
     Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {
@@ -324,7 +336,6 @@ public class ScionService {
   }
 
   Map<String, Daemon.ListService> getServices() throws ScionException {
-    // LOG.info("*** GetServices ***");
     Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
     Daemon.ServicesResponse response;
     try {
@@ -440,7 +451,7 @@ public class ScionService {
         txtRecord = props.substring(posStart + 1);
       }
       if (!txtRecord.startsWith("\"" + key + "=") || !txtRecord.endsWith("\"")) {
-        throw new ScionException("Invalid TXT entry: " + txtRecord);
+        throw new ScionException(ERR_INVALID_TXT + txtRecord);
       }
       // No more checking here, we assume that properties are save
       return txtRecord.substring(key.length() + 2, txtRecord.length() - 1);
@@ -448,21 +459,25 @@ public class ScionService {
     return null;
   }
 
-  private ScionAddress parseTxtRecord(String txtEntry, String hostName) {
+  private ScionAddress parseTxtRecord(String txtEntry, String hostName) throws ScionException {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
     if (posComma < 0) {
-      throw new ScionRuntimeException("Invalid TXT entry: " + txtEntry);
+      throw new ScionException(ERR_INVALID_TXT + txtEntry);
     }
-    long isdAs = ScionUtil.parseIA(txtEntry.substring(0, posComma));
-    return ScionAddress.create(isdAs, hostName, txtEntry.substring(posComma + 1));
+    try {
+      long isdAs = ScionUtil.parseIA(txtEntry.substring(0, posComma));
+      return ScionAddress.create(isdAs, hostName, txtEntry.substring(posComma + 1));
+    } catch (IllegalArgumentException e) {
+      throw new ScionException(ERR_INVALID_TXT + txtEntry, e);
+    }
   }
 
   private long parseTxtRecordToIA(String txtEntry) {
     // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
     int posComma = txtEntry.indexOf(',');
     if (posComma < 0) {
-      throw new ScionRuntimeException("Invalid TXT entry: " + txtEntry);
+      throw new ScionRuntimeException(ERR_INVALID_TXT + txtEntry);
     }
     return ScionUtil.parseIA(txtEntry.substring(0, posComma));
   }

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.crypto.Signed;
@@ -81,7 +82,7 @@ public class SegmentsDefaultTest {
     topoServer = MockTopologyServer.start(Paths.get("topologies/dummy.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(31006); // TODO get port from topo
+    controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
 
   @AfterEach
@@ -96,6 +97,8 @@ public class SegmentsDefaultTest {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @Test

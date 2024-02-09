@@ -19,9 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramSocket;
+import org.scion.ScionService;
 import org.scion.testutil.MockNetwork;
 
 @Disabled // TODO this does not work anymore.
@@ -34,6 +36,12 @@ class DatagramSocketPingPongTest {
   private int nClient = 0;
   private int nServer = 0;
   private final ArrayList<Throwable> exceptions = new ArrayList<>();
+
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
 
   @Test
   void testPingPong() throws InterruptedException {

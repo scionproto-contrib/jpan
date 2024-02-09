@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
@@ -46,7 +47,7 @@ import org.scion.testutil.MockTopologyServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores); Book: 1c<br>
  */
-public class SegmentsMinimal111Test extends SegmentsMinimalTest {
+public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
 
   private static final String BR_110 = "127.0.0.33:31016";
   private static MockTopologyServer topoServer;
@@ -72,6 +73,8 @@ public class SegmentsMinimal111Test extends SegmentsMinimalTest {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @Test

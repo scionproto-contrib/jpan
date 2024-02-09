@@ -30,7 +30,7 @@ public class PingPongDemoTest {
   }
 
   @Test
-  public void test() throws InterruptedException {
+  void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
     PingPongChannelServer.PRINT = false;
     PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
