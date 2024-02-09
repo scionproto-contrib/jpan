@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
+import org.scion.ScionService;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
@@ -44,7 +45,7 @@ import org.scion.testutil.MockTopologyServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
-public class SegmentsMinimal110Test extends SegmentsMinimalTest {
+public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
   private static MockTopologyServer topoServer;
 
   @BeforeAll
@@ -53,7 +54,7 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
         MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_110/topology.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(31000); // TODO get port from topo
+    controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
 
   @AfterEach
@@ -68,6 +69,8 @@ public class SegmentsMinimal110Test extends SegmentsMinimalTest {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @Test

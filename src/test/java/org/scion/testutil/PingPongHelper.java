@@ -35,7 +35,7 @@ public class PingPongHelper {
 
   public static final String MSG = "Hello scion!";
   private static final int TIMEOUT = 5; // seconds
-  private final CountDownLatch BARRIER;
+  private final CountDownLatch shutDownBarrier;
 
   private final int nClients;
   private final int nServers;
@@ -49,7 +49,7 @@ public class PingPongHelper {
     this.nClients = nClients;
     this.nServers = nServers;
     this.nRounds = nRounds;
-    BARRIER = new CountDownLatch(nClients + nServers);
+    shutDownBarrier = new CountDownLatch(nClients + nServers);
     MockNetwork.getAndResetForwardCount();
   }
 
@@ -74,7 +74,7 @@ public class PingPongHelper {
       } catch (Exception e) {
         exceptions.add(e);
       } finally {
-        BARRIER.countDown();
+        shutDownBarrier.countDown();
       }
     }
   }
@@ -161,14 +161,14 @@ public class PingPongHelper {
 
       // This enables shutdown in case of an error.
       // Wait for all threads to finish.
-      if (!BARRIER.await(TIMEOUT, TimeUnit.SECONDS)) {
+      if (!shutDownBarrier.await(TIMEOUT, TimeUnit.SECONDS)) {
         for (Thread client : clients) {
           client.interrupt();
         }
         for (Thread server : servers) {
           server.interrupt();
         }
-        if (!BARRIER.await(1, TimeUnit.SECONDS)) {
+        if (!shutDownBarrier.await(1, TimeUnit.SECONDS)) {
           checkExceptions();
           fail();
         }

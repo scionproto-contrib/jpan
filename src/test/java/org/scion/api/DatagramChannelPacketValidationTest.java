@@ -25,9 +25,11 @@ import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.DatagramChannel;
+import org.scion.ScionService;
 import org.scion.ScionSocketOptions;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.testutil.ExamplePacket;
@@ -49,6 +51,12 @@ class DatagramChannelPacketValidationTest {
     receiveBadCount.set(0);
     failure.set(null);
     barrier = null;
+  }
+
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @Test

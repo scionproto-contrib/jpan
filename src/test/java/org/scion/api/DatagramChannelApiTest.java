@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,12 @@ class DatagramChannelApiTest {
   public void afterEach() throws IOException {
     MockDaemon.closeDefault();
     MockDNS.clear();
+  }
+
+  @AfterAll
+  public static void afterAll() {
+    // Defensive clean up
+    ScionService.closeDefault();
   }
 
   @Test
