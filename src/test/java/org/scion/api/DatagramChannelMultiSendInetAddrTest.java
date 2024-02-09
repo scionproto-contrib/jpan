@@ -38,7 +38,6 @@ class DatagramChannelMultiSendInetAddrTest {
     ScionService.closeDefault();
   }
 
-  @Disabled
   @Test
   void test() {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;

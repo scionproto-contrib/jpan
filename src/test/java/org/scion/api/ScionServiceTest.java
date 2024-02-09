@@ -190,19 +190,13 @@ public class ScionServiceTest {
   @Test
   void getScionAddress_Failure_IpOnly() {
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
-    Exception ex =
-        assertThrows(
-            ScionRuntimeException.class,
-            () -> Scion.defaultService().getScionAddress("127.12.12.12"));
+    Exception ex = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
     assertTrue(ex.getMessage().contains("DNS"), ex.getMessage());
   }
 
   @Test
   void getScionAddress_Failure_NoScion() {
-    Exception exception =
-        assertThrows(
-            ScionRuntimeException.class,
-            () -> Scion.defaultService().getScionAddress("google.com"));
+    Exception exception = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
 
     String actualMessage = exception.getMessage();
     assertTrue(actualMessage.contains("DNS"), actualMessage);
@@ -230,7 +224,6 @@ public class ScionServiceTest {
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
       ScionService.closeDefault();
-      // MockNetwork.stopTiny();
       topo.close();
     }
   }

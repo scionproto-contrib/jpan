@@ -107,7 +107,7 @@ public class ScmpTest {
   }
 
   @Test
-  public void testScmpError_WrongSrcIsdAs() throws IOException {
+  void testScmpError_WrongSrcIsdAs() throws IOException {
     ByteBuffer data = ByteBuffer.wrap(WRONG_SRC_ISD_AS).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();
