@@ -203,10 +203,11 @@ public class MockTopologyServer implements Closeable {
         chnLocal.configureBlocking(true);
         ByteBuffer buffer = ByteBuffer.allocate(66000);
         serverSocket.set((InetSocketAddress) chnLocal.getLocalAddress());
-        barrier.countDown();
         logger.info("Topology server started on port " + chnLocal.getLocalAddress());
+        barrier.countDown();
         while (true) {
           SocketChannel ss = chnLocal.accept();
+          callCount.incrementAndGet();
           ss.read(buffer);
           SocketAddress srcAddress = ss.getRemoteAddress();
 
@@ -227,7 +228,6 @@ public class MockTopologyServer implements Closeable {
                     + "\n"
                     + topologyFile
                     + "\n";
-
             buffer.put(out.getBytes());
             buffer.flip();
             ss.write(buffer);
@@ -235,7 +235,6 @@ public class MockTopologyServer implements Closeable {
             logger.warn("Illegal request: " + request);
           }
           buffer.clear();
-          callCount.incrementAndGet();
         }
 
       } catch (ClosedByInterruptException e) {
