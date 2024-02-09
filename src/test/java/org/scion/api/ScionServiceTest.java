@@ -24,9 +24,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
-import org.scion.testutil.DNSUtil;
-import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
+import org.scion.testutil.MockNetwork;
 import org.scion.testutil.MockTopologyServer;
 
 public class ScionServiceTest {
@@ -167,37 +166,11 @@ public class ScionServiceTest {
   }
 
   @Test
-  void getScionAddress() throws ScionException {
-    // This test makes a DNS call _and_ it depends on ETH having a specific ISD/AS/IP
-    // -> We fake the DNS
-    String dnsEntry = "ethz.ch=\"scion=64-2:0:9,129.132.230.98\"";
-    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, dnsEntry);
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
-
-    try {
-      ScionService pathService = Scion.defaultService();
-      // TXT entry: "scion=64-2:0:9,129.132.230.98"
-      ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
-      assertNotNull(sAddr);
-      assertEquals(64, sAddr.getIsd());
-      assertEquals("64-2:0:9", ScionUtil.toStringIA(sAddr.getIsdAs()));
-      assertEquals("/129.132.230.98", sAddr.getInetAddress().toString());
-      assertEquals("ethz.ch", sAddr.getHostName());
-    } finally {
-      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
-      ScionService.closeDefault();
-    }
-  }
-
-  @Test
-  void getScionAddress_Mock() throws IOException {
+  void getScionAddress() throws IOException {
     // Test that DNS injection via properties works
     System.setProperty(
         PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, SCION_HOST);
-    MockDNS.install("1-ff00:0:110", SCION_HOST, "127.0.0.1");
-    DNSUtil.installNAPTR(SCION_HOST, new byte[] {127, 0, 0, 1}, 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try {
       ScionService pathService = Scion.defaultService();
       // TXT entry: "scion=64-2:0:9,129.132.230.98"
@@ -209,9 +182,8 @@ public class ScionServiceTest {
       assertEquals(SCION_HOST, sAddr.getHostName());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
-      MockDNS.clear();
-      DNSUtil.clear();
       ScionService.closeDefault();
+      MockNetwork.stopTiny();
     }
   }
 
