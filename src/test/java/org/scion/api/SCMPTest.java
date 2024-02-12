@@ -17,10 +17,9 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
@@ -166,7 +165,6 @@ public class SCMPTest {
   @Test
   void echo() throws IOException {
     MockNetwork.startTiny();
-
     try {
       ScionService service = Scion.defaultService();
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
@@ -189,10 +187,83 @@ public class SCMPTest {
     }
   }
 
-  @Disabled
   @Test
-  void traceroute() {
-    // TODO
+  void echo_timeout() throws IOException {
+    MockNetwork.startTiny();
+    try {
+      ScionService service = Scion.defaultService();
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      // InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345)
+      List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
+
+      try (ScmpChannel channel = Scmp.createChannel(paths.get(0))) {
+        channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+        channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+        channel.setTimeOut(1_000);
+        byte[] data = new byte[] {1, 2, 3, 4, 5};
+        MockNetwork.dropNextPackets(1);
+        Scmp.Result<Scmp.ScmpEcho> result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
+        assertNull(result.getMessage());
+        assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void traceroute() throws IOException {
+    MockNetwork.startTiny();
+    try {
+      ScionService service = Scion.defaultService();
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      // InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345)
+      List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
+
+      try (ScmpChannel channel = Scmp.createChannel(paths.get(0))) {
+        channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+        channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+        Collection<Scmp.Result<Scmp.ScmpTraceroute>> results = channel.sendTracerouteRequest();
+        channel.setTimeOut(Integer.MAX_VALUE);
+
+        int n = 0;
+        for (Scmp.Result<Scmp.ScmpTraceroute> result : results) {
+          assertEquals(n++, result.getMessage().getSequenceNumber());
+          assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getMessage().getTypeCode());
+          assertTrue(result.getNanoSeconds() > 0);
+          assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+        }
+        assertEquals(2, results.size());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void traceroute_timeout() throws IOException {
+    MockNetwork.startTiny();
+    try {
+      ScionService service = Scion.defaultService();
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      // InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345)
+      List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
+
+      try (ScmpChannel channel = Scmp.createChannel(paths.get(0))) {
+        channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+        channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+        MockNetwork.dropNextPackets(2);
+        Collection<Scmp.Result<Scmp.ScmpTraceroute>> results = channel.sendTracerouteRequest();
+
+        assertEquals(1, results.size());
+        for (Scmp.Result<Scmp.ScmpTraceroute> result : results) {
+          assertNull(result.getMessage());
+          assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
+        }
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
   }
 
   @Disabled

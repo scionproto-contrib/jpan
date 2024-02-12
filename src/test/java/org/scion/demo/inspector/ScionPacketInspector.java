@@ -172,7 +172,14 @@ public class ScionPacketInspector {
       pathHeaderScion.write(newData);
       scmpHeader.writeEcho(newData);
     } else if (type == Scmp.ScmpType.INFO_130 || type == Scmp.ScmpType.INFO_131) {
-      throw new UnsupportedOperationException();
+      scionHeader.write(
+          newData,
+          24,
+          pathHeaderScion.length(),
+          Constants.PathTypes.SCION,
+          InternalConstants.HdrTypes.SCMP);
+      pathHeaderScion.write(newData);
+      scmpHeader.writeTraceroute(newData);
     }
   }
 

@@ -16,6 +16,7 @@ package org.scion.demo;
 
 import java.io.*;
 import java.net.*;
+import java.util.Collection;
 import java.util.List;
 import org.scion.*;
 import org.scion.Scmp;
@@ -100,7 +101,7 @@ public class ScmpTracerouteDemo {
     System.out.println("Listening at port " + localPort + " ...");
 
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      List<Scmp.Result<Scmp.ScmpTraceroute>> results = scmpChannel.sendTracerouteRequest();
+      Collection<Scmp.Result<Scmp.ScmpTraceroute>> results = scmpChannel.sendTracerouteRequest();
       for (Scmp.Result<Scmp.ScmpTraceroute> r : results) {
         Scmp.ScmpTraceroute msg = r.getMessage();
         String millis = String.format("%.4f", r.getNanoSeconds() / (double) 1_000_000);

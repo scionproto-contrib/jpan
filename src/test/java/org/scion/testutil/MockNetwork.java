@@ -56,6 +56,7 @@ public class MockNetwork {
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   private static MockTopologyServer topoServer;
   private static MockControlServer controlServer;
+  static final AtomicInteger dropNextPackets = new AtomicInteger();
 
   public enum Mode {
     /** Start daemon */
@@ -118,6 +119,8 @@ public class MockNetwork {
           MockTopologyServer.start(MockTopologyServer.TOPOFILE_TINY_110, mode == Mode.NAPTR);
       controlServer = MockControlServer.start(topoServer.getControlServerPort());
     }
+
+    dropNextPackets.getAndSet(0);
   }
 
   public static synchronized void stopTiny() {
@@ -150,6 +153,7 @@ public class MockNetwork {
       }
       routers = null;
     }
+    dropNextPackets.getAndSet(0);
   }
 
   public static InetSocketAddress getTinyServerAddress() {
@@ -161,6 +165,11 @@ public class MockNetwork {
       nForwards.set(i, 0);
     }
     return nForwardTotal.getAndSet(0);
+  }
+
+  public static void dropNextPackets(int n) {
+    // set the routers to drop the next packet
+    dropNextPackets.set(n);
   }
 
   public static int getForwardCount(int routerId) {
@@ -228,8 +237,12 @@ class MockBorderRouter implements Runnable {
             if (srcAddress == null) {
               throw new IllegalStateException();
             }
-
             buffer.flip();
+
+            if (MockNetwork.dropNextPackets.get() > 0) {
+              MockNetwork.dropNextPackets.decrementAndGet();
+              continue;
+            }
 
             switch (PackageVisibilityHelper.getNextHdr(buffer)) {
               case UDP:
@@ -298,7 +311,16 @@ class MockBorderRouter implements Runnable {
       incoming.send(out, srcAddress);
       buffer.clear();
     } else if (scmpMsg instanceof Scmp.ScmpTraceroute) {
-      // TODO return traceroute
+      // send back!
+      buffer.rewind();
+      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+      ScmpHeader scmpHeader = spi.getScmpHeader();
+      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_131);
+      ByteBuffer out = ByteBuffer.allocate(100);
+      spi.writePacketSCMP(out);
+      out.flip();
+      incoming.send(out, srcAddress);
+      buffer.clear();
     } else {
       // TODO forward error???
     }

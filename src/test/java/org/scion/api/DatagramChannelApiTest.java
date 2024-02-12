@@ -350,7 +350,7 @@ class DatagramChannelApiTest {
   @Test
   void send_bufferTooLarge() {
     RequestPath addr = ExamplePacket.PATH;
-    ByteBuffer buffer = ByteBuffer.allocate(65500);
+    ByteBuffer buffer = ByteBuffer.allocate(65440);
     buffer.limit(buffer.capacity());
     try (DatagramChannel channel = DatagramChannel.open()) {
       Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
@@ -365,7 +365,7 @@ class DatagramChannelApiTest {
   @Test
   void write_bufferToLarge() {
     RequestPath addr = ExamplePacket.PATH;
-    ByteBuffer buffer = ByteBuffer.allocate(65500);
+    ByteBuffer buffer = ByteBuffer.allocate(65440);
     buffer.limit(buffer.capacity());
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.connect(addr);

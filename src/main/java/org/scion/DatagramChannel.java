@@ -36,7 +36,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
   private boolean isConnected = false;
   private InetSocketAddress connection;
   private RequestPath path;
-  private final ByteBuffer buffer = ByteBuffer.allocateDirect(66000);
+  private final ByteBuffer buffer;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private ScionService service;
@@ -59,12 +59,18 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   protected DatagramChannel() throws IOException {
-    this.channel = java.nio.channels.DatagramChannel.open();
+    this(null);
   }
 
   protected DatagramChannel(ScionService service) throws IOException {
     this.channel = java.nio.channels.DatagramChannel.open();
     this.service = service;
+    // TODO snd/rcv
+    int size =
+        Math.max(
+            channel.getOption(StandardSocketOptions.SO_RCVBUF),
+            channel.getOption(StandardSocketOptions.SO_SNDBUF));
+    this.buffer = ByteBuffer.allocateDirect(size);
   }
 
   /**
@@ -191,21 +197,21 @@ public class DatagramChannel implements ByteChannel, Closeable {
   }
 
   public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
-    ResponsePath path = receiveFromChannel(InternalConstants.HdrTypes.UDP);
-    if (path == null) {
+    ResponsePath receivePath = receiveFromChannel(InternalConstants.HdrTypes.UDP);
+    if (receivePath == null) {
       return null; // non-blocking, nothing available
     }
     ScionHeaderParser.extractUserPayload(buffer, userBuffer);
     buffer.clear();
-    return path;
+    return receivePath;
   }
 
   synchronized Scmp.ScmpMessage receiveScmp() throws IOException {
-    ResponsePath path = receiveFromChannel(InternalConstants.HdrTypes.SCMP);
-    if (path == null) {
+    ResponsePath receivePath = receiveFromChannel(InternalConstants.HdrTypes.SCMP);
+    if (receivePath == null) {
       return null; // non-blocking, nothing available
     }
-    return receiveScmp(path);
+    return receiveScmp(receivePath);
   }
 
   private ResponsePath receiveFromChannel(InternalConstants.HdrTypes expectedHdrType)
@@ -457,6 +463,12 @@ public class DatagramChannel implements ByteChannel, Closeable {
         cfgReportFailedValidation = (Boolean) t;
       } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
         cfgExpirationSafetyMargin = (Integer) t;
+      } else if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
+        // TODO resize buf
+        channel.setOption(option, t);
+      } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
+        // TODO resize buf
+        channel.setOption(option, t);
       } else {
         throw new UnsupportedOperationException();
       }
