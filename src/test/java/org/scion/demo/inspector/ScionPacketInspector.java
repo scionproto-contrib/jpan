@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import org.scion.Scmp;
+import org.scion.internal.InternalConstants;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
@@ -156,6 +158,22 @@ public class ScionPacketInspector {
     pathHeaderScion.write(newData);
     overlayHeaderUdp.write(newData, userData.length);
     newData.put(userData);
+  }
+
+  public void writePacketSCMP(ByteBuffer newData) {
+    Scmp.ScmpType type = scmpHeader.getType();
+    if (type == Scmp.ScmpType.INFO_128 || type == Scmp.ScmpType.INFO_129) {
+      scionHeader.write(
+          newData,
+          scmpHeader.getUserData().length + 8,
+          pathHeaderScion.length(),
+          Constants.PathTypes.SCION,
+          InternalConstants.HdrTypes.SCMP);
+      pathHeaderScion.write(newData);
+      scmpHeader.writeEcho(newData);
+    } else if (type == Scmp.ScmpType.INFO_130 || type == Scmp.ScmpType.INFO_131) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   public ScmpHeader getScmpHeader() {

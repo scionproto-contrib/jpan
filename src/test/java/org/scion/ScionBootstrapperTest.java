@@ -18,9 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Paths;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.scion.demo.DemoConstants;
 import org.scion.internal.ScionBootstrapper;
 
 class ScionBootstrapperTest {

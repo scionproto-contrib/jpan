@@ -16,10 +16,11 @@ package org.scion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.scion.internal.PathHeaderParser;
 
 public class ScmpChannel implements AutoCloseable {
@@ -52,12 +53,12 @@ public class ScmpChannel implements AutoCloseable {
       channel.connect(path);
     }
     // TODO setOption(SO_TIMEOUT);
-    long sendNanos = Instant.now().getNano();
+    long sendNanos = System.nanoTime();
     // TODO why pass in path???????! Why not channel.default path?
     channel.sendEchoRequest(path, sequenceNumber, data);
 
     Scmp.ScmpEcho msg = (Scmp.ScmpEcho) channel.receiveScmp();
-    long nanos = Instant.now().getNano() - sendNanos;
+    long nanos = System.nanoTime() - sendNanos;
 
     if (error != null) {
       // I know, this is not completely thread safe...
@@ -72,18 +73,13 @@ public class ScmpChannel implements AutoCloseable {
       List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
 
       for (int i = 0; i < path.getInterfacesList().size(); i++) {
-        long sendNanos = Instant.now().getNano();
-        try {
-          // TODO why pass in path???????! Why not channel.default path?
-          channel.sendTracerouteRequest(path, i, nodes.get(i));
+        long sendNanos = System.nanoTime();
+        // TODO why pass in path???????! Why not channel.default path?
+        channel.sendTracerouteRequest(path, i, nodes.get(i));
 
-          Scmp.ScmpTraceroute msg = (Scmp.ScmpTraceroute) channel.receiveScmp();
-          long nanos = Instant.now().getNano() - sendNanos;
-          traceResults.add(new Scmp.Result<>(msg, nanos));
-
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        Scmp.ScmpTraceroute msg = (Scmp.ScmpTraceroute) channel.receiveScmp();
+        long nanos = System.nanoTime() - sendNanos;
+        traceResults.add(new Scmp.Result<>(msg, nanos));
       }
     } finally {
       channel.setTracerouteListener(null);
@@ -93,6 +89,15 @@ public class ScmpChannel implements AutoCloseable {
       }
     }
     return traceResults;
+  }
+
+  public Consumer<Scmp.ScmpMessage> setScmpErrorListener(Consumer<Scmp.ScmpMessage> listener) {
+    return channel.setScmpErrorListener(listener);
+  }
+
+  public synchronized <T> ScmpChannel setOption(SocketOption<T> option, T t) throws IOException {
+    channel.setOption(option, t);
+    return this;
   }
 
   @Override

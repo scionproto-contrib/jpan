@@ -14,13 +14,14 @@
 
 package org.scion.api;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -28,8 +29,6 @@ import org.scion.*;
 import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.testutil.MockNetwork;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class SCMPTest {
   private static final byte[] PING_ERROR_4_51_HK = {
@@ -164,7 +163,6 @@ public class SCMPTest {
     // E=false, expiryTime=63, consIngress=503, consEgress=0, mac=134808958681653}
   }
 
-  @Disabled
   @Test
   void echo() throws IOException {
     MockNetwork.startTiny();
@@ -172,21 +170,23 @@ public class SCMPTest {
     try {
       ScionService service = Scion.defaultService();
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-      //InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345)
-      List<RequestPath> paths = service.getPaths(dstIA, new byte[]{0, 0,0,0}, 12345);
+      // InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345)
+      List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
 
-      ScmpChannel channel = Scmp.createChannel(paths.get(0));
-      byte[] data = new byte[]{1, 2, 3, 4, 5};
-      Scmp.Result<Scmp.ScmpEcho> result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
-      assertEquals(42, result.getMessage().getSequenceNumber());
-      assertEquals(Scmp.ScmpTypeCode.TYPE_129, result.getMessage().getTypeCode());
-      assertTrue(result.getNanoSeconds() > 0);
-      assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
-      assertArrayEquals(data, result.getMessage().getData());
+      try (ScmpChannel channel = Scmp.createChannel(paths.get(0))) {
+        channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+        channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+        byte[] data = new byte[] {1, 2, 3, 4, 5};
+        Scmp.Result<Scmp.ScmpEcho> result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
+        assertEquals(42, result.getMessage().getSequenceNumber());
+        assertEquals(Scmp.ScmpTypeCode.TYPE_129, result.getMessage().getTypeCode());
+        assertTrue(result.getNanoSeconds() > 0);
+        assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+        assertArrayEquals(data, result.getMessage().getData());
+      }
     } finally {
       MockNetwork.stopTiny();
     }
-    // TODO
   }
 
   @Disabled

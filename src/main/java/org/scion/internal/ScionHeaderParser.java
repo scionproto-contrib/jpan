@@ -23,6 +23,8 @@ import org.scion.ResponsePath;
 /** Utility methods for reading and writing the Common Header and Address Header. */
 public class ScionHeaderParser {
 
+  private ScionHeaderParser() {}
+
   /**
    * Extract the user payload data without changing the buffer's position.
    *
@@ -258,15 +260,19 @@ public class ScionHeaderParser {
     data.get(path);
     // TODO validate path
 
-    // get remote port from UDP overlay
-    data.position(start + hdrLenBytes);
-    int srcPort = Short.toUnsignedInt(data.getShort());
-    int dstPort = Short.toUnsignedInt(data.getShort());
-    if (srcPort == 0) {
-      return PRE + "Invalid source port: " + srcPort;
-    }
-    if (dstPort == 0) {
-      return PRE + "Invalid destination port: " + dstPort; // can this happen?
+    if (nextHeader == InternalConstants.HdrTypes.UDP.code()) {
+      // get remote port from UDP overlay
+      data.position(start + hdrLenBytes);
+      int srcPort = Short.toUnsignedInt(data.getShort());
+      int dstPort = Short.toUnsignedInt(data.getShort());
+      if (srcPort == 0) {
+        return PRE + "Invalid source port: " + srcPort;
+      }
+      if (dstPort == 0) {
+        return PRE + "Invalid destination port: " + dstPort; // can this happen?
+      }
+    } else {
+      // TODO validate SCMP etc
     }
 
     // rewind to original offset

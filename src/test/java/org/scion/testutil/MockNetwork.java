@@ -17,7 +17,6 @@ package org.scion.testutil;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -34,6 +33,8 @@ import java.util.stream.Collectors;
 import org.scion.PackageVisibilityHelper;
 import org.scion.ResponsePath;
 import org.scion.Scmp;
+import org.scion.demo.inspector.ScionPacketInspector;
+import org.scion.demo.inspector.ScmpHeader;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.internal.ScmpParser;
 import org.slf4j.Logger;
@@ -235,7 +236,7 @@ class MockBorderRouter implements Runnable {
                 handleUdp(buffer, srcAddress, outgoing);
                 break;
               case SCMP:
-                handleScmp(buffer, srcAddress, outgoing);
+                handleScmp(buffer, srcAddress, incoming, outgoing);
                 break;
               default:
                 logger.error(
@@ -271,27 +272,36 @@ class MockBorderRouter implements Runnable {
     MockNetwork.nForwards.incrementAndGet(id);
   }
 
-  private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
-          throws IOException {
+  private void handleScmp(
+      ByteBuffer buffer,
+      SocketAddress srcAddress,
+      DatagramChannel incoming,
+      DatagramChannel outgoing)
+      throws IOException {
     // From here on we use linear reading using the buffer's position() mechanism
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-    ResponsePath path = PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
+    ResponsePath path =
+        PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
     Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
-    logger.info(" received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
+    logger.info(
+        " received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
 
     if (scmpMsg instanceof Scmp.ScmpEcho) {
-      outgoing.send(buffer, srcAddress);
+      // send back!
+      buffer.rewind();
+      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+      ScmpHeader scmpHeader = spi.getScmpHeader();
+      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_129);
+      ByteBuffer out = ByteBuffer.allocate(100);
+      spi.writePacketSCMP(out);
+      out.flip();
+      incoming.send(out, srcAddress);
       buffer.clear();
     } else if (scmpMsg instanceof Scmp.ScmpTraceroute) {
       // TODO return traceroute
     } else {
       // TODO forward error???
     }
-
-//    outgoing.send(buffer, dstAddress);
-//    buffer.clear();
-//    MockNetwork.nForwardTotal.incrementAndGet();
-//    MockNetwork.nForwards.incrementAndGet(id);
   }
 
   public int getPort1() {
