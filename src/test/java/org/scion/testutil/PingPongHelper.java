@@ -34,7 +34,7 @@ import org.scion.Scion;
 public class PingPongHelper {
 
   public static final String MSG = "Hello scion!";
-  private static final int TIMEOUT = 5; // seconds
+  private static final int TIMEOUT = 10; // seconds
   private final CountDownLatch shutDownBarrier;
 
   private final int nClients;

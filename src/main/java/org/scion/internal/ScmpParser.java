@@ -25,6 +25,8 @@ import org.scion.Path;
 
 public class ScmpParser {
 
+  private ScmpParser() {}
+
   public static void buildExtensionHeader(ByteBuffer buffer, InternalConstants.HdrTypes nextHdr) {
     int len = 8;
     buffer.put(ByteUtil.toByte(nextHdr.code));
@@ -84,8 +86,8 @@ public class ScmpParser {
     switch (st) {
       case INFO_128:
       case INFO_129:
-        // TODO read data section
-        byte[] scmpData = new byte[0];
+        byte[] scmpData = new byte[data.remaining()];
+        data.get(scmpData);
         return new ScmpEcho(sc, short1, short2, path, scmpData);
       case INFO_130:
         return new ScmpTraceroute(sc, short1, short2, path);

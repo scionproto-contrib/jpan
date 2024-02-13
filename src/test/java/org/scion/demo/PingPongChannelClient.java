@@ -23,7 +23,6 @@ import org.scion.testutil.MockDNS;
 public class PingPongChannelClient {
 
   public static boolean PRINT = true;
-
   public static DemoConstants.Network NETWORK = PingPongChannelServer.NETWORK;
 
   private static String extractMessage(ByteBuffer buffer) {
@@ -43,18 +42,14 @@ public class PingPongChannelClient {
       throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     client.send(buffer, serverAddress);
-    if (PRINT) {
-      System.out.println("Sent to server at: " + serverAddress + "  message: " + msg);
-    }
+    println("Sent to server at: " + serverAddress + "  message: " + msg);
   }
 
   public static void receiveMessage(DatagramChannel channel) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
     Path remoteAddress = channel.receive(buffer);
     String message = extractMessage(buffer);
-    if (PRINT) {
-      System.out.println("Received from server at: " + remoteAddress + "  message: " + message);
-    }
+    println("Received from server at: " + remoteAddress + "  message: " + message);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
@@ -97,18 +92,20 @@ public class PingPongChannelClient {
   }
 
   private static void doClientStuff(long destinationIA) throws IOException {
-    DatagramChannel channel = startClient();
-    String msg = "Hello scion";
-    InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
-    Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
+    try (DatagramChannel channel = startClient()) {
+      String msg = "Hello scion";
+      InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
+      Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
+      sendMessage(channel, msg, path);
 
-    sendMessage(channel, msg, path);
-
-    if (PRINT) {
-      System.out.println("Waiting at " + channel.getLocalAddress() + " ...");
+      println("Waiting at " + channel.getLocalAddress() + " ...");
+      receiveMessage(channel);
     }
-    receiveMessage(channel);
+  }
 
-    channel.disconnect();
+  private static void println(String msg) {
+    if (PRINT) {
+      System.out.println(msg);
+    }
   }
 }

@@ -21,6 +21,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.ScionUtil;
 import org.scion.demo.util.ToStringUtil;
+import org.scion.internal.InternalConstants;
 
 /** Class for reading, writing and storing the Common Header and Address Header. */
 public class ScionHeader {
@@ -138,6 +139,15 @@ public class ScionHeader {
 
   public void write(
       ByteBuffer data, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
+    write(data, userPacketLength + 8, pathHeaderLength, pathType, InternalConstants.HdrTypes.UDP);
+  }
+
+  public void write(
+      ByteBuffer data,
+      int userPacketLength,
+      int pathHeaderLength,
+      Constants.PathTypes pathType,
+      InternalConstants.HdrTypes hdrType) {
     this.pathType = pathType.code();
     int i0 = 0;
     int i1 = 0;
@@ -146,15 +156,10 @@ public class ScionHeader {
     i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
     i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
-    i1 = writeInt(i1, 0, 8, 17); // NextHdr = 17 // TODO 17 is for UDP OverlayHeader
+    i1 = writeInt(i1, 0, 8, hdrType.code()); // NextHdr = 17
     int newHdrLen = (calcLen(pathHeaderLength) - 1) / 4 + 1;
     i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
-    i1 =
-        writeInt(
-            i1,
-            16,
-            16,
-            userPacketLength + 8); // PayloadLen  // TODO? hardcoded OverlayHeaderLength....
+    i1 = writeInt(i1, 16, 16, userPacketLength); // PayloadLen
     data.putInt(i1);
     i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
     i2 = writeInt(i2, 8, 2, 0); // DT
@@ -189,39 +194,34 @@ public class ScionHeader {
 
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(
-        "Common Header: "
-            + "  VER="
-            + version
-            + "  TrafficClass="
-            + trafficLClass
-            + "  FlowID="
-            + flowId
-            +
-            // sb.append("\n");
-            "  NextHdr="
-            + nextHeader
-            + "  HdrLen="
-            + hdrLen
-            + "/"
-            + hdrLenBytes
-            + "  PayloadLen="
-            + payLoadLen
-            +
-            // sb.append("\n");
-            "  PathType="
-            + pathType
-            + "  DT="
-            + dt
-            + "  DL="
-            + dl
-            + "  ST="
-            + st
-            + "  SL="
-            + sl
-            + "  RSV="
-            + reserved);
-
+    sb.append("Common Header: " + "  VER=")
+        .append(version)
+        .append("  TrafficClass=")
+        .append(trafficLClass)
+        .append("  FlowID=")
+        .append(flowId)
+        // .append("\n")
+        .append("  NextHdr=")
+        .append(nextHeader)
+        .append("  HdrLen=")
+        .append(hdrLen)
+        .append("/")
+        .append(hdrLenBytes)
+        .append("  PayloadLen=")
+        .append(payLoadLen)
+        // .append("\n")
+        .append("  PathType=")
+        .append(pathType)
+        .append("  DT=")
+        .append(dt)
+        .append("  DL=")
+        .append(dl)
+        .append("  ST=")
+        .append(st)
+        .append("  SL=")
+        .append(sl)
+        .append("  RSV=")
+        .append(reserved);
     sb.append("\n");
 
     sb.append("Address Header: ");
@@ -266,18 +266,18 @@ public class ScionHeader {
     this.dstIsdAs = dstIsdAs;
   }
 
-  public void setDstHostAddress(byte[] address) {
-    if (address.length == 4) {
-      dt = 0;
-      dl = 0;
-    } else if (address.length == 16) {
-      dt = 0;
-      dl = 3;
+  public String getSrcHostString() {
+    if (sl == 0 && (st == 0 || st == 1)) {
+      return ToStringUtil.toStringIPv4(srcHost);
+    } else if (sl == 3 && st == 0) {
+      return ToStringUtil.toStringIPv6(srcHost);
     } else {
-      throw new UnsupportedOperationException(
-          "Dst address class not supported: length=" + address.length);
+      throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
     }
-    dstHost = address.clone();
+  }
+
+  public InetAddress getSrcHostAddress() throws IOException {
+    return InetAddress.getByAddress(srcHost);
   }
 
   public void setSrcHostAddress(byte[] address) {
@@ -294,22 +294,22 @@ public class ScionHeader {
     srcHost = address.clone();
   }
 
-  public String getSrcHostString() {
-    if (sl == 0 && (st == 0 || st == 1)) {
-      return ToStringUtil.toStringIPv4(srcHost);
-    } else if (sl == 3 && st == 0) {
-      return ToStringUtil.toStringIPv6(srcHost);
-    } else {
-      throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
-    }
-  }
-
-  public InetAddress getSrcHostAddress() throws IOException {
-    return InetAddress.getByAddress(srcHost);
-  }
-
   public InetAddress getDstHostAddress() throws IOException {
     return InetAddress.getByAddress(dstHost);
+  }
+
+  public void setDstHostAddress(byte[] address) {
+    if (address.length == 4) {
+      dt = 0;
+      dl = 0;
+    } else if (address.length == 16) {
+      dt = 0;
+      dl = 3;
+    } else {
+      throw new UnsupportedOperationException(
+          "Dst address class not supported: length=" + address.length);
+    }
+    dstHost = address.clone();
   }
 
   public int getPayloadLength() {

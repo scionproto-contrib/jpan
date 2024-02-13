@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#9](https://github.com/tzaeschke/phtree-cpp/pull/9)
 
 ### Fixed
+- Fixed SCMP timeout and error handling (IOExceptions + SCMP errors).
+  [#13](https://github.com/tzaeschke/phtree-cpp/pull/13)
 - CI (only) failures on JDK 8. [#10](https://github.com/tzaeschke/phtree-cpp/pull/10)
 - Sporadic CI (only) failures. [#12](https://github.com/tzaeschke/phtree-cpp/pull/12)
 

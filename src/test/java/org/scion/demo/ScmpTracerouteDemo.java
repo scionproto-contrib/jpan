@@ -16,6 +16,7 @@ package org.scion.demo;
 
 import java.io.*;
 import java.net.*;
+import java.util.Collection;
 import java.util.List;
 import org.scion.*;
 import org.scion.Scmp;
@@ -41,7 +42,7 @@ public class ScmpTracerouteDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.MINIMAL_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     switch (network) {
@@ -100,10 +101,10 @@ public class ScmpTracerouteDemo {
     System.out.println("Listening at port " + localPort + " ...");
 
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      List<Scmp.Result<Scmp.ScmpTraceroute>> results = scmpChannel.sendTracerouteRequest();
+      Collection<Scmp.Result<Scmp.ScmpTraceroute>> results = scmpChannel.sendTracerouteRequest();
       for (Scmp.Result<Scmp.ScmpTraceroute> r : results) {
-        Scmp.ScmpTraceroute msg = r.message;
-        String millis = String.format("%.4f", r.nanoSeconds / (double) 1_000_000);
+        Scmp.ScmpTraceroute msg = r.getMessage();
+        String millis = String.format("%.4f", r.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
         echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
         echoMsgStr += " " + ScionUtil.toStringIA(msg.getIsdAs()) + " IfID=" + msg.getIfID();

@@ -257,12 +257,20 @@ public class Scmp {
   }
 
   public static class Result<T extends Scmp.ScmpMessage> {
-    public final T message;
-    public final long nanoSeconds;
+    private final T message;
+    private final long nanoSeconds;
 
     public Result(T message, long nanoSeconds) {
       this.message = message;
       this.nanoSeconds = nanoSeconds;
+    }
+
+    public T getMessage() {
+      return message;
+    }
+
+    public long getNanoSeconds() {
+      return nanoSeconds;
     }
   }
 
