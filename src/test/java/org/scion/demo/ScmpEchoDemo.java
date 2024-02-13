@@ -49,7 +49,7 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.MINIMAL_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     switch (network) {
@@ -82,11 +82,14 @@ public class ScmpEchoDemo {
         }
       case PRODUCTION:
         {
-          // Scion.newServiceWithDNS("inf.ethz.ch");
-          Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+          Scion.newServiceWithDNS("inf.ethz.ch");
+          // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
-          demo.doClientStuff(DemoConstants.iaOVGU);
+          // demo.doClientStuff(DemoConstants.iaOVGU);
+          demo.runDemo(DemoConstants.iaOVGU);
+          // TODO FIX, this doesn't work?!?!?!
+          demo.runDemo(DemoConstants.iaAnapayaHK);
           break;
         }
     }

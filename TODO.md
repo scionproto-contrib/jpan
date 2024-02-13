@@ -73,10 +73,6 @@
 
 ### 0.1.0
 - SCMP error handling (only error, not info)
-  - implement callbacks (+ option to NOT ignore)
-  - E.g. MTU exceeded, path expired, checksum problem, "destination unreachable"
-  - Handle Scion's "no path found" with NoRouteToHost?.>!?!?
-  - Test!
   - BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)

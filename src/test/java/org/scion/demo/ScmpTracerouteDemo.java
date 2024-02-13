@@ -42,7 +42,7 @@ public class ScmpTracerouteDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.MINIMAL_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     switch (network) {

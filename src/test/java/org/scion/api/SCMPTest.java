@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.demo.inspector.ScionPacketInspector;
@@ -211,7 +210,6 @@ public class SCMPTest {
     }
   }
 
-  @Disabled
   @Test
   void echo_SCMP_error() throws IOException {
     MockNetwork.startTiny();
@@ -219,13 +217,13 @@ public class SCMPTest {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.ScmpTypeCode.TYPE_1_CODE_0);
-      // Exception because network is down.
       Throwable t =
           assertThrows(
               IOException.class, () -> channel.sendEchoRequest(42, ByteBuffer.allocate(0)));
       assertTrue(listenerWasTriggered.get());
-      t.printStackTrace();
+      assertTrue(t.getMessage().contains(Scmp.ScmpTypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
@@ -286,34 +284,27 @@ public class SCMPTest {
     }
   }
 
+  @Test
+  void traceroute_SCMP_error() throws IOException {
+    MockNetwork.startTiny();
+    try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
+      AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
+      channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
+      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      // Router will return SCMP error
+      MockNetwork.returnScmpErrorOnNextPacket(Scmp.ScmpTypeCode.TYPE_1_CODE_0);
+      Throwable t = assertThrows(IOException.class, channel::sendTracerouteRequest);
+      assertTrue(listenerWasTriggered.get());
+      assertTrue(t.getMessage().contains(Scmp.ScmpTypeCode.TYPE_1_CODE_0.getText()));
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
   private RequestPath getPathTo112() {
     ScionService service = Scion.defaultService();
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
     return paths.get(0);
-  }
-
-  @Disabled
-  @Test
-  void error_WrongSrcIsdAs() {
-    // TODO
-  }
-
-  @Disabled
-  @Test
-  void error_WrongPacketSize() {
-    // TODO
-  }
-
-  @Disabled
-  @Test
-  void error_WrongPacketTooLarge() {
-    // TODO
-  }
-
-  @Disabled
-  @Test
-  void testProcessingRules() {
-    // https://scion.docs.anapaya.net/en/latest/protocols/scmp.html
   }
 }
