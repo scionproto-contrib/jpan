@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.ScionService;
 import org.scion.Scmp;
 
-public class ScmpTest {
+public class ScmpInspectorTest {
 
   // packetsize + 80
   private static final byte[] SCMP_PKT_SIZE =

@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.scion.internal.InternalConstants;
 import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
@@ -39,8 +40,16 @@ public class PackageVisibilityHelper {
     return ss.getPathListDaemon(srcIsdAs, dstIsdAs);
   }
 
+  public static InternalConstants.HdrTypes getNextHdr(ByteBuffer packet) {
+    return ScionHeaderParser.extractNextHeader(packet);
+  }
+
   public static InetSocketAddress getDstAddress(ByteBuffer packet) throws UnknownHostException {
     return ScionHeaderParser.extractDestinationSocketAddress(packet);
+  }
+
+  public static ResponsePath getResponsePath(ByteBuffer packet, InetSocketAddress firstHop) {
+    return ScionHeaderParser.extractResponsePath(packet, firstHop);
   }
 
   public static RequestPath createDummyPath() {

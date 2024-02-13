@@ -26,16 +26,82 @@ public class ScmpHeader {
   private int code;
   // 48 bit
   private int checksum;
+  private int short1;
+  private int short2;
+  private byte[] echoUserData;
+  private long traceIsdAs;
+  private long traceIfID;
 
   public void read(ByteBuffer data) {
     int i0 = data.getInt();
     type = readInt(i0, 0, 8);
     code = readInt(i0, 8, 8);
     checksum = readInt(i0, 16, 16);
-    // TODO validate checksum
-    // TODO read InfoBlock/DataBlock
+
+    Scmp.ScmpType st = Scmp.ScmpType.parse(type);
+    short1 = org.scion.internal.ByteUtil.toUnsigned(data.getShort());
+    short2 = org.scion.internal.ByteUtil.toUnsigned(data.getShort());
+    switch (st) {
+      case INFO_128:
+      case INFO_129:
+        echoUserData = new byte[data.remaining()];
+        data.get(echoUserData);
+        break;
+      case INFO_130:
+      case INFO_131:
+        traceIsdAs = data.getLong();
+        traceIfID = data.getLong();
+        break;
+      default:
+        // SCMP error
+    }
+
     // System.out.println("Found SCMP: " + getType() + " -> " + getCode());
     // System.out.println("To read:" + data.remaining());
+  }
+
+  public void writeEcho(ByteBuffer buffer) {
+    if (type != 128 && type != 129) {
+      throw new IllegalStateException();
+    }
+    buffer.put(org.scion.internal.ByteUtil.toByte(type));
+    buffer.put(org.scion.internal.ByteUtil.toByte(code));
+    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) short1); // unsigned identifier
+    buffer.putShort((short) short2); // unsigned sequenceNumber
+    buffer.put(echoUserData);
+  }
+
+  public void writeTraceroute(ByteBuffer buffer) {
+    if (type != 130 && type != 131) {
+      throw new IllegalStateException();
+    }
+    buffer.put(org.scion.internal.ByteUtil.toByte(type));
+    buffer.put(org.scion.internal.ByteUtil.toByte(code));
+    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) short1); // unsigned identifier
+    buffer.putShort((short) short2); // unsigned sequenceNumber
+
+    // add 16 byte placeholder
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    // |              ISD              |                               |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+         AS                    +
+    // |                                                               |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    // |                                                               |
+    // +                          Interface ID                         |
+    // |                                                               |
+    // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    buffer.putLong(traceIsdAs);
+    buffer.putLong(traceIfID);
+  }
+
+  public void writeError(ByteBuffer buffer) {
+    buffer.put(org.scion.internal.ByteUtil.toByte(type));
+    buffer.put(org.scion.internal.ByteUtil.toByte(code));
+    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) short1); // unsigned identifier
+    buffer.putShort((short) short2); // unsigned sequenceNumber
   }
 
   @Override
@@ -49,5 +115,14 @@ public class ScmpHeader {
 
   public Scmp.ScmpTypeCode getCode() {
     return Scmp.ScmpTypeCode.parse(type, code);
+  }
+
+  public void setCode(Scmp.ScmpTypeCode code) {
+    this.code = code.code();
+    this.type = code.type();
+  }
+
+  public byte[] getUserData() {
+    return echoUserData;
   }
 }

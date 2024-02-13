@@ -85,7 +85,6 @@ public class ScionService {
 
   protected ScionService(String addressOrHost, Mode mode) {
     if (mode == Mode.DAEMON) {
-      // TODO InsecureChannelCredentials?
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
@@ -104,7 +103,7 @@ public class ScionService {
       }
       String csHost = bootstrapper.getControlServerAddress();
       localIsdAs.set(bootstrapper.getLocalIsdAs());
-      // TODO InsecureChannelCredentials?
+      // TODO InsecureChannelCredentials: Implement authentication!
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
