@@ -23,7 +23,7 @@ import org.scion.Path;
 public class PingPongChannelServer {
 
   public static boolean PRINT = true;
-  private static final int SERVER_PORT = 44444;
+  private static final int SERVER_PORT = 44544;
   public static DemoConstants.Network NETWORK = DemoConstants.Network.MINIMAL_PROTO;
 
   public static InetSocketAddress getServerAddress(DemoConstants.Network network) {

@@ -42,7 +42,7 @@ import org.scion.testutil.PingPongHelper;
 
 class DatagramChannelApiTest {
 
-  private static final int dummyPort = 44544;
+  private static final int dummyPort = 44444;
 
   @BeforeEach
   public void beforeEach() throws IOException {
