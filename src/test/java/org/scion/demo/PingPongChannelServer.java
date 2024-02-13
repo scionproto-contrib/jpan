@@ -23,7 +23,7 @@ import org.scion.Path;
 public class PingPongChannelServer {
 
   public static boolean PRINT = true;
-  private static final int SERVER_PORT = 44544;
+  private static final int SERVER_PORT = 44444;
   public static DemoConstants.Network NETWORK = DemoConstants.Network.MINIMAL_PROTO;
 
   public static InetSocketAddress getServerAddress(DemoConstants.Network network) {
@@ -42,11 +42,7 @@ public class PingPongChannelServer {
   private static DatagramChannel startServer() throws IOException {
     InetSocketAddress address = getServerAddress(NETWORK);
     DatagramChannel server = DatagramChannel.open().bind(address);
-
-    if (PRINT) {
-      System.out.println("Server started at: " + address);
-    }
-
+    println("Server started at: " + address);
     return server;
   }
 
@@ -54,37 +50,37 @@ public class PingPongChannelServer {
       throws IOException {
     ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
     channel.send(buffer, path);
-    if (PRINT) {
-      System.out.println("Sent to client at: " + path + "  message: " + msg);
-    }
+    println("Sent to client at: " + path + "  message: " + msg);
   }
 
   private static Path receiveMessage(DatagramChannel server) throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(1024);
-    if (PRINT) {
-      System.out.println("Waiting ...");
-    }
+    println("Waiting ...");
+
     Path remoteAddress = server.receive(buffer);
     String message = extractMessage(buffer);
-    if (PRINT) {
-      System.out.println("Received from client at: " + remoteAddress + "  message: " + message);
-    }
+    println("Received from client at: " + remoteAddress + "  message: " + message);
+
     return remoteAddress;
   }
 
   private static String extractMessage(ByteBuffer buffer) {
     buffer.flip();
-
     byte[] bytes = new byte[buffer.remaining()];
     buffer.get(bytes);
-
     return new String(bytes);
   }
 
   public static void main(String[] args) throws IOException {
-    DatagramChannel channel = startServer();
-    Path remoteAddress = receiveMessage(channel);
-    sendMessage(channel, "Re: Hello scion", remoteAddress);
-    channel.disconnect();
+    try (DatagramChannel channel = startServer()) {
+      Path remoteAddress = receiveMessage(channel);
+      sendMessage(channel, "Re: Hello scion", remoteAddress);
+    }
+  }
+
+  private static void println(String msg) {
+    if (PRINT) {
+      System.out.println(msg);
+    }
   }
 }
