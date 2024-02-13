@@ -39,7 +39,6 @@ public class ScmpHeader {
     checksum = readInt(i0, 16, 16);
 
     Scmp.ScmpType st = Scmp.ScmpType.parse(type);
-    Scmp.ScmpTypeCode sc = Scmp.ScmpTypeCode.parse(type, code);
     short1 = org.scion.internal.ByteUtil.toUnsigned(data.getShort());
     short2 = org.scion.internal.ByteUtil.toUnsigned(data.getShort());
     switch (st) {
@@ -49,6 +48,7 @@ public class ScmpHeader {
         data.get(echoUserData);
         break;
       case INFO_130:
+      case INFO_131:
         traceIsdAs = data.getLong();
         traceIfID = data.getLong();
         break;
