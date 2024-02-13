@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.EnumSet;
 import org.scion.Scmp;
 import org.scion.internal.InternalConstants;
 
@@ -29,6 +30,8 @@ public class ScionPacketInspector {
   private final ScmpHeader scmpHeader = new ScmpHeader();
   private byte[] payload;
 
+  public ScionPacketInspector() {}
+
   public static ScionPacketInspector createEmpty() {
     return new ScionPacketInspector();
   }
@@ -38,8 +41,6 @@ public class ScionPacketInspector {
     spi.read(buffer);
     return spi;
   }
-
-  public ScionPacketInspector() {}
 
   public InetAddress getSourceAddress() throws IOException {
     return scionHeader.getSrcHostAddress();
@@ -162,6 +163,14 @@ public class ScionPacketInspector {
 
   public void writePacketSCMP(ByteBuffer newData) {
     Scmp.ScmpType type = scmpHeader.getType();
+    EnumSet<Scmp.ScmpType> errors =
+        EnumSet.of(
+            Scmp.ScmpType.ERROR_1,
+            Scmp.ScmpType.ERROR_2,
+            Scmp.ScmpType.ERROR_3,
+            Scmp.ScmpType.ERROR_4,
+            Scmp.ScmpType.ERROR_5,
+            Scmp.ScmpType.ERROR_6);
     if (type == Scmp.ScmpType.INFO_128 || type == Scmp.ScmpType.INFO_129) {
       scionHeader.write(
           newData,
@@ -180,6 +189,17 @@ public class ScionPacketInspector {
           InternalConstants.HdrTypes.SCMP);
       pathHeaderScion.write(newData);
       scmpHeader.writeTraceroute(newData);
+    } else if (errors.contains(type)) {
+      scionHeader.write(
+          newData,
+          8,
+          pathHeaderScion.length(),
+          Constants.PathTypes.SCION,
+          InternalConstants.HdrTypes.SCMP);
+      pathHeaderScion.write(newData);
+      scmpHeader.writeError(newData);
+    } else {
+      throw new UnsupportedOperationException();
     }
   }
 

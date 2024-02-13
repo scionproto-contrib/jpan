@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.scion.PackageVisibilityHelper;
 import org.scion.ResponsePath;
@@ -57,6 +58,7 @@ public class MockNetwork {
   private static MockTopologyServer topoServer;
   private static MockControlServer controlServer;
   static final AtomicInteger dropNextPackets = new AtomicInteger();
+  static final AtomicReference<Scmp.ScmpTypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
 
   public enum Mode {
     /** Start daemon */
@@ -121,6 +123,7 @@ public class MockNetwork {
     }
 
     dropNextPackets.getAndSet(0);
+    scmpErrorOnNextPacket.set(null);
   }
 
   public static synchronized void stopTiny() {
@@ -154,6 +157,7 @@ public class MockNetwork {
       routers = null;
     }
     dropNextPackets.getAndSet(0);
+    scmpErrorOnNextPacket.set(null);
   }
 
   public static InetSocketAddress getTinyServerAddress() {
@@ -170,6 +174,10 @@ public class MockNetwork {
   public static void dropNextPackets(int n) {
     // set the routers to drop the next packet
     dropNextPackets.set(n);
+  }
+
+  public static void returnScmpErrorOnNextPacket(Scmp.ScmpTypeCode scmpTypeCode) {
+    scmpErrorOnNextPacket.set(scmpTypeCode);
   }
 
   public static int getForwardCount(int routerId) {
@@ -244,6 +252,12 @@ class MockBorderRouter implements Runnable {
               continue;
             }
 
+            if (MockNetwork.scmpErrorOnNextPacket.get() != null) {
+              sendScmp(
+                  MockNetwork.scmpErrorOnNextPacket.getAndSet(null), buffer, srcAddress, incoming);
+              continue;
+            }
+
             switch (PackageVisibilityHelper.getNextHdr(buffer)) {
               case UDP:
                 handleUdp(buffer, srcAddress, outgoing);
@@ -301,29 +315,63 @@ class MockBorderRouter implements Runnable {
 
     if (scmpMsg instanceof Scmp.ScmpEcho) {
       // send back!
-      buffer.rewind();
-      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
-      ScmpHeader scmpHeader = spi.getScmpHeader();
-      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_129);
-      ByteBuffer out = ByteBuffer.allocate(100);
-      spi.writePacketSCMP(out);
-      out.flip();
-      incoming.send(out, srcAddress);
-      buffer.clear();
+      // This is very basic:
+      // - we always answer regardless of whether we are actually the destination.
+      // - We do not invert path / addresses
+      sendScmp(Scmp.ScmpTypeCode.TYPE_129, buffer, srcAddress, incoming);
+      //      buffer.rewind();
+      //      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+      //      ScmpHeader scmpHeader = spi.getScmpHeader();
+      //      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_129);
+      //      ByteBuffer out = ByteBuffer.allocate(100);
+      //      spi.writePacketSCMP(out);
+      //      out.flip();
+      //      incoming.send(out, srcAddress);
+      //      buffer.clear();
     } else if (scmpMsg instanceof Scmp.ScmpTraceroute) {
       // send back!
-      buffer.rewind();
-      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
-      ScmpHeader scmpHeader = spi.getScmpHeader();
-      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_131);
-      ByteBuffer out = ByteBuffer.allocate(100);
-      spi.writePacketSCMP(out);
-      out.flip();
-      incoming.send(out, srcAddress);
-      buffer.clear();
+      // This is very basic:
+      // - we always answer regardless of whether we are actually the destination.
+      // - We do not invert path / addresses
+      sendScmp(Scmp.ScmpTypeCode.TYPE_131, buffer, srcAddress, incoming);
+      //      buffer.rewind();
+      //      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+      //      ScmpHeader scmpHeader = spi.getScmpHeader();
+      //      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_131);
+      //      ByteBuffer out = ByteBuffer.allocate(100);
+      //      spi.writePacketSCMP(out);
+      //      out.flip();
+      //      incoming.send(out, srcAddress);
+      //      buffer.clear();
     } else {
-      // TODO forward error???
+      // forward error
+      InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
+      logger.info(
+          name
+              + " forwarding SCMP error "
+              + scmpMsg.getTypeCode().getText()
+              + " from "
+              + srcAddress
+              + " to "
+              + dstAddress);
+      outgoing.send(buffer, dstAddress);
+      buffer.clear();
     }
+  }
+
+  private void sendScmp(
+      Scmp.ScmpTypeCode type, ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel channel)
+      throws IOException {
+    // send back!
+    buffer.rewind();
+    ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+    ScmpHeader scmpHeader = spi.getScmpHeader();
+    scmpHeader.setCode(type);
+    ByteBuffer out = ByteBuffer.allocate(100);
+    spi.writePacketSCMP(out);
+    out.flip();
+    channel.send(out, srcAddress);
+    buffer.clear();
   }
 
   public int getPort1() {

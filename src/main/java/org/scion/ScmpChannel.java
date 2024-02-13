@@ -78,7 +78,7 @@ public class ScmpChannel implements AutoCloseable {
     }
 
     if (exception.get() != null) {
-      throw exception.get();
+      throw new IOException(exception.get());
     }
     if (error.get() != null) {
       // we received a SCMP error
@@ -144,7 +144,7 @@ public class ScmpChannel implements AutoCloseable {
     }
 
     if (exception.get() != null) {
-      throw exception.get();
+      throw new IOException(exception.get());
     }
     if (error.get() != null) {
       // we received a SCMP error

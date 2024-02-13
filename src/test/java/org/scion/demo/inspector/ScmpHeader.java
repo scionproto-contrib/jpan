@@ -52,10 +52,6 @@ public class ScmpHeader {
         traceIsdAs = data.getLong();
         traceIfID = data.getLong();
         break;
-      case INFO_131:
-        traceIsdAs = data.getLong();
-        traceIfID = data.getLong();
-        break;
       default:
         // SCMP error
     }
@@ -98,6 +94,14 @@ public class ScmpHeader {
     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     buffer.putLong(traceIsdAs);
     buffer.putLong(traceIfID);
+  }
+
+  public void writeError(ByteBuffer buffer) {
+    buffer.put(org.scion.internal.ByteUtil.toByte(type));
+    buffer.put(org.scion.internal.ByteUtil.toByte(code));
+    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) short1); // unsigned identifier
+    buffer.putShort((short) short2); // unsigned sequenceNumber
   }
 
   @Override
