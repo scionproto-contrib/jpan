@@ -25,7 +25,8 @@ import org.scion.internal.ScmpParser;
 public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramChannel>
     implements Closeable {
 
-  private final ByteBuffer buffer;
+  private final ByteBuffer bufferReceive;
+  private final ByteBuffer bufferSend;
 
   public static ScmpDatagramChannel open() throws IOException {
     return new ScmpDatagramChannel();
@@ -42,59 +43,57 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
   protected ScmpDatagramChannel(ScionService service) throws IOException {
     super(service);
     configureBlocking(true);
-    // TODO snd/rcv
-    int size =
-        Math.max(
-            getOption(StandardSocketOptions.SO_RCVBUF), getOption(StandardSocketOptions.SO_SNDBUF));
-    this.buffer = ByteBuffer.allocateDirect(size);
+    this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
+    this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
   }
 
   synchronized Scmp.Message receiveScmp() throws IOException {
-    ResponsePath receivePath = receiveFromChannel(buffer, InternalConstants.HdrTypes.SCMP);
+    ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
     if (receivePath == null) {
       return null; // non-blocking, nothing available
     }
 
-    Scmp.Message scmpMsg = ScmpParser.consume(buffer, receivePath);
+    Scmp.Message scmpMsg = ScmpParser.consume(bufferReceive, receivePath);
     checkListeners(scmpMsg);
     return scmpMsg;
   }
 
   synchronized Scmp.Message receiveScmp(Scmp.Message msg) throws IOException {
-    ResponsePath receivePath = receiveFromChannel(buffer, InternalConstants.HdrTypes.SCMP);
+    ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
     if (receivePath == null) {
       return null; // non-blocking, nothing available
     }
     msg.setPath(receivePath);
-    Scmp.Message scmpMsg = ScmpParser.consume(buffer, msg);
+    Scmp.Message scmpMsg = ScmpParser.consume(bufferReceive, msg);
     checkListeners(scmpMsg);
     return scmpMsg;
   }
 
   @Deprecated // TODO REMOVE THIS
   public synchronized void receive() throws IOException {
-    receiveFromChannel(buffer, InternalConstants.HdrTypes.UDP);
+    receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.UDP);
   }
 
   public synchronized void sendEchoRequest(Path path, int sequenceNumber, ByteBuffer data)
       throws IOException {
     // EchoHeader = 8 + data
     int len = 8 + data.remaining();
-    Path actualPath = buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
-    ScmpParser.buildScmpPing(buffer, getLocalAddress().getPort(), sequenceNumber, data);
-    buffer.flip();
-    sendRaw(buffer, actualPath.getFirstHopAddress());
+    Path actualPath = buildHeader(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+    ScmpParser.buildScmpPing(bufferSend, getLocalAddress().getPort(), sequenceNumber, data);
+    bufferSend.flip();
+    sendRaw(bufferSend, actualPath.getFirstHopAddress());
   }
 
   public synchronized Scmp.EchoResult sendEchoRequest(Scmp.EchoResult request) throws IOException {
     // EchoHeader = 8 + data
     int len = 8 + request.getData().length;
-    Path actualPath = buildHeader(buffer, getCurrentPath(), len, InternalConstants.HdrTypes.SCMP);
+    Path actualPath =
+        buildHeader(bufferSend, getCurrentPath(), len, InternalConstants.HdrTypes.SCMP);
     request.setPath(actualPath);
     ScmpParser.buildScmpPing(
-        buffer, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
-    buffer.flip();
-    sendRaw(buffer, actualPath.getFirstHopAddress());
+        bufferSend, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
+    bufferSend.flip();
+    sendRaw(bufferSend, actualPath.getFirstHopAddress());
     return request;
   }
 
@@ -106,10 +105,10 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     //   we should only modify the outgoing packet.
     byte[] raw = path.getRawPath();
     raw[node.posHopFlags] = node.hopFlags;
-    Path actualPath = buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
-    ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), interfaceNumber);
-    buffer.flip();
-    sendRaw(buffer, actualPath.getFirstHopAddress());
+    Path actualPath = buildHeader(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+    ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
+    bufferSend.flip();
+    sendRaw(bufferSend, actualPath.getFirstHopAddress());
     // Clean up!  // TODO this is really bad!
     raw[node.posHopFlags] = 0;
   }
