@@ -15,6 +15,7 @@
 package org.scion;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class Scmp {
 
@@ -171,14 +172,14 @@ public class Scmp {
     }
   }
 
-  public static class ScmpMessage {
-    final ScmpTypeCode typeCode;
-    final int identifier;
-    final int sequenceNumber;
-    final Path path;
+  public static class Message {
+    private ScmpTypeCode typeCode;
+    private int identifier;
+    private int sequenceNumber;
+    private Path path;
 
     /** DO NOT USE! */
-    public ScmpMessage(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public Message(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this.typeCode = typeCode;
       this.identifier = identifier;
       this.sequenceNumber = sequenceNumber;
@@ -200,34 +201,72 @@ public class Scmp {
     public Path getPath() {
       return path;
     }
+
+    public void setPath(Path path) {
+      this.path = path;
+    }
+
+    public void setMessageArgs(ScmpTypeCode sc, int identifier, int sequenceNumber) {
+      this.typeCode = sc;
+      this.identifier = identifier;
+      this.sequenceNumber = sequenceNumber;
+    }
   }
 
-  public static class ScmpEcho extends ScmpMessage {
-    byte[] data;
+  public static class EchoResult extends Message {
+    private final byte[] data;
+    private long nanoSeconds;
 
     /** DO NOT USE! */
-    public ScmpEcho(
+    public EchoResult(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
     }
 
+    public static EchoResult createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
+      byte[] data = new byte[payload.remaining()];
+      payload.get(data);
+      return new EchoResult(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
+    }
+
+    public static EchoResult createTimedOut(long nanoSeconds) {
+      EchoResult r = new EchoResult(null, -1, -1, null, null);
+      r.setNanoSeconds(nanoSeconds);
+      return r;
+    }
+
     public byte[] getData() {
       return data;
     }
+
+    public void setNanoSeconds(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+    }
+
+    public long getNanoSeconds() {
+      return nanoSeconds;
+    }
   }
 
-  public static class ScmpTraceroute extends ScmpMessage {
+  public static class TracerouteResult extends Message {
 
-    private final long isdAs;
-    private final long ifID;
+    private long isdAs;
+    private long ifID;
+    private long nanoSeconds;
 
     /** DO NOT USE! */
-    public ScmpTraceroute(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public TracerouteResult(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
 
-    public ScmpTraceroute(
+    public static TracerouteResult createTimedOut(long nanoSeconds) {
+      TracerouteResult r = new TracerouteResult(null, -1, -1, null);
+      r.setNanoSeconds(nanoSeconds);
+      return r;
+    }
+
+    public TracerouteResult(
         ScmpTypeCode typeCode,
         int identifier,
         int sequenceNumber,
@@ -247,6 +286,14 @@ public class Scmp {
       return ifID;
     }
 
+    public void setNanoSeconds(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+    }
+
+    public long getNanoSeconds() {
+      return nanoSeconds;
+    }
+
     @Override
     public String toString() {
       String echoMsgStr = getTypeCode().getText();
@@ -254,23 +301,10 @@ public class Scmp {
       echoMsgStr += " " + ScionUtil.toStringIA(getIsdAs()) + " IfID=" + getIfID();
       return echoMsgStr;
     }
-  }
 
-  public static class Result<T extends Scmp.ScmpMessage> {
-    private final T message;
-    private final long nanoSeconds;
-
-    public Result(T message, long nanoSeconds) {
-      this.message = message;
-      this.nanoSeconds = nanoSeconds;
-    }
-
-    public T getMessage() {
-      return message;
-    }
-
-    public long getNanoSeconds() {
-      return nanoSeconds;
+    public void setTracerouteArgs(long isdAs, long ifID) {
+      this.isdAs = isdAs;
+      this.ifID = ifID;
     }
   }
 

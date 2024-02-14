@@ -309,11 +309,11 @@ class MockBorderRouter implements Runnable {
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     ResponsePath path =
         PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
-    Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
+    Scmp.Message scmpMsg = ScmpParser.consume(buffer, path);
     logger.info(
         " received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
 
-    if (scmpMsg instanceof Scmp.ScmpEcho) {
+    if (scmpMsg instanceof Scmp.EchoResult) {
       // send back!
       // This is very basic:
       // - we always answer regardless of whether we are actually the destination.
@@ -328,7 +328,7 @@ class MockBorderRouter implements Runnable {
       //      out.flip();
       //      incoming.send(out, srcAddress);
       //      buffer.clear();
-    } else if (scmpMsg instanceof Scmp.ScmpTraceroute) {
+    } else if (scmpMsg instanceof Scmp.TracerouteResult) {
       // send back!
       // This is very basic:
       // - we always answer regardless of whether we are actually the destination.

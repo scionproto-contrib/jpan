@@ -46,9 +46,9 @@ public class DatagramChannel implements ByteChannel, Closeable {
           Constants.ENV_PATH_EXPIRY_MARGIN,
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
 
-  private Consumer<Scmp.ScmpEcho> pingListener;
-  private Consumer<Scmp.ScmpTraceroute> traceListener;
-  private Consumer<Scmp.ScmpMessage> errorListener;
+  private Consumer<Scmp.EchoResult> pingListener;
+  private Consumer<Scmp.TracerouteResult> traceListener;
+  private Consumer<Scmp.Message> errorListener;
 
   public static DatagramChannel open() throws IOException {
     return new DatagramChannel();
@@ -206,12 +206,21 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return receivePath;
   }
 
-  synchronized Scmp.ScmpMessage receiveScmp() throws IOException {
+  synchronized Scmp.Message receiveScmp() throws IOException {
     ResponsePath receivePath = receiveFromChannel(InternalConstants.HdrTypes.SCMP);
     if (receivePath == null) {
       return null; // non-blocking, nothing available
     }
     return receiveScmp(receivePath);
+  }
+
+  synchronized Scmp.Message receiveScmp(Scmp.Message msg) throws IOException {
+    ResponsePath receivePath = receiveFromChannel(InternalConstants.HdrTypes.SCMP);
+    if (receivePath == null) {
+      return null; // non-blocking, nothing available
+    }
+    msg.setPath(receivePath);
+    return receiveScmpInternal(msg);
   }
 
   private ResponsePath receiveFromChannel(InternalConstants.HdrTypes expectedHdrType)
@@ -226,15 +235,15 @@ public class DatagramChannel implements ByteChannel, Closeable {
       buffer.flip();
 
       String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
-      if (validationResult != null && cfgReportFailedValidation) {
-        throw new ScionException(validationResult);
-      }
       if (validationResult != null) {
+        if (cfgReportFailedValidation) {
+          throw new ScionException(validationResult);
+        }
         continue;
       }
 
       InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-      if (hdrType == InternalConstants.HdrTypes.UDP && expectedHdrType == hdrType) {
+      if (expectedHdrType == hdrType && hdrType == InternalConstants.HdrTypes.UDP) {
         return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       }
 
@@ -281,15 +290,33 @@ public class DatagramChannel implements ByteChannel, Closeable {
     return receiveNonDataPacket(extHdr.nextHdr(), path);
   }
 
-  private Scmp.ScmpMessage receiveScmp(Path path) {
-    Scmp.ScmpMessage scmpMsg = ScmpParser.consume(buffer, path);
-    if (scmpMsg instanceof Scmp.ScmpEcho) {
+  private Scmp.Message receiveScmp(Path path) {
+    Scmp.Message scmpMsg = ScmpParser.consume(buffer, path);
+    if (scmpMsg instanceof Scmp.EchoResult) {
       if (pingListener != null) {
-        pingListener.accept((Scmp.ScmpEcho) scmpMsg);
+        pingListener.accept((Scmp.EchoResult) scmpMsg);
       }
-    } else if (scmpMsg instanceof Scmp.ScmpTraceroute) {
+    } else if (scmpMsg instanceof Scmp.TracerouteResult) {
       if (traceListener != null) {
-        traceListener.accept((Scmp.ScmpTraceroute) scmpMsg);
+        traceListener.accept((Scmp.TracerouteResult) scmpMsg);
+      }
+    } else {
+      if (errorListener != null) {
+        errorListener.accept(scmpMsg);
+      }
+    }
+    return scmpMsg;
+  }
+
+  private Scmp.Message receiveScmpInternal(Scmp.Message holder) {
+    Scmp.Message scmpMsg = ScmpParser.consume(buffer, holder);
+    if (scmpMsg instanceof Scmp.EchoResult) {
+      if (pingListener != null) {
+        pingListener.accept((Scmp.EchoResult) scmpMsg);
+      }
+    } else if (scmpMsg instanceof Scmp.TracerouteResult) {
+      if (traceListener != null) {
+        traceListener.accept((Scmp.TracerouteResult) scmpMsg);
       }
     } else {
       if (errorListener != null) {
@@ -349,6 +376,18 @@ public class DatagramChannel implements ByteChannel, Closeable {
     channel.send(buffer, actualPath.getFirstHopAddress());
   }
 
+  public synchronized Scmp.EchoResult sendEchoRequest(Scmp.EchoResult request) throws IOException {
+    // EchoHeader = 8 + data
+    int len = 8 + request.getData().length;
+    Path actualPath = buildHeader(path, len, InternalConstants.HdrTypes.SCMP);
+    request.setPath(actualPath);
+    ScmpParser.buildScmpPing(
+        buffer, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
+    buffer.flip();
+    channel.send(buffer, actualPath.getFirstHopAddress());
+    return request;
+  }
+
   void sendTracerouteRequest(Path path, int interfaceNumber, PathHeaderParser.Node node)
       throws IOException {
     // TracerouteHeader = 24
@@ -365,22 +404,26 @@ public class DatagramChannel implements ByteChannel, Closeable {
     raw[node.posHopFlags] = 0;
   }
 
-  public synchronized Consumer<Scmp.ScmpEcho> setEchoListener(Consumer<Scmp.ScmpEcho> listener) {
-    Consumer<Scmp.ScmpEcho> old = pingListener;
+  void sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {
+    channel.send(buffer, address);
+  }
+
+  public synchronized Consumer<Scmp.EchoResult> setEchoListener(
+      Consumer<Scmp.EchoResult> listener) {
+    Consumer<Scmp.EchoResult> old = pingListener;
     pingListener = listener;
     return old;
   }
 
-  public synchronized Consumer<Scmp.ScmpTraceroute> setTracerouteListener(
-      Consumer<Scmp.ScmpTraceroute> listener) {
-    Consumer<Scmp.ScmpTraceroute> old = traceListener;
+  public synchronized Consumer<Scmp.TracerouteResult> setTracerouteListener(
+      Consumer<Scmp.TracerouteResult> listener) {
+    Consumer<Scmp.TracerouteResult> old = traceListener;
     traceListener = listener;
     return old;
   }
 
-  public synchronized Consumer<Scmp.ScmpMessage> setScmpErrorListener(
-      Consumer<Scmp.ScmpMessage> listener) {
-    Consumer<Scmp.ScmpMessage> old = errorListener;
+  public synchronized Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
+    Consumer<Scmp.Message> old = errorListener;
     errorListener = listener;
     return old;
   }
@@ -484,15 +527,15 @@ public class DatagramChannel implements ByteChannel, Closeable {
    * @return argument path or a new path if the argument path was expired
    * @throws IOException in case of IOException.
    */
-  private Path buildHeader(Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
+  Path buildHeader(Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     buffer.clear();
     long srcIA;
     byte[] srcAddress;
     int srcPort;
     if (path instanceof ResponsePath) {
-      // We could get source IA, address and port locally but it seems cleaner to
-      // to get the from the inverted header.
+      // We could get source IA, address and port locally, but it seems cleaner
+      // to get these from the inverted header.
       ResponsePath rPath = (ResponsePath) path;
       srcIA = rPath.getSourceIsdAs();
       srcAddress = rPath.getSourceAddress();
@@ -524,6 +567,7 @@ public class DatagramChannel implements ByteChannel, Closeable {
         buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress, hdrType);
     ScionHeaderParser.writePath(buffer, rawPath);
 
+    // TODO move this outside of this method
     if (hdrType == InternalConstants.HdrTypes.UDP) {
       ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
     }

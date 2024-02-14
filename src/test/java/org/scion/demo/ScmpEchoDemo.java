@@ -95,7 +95,7 @@ public class ScmpEchoDemo {
     }
   }
 
-  private void echoListener(Scmp.ScmpEcho msg) {
+  private void echoListener(Scmp.EchoResult msg) {
     String echoMsgStr = msg.getTypeCode().getText();
     echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
     echoMsgStr += " time=" + getPassedMillies() + "ms";
@@ -103,7 +103,7 @@ public class ScmpEchoDemo {
     send();
   }
 
-  private void errorListener(Scmp.ScmpMessage msg) {
+  private void errorListener(Scmp.Message msg) {
     Scmp.ScmpTypeCode code = msg.getTypeCode();
     String millies = getPassedMillies();
     println("SCMP error (after " + millies + "ms): " + code.getText() + " (" + code + ")");
@@ -129,9 +129,8 @@ public class ScmpEchoDemo {
     ByteBuffer data = ByteBuffer.allocate(0);
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
       for (int i = 0; i < 5; i++) {
-        Scmp.Result<Scmp.ScmpEcho> result = scmpChannel.sendEchoRequest(i, data);
-        Scmp.ScmpEcho msg = result.getMessage();
-        String millis = String.format("%.4f", result.getNanoSeconds() / (double) 1_000_000);
+        Scmp.EchoResult msg = scmpChannel.sendEchoRequest(i, data);
+        String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
         echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
         echoMsgStr += " time=" + millis + "ms";

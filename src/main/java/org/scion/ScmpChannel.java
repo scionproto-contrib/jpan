@@ -28,7 +28,7 @@ import org.scion.internal.PathHeaderParser;
 public class ScmpChannel implements AutoCloseable {
   private final DatagramChannel channel;
   private final RequestPath path;
-  private final AtomicReference<Scmp.ScmpMessage> error = new AtomicReference<>();
+  private final AtomicReference<Scmp.Message> error = new AtomicReference<>();
   private int timeOutMs = 1000;
 
   ScmpChannel(RequestPath path) throws IOException {
@@ -44,7 +44,7 @@ public class ScmpChannel implements AutoCloseable {
     channel.setScmpErrorListener(this::errorListener);
   }
 
-  private void errorListener(Scmp.ScmpMessage msg) {
+  private void errorListener(Scmp.Message msg) {
     error.set(msg);
     Thread.currentThread().interrupt();
     throw new RuntimeException();
@@ -60,12 +60,11 @@ public class ScmpChannel implements AutoCloseable {
    *     and the time is equal to the time-out duration.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Scmp.Result<Scmp.ScmpEcho> sendEchoRequest(int sequenceNumber, ByteBuffer data)
-      throws IOException {
+  public Scmp.EchoResult sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
     if (!channel.isConnected()) {
       channel.connect(path);
     }
-    AtomicReference<Scmp.Result<Scmp.ScmpEcho>> result = new AtomicReference<>();
+    AtomicReference<Scmp.EchoResult> result = new AtomicReference<>();
     AtomicReference<IOException> exception = new AtomicReference<>();
 
     Thread t = new Thread(() -> sendEchoRequest(sequenceNumber, data, result, exception));
@@ -87,7 +86,7 @@ public class ScmpChannel implements AutoCloseable {
     if (t.isAlive()) {
       // timeout
       t.interrupt();
-      return new Scmp.Result<>(null, timeOutMs * 1_000_000L);
+      return Scmp.EchoResult.createTimedOut(timeOutMs * 1_000_000L);
     }
     return result.get();
   }
@@ -95,15 +94,17 @@ public class ScmpChannel implements AutoCloseable {
   private void sendEchoRequest(
       int sequenceNumber,
       ByteBuffer data,
-      AtomicReference<Scmp.Result<Scmp.ScmpEcho>> result,
+      AtomicReference<Scmp.EchoResult> result,
       AtomicReference<IOException> exception) {
     try {
       long sendNanos = System.nanoTime();
       channel.sendEchoRequest(path, sequenceNumber, data);
-      Scmp.ScmpMessage msg = channel.receiveScmp();
+      Scmp.Message msg = channel.receiveScmp();
       long nanos = System.nanoTime() - sendNanos;
-      if (msg instanceof Scmp.ScmpEcho) {
-        result.set(new Scmp.Result<>((Scmp.ScmpEcho) msg, nanos));
+      if (msg instanceof Scmp.EchoResult) {
+        Scmp.EchoResult echo = (Scmp.EchoResult) msg;
+        ((Scmp.EchoResult) msg).setNanoSeconds(nanos);
+        result.set(echo);
       } else {
         // error
         throw new IOException("SCMP error: " + msg.getTypeCode().getText());
@@ -122,8 +123,8 @@ public class ScmpChannel implements AutoCloseable {
    *     If a request times out, the traceroute is aborted.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Collection<Scmp.Result<Scmp.ScmpTraceroute>> sendTracerouteRequest() throws IOException {
-    ConcurrentLinkedQueue<Scmp.Result<Scmp.ScmpTraceroute>> results = new ConcurrentLinkedQueue<>();
+  public Collection<Scmp.TracerouteResult> sendTracerouteRequest() throws IOException {
+    ConcurrentLinkedQueue<Scmp.TracerouteResult> results = new ConcurrentLinkedQueue<>();
     try {
       List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
       for (int i = 0; i < nodes.size(); i++) {
@@ -141,7 +142,7 @@ public class ScmpChannel implements AutoCloseable {
   private boolean sendConcurrentTraceRequest(
       int sequenceNumber,
       PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.Result<Scmp.ScmpTraceroute>> results)
+      ConcurrentLinkedQueue<Scmp.TracerouteResult> results)
       throws IOException {
     AtomicReference<IOException> exception = new AtomicReference<>();
 
@@ -164,7 +165,7 @@ public class ScmpChannel implements AutoCloseable {
     if (t.isAlive()) {
       // timeout
       t.interrupt();
-      results.add(new Scmp.Result<>(null, timeOutMs * 1_000_000L));
+      results.add(Scmp.TracerouteResult.createTimedOut(timeOutMs * 1_000_000L));
       return false;
     }
     return true;
@@ -173,15 +174,17 @@ public class ScmpChannel implements AutoCloseable {
   private void sendTracerouteRequest(
       int sequenceNumber,
       PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.Result<Scmp.ScmpTraceroute>> results,
+      ConcurrentLinkedQueue<Scmp.TracerouteResult> results,
       AtomicReference<IOException> exception) {
     try {
       long sendNanos = System.nanoTime();
       channel.sendTracerouteRequest(path, sequenceNumber, node);
-      Scmp.ScmpMessage msg = channel.receiveScmp();
+      Scmp.Message msg = channel.receiveScmp();
       long nanos = System.nanoTime() - sendNanos;
-      if (msg instanceof Scmp.ScmpTraceroute) {
-        results.add(new Scmp.Result<>((Scmp.ScmpTraceroute) msg, nanos));
+      if (msg instanceof Scmp.TracerouteResult) {
+        Scmp.TracerouteResult trace = (Scmp.TracerouteResult) msg;
+        trace.setNanoSeconds(nanos);
+        results.add(trace);
       } else {
         // error
         throw new IOException("SCMP error: " + msg.getTypeCode().getText());
@@ -191,7 +194,7 @@ public class ScmpChannel implements AutoCloseable {
     }
   }
 
-  public Consumer<Scmp.ScmpMessage> setScmpErrorListener(Consumer<Scmp.ScmpMessage> listener) {
+  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
     return channel.setScmpErrorListener(listener);
   }
 
