@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 import org.scion.internal.PathHeaderParser;
 
 public class ScmpChannel implements AutoCloseable {
-  private final DatagramChannel channel;
+  private final ScmpDatagramChannel channel;
   private final RequestPath path;
   private final AtomicReference<Scmp.Message> error = new AtomicReference<>();
   private int timeOutMs = 1000;
@@ -39,8 +39,7 @@ public class ScmpChannel implements AutoCloseable {
     this.path = path;
     InetSocketAddress local = new InetSocketAddress("0.0.0.0", port);
     ScionService service = Scion.defaultService();
-    this.channel = service.openChannel().bind(local);
-    channel.configureBlocking(true);
+    this.channel = ScmpDatagramChannel.open(service).bind(local);
     channel.setScmpErrorListener(this::errorListener);
   }
 

@@ -31,7 +31,7 @@ public class ScmpEchoDemo {
   private final AtomicLong nowNanos = new AtomicLong();
   private final ByteBuffer sendBuffer = ByteBuffer.allocateDirect(8);
   private final int localPort;
-  private DatagramChannel channel;
+  private ScmpDatagramChannel channel;
   private Path path;
 
   private enum Network {
@@ -147,8 +147,7 @@ public class ScmpEchoDemo {
   private void doClientStuff(long destinationIA) throws IOException {
     InetSocketAddress local = new InetSocketAddress("0.0.0.0", localPort);
     ScionService service = Scion.defaultService();
-    try (DatagramChannel channel = service.openChannel().bind(local)) {
-      channel.configureBlocking(true);
+    try (ScmpDatagramChannel channel = ScmpDatagramChannel.open(service).bind(local)) {
       this.channel = channel;
 
       InetSocketAddress destinationAddress =
@@ -167,7 +166,7 @@ public class ScmpEchoDemo {
       send();
 
       println("Listening at " + channel.getLocalAddress() + " ...");
-      channel.receive(null);
+      channel.receive();
 
       channel.disconnect();
     }
