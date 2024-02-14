@@ -83,6 +83,7 @@ public class ScmpParser {
    * @param path receive path
    * @return ScmpMessage object
    */
+  @Deprecated
   public static Message consume(ByteBuffer data, Path path) {
     int type = ByteUtil.toUnsigned(data.get());
     int code = ByteUtil.toUnsigned(data.get());

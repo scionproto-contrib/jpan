@@ -128,7 +128,7 @@ public class ScmpEchoDemo {
 
     ByteBuffer data = ByteBuffer.allocate(0);
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 10; i++) {
         Scmp.EchoResult msg = scmpChannel.sendEchoRequest(i, data);
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();

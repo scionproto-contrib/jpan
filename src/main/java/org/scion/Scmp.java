@@ -166,6 +166,10 @@ public class Scmp {
       return text;
     }
 
+    public boolean isError() {
+      return type >= ScmpType.ERROR_1.id && type <= ScmpType.ERROR_127.id;
+    }
+
     @Override
     public String toString() {
       return type + ":" + id + ":'" + text + '\'';
@@ -216,8 +220,10 @@ public class Scmp {
   public static class EchoResult extends Message {
     private final byte[] data;
     private long nanoSeconds;
+    private boolean timedOut = false;
 
     /** DO NOT USE! */
+    @Deprecated
     public EchoResult(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
@@ -228,12 +234,6 @@ public class Scmp {
       byte[] data = new byte[payload.remaining()];
       payload.get(data);
       return new EchoResult(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
-    }
-
-    public static EchoResult createTimedOut(long nanoSeconds) {
-      EchoResult r = new EchoResult(null, -1, -1, null, null);
-      r.setNanoSeconds(nanoSeconds);
-      return r;
     }
 
     public byte[] getData() {
@@ -247,6 +247,15 @@ public class Scmp {
     public long getNanoSeconds() {
       return nanoSeconds;
     }
+
+    public void setTimedOut(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+      this.timedOut = true;
+    }
+
+    public boolean isTimedOut() {
+      return timedOut;
+    }
   }
 
   public static class TracerouteResult extends Message {
@@ -254,10 +263,15 @@ public class Scmp {
     private long isdAs;
     private long ifID;
     private long nanoSeconds;
+    private boolean timedOut = false;
 
     /** DO NOT USE! */
     public TracerouteResult(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
+    }
+
+    public static TracerouteResult createRequest(int sequenceNumber, Path path) {
+      return new TracerouteResult(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
     }
 
     public static TracerouteResult createTimedOut(long nanoSeconds) {
@@ -305,6 +319,15 @@ public class Scmp {
     public void setTracerouteArgs(long isdAs, long ifID) {
       this.isdAs = isdAs;
       this.ifID = ifID;
+    }
+
+    public void setTimedOut(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+      this.timedOut = true;
+    }
+
+    public boolean isTimedOut() {
+      return timedOut;
     }
   }
 

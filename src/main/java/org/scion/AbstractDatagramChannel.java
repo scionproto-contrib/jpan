@@ -252,11 +252,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected void checkListeners(Scmp.Message scmpMsg) {
-    if (scmpMsg instanceof Scmp.EchoResult) {
+    if (scmpMsg instanceof Scmp.EchoResult && !scmpMsg.getTypeCode().isError()) {
       if (pingListener != null) {
         pingListener.accept((Scmp.EchoResult) scmpMsg);
       }
-    } else if (scmpMsg instanceof Scmp.TracerouteResult) {
+    } else if (scmpMsg instanceof Scmp.TracerouteResult && !scmpMsg.getTypeCode().isError()) {
       if (traceListener != null) {
         traceListener.accept((Scmp.TracerouteResult) scmpMsg);
       }

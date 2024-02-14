@@ -80,6 +80,7 @@ public class ScmpTracerouteDemo {
           // Port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
           demo.runDemo(DemoConstants.iaAnapayaHK);
+          // demo.runDemo(DemoConstants.iaOVGU);
           break;
         }
     }
@@ -101,7 +102,7 @@ public class ScmpTracerouteDemo {
     System.out.println("Listening at port " + localPort + " ...");
 
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      Collection<Scmp.TracerouteResult> results = scmpChannel.sendTracerouteRequest();
+      Collection<Scmp.TracerouteResult> results = scmpChannel.sendTracerouteRequestOld();
       for (Scmp.TracerouteResult msg : results) {
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
