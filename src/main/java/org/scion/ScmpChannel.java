@@ -40,13 +40,6 @@ public class ScmpChannel implements AutoCloseable {
     InetSocketAddress local = new InetSocketAddress("0.0.0.0", port);
     ScionService service = Scion.defaultService();
     this.channel = ScmpDatagramChannel.open(service).bind(local);
-    channel.setScmpErrorListener(this::errorListener);
-  }
-
-  private void errorListener(Scmp.Message msg) {
-    error.set(msg);
-    Thread.currentThread().interrupt();
-    throw new RuntimeException();
   }
 
   /**
