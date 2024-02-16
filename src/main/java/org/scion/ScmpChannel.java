@@ -114,93 +114,12 @@ public class ScmpChannel implements AutoCloseable {
    *     If a request times out, the traceroute is aborted.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  @Deprecated
-  public Collection<Scmp.TracerouteResult> sendTracerouteRequestOld() throws IOException {
-    ConcurrentLinkedQueue<Scmp.TracerouteResult> results = new ConcurrentLinkedQueue<>();
-    try {
-      List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
-      for (int i = 0; i < nodes.size(); i++) {
-        if (!sendConcurrentTraceRequest1(i, nodes.get(i), results)) {
-          // timeout: abort
-          break;
-        }
-      }
-    } finally {
-      channel.setTracerouteListener(null);
-    }
-    return results;
-  }
-
-  private boolean sendConcurrentTraceRequest1(
-      int sequenceNumber,
-      PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.TracerouteResult> results)
-      throws IOException {
-    AtomicReference<IOException> exception = new AtomicReference<>();
-
-    Thread t = new Thread(() -> sendTracerouteRequest1(sequenceNumber, node, results, exception));
-    t.start();
-    try {
-      t.join(timeOutMs);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    }
-
-    if (exception.get() != null) {
-      throw new IOException(exception.get());
-    }
-    if (error.get() != null) {
-      // we received a SCMP error
-      throw new IOException(error.get().getTypeCode().getText());
-    }
-    if (t.isAlive()) {
-      // timeout
-      t.interrupt();
-      results.add(Scmp.TracerouteResult.createTimedOut(timeOutMs * 1_000_000L));
-      return false;
-    }
-    return true;
-  }
-
-  private void sendTracerouteRequest1(
-      int sequenceNumber,
-      PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.TracerouteResult> results,
-      AtomicReference<IOException> exception) {
-    try {
-      long sendNanos = System.nanoTime();
-      channel.sendTracerouteRequestOld(path, sequenceNumber, node);
-      Scmp.Message msg = channel.receiveScmp();
-      long nanos = System.nanoTime() - sendNanos;
-      if (msg instanceof Scmp.TracerouteResult) {
-        Scmp.TracerouteResult trace = (Scmp.TracerouteResult) msg;
-        trace.setNanoSeconds(nanos);
-        results.add(trace);
-      } else {
-        // error
-        throw new IOException("SCMP error: " + msg.getTypeCode().getText());
-      }
-    } catch (IOException e) {
-      exception.set(e);
-    }
-  }
-
-  /**
-   * Sends a SCMP traceroute request to the connected destination.
-   *
-   * @return A list of SCMP results, one for each hop on the route. For every reply received, the
-   *     result contains the reply and the time in milliseconds that the reply took. If the request
-   *     timed out, the result contains no message and the time is equal to the time-out duration.
-   *     If a request times out, the traceroute is aborted.
-   * @throws IOException if an IO error occurs or if an SCMP error is received.
-   */
   public Collection<Scmp.TracerouteResult> sendTracerouteRequest() throws IOException {
     ConcurrentLinkedQueue<Scmp.TracerouteResult> results = new ConcurrentLinkedQueue<>();
     try {
       List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
       for (int i = 0; i < nodes.size(); i++) {
-        if (!sendConcurrentTraceRequest2(i, nodes.get(i), results)) {
+        if (!sendConcurrentTraceRequest(i, nodes.get(i), results)) {
           // timeout: abort
           break;
         }
@@ -211,14 +130,14 @@ public class ScmpChannel implements AutoCloseable {
     return results;
   }
 
-  private boolean sendConcurrentTraceRequest2(
+  private boolean sendConcurrentTraceRequest(
       int sequenceNumber,
       PathHeaderParser.Node node,
       ConcurrentLinkedQueue<Scmp.TracerouteResult> results)
       throws IOException {
     AtomicReference<IOException> exception = new AtomicReference<>();
 
-    Thread t = new Thread(() -> sendTracerouteRequest2(sequenceNumber, node, results, exception));
+    Thread t = new Thread(() -> sendTracerouteRequest(sequenceNumber, node, results, exception));
     t.start();
     try {
       t.join(timeOutMs);
@@ -243,7 +162,7 @@ public class ScmpChannel implements AutoCloseable {
     return true;
   }
 
-  private void sendTracerouteRequest2(
+  private void sendTracerouteRequest(
       int sequenceNumber,
       PathHeaderParser.Node node,
       ConcurrentLinkedQueue<Scmp.TracerouteResult> results,

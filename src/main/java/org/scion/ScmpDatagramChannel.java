@@ -47,29 +47,6 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     return new ScmpDatagramChannel(service);
   }
 
-  synchronized Scmp.Message receiveScmp() throws IOException {
-    ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-    if (receivePath == null) {
-      return null; // non-blocking, nothing available
-    }
-
-    Scmp.Message scmpMsg = ScmpParser.consume(bufferReceive, receivePath);
-    checkListeners(scmpMsg);
-    return scmpMsg;
-  }
-
-  //  synchronized Scmp.Message receiveScmp(Scmp.Message msg) throws IOException {
-  //    ResponsePath receivePath = receiveFromChannel(bufferReceive,
-  // InternalConstants.HdrTypes.SCMP);
-  //    if (receivePath == null) {
-  //      return null; // non-blocking, nothing available
-  //    }
-  //    msg.setPath(receivePath);
-  //    Scmp.Message scmpMsg = ScmpParser.consume(bufferReceive, msg);
-  //    checkListeners(scmpMsg);
-  //    return scmpMsg;
-  //  }
-
   @Deprecated // TODO REMOVE THIS
   public synchronized void receive() throws IOException {
     receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.UDP);
@@ -116,24 +93,6 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     return (Scmp.EchoResult) scmpMsg;
   }
 
-  void sendTracerouteRequestOld(RequestPath path, int interfaceNumber, PathHeaderParser.Node node)
-      throws IOException {
-    path = ensureUpToDate(path);
-    // TracerouteHeader = 24
-    int len = 24;
-    // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
-    //   we should only modify the outgoing packet.
-    byte[] raw = path.getRawPath();
-    raw[node.posHopFlags] = node.hopFlags;
-
-    buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
-    ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
-    bufferSend.flip();
-    sendRaw(bufferSend, path.getFirstHopAddress());
-    // Clean up!  // TODO this is really bad!
-    raw[node.posHopFlags] = 0;
-  }
-
   Scmp.TracerouteResult sendTracerouteRequest(
       Scmp.TracerouteResult request, PathHeaderParser.Node node) throws IOException {
     Path path = request.getPath();
@@ -143,6 +102,7 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
     //   we should only modify the outgoing packet.
     byte[] raw = path.getRawPath();
+    byte backup = raw[node.posHopFlags];
     raw[node.posHopFlags] = node.hopFlags;
 
     buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
@@ -151,7 +111,7 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     bufferSend.flip();
     sendRaw(bufferSend, path.getFirstHopAddress());
     // Clean up!  // TODO this is really bad!
-    raw[node.posHopFlags] = 0;
+    raw[node.posHopFlags] = backup;
 
     // receive
     Scmp.Message scmpMsg = null;
