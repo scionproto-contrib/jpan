@@ -150,7 +150,9 @@ public class ScionPacketInspector {
   public void reversePath() {
     scionHeader.reverse();
     pathHeaderScion.reverse();
-    overlayHeaderUdp.reverse();
+    if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
+      overlayHeaderUdp.reverse();
+    }
   }
 
   public void writePacket(ByteBuffer newData, byte[] userData) {

@@ -15,6 +15,7 @@
 package org.scion;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class Scmp {
 
@@ -165,20 +166,24 @@ public class Scmp {
       return text;
     }
 
+    public boolean isError() {
+      return type >= ScmpType.ERROR_1.id && type <= ScmpType.ERROR_127.id;
+    }
+
     @Override
     public String toString() {
       return type + ":" + id + ":'" + text + '\'';
     }
   }
 
-  public static class ScmpMessage {
-    final ScmpTypeCode typeCode;
-    final int identifier;
-    final int sequenceNumber;
-    final Path path;
+  public static class Message {
+    private ScmpTypeCode typeCode;
+    private int identifier;
+    private int sequenceNumber;
+    private Path path;
 
     /** DO NOT USE! */
-    public ScmpMessage(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public Message(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this.typeCode = typeCode;
       this.identifier = identifier;
       this.sequenceNumber = sequenceNumber;
@@ -200,34 +205,92 @@ public class Scmp {
     public Path getPath() {
       return path;
     }
+
+    public void setPath(Path path) {
+      this.path = path;
+    }
+
+    public void setMessageArgs(ScmpTypeCode sc, int identifier, int sequenceNumber) {
+      this.typeCode = sc;
+      this.identifier = identifier;
+      this.sequenceNumber = sequenceNumber;
+    }
   }
 
-  public static class ScmpEcho extends ScmpMessage {
-    byte[] data;
+  public static class EchoMessage extends Message {
+    private byte[] data;
+    private long nanoSeconds;
+    private boolean timedOut = false;
 
-    /** DO NOT USE! */
-    public ScmpEcho(
+    private EchoMessage(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
     }
 
+    public static EchoMessage createEmpty(Path path) {
+      return new EchoMessage(ScmpTypeCode.TYPE_128, -1, -1, path, null);
+    }
+
+    public static EchoMessage createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
+      byte[] data = new byte[payload.remaining()];
+      payload.get(data);
+      return new EchoMessage(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
+    }
+
     public byte[] getData() {
       return data;
     }
+
+    public void setData(byte[] data) {
+      this.data = data;
+    }
+
+    public void setNanoSeconds(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+    }
+
+    public long getNanoSeconds() {
+      return nanoSeconds;
+    }
+
+    public void setTimedOut(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+      this.timedOut = true;
+    }
+
+    public boolean isTimedOut() {
+      return timedOut;
+    }
   }
 
-  public static class ScmpTraceroute extends ScmpMessage {
+  public static class TracerouteMessage extends Message {
 
-    private final long isdAs;
-    private final long ifID;
+    private long isdAs;
+    private long ifID;
+    private long nanoSeconds;
+    private boolean timedOut = false;
 
-    /** DO NOT USE! */
-    public ScmpTraceroute(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    private TracerouteMessage(
+        ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
 
-    public ScmpTraceroute(
+    public static TracerouteMessage createEmpty(Path path) {
+      return new TracerouteMessage(ScmpTypeCode.TYPE_130, -1, -1, path);
+    }
+
+    public static TracerouteMessage createRequest(int sequenceNumber, Path path) {
+      return new TracerouteMessage(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
+    }
+
+    public static TracerouteMessage createTimedOut(long nanoSeconds) {
+      TracerouteMessage r = new TracerouteMessage(null, -1, -1, null);
+      r.setNanoSeconds(nanoSeconds);
+      return r;
+    }
+
+    public TracerouteMessage(
         ScmpTypeCode typeCode,
         int identifier,
         int sequenceNumber,
@@ -247,6 +310,14 @@ public class Scmp {
       return ifID;
     }
 
+    public void setNanoSeconds(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+    }
+
+    public long getNanoSeconds() {
+      return nanoSeconds;
+    }
+
     @Override
     public String toString() {
       String echoMsgStr = getTypeCode().getText();
@@ -254,23 +325,32 @@ public class Scmp {
       echoMsgStr += " " + ScionUtil.toStringIA(getIsdAs()) + " IfID=" + getIfID();
       return echoMsgStr;
     }
+
+    public void setTracerouteArgs(long isdAs, long ifID) {
+      this.isdAs = isdAs;
+      this.ifID = ifID;
+    }
+
+    public void setTimedOut(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+      this.timedOut = true;
+    }
+
+    public boolean isTimedOut() {
+      return timedOut;
+    }
   }
 
-  public static class Result<T extends Scmp.ScmpMessage> {
-    private final T message;
-    private final long nanoSeconds;
-
-    public Result(T message, long nanoSeconds) {
-      this.message = message;
-      this.nanoSeconds = nanoSeconds;
-    }
-
-    public T getMessage() {
-      return message;
-    }
-
-    public long getNanoSeconds() {
-      return nanoSeconds;
+  static Scmp.Message createMessage(Scmp.ScmpType type, Path path) {
+    switch (type) {
+      case INFO_128:
+      case INFO_129:
+        return Scmp.EchoMessage.createEmpty(path);
+      case INFO_130:
+      case INFO_131:
+        return Scmp.TracerouteMessage.createEmpty(path);
+      default:
+        return new Scmp.Message(null, -1, -1, path);
     }
   }
 

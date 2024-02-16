@@ -31,7 +31,7 @@ public class ScmpEchoDemo {
   private final AtomicLong nowNanos = new AtomicLong();
   private final ByteBuffer sendBuffer = ByteBuffer.allocateDirect(8);
   private final int localPort;
-  private DatagramChannel channel;
+  private ScmpDatagramChannel channel;
   private Path path;
 
   private enum Network {
@@ -95,7 +95,7 @@ public class ScmpEchoDemo {
     }
   }
 
-  private void echoListener(Scmp.ScmpEcho msg) {
+  private void echoListener(Scmp.EchoMessage msg) {
     String echoMsgStr = msg.getTypeCode().getText();
     echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
     echoMsgStr += " time=" + getPassedMillies() + "ms";
@@ -103,7 +103,7 @@ public class ScmpEchoDemo {
     send();
   }
 
-  private void errorListener(Scmp.ScmpMessage msg) {
+  private void errorListener(Scmp.Message msg) {
     Scmp.ScmpTypeCode code = msg.getTypeCode();
     String millies = getPassedMillies();
     println("SCMP error (after " + millies + "ms): " + code.getText() + " (" + code + ")");
@@ -128,10 +128,9 @@ public class ScmpEchoDemo {
 
     ByteBuffer data = ByteBuffer.allocate(0);
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      for (int i = 0; i < 5; i++) {
-        Scmp.Result<Scmp.ScmpEcho> result = scmpChannel.sendEchoRequest(i, data);
-        Scmp.ScmpEcho msg = result.getMessage();
-        String millis = String.format("%.4f", result.getNanoSeconds() / (double) 1_000_000);
+      for (int i = 0; i < 10; i++) {
+        Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(i, data);
+        String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
         echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
         echoMsgStr += " time=" + millis + "ms";
@@ -148,8 +147,7 @@ public class ScmpEchoDemo {
   private void doClientStuff(long destinationIA) throws IOException {
     InetSocketAddress local = new InetSocketAddress("0.0.0.0", localPort);
     ScionService service = Scion.defaultService();
-    try (DatagramChannel channel = service.openChannel().bind(local)) {
-      channel.configureBlocking(true);
+    try (ScmpDatagramChannel channel = ScmpDatagramChannel.open(service).bind(local)) {
       this.channel = channel;
 
       InetSocketAddress destinationAddress =
@@ -168,7 +166,7 @@ public class ScmpEchoDemo {
       send();
 
       println("Listening at " + channel.getLocalAddress() + " ...");
-      channel.receive(null);
+      channel.receive();
 
       channel.disconnect();
     }

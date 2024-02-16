@@ -14,14 +14,13 @@
 
 package org.scion.internal;
 
-import static org.scion.Scmp.ScmpEcho;
-import static org.scion.Scmp.ScmpMessage;
-import static org.scion.Scmp.ScmpTraceroute;
+import static org.scion.Scmp.EchoMessage;
+import static org.scion.Scmp.Message;
 import static org.scion.Scmp.ScmpType;
 import static org.scion.Scmp.ScmpTypeCode;
+import static org.scion.Scmp.TracerouteMessage;
 
 import java.nio.ByteBuffer;
-import org.scion.Path;
 
 public class ScmpParser {
 
@@ -33,6 +32,16 @@ public class ScmpParser {
     buffer.put(ByteUtil.toByte(((len + 3) / 4) - 1));
     buffer.putShort((short) 0); // TODO this should be variable length!
     buffer.putInt(0);
+  }
+
+  public static void buildScmpPing(
+      ByteBuffer buffer, int identifier, int sequenceNumber, byte[] data) {
+    buffer.put(ByteUtil.toByte(ScmpType.INFO_128.id()));
+    buffer.put(ByteUtil.toByte(0));
+    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) identifier); // unsigned
+    buffer.putShort((short) sequenceNumber); // unsigned
+    buffer.put(data);
   }
 
   public static void buildScmpPing(
@@ -66,14 +75,19 @@ public class ScmpParser {
     buffer.putLong(0);
   }
 
+  public static ScmpType extractType(ByteBuffer data) {
+    // Avoid changing the position!
+    return ScmpType.parse(ByteUtil.toUnsigned(data.get(data.position())));
+  }
+
   /**
    * Reads a SCMP message from the packet. Consumes the byte buffer.
    *
    * @param data packet data
-   * @param path receive path
+   * @param holder SCMP message holder
    * @return ScmpMessage object
    */
-  public static ScmpMessage consume(ByteBuffer data, Path path) {
+  public static Message consume(ByteBuffer data, Message holder) {
     int type = ByteUtil.toUnsigned(data.get());
     int code = ByteUtil.toUnsigned(data.get());
     data.getShort(); // checksum
@@ -83,20 +97,27 @@ public class ScmpParser {
     ScmpTypeCode sc = ScmpTypeCode.parse(type, code);
     int short1 = ByteUtil.toUnsigned(data.getShort());
     int short2 = ByteUtil.toUnsigned(data.getShort());
+    holder.setMessageArgs(sc, short1, short2);
     switch (st) {
       case INFO_128:
       case INFO_129:
-        byte[] scmpData = new byte[data.remaining()];
-        data.get(scmpData);
-        return new ScmpEcho(sc, short1, short2, path, scmpData);
+        EchoMessage echo = (EchoMessage) holder;
+        if (echo.getData() == null) {
+          echo.setData(new byte[data.remaining()]);
+        }
+        // If there is an array we can simply reuse it. The length of the
+        // package has already been validated.
+        data.get(echo.getData());
+        return echo;
       case INFO_130:
-        return new ScmpTraceroute(sc, short1, short2, path);
       case INFO_131:
         long isdAs = data.getLong();
         long ifID = data.getLong();
-        return new ScmpTraceroute(sc, short1, short2, isdAs, ifID, path);
+        TracerouteMessage trace = (TracerouteMessage) holder;
+        trace.setTracerouteArgs(isdAs, ifID);
+        return trace;
       default:
-        return new ScmpMessage(sc, short1, short2, path);
+        return holder;
     }
   }
 }

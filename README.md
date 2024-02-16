@@ -66,9 +66,10 @@ The central classes of the API are:
   returned by `Scion.defaultService()`.
 - `Scion`, `ScionUtil`, `ScionConstants`: Utility classes.
 - `ScionSocketOptions`: Options for the `DatagramChannel`.
-- `SCMP` provides `ScmpType` and `ScmpCode` enums with text messages. It also contains
-  `ScmpMessage` (for SCMP errors) and `ScmpEcho`/`ScmpTraceroute` types. These can be used with the
-  `DatagramChannel`'s `sendXXXRequest()` and `setXXXListener()` methods.
+- `Scmp`:
+  - `ScmpType` and `ScmpCode` enums with text messages. 
+  - `Message` (for SCMP errors) and `EchoMessage`/`TracerouteMessage` types.
+  - `createChannel(...)` for sending echo and traceroute requests
 - **TODO** Currently residing in `test`: `ScionPacketInspector`: A packet inspector and builder.
 - **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
   This is currently deprecated because it does not work well.
