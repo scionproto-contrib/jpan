@@ -14,11 +14,11 @@
 
 package org.scion.internal;
 
-import static org.scion.Scmp.EchoResult;
+import static org.scion.Scmp.EchoPacket;
 import static org.scion.Scmp.Message;
 import static org.scion.Scmp.ScmpType;
 import static org.scion.Scmp.ScmpTypeCode;
-import static org.scion.Scmp.TracerouteResult;
+import static org.scion.Scmp.TraceroutePacket;
 
 import java.nio.ByteBuffer;
 import org.scion.Path;
@@ -99,13 +99,13 @@ public class ScmpParser {
       case INFO_129:
         byte[] scmpData = new byte[data.remaining()];
         data.get(scmpData);
-        return new EchoResult(sc, short1, short2, path, scmpData);
+        return new EchoPacket(sc, short1, short2, path, scmpData);
       case INFO_130:
-        return new TracerouteResult(sc, short1, short2, path);
+        return new TraceroutePacket(sc, short1, short2, path);
       case INFO_131:
         long isdAs = data.getLong();
         long ifID = data.getLong();
-        return new TracerouteResult(sc, short1, short2, isdAs, ifID, path);
+        return new TraceroutePacket(sc, short1, short2, isdAs, ifID, path);
       default:
         return new Message(sc, short1, short2, path);
     }
@@ -132,7 +132,7 @@ public class ScmpParser {
     switch (st) {
       case INFO_128:
       case INFO_129:
-        EchoResult echo = (EchoResult) holder;
+        EchoPacket echo = (EchoPacket) holder;
         if (data.remaining() != echo.getData().length) {
           // drop
           return null;
@@ -143,7 +143,7 @@ public class ScmpParser {
       case INFO_131:
         long isdAs = data.getLong();
         long ifID = data.getLong();
-        TracerouteResult trace = (TracerouteResult) holder;
+        TraceroutePacket trace = (TraceroutePacket) holder;
         trace.setTracerouteArgs(isdAs, ifID);
         return trace;
       default:

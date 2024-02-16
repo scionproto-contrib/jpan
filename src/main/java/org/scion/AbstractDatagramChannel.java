@@ -44,8 +44,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           Constants.ENV_PATH_EXPIRY_MARGIN,
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
 
-  private Consumer<Scmp.EchoResult> pingListener;
-  private Consumer<Scmp.TracerouteResult> traceListener;
+  private Consumer<Scmp.EchoPacket> pingListener;
+  private Consumer<Scmp.TraceroutePacket> traceListener;
   private Consumer<Scmp.Message> errorListener;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
@@ -226,29 +226,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private Object receiveNonDataPacket(
-      ByteBuffer buffer, InternalConstants.HdrTypes hdrType, ResponsePath path)
-      throws ScionException {
-    switch (hdrType) {
-      case HOP_BY_HOP:
-      case END_TO_END:
-        return receiveExtension(buffer, path);
-      case SCMP:
-        return receiveScmp(buffer, path);
-      default:
-        if (cfgReportFailedValidation) {
-          throw new ScionException("Unknown nextHdr: " + hdrType);
-        }
-    }
-    return null;
-  }
-
-  private Object receiveExtension(ByteBuffer buffer, ResponsePath path) throws ScionException {
-    ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
-    // Currently we are not doing much here except hoping for an SCMP header
-    return receiveNonDataPacket(buffer, extHdr.nextHdr(), path);
-  }
-
   private Scmp.Message receiveScmp(ByteBuffer buffer, Path path) {
     Scmp.Message scmpMsg = ScmpParser.consume(buffer, path);
     checkListeners(scmpMsg);
@@ -256,13 +233,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected void checkListeners(Scmp.Message scmpMsg) {
-    if (scmpMsg instanceof Scmp.EchoResult && !scmpMsg.getTypeCode().isError()) {
+    if (scmpMsg instanceof Scmp.EchoPacket && !scmpMsg.getTypeCode().isError()) {
       if (pingListener != null) {
-        pingListener.accept((Scmp.EchoResult) scmpMsg);
+        pingListener.accept((Scmp.EchoPacket) scmpMsg);
       }
-    } else if (scmpMsg instanceof Scmp.TracerouteResult && !scmpMsg.getTypeCode().isError()) {
+    } else if (scmpMsg instanceof Scmp.TraceroutePacket && !scmpMsg.getTypeCode().isError()) {
       if (traceListener != null) {
-        traceListener.accept((Scmp.TracerouteResult) scmpMsg);
+        traceListener.accept((Scmp.TraceroutePacket) scmpMsg);
       }
     } else {
       if (errorListener != null) {
@@ -275,16 +252,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     channel.send(buffer, address);
   }
 
-  public synchronized Consumer<Scmp.EchoResult> setEchoListener(
-      Consumer<Scmp.EchoResult> listener) {
-    Consumer<Scmp.EchoResult> old = pingListener;
+  public synchronized Consumer<Scmp.EchoPacket> setEchoListener(
+      Consumer<Scmp.EchoPacket> listener) {
+    Consumer<Scmp.EchoPacket> old = pingListener;
     pingListener = listener;
     return old;
   }
 
-  public synchronized Consumer<Scmp.TracerouteResult> setTracerouteListener(
-      Consumer<Scmp.TracerouteResult> listener) {
-    Consumer<Scmp.TracerouteResult> old = traceListener;
+  public synchronized Consumer<Scmp.TraceroutePacket> setTracerouteListener(
+      Consumer<Scmp.TraceroutePacket> listener) {
+    Consumer<Scmp.TraceroutePacket> old = traceListener;
     traceListener = listener;
     return old;
   }
@@ -413,7 +390,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress, hdrType);
     ScionHeaderParser.writePath(buffer, rawPath);
 
-    // TODO move this outside of this method
     if (hdrType == InternalConstants.HdrTypes.UDP) {
       ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
     }

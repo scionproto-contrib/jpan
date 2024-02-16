@@ -217,23 +217,23 @@ public class Scmp {
     }
   }
 
-  public static class EchoResult extends Message {
+  public static class EchoPacket extends Message {
     private final byte[] data;
     private long nanoSeconds;
     private boolean timedOut = false;
 
     /** DO NOT USE! */
     @Deprecated
-    public EchoResult(
+    public EchoPacket(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
     }
 
-    public static EchoResult createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
+    public static EchoPacket createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
       byte[] data = new byte[payload.remaining()];
       payload.get(data);
-      return new EchoResult(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
+      return new EchoPacket(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
     }
 
     public byte[] getData() {
@@ -258,7 +258,7 @@ public class Scmp {
     }
   }
 
-  public static class TracerouteResult extends Message {
+  public static class TraceroutePacket extends Message {
 
     private long isdAs;
     private long ifID;
@@ -266,21 +266,21 @@ public class Scmp {
     private boolean timedOut = false;
 
     /** DO NOT USE! */
-    public TracerouteResult(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public TraceroutePacket(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
 
-    public static TracerouteResult createRequest(int sequenceNumber, Path path) {
-      return new TracerouteResult(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
+    public static TraceroutePacket createRequest(int sequenceNumber, Path path) {
+      return new TraceroutePacket(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
     }
 
-    public static TracerouteResult createTimedOut(long nanoSeconds) {
-      TracerouteResult r = new TracerouteResult(null, -1, -1, null);
+    public static TraceroutePacket createTimedOut(long nanoSeconds) {
+      TraceroutePacket r = new TraceroutePacket(null, -1, -1, null);
       r.setNanoSeconds(nanoSeconds);
       return r;
     }
 
-    public TracerouteResult(
+    public TraceroutePacket(
         ScmpTypeCode typeCode,
         int identifier,
         int sequenceNumber,
