@@ -47,7 +47,8 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
     this.bind(local);
   }
 
-  private synchronized Scmp.EchoPacket sendEchoRequest(Scmp.EchoPacket request) throws IOException {
+  private synchronized Scmp.EchoMessage sendEchoRequest(Scmp.EchoMessage request)
+      throws IOException {
     // send
     // EchoHeader = 8 + data
     int len = 8 + request.getData().length;
@@ -67,11 +68,11 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
     }
     scmpMsg.setPath(receivePath);
     checkListeners(scmpMsg);
-    return (Scmp.EchoPacket) scmpMsg;
+    return (Scmp.EchoMessage) scmpMsg;
   }
 
-  private Scmp.TraceroutePacket sendTracerouteRequest(
-      Scmp.TraceroutePacket request, PathHeaderParser.Node node) throws IOException {
+  private Scmp.TracerouteMessage sendTracerouteRequest(
+      Scmp.TracerouteMessage request, PathHeaderParser.Node node) throws IOException {
     Path path = request.getPath();
     // send
     // TracerouteHeader = 24
@@ -100,7 +101,7 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
 
     scmpMsg.setPath(receivePath);
     checkListeners(scmpMsg);
-    return (Scmp.TraceroutePacket) scmpMsg;
+    return (Scmp.TracerouteMessage) scmpMsg;
   }
 
   /**
@@ -113,17 +114,17 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
    *     and the time is equal to the time-out duration.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Scmp.EchoPacket sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
+  public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
     RequestPath path = (RequestPath) getCurrentPath();
     if (!isConnected()) {
       connect(path);
     }
     // Hack: we do not modify the AtomicReference.It simply serves as a memory barrier
     // to facilitate concurrent access to the result.
-    AtomicReference<Scmp.EchoPacket> result = new AtomicReference<>();
+    AtomicReference<Scmp.EchoMessage> result = new AtomicReference<>();
     AtomicReference<IOException> exception = new AtomicReference<>();
 
-    result.set(Scmp.EchoPacket.createRequest(sequenceNumber, path, data));
+    result.set(Scmp.EchoMessage.createRequest(sequenceNumber, path, data));
     Thread t = new Thread(() -> sendEchoRequest(result, exception));
     t.start();
     try {
@@ -143,7 +144,7 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
     if (t.isAlive()) {
       // timeout
       t.interrupt();
-      Scmp.EchoPacket echo = result.get();
+      Scmp.EchoMessage echo = result.get();
       echo.setTimedOut(timeOutMs * 1_000_000L);
       return echo;
     }
@@ -151,10 +152,10 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
   }
 
   private void sendEchoRequest(
-      AtomicReference<Scmp.EchoPacket> result, AtomicReference<IOException> exception) {
+      AtomicReference<Scmp.EchoMessage> result, AtomicReference<IOException> exception) {
     try {
       long sendNanos = System.nanoTime();
-      Scmp.EchoPacket msg = sendEchoRequest(result.get());
+      Scmp.EchoMessage msg = sendEchoRequest(result.get());
       long nanos = System.nanoTime() - sendNanos;
       if (msg.getTypeCode() == Scmp.ScmpTypeCode.TYPE_129) {
         msg.setNanoSeconds(nanos);
@@ -176,8 +177,8 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
    *     If a request times out, the traceroute is aborted.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Collection<Scmp.TraceroutePacket> sendTracerouteRequest() throws IOException {
-    ConcurrentLinkedQueue<Scmp.TraceroutePacket> results = new ConcurrentLinkedQueue<>();
+  public Collection<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
+    ConcurrentLinkedQueue<Scmp.TracerouteMessage> results = new ConcurrentLinkedQueue<>();
     Path path = getCurrentPath();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     for (int i = 0; i < nodes.size(); i++) {
@@ -193,7 +194,7 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
       int sequenceNumber,
       Path path,
       PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.TraceroutePacket> results)
+      ConcurrentLinkedQueue<Scmp.TracerouteMessage> results)
       throws IOException {
     AtomicReference<IOException> exception = new AtomicReference<>();
 
@@ -217,7 +218,7 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
     if (t.isAlive()) {
       // timeout
       t.interrupt();
-      results.add(Scmp.TraceroutePacket.createTimedOut(timeOutMs * 1_000_000L));
+      results.add(Scmp.TracerouteMessage.createTimedOut(timeOutMs * 1_000_000L));
       return false;
     }
     return true;
@@ -227,10 +228,10 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
       Path path,
       int sequenceNumber,
       PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.TraceroutePacket> results,
+      ConcurrentLinkedQueue<Scmp.TracerouteMessage> results,
       AtomicReference<IOException> exception) {
     try {
-      Scmp.TraceroutePacket trace = Scmp.TraceroutePacket.createRequest(sequenceNumber, path);
+      Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.createRequest(sequenceNumber, path);
       long sendNanos = System.nanoTime();
       trace = sendTracerouteRequest(trace, node);
       long nanos = System.nanoTime() - sendNanos;

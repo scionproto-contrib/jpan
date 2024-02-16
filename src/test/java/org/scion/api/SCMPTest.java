@@ -99,7 +99,7 @@ public class SCMPTest {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
-      Scmp.EchoPacket result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
+      Scmp.EchoMessage result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
       assertEquals(42, result.getSequenceNumber());
       assertEquals(Scmp.ScmpTypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);
@@ -118,7 +118,7 @@ public class SCMPTest {
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(1_000);
       MockNetwork.dropNextPackets(1);
-      Scmp.EchoPacket result = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
+      Scmp.EchoMessage result = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
       assertTrue(result.isTimedOut());
       assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
     } finally {
@@ -165,11 +165,11 @@ public class SCMPTest {
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
-      Collection<Scmp.TraceroutePacket> results = channel.sendTracerouteRequest();
+      Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest();
       channel.setTimeOut(Integer.MAX_VALUE); // TODO ??
 
       int n = 0;
-      for (Scmp.TraceroutePacket result : results) {
+      for (Scmp.TracerouteMessage result : results) {
         assertEquals(n++, result.getSequenceNumber());
         assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getTypeCode());
         assertTrue(result.getNanoSeconds() > 0);
@@ -197,10 +197,10 @@ public class SCMPTest {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       MockNetwork.dropNextPackets(2);
-      Collection<Scmp.TraceroutePacket> results = channel.sendTracerouteRequest();
+      Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest();
 
       assertEquals(1, results.size());
-      for (Scmp.TraceroutePacket result : results) {
+      for (Scmp.TracerouteMessage result : results) {
         assertNull(result.getTypeCode());
         assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
       }

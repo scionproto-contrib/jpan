@@ -14,11 +14,11 @@
 
 package org.scion.internal;
 
-import static org.scion.Scmp.EchoPacket;
+import static org.scion.Scmp.EchoMessage;
 import static org.scion.Scmp.Message;
 import static org.scion.Scmp.ScmpType;
 import static org.scion.Scmp.ScmpTypeCode;
-import static org.scion.Scmp.TraceroutePacket;
+import static org.scion.Scmp.TracerouteMessage;
 
 import java.nio.ByteBuffer;
 import org.scion.Path;
@@ -76,6 +76,11 @@ public class ScmpParser {
     buffer.putLong(0);
   }
 
+  public static ScmpType extractType(ByteBuffer data) {
+    // Avoid changing the position!
+    return ScmpType.parse(ByteUtil.toUnsigned(data.get(data.position())));
+  }
+
   /**
    * Reads a SCMP message from the packet. Consumes the byte buffer.
    *
@@ -99,13 +104,13 @@ public class ScmpParser {
       case INFO_129:
         byte[] scmpData = new byte[data.remaining()];
         data.get(scmpData);
-        return new EchoPacket(sc, short1, short2, path, scmpData);
+        return new EchoMessage(sc, short1, short2, path, scmpData);
       case INFO_130:
-        return new TraceroutePacket(sc, short1, short2, path);
+        return new TracerouteMessage(sc, short1, short2, path);
       case INFO_131:
         long isdAs = data.getLong();
         long ifID = data.getLong();
-        return new TraceroutePacket(sc, short1, short2, isdAs, ifID, path);
+        return new TracerouteMessage(sc, short1, short2, isdAs, ifID, path);
       default:
         return new Message(sc, short1, short2, path);
     }
@@ -132,18 +137,16 @@ public class ScmpParser {
     switch (st) {
       case INFO_128:
       case INFO_129:
-        EchoPacket echo = (EchoPacket) holder;
-        if (data.remaining() != echo.getData().length) {
-          // drop
-          return null;
-        }
+        EchoMessage echo = (EchoMessage) holder;
+        // We can simply reuse the existing array. The length of the
+        // package has already been validated.
         data.get(echo.getData());
         return echo;
       case INFO_130:
       case INFO_131:
         long isdAs = data.getLong();
         long ifID = data.getLong();
-        TraceroutePacket trace = (TraceroutePacket) holder;
+        TracerouteMessage trace = (TracerouteMessage) holder;
         trace.setTracerouteArgs(isdAs, ifID);
         return trace;
       default:

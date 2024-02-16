@@ -18,6 +18,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
 import org.scion.internal.InternalConstants;
 import org.scion.internal.ScmpParser;
 
@@ -68,5 +69,10 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     Scmp.Message scmpMsg = ScmpParser.consume(bufferReceive, receivePath);
     checkListeners(scmpMsg);
     return scmpMsg;
+  }
+
+  public synchronized Consumer<Scmp.EchoMessage> setEchoListener(
+      Consumer<Scmp.EchoMessage> listener) {
+    return super.setEchoListener(listener);
   }
 }

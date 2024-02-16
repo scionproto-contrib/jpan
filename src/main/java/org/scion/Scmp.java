@@ -217,23 +217,27 @@ public class Scmp {
     }
   }
 
-  public static class EchoPacket extends Message {
+  public static class EchoMessage extends Message {
     private final byte[] data;
     private long nanoSeconds;
     private boolean timedOut = false;
 
     /** DO NOT USE! */
     @Deprecated
-    public EchoPacket(
+    public EchoMessage(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
     }
 
-    public static EchoPacket createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
+    public static EchoMessage createEmpty(Path path) {
+      return new EchoMessage(ScmpTypeCode.TYPE_128, -1, -1, path, null);
+    }
+
+    public static EchoMessage createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
       byte[] data = new byte[payload.remaining()];
       payload.get(data);
-      return new EchoPacket(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
+      return new EchoMessage(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
     }
 
     public byte[] getData() {
@@ -258,7 +262,7 @@ public class Scmp {
     }
   }
 
-  public static class TraceroutePacket extends Message {
+  public static class TracerouteMessage extends Message {
 
     private long isdAs;
     private long ifID;
@@ -266,21 +270,25 @@ public class Scmp {
     private boolean timedOut = false;
 
     /** DO NOT USE! */
-    public TraceroutePacket(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public TracerouteMessage(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
 
-    public static TraceroutePacket createRequest(int sequenceNumber, Path path) {
-      return new TraceroutePacket(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
+    public static TracerouteMessage createEmpty(Path path) {
+      return new TracerouteMessage(ScmpTypeCode.TYPE_130, -1, -1, path);
     }
 
-    public static TraceroutePacket createTimedOut(long nanoSeconds) {
-      TraceroutePacket r = new TraceroutePacket(null, -1, -1, null);
+    public static TracerouteMessage createRequest(int sequenceNumber, Path path) {
+      return new TracerouteMessage(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
+    }
+
+    public static TracerouteMessage createTimedOut(long nanoSeconds) {
+      TracerouteMessage r = new TracerouteMessage(null, -1, -1, null);
       r.setNanoSeconds(nanoSeconds);
       return r;
     }
 
-    public TraceroutePacket(
+    public TracerouteMessage(
         ScmpTypeCode typeCode,
         int identifier,
         int sequenceNumber,

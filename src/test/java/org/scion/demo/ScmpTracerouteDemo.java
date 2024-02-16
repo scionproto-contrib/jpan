@@ -102,8 +102,8 @@ public class ScmpTracerouteDemo {
     System.out.println("Listening at port " + localPort + " ...");
 
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      Collection<Scmp.TraceroutePacket> results = scmpChannel.sendTracerouteRequest();
-      for (Scmp.TraceroutePacket msg : results) {
+      Collection<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest();
+      for (Scmp.TracerouteMessage msg : results) {
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
         echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();

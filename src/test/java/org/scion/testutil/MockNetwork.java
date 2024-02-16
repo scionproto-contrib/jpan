@@ -316,13 +316,13 @@ class MockBorderRouter implements Runnable {
     logger.info(
         " received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
 
-    if (scmpMsg instanceof Scmp.EchoPacket) {
+    if (scmpMsg instanceof Scmp.EchoMessage) {
       // send back!
       // This is very basic:
       // - we always answer regardless of whether we are actually the destination.
       // - We do not invert path / addresses
       sendScmp(Scmp.ScmpTypeCode.TYPE_129, buffer, srcAddress, incoming);
-    } else if (scmpMsg instanceof Scmp.TraceroutePacket) {
+    } else if (scmpMsg instanceof Scmp.TracerouteMessage) {
       answerTraceRoute(buffer, srcAddress, incoming);
     } else {
       // forward error
