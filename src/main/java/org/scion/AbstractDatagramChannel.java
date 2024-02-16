@@ -43,9 +43,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           Constants.PROPERTY_PATH_EXPIRY_MARGIN,
           Constants.ENV_PATH_EXPIRY_MARGIN,
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
-
-  private Consumer<Scmp.EchoMessage> pingListener;
-  private Consumer<Scmp.TracerouteMessage> traceListener;
   private Consumer<Scmp.Message> errorListener;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
@@ -238,37 +235,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected void checkListeners(Scmp.Message scmpMsg) {
-    if (scmpMsg instanceof Scmp.EchoMessage && !scmpMsg.getTypeCode().isError()) {
-      if (pingListener != null) {
-        pingListener.accept((Scmp.EchoMessage) scmpMsg);
-      }
-    } else if (scmpMsg instanceof Scmp.TracerouteMessage && !scmpMsg.getTypeCode().isError()) {
-      if (traceListener != null) {
-        traceListener.accept((Scmp.TracerouteMessage) scmpMsg);
-      }
-    } else {
-      if (errorListener != null) {
-        errorListener.accept(scmpMsg);
-      }
+    if (errorListener != null && scmpMsg.getTypeCode().isError()) {
+      errorListener.accept(scmpMsg);
     }
   }
 
   protected void sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {
     channel.send(buffer, address);
-  }
-
-  protected synchronized Consumer<Scmp.EchoMessage> setEchoListener(
-      Consumer<Scmp.EchoMessage> listener) {
-    Consumer<Scmp.EchoMessage> old = pingListener;
-    pingListener = listener;
-    return old;
-  }
-
-  protected synchronized Consumer<Scmp.TracerouteMessage> setTracerouteListener(
-      Consumer<Scmp.TracerouteMessage> listener) {
-    Consumer<Scmp.TracerouteMessage> old = traceListener;
-    traceListener = listener;
-    return old;
   }
 
   public synchronized Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {

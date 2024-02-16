@@ -28,6 +28,7 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
 
   private final ByteBuffer bufferReceive;
   private final ByteBuffer bufferSend;
+  private Consumer<Scmp.EchoMessage> echoListener;
 
   protected ScmpDatagramChannel() throws IOException {
     this(null);
@@ -69,11 +70,13 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     Scmp.Message scmpMsg =
         ScmpParser.consume(bufferReceive, Scmp.EchoMessage.createEmpty(receivePath));
     checkListeners(scmpMsg);
+    if (echoListener != null && scmpMsg instanceof Scmp.EchoMessage) {
+      echoListener.accept((Scmp.EchoMessage) scmpMsg);
+    }
     return scmpMsg;
   }
 
-  public synchronized Consumer<Scmp.EchoMessage> setEchoListener(
-      Consumer<Scmp.EchoMessage> listener) {
-    return super.setEchoListener(listener);
+  public synchronized void setEchoListener(Consumer<Scmp.EchoMessage> listener) {
+    echoListener = listener;
   }
 }
