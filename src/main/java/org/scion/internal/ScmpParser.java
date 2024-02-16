@@ -21,7 +21,6 @@ import static org.scion.Scmp.ScmpTypeCode;
 import static org.scion.Scmp.TracerouteMessage;
 
 import java.nio.ByteBuffer;
-import org.scion.Path;
 
 public class ScmpParser {
 
@@ -85,41 +84,6 @@ public class ScmpParser {
    * Reads a SCMP message from the packet. Consumes the byte buffer.
    *
    * @param data packet data
-   * @param path receive path
-   * @return ScmpMessage object
-   */
-  @Deprecated
-  public static Message consume(ByteBuffer data, Path path) {
-    int type = ByteUtil.toUnsigned(data.get());
-    int code = ByteUtil.toUnsigned(data.get());
-    data.getShort(); // checksum
-    // TODO validate checksum
-
-    ScmpType st = ScmpType.parse(type);
-    ScmpTypeCode sc = ScmpTypeCode.parse(type, code);
-    int short1 = ByteUtil.toUnsigned(data.getShort());
-    int short2 = ByteUtil.toUnsigned(data.getShort());
-    switch (st) {
-      case INFO_128:
-      case INFO_129:
-        byte[] scmpData = new byte[data.remaining()];
-        data.get(scmpData);
-        return new EchoMessage(sc, short1, short2, path, scmpData);
-      case INFO_130:
-        return new TracerouteMessage(sc, short1, short2, path);
-      case INFO_131:
-        long isdAs = data.getLong();
-        long ifID = data.getLong();
-        return new TracerouteMessage(sc, short1, short2, isdAs, ifID, path);
-      default:
-        return new Message(sc, short1, short2, path);
-    }
-  }
-
-  /**
-   * Reads a SCMP message from the packet. Consumes the byte buffer.
-   *
-   * @param data packet data
    * @param holder SCMP message holder
    * @return ScmpMessage object
    */
@@ -138,7 +102,10 @@ public class ScmpParser {
       case INFO_128:
       case INFO_129:
         EchoMessage echo = (EchoMessage) holder;
-        // We can simply reuse the existing array. The length of the
+        if (echo.getData() == null) {
+          echo.setData(new byte[data.remaining()]);
+        }
+        // If there is an array we can simply reuse it. The length of the
         // package has already been validated.
         data.get(echo.getData());
         return echo;

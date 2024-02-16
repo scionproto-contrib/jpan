@@ -218,13 +218,11 @@ public class Scmp {
   }
 
   public static class EchoMessage extends Message {
-    private final byte[] data;
+    private byte[] data;
     private long nanoSeconds;
     private boolean timedOut = false;
 
-    /** DO NOT USE! */
-    @Deprecated
-    public EchoMessage(
+    private EchoMessage(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
@@ -242,6 +240,10 @@ public class Scmp {
 
     public byte[] getData() {
       return data;
+    }
+
+    public void setData(byte[] data) {
+      this.data = data;
     }
 
     public void setNanoSeconds(long nanoSeconds) {
@@ -269,8 +271,8 @@ public class Scmp {
     private long nanoSeconds;
     private boolean timedOut = false;
 
-    /** DO NOT USE! */
-    public TracerouteMessage(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    private TracerouteMessage(
+        ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
 
@@ -336,6 +338,19 @@ public class Scmp {
 
     public boolean isTimedOut() {
       return timedOut;
+    }
+  }
+
+  static Scmp.Message createMessage(Scmp.ScmpType type, Path path) {
+    switch (type) {
+      case INFO_128:
+      case INFO_129:
+        return Scmp.EchoMessage.createEmpty(path);
+      case INFO_130:
+      case INFO_131:
+        return Scmp.TracerouteMessage.createEmpty(path);
+      default:
+        return new Scmp.Message(null, -1, -1, path);
     }
   }
 

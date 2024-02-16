@@ -232,21 +232,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return hdrType;
   }
 
-  private Scmp.Message receiveScmp(ByteBuffer buffer, Path path) {
+  private void receiveScmp(ByteBuffer buffer, Path path) {
     Scmp.ScmpType type = ScmpParser.extractType(buffer);
-    switch (type) {
-      case INFO_128:
-      case INFO_129:
-        return checkListeners(ScmpParser.consume(buffer, Scmp.EchoMessage.createEmpty(path)));
-      case INFO_130:
-      case INFO_131:
-        return checkListeners(ScmpParser.consume(buffer, Scmp.TracerouteMessage.createEmpty(path)));
-      default:
-        return checkListeners(ScmpParser.consume(buffer, new Scmp.Message(null, -1, -1, path)));
-    }
+    checkListeners(ScmpParser.consume(buffer, Scmp.createMessage(type, path)));
   }
 
-  protected Scmp.Message checkListeners(Scmp.Message scmpMsg) {
+  protected void checkListeners(Scmp.Message scmpMsg) {
     if (scmpMsg instanceof Scmp.EchoMessage && !scmpMsg.getTypeCode().isError()) {
       if (pingListener != null) {
         pingListener.accept((Scmp.EchoMessage) scmpMsg);
@@ -260,7 +251,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         errorListener.accept(scmpMsg);
       }
     }
-    return scmpMsg;
   }
 
   protected void sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {

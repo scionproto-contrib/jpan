@@ -66,7 +66,8 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
 
     // receive
     ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-    Scmp.Message scmpMsg = ScmpParser.consume(bufferReceive, receivePath);
+    Scmp.Message scmpMsg =
+        ScmpParser.consume(bufferReceive, Scmp.EchoMessage.createEmpty(receivePath));
     checkListeners(scmpMsg);
     return scmpMsg;
   }
