@@ -33,7 +33,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.scion.PackageVisibilityHelper;
 import org.scion.ResponsePath;
+import org.scion.ScionUtil;
 import org.scion.Scmp;
+import org.scion.demo.inspector.HopField;
+import org.scion.demo.inspector.PathHeaderScion;
 import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.demo.inspector.ScmpHeader;
 import org.scion.internal.ScionHeaderParser;
@@ -44,30 +47,21 @@ import org.slf4j.LoggerFactory;
 public class MockNetwork {
 
   public static final String BORDER_ROUTER_HOST = "127.0.0.1";
-  private static final int BORDER_ROUTER_PORT1 = 30555;
-  private static final int BORDER_ROUTER_PORT2 = 30556;
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
+  static final AtomicInteger nForwardTotal = new AtomicInteger();
+  static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
+  static final AtomicInteger dropNextPackets = new AtomicInteger();
+  static final AtomicReference<Scmp.ScmpTypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
+  private static final int BORDER_ROUTER_PORT1 = 30555;
+  private static final int BORDER_ROUTER_PORT2 = 30556;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
-  static final AtomicInteger nForwardTotal = new AtomicInteger();
-  static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   private static MockTopologyServer topoServer;
   private static MockControlServer controlServer;
-  static final AtomicInteger dropNextPackets = new AtomicInteger();
-  static final AtomicReference<Scmp.ScmpTypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
-
-  public enum Mode {
-    /** Start daemon */
-    DAEMON,
-    /** Install bootstrap server with DNS NAPTR record */
-    NAPTR,
-    /** Install bootstrap server */
-    BOOTSTRAP
-  }
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
@@ -190,6 +184,15 @@ public class MockNetwork {
 
   public static MockControlServer getControlServer() {
     return controlServer;
+  }
+
+  public enum Mode {
+    /** Start daemon */
+    DAEMON,
+    /** Install bootstrap server with DNS NAPTR record */
+    NAPTR,
+    /** Install bootstrap server */
+    BOOTSTRAP
   }
 }
 
@@ -319,30 +322,8 @@ class MockBorderRouter implements Runnable {
       // - we always answer regardless of whether we are actually the destination.
       // - We do not invert path / addresses
       sendScmp(Scmp.ScmpTypeCode.TYPE_129, buffer, srcAddress, incoming);
-      //      buffer.rewind();
-      //      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
-      //      ScmpHeader scmpHeader = spi.getScmpHeader();
-      //      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_129);
-      //      ByteBuffer out = ByteBuffer.allocate(100);
-      //      spi.writePacketSCMP(out);
-      //      out.flip();
-      //      incoming.send(out, srcAddress);
-      //      buffer.clear();
     } else if (scmpMsg instanceof Scmp.TracerouteResult) {
-      // send back!
-      // This is very basic:
-      // - we always answer regardless of whether we are actually the destination.
-      // - We do not invert path / addresses
-      sendScmp(Scmp.ScmpTypeCode.TYPE_131, buffer, srcAddress, incoming);
-      //      buffer.rewind();
-      //      ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
-      //      ScmpHeader scmpHeader = spi.getScmpHeader();
-      //      scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_131);
-      //      ByteBuffer out = ByteBuffer.allocate(100);
-      //      spi.writePacketSCMP(out);
-      //      out.flip();
-      //      incoming.send(out, srcAddress);
-      //      buffer.clear();
+      answerTraceRoute(buffer, srcAddress, incoming);
     } else {
       // forward error
       InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
@@ -371,6 +352,33 @@ class MockBorderRouter implements Runnable {
     spi.writePacketSCMP(out);
     out.flip();
     channel.send(out, srcAddress);
+    buffer.clear();
+  }
+
+  private void answerTraceRoute(
+      ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel incoming) throws IOException {
+    // This is very basic:
+    // - we always answer regardless of whether we are actually the destination.
+    buffer.rewind();
+    ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+    spi.reversePath();
+    ScmpHeader scmpHeader = spi.getScmpHeader();
+    scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_131);
+    PathHeaderScion phs = spi.getPathHeaderScion();
+    for (int i = 0; i < phs.getHopCount(); i++) {
+      HopField hf = phs.getHopField(i);
+      // These answers are hardcoded to work specifically with ScmpTest.traceroute()
+      if (hf.hasEgressAlert()) {
+        scmpHeader.setTraceData(ScionUtil.parseIA("1-ff00:0:112"), 42);
+      }
+      if (hf.hasIngressAlert()) {
+        scmpHeader.setTraceData(ScionUtil.parseIA("1-ff00:0:110"), 42);
+      }
+    }
+    ByteBuffer out = ByteBuffer.allocate(100);
+    spi.writePacketSCMP(out);
+    out.flip();
+    incoming.send(out, srcAddress);
     buffer.clear();
   }
 

@@ -116,34 +116,36 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     return (Scmp.EchoResult) scmpMsg;
   }
 
-  void sendTracerouteRequestOld(Path path, int interfaceNumber, PathHeaderParser.Node node)
+  void sendTracerouteRequestOld(RequestPath path, int interfaceNumber, PathHeaderParser.Node node)
       throws IOException {
+    path = ensureUpToDate(path);
     // TracerouteHeader = 24
     int len = 24;
     // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
     //   we should only modify the outgoing packet.
     byte[] raw = path.getRawPath();
     raw[node.posHopFlags] = node.hopFlags;
-    Path actualPath = buildHeader(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+
+    buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
     ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
     bufferSend.flip();
-    sendRaw(bufferSend, actualPath.getFirstHopAddress());
+    sendRaw(bufferSend, path.getFirstHopAddress());
     // Clean up!  // TODO this is really bad!
     raw[node.posHopFlags] = 0;
   }
 
   Scmp.TracerouteResult sendTracerouteRequest(
       Scmp.TracerouteResult request, PathHeaderParser.Node node) throws IOException {
+    Path path = request.getPath();
     // send
     // TracerouteHeader = 24
     int len = 24;
-    Path path = buildHeader(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-    request.setPath(path);
     // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
     //   we should only modify the outgoing packet.
     byte[] raw = path.getRawPath();
     raw[node.posHopFlags] = node.hopFlags;
-    // Path actualPath = buildHeader(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+
+    buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
     int interfaceNumber = request.getSequenceNumber();
     ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
     bufferSend.flip();

@@ -61,6 +61,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return channel.isBlocking();
   }
 
+  public synchronized PathPolicy getPathPolicy() {
+    return this.pathPolicy;
+  }
+
   /**
    * Set the path policy. The default path policy is set in PathPolicy.DEFAULT, which currently
    * means to use the first path returned by the daemon or control service. If the channel is
@@ -76,19 +80,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  public synchronized PathPolicy getPathPolicy() {
-    return this.pathPolicy;
-  }
-
-  public synchronized void setService(ScionService service) {
-    this.service = service;
-  }
-
   public synchronized ScionService getService() {
     if (service == null) {
       service = Scion.defaultService();
     }
     return this.service;
+  }
+
+  public synchronized void setService(ScionService service) {
+    this.service = service;
   }
 
   protected DatagramChannel channel() {
@@ -356,6 +356,23 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected Path buildHeader(
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
+    if (path instanceof RequestPath) {
+      path = ensureUpToDate((RequestPath) path);
+    }
+    buildHeaderNoRefresh(buffer, path, payloadLength, hdrType);
+    return path;
+  }
+
+  /**
+   * @param buffer The output buffer
+   * @param path path
+   * @param payloadLength payload length
+   * @param hdrType Header type e.g. SCMP
+   * @throws IOException in case of IOException.
+   */
+  protected void buildHeaderNoRefresh(
+      ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
+      throws IOException {
     buffer.clear();
     long srcIA;
     byte[] srcAddress;
@@ -376,8 +393,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         channel.connect(connection);
       }
 
-      // check path expiration
-      path = ensureUpToDate((RequestPath) path);
       srcIA = getService().getLocalIsdAs();
       // Get external host address. This must be done *after* refreshing the path!
       InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
@@ -398,18 +413,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     if (hdrType == InternalConstants.HdrTypes.UDP) {
       ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
     }
-
-    return path;
   }
 
-  private Path ensureUpToDate(RequestPath path) throws IOException {
+  protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
     if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
       return path;
     }
     return updatePath(path);
   }
 
-  private Path updatePath(RequestPath path) throws IOException {
+  private RequestPath updatePath(RequestPath path) throws IOException {
     // expired, get new path
     RequestPath newPath = pathPolicy.filter(getService().getPaths(path));
 

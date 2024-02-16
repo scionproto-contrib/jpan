@@ -165,7 +165,7 @@ public class SCMPTest {
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
-      Collection<Scmp.TracerouteResult> results = channel.sendTracerouteRequestOld(); // TODO
+      Collection<Scmp.TracerouteResult> results = channel.sendTracerouteRequest();
       channel.setTimeOut(Integer.MAX_VALUE); // TODO ??
 
       int n = 0;
@@ -174,15 +174,13 @@ public class SCMPTest {
         assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getTypeCode());
         assertTrue(result.getNanoSeconds() > 0);
         assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
-//        assertTrue(result.getIsdAs() != 0);
-//        assertTrue(result.getIfID() != 0);
         if (n == 1) {
-          assertEquals(ScionUtil.parseIA("1-ff00:0:110"), result.getIsdAs());
-          assertEquals(1, result.getIfID());
+          assertEquals(ScionUtil.parseIA("1-ff00:0:112"), result.getIsdAs());
+          assertEquals(42, result.getIfID());
         }
         if (n == 2) {
-          assertEquals(ScionUtil.parseIA("1-ff00:0:112"), result.getIsdAs());
-          assertEquals(2, result.getIfID());
+          assertEquals(ScionUtil.parseIA("1-ff00:0:110"), result.getIsdAs());
+          assertEquals(42, result.getIfID());
         }
       }
 

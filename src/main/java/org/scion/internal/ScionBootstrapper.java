@@ -51,13 +51,8 @@ public class ScionBootstrapper {
   private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
   private static final String STR_X_SCION = "x-sciondiscovery";
   private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
-  private static final String baseURL = "";
-  private static final String topologyEndpoint = "topology";
-  private static final String signedTopologyEndpoint = "topology.signed";
-  private static final String trcsEndpoint = "trcs";
-  private static final String trcBlobEndpoint = "trcs/isd%d-b%d-s%d/blob";
-  private static final String topologyJSONFileName = "topology.json";
-  private static final String signedTopologyFileName = "topology.signed";
+  private static final String BASE_URL = "";
+  private static final String TOPOLOGY_ENDPOINT = "topology";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
   private final String topologyResource;
   private final List<ServiceNode> controlServices = new ArrayList<>();
@@ -181,7 +176,8 @@ public class ScionBootstrapper {
     try {
       parseTopologyFile(getTopologyFile());
     } catch (IOException e) {
-      throw new ScionRuntimeException("Error while getting topology file: " + e.getMessage(), e);
+      throw new ScionRuntimeException(
+          "Error while getting topology file from " + topologyResource + ": " + e.getMessage(), e);
     }
     if (controlServices.isEmpty()) {
       throw new ScionRuntimeException(
@@ -255,7 +251,7 @@ public class ScionBootstrapper {
     controlServices.clear();
     discoveryServices.clear();
     // TODO https????
-    URL url = new URL("http://" + topologyResource + "/" + baseURL + topologyEndpoint);
+    URL url = new URL("http://" + topologyResource + "/" + BASE_URL + TOPOLOGY_ENDPOINT);
     return fetchTopologyFile(url);
   }
 
