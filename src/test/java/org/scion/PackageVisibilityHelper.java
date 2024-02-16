@@ -44,6 +44,10 @@ public class PackageVisibilityHelper {
     return ScionHeaderParser.extractNextHeader(packet);
   }
 
+  public static Scmp.Message createMessage(Scmp.ScmpType type, Path path) {
+    return Scmp.createMessage(type, path);
+  }
+
   public static InetSocketAddress getDstAddress(ByteBuffer packet) throws UnknownHostException {
     return ScionHeaderParser.extractDestinationSocketAddress(packet);
   }

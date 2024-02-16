@@ -8,6 +8,7 @@ We should look at other custom Java protocol implementations, e.g. for QUIC:
 ## Daemon
 The implementation can use the daemon. Alternatively, since daemon installation may
 be cumbersome on platforms such as Android, we can directly connect to a control service.
+
 An alternative for mobile devices could be a non-local daemon that is hosted by the mobile provider.
 This may work but may open opportunities for side-channel attacks on the daemon.
 Also, when roaming, the provider may not actually support SCION. In this case the
@@ -27,7 +28,7 @@ at least a topology server + control server.
 - Use Junit 5.
 - Use Google style guide for code
 - We use custom exceptions. However, to make the API as compatible with standard networking API
-  as possible, our Exceptions extend either IOException or RuntimeExcdeption.
+  as possible, our Exceptions extends either IOException or RuntimeException.
 
 ## Paths
 

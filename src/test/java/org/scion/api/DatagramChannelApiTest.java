@@ -20,6 +20,7 @@ import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.StandardSocketOptions;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -501,7 +502,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void geCurrentPath() {
+  void getCurrentPath() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (DatagramChannel channel = DatagramChannel.open()) {
@@ -518,6 +519,27 @@ class DatagramChannelApiTest {
       // TODO assertNull(channel.getCurrentPath());
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  void setOption() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertFalse(channel.getOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE));
+      DatagramChannel dc = channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      assertEquals(channel, dc);
+
+      int margin = channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN);
+      channel.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, margin + 1000);
+      assertEquals(margin + 1000, channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
+
+      int bufSizeSend = channel.getOption(StandardSocketOptions.SO_SNDBUF);
+      channel.setOption(StandardSocketOptions.SO_SNDBUF, bufSizeSend + 1000);
+      assertEquals(bufSizeSend + 1000, channel.getOption(StandardSocketOptions.SO_SNDBUF));
+
+      int bufSizeReceive = channel.getOption(StandardSocketOptions.SO_RCVBUF);
+      channel.setOption(StandardSocketOptions.SO_RCVBUF, bufSizeReceive + 1000);
+      assertEquals(bufSizeReceive + 1000, channel.getOption(StandardSocketOptions.SO_RCVBUF));
     }
   }
 }

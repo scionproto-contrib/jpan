@@ -16,19 +16,20 @@ package org.scion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketOption;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
+import org.scion.internal.InternalConstants;
 import org.scion.internal.PathHeaderParser;
+import org.scion.internal.ScmpParser;
 
-public class ScmpChannel implements AutoCloseable {
-  private final DatagramChannel channel;
-  private final RequestPath path;
-  private final AtomicReference<Scmp.ScmpMessage> error = new AtomicReference<>();
+public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements AutoCloseable {
+  private final ByteBuffer bufferReceive;
+  private final ByteBuffer bufferSend;
+  private final AtomicReference<Scmp.Message> error = new AtomicReference<>();
   private int timeOutMs = 1000;
 
   ScmpChannel(RequestPath path) throws IOException {
@@ -36,18 +37,71 @@ public class ScmpChannel implements AutoCloseable {
   }
 
   ScmpChannel(RequestPath path, int port) throws IOException {
-    this.path = path;
+    super(Scion.defaultService());
+    configureBlocking(true);
+    this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
+    this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
+
+    setPath(path);
     InetSocketAddress local = new InetSocketAddress("0.0.0.0", port);
-    ScionService service = Scion.defaultService();
-    this.channel = service.openChannel().bind(local);
-    channel.configureBlocking(true);
-    channel.setScmpErrorListener(this::errorListener);
+    this.bind(local);
   }
 
-  private void errorListener(Scmp.ScmpMessage msg) {
-    error.set(msg);
-    Thread.currentThread().interrupt();
-    throw new RuntimeException();
+  private synchronized Scmp.EchoMessage sendEchoRequest(Scmp.EchoMessage request)
+      throws IOException {
+    // send
+    // EchoHeader = 8 + data
+    int len = 8 + request.getData().length;
+    Path path = request.getPath();
+    buildHeaderNoRefresh(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
+    ScmpParser.buildScmpPing(
+        bufferSend, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
+    bufferSend.flip();
+    sendRaw(bufferSend, path.getFirstHopAddress());
+
+    // receive
+    Scmp.Message scmpMsg = null;
+    ResponsePath receivePath = null;
+    while (scmpMsg == null) {
+      receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
+      scmpMsg = ScmpParser.consume(bufferReceive, request);
+    }
+    scmpMsg.setPath(receivePath);
+    checkListeners(scmpMsg);
+    return (Scmp.EchoMessage) scmpMsg;
+  }
+
+  private Scmp.TracerouteMessage sendTracerouteRequest(
+      Scmp.TracerouteMessage request, PathHeaderParser.Node node) throws IOException {
+    Path path = request.getPath();
+    // send
+    // TracerouteHeader = 24
+    int len = 24;
+    // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
+    //   we should only modify the outgoing packet.
+    byte[] raw = path.getRawPath();
+    byte backup = raw[node.posHopFlags];
+    raw[node.posHopFlags] = node.hopFlags;
+
+    buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+    int interfaceNumber = request.getSequenceNumber();
+    ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
+    bufferSend.flip();
+    sendRaw(bufferSend, path.getFirstHopAddress());
+    // Clean up!  // TODO this is really bad!
+    raw[node.posHopFlags] = backup;
+
+    // receive
+    Scmp.Message scmpMsg = null;
+    ResponsePath receivePath = null;
+    while (scmpMsg == null) {
+      receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
+      scmpMsg = ScmpParser.consume(bufferReceive, request);
+    }
+
+    scmpMsg.setPath(receivePath);
+    checkListeners(scmpMsg);
+    return (Scmp.TracerouteMessage) scmpMsg;
   }
 
   /**
@@ -60,15 +114,18 @@ public class ScmpChannel implements AutoCloseable {
    *     and the time is equal to the time-out duration.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Scmp.Result<Scmp.ScmpEcho> sendEchoRequest(int sequenceNumber, ByteBuffer data)
-      throws IOException {
-    if (!channel.isConnected()) {
-      channel.connect(path);
+  public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
+    RequestPath path = (RequestPath) getCurrentPath();
+    if (!isConnected()) {
+      connect(path);
     }
-    AtomicReference<Scmp.Result<Scmp.ScmpEcho>> result = new AtomicReference<>();
+    // Hack: we do not modify the AtomicReference.It simply serves as a memory barrier
+    // to facilitate concurrent access to the result.
+    AtomicReference<Scmp.EchoMessage> result = new AtomicReference<>();
     AtomicReference<IOException> exception = new AtomicReference<>();
 
-    Thread t = new Thread(() -> sendEchoRequest(sequenceNumber, data, result, exception));
+    result.set(Scmp.EchoMessage.createRequest(sequenceNumber, path, data));
+    Thread t = new Thread(() -> sendEchoRequest(result, exception));
     t.start();
     try {
       t.join(timeOutMs);
@@ -87,23 +144,21 @@ public class ScmpChannel implements AutoCloseable {
     if (t.isAlive()) {
       // timeout
       t.interrupt();
-      return new Scmp.Result<>(null, timeOutMs * 1_000_000L);
+      Scmp.EchoMessage echo = result.get();
+      echo.setTimedOut(timeOutMs * 1_000_000L);
+      return echo;
     }
     return result.get();
   }
 
   private void sendEchoRequest(
-      int sequenceNumber,
-      ByteBuffer data,
-      AtomicReference<Scmp.Result<Scmp.ScmpEcho>> result,
-      AtomicReference<IOException> exception) {
+      AtomicReference<Scmp.EchoMessage> result, AtomicReference<IOException> exception) {
     try {
       long sendNanos = System.nanoTime();
-      channel.sendEchoRequest(path, sequenceNumber, data);
-      Scmp.ScmpMessage msg = channel.receiveScmp();
+      Scmp.EchoMessage msg = sendEchoRequest(result.get());
       long nanos = System.nanoTime() - sendNanos;
-      if (msg instanceof Scmp.ScmpEcho) {
-        result.set(new Scmp.Result<>((Scmp.ScmpEcho) msg, nanos));
+      if (msg.getTypeCode() == Scmp.ScmpTypeCode.TYPE_129) {
+        msg.setNanoSeconds(nanos);
       } else {
         // error
         throw new IOException("SCMP error: " + msg.getTypeCode().getText());
@@ -122,30 +177,29 @@ public class ScmpChannel implements AutoCloseable {
    *     If a request times out, the traceroute is aborted.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Collection<Scmp.Result<Scmp.ScmpTraceroute>> sendTracerouteRequest() throws IOException {
-    ConcurrentLinkedQueue<Scmp.Result<Scmp.ScmpTraceroute>> results = new ConcurrentLinkedQueue<>();
-    try {
-      List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
-      for (int i = 0; i < nodes.size(); i++) {
-        if (!sendConcurrentTraceRequest(i, nodes.get(i), results)) {
-          // timeout: abort
-          break;
-        }
+  public Collection<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
+    ConcurrentLinkedQueue<Scmp.TracerouteMessage> results = new ConcurrentLinkedQueue<>();
+    Path path = getCurrentPath();
+    List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
+    for (int i = 0; i < nodes.size(); i++) {
+      if (!sendConcurrentTraceRequest(i, path, nodes.get(i), results)) {
+        // timeout: abort
+        break;
       }
-    } finally {
-      channel.setTracerouteListener(null);
     }
     return results;
   }
 
   private boolean sendConcurrentTraceRequest(
       int sequenceNumber,
+      Path path,
       PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.Result<Scmp.ScmpTraceroute>> results)
+      ConcurrentLinkedQueue<Scmp.TracerouteMessage> results)
       throws IOException {
     AtomicReference<IOException> exception = new AtomicReference<>();
 
-    Thread t = new Thread(() -> sendTracerouteRequest(sequenceNumber, node, results, exception));
+    Thread t =
+        new Thread(() -> sendTracerouteRequest(path, sequenceNumber, node, results, exception));
     t.start();
     try {
       t.join(timeOutMs);
@@ -164,48 +218,36 @@ public class ScmpChannel implements AutoCloseable {
     if (t.isAlive()) {
       // timeout
       t.interrupt();
-      results.add(new Scmp.Result<>(null, timeOutMs * 1_000_000L));
+      results.add(Scmp.TracerouteMessage.createTimedOut(timeOutMs * 1_000_000L));
       return false;
     }
     return true;
   }
 
   private void sendTracerouteRequest(
+      Path path,
       int sequenceNumber,
       PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.Result<Scmp.ScmpTraceroute>> results,
+      ConcurrentLinkedQueue<Scmp.TracerouteMessage> results,
       AtomicReference<IOException> exception) {
     try {
+      Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.createRequest(sequenceNumber, path);
       long sendNanos = System.nanoTime();
-      channel.sendTracerouteRequest(path, sequenceNumber, node);
-      Scmp.ScmpMessage msg = channel.receiveScmp();
+      trace = sendTracerouteRequest(trace, node);
       long nanos = System.nanoTime() - sendNanos;
-      if (msg instanceof Scmp.ScmpTraceroute) {
-        results.add(new Scmp.Result<>((Scmp.ScmpTraceroute) msg, nanos));
+      if (trace.getTypeCode() == Scmp.ScmpTypeCode.TYPE_131) {
+        trace.setNanoSeconds(nanos);
+        results.add(trace);
       } else {
         // error
-        throw new IOException("SCMP error: " + msg.getTypeCode().getText());
+        throw new IOException("SCMP error: " + trace.getTypeCode().getText());
       }
     } catch (IOException e) {
       exception.set(e);
     }
   }
 
-  public Consumer<Scmp.ScmpMessage> setScmpErrorListener(Consumer<Scmp.ScmpMessage> listener) {
-    return channel.setScmpErrorListener(listener);
-  }
-
-  public synchronized <T> ScmpChannel setOption(SocketOption<T> option, T t) throws IOException {
-    channel.setOption(option, t);
-    return this;
-  }
-
   public void setTimeOut(int milliSeconds) {
     this.timeOutMs = milliSeconds;
-  }
-
-  @Override
-  public void close() throws IOException {
-    channel.close();
   }
 }

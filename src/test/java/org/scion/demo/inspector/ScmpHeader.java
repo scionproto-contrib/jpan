@@ -125,4 +125,9 @@ public class ScmpHeader {
   public byte[] getUserData() {
     return echoUserData;
   }
+
+  public void setTraceData(long isdAs, int ifID) {
+    this.traceIsdAs = isdAs;
+    this.traceIfID = ifID;
+  }
 }

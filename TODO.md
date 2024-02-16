@@ -94,6 +94,7 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
+- Consider sublcassing DatagramChannel directly. 
 - Consider SHIM support. SHIM is a compatibility component that supports
   old border-router software (requiring a fixed port on the client, unless
   the client is listening on this very port).  When SHIM is used, we cannot 
