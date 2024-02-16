@@ -19,9 +19,9 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.internal.InternalConstants;
-import org.scion.internal.PathHeaderParser;
 import org.scion.internal.ScmpParser;
 
+@Deprecated
 public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramChannel>
     implements Closeable {
 
@@ -68,61 +68,5 @@ public class ScmpDatagramChannel extends AbstractDatagramChannel<ScmpDatagramCha
     Scmp.Message scmpMsg = ScmpParser.consume(bufferReceive, receivePath);
     checkListeners(scmpMsg);
     return scmpMsg;
-  }
-
-  synchronized Scmp.EchoResult sendEchoRequest(Scmp.EchoResult request) throws IOException {
-    // send
-    // EchoHeader = 8 + data
-    int len = 8 + request.getData().length;
-    Path path = buildHeader(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-    request.setPath(path);
-    ScmpParser.buildScmpPing(
-        bufferSend, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
-    bufferSend.flip();
-    sendRaw(bufferSend, path.getFirstHopAddress());
-
-    // receive
-    Scmp.Message scmpMsg = null;
-    ResponsePath receivePath = null;
-    while (scmpMsg == null) {
-      receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-      scmpMsg = ScmpParser.consume(bufferReceive, request);
-    }
-    scmpMsg.setPath(receivePath);
-    checkListeners(scmpMsg);
-    return (Scmp.EchoResult) scmpMsg;
-  }
-
-  Scmp.TracerouteResult sendTracerouteRequest(
-      Scmp.TracerouteResult request, PathHeaderParser.Node node) throws IOException {
-    Path path = request.getPath();
-    // send
-    // TracerouteHeader = 24
-    int len = 24;
-    // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
-    //   we should only modify the outgoing packet.
-    byte[] raw = path.getRawPath();
-    byte backup = raw[node.posHopFlags];
-    raw[node.posHopFlags] = node.hopFlags;
-
-    buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
-    int interfaceNumber = request.getSequenceNumber();
-    ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
-    bufferSend.flip();
-    sendRaw(bufferSend, path.getFirstHopAddress());
-    // Clean up!  // TODO this is really bad!
-    raw[node.posHopFlags] = backup;
-
-    // receive
-    Scmp.Message scmpMsg = null;
-    ResponsePath receivePath = null;
-    while (scmpMsg == null) {
-      receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-      scmpMsg = ScmpParser.consume(bufferReceive, request);
-    }
-
-    scmpMsg.setPath(receivePath);
-    checkListeners(scmpMsg);
-    return (Scmp.TracerouteResult) scmpMsg;
   }
 }

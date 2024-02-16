@@ -179,6 +179,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return path;
   }
 
+  protected void setPath(RequestPath path) {
+    this.path = path;
+  }
+
   protected ResponsePath receiveFromChannel(
       ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
     while (true) {
