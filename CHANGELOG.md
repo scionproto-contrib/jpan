@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BREAKING CHANGE: Changed maven artifactId to "client"
   [#9](https://github.com/tzaeschke/phtree-cpp/pull/9)
 - BREAKING CHANGE: SCMP refactoring, renamed several SCMP related classes.
-  [#14](https://github.com/tzaeschke/phtree-cpp/pull/14)
+  [#14](https://github.com/tzaeschke/phtree-cpp/pull/14), 
+  [#15](https://github.com/tzaeschke/phtree-cpp/pull/15)
 
 ### Fixed
 - Fixed SCMP timeout and error handling (IOExceptions + SCMP errors).
