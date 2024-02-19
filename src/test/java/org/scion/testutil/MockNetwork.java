@@ -313,8 +313,8 @@ class MockBorderRouter implements Runnable {
     ResponsePath path =
         PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
     Scmp.ScmpType type = ScmpParser.extractType(buffer);
-    Scmp.Message scmpMsg =
-        ScmpParser.consume(buffer, PackageVisibilityHelper.createMessage(type, path));
+    Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
+    ScmpParser.consume(buffer, scmpMsg);
     logger.info(
         " received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
 

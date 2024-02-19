@@ -105,6 +105,7 @@ public class SCMPTest {
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
       assertArrayEquals(data, result.getData());
+      assertFalse(result.isTimedOut());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -174,6 +175,7 @@ public class SCMPTest {
         assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getTypeCode());
         assertTrue(result.getNanoSeconds() > 0);
         assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+        assertFalse(result.isTimedOut());
         if (n == 1) {
           assertEquals(ScionUtil.parseIA("1-ff00:0:112"), result.getIsdAs());
           assertEquals(42, result.getIfID());
@@ -201,7 +203,8 @@ public class SCMPTest {
 
       assertEquals(1, results.size());
       for (Scmp.TracerouteMessage result : results) {
-        assertNull(result.getTypeCode());
+        assertTrue(result.isTimedOut());
+        assertEquals(Scmp.ScmpTypeCode.TYPE_130, result.getTypeCode());
         assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
       }
     } finally {

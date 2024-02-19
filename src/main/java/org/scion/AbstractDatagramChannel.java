@@ -231,7 +231,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   private void receiveScmp(ByteBuffer buffer, Path path) {
     Scmp.ScmpType type = ScmpParser.extractType(buffer);
-    checkListeners(ScmpParser.consume(buffer, Scmp.createMessage(type, path)));
+    Scmp.Message msg = Scmp.createMessage(type, path);
+    ScmpParser.consume(buffer, msg);
+    checkListeners(msg);
   }
 
   protected void checkListeners(Scmp.Message scmpMsg) {
