@@ -17,9 +17,7 @@ package org.scion.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import org.scion.*;
 import org.scion.Scmp;
 import org.scion.testutil.MockDNS;
@@ -27,12 +25,7 @@ import org.scion.testutil.MockDNS;
 public class ScmpEchoDemo {
 
   private static final boolean PRINT = true;
-  private static final int PORT = 12345;
-  private final AtomicLong nowNanos = new AtomicLong();
-  private final ByteBuffer sendBuffer = ByteBuffer.allocateDirect(8);
   private final int localPort;
-  private ScmpDatagramChannel channel;
-  private Path path;
 
   private enum Network {
     MOCK_TOPOLOGY, // SCION Java JUnit mock network
@@ -49,7 +42,7 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.PRODUCTION;
+  private static final Network network = Network.MINIMAL_PROTO;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     switch (network) {
@@ -58,7 +51,7 @@ public class ScmpEchoDemo {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.doClientStuff(DemoConstants.ia110);
+          demo.runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
         }
@@ -67,7 +60,7 @@ public class ScmpEchoDemo {
           DemoTopology.configureTiny110_112();
           MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.doClientStuff(DemoConstants.ia110);
+          demo.runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
         }
@@ -76,8 +69,8 @@ public class ScmpEchoDemo {
           Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_1111/topology.json");
           // Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.doClientStuff(DemoConstants.ia211);
-          // demo.runDemo(DemoConstants.ia211);
+          // demo.doClientStuff(DemoConstants.ia211);
+          demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
@@ -95,27 +88,6 @@ public class ScmpEchoDemo {
     }
   }
 
-  private void echoListener(Scmp.EchoMessage msg) {
-    String echoMsgStr = msg.getTypeCode().getText();
-    echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
-    echoMsgStr += " time=" + getPassedMillies() + "ms";
-    println("Received: " + echoMsgStr);
-    send();
-  }
-
-  private void errorListener(Scmp.Message msg) {
-    Scmp.ScmpTypeCode code = msg.getTypeCode();
-    String millies = getPassedMillies();
-    println("SCMP error (after " + millies + "ms): " + code.getText() + " (" + code + ")");
-    System.exit(1);
-  }
-
-  private String getPassedMillies() {
-    long nanos = Instant.now().getNano() - nowNanos.get();
-    return String.format("%.4f", nanos / (double) 1_000_000);
-  }
-
-  // TODO This method uses the new SCMP API but adds 4-5ms per ping.... ?!?!?!
   private void runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // dummy address
@@ -124,11 +96,11 @@ public class ScmpEchoDemo {
     List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
     RequestPath path = paths.get(0);
 
-    System.out.println("Listening at port " + localPort + " ...");
+    println("Listening at port " + localPort + " ...");
 
     ByteBuffer data = ByteBuffer.allocate(0);
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 100; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(i, data);
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getTypeCode().getText();
@@ -141,54 +113,6 @@ public class ScmpEchoDemo {
           throw new RuntimeException(e);
         }
       }
-    }
-  }
-
-  private void doClientStuff(long destinationIA) throws IOException {
-    InetSocketAddress local = new InetSocketAddress("0.0.0.0", localPort);
-    ScionService service = Scion.defaultService();
-    try (ScmpDatagramChannel channel = ScmpDatagramChannel.open(service).bind(local)) {
-      this.channel = channel;
-
-      InetSocketAddress destinationAddress =
-          new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), PORT);
-
-      channel.setScmpErrorListener(this::errorListener);
-      channel.setEchoListener(this::echoListener);
-
-      List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
-      path = paths.get(0);
-
-      String fromStr = ScionUtil.toStringIA(service.getLocalIsdAs());
-      String toStr = ScionUtil.toStringIA(destinationIA) + " " + destinationAddress;
-      println("Sending ECHO request from " + fromStr + " to " + toStr + " ...");
-
-      send();
-
-      println("Listening at " + channel.getLocalAddress() + " ...");
-      channel.receive();
-
-      channel.disconnect();
-    }
-  }
-
-  private void send() {
-    sendBuffer.clear();
-    sendBuffer.putLong(localPort);
-    sendBuffer.flip();
-    nowNanos.set(Instant.now().getNano());
-    try {
-      channel.sendEchoRequest(path, 0, sendBuffer);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    // wait
-    try {
-      Thread.sleep(1000);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
     }
   }
 
