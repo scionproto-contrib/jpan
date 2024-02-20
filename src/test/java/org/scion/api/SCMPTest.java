@@ -132,11 +132,13 @@ public class SCMPTest {
       Scmp.EchoMessage result1 = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
       assertTrue(result1.isTimedOut());
       assertEquals(1_000 * 1_000_000, result1.getNanoSeconds());
+      assertEquals(42, result1.getSequenceNumber());
 
       // try again
-      Scmp.EchoMessage result2 = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
-      assertTrue(result2.isTimedOut());
+      Scmp.EchoMessage result2 = channel.sendEchoRequest(43, ByteBuffer.allocate(0));
+      assertFalse(result2.isTimedOut());
       assertEquals(1_000 * 1_000_000, result2.getNanoSeconds());
+      assertEquals(43, result2.getSequenceNumber());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -213,14 +215,21 @@ public class SCMPTest {
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.dropNextPackets(2);
-      Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest();
-
-      assertEquals(1, results.size());
-      for (Scmp.TracerouteMessage result : results) {
+      MockNetwork.dropNextPackets(1);
+      Collection<Scmp.TracerouteMessage> results1 = channel.sendTracerouteRequest();
+      assertEquals(1, results1.size());
+      for (Scmp.TracerouteMessage result : results1) {
         assertTrue(result.isTimedOut());
         assertEquals(Scmp.ScmpTypeCode.TYPE_130, result.getTypeCode());
         assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
+      }
+
+      // retry
+      Collection<Scmp.TracerouteMessage> results2 = channel.sendTracerouteRequest();
+      assertEquals(2, results2.size());
+      for (Scmp.TracerouteMessage result : results2) {
+        assertFalse(result.isTimedOut());
+        assertEquals(Scmp.ScmpTypeCode.TYPE_130, result.getTypeCode());
       }
     } finally {
       MockNetwork.stopTiny();
