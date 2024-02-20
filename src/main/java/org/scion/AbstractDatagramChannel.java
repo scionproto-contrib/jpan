@@ -269,6 +269,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   public synchronized boolean isConnected() {
+    if (!channel.isOpen() || !channel.isConnected()) {
+      // This may happen when the channel gets disconnected due to being interrupted.
+      isConnected = false;
+    }
     return isConnected;
   }
 
@@ -348,7 +352,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     } else {
       // For sending request path we need to have a valid local external address.
       // For a valid local external address we need to be connected.
-      if (!isConnected) {
+      if (!isConnected()) {
         isConnected = true;
         connection = path.getFirstHopAddress();
         channel.connect(connection);

@@ -69,7 +69,6 @@ public class ScmpEchoDemo {
           Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_1111/topology.json");
           // Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          // demo.doClientStuff(DemoConstants.ia211);
           demo.runDemo(DemoConstants.ia211);
           break;
         }
@@ -79,8 +78,8 @@ public class ScmpEchoDemo {
           // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
-          // demo.doClientStuff(DemoConstants.iaOVGU);
           demo.runDemo(DemoConstants.iaOVGU);
+          // demo.runDemo(DemoConstants.iaETH);
           // TODO FIX, this doesn't work?!?!?!
           demo.runDemo(DemoConstants.iaAnapayaHK);
           break;
@@ -93,6 +92,9 @@ public class ScmpEchoDemo {
     // dummy address
     InetSocketAddress destinationAddress =
         new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
+    //    InetSocketAddress destinationAddress =
+    //            new InetSocketAddress(Inet4Address.getByAddress(new byte[]
+    // {129-256,132-256,230-256,98}), 30041);
     List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
     RequestPath path = paths.get(0);
 

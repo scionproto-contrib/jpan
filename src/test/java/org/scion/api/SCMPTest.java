@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
@@ -94,8 +95,17 @@ public class SCMPTest {
 
   @Test
   void echo() throws IOException {
+    testEcho(this::getPathTo112);
+  }
+
+  @Test
+  void echo_localAS() throws IOException {
+    testEcho(this::getPathToLocalAS);
+  }
+
+  private void testEcho(Supplier<RequestPath> path) throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
+    try (ScmpChannel channel = Scmp.createChannel(path.get())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
@@ -119,9 +129,14 @@ public class SCMPTest {
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(1_000);
       MockNetwork.dropNextPackets(1);
-      Scmp.EchoMessage result = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
-      assertTrue(result.isTimedOut());
-      assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
+      Scmp.EchoMessage result1 = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
+      assertTrue(result1.isTimedOut());
+      assertEquals(1_000 * 1_000_000, result1.getNanoSeconds());
+
+      // try again
+      Scmp.EchoMessage result2 = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
+      assertTrue(result2.isTimedOut());
+      assertEquals(1_000 * 1_000_000, result2.getNanoSeconds());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -246,6 +261,13 @@ public class SCMPTest {
   private RequestPath getPathTo112() {
     ScionService service = Scion.defaultService();
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
+    return paths.get(0);
+  }
+
+  private RequestPath getPathToLocalAS() {
+    ScionService service = Scion.defaultService();
+    long dstIA = service.getLocalIsdAs();
     List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
     return paths.get(0);
   }
