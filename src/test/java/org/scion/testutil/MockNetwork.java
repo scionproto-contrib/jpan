@@ -252,12 +252,14 @@ class MockBorderRouter implements Runnable {
 
             if (MockNetwork.dropNextPackets.get() > 0) {
               MockNetwork.dropNextPackets.decrementAndGet();
+              iter.remove();
               continue;
             }
 
             if (MockNetwork.scmpErrorOnNextPacket.get() != null) {
               sendScmp(
                   MockNetwork.scmpErrorOnNextPacket.getAndSet(null), buffer, srcAddress, incoming);
+              iter.remove();
               continue;
             }
 

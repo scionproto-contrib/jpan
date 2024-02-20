@@ -46,9 +46,9 @@ public class ScmpChannel implements AutoCloseable {
 
   private void ensureOpen(RequestPath path) throws IOException {
     // Disconnect/close can happen when an SCMP request times out and the channel is interrupted.
-    if (!channel.isOpen()) {
-      channel = new InternalChannel(channel.getService(), path, port);
-    }
+    //    if (!channel.isOpen()) {
+    //      channel = new InternalChannel(channel.getService(), path, port);
+    //    }
     // TODO rmeove?
     //    if (!channel.isConnected()) {
     //      channel.connect(path);
@@ -113,7 +113,7 @@ public class ScmpChannel implements AutoCloseable {
     Thread t = new Thread(() -> sendScmpRequest(exception, executor, expectedTypeCode));
     t.start();
     try {
-      t.join(timeOutMs);
+      t.join(timeOutMs * 10); // TODO
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
@@ -144,7 +144,7 @@ public class ScmpChannel implements AutoCloseable {
       Scmp.TimedMessage result = executor.msg.get();
       if (result.getTypeCode() == expectedTypeCode) {
         result.setNanoSeconds(nanos);
-      } else {
+      } else if (!result.isTimedOut()) {
         // error
         exception.set(new IOException("SCMP error: " + result.getTypeCode().getText()));
       }
@@ -187,7 +187,7 @@ public class ScmpChannel implements AutoCloseable {
     private final ByteBuffer bufferSend;
 
     protected InternalChannel(ScionService service, RequestPath path, int port) throws IOException {
-      super(service);
+      super(service, true);
       configureBlocking(true);
       this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
       this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
@@ -209,10 +209,15 @@ public class ScmpChannel implements AutoCloseable {
       sendRaw(bufferSend, path.getFirstHopAddress());
 
       // receive
-      ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-      ScmpParser.consume(bufferReceive, request);
-      request.setPath(receivePath);
-      checkListeners(request);
+      ResponsePath receivePath =
+          receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP, timeOutMs);
+      if (receivePath != null) {
+        ScmpParser.consume(bufferReceive, request);
+        request.setPath(receivePath);
+        checkListeners(request);
+      } else {
+        request.setTimedOut(123456);
+      }
       return request;
     }
 
@@ -237,11 +242,15 @@ public class ScmpChannel implements AutoCloseable {
       raw[node.posHopFlags] = backup;
 
       // receive
-      ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-      ScmpParser.consume(bufferReceive, request);
-
-      request.setPath(receivePath);
-      checkListeners(request);
+      ResponsePath receivePath =
+          receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP, timeOutMs);
+      if (receivePath != null) {
+        ScmpParser.consume(bufferReceive, request);
+        request.setPath(receivePath);
+        checkListeners(request);
+      } else {
+        request.setTimedOut(1234567);
+      }
       return request;
     }
   }

@@ -22,7 +22,10 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.function.Consumer;
 import org.scion.internal.ExtensionHeader;
 import org.scion.internal.InternalConstants;
@@ -44,14 +47,28 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           Constants.ENV_PATH_EXPIRY_MARGIN,
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
   private Consumer<Scmp.Message> errorListener;
+  private final Selector selector;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
+    this(service, false);
+  }
+
+  protected AbstractDatagramChannel(ScionService service, boolean withSelector) throws IOException {
     this.channel = java.nio.channels.DatagramChannel.open();
     this.service = service;
+    if (withSelector) {
+      this.selector = Selector.open();
+      channel.configureBlocking(false);
+      channel.register(selector, SelectionKey.OP_READ);
+    } else {
+      selector = null;
+    }
   }
 
   protected synchronized void configureBlocking(boolean block) throws IOException {
-    channel.configureBlocking(block);
+    if (selector == null) {
+      channel.configureBlocking(block);
+    }
   }
 
   protected synchronized boolean isBlocking() {
@@ -121,6 +138,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     isConnected = false;
     connection = null;
     path = null;
+    if (selector != null) {
+      selector.close();
+    }
   }
 
   /**
@@ -185,6 +205,55 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     while (true) {
       buffer.clear();
       InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
+      if (srcAddress == null) {
+        // this indicates nothing is available - non-blocking mode
+        return null;
+      }
+      buffer.flip();
+
+      String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null) {
+        if (cfgReportFailedValidation) {
+          throw new ScionException(validationResult);
+        }
+        continue;
+      }
+
+      InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+
+      // From here on we use linear reading using the buffer's position() mechanism
+      buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+      // Check for extension headers.
+      // This should be mostly unnecessary, however we sometimes saw SCMP error headers wrapped
+      // in extensions headers.
+      hdrType = receiveExtensionHeader(buffer, hdrType);
+
+      if (hdrType == expectedHdrType) {
+        return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+      }
+      receiveScmp(buffer, path);
+    }
+  }
+
+  protected ResponsePath receiveFromChannel(
+      ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType, int timeoutMs)
+      throws IOException {
+    while (true) {
+      buffer.clear();
+      if (selector.select(timeoutMs) == 0) {
+        // This must be an interrupt
+        //    selector.close();
+        return null; // TODO throw?
+      }
+
+      System.out.println("RFC: do it");
+      Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+      /// if (key.isReadable()) // TODO?
+      SelectionKey key = iter.next();
+      iter.remove();
+      DatagramChannel incoming = (DatagramChannel) key.channel();
+
+      InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
       if (srcAddress == null) {
         // this indicates nothing is available - non-blocking mode
         return null;
