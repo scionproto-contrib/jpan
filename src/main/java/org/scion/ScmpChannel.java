@@ -16,92 +16,32 @@ package org.scion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketOption;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.scion.internal.InternalConstants;
 import org.scion.internal.PathHeaderParser;
+import org.scion.internal.ScionHeaderParser;
 import org.scion.internal.ScmpParser;
 
-public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements AutoCloseable {
-  private final ByteBuffer bufferReceive;
-  private final ByteBuffer bufferSend;
-  private final AtomicReference<Scmp.Message> error = new AtomicReference<>();
+public class ScmpChannel implements AutoCloseable {
   private int timeOutMs = 1000;
+  private final InternalChannel channel;
 
   ScmpChannel(RequestPath path) throws IOException {
     this(path, 12345);
   }
 
   ScmpChannel(RequestPath path, int port) throws IOException {
-    super(Scion.defaultService());
-    configureBlocking(true);
-    this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
-    this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
-
-    setPath(path);
-    InetSocketAddress local = new InetSocketAddress("0.0.0.0", port);
-    this.bind(local);
-  }
-
-  private synchronized Scmp.EchoMessage sendEchoRequest(Scmp.EchoMessage request)
-      throws IOException {
-    // send
-    // EchoHeader = 8 + data
-    int len = 8 + request.getData().length;
-    Path path = request.getPath();
-    buildHeaderNoRefresh(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-    ScmpParser.buildScmpPing(
-        bufferSend, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
-    bufferSend.flip();
-    sendRaw(bufferSend, path.getFirstHopAddress());
-
-    // receive
-    Scmp.Message scmpMsg = null;
-    ResponsePath receivePath = null;
-    while (scmpMsg == null) {
-      receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-      scmpMsg = ScmpParser.consume(bufferReceive, request);
-    }
-    scmpMsg.setPath(receivePath);
-    checkListeners(scmpMsg);
-    return (Scmp.EchoMessage) scmpMsg;
-  }
-
-  private Scmp.TracerouteMessage sendTracerouteRequest(
-      Scmp.TracerouteMessage request, PathHeaderParser.Node node) throws IOException {
-    Path path = request.getPath();
-    // send
-    // TracerouteHeader = 24
-    int len = 24;
-    // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
-    //   we should only modify the outgoing packet.
-    byte[] raw = path.getRawPath();
-    byte backup = raw[node.posHopFlags];
-    raw[node.posHopFlags] = node.hopFlags;
-
-    buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
-    int interfaceNumber = request.getSequenceNumber();
-    ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
-    bufferSend.flip();
-    sendRaw(bufferSend, path.getFirstHopAddress());
-    // Clean up!  // TODO this is really bad!
-    raw[node.posHopFlags] = backup;
-
-    // receive
-    Scmp.Message scmpMsg = null;
-    ResponsePath receivePath = null;
-    while (scmpMsg == null) {
-      receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.SCMP);
-      scmpMsg = ScmpParser.consume(bufferReceive, request);
-    }
-
-    scmpMsg.setPath(receivePath);
-    checkListeners(scmpMsg);
-    return (Scmp.TracerouteMessage) scmpMsg;
+    channel = new InternalChannel(Scion.defaultService(), path, port);
   }
 
   /**
@@ -115,57 +55,10 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
-    RequestPath path = (RequestPath) getCurrentPath();
-    if (!isConnected()) {
-      connect(path);
-    }
-    // Hack: we do not modify the AtomicReference.It simply serves as a memory barrier
-    // to facilitate concurrent access to the result.
-    AtomicReference<Scmp.EchoMessage> result = new AtomicReference<>();
-    AtomicReference<IOException> exception = new AtomicReference<>();
-
-    result.set(Scmp.EchoMessage.createRequest(sequenceNumber, path, data));
-    Thread t = new Thread(() -> sendEchoRequest(result, exception));
-    t.start();
-    try {
-      t.join(timeOutMs);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    }
-
-    if (exception.get() != null) {
-      throw new IOException(exception.get());
-    }
-    if (error.get() != null) {
-      // we received a SCMP error
-      throw new IOException(error.get().getTypeCode().getText());
-    }
-    if (t.isAlive()) {
-      // timeout
-      t.interrupt();
-      Scmp.EchoMessage echo = result.get();
-      echo.setTimedOut(timeOutMs * 1_000_000L);
-      return echo;
-    }
-    return result.get();
-  }
-
-  private void sendEchoRequest(
-      AtomicReference<Scmp.EchoMessage> result, AtomicReference<IOException> exception) {
-    try {
-      long sendNanos = System.nanoTime();
-      Scmp.EchoMessage msg = sendEchoRequest(result.get());
-      long nanos = System.nanoTime() - sendNanos;
-      if (msg.getTypeCode() == Scmp.ScmpTypeCode.TYPE_129) {
-        msg.setNanoSeconds(nanos);
-      } else {
-        // error
-        throw new IOException("SCMP error: " + msg.getTypeCode().getText());
-      }
-    } catch (IOException e) {
-      exception.set(e);
-    }
+    RequestPath path = (RequestPath) channel.getCurrentPath();
+    Scmp.EchoMessage result = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
+    sendScmpRequest(() -> channel.sendEchoRequest(result), Scmp.ScmpTypeCode.TYPE_129);
+    return result;
   }
 
   /**
@@ -178,76 +71,173 @@ public class ScmpChannel extends AbstractDatagramChannel<ScmpChannel> implements
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public Collection<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
-    ConcurrentLinkedQueue<Scmp.TracerouteMessage> results = new ConcurrentLinkedQueue<>();
-    Path path = getCurrentPath();
+    List<Scmp.TracerouteMessage> results = new ArrayList<>();
+    RequestPath path = (RequestPath) channel.getCurrentPath();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     for (int i = 0; i < nodes.size(); i++) {
-      if (!sendConcurrentTraceRequest(i, path, nodes.get(i), results)) {
-        // timeout: abort
+      Scmp.TracerouteMessage result = Scmp.TracerouteMessage.createRequest(i, path);
+      results.add(result);
+      PathHeaderParser.Node node = nodes.get(i);
+      sendScmpRequest(
+          () -> channel.sendTracerouteRequest(result, node), Scmp.ScmpTypeCode.TYPE_131);
+      if (result.isTimedOut()) {
         break;
       }
     }
     return results;
   }
 
-  private boolean sendConcurrentTraceRequest(
-      int sequenceNumber,
-      Path path,
-      PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.TracerouteMessage> results)
-      throws IOException {
-    AtomicReference<IOException> exception = new AtomicReference<>();
-
-    Thread t =
-        new Thread(() -> sendTracerouteRequest(path, sequenceNumber, node, results, exception));
-    t.start();
-    try {
-      t.join(timeOutMs);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    }
-
-    if (exception.get() != null) {
-      throw new IOException(exception.get());
-    }
-    if (error.get() != null) {
-      // we received a SCMP error
-      throw new IOException(error.get().getTypeCode().getText());
-    }
-    if (t.isAlive()) {
-      // timeout
-      t.interrupt();
-      results.add(Scmp.TracerouteMessage.createTimedOut(timeOutMs * 1_000_000L));
-      return false;
-    }
-    return true;
-  }
-
-  private void sendTracerouteRequest(
-      Path path,
-      int sequenceNumber,
-      PathHeaderParser.Node node,
-      ConcurrentLinkedQueue<Scmp.TracerouteMessage> results,
-      AtomicReference<IOException> exception) {
-    try {
-      Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.createRequest(sequenceNumber, path);
-      long sendNanos = System.nanoTime();
-      trace = sendTracerouteRequest(trace, node);
-      long nanos = System.nanoTime() - sendNanos;
-      if (trace.getTypeCode() == Scmp.ScmpTypeCode.TYPE_131) {
-        trace.setNanoSeconds(nanos);
-        results.add(trace);
-      } else {
-        // error
-        throw new IOException("SCMP error: " + trace.getTypeCode().getText());
-      }
-    } catch (IOException e) {
-      exception.set(e);
+  private void sendScmpRequest(
+      IOCallable<Scmp.TimedMessage> sender, Scmp.ScmpTypeCode expectedTypeCode) throws IOException {
+    long sendNanos = System.nanoTime();
+    Scmp.TimedMessage result = sender.call();
+    long nanos = System.nanoTime() - sendNanos;
+    if (result.getTypeCode() == expectedTypeCode) {
+      result.setNanoSeconds(nanos);
+    } else if (result.isTimedOut()) {
+      result.setNanoSeconds(timeOutMs * 1_000_000L);
+    } else {
+      throw new IOException("SCMP error: " + result.getTypeCode().getText());
     }
   }
 
   public void setTimeOut(int milliSeconds) {
     this.timeOutMs = milliSeconds;
+  }
+
+  @Override
+  public void close() throws IOException {
+    channel.close();
+  }
+
+  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
+    return channel.setScmpErrorListener(listener);
+  }
+
+  public <T> void setOption(SocketOption<T> option, T t) throws IOException {
+    channel.setOption(option, t);
+  }
+
+  @FunctionalInterface
+  private interface IOCallable<V> {
+    V call() throws IOException;
+  }
+
+  private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
+    private final ByteBuffer bufferReceive;
+    private final ByteBuffer bufferSend;
+    private final Selector selector;
+
+    protected InternalChannel(ScionService service, RequestPath path, int port) throws IOException {
+      super(service);
+      this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
+      this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
+
+      // selector
+      this.selector = Selector.open();
+      super.channel().configureBlocking(false);
+      super.channel().register(selector, SelectionKey.OP_READ);
+
+      super.setPath(path);
+      // listen on ANY interface: 0.0.0.0 / [::]
+      super.bind(new InetSocketAddress("[::]", port));
+    }
+
+    synchronized Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {
+      // EchoHeader = 8 + data
+      int len = 8 + request.getData().length;
+      Path path = request.getPath();
+      buildHeaderNoRefresh(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
+      ScmpParser.buildScmpPing(
+          bufferSend, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
+      bufferSend.flip();
+      sendRaw(bufferSend, path.getFirstHopAddress());
+
+      return receiveRequest(request);
+    }
+
+    synchronized Scmp.TimedMessage sendTracerouteRequest(
+        Scmp.TracerouteMessage request, PathHeaderParser.Node node) throws IOException {
+      Path path = request.getPath();
+      // TracerouteHeader = 24
+      int len = 24;
+      // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
+      //   we should only modify the outgoing packet.
+      byte[] raw = path.getRawPath();
+      byte backup = raw[node.posHopFlags];
+      raw[node.posHopFlags] = node.hopFlags;
+
+      buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+      int interfaceNumber = request.getSequenceNumber();
+      ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
+      bufferSend.flip();
+      sendRaw(bufferSend, path.getFirstHopAddress());
+      // Clean up!  // TODO this is really bad!
+      raw[node.posHopFlags] = backup;
+
+      return receiveRequest(request);
+    }
+
+    synchronized Scmp.TimedMessage receiveRequest(Scmp.TimedMessage request) throws IOException {
+      ResponsePath receivePath = receiveWithTimeout(bufferReceive, InternalConstants.HdrTypes.SCMP);
+      if (receivePath != null) {
+        ScmpParser.consume(bufferReceive, request);
+        request.setPath(receivePath);
+        checkListeners(request);
+      } else {
+        request.setTimedOut();
+      }
+      return request;
+    }
+
+    private ResponsePath receiveWithTimeout(
+        ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
+      while (true) {
+        buffer.clear();
+        if (selector.select(timeOutMs) == 0) {
+          return null;
+        }
+
+        // TODO clean up this mess, avoid throwing any Exceptions
+        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+        if (!iter.hasNext()) {
+          throw new IllegalStateException();
+        }
+        SelectionKey key = iter.next();
+        if (!key.isReadable()) {
+          throw new IllegalStateException();
+        }
+        iter.remove();
+        if (iter.hasNext()) {
+          throw new IllegalStateException();
+        }
+
+        java.nio.channels.DatagramChannel incoming = (DatagramChannel) key.channel();
+        InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
+        buffer.flip();
+        if (!validate(buffer.asReadOnlyBuffer())) {
+          continue;
+        }
+
+        InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+        // From here on we use linear reading using the buffer's position() mechanism
+        buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+        // Check for extension headers.
+        // This should be mostly unnecessary, however we sometimes saw SCMP error headers wrapped
+        // in extensions headers.
+        hdrType = super.receiveExtensionHeader(buffer, hdrType);
+
+        if (hdrType == expectedHdrType) {
+          return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+        }
+        super.receiveScmp(buffer, getCurrentPath());
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      super.close();
+      selector.close();
+    }
   }
 }

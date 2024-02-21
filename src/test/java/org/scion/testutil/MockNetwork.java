@@ -252,12 +252,14 @@ class MockBorderRouter implements Runnable {
 
             if (MockNetwork.dropNextPackets.get() > 0) {
               MockNetwork.dropNextPackets.decrementAndGet();
+              iter.remove();
               continue;
             }
 
             if (MockNetwork.scmpErrorOnNextPacket.get() != null) {
               sendScmp(
                   MockNetwork.scmpErrorOnNextPacket.getAndSet(null), buffer, srcAddress, incoming);
+              iter.remove();
               continue;
             }
 
@@ -313,8 +315,8 @@ class MockBorderRouter implements Runnable {
     ResponsePath path =
         PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
     Scmp.ScmpType type = ScmpParser.extractType(buffer);
-    Scmp.Message scmpMsg =
-        ScmpParser.consume(buffer, PackageVisibilityHelper.createMessage(type, path));
+    Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
+    ScmpParser.consume(buffer, scmpMsg);
     logger.info(
         " received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
 
