@@ -205,17 +205,17 @@ public class ScmpChannel implements AutoCloseable {
           return null;
         }
 
-        // TODO clean up this mess, avoid throwing any Exceptions
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         if (!iter.hasNext()) {
-          throw new IllegalStateException();
+          continue;
         }
         SelectionKey key = iter.next();
         if (!key.isReadable()) {
-          throw new IllegalStateException();
+          continue;
         }
         iter.remove();
         if (iter.hasNext()) {
+          // TODO clean up this mess, avoid throwing any Exceptions
           throw new IllegalStateException();
         }
 
