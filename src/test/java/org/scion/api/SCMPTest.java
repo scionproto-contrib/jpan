@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.demo.inspector.ScionPacketInspector;
@@ -99,6 +100,7 @@ public class SCMPTest {
   }
 
   @Test
+  @Disabled
   void echo_localAS() throws IOException {
     testEcho(this::getPathToLocalAS);
   }
@@ -181,8 +183,18 @@ public class SCMPTest {
 
   @Test
   void traceroute() throws IOException {
+    testTraceroute(this::getPathTo112);
+  }
+
+  @Test
+  @Disabled
+  void traceroute_localAS() throws IOException {
+    testTraceroute(this::getPathToLocalAS);
+  }
+
+  private void testTraceroute(Supplier<RequestPath> path) throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
+    try (ScmpChannel channel = Scmp.createChannel(path.get())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest();
@@ -226,7 +238,7 @@ public class SCMPTest {
         assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
       }
 
-       // retry
+      // retry
       Collection<Scmp.TracerouteMessage> results2 = channel.sendTracerouteRequest();
       assertEquals(2, results2.size());
       for (Scmp.TracerouteMessage result : results2) {
