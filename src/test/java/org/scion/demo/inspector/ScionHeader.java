@@ -161,7 +161,7 @@ public class ScionHeader {
     i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
     i1 = writeInt(i1, 16, 16, userPacketLength); // PayloadLen
     data.putInt(i1);
-    i2 = writeInt(i2, 0, 8, 1); // PathType : SCION = 1
+    i2 = writeInt(i2, 0, 8, pathHeaderLength > 0 ? 1 : 0); // PathType : SCION = 1
     i2 = writeInt(i2, 8, 2, 0); // DT
     i2 = writeInt(i2, 10, 2, dl); // DL
     i2 = writeInt(i2, 12, 2, 0); // ST

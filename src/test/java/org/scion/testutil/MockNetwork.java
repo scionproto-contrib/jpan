@@ -55,7 +55,7 @@ public class MockNetwork {
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.ScmpTypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
-  private static final int BORDER_ROUTER_PORT1 = 30555;
+  public static final int BORDER_ROUTER_PORT1 = 30555;
   private static final int BORDER_ROUTER_PORT2 = 30556;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;

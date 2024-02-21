@@ -290,7 +290,13 @@ public class SCMPTest {
   private RequestPath getPathToLocalAS() {
     ScionService service = Scion.defaultService();
     long dstIA = service.getLocalIsdAs();
-    List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
-    return paths.get(0);
+    try {
+      InetAddress addr = InetAddress.getByName(MockNetwork.BORDER_ROUTER_HOST);
+      int port = MockNetwork.BORDER_ROUTER_PORT1;
+      List<RequestPath> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
+      return paths.get(0);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
