@@ -17,10 +17,10 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
@@ -33,12 +33,6 @@ public class ScionServiceTest {
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
-
-  @BeforeAll
-  public static void beforeAll() {
-    //    System.setProperty(
-    //        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
-  }
 
   @AfterAll
   public static void afterAll() {
@@ -157,6 +151,40 @@ public class ScionServiceTest {
         // assertEquals(srcIA, path.getSourceIsdAs());
         assertEquals(dstIA, path.getDestinationIsdAs());
       }
+
+      // get local AS, get PATH
+      assertEquals(2, MockDaemon.getAndResetCallCount());
+    } finally {
+      MockDaemon.closeDefault();
+    }
+  }
+
+  @Test
+  void getPaths_localAS() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockDaemon.createAndStartDefault();
+    try {
+      // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
+      List<RequestPath> paths;
+      long dstIA = ScionUtil.parseIA("1-ff00:0:110");
+      try (Scion.CloseableService client =
+          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+        paths = client.getPaths(dstIA, dstAddress);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+
+      //  Paths found: 1
+      //  Path:  exp=1708596832 / 2024-02-22T10:13:52Z  mtu=1472
+      //  Path: first hop =
+      //          raw: []
+      //  raw: {}
+      assertEquals(1, paths.size());
+      RequestPath path = paths.get(0);
+      InetAddress addr = InetAddress.getByAddress(path.getDestinationAddress());
+      InetSocketAddress sAddr = new InetSocketAddress(addr, path.getDestinationPort());
+      assertEquals(sAddr, path.getFirstHopAddress());
+      assertEquals(dstIA, path.getDestinationIsdAs());
 
       // get local AS, get PATH
       assertEquals(2, MockDaemon.getAndResetCallCount());

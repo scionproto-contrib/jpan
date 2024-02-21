@@ -160,10 +160,11 @@ public class MockDaemon implements AutoCloseable {
       // req.getDestinationIsdAs());
       callCount.incrementAndGet();
       ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
+      long expirySecs = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
+      Timestamp expiry = Timestamp.newBuilder().setSeconds(expirySecs).build();
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
       if (req.getSourceIsdAs() == SRC_IA && req.getDestinationIsdAs() == DST_IA) {
         for (String brAddress : borderRouters) {
-          long expiry = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
           Daemon.Path p0 =
               Daemon.Path.newBuilder()
                   .setInterface(
@@ -175,10 +176,14 @@ public class MockDaemon implements AutoCloseable {
                   .addInterfaces(
                       Daemon.PathInterface.newBuilder().setId(1).setIsdAs(DST_IA).build())
                   .setRaw(rawPath)
-                  .setExpiration(Timestamp.newBuilder().setSeconds(expiry).build())
+                  .setExpiration(expiry)
                   .build();
           replyBuilder.addPaths(p0);
         }
+      } else if (req.getSourceIsdAs() == req.getDestinationIsdAs()) {
+        // localAS
+        Daemon.Path p0 = Daemon.Path.newBuilder().setExpiration(expiry).build();
+        replyBuilder.addPaths(p0);
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();

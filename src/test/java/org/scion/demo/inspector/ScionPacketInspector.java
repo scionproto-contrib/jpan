@@ -90,6 +90,8 @@ public class ScionPacketInspector {
 
     if (scionHeader.pathType() == Constants.PathTypes.SCION) {
       pathHeaderScion.read(data);
+    } else if (scionHeader.pathType() == Constants.PathTypes.Empty) {
+      // Empty path, nothing to do
     } else if (scionHeader.pathType() == Constants.PathTypes.OneHop) {
       pathHeaderOneHop.read(data);
       return false;

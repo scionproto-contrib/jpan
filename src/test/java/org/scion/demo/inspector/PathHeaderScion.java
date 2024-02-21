@@ -99,6 +99,10 @@ public class PathHeaderScion {
   }
 
   public void write(ByteBuffer data) {
+    if (seg0Len == 0) {
+      // empty path
+      return;
+    }
     int i0 = 0;
     i0 = writeInt(i0, 0, 2, 0); // CurrINF = 0
     i0 = writeInt(i0, 2, 6, 0); // CurrHF = 0
