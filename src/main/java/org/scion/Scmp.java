@@ -233,8 +233,7 @@ public class Scmp {
       return nanoSeconds;
     }
 
-    public void setTimedOut(long nanoSeconds) {
-      this.nanoSeconds = nanoSeconds;
+    public void setTimedOut() {
       this.timedOut = true;
     }
 
