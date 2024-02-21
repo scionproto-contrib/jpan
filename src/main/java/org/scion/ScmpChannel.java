@@ -155,9 +155,12 @@ public class ScmpChannel implements AutoCloseable {
       ScmpParser.buildScmpPing(
           bufferSend, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
       bufferSend.flip();
+      request.setSizeSent(bufferSend.remaining());
       sendRaw(bufferSend, path.getFirstHopAddress());
 
-      return receiveRequest(request);
+      Scmp.TimedMessage result = receiveRequest(request);
+      request.setSizeReceived(bufferReceive.position());
+      return result;
     }
 
     synchronized Scmp.TimedMessage sendTracerouteRequest(

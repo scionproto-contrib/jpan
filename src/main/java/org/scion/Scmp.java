@@ -244,6 +244,8 @@ public class Scmp {
 
   public static class EchoMessage extends TimedMessage {
     private byte[] data;
+    private int sizeSent;
+    private int sizeReceived;
 
     private EchoMessage(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
@@ -267,6 +269,22 @@ public class Scmp {
 
     public void setData(byte[] data) {
       this.data = data;
+    }
+
+    public void setSizeSent(int sizeSent) {
+      this.sizeSent = sizeSent;
+    }
+
+    public int getSizeSent() {
+      return sizeSent;
+    }
+
+    public void setSizeReceived(int sizeReceived) {
+      this.sizeReceived = sizeReceived;
+    }
+
+    public int getSizeReceived() {
+      return sizeReceived;
     }
   }
 
