@@ -217,10 +217,33 @@ public class Scmp {
     }
   }
 
-  public static class EchoMessage extends Message {
-    private byte[] data;
+  public abstract static class TimedMessage extends Message {
     private long nanoSeconds;
     private boolean timedOut = false;
+
+    private TimedMessage(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+      super(typeCode, identifier, sequenceNumber, path);
+    }
+
+    public void setNanoSeconds(long nanoSeconds) {
+      this.nanoSeconds = nanoSeconds;
+    }
+
+    public long getNanoSeconds() {
+      return nanoSeconds;
+    }
+
+    public void setTimedOut() {
+      this.timedOut = true;
+    }
+
+    public boolean isTimedOut() {
+      return timedOut;
+    }
+  }
+
+  public static class EchoMessage extends TimedMessage {
+    private byte[] data;
 
     private EchoMessage(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
@@ -245,31 +268,12 @@ public class Scmp {
     public void setData(byte[] data) {
       this.data = data;
     }
-
-    public void setNanoSeconds(long nanoSeconds) {
-      this.nanoSeconds = nanoSeconds;
-    }
-
-    public long getNanoSeconds() {
-      return nanoSeconds;
-    }
-
-    public void setTimedOut(long nanoSeconds) {
-      this.nanoSeconds = nanoSeconds;
-      this.timedOut = true;
-    }
-
-    public boolean isTimedOut() {
-      return timedOut;
-    }
   }
 
-  public static class TracerouteMessage extends Message {
+  public static class TracerouteMessage extends TimedMessage {
 
     private long isdAs;
     private long ifID;
-    private long nanoSeconds;
-    private boolean timedOut = false;
 
     private TracerouteMessage(
         ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
@@ -282,12 +286,6 @@ public class Scmp {
 
     public static TracerouteMessage createRequest(int sequenceNumber, Path path) {
       return new TracerouteMessage(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
-    }
-
-    public static TracerouteMessage createTimedOut(long nanoSeconds) {
-      TracerouteMessage r = new TracerouteMessage(null, -1, -1, null);
-      r.setNanoSeconds(nanoSeconds);
-      return r;
     }
 
     public TracerouteMessage(
@@ -310,14 +308,6 @@ public class Scmp {
       return ifID;
     }
 
-    public void setNanoSeconds(long nanoSeconds) {
-      this.nanoSeconds = nanoSeconds;
-    }
-
-    public long getNanoSeconds() {
-      return nanoSeconds;
-    }
-
     @Override
     public String toString() {
       String echoMsgStr = getTypeCode().getText();
@@ -329,15 +319,6 @@ public class Scmp {
     public void setTracerouteArgs(long isdAs, long ifID) {
       this.isdAs = isdAs;
       this.ifID = ifID;
-    }
-
-    public void setTimedOut(long nanoSeconds) {
-      this.nanoSeconds = nanoSeconds;
-      this.timedOut = true;
-    }
-
-    public boolean isTimedOut() {
-      return timedOut;
     }
   }
 

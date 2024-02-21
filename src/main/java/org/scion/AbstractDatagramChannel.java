@@ -191,16 +191,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       }
       buffer.flip();
 
-      String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
-      if (validationResult != null) {
-        if (cfgReportFailedValidation) {
-          throw new ScionException(validationResult);
-        }
+      if (!validate(buffer.asReadOnlyBuffer())) {
         continue;
       }
 
       InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-
       // From here on we use linear reading using the buffer's position() mechanism
       buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
       // Check for extension headers.
@@ -215,7 +210,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private InternalConstants.HdrTypes receiveExtensionHeader(
+  protected InternalConstants.HdrTypes receiveExtensionHeader(
       ByteBuffer buffer, InternalConstants.HdrTypes hdrType) {
     if (hdrType == InternalConstants.HdrTypes.END_TO_END
         || hdrType == InternalConstants.HdrTypes.HOP_BY_HOP) {
@@ -229,9 +224,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return hdrType;
   }
 
-  private void receiveScmp(ByteBuffer buffer, Path path) {
+  protected void receiveScmp(ByteBuffer buffer, Path path) {
     Scmp.ScmpType type = ScmpParser.extractType(buffer);
-    checkListeners(ScmpParser.consume(buffer, Scmp.createMessage(type, path)));
+    Scmp.Message msg = Scmp.createMessage(type, path);
+    ScmpParser.consume(buffer, msg);
+    checkListeners(msg);
   }
 
   protected void checkListeners(Scmp.Message scmpMsg) {
@@ -267,6 +264,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   public synchronized boolean isConnected() {
+    if (!channel.isOpen() || !channel.isConnected()) {
+      // This may happen when the channel gets disconnected due to being interrupted.
+      isConnected = false;
+    }
     return isConnected;
   }
 
@@ -346,7 +347,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     } else {
       // For sending request path we need to have a valid local external address.
       // For a valid local external address we need to be connected.
-      if (!isConnected) {
+      if (!isConnected()) {
         isConnected = true;
         connection = path.getFirstHopAddress();
         channel.connect(connection);
@@ -394,5 +395,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       this.path = newPath;
     }
     return newPath;
+  }
+
+  protected boolean validate(ByteBuffer buffer) throws ScionException {
+    String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+    if (validationResult != null && cfgReportFailedValidation) {
+      throw new ScionException(validationResult);
+    }
+    return validationResult == null;
   }
 }

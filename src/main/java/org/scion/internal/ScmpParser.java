@@ -87,7 +87,7 @@ public class ScmpParser {
    * @param holder SCMP message holder
    * @return ScmpMessage object
    */
-  public static Message consume(ByteBuffer data, Message holder) {
+  public static void consume(ByteBuffer data, Message holder) {
     int type = ByteUtil.toUnsigned(data.get());
     int code = ByteUtil.toUnsigned(data.get());
     data.getShort(); // checksum
@@ -108,16 +108,16 @@ public class ScmpParser {
         // If there is an array we can simply reuse it. The length of the
         // package has already been validated.
         data.get(echo.getData());
-        return echo;
+        break;
       case INFO_130:
       case INFO_131:
         long isdAs = data.getLong();
         long ifID = data.getLong();
         TracerouteMessage trace = (TracerouteMessage) holder;
         trace.setTracerouteArgs(isdAs, ifID);
-        return trace;
+        break;
       default:
-        return holder;
+        break;
     }
   }
 }

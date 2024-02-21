@@ -22,7 +22,9 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.demo.inspector.ScionPacketInspector;
@@ -94,8 +96,18 @@ public class SCMPTest {
 
   @Test
   void echo() throws IOException {
+    testEcho(this::getPathTo112);
+  }
+
+  @Test
+  @Disabled
+  void echo_localAS() throws IOException {
+    testEcho(this::getPathToLocalAS);
+  }
+
+  private void testEcho(Supplier<RequestPath> path) throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
+    try (ScmpChannel channel = Scmp.createChannel(path.get())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
@@ -105,6 +117,7 @@ public class SCMPTest {
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
       assertArrayEquals(data, result.getData());
+      assertFalse(result.isTimedOut());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -118,9 +131,18 @@ public class SCMPTest {
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(1_000);
       MockNetwork.dropNextPackets(1);
-      Scmp.EchoMessage result = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
-      assertTrue(result.isTimedOut());
-      assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
+      Scmp.EchoMessage result1 = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
+      assertTrue(result1.isTimedOut());
+      assertEquals(1_000 * 1_000_000, result1.getNanoSeconds());
+      assertEquals(42, result1.getSequenceNumber());
+
+      // try again
+      Scmp.EchoMessage result2 = channel.sendEchoRequest(43, ByteBuffer.allocate(0));
+      assertEquals(Scmp.ScmpTypeCode.TYPE_129, result2.getTypeCode());
+      assertFalse(result2.isTimedOut());
+      assertTrue(result2.getNanoSeconds() > 0);
+      assertTrue(result2.getNanoSeconds() < 10_000_000); // 10 ms
+      assertEquals(43, result2.getSequenceNumber());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -161,8 +183,18 @@ public class SCMPTest {
 
   @Test
   void traceroute() throws IOException {
+    testTraceroute(this::getPathTo112);
+  }
+
+  @Test
+  @Disabled
+  void traceroute_localAS() throws IOException {
+    testTraceroute(this::getPathToLocalAS);
+  }
+
+  private void testTraceroute(Supplier<RequestPath> path) throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
+    try (ScmpChannel channel = Scmp.createChannel(path.get())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest();
@@ -174,6 +206,7 @@ public class SCMPTest {
         assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getTypeCode());
         assertTrue(result.getNanoSeconds() > 0);
         assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+        assertFalse(result.isTimedOut());
         if (n == 1) {
           assertEquals(ScionUtil.parseIA("1-ff00:0:112"), result.getIsdAs());
           assertEquals(42, result.getIfID());
@@ -196,13 +229,21 @@ public class SCMPTest {
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.dropNextPackets(2);
-      Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest();
-
-      assertEquals(1, results.size());
-      for (Scmp.TracerouteMessage result : results) {
-        assertNull(result.getTypeCode());
+      MockNetwork.dropNextPackets(1);
+      Collection<Scmp.TracerouteMessage> results1 = channel.sendTracerouteRequest();
+      assertEquals(1, results1.size());
+      for (Scmp.TracerouteMessage result : results1) {
+        assertTrue(result.isTimedOut());
+        assertEquals(Scmp.ScmpTypeCode.TYPE_130, result.getTypeCode());
         assertEquals(1_000 * 1_000_000, result.getNanoSeconds());
+      }
+
+      // retry
+      Collection<Scmp.TracerouteMessage> results2 = channel.sendTracerouteRequest();
+      assertEquals(2, results2.size());
+      for (Scmp.TracerouteMessage result : results2) {
+        assertFalse(result.isTimedOut());
+        assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getTypeCode());
       }
     } finally {
       MockNetwork.stopTiny();
@@ -243,6 +284,13 @@ public class SCMPTest {
   private RequestPath getPathTo112() {
     ScionService service = Scion.defaultService();
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
+    return paths.get(0);
+  }
+
+  private RequestPath getPathToLocalAS() {
+    ScionService service = Scion.defaultService();
+    long dstIA = service.getLocalIsdAs();
     List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
     return paths.get(0);
   }
