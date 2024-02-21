@@ -26,6 +26,17 @@ public class ScmpEchoDemo {
 
   private static final boolean PRINT = true;
   private final int localPort;
+  private static final InetSocketAddress serviceIP;
+  private static final InetSocketAddress ethzIP;
+
+  static {
+    try {
+      serviceIP = new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
+      ethzIP = new InetSocketAddress(Inet4Address.getByName("129.132.230.98"), 30041);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   private enum Network {
     MOCK_TOPOLOGY, // SCION Java JUnit mock network
@@ -42,7 +53,7 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.MINIMAL_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException, InterruptedException {
     switch (network) {
@@ -51,7 +62,7 @@ public class ScmpEchoDemo {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(DemoConstants.ia110);
+          demo.runDemo(DemoConstants.ia110, serviceIP);
           DemoTopology.shutDown();
           break;
         }
@@ -60,7 +71,7 @@ public class ScmpEchoDemo {
           DemoTopology.configureTiny110_112();
           MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(DemoConstants.ia110);
+          demo.runDemo(DemoConstants.ia110, serviceIP);
           DemoTopology.shutDown();
           break;
         }
@@ -69,46 +80,61 @@ public class ScmpEchoDemo {
           Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_1111/topology.json");
           // Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(DemoConstants.ia211);
+          demo.runDemo(DemoConstants.ia211, serviceIP);
+          // demo.runDemo(DemoConstants.ia111, toAddr(DemoConstants.daemon111_minimal));
+          // demo.runDemo(DemoConstants.ia1111, toAddr(DemoConstants.daemon1111_minimal));
           break;
         }
       case PRODUCTION:
         {
-          Scion.newServiceWithDNS("inf.ethz.ch");
+          Scion.newServiceWithDNS("ethz.ch");
           // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
-          demo.runDemo(DemoConstants.iaOVGU);
-          // demo.runDemo(DemoConstants.iaETH);
+          // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
+          demo.runDemo(DemoConstants.iaETH, ethzIP);
           // TODO FIX, this doesn't work?!?!?!
-          demo.runDemo(DemoConstants.iaAnapayaHK);
+          demo.runDemo(DemoConstants.iaAnapayaHK, serviceIP);
           break;
         }
     }
   }
 
-  private void runDemo(long destinationIA) throws IOException {
+  private void runDemo(long dstIA, InetSocketAddress dstAddress) throws IOException {
     ScionService service = Scion.defaultService();
-    // dummy address
-    InetSocketAddress destinationAddress =
-        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
-    //    InetSocketAddress destinationAddress =
-    //            new InetSocketAddress(Inet4Address.getByAddress(new byte[]
-    // {129-256,132-256,230-256,98}), 30041);
-    List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
+    List<RequestPath> paths = service.getPaths(dstIA, dstAddress);
     RequestPath path = paths.get(0);
+    ByteBuffer data = ByteBuffer.allocate(0);
 
     println("Listening at port " + localPort + " ...");
+    println(
+        "PING "
+            + ScionUtil.toStringIA(dstIA)
+            + ","
+            + dstAddress.getHostString()
+            + ":"
+            + dstAddress.getPort()
+            + " pld="
+            + data.remaining()
+            + "B scion_pkt="
+            + 0 // TODO
+            + "B");
 
-    ByteBuffer data = ByteBuffer.allocate(0);
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
       for (int i = 0; i < 100; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(i, data);
-        String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
-        String echoMsgStr = msg.getTypeCode().getText();
-        echoMsgStr += " scmp_seq=" + msg.getSequenceNumber();
+        String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
+        // TODO proper length
+        String echoMsgStr = (msg.getData().length) + " bytes from ";
+        // TODO proper address
+        InetAddress addr = InetAddress.getByAddress(msg.getPath().getDestinationAddress());
+        echoMsgStr += addr.getHostAddress();
+        echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
+        if (msg.isTimedOut()) {
+          echoMsgStr += " Timed out after";
+        }
         echoMsgStr += " time=" + millis + "ms";
-        println("Received: " + echoMsgStr);
+        println(echoMsgStr);
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -122,5 +148,11 @@ public class ScmpEchoDemo {
     if (PRINT) {
       System.out.println(msg);
     }
+  }
+
+  private static InetSocketAddress toAddr(String addrString) throws UnknownHostException {
+    int posColon = addrString.indexOf(':');
+    InetAddress addr = InetAddress.getByName(addrString.substring(0, posColon));
+    return new InetSocketAddress(addr, 30041);
   }
 }

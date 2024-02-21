@@ -76,6 +76,7 @@
   - BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)
+  - Why are Java pings 8 bytes shorter than scionproto pings? -> local AS
 - Docs:
   Add docs for setting up an environment
   https://github.com/marcfrei/scion-time#setting-up-a-scion-test-environment

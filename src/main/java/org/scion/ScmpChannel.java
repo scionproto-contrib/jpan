@@ -105,6 +105,10 @@ public class ScmpChannel implements AutoCloseable {
     this.timeOutMs = milliSeconds;
   }
 
+  public int getTimeOut() {
+    return this.timeOutMs;
+  }
+
   @Override
   public void close() throws IOException {
     channel.close();

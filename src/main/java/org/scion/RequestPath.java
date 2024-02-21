@@ -51,6 +51,11 @@ public class RequestPath extends Path {
 
   @Override
   public InetSocketAddress getFirstHopAddress() throws UnknownHostException {
+    if (getRawPath() == null || getRawPath().length == 0) {
+      // local AS
+      InetAddress addr = InetAddress.getByAddress(getDestinationAddress());
+      return new InetSocketAddress(addr, getDestinationPort());
+    }
     return getFirstHopAddress(pathProtoc);
   }
 
@@ -175,13 +180,13 @@ public class RequestPath extends Path {
 
   public enum LinkType {
     /** Unspecified link type. */
-    LINK_TYPE_UNSPECIFIED, // = 0;
+    LINK_TYPE_UNSPECIFIED, // = 0
     /** Direct physical connection. */
-    LINK_TYPE_DIRECT, // = 1;
+    LINK_TYPE_DIRECT, // = 1
     /** Connection with local routing/switching. */
-    LINK_TYPE_MULTI_HOP, // = 2;
+    LINK_TYPE_MULTI_HOP, // = 2
     /** Connection overlayed over publicly routed Internet. */
-    LINK_TYPE_OPEN_NET, // = 3;
+    LINK_TYPE_OPEN_NET, // = 3
   }
 
   public static class EpicAuths {
