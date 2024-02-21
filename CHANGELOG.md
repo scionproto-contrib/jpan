@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#15](https://github.com/tzaeschke/phtree-cpp/pull/15)
 
 ### Fixed
+- Fixed: SCMP problem when pinging local AS.
+  [#16](https://github.com/tzaeschke/phtree-cpp/pull/16),
 - Fixed SCMP timeout and error handling (IOExceptions + SCMP errors).
   [#13](https://github.com/tzaeschke/phtree-cpp/pull/13)
 - CI (only) failures on JDK 8. [#10](https://github.com/tzaeschke/phtree-cpp/pull/10)

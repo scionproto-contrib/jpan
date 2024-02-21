@@ -350,6 +350,7 @@ class MockBorderRouter implements Runnable {
     // send back!
     buffer.rewind();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+    spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
     scmpHeader.setCode(type);
     ByteBuffer out = ByteBuffer.allocate(100);

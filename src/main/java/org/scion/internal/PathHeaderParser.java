@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class PathHeaderParser {
-  public PathHeaderParser() {}
+  private PathHeaderParser() {}
 
   private static int getSegmentCount(byte[] raw) {
     ByteBuffer data = ByteBuffer.wrap(raw);
@@ -51,6 +51,9 @@ public class PathHeaderParser {
 
   public static ArrayList<Node> getTraceNodes(byte[] raw) {
     ArrayList<Node> nodes = new ArrayList<>();
+    if (raw == null || raw.length == 0) {
+      return nodes;
+    }
 
     ByteBuffer data = ByteBuffer.wrap(raw);
     int i0 = data.getInt();
