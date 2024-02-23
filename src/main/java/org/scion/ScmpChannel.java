@@ -184,7 +184,7 @@ public class ScmpChannel implements AutoCloseable {
     }
 
     synchronized void receiveRequest(Scmp.TimedMessage request) throws IOException {
-      ResponsePath receivePath = receiveWithTimeout(bufferReceive, InternalConstants.HdrTypes.SCMP);
+      ResponsePath receivePath = receiveWithTimeout(bufferReceive);
       if (receivePath != null) {
         ScmpParser.consume(bufferReceive, request);
         request.setPath(receivePath);
@@ -194,8 +194,7 @@ public class ScmpChannel implements AutoCloseable {
       }
     }
 
-    private ResponsePath receiveWithTimeout(
-        ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
+    private ResponsePath receiveWithTimeout(ByteBuffer buffer) throws IOException {
       while (true) {
         buffer.clear();
         if (selector.select(timeOutMs) == 0) {
@@ -203,38 +202,29 @@ public class ScmpChannel implements AutoCloseable {
         }
 
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-        if (!iter.hasNext()) {
-          continue;
-        }
-        SelectionKey key = iter.next();
-        if (!key.isReadable()) {
-          continue;
-        }
-        iter.remove();
         if (iter.hasNext()) {
-          // TODO clean up this mess, avoid throwing any Exceptions
-          throw new IllegalStateException();
-        }
+          SelectionKey key = iter.next();
+          iter.remove();
+          if (key.isReadable()) {
+            java.nio.channels.DatagramChannel incoming = (DatagramChannel) key.channel();
+            InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
+            buffer.flip();
+            if (validate(buffer)) {
+              InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+              // From here on we use linear reading using the buffer's position() mechanism
+              buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+              // Check for extension headers.
+              // This should be mostly unnecessary, however we sometimes saw SCMP error headers
+              // wrapped in extensions headers.
+              hdrType = super.receiveExtensionHeader(buffer, hdrType);
 
-        java.nio.channels.DatagramChannel incoming = (DatagramChannel) key.channel();
-        InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
-        buffer.flip();
-        if (!validate(buffer.asReadOnlyBuffer())) {
-          continue;
+              if (hdrType != InternalConstants.HdrTypes.SCMP) {
+                continue; // drop
+              }
+              return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+            }
+          }
         }
-
-        InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-        // From here on we use linear reading using the buffer's position() mechanism
-        buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-        // Check for extension headers.
-        // This should be mostly unnecessary, however we sometimes saw SCMP error headers wrapped
-        // in extensions headers.
-        hdrType = super.receiveExtensionHeader(buffer, hdrType);
-
-        if (hdrType == expectedHdrType) {
-          return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-        }
-        super.receiveScmp(buffer, getCurrentPath());
       }
     }
 
