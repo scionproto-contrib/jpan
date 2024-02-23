@@ -91,8 +91,8 @@ public class ScmpEchoDemo {
           // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
-          // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
-          demo.runDemo(DemoConstants.iaETH, ethzIP);
+          demo.runDemo(DemoConstants.iaOVGU, serviceIP);
+          // demo.runDemo(DemoConstants.iaETH, ethzIP);
           // demo.runDemo(DemoConstants.iaGEANT, serviceIP);
           break;
         }

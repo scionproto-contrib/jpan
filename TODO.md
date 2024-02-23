@@ -77,7 +77,6 @@
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)
   - Why are Java pings 8 bytes shorter than scionproto pings? -> local AS
-  - SCMP Checksum -> Check with recorded SCMP 
 - Docs:
   Add docs for setting up an environment
   https://github.com/marcfrei/scion-time#setting-up-a-scion-test-environment
@@ -110,6 +109,7 @@ Discuss required for 0.1.0:
   71-2:0:48,[127.0.0.1]	dfw.source.kernel.org
 - DNS with other options, see book p328ff, Section 13.2.3
 - UDP checksum validation + creation
+- SCMP checksum validation + creation
 - Fuzzing -> e.g. validate()
 - remove "internals" package?
 - For stand-alone path query, we should cache localAS->localCore paths.
