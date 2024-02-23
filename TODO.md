@@ -77,10 +77,6 @@
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)
   - Why are Java pings 8 bytes shorter than scionproto pings? -> local AS
-- Docs:
-  Add docs for setting up an environment
-  https://github.com/marcfrei/scion-time#setting-up-a-scion-test-environment
-  https://github.com/netsec-ethz/lightning-filter#develop
 Discuss required for 0.1.0:
 - SCMP errors handling (above)
   - Especially for expired paths / revoked paths / broken paths?  
@@ -95,7 +91,7 @@ Discuss required for 0.1.0:
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
-- Consider sublcassing DatagramChannel directly. 
+- Consider subclassing DatagramChannel directly. 
 - Consider SHIM support. SHIM is a compatibility component that supports
   old border-router software (requiring a fixed port on the client, unless
   the client is listening on this very port).  When SHIM is used, we cannot 
