@@ -125,8 +125,8 @@ public class ScionHeaderParser {
       throws UnknownHostException {
     int start = data.position();
 
-    int i1 = data.getInt(start + 4); // necytHeader, hdrLen, payLoadLen
-    int i2 = data.getInt(start + 8); // pathTypem dt, dl, st, sl
+    int i1 = data.getInt(start + 4); // nextHeader, hdrLen, payLoadLen
+    int i2 = data.getInt(start + 8); // pathType, dt, dl, st, sl
     int hdrLen = readInt(i1, 8, 8);
     int hdrLenBytes = hdrLen * 4;
     int dl = readInt(i2, 10, 2);
@@ -162,6 +162,33 @@ public class ScionHeaderParser {
   public static int extractHeaderLength(ByteBuffer data) {
     int hdrLen = ByteUtil.toUnsigned(data.get(5));
     return hdrLen * 4;
+  }
+
+  /**
+   * Extract the position of the path header.
+   *
+   * @param data The packet buffer
+   * @return the position of the path header or -1 if no path is available
+   */
+  public static int extractPathHeaderPosition(ByteBuffer data) {
+    int nextHeader = ByteUtil.toUnsigned(data.get(4));
+    if (nextHeader != InternalConstants.HdrTypes.UDP.code()
+        && nextHeader != InternalConstants.HdrTypes.SCMP.code()) {
+      throw new UnsupportedOperationException("This method UDP ans SCMP headers");
+    }
+
+    int pathType = ByteUtil.toUnsigned(data.get(8));
+    if (pathType == InternalConstants.PathTypes.Empty.code()) {
+      return -1;
+    }
+
+    int i2 = data.getInt(8); // pathType, dt, dl, st, sl
+    int dl = readInt(i2, 10, 2);
+    int sl = readInt(i2, 14, 2);
+    int dstLen = (dl + 1) * 4;
+    int srcLen = (sl + 1) * 4;
+
+    return 28 + dstLen + srcLen;
   }
 
   public static String validate(ByteBuffer data) {

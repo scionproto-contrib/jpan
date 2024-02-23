@@ -56,9 +56,9 @@ public class ScmpChannel implements AutoCloseable {
    */
   public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
     RequestPath path = (RequestPath) channel.getCurrentPath();
-    Scmp.EchoMessage result = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
-    sendScmpRequest(() -> channel.sendEchoRequest(result), Scmp.ScmpTypeCode.TYPE_129);
-    return result;
+    Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
+    sendScmpRequest(() -> channel.sendEchoRequest(request), Scmp.ScmpTypeCode.TYPE_129);
+    return request;
   }
 
   /**
@@ -71,20 +71,20 @@ public class ScmpChannel implements AutoCloseable {
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public Collection<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
-    List<Scmp.TracerouteMessage> results = new ArrayList<>();
+    List<Scmp.TracerouteMessage> requests = new ArrayList<>();
     RequestPath path = (RequestPath) channel.getCurrentPath();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     for (int i = 0; i < nodes.size(); i++) {
-      Scmp.TracerouteMessage result = Scmp.TracerouteMessage.createRequest(i, path);
-      results.add(result);
+      Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(i, path);
+      requests.add(request);
       PathHeaderParser.Node node = nodes.get(i);
       sendScmpRequest(
-          () -> channel.sendTracerouteRequest(result, node), Scmp.ScmpTypeCode.TYPE_131);
-      if (result.isTimedOut()) {
+          () -> channel.sendTracerouteRequest(request, node), Scmp.ScmpTypeCode.TYPE_131);
+      if (request.isTimedOut()) {
         break;
       }
     }
-    return results;
+    return requests;
   }
 
   private void sendScmpRequest(
@@ -158,9 +158,9 @@ public class ScmpChannel implements AutoCloseable {
       request.setSizeSent(bufferSend.remaining());
       sendRaw(bufferSend, path.getFirstHopAddress());
 
-      Scmp.TimedMessage result = receiveRequest(request);
+      receiveRequest(request);
       request.setSizeReceived(bufferReceive.position());
-      return result;
+      return request;
     }
 
     synchronized Scmp.TimedMessage sendTracerouteRequest(
@@ -168,24 +168,22 @@ public class ScmpChannel implements AutoCloseable {
       Path path = request.getPath();
       // TracerouteHeader = 24
       int len = 24;
-      // TODO we are modifying the raw path here, this is bad! It breaks concurrent usage.
-      //   we should only modify the outgoing packet.
-      byte[] raw = path.getRawPath();
-      byte backup = raw[node.posHopFlags];
-      raw[node.posHopFlags] = node.hopFlags;
-
       buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
       int interfaceNumber = request.getSequenceNumber();
       ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
       bufferSend.flip();
-      sendRaw(bufferSend, path.getFirstHopAddress());
-      // Clean up!  // TODO this is really bad!
-      raw[node.posHopFlags] = backup;
 
-      return receiveRequest(request);
+      // Set flags for border routers to return SCMP packet
+      int posPath = ScionHeaderParser.extractPathHeaderPosition(bufferSend);
+      bufferSend.put(posPath + node.posHopFlags, node.hopFlags);
+
+      sendRaw(bufferSend, path.getFirstHopAddress());
+
+      receiveRequest(request);
+      return request;
     }
 
-    synchronized Scmp.TimedMessage receiveRequest(Scmp.TimedMessage request) throws IOException {
+    synchronized void receiveRequest(Scmp.TimedMessage request) throws IOException {
       ResponsePath receivePath = receiveWithTimeout(bufferReceive, InternalConstants.HdrTypes.SCMP);
       if (receivePath != null) {
         ScmpParser.consume(bufferReceive, request);
@@ -194,7 +192,6 @@ public class ScmpChannel implements AutoCloseable {
       } else {
         request.setTimedOut();
       }
-      return request;
     }
 
     private ResponsePath receiveWithTimeout(
