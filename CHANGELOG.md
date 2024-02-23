@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#9](https://github.com/tzaeschke/phtree-cpp/pull/9)
 - BREAKING CHANGE: SCMP refactoring, renamed several SCMP related classes.
   [#14](https://github.com/tzaeschke/phtree-cpp/pull/14), 
-  [#15](https://github.com/tzaeschke/phtree-cpp/pull/15)
+  [#15](https://github.com/tzaeschke/phtree-cpp/pull/15),
+  [#17](https://github.com/tzaeschke/phtree-cpp/pull/17)
 
 ### Fixed
 - Fixed: SCMP problem when pinging local AS.
