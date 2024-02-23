@@ -29,7 +29,8 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
   private final ByteBuffer bufferReceive;
   private final ByteBuffer bufferSend;
 
-  protected DatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
+  protected DatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
+      throws IOException {
     super(service, channel);
     this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
     this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
@@ -43,7 +44,8 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     return open(service, java.nio.channels.DatagramChannel.open());
   }
 
-  public static DatagramChannel open(ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
+  public static DatagramChannel open(
+      ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
     return new DatagramChannel(service, channel);
   }
 

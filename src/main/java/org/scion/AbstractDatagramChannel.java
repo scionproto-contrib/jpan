@@ -46,10 +46,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.Message> errorListener;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
-    this (service, DatagramChannel.open());
+    this(service, DatagramChannel.open());
   }
 
-  protected AbstractDatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel) {
+  protected AbstractDatagramChannel(
+      ScionService service, java.nio.channels.DatagramChannel channel) {
     this.channel = channel;
     this.service = service;
   }

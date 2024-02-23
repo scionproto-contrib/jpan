@@ -25,11 +25,9 @@ import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
-import org.scion.testutil.MockNetwork;
 import org.scion.testutil.PingPongHelper;
 
 /** Test path switching (changing first hop) on DatagramChannel. */
@@ -53,24 +51,24 @@ class DatagramChannelErrorHandlingTest {
 
   @Test
   void testDummyChannel() throws IOException {
-//    java.nio.channels.DatagramChannel channel2 = new TestChannel();
-//    DatagramChannel channel = null;
-//    try {
-//      channel = Scion.defaultService().openChannel(channel2);
-//    } finally {
-//      channel.close();
-//    }
+    //    java.nio.channels.DatagramChannel channel2 = new TestChannel();
+    //    DatagramChannel channel = null;
+    //    try {
+    //      channel = Scion.defaultService().openChannel(channel2);
+    //    } finally {
+    //      channel.close();
+    //    }
   }
 
   @Test
   void test() {
-//    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-//    PingPongHelper.Client clientFn = this::client;
-//    PingPongHelper pph = new PingPongHelper(1, 2, 10);
-//    pph.runPingPong(serverFn, clientFn, false);
-//    assertEquals(2 * 10, MockNetwork.getForwardCount(0));
-//    assertEquals(2 * 10, MockNetwork.getForwardCount(1));
-//    assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
+    //    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
+    //    PingPongHelper.Client clientFn = this::client;
+    //    PingPongHelper pph = new PingPongHelper(1, 2, 10);
+    //    pph.runPingPong(serverFn, clientFn, false);
+    //    assertEquals(2 * 10, MockNetwork.getForwardCount(0));
+    //    assertEquals(2 * 10, MockNetwork.getForwardCount(1));
+    //    assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
@@ -110,7 +108,8 @@ class DatagramChannelErrorHandlingTest {
     }
 
     @Override
-    public <T> java.nio.channels.DatagramChannel setOption(SocketOption<T> socketOption, T t) throws IOException {
+    public <T> java.nio.channels.DatagramChannel setOption(SocketOption<T> socketOption, T t)
+        throws IOException {
       throw new UnsupportedOperationException();
     }
 
@@ -135,7 +134,8 @@ class DatagramChannelErrorHandlingTest {
     }
 
     @Override
-    public java.nio.channels.DatagramChannel connect(SocketAddress socketAddress) throws IOException {
+    public java.nio.channels.DatagramChannel connect(SocketAddress socketAddress)
+        throws IOException {
       connectAddress = socketAddress;
       isConnected = true;
       return this;
@@ -189,12 +189,15 @@ class DatagramChannelErrorHandlingTest {
     }
 
     @Override
-    public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface) throws IOException {
+    public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface)
+        throws IOException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface, InetAddress inetAddress1) throws IOException {
+    public MembershipKey join(
+        InetAddress inetAddress, NetworkInterface networkInterface, InetAddress inetAddress1)
+        throws IOException {
       throw new UnsupportedOperationException();
     }
 
