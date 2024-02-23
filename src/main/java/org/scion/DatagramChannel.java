@@ -29,22 +29,22 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
   private final ByteBuffer bufferReceive;
   private final ByteBuffer bufferSend;
 
-  protected DatagramChannel() throws IOException {
-    this(null);
-  }
-
-  protected DatagramChannel(ScionService service) throws IOException {
-    super(service);
+  protected DatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
+    super(service, channel);
     this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
     this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
   }
 
   public static DatagramChannel open() throws IOException {
-    return new DatagramChannel();
+    return open(Scion.defaultService());
   }
 
   public static DatagramChannel open(ScionService service) throws IOException {
-    return new DatagramChannel(service);
+    return open(service, java.nio.channels.DatagramChannel.open());
+  }
+
+  public static DatagramChannel open(ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
+    return new DatagramChannel(service, channel);
   }
 
   // TODO we return `void` here. If we implement SelectableChannel

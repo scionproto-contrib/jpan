@@ -229,6 +229,10 @@ public class ScionService {
     return DatagramChannel.open(this);
   }
 
+  public DatagramChannel openChannel(java.nio.channels.DatagramChannel channel) throws IOException {
+    return DatagramChannel.open(this, channel);
+  }
+
   Daemon.ASResponse getASInfo() {
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;

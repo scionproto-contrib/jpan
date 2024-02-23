@@ -37,7 +37,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private RequestPath path;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
-  private ScionService service;
+  private final ScionService service;
   private int cfgExpirationSafetyMargin =
       ScionUtil.getPropertyOrEnv(
           Constants.PROPERTY_PATH_EXPIRY_MARGIN,
@@ -46,7 +46,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.Message> errorListener;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
-    this.channel = java.nio.channels.DatagramChannel.open();
+    this (service, DatagramChannel.open());
+  }
+
+  protected AbstractDatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel) {
+    this.channel = channel;
     this.service = service;
   }
 
@@ -78,14 +82,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   public synchronized ScionService getService() {
-    if (service == null) {
-      service = Scion.defaultService();
-    }
     return this.service;
-  }
-
-  public synchronized void setService(ScionService service) {
-    this.service = service;
   }
 
   protected DatagramChannel channel() {

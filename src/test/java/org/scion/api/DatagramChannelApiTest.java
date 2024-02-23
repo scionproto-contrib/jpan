@@ -278,16 +278,25 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getService() throws IOException {
+  void getService_default() throws IOException {
+    ScionService service1 = Scion.defaultService();
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     try (DatagramChannel channel = DatagramChannel.open()) {
-      assertEquals(Scion.defaultService(), channel.getService());
-      ScionService service1 = channel.getService();
-      ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-      channel.setService(service2);
+      assertEquals(service1, channel.getService());
+      assertNotEquals(service2, channel.getService());
+    }
+    service2.close();
+  }
+
+  @Test
+  void getService_non_default() throws IOException {
+    ScionService service1 = Scion.defaultService();
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    try (DatagramChannel channel = DatagramChannel.open(service2)) {
       assertEquals(service2, channel.getService());
       assertNotEquals(service1, channel.getService());
-      service2.close();
     }
+    service2.close();
   }
 
   @Test
@@ -516,7 +525,7 @@ class DatagramChannelApiTest {
 
       // send should NOT set a path
       channel.send(buffer, addr);
-      // TODO assertNull(channel.getCurrentPath());
+      assertNull(channel.getCurrentPath());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
