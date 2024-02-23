@@ -111,6 +111,24 @@ try (DatagramChannel channel = DatagramChannel.open()) {
 }
 ```
 
+### Local installation
+
+If you want to work on the SCION Java library or simply browse the code locally, you can
+install it locally.
+
+The SCION Java client is implemented as a 
+[Maven artifact](https://central.sonatype.com/artifact/org.scion/scion-java-client).
+Many IDEs comes with maven plugins. If you want to use Maven from the command line, you
+can install it with `sudo apt install maven` (Ubuntu etc) or download it 
+[here](https://maven.apache.org/index.html).
+
+To install it locally:
+```bash 
+git clone https://github.com/netsec-ethz/scion-java-client.git
+cd scion-java-client
+mvn clean install
+```
+
 ### Demos
 
 Some demos can be found in [src/test/java/org/scion/demo](src/test/java/org/scion/demo).

@@ -48,8 +48,6 @@ public class ScmpTracerouteDemo {
     switch (network) {
       case MOCK_TOPOLOGY:
         {
-          //          DemoTopology.configureTiny110_112();
-          //          MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();

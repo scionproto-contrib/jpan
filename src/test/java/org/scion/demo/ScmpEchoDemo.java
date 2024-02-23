@@ -91,10 +91,9 @@ public class ScmpEchoDemo {
           // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
-          // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
-          demo.runDemo(DemoConstants.iaETH, ethzIP);
-          // TODO FIX, this doesn't work?!?!?!
-          demo.runDemo(DemoConstants.iaAnapayaHK, serviceIP);
+          demo.runDemo(DemoConstants.iaOVGU, serviceIP);
+          // demo.runDemo(DemoConstants.iaETH, ethzIP);
+          // demo.runDemo(DemoConstants.iaGEANT, serviceIP);
           break;
         }
     }
@@ -107,28 +106,18 @@ public class ScmpEchoDemo {
     ByteBuffer data = ByteBuffer.allocate(0);
 
     println("Listening at port " + localPort + " ...");
-    println(
-        "PING "
-            + ScionUtil.toStringIA(dstIA)
-            + ","
-            + dstAddress.getHostString()
-            + ":"
-            + dstAddress.getPort()
-            + " pld="
-            + data.remaining()
-            + "B scion_pkt="
-            + 0 // TODO
-            + "B");
 
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      for (int i = 0; i < 100; i++) {
+      for (int i = 0; i < 10; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(i, data);
+        if (i == 0) {
+          printHeader(dstIA, dstAddress, data, msg);
+        }
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
-        // TODO proper length
-        String echoMsgStr = (msg.getData().length) + " bytes from ";
+        String echoMsgStr = msg.getSizeReceived() + " bytes from ";
         // TODO proper address
         InetAddress addr = InetAddress.getByAddress(msg.getPath().getDestinationAddress());
-        echoMsgStr += addr.getHostAddress();
+        echoMsgStr += ScionUtil.toStringIA(dstIA) + "," + addr.getHostAddress();
         echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
         if (msg.isTimedOut()) {
           echoMsgStr += " Timed out after";
@@ -142,6 +131,22 @@ public class ScmpEchoDemo {
         }
       }
     }
+  }
+
+  private void printHeader(
+      long dstIA, InetSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
+    println(
+        "PING "
+            + ScionUtil.toStringIA(dstIA)
+            + ","
+            + dstAddress.getHostString()
+            + ":"
+            + dstAddress.getPort()
+            + " pld="
+            + data.remaining()
+            + "B scion_pkt="
+            + msg.getSizeSent()
+            + "B");
   }
 
   private static void println(String msg) {
