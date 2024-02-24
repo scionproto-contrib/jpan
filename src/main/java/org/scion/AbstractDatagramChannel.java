@@ -78,6 +78,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   public synchronized ScionService getService() {
+    // Late and implicit initialization is questionable but probably the best choice here.
+    // 1) Under any conceivable circumstances there should only be one service instance required,
+    //    so defaultService() should yield the 'correct' instance.
+    // 2) defaultService() should also be 'correct' in the sense that no other instance should ever
+    //    be required. The dedicated newServiceXYZ() methods should be unnecessary.
+    //
+    // Why do we do this? It allows us to use DatagramChannel.open() in all situations,
+    // independent of whether we are a client (requires Service) or a server (should not use
+    // Service).
     if (service == null) {
       service = Scion.defaultService();
     }
