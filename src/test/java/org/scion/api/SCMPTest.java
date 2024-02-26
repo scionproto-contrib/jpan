@@ -83,7 +83,7 @@ public class SCMPTest {
   @Test
   void echo_error_invalidMAC() throws IOException {
     ScionPacketInspector spi = ScionPacketInspector.readPacket(ByteBuffer.wrap(PING_ERROR_4_51_HK));
-    assertEquals(Scmp.ScmpTypeCode.TYPE_4_CODE_51, spi.getScmpHeader().getCode());
+    assertEquals(Scmp.TypeCode.TYPE_4_CODE_51, spi.getScmpHeader().getCode());
 
     // Test that error can be parsed without throwing an exception
     ByteBuffer buffer = ByteBuffer.wrap(PING_ERROR_4_51_HK);
@@ -111,7 +111,7 @@ public class SCMPTest {
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Scmp.EchoMessage result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
       assertEquals(42, result.getSequenceNumber());
-      assertEquals(Scmp.ScmpTypeCode.TYPE_129, result.getTypeCode());
+      assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
       assertArrayEquals(data, result.getData());
@@ -136,7 +136,7 @@ public class SCMPTest {
 
       // try again
       Scmp.EchoMessage result2 = channel.sendEchoRequest(43, ByteBuffer.allocate(0));
-      assertEquals(Scmp.ScmpTypeCode.TYPE_129, result2.getTypeCode());
+      assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
       assertTrue(result2.getNanoSeconds() > 0);
       assertTrue(result2.getNanoSeconds() < 10_000_000); // 10 ms
@@ -168,12 +168,12 @@ public class SCMPTest {
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
-      MockNetwork.returnScmpErrorOnNextPacket(Scmp.ScmpTypeCode.TYPE_1_CODE_0);
+      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       Throwable t =
           assertThrows(
               IOException.class, () -> channel.sendEchoRequest(42, ByteBuffer.allocate(0)));
       assertTrue(listenerWasTriggered.get());
-      assertTrue(t.getMessage().contains(Scmp.ScmpTypeCode.TYPE_1_CODE_0.getText()));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
@@ -199,7 +199,7 @@ public class SCMPTest {
       int n = 0;
       for (Scmp.TracerouteMessage result : results) {
         assertEquals(n++, result.getSequenceNumber());
-        assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getTypeCode());
+        assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode());
         assertTrue(result.getNanoSeconds() > 0);
         assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
         assertFalse(result.isTimedOut());
@@ -233,7 +233,7 @@ public class SCMPTest {
       assertEquals(1, results1.size());
       for (Scmp.TracerouteMessage result : results1) {
         assertTrue(result.isTimedOut());
-        assertEquals(Scmp.ScmpTypeCode.TYPE_130, result.getTypeCode());
+        assertEquals(Scmp.TypeCode.TYPE_130, result.getTypeCode());
         assertEquals(100 * 1_000_000, result.getNanoSeconds());
       }
 
@@ -242,7 +242,7 @@ public class SCMPTest {
       assertEquals(2, results2.size());
       for (Scmp.TracerouteMessage result : results2) {
         assertFalse(result.isTimedOut());
-        assertEquals(Scmp.ScmpTypeCode.TYPE_131, result.getTypeCode());
+        assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode());
       }
     } finally {
       MockNetwork.stopTiny();
@@ -271,10 +271,10 @@ public class SCMPTest {
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
-      MockNetwork.returnScmpErrorOnNextPacket(Scmp.ScmpTypeCode.TYPE_1_CODE_0);
+      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       Throwable t = assertThrows(IOException.class, channel::sendTracerouteRequest);
       assertTrue(listenerWasTriggered.get());
-      assertTrue(t.getMessage().contains(Scmp.ScmpTypeCode.TYPE_1_CODE_0.getText()));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }

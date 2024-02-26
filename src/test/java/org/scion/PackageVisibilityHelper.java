@@ -46,7 +46,7 @@ public class PackageVisibilityHelper {
     return ScionHeaderParser.extractNextHeader(packet);
   }
 
-  public static Scmp.Message createMessage(Scmp.ScmpType type, Path path) {
+  public static Scmp.Message createMessage(Scmp.Type type, Path path) {
     return Scmp.createMessage(type, path);
   }
 

@@ -16,9 +16,9 @@ package org.scion.internal;
 
 import static org.scion.Scmp.EchoMessage;
 import static org.scion.Scmp.Message;
-import static org.scion.Scmp.ScmpType;
-import static org.scion.Scmp.ScmpTypeCode;
 import static org.scion.Scmp.TracerouteMessage;
+import static org.scion.Scmp.Type;
+import static org.scion.Scmp.TypeCode;
 
 import java.nio.ByteBuffer;
 
@@ -36,7 +36,7 @@ public class ScmpParser {
 
   public static void buildScmpPing(
       ByteBuffer buffer, int identifier, int sequenceNumber, byte[] data) {
-    buffer.put(ByteUtil.toByte(ScmpType.INFO_128.id()));
+    buffer.put(ByteUtil.toByte(Type.INFO_128.id()));
     buffer.put(ByteUtil.toByte(0));
     buffer.putShort((short) 0); // TODO checksum
     buffer.putShort((short) identifier); // unsigned
@@ -46,7 +46,7 @@ public class ScmpParser {
 
   public static void buildScmpPing(
       ByteBuffer buffer, int identifier, int sequenceNumber, ByteBuffer data) {
-    buffer.put(ByteUtil.toByte(ScmpType.INFO_128.id()));
+    buffer.put(ByteUtil.toByte(Type.INFO_128.id()));
     buffer.put(ByteUtil.toByte(0));
     buffer.putShort((short) 0); // TODO checksum
     buffer.putShort((short) identifier); // unsigned
@@ -55,7 +55,7 @@ public class ScmpParser {
   }
 
   public static void buildScmpTraceroute(ByteBuffer buffer, int identifier, int sequenceNumber) {
-    buffer.put(ByteUtil.toByte(ScmpType.INFO_130.id()));
+    buffer.put(ByteUtil.toByte(Type.INFO_130.id()));
     buffer.put(ByteUtil.toByte(0));
     buffer.putShort((short) 0); // TODO checksum
     buffer.putShort((short) identifier); // unsigned
@@ -75,9 +75,9 @@ public class ScmpParser {
     buffer.putLong(0);
   }
 
-  public static ScmpType extractType(ByteBuffer data) {
+  public static Type extractType(ByteBuffer data) {
     // Avoid changing the position!
-    return ScmpType.parse(ByteUtil.toUnsigned(data.get(data.position())));
+    return Type.parse(ByteUtil.toUnsigned(data.get(data.position())));
   }
 
   /**
@@ -93,8 +93,8 @@ public class ScmpParser {
     data.getShort(); // checksum
     // TODO validate checksum
 
-    ScmpType st = ScmpType.parse(type);
-    ScmpTypeCode sc = ScmpTypeCode.parse(type, code);
+    Type st = Type.parse(type);
+    TypeCode sc = TypeCode.parse(type, code);
     int short1 = ByteUtil.toUnsigned(data.getShort());
     int short2 = ByteUtil.toUnsigned(data.getShort());
     holder.setMessageArgs(sc, short1, short2);

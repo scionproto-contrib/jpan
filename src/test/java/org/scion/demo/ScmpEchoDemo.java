@@ -77,8 +77,13 @@ public class ScmpEchoDemo {
         }
       case MINIMAL_PROTO:
         {
-          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_1111/topology.json");
-          // Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
+          System.setProperty(
+              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+              "topologies/minimal/ASff00_0_1111/topology.json");
+          // System.setProperty(Constants.PROPERTY_DAEMON_HOST,
+          // toHost(DemoConstants.daemon1111_minimal));
+          // System.setProperty(Constants.PROPERTY_DAEMON_PORT,
+          // toPort(DemoConstants.daemon1111_minimal));
           ScmpEchoDemo demo = new ScmpEchoDemo();
           demo.runDemo(DemoConstants.ia211, serviceIP);
           // demo.runDemo(DemoConstants.ia111, toAddr(DemoConstants.daemon111_minimal));
@@ -87,8 +92,8 @@ public class ScmpEchoDemo {
         }
       case PRODUCTION:
         {
-          Scion.newServiceWithDNS("ethz.ch");
-          // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+          System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
+          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
           demo.runDemo(DemoConstants.iaOVGU, serviceIP);
@@ -100,8 +105,7 @@ public class ScmpEchoDemo {
   }
 
   private void runDemo(long dstIA, InetSocketAddress dstAddress) throws IOException {
-    ScionService service = Scion.defaultService();
-    List<RequestPath> paths = service.getPaths(dstIA, dstAddress);
+    List<RequestPath> paths = Scion.defaultService().getPaths(dstIA, dstAddress);
     RequestPath path = paths.get(0);
     ByteBuffer data = ByteBuffer.allocate(0);
 
@@ -159,5 +163,15 @@ public class ScmpEchoDemo {
     int posColon = addrString.indexOf(':');
     InetAddress addr = InetAddress.getByName(addrString.substring(0, posColon));
     return new InetSocketAddress(addr, 30041);
+  }
+
+  private static String toHost(String addrString) {
+    int posColon = addrString.indexOf(':');
+    return addrString.substring(0, posColon);
+  }
+
+  private static String toPort(String addrString) {
+    int posColon = addrString.indexOf(':');
+    return addrString.substring(posColon + 1);
   }
 }
