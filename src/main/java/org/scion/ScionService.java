@@ -121,11 +121,6 @@ public class ScionService {
       }
       throw e;
     }
-    synchronized (LOCK) {
-      if (DEFAULT == null) {
-        DEFAULT = this;
-      }
-    }
   }
 
   /**
