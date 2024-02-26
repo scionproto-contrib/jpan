@@ -176,12 +176,6 @@ public class Segments {
     raw.putInt(i0);
 
     // info fields
-    if (hopCount0 == 0) {
-      // TODO
-      // This can probably happen if we start in a CORE AS!
-      // E.g. only coreSegments or only downSegments or core+down
-      throw new UnsupportedOperationException();
-    }
     long[] endingASes = new long[2];
     boolean reversed0 = isReversed(seg0, brLookup.getLocalIsdAs(), endingASes);
     writeInfoField(raw, info0, reversed0);
@@ -223,7 +217,7 @@ public class Segments {
     path.setExpiration(Timestamp.newBuilder().setSeconds(minExp).build());
     path.setMtu(minMtu.v);
 
-    // TODO implement this
+    // TODO where do we get these?
     //    segUp.getSegmentInfo();
     //    path.setLatency();
     //    path.setInternalHops();
@@ -260,7 +254,6 @@ public class Segments {
       ByteBuffer raw, Seg.SegmentInformation info, boolean reversed) {
     int inf0 = ((reversed ? 0 : 1) << 24) | info.getSegmentId();
     raw.putInt(inf0);
-    // TODO in the daemon's path, all segments have the same timestamp....
     raw.putInt(ByteUtil.toInt(info.getTimestamp()));
   }
 
@@ -276,7 +269,6 @@ public class Segments {
     for (int i = 0; i < n; i++) {
       int pos = reversed ? (n - i - 1) : i;
       Seg.ASEntrySignedBody body = getBody(pathSegment.getAsEntriesList().get(pos));
-      Seg.HopEntry hopEntry = body.getHopEntry();
       Seg.HopField hopField = body.getHopEntry().getHopField();
 
       raw.put((byte) 0);
@@ -292,10 +284,6 @@ public class Segments {
         raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
       minExp.v = Math.min(minExp.v, hopField.getExpTime());
-      // TODO implement for "reversed"?
-      // if (i < n - 1) {  // TODO correct? The last one always appear to be 0
-      //   minMtu.v = Math.min(minMtu.v, hopEntry.getIngressMtu());
-      // }
       minMtu.v = Math.min(minMtu.v, body.getMtu());
 
       boolean addInterfaces = (reversed && pos > 0) || (!reversed && pos < n - 1);
@@ -303,13 +291,6 @@ public class Segments {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
         path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
-        //        System.out.println(
-        //            "IF-0: "
-        //                + hopField.getIngress()
-        //                + " / "
-        //                + hopField.getEgress()
-        //                + " --> "
-        //                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
         int pos2 = reversed ? pos - 1 : pos + 1;
@@ -317,13 +298,6 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
-        //        System.out.println(
-        //            "IF-2: "
-        //                + hopField2.getIngress()
-        //                + " / "
-        //                + hopField2.getEgress()
-        //                + " --> "
-        //                + path.getInterfaces(path.getInterfacesCount() - 1).getId());
       }
     }
   }
