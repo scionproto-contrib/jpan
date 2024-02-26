@@ -171,10 +171,9 @@ public class ScionService {
         DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
         return DEFAULT;
       } catch (ScionRuntimeException e) {
-        // Ignore
+        throw new ScionRuntimeException(
+            "Could not connect to daemon, DNS or bootstrap resource.", e);
       }
-
-      throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
   }
 

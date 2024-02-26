@@ -18,13 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.*;
-import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
-import java.nio.channels.MembershipKey;
-import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
@@ -88,130 +84,5 @@ class DatagramChannelErrorHandlingTest {
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
     assertEquals(message, pong);
-  }
-
-  private static class TestChannel extends java.nio.channels.DatagramChannel {
-    private boolean isOpen = true;
-    private boolean isConnected = false;
-    private boolean isBlocking = false;
-    private SocketAddress bindAddress;
-    private SocketAddress connectAddress;
-
-    protected TestChannel() {
-      super(SelectorProvider.provider());
-    }
-
-    @Override
-    public java.nio.channels.DatagramChannel bind(SocketAddress socketAddress) throws IOException {
-      bindAddress = socketAddress;
-      return this;
-    }
-
-    @Override
-    public <T> java.nio.channels.DatagramChannel setOption(SocketOption<T> socketOption, T t)
-        throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public <T> T getOption(SocketOption<T> socketOption) throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Set<SocketOption<?>> supportedOptions() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public DatagramSocket socket() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isConnected() {
-      return isConnected;
-    }
-
-    @Override
-    public java.nio.channels.DatagramChannel connect(SocketAddress socketAddress)
-        throws IOException {
-      connectAddress = socketAddress;
-      isConnected = true;
-      return this;
-    }
-
-    @Override
-    public java.nio.channels.DatagramChannel disconnect() throws IOException {
-      connectAddress = null;
-      isConnected = false;
-      return this;
-    }
-
-    @Override
-    public SocketAddress getRemoteAddress() throws IOException {
-      return connectAddress;
-    }
-
-    @Override
-    public SocketAddress receive(ByteBuffer byteBuffer) throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int send(ByteBuffer byteBuffer, SocketAddress socketAddress) throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int read(ByteBuffer byteBuffer) throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long read(ByteBuffer[] byteBuffers, int i, int i1) throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int write(ByteBuffer byteBuffer) throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long write(ByteBuffer[] byteBuffers, int i, int i1) throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public SocketAddress getLocalAddress() throws IOException {
-      return bindAddress;
-    }
-
-    @Override
-    public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface)
-        throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public MembershipKey join(
-        InetAddress inetAddress, NetworkInterface networkInterface, InetAddress inetAddress1)
-        throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected void implCloseSelectableChannel() throws IOException {
-      isConnected = false;
-      isOpen = false;
-      connectAddress = null;
-      bindAddress = null;
-    }
-
-    @Override
-    protected void implConfigureBlocking(boolean b) throws IOException {
-      this.isBlocking = b;
-    }
   }
 }

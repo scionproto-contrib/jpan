@@ -37,7 +37,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private RequestPath path;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
-  private final ScionService service;
+  private ScionService service;
   private int cfgExpirationSafetyMargin =
       ScionUtil.getPropertyOrEnv(
           Constants.PROPERTY_PATH_EXPIRY_MARGIN,
@@ -59,6 +59,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     channel.configureBlocking(block);
   }
 
+  // `protected` because it should not be visible in ScmpChannel API.
   protected synchronized boolean isBlocking() {
     return channel.isBlocking();
   }
@@ -80,6 +81,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     if (path != null) {
       updatePath(path);
     }
+  }
+
+  protected synchronized ScionService getOrCreateService() {
+    if (service == null) {
+      service = ScionService.defaultService();
+    }
+    return this.service;
   }
 
   public synchronized ScionService getService() {
@@ -139,7 +147,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       throw new IllegalArgumentException(
           "connect() requires an InetSocketAddress or a ScionSocketAddress.");
     }
-    return connect(pathPolicy.filter(getService().getPaths((InetSocketAddress) addr)));
+    return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
   }
 
   /**
@@ -174,7 +182,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return path;
   }
 
-  protected void setPath(RequestPath path) {
+  protected synchronized void setPath(RequestPath path) {
     this.path = path;
   }
 
@@ -351,7 +359,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         channel.connect(connection);
       }
 
-      srcIA = getService().getLocalIsdAs();
+      srcIA = getOrCreateService().getLocalIsdAs();
       // Get external host address. This must be done *after* refreshing the path!
       InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
       srcAddress = srcSocketAddress.getAddress().getAddress();
@@ -381,7 +389,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   private RequestPath updatePath(RequestPath path) throws IOException {
     // expired, get new path
-    RequestPath newPath = pathPolicy.filter(getService().getPaths(path));
+    RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
 
     if (isConnected) { // equal to !isBound at this point
       if (!newPath.getFirstHopAddress().equals(this.connection)) {

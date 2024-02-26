@@ -37,7 +37,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
   }
 
   public static DatagramChannel open() throws IOException {
-    return open(Scion.defaultService());
+    return open(null);
   }
 
   public static DatagramChannel open(ScionService service) throws IOException {
@@ -87,7 +87,9 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
-    send(srcBuffer, getPathPolicy().filter(getService().getPaths((InetSocketAddress) destination)));
+    send(
+        srcBuffer,
+        getPathPolicy().filter(getOrCreateService().getPaths((InetSocketAddress) destination)));
   }
 
   /**

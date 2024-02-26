@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#14](https://github.com/tzaeschke/phtree-cpp/pull/14), 
   [#15](https://github.com/tzaeschke/phtree-cpp/pull/15),
   [#17](https://github.com/tzaeschke/phtree-cpp/pull/17)
+- BREAKING CHANGE:`ScionService` instances created via `Scion.newXYZ`
+  will not be considered by `Scion.defaultService()`. Also, `DatagramChannel.getService()`
+  does not create a service if none exists.
+  [#18](https://github.com/tzaeschke/phtree-cpp/pull/18)
 
 ### Fixed
 - Fixed: SCMP problem when pinging local AS.

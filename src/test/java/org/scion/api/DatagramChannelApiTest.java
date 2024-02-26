@@ -18,10 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.protobuf.Timestamp;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.StandardSocketOptions;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
@@ -282,8 +279,13 @@ class DatagramChannelApiTest {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     try (DatagramChannel channel = DatagramChannel.open()) {
-      assertEquals(service1, channel.getService());
+      assertNull(channel.getService());
+
+      // trigger service initialization in channel
+      RequestPath path = PackageVisibilityHelper.createDummyPath();
+      channel.send(ByteBuffer.allocate(0), path);
       assertNotEquals(service2, channel.getService());
+      assertEquals(service1, channel.getService());
     }
     service2.close();
   }
