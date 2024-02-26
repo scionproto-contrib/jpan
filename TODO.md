@@ -72,7 +72,7 @@
 ## Plan
 
 ### 0.1.0
-- BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
+- Review + clean up
 
 ### 0.2.0
 - SCMP errors handling (above)

@@ -37,11 +37,11 @@ public class ScmpChannel implements AutoCloseable {
   private final InternalChannel channel;
 
   ScmpChannel(RequestPath path) throws IOException {
-    this(path, 12345);
+    this(Scion.defaultService(), path, 12345);
   }
 
-  ScmpChannel(RequestPath path, int port) throws IOException {
-    channel = new InternalChannel(Scion.defaultService(), path, port);
+  ScmpChannel(ScionService service, RequestPath path, int port) throws IOException {
+    channel = new InternalChannel(service, path, port);
   }
 
   /**

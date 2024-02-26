@@ -365,6 +365,19 @@ public class Scmp {
    * @return New SCMP channel
    */
   public static ScmpChannel createChannel(RequestPath path, int listeningPort) throws IOException {
-    return new ScmpChannel(path, listeningPort);
+    return new ScmpChannel(Scion.defaultService(), path, listeningPort);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param service the ScionService instance
+   * @param path Path to destination
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  public static ScmpChannel createChannel(ScionService service, RequestPath path, int listeningPort)
+      throws IOException {
+    return new ScmpChannel(service, path, listeningPort);
   }
 }

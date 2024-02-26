@@ -57,24 +57,32 @@ public class ScmpTracerouteDemo {
         }
       case TINY_PROTO:
         {
-          // Scion.newServiceWithTopologyFile("topologies/scionproto-tiny-110.json");
-          Scion.newServiceWithDaemon(DemoConstants.daemon110_tiny);
+          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+          // "topologies/scionproto-tiny-110.json");
+          System.setProperty(
+              Constants.PROPERTY_DAEMON_HOST, toHost(DemoConstants.daemon1111_minimal));
+          System.setProperty(
+              Constants.PROPERTY_DAEMON_PORT, toPort(DemoConstants.daemon1111_minimal));
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia110);
           break;
         }
       case MINIMAL_PROTO:
         {
-          // Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_111/topology.json");
-          Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
+          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+          // "topologies/minimal/ASff00_0_1111/topology.json");
+          System.setProperty(
+              Constants.PROPERTY_DAEMON_HOST, toHost(DemoConstants.daemon1111_minimal));
+          System.setProperty(
+              Constants.PROPERTY_DAEMON_PORT, toPort(DemoConstants.daemon1111_minimal));
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
         {
-          Scion.newServiceWithDNS("inf.ethz.ch");
-          // Scion.newServiceWithBootstrapServer("129.132.121.175:8041");
+          System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
+          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
           demo.runDemo(DemoConstants.iaAnapayaHK);
@@ -116,5 +124,15 @@ public class ScmpTracerouteDemo {
     if (PRINT) {
       System.out.println(msg);
     }
+  }
+
+  private static String toHost(String addrString) {
+    int posColon = addrString.indexOf(':');
+    return addrString.substring(0, posColon);
+  }
+
+  private static String toPort(String addrString) {
+    int posColon = addrString.indexOf(':');
+    return addrString.substring(posColon + 1);
   }
 }
