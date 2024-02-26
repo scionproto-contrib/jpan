@@ -216,6 +216,7 @@ public abstract class AbstractSegmentsMinimalTest {
     addResponse110_1111();
     addResponse110_1112();
     addResponse110_1121();
+    addResponse120_210();
 
     // TODO redo the following ones?
     // addResponse111_110();
@@ -450,6 +451,36 @@ public abstract class AbstractSegmentsMinimalTest {
         AS_121, false, AS_120, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 
+  private void addResponse120_210() {
+    //  Requesting segments: 1-ff00:0:120 -> 2-ff00:0:210
+    //  SEG: key=SEGMENT_TYPE_CORE -> n=1
+    //  PathSeg: size=10
+    //    SegInfo:  ts=2024-02-26T14:30:53Z  id=18204
+    //    AS: signed=95   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-02-26T14:30:53.689893427Z
+    // meta=0  data=10
+    //    AS Body: IA=2-ff00:0:210 nextIA=1-ff00:0:120  mtu=1280
+    //      HopEntry: true mtu=0
+    //      HopField: exp=63 ingress=0 egress=105
+    //    AS: signed=89   signature size=70
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-02-26T14:30:54.173096887Z
+    // meta=0  data=176
+    //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
+    //      HopEntry: true mtu=1472
+    //      HopField: exp=63 ingress=210 egress=0
+
+    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 105));
+    Seg.ASEntry ase00 = buildASEntry(AS_210, AS_120, 1280, he00);
+    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 210, 0));
+    Seg.ASEntry ase01 = buildASEntry(AS_120, ZERO, 1472, he01);
+    Seg.PathSegment path0 = buildPath(18204, ase00, ase01);
+
+    controlServer.addResponse(
+        AS_120, true, AS_210, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path0));
+    controlServer.addResponse(
+        AS_210, true, AS_120, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path0));
+  }
+
   private void addResponse110_210() {
     //  Requesting segments: 1-ff00:0:110 -> 2-ff00:0:210
     //  SEG: key=SEGMENT_TYPE_CORE -> n=1
@@ -507,5 +538,7 @@ public abstract class AbstractSegmentsMinimalTest {
 
     controlServer.addResponse(
         AS_210, true, AS_211, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_DOWN, path0));
+    controlServer.addResponse(
+        AS_211, false, AS_210, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
   }
 }

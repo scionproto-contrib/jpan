@@ -32,12 +32,12 @@ public class ProtobufPathDemo {
 
   public static void main(String[] args) {
     try (Scion.CloseableService daemon =
-        Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal)) {
+        Scion.newServiceWithDaemon(DemoConstants.daemon121_minimal)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(DemoConstants.ia1111, DemoConstants.ia1121);
+      demo.testPathsDaemon(DemoConstants.ia121, DemoConstants.ia210);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -116,7 +116,7 @@ public class ProtobufPathDemo {
     String addr111 = "127.0.0.18:31006";
     // ScionService csSercice = Scion.newServiceWithBootstrapServerIP(addr111);
     ScionService csSercice =
-        Scion.newServiceWithTopologyFile("topologies/scionproto-tiny-111.json");
+        Scion.newServiceWithTopologyFile("topologies/scionproto-tiny-120.json");
     List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(csSercice, srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {

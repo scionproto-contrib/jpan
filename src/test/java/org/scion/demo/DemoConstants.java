@@ -42,6 +42,8 @@ public class DemoConstants {
   public static final String daemon110_minimal = "127.0.0.29:30255";
   public static final String daemon111_minimal = "127.0.0.37:30255";
   public static final String daemon1111_minimal = "127.0.0.43:30255";
+  public static final String daemon120_minimal = "127.0.0.76:30255";
+  public static final String daemon121_minimal = "127.0.0.83:30255";
   public static final String daemon210_minimal = "127.0.0.92:30255";
   public static final String csAddr110_minimal = "127.0.0.28:31000";
   public static final String csAddr111_minimal = "127.0.0.36:31014";

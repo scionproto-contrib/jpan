@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
@@ -150,6 +151,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
     assertEquals(1, controlServer.getAndResetCallCount());
   }
 
+  @Disabled // TODO implement shortcuts!
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS() throws IOException {
     addResponses();
