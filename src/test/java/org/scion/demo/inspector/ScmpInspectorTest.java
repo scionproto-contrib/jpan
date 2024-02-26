@@ -93,8 +93,8 @@ public class ScmpInspectorTest {
     ByteBuffer data = ByteBuffer.wrap(SCMP_PKT_SIZE).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();
-    assertEquals(Scmp.ScmpTypeCode.TYPE_4_CODE_19, hdr.getCode());
-    assertEquals(Scmp.ScmpType.ERROR_4, hdr.getType());
+    assertEquals(Scmp.TypeCode.TYPE_4_CODE_19, hdr.getCode());
+    assertEquals(Scmp.Type.ERROR_4, hdr.getType());
   }
 
   @Test
@@ -102,8 +102,8 @@ public class ScmpInspectorTest {
     ByteBuffer data = ByteBuffer.wrap(SCMP_PACKET_SIZE2).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();
-    assertEquals(Scmp.ScmpTypeCode.TYPE_4_CODE_19, hdr.getCode());
-    assertEquals(Scmp.ScmpType.ERROR_4, hdr.getType());
+    assertEquals(Scmp.TypeCode.TYPE_4_CODE_19, hdr.getCode());
+    assertEquals(Scmp.Type.ERROR_4, hdr.getType());
   }
 
   @Test
@@ -111,7 +111,7 @@ public class ScmpInspectorTest {
     ByteBuffer data = ByteBuffer.wrap(WRONG_SRC_ISD_AS).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();
-    assertEquals(Scmp.ScmpTypeCode.TYPE_4_CODE_33, hdr.getCode());
-    assertEquals(Scmp.ScmpType.ERROR_4, hdr.getType());
+    assertEquals(Scmp.TypeCode.TYPE_4_CODE_33, hdr.getCode());
+    assertEquals(Scmp.Type.ERROR_4, hdr.getType());
   }
 }

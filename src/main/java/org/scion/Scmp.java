@@ -35,7 +35,7 @@ public class Scmp {
     }
   }
 
-  public enum ScmpType implements ParseEnum {
+  public enum Type implements ParseEnum {
     // SCMP error messages:
     ERROR_1(1, "Destination Unreachable"),
     ERROR_2(2, "Packet Too Big"),
@@ -59,13 +59,13 @@ public class Scmp {
     final int id;
     final String text;
 
-    ScmpType(int id, String text) {
+    Type(int id, String text) {
       this.id = id;
       this.text = text;
     }
 
-    public static ScmpType parse(int id) {
-      return ParseEnum.parse(ScmpType.class, id);
+    public static Type parse(int id) {
+      return ParseEnum.parse(Type.class, id);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class Scmp {
     }
   }
 
-  public enum ScmpTypeCode implements ParseEnum {
+  public enum TypeCode implements ParseEnum {
     // SCMP type 1 messages:
     TYPE_1_CODE_0(1, 0, "No route to destination"),
     TYPE_1_CODE_1(1, 1, "Communication administratively denied"),
@@ -132,16 +132,16 @@ public class Scmp {
     final int id;
     final String text;
 
-    ScmpTypeCode(int type, int code, String text) {
+    TypeCode(int type, int code, String text) {
       this.type = type;
       this.id = code;
       this.text = text;
     }
 
-    public static ScmpTypeCode parse(int type, int code) {
-      ScmpTypeCode[] values = ScmpTypeCode.class.getEnumConstants();
+    public static TypeCode parse(int type, int code) {
+      TypeCode[] values = TypeCode.class.getEnumConstants();
       for (int i = 0; i < values.length; i++) {
-        ScmpTypeCode pe = values[i];
+        TypeCode pe = values[i];
         if (pe.id() == code && pe.type == type) {
           return pe;
         }
@@ -167,7 +167,7 @@ public class Scmp {
     }
 
     public boolean isError() {
-      return type >= ScmpType.ERROR_1.id && type <= ScmpType.ERROR_127.id;
+      return type >= Type.ERROR_1.id && type <= Type.ERROR_127.id;
     }
 
     @Override
@@ -177,13 +177,13 @@ public class Scmp {
   }
 
   public static class Message {
-    private ScmpTypeCode typeCode;
+    private TypeCode typeCode;
     private int identifier;
     private int sequenceNumber;
     private Path path;
 
     /** DO NOT USE! */
-    public Message(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public Message(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this.typeCode = typeCode;
       this.identifier = identifier;
       this.sequenceNumber = sequenceNumber;
@@ -198,7 +198,7 @@ public class Scmp {
       return sequenceNumber;
     }
 
-    public ScmpTypeCode getTypeCode() {
+    public TypeCode getTypeCode() {
       return typeCode;
     }
 
@@ -210,7 +210,7 @@ public class Scmp {
       this.path = path;
     }
 
-    public void setMessageArgs(ScmpTypeCode sc, int identifier, int sequenceNumber) {
+    public void setMessageArgs(TypeCode sc, int identifier, int sequenceNumber) {
       this.typeCode = sc;
       this.identifier = identifier;
       this.sequenceNumber = sequenceNumber;
@@ -221,7 +221,7 @@ public class Scmp {
     private long nanoSeconds;
     private boolean timedOut = false;
 
-    private TimedMessage(ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    private TimedMessage(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
     }
 
@@ -248,19 +248,19 @@ public class Scmp {
     private int sizeReceived;
 
     private EchoMessage(
-        ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
+        TypeCode typeCode, int identifier, int sequenceNumber, Path path, byte[] data) {
       super(typeCode, identifier, sequenceNumber, path);
       this.data = data;
     }
 
     public static EchoMessage createEmpty(Path path) {
-      return new EchoMessage(ScmpTypeCode.TYPE_128, -1, -1, path, null);
+      return new EchoMessage(TypeCode.TYPE_128, -1, -1, path, null);
     }
 
     public static EchoMessage createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
       byte[] data = new byte[payload.remaining()];
       payload.get(data);
-      return new EchoMessage(ScmpTypeCode.TYPE_128, -1, sequenceNumber, path, data);
+      return new EchoMessage(TypeCode.TYPE_128, -1, sequenceNumber, path, data);
     }
 
     public byte[] getData() {
@@ -293,26 +293,20 @@ public class Scmp {
     private long isdAs;
     private long ifID;
 
-    private TracerouteMessage(
-        ScmpTypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    private TracerouteMessage(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
 
     public static TracerouteMessage createEmpty(Path path) {
-      return new TracerouteMessage(ScmpTypeCode.TYPE_130, -1, -1, path);
+      return new TracerouteMessage(TypeCode.TYPE_130, -1, -1, path);
     }
 
     public static TracerouteMessage createRequest(int sequenceNumber, Path path) {
-      return new TracerouteMessage(ScmpTypeCode.TYPE_130, -1, sequenceNumber, path);
+      return new TracerouteMessage(TypeCode.TYPE_130, -1, sequenceNumber, path);
     }
 
     public TracerouteMessage(
-        ScmpTypeCode typeCode,
-        int identifier,
-        int sequenceNumber,
-        long isdAs,
-        long ifID,
-        Path path) {
+        TypeCode typeCode, int identifier, int sequenceNumber, long isdAs, long ifID, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
       this.isdAs = isdAs;
       this.ifID = ifID;
@@ -340,7 +334,7 @@ public class Scmp {
     }
   }
 
-  static Scmp.Message createMessage(Scmp.ScmpType type, Path path) {
+  static Scmp.Message createMessage(Type type, Path path) {
     switch (type) {
       case INFO_128:
       case INFO_129:

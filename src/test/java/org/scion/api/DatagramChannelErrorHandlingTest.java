@@ -19,25 +19,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
-import org.scion.testutil.PingPongHelper;
+import org.scion.testutil.ExamplePacket;
+import org.scion.testutil.MockDatagramChannel;
+import org.scion.testutil.MockNetwork;
 
-/** Test path switching (changing first hop) on DatagramChannel. */
+/** Test path switching on DatagramChannel in case of network problems. */
 class DatagramChannelErrorHandlingTest {
-
-  private final PathPolicy alternatingPolicy =
-      new PathPolicy() {
-        private int count = 0;
-
-        @Override
-        public RequestPath filter(List<RequestPath> paths) {
-          return paths.get(count++ % 2);
-        }
-      };
 
   @AfterAll
   public static void afterAll() {
@@ -45,44 +38,37 @@ class DatagramChannelErrorHandlingTest {
     ScionService.closeDefault();
   }
 
+  @Disabled
   @Test
   void testDummyChannel() throws IOException {
-    //    java.nio.channels.DatagramChannel channel2 = new TestChannel();
-    //    DatagramChannel channel = null;
-    //    try {
-    //      channel = Scion.defaultService().openChannel(channel2);
-    //    } finally {
-    //      channel.close();
-    //    }
-  }
+    MockDatagramChannel mock = MockDatagramChannel.open();
+    MockNetwork.startTiny();
+    InetSocketAddress dstAddr = new InetSocketAddress("127.0.0.1", 12345);
+    try (DatagramChannel channel = Scion.defaultService().openChannel()) {
+      AtomicInteger scmpReceived = new AtomicInteger();
+      channel.setScmpErrorListener(
+          message -> {
+            scmpReceived.incrementAndGet();
+            System.out.println("msg: " + message.getTypeCode());
+            throw new IllegalArgumentException();
+          });
+      List<RequestPath> paths = Scion.defaultService().getPaths(ExamplePacket.DST_IA, dstAddr);
+      assertEquals(2, paths.size());
+      RequestPath path0 = paths.get(0);
+      RequestPath path1 = paths.get(0);
+      channel.connect(path0);
+      channel.write(ByteBuffer.allocate(0));
+      assertEquals(path0, channel.getCurrentPath());
 
-  @Test
-  void test() {
-    //    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    //    PingPongHelper.Client clientFn = this::client;
-    //    PingPongHelper pph = new PingPongHelper(1, 2, 10);
-    //    pph.runPingPong(serverFn, clientFn, false);
-    //    assertEquals(2 * 10, MockNetwork.getForwardCount(0));
-    //    assertEquals(2 * 10, MockNetwork.getForwardCount(1));
-    //    assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
-  }
+      // TODO Use mock instead of daemon?
+      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_5);
+      channel.write(ByteBuffer.allocate(0));
+      assertEquals(path0, channel.getCurrentPath());
+      assertEquals(1, scmpReceived.get());
+      // mock.setSendCallback((byteBuffer,path) -> {});
 
-  private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
-    String message = PingPongHelper.MSG + "-" + id;
-    ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-
-    // Use a path policy that alternates between 1st and 2nd path
-    // -> setPathPolicy() sets a new path!
-    channel.setPathPolicy(alternatingPolicy);
-    channel.write(sendBuf);
-
-    // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-    ByteBuffer response = ByteBuffer.allocate(512);
-    int len = channel.read(response);
-    assertEquals(message.length(), len);
-
-    response.flip();
-    String pong = Charset.defaultCharset().decode(response).toString();
-    assertEquals(message, pong);
+    } finally {
+      mock.close();
+    }
   }
 }

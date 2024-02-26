@@ -54,7 +54,7 @@ public class MockNetwork {
   static final AtomicInteger nForwardTotal = new AtomicInteger();
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
-  static final AtomicReference<Scmp.ScmpTypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
+  static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
   public static final int BORDER_ROUTER_PORT1 = 30555;
   private static final int BORDER_ROUTER_PORT2 = 30556;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
@@ -170,7 +170,7 @@ public class MockNetwork {
     dropNextPackets.set(n);
   }
 
-  public static void returnScmpErrorOnNextPacket(Scmp.ScmpTypeCode scmpTypeCode) {
+  public static void returnScmpErrorOnNextPacket(Scmp.TypeCode scmpTypeCode) {
     scmpErrorOnNextPacket.set(scmpTypeCode);
   }
 
@@ -314,7 +314,7 @@ class MockBorderRouter implements Runnable {
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     ResponsePath path =
         PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
-    Scmp.ScmpType type = ScmpParser.extractType(buffer);
+    Scmp.Type type = ScmpParser.extractType(buffer);
     Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
     ScmpParser.consume(buffer, scmpMsg);
     logger.info(
@@ -325,7 +325,7 @@ class MockBorderRouter implements Runnable {
       // This is very basic:
       // - we always answer regardless of whether we are actually the destination.
       // - We do not invert path / addresses
-      sendScmp(Scmp.ScmpTypeCode.TYPE_129, buffer, srcAddress, incoming);
+      sendScmp(Scmp.TypeCode.TYPE_129, buffer, srcAddress, incoming);
     } else if (scmpMsg instanceof Scmp.TracerouteMessage) {
       answerTraceRoute(buffer, srcAddress, incoming);
     } else {
@@ -345,7 +345,7 @@ class MockBorderRouter implements Runnable {
   }
 
   private void sendScmp(
-      Scmp.ScmpTypeCode type, ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel channel)
+      Scmp.TypeCode type, ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel channel)
       throws IOException {
     // send back!
     buffer.rewind();
@@ -368,7 +368,7 @@ class MockBorderRouter implements Runnable {
     ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
     spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
-    scmpHeader.setCode(Scmp.ScmpTypeCode.TYPE_131);
+    scmpHeader.setCode(Scmp.TypeCode.TYPE_131);
     PathHeaderScion phs = spi.getPathHeaderScion();
     for (int i = 0; i < phs.getHopCount(); i++) {
       HopField hf = phs.getHopField(i);

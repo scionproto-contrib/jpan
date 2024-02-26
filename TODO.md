@@ -72,16 +72,15 @@
 ## Plan
 
 ### 0.1.0
-- SCMP error handling (only error, not info)
-  - BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
+- BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
+
+### 0.2.0
+- SCMP errors handling (above)
+  - Especially for type ¨5: External Interface Down" and "6: Internal Connectivity Down"
+- SCION-Proto questions:
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)
   - Why are Java pings 8 bytes shorter than scionproto pings? -> local AS
-Discuss required for 0.1.0:
-- SCMP errors handling (above)
-  - Especially for expired paths / revoked paths / broken paths?  
-
-### 0.2.0
 - Segments:
   - Sorting by weight (see graph.go:195)
   - Consider peering

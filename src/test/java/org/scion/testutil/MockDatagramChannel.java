@@ -20,7 +20,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.MembershipKey;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
+import org.scion.Path;
 import org.scion.ScionSocketOptions;
 
 public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
@@ -35,6 +37,11 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
         throw new UnsupportedOperationException();
       };
 
+  private BiConsumer<ByteBuffer, Path> sendCallback =
+      (byteBuffer, path) -> {
+        throw new UnsupportedOperationException();
+      };
+
   public static MockDatagramChannel open() throws IOException {
     return new MockDatagramChannel();
   }
@@ -45,6 +52,10 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
   public void setReceiveCallback(Function<ByteBuffer, SocketAddress> cb) {
     receiveCallback = cb;
+  }
+
+  public void setSendCallback(BiConsumer<ByteBuffer, Path> cb) {
+    sendCallback = cb;
   }
 
   @Override
