@@ -15,10 +15,12 @@
 package org.scion;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.List;
 import org.scion.internal.InternalConstants;
 import org.scion.internal.ScionHeaderParser;
@@ -69,8 +71,22 @@ public class PackageVisibilityHelper {
         Daemon.Interface.newBuilder()
             .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHopString).build())
             .build();
-    Daemon.Path path = Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).build();
+    Timestamp ts = Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond() + 100).build();
+    Daemon.Path path =
+        Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).setExpiration(ts).build();
     return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
+  }
+
+  public static ResponsePath createDummyResponsePath(
+      byte[] raw,
+      long srcIsdAs,
+      byte[] srcIP,
+      int srcPort,
+      long dstIsdAs,
+      byte[] dstIP,
+      int dstPort,
+      InetSocketAddress firstHop) {
+    return ResponsePath.create(raw, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHop);
   }
 
   public static RequestPath createRequestPath110_112(

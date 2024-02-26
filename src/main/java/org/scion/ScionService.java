@@ -121,11 +121,6 @@ public class ScionService {
       }
       throw e;
     }
-    synchronized (LOCK) {
-      if (DEFAULT == null) {
-        DEFAULT = this;
-      }
-    }
   }
 
   /**
@@ -171,10 +166,9 @@ public class ScionService {
         DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
         return DEFAULT;
       } catch (ScionRuntimeException e) {
-        // Ignore
+        throw new ScionRuntimeException(
+            "Could not connect to daemon, DNS or bootstrap resource.", e);
       }
-
-      throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
   }
 
@@ -227,6 +221,10 @@ public class ScionService {
 
   public DatagramChannel openChannel() throws IOException {
     return DatagramChannel.open(this);
+  }
+
+  public DatagramChannel openChannel(java.nio.channels.DatagramChannel channel) throws IOException {
+    return DatagramChannel.open(this, channel);
   }
 
   Daemon.ASResponse getASInfo() {

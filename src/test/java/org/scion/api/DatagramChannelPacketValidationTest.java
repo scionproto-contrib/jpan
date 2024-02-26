@@ -23,6 +23,7 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
@@ -117,7 +118,7 @@ class DatagramChannelPacketValidationTest {
       throws IOException, InterruptedException {
     barrier = new CountDownLatch(1);
     Thread serverThread = startServer(throwBad, isBlocking);
-    barrier.await(); // Wait for thread to start
+    barrier.await(1, TimeUnit.SECONDS); // Wait for thread to start
 
     // client - send bad message
     for (int i = 0; i < 10; i++) {

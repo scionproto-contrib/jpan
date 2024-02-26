@@ -18,10 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.protobuf.Timestamp;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.StandardSocketOptions;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
@@ -278,16 +275,30 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getService() throws IOException {
+  void getService_default() throws IOException {
+    ScionService service1 = Scion.defaultService();
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     try (DatagramChannel channel = DatagramChannel.open()) {
-      assertEquals(Scion.defaultService(), channel.getService());
-      ScionService service1 = channel.getService();
-      ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-      channel.setService(service2);
+      assertNull(channel.getService());
+
+      // trigger service initialization in channel
+      RequestPath path = PackageVisibilityHelper.createDummyPath();
+      channel.send(ByteBuffer.allocate(0), path);
+      assertNotEquals(service2, channel.getService());
+      assertEquals(service1, channel.getService());
+    }
+    service2.close();
+  }
+
+  @Test
+  void getService_non_default() throws IOException {
+    ScionService service1 = Scion.defaultService();
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    try (DatagramChannel channel = DatagramChannel.open(service2)) {
       assertEquals(service2, channel.getService());
       assertNotEquals(service1, channel.getService());
-      service2.close();
     }
+    service2.close();
   }
 
   @Test
@@ -516,7 +527,7 @@ class DatagramChannelApiTest {
 
       // send should NOT set a path
       channel.send(buffer, addr);
-      // TODO assertNull(channel.getCurrentPath());
+      assertNull(channel.getCurrentPath());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
