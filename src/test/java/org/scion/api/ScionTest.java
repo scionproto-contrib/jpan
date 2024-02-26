@@ -181,6 +181,7 @@ public class ScionTest {
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
       assertEquals(1, MockNetwork.getControlServer().getAndResetCallCount());
+      assertNotEquals(Scion.defaultService(), ss);
     } finally {
       MockNetwork.stopTiny();
     }
@@ -199,6 +200,7 @@ public class ScionTest {
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
       assertEquals(1, MockNetwork.getControlServer().getAndResetCallCount());
+      assertNotEquals(Scion.defaultService(), ss);
     } finally {
       MockNetwork.stopTiny();
     }

@@ -46,7 +46,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.Message> errorListener;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
-    this.channel = java.nio.channels.DatagramChannel.open();
+    this(service, DatagramChannel.open());
+  }
+
+  protected AbstractDatagramChannel(
+      ScionService service, java.nio.channels.DatagramChannel channel) {
+    this.channel = channel;
     this.service = service;
   }
 
@@ -54,6 +59,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     channel.configureBlocking(block);
   }
 
+  // `protected` because it should not be visible in ScmpChannel API.
   protected synchronized boolean isBlocking() {
     return channel.isBlocking();
   }
@@ -77,24 +83,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  public synchronized ScionService getService() {
-    // Late and implicit initialization is questionable but probably the best choice here.
-    // 1) Under any conceivable circumstances there should only be one service instance required,
-    //    so defaultService() should yield the 'correct' instance.
-    // 2) defaultService() should also be 'correct' in the sense that no other instance should ever
-    //    be required. The dedicated newServiceXYZ() methods should be unnecessary.
-    //
-    // Why do we do this? It allows us to use DatagramChannel.open() in all situations,
-    // independent of whether we are a client (requires Service) or a server (should not use
-    // Service).
+  protected synchronized ScionService getOrCreateService() {
     if (service == null) {
-      service = Scion.defaultService();
+      service = ScionService.defaultService();
     }
     return this.service;
   }
 
-  public synchronized void setService(ScionService service) {
-    this.service = service;
+  public synchronized ScionService getService() {
+    return this.service;
   }
 
   protected DatagramChannel channel() {
@@ -150,7 +147,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       throw new IllegalArgumentException(
           "connect() requires an InetSocketAddress or a ScionSocketAddress.");
     }
-    return connect(pathPolicy.filter(getService().getPaths((InetSocketAddress) addr)));
+    return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
   }
 
   /**
@@ -185,7 +182,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return path;
   }
 
-  protected void setPath(RequestPath path) {
+  protected synchronized void setPath(RequestPath path) {
     this.path = path;
   }
 
@@ -362,7 +359,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         channel.connect(connection);
       }
 
-      srcIA = getService().getLocalIsdAs();
+      srcIA = getOrCreateService().getLocalIsdAs();
       // Get external host address. This must be done *after* refreshing the path!
       InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
       srcAddress = srcSocketAddress.getAddress().getAddress();
@@ -392,7 +389,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   private RequestPath updatePath(RequestPath path) throws IOException {
     // expired, get new path
-    RequestPath newPath = pathPolicy.filter(getService().getPaths(path));
+    RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
 
     if (isConnected) { // equal to !isBound at this point
       if (!newPath.getFirstHopAddress().equals(this.connection)) {

@@ -15,6 +15,35 @@ Also, when roaming, the provider may not actually support SCION. In this case th
 device would need to connect to some kind of gateway to connect to either a daemon or
 at least a topology server + control server.
 
+## Server / Client
+
+Server functionality, such as `open()` and `receive()` -> `send(RequestPath)`, should _not_ require
+any access to a daemon or control service. The main reason is that it ensures efficiency
+by completely avoiding any type of interaction with daemon/CS.
+Interaction with daemon/CS should not be denied but it should not occur during default operations. 
+
+Client functionality will usually require a `ScionService`. If none is provided during `open()`,
+a service will internally be requested via `Scion.defaultService()`. 
+While explicit initialization is usually preferable as a design choice, this implicit
+initialization was implemented to allow usage of `open()` without additional arguments.
+This allows being much closer to the native Java `DatagramChannel` API.
+
+An alternative would be to push the the delayed/implicit initialization into the `ScionService`
+class. We would always have a `ScionService` instance, but it wouldn't initially connect to
+a daemon or control service. The disadvantage is that creation of a `ScionService` would have
+to fail "late", i.e. we can create it but only when we use it would be know whether it
+is actually able to connect to something.
+
+## ScionService
+
+The `ScionService` implements all interactions with a local daemon or with a control service.
+When a `ScionService` is required internally (e.g. by `DatagramChannel`) and none has been 
+specified, a `ScionService` will be requested (and if none has been created yet, created) via 
+`Scion.defaultService()`. 
+
+A `ScionService` created via specific factory methods (`Scion.newServiceWithDNS`, etc) will _not_ be
+used or returned by `Scion.defaultService()`.
+
 ## Library dependencies etc
 
 - Use Maven (instead of Gradle or something else): Maven is still the most used framework and arguable the best (
