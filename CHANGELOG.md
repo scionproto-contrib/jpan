@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Code coverage. [#11](https://github.com/tzaeschke/phtree-cpp/pull/11)
-- SCMP error handling
+- SCMP error handling.
 
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
