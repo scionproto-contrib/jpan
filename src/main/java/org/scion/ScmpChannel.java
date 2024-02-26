@@ -37,11 +37,11 @@ public class ScmpChannel implements AutoCloseable {
   private final InternalChannel channel;
 
   ScmpChannel(RequestPath path) throws IOException {
-    this(path, 12345);
+    this(Scion.defaultService(), path, 12345);
   }
 
-  ScmpChannel(RequestPath path, int port) throws IOException {
-    channel = new InternalChannel(Scion.defaultService(), path, port);
+  ScmpChannel(ScionService service, RequestPath path, int port) throws IOException {
+    channel = new InternalChannel(service, path, port);
   }
 
   /**
@@ -57,7 +57,7 @@ public class ScmpChannel implements AutoCloseable {
   public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
     RequestPath path = (RequestPath) channel.getCurrentPath();
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
-    sendScmpRequest(() -> channel.sendEchoRequest(request), Scmp.ScmpTypeCode.TYPE_129);
+    sendScmpRequest(() -> channel.sendEchoRequest(request), Scmp.TypeCode.TYPE_129);
     return request;
   }
 
@@ -78,8 +78,7 @@ public class ScmpChannel implements AutoCloseable {
       Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(i, path);
       requests.add(request);
       PathHeaderParser.Node node = nodes.get(i);
-      sendScmpRequest(
-          () -> channel.sendTracerouteRequest(request, node), Scmp.ScmpTypeCode.TYPE_131);
+      sendScmpRequest(() -> channel.sendTracerouteRequest(request, node), Scmp.TypeCode.TYPE_131);
       if (request.isTimedOut()) {
         break;
       }
@@ -87,8 +86,8 @@ public class ScmpChannel implements AutoCloseable {
     return requests;
   }
 
-  private void sendScmpRequest(
-      IOCallable<Scmp.TimedMessage> sender, Scmp.ScmpTypeCode expectedTypeCode) throws IOException {
+  private void sendScmpRequest(IOCallable<Scmp.TimedMessage> sender, Scmp.TypeCode expectedTypeCode)
+      throws IOException {
     long sendNanos = System.nanoTime();
     Scmp.TimedMessage result = sender.call();
     long nanos = System.nanoTime() - sendNanos;

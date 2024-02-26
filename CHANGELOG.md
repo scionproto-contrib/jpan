@@ -7,15 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Code coverage. [#11](https://github.com/tzaeschke/phtree-cpp/pull/11)
-- SCMP error handling
-
+- SCMP error handling: change paths in case of broken links or routers. 
+  
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
   [#9](https://github.com/tzaeschke/phtree-cpp/pull/9)
 - BREAKING CHANGE: SCMP refactoring, renamed several SCMP related classes.
   [#14](https://github.com/tzaeschke/phtree-cpp/pull/14), 
   [#15](https://github.com/tzaeschke/phtree-cpp/pull/15),
-  [#17](https://github.com/tzaeschke/phtree-cpp/pull/17)
+  [#17](https://github.com/tzaeschke/phtree-cpp/pull/17),
+  [#19](https://github.com/tzaeschke/phtree-cpp/pull/19)
 - BREAKING CHANGE:`ScionService` instances created via `Scion.newXYZ`
   will not be considered by `Scion.defaultService()`. Also, `DatagramChannel.getService()`
   does not create a service if none exists.

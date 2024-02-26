@@ -38,7 +38,7 @@ public class ScmpHeader {
     code = readInt(i0, 8, 8);
     checksum = readInt(i0, 16, 16);
 
-    Scmp.ScmpType st = Scmp.ScmpType.parse(type);
+    Scmp.Type st = Scmp.Type.parse(type);
     short1 = org.scion.internal.ByteUtil.toUnsigned(data.getShort());
     short2 = org.scion.internal.ByteUtil.toUnsigned(data.getShort());
     switch (st) {
@@ -109,15 +109,15 @@ public class ScmpHeader {
     return "ScionSCMPHeader{" + "type=" + type + ", code=" + code + ", checksum=" + checksum + '}';
   }
 
-  public Scmp.ScmpType getType() {
-    return Scmp.ScmpType.parse(type);
+  public Scmp.Type getType() {
+    return Scmp.Type.parse(type);
   }
 
-  public Scmp.ScmpTypeCode getCode() {
-    return Scmp.ScmpTypeCode.parse(type, code);
+  public Scmp.TypeCode getCode() {
+    return Scmp.TypeCode.parse(type, code);
   }
 
-  public void setCode(Scmp.ScmpTypeCode code) {
+  public void setCode(Scmp.TypeCode code) {
     this.code = code.code();
     this.type = code.type();
   }

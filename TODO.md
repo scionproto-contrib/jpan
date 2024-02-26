@@ -72,16 +72,22 @@
 ## Plan
 
 ### 0.1.0
-- SCMP error handling (only error, not info)
-  - BUG: Ping to iaOVGU causes 3 CS requests that have type UP,CORE,CORE....?
+- Review + clean up
+
+### 0.2.0
+- SCMP errors handling (above)
+  - Especially for type ¨5: External Interface Down" and "6: Internal Connectivity Down"
+    Problem: we need to receive() or read() to actually receive SCMP errors.
+    We could do this concurrently (actually, this would probably block writes),
+    or we do this onyl if the user calls read/receive. We can then store the failure info
+    (path + AS/IP/IF of failure location). During next send/write, we compare the 
+    path against this failure and try to find a better one. If no better path is found
+    we can just drop the packet (default; consistent with UDP behavior) or throw an error. 
+    Also: The list of broken paths should be cleaned up once the path is expired (or earlier?). 
+- SCION-Proto questions:
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)
   - Why are Java pings 8 bytes shorter than scionproto pings? -> local AS
-Discuss required for 0.1.0:
-- SCMP errors handling (above)
-  - Especially for expired paths / revoked paths / broken paths?  
-
-### 0.2.0
 - Segments:
   - Sorting by weight (see graph.go:195)
   - Consider peering
