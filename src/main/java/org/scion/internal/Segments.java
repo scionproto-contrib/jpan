@@ -52,6 +52,8 @@ import org.slf4j.LoggerFactory;
 public class Segments {
   private static final Logger LOG = LoggerFactory.getLogger(Segments.class.getName());
 
+  private Segments() {}
+
   private static List<Daemon.Path> combineThreeSegments(
       Seg.SegmentsResponse segmentsUp,
       Seg.SegmentsResponse segmentsCore,
@@ -113,7 +115,7 @@ public class Segments {
         continue;
       }
       for (Seg.PathSegment pathSegment1 : segmentsMap1.get(coreIsdAs)) {
-        paths.add(buildPath(pathSegment0, pathSegment1, null, brLookup));
+        paths.add(buildPath(brLookup, pathSegment0, pathSegment1));
       }
     }
     return paths;
@@ -123,7 +125,7 @@ public class Segments {
       Seg.SegmentsResponse segments, ScionBootstrapper brLookup) {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : get(segments)) {
-      paths.add(buildPath(pathSegment, null, null, brLookup));
+      paths.add(buildPath(brLookup, pathSegment));
     }
     return paths;
   }
@@ -150,38 +152,33 @@ public class Segments {
       ScionBootstrapper brLookup) {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
-        paths.add(buildPath(segUp, segCore, segDown, brLookup));
+        paths.add(buildPath(brLookup, segUp, segCore, segDown));
       }
     }
   }
 
-  private static Daemon.Path buildPath(
-      Seg.PathSegment seg0,
-      Seg.PathSegment seg1,
-      Seg.PathSegment seg2,
-      ScionBootstrapper brLookup) {
-    Seg.PathSegment[] segments = {seg0, seg1, seg2};
+  private static Daemon.Path buildPath(ScionBootstrapper brLookup, Seg.PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
-    Seg.SegmentInformation info0 = getInfo(seg0);
-    Seg.SegmentInformation info1 = seg1 == null ? null : getInfo(seg1);
-    Seg.SegmentInformation info2 = seg2 == null ? null : getInfo(seg2);
-    Seg.SegmentInformation[] infos = new Seg.SegmentInformation[] {info0, info1, info2};
+    Seg.SegmentInformation[] infos = new Seg.SegmentInformation[segments.length];
+    for (int i = 0; i < segments.length; i++) {
+      infos[i] = getInfo(segments[i]);
+    }
 
     // path meta header
     int patrhMetaHeader = 0;
-    for (int i = 0; i < segments.length && segments[i] != null; i++) {
+    for (int i = 0; i < segments.length; i++) {
       int hopCount = segments[i].getAsEntriesCount();
       patrhMetaHeader |= hopCount << (6 * (2 - i));
     }
     raw.putInt(patrhMetaHeader);
 
     // info fields
-    boolean[] reversed = new boolean[3];
+    boolean[] reversed = new boolean[segments.length];
     long startIA = brLookup.getLocalIsdAs();
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
-    for (int i = 0; i < 3 && infos[i] != null; i++) {
+    for (int i = 0; i < infos.length; i++) {
       reversed[i] = isReversed(segments[i], startIA, endingIA);
       writeInfoField(raw, infos[i], reversed[i]);
       startIA = endingIA.get();
@@ -190,7 +187,7 @@ public class Segments {
     // hop fields
     int bytePosSegID = 6; // 4 bytes path head + 2 byte flag in first info field
     path.setMtu(brLookup.getLocalMtu());
-    for (int i = 0; i < segments.length && segments[i] != null; i++) {
+    for (int i = 0; i < segments.length; i++) {
       writeHopFields(path, raw, bytePosSegID, segments[i], reversed[i], infos[i]);
       bytePosSegID += 8;
     }
@@ -382,10 +379,12 @@ public class Segments {
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
       long dstIsdAs) {
-    LOG.info(
-        "Requesting segments: {} {}",
-        ScionUtil.toStringIA(srcIsdAs),
-        ScionUtil.toStringIA(dstIsdAs));
+    if (LOG.isInfoEnabled()) {
+      LOG.info(
+          "Requesting segments: {} {}",
+          ScionUtil.toStringIA(srcIsdAs),
+          ScionUtil.toStringIA(dstIsdAs));
+    }
     if (srcIsdAs == dstIsdAs && !isWildcard(srcIsdAs)) {
       return null;
     }
