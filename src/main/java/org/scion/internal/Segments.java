@@ -160,6 +160,7 @@ public class Segments {
       Seg.PathSegment seg1,
       Seg.PathSegment seg2,
       ScionBootstrapper brLookup) {
+    Seg.PathSegment[] segments = {seg0, seg1, seg2};
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -176,38 +177,66 @@ public class Segments {
     raw.putInt(i0);
 
     // info fields
-    long[] endingASes = new long[2];
-    boolean reversed0 = isReversed(seg0, brLookup.getLocalIsdAs(), endingASes);
-    writeInfoField(raw, info0, reversed0);
-    boolean reversed1 = false;
-    if (info1 != null) {
-      long ending0 = reversed0 ? endingASes[0] : endingASes[1];
-      reversed1 = isReversed(seg1, ending0, endingASes);
-      writeInfoField(raw, info1, reversed1);
+    //    long nextStartIA = brLookup.getLocalIsdAs();
+    //    final ByteUtil.MutLong endingAS = new ByteUtil.MutLong(-1);
+    //    boolean reversed0 = isReversed(seg0, nextStartIA, endingAS);
+    //    writeInfoField(raw, info0, reversed0);
+    //    boolean reversed1 = false;
+    //    if (info1 != null) {
+    //      nextStartIA = endingAS.v;
+    //      reversed1 = isReversed(seg1, nextStartIA, endingAS);
+    //      writeInfoField(raw, info1, reversed1);
+    //    }
+    //    if (info2 != null) {
+    //      writeInfoField(raw, info2, false);
+    //    }
+
+    boolean[] reversed = new boolean[3];
+    {
+      long startIA = brLookup.getLocalIsdAs();
+      final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
+      for (int i = 0; i < 3 && infos[i] != null; i++) {
+        reversed[i] = isReversed(segments[i], startIA, endingIA);
+        writeInfoField(raw, infos[i], reversed[i]);
+        startIA = endingIA.get();
+      }
     }
-    if (info2 != null) {
-      writeInfoField(raw, info2, false);
-    }
+//    for (int i = 0; i < infos.length && infos[i] != null; i++) {
+//      Seg.SegmentInformation info = infos[i];
+//      minExpirationDelta.v = Byte.MAX_VALUE;
+//      writeHopFields(path, raw, bytePosSegID, seg1, reversed1, minExpirationDelta, minMtu);
+//      bytePosSegID += 8;
+//      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
+//    }
+
 
     // hop fields
     int bytePosSegID = 6; // 4 bytes path head + 2 byte flag in first info field
     // TODO clean up: Create [] of seg/info and loop inside write() method
     ByteUtil.MutInt minMtu = new ByteUtil.MutInt(brLookup.getLocalMtu());
     ByteUtil.MutInt minExpirationDelta = new ByteUtil.MutInt(Byte.MAX_VALUE);
-    writeHopFields(path, raw, bytePosSegID, seg0, reversed0, minExpirationDelta, minMtu);
-    bytePosSegID += 8;
-    // xorSegID(raw, 0, path, )
-    long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
-    if (seg1 != null) {
+    long minExp = Long.MAX_VALUE;
+//    writeHopFields(path, raw, bytePosSegID, seg0, reversed[0], minExpirationDelta, minMtu);
+//    bytePosSegID += 8;
+//    // xorSegID(raw, 0, path, )
+//    long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
+//    if (seg1 != null) {
+//      minExpirationDelta.v = Byte.MAX_VALUE;
+//      writeHopFields(path, raw, bytePosSegID, seg1, reversed[1], minExpirationDelta, minMtu);
+//      bytePosSegID += 8;
+//      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
+//    }
+//    if (seg2 != null) {
+//      minExpirationDelta.v = Byte.MAX_VALUE;
+//      writeHopFields(path, raw, bytePosSegID, seg2, false, minExpirationDelta, minMtu);
+//      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
+//    }
+
+    for (int i = 0; i < segments.length && segments[i] != null; i++) {
       minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, bytePosSegID, seg1, reversed1, minExpirationDelta, minMtu);
+      writeHopFields(path, raw, bytePosSegID, segments[i], reversed[i], minExpirationDelta, minMtu);
       bytePosSegID += 8;
-      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
-    }
-    if (seg2 != null) {
-      minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, bytePosSegID, seg2, false, minExpirationDelta, minMtu);
-      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
+      minExp = Math.min(minExp, calcExpTime(infos[i].getTimestamp(), minExpirationDelta.v));
     }
 
     raw.flip();
@@ -231,15 +260,15 @@ public class Segments {
     return path.build();
   }
 
-  private static boolean isReversed(Seg.PathSegment pathSegment, long startIA, long[] isdAs) {
+  private static boolean isReversed(Seg.PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
     Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
-    isdAs[0] = body0.getIsdAs();
-    isdAs[1] = bodyN.getIsdAs();
     if (body0.getIsdAs() == startIA) {
+      endIA.set(bodyN.getIsdAs());
       return false;
     } else if (bodyN.getIsdAs() == startIA) {
+      endIA.set(body0.getIsdAs());
       return true;
     }
     // TODO support short-cut and on-path IAs

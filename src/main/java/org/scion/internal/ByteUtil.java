@@ -25,6 +25,23 @@ public class ByteUtil {
     }
   }
 
+  /** Mutable long integer. */
+  public static class MutLong {
+    public long v;
+
+    MutLong(long v) {
+      this.v = v;
+    }
+
+    public long get() {
+      return v;
+    }
+
+    public void set(long l) {
+      this.v = l;
+    }
+  }
+
   /**
    * Reads some bits from an integer and returns them as another integer, shifted right such that
    * the least significant extracted bit becomes the least significant bit in the output.
