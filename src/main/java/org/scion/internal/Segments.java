@@ -67,18 +67,11 @@ public class Segments {
 
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSeg : get(segmentsCore)) {
-      long[] IAs = getEndingIAs(pathSeg);
-
-      //      if (upSegments.get(IAs[0]) == null || downSegments.get(IAs[1]) == null) {
-      //        // This should not happen, we have a core segment that has no matching
-      //        // up/down segments
-      //        throw new IllegalStateException(); // TODO actually, this appears to be happening!
-      //        // continue;
-      //      }
-      if (upSegments.get(IAs[0]) != null && downSegments.get(IAs[1]) != null) {
-        buildPath(paths, upSegments.get(IAs[0]), pathSeg, downSegments.get(IAs[1]), brLookup);
-      } else if (upSegments.get(IAs[1]) != null && downSegments.get(IAs[0]) != null) {
-        buildPath(paths, upSegments.get(IAs[1]), pathSeg, downSegments.get(IAs[0]), brLookup);
+      long[] endIAs = getEndingIAs(pathSeg);
+      if (upSegments.get(endIAs[0]) != null && downSegments.get(endIAs[1]) != null) {
+        buildPath(paths, upSegments.get(endIAs[0]), pathSeg, downSegments.get(endIAs[1]), brLookup);
+      } else if (upSegments.get(endIAs[1]) != null && downSegments.get(endIAs[0]) != null) {
+        buildPath(paths, upSegments.get(endIAs[1]), pathSeg, downSegments.get(endIAs[0]), brLookup);
       }
     }
     return paths;
@@ -105,17 +98,12 @@ public class Segments {
 
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment0 : get(segments0)) {
-      long[] IAs = getEndingIAs(pathSegment0);
-      if (IAs[0] != srcIsdAs && IAs[1] != srcIsdAs) {
-        continue; // discard
-      }
-      long coreIsdAs = IAs[0] == srcIsdAs ? IAs[1] : IAs[0];
-      if (segmentsMap1.get(coreIsdAs) == null) {
-        // ignore, this should not happen.
-        continue;
-      }
-      for (Seg.PathSegment pathSegment1 : segmentsMap1.get(coreIsdAs)) {
-        paths.add(buildPath(brLookup, pathSegment0, pathSegment1));
+      long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
+      ArrayList<Seg.PathSegment> segmentList1 = segmentsMap1.get(middleIsdAs);
+      if (segmentList1 != null) {
+        for (Seg.PathSegment pathSegment1 : segmentList1) {
+          paths.add(buildPath(brLookup, pathSegment0, pathSegment1));
+        }
       }
     }
     return paths;
@@ -185,11 +173,10 @@ public class Segments {
     }
 
     // hop fields
-    int bytePosSegID = 6; // 4 bytes path head + 2 byte flag in first info field
     path.setMtu(brLookup.getLocalMtu());
     for (int i = 0; i < segments.length; i++) {
-      writeHopFields(path, raw, bytePosSegID, segments[i], reversed[i], infos[i]);
-      bytePosSegID += 8;
+      // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
+      writeHopFields(path, raw, 6 + i * 8, segments[i], reversed[i], infos[i]);
     }
 
     raw.flip();
@@ -294,28 +281,22 @@ public class Segments {
         response.getSegmentsMap().entrySet()) {
       for (Seg.PathSegment pathSeg : segmentsEntry.getValue().getSegmentsList()) {
         long unknownIsdAs = getOtherIsdAs(knownIsdAs, pathSeg);
-        map.put(unknownIsdAs, pathSeg);
+        if (unknownIsdAs != -1) {
+          map.put(unknownIsdAs, pathSeg);
+        }
       }
     }
     return map;
   }
 
-  // TODO use results from getEndingIAs()!
   private static long getOtherIsdAs(long isdAs, Seg.PathSegment seg) {
-    // Either the first or the last ISD/AS is the one we are looking for.
-    if (seg.getAsEntriesCount() < 2) {
-      throw new UnsupportedOperationException("Segment has < 2 hops.");
+    long[] endings = getEndingIAs(seg);
+    if (endings[0] == isdAs) {
+      return endings[1];
+    } else if (endings[1] == isdAs) {
+      return endings[0];
     }
-    Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
-    Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
-    if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
-      throw new UnsupportedOperationException("Unsigned entries not (yet) supported"); // TODO
-    }
-    Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
-    if (bodyFirst.getIsdAs() != isdAs) {
-      return bodyFirst.getIsdAs();
-    }
-    return getBody(asEntryLast.getSigned()).getIsdAs();
+    return -1;
   }
 
   /**
