@@ -170,81 +170,33 @@ public class Segments {
     Seg.SegmentInformation[] infos = new Seg.SegmentInformation[] {info0, info1, info2};
 
     // path meta header
-    int hopCount0 = seg0.getAsEntriesCount();
-    int hopCount1 = seg1 == null ? 0 : seg1.getAsEntriesCount();
-    int hopCount2 = seg2 == null ? 0 : seg2.getAsEntriesCount();
-    int i0 = (hopCount0 << 12) | (hopCount1 << 6) | hopCount2;
-    raw.putInt(i0);
+    int patrhMetaHeader = 0;
+    for (int i = 0; i < segments.length && segments[i] != null; i++) {
+      int hopCount = segments[i].getAsEntriesCount();
+      patrhMetaHeader |= hopCount << (6 * (2 - i));
+    }
+    raw.putInt(patrhMetaHeader);
 
     // info fields
-    //    long nextStartIA = brLookup.getLocalIsdAs();
-    //    final ByteUtil.MutLong endingAS = new ByteUtil.MutLong(-1);
-    //    boolean reversed0 = isReversed(seg0, nextStartIA, endingAS);
-    //    writeInfoField(raw, info0, reversed0);
-    //    boolean reversed1 = false;
-    //    if (info1 != null) {
-    //      nextStartIA = endingAS.v;
-    //      reversed1 = isReversed(seg1, nextStartIA, endingAS);
-    //      writeInfoField(raw, info1, reversed1);
-    //    }
-    //    if (info2 != null) {
-    //      writeInfoField(raw, info2, false);
-    //    }
-
     boolean[] reversed = new boolean[3];
-    {
-      long startIA = brLookup.getLocalIsdAs();
-      final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
-      for (int i = 0; i < 3 && infos[i] != null; i++) {
-        reversed[i] = isReversed(segments[i], startIA, endingIA);
-        writeInfoField(raw, infos[i], reversed[i]);
-        startIA = endingIA.get();
-      }
+    long startIA = brLookup.getLocalIsdAs();
+    final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
+    for (int i = 0; i < 3 && infos[i] != null; i++) {
+      reversed[i] = isReversed(segments[i], startIA, endingIA);
+      writeInfoField(raw, infos[i], reversed[i]);
+      startIA = endingIA.get();
     }
-//    for (int i = 0; i < infos.length && infos[i] != null; i++) {
-//      Seg.SegmentInformation info = infos[i];
-//      minExpirationDelta.v = Byte.MAX_VALUE;
-//      writeHopFields(path, raw, bytePosSegID, seg1, reversed1, minExpirationDelta, minMtu);
-//      bytePosSegID += 8;
-//      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
-//    }
-
 
     // hop fields
     int bytePosSegID = 6; // 4 bytes path head + 2 byte flag in first info field
-    // TODO clean up: Create [] of seg/info and loop inside write() method
-    ByteUtil.MutInt minMtu = new ByteUtil.MutInt(brLookup.getLocalMtu());
-    ByteUtil.MutInt minExpirationDelta = new ByteUtil.MutInt(Byte.MAX_VALUE);
-    long minExp = Long.MAX_VALUE;
-//    writeHopFields(path, raw, bytePosSegID, seg0, reversed[0], minExpirationDelta, minMtu);
-//    bytePosSegID += 8;
-//    // xorSegID(raw, 0, path, )
-//    long minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
-//    if (seg1 != null) {
-//      minExpirationDelta.v = Byte.MAX_VALUE;
-//      writeHopFields(path, raw, bytePosSegID, seg1, reversed[1], minExpirationDelta, minMtu);
-//      bytePosSegID += 8;
-//      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
-//    }
-//    if (seg2 != null) {
-//      minExpirationDelta.v = Byte.MAX_VALUE;
-//      writeHopFields(path, raw, bytePosSegID, seg2, false, minExpirationDelta, minMtu);
-//      minExp = calcExpTime(info0.getTimestamp(), minExpirationDelta.v);
-//    }
-
+    path.setMtu(brLookup.getLocalMtu());
     for (int i = 0; i < segments.length && segments[i] != null; i++) {
-      minExpirationDelta.v = Byte.MAX_VALUE;
-      writeHopFields(path, raw, bytePosSegID, segments[i], reversed[i], minExpirationDelta, minMtu);
+      writeHopFields(path, raw, bytePosSegID, segments[i], reversed[i], infos[i]);
       bytePosSegID += 8;
-      minExp = Math.min(minExp, calcExpTime(infos[i].getTimestamp(), minExpirationDelta.v));
     }
 
     raw.flip();
     path.setRaw(ByteString.copyFrom(raw));
-
-    // Expiration
-    path.setExpiration(Timestamp.newBuilder().setSeconds(minExp).build());
-    path.setMtu(minMtu.v);
 
     // TODO where do we get these?
     //    segUp.getSegmentInfo();
@@ -260,7 +212,8 @@ public class Segments {
     return path.build();
   }
 
-  private static boolean isReversed(Seg.PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
+  private static boolean isReversed(
+      Seg.PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
     Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
@@ -292,9 +245,9 @@ public class Segments {
       int bytePosSegID,
       Seg.PathSegment pathSegment,
       boolean reversed,
-      ByteUtil.MutInt minExp,
-      ByteUtil.MutInt minMtu) {
+      Seg.SegmentInformation info) {
     final int n = pathSegment.getAsEntriesCount();
+    int minExpiry = Integer.MAX_VALUE;
     for (int i = 0; i < n; i++) {
       int pos = reversed ? (n - i - 1) : i;
       Seg.ASEntrySignedBody body = getBody(pathSegment.getAsEntriesList().get(pos));
@@ -312,8 +265,8 @@ public class Segments {
         raw.put(bytePosSegID, ByteUtil.toByte(raw.get(bytePosSegID) ^ mac.byteAt(0)));
         raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
-      minExp.v = Math.min(minExp.v, hopField.getExpTime());
-      minMtu.v = Math.min(minMtu.v, body.getMtu());
+      minExpiry = Math.min(minExpiry, hopField.getExpTime());
+      path.setMtu(Math.min(path.getMtu(), body.getMtu()));
 
       boolean addInterfaces = (reversed && pos > 0) || (!reversed && pos < n - 1);
       if (addInterfaces) {
@@ -328,6 +281,12 @@ public class Segments {
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
       }
+    }
+
+    // expiration
+    long time = calcExpTime(info.getTimestamp(), minExpiry);
+    if (time < path.getExpiration().getSeconds()) {
+      path.setExpiration(Timestamp.newBuilder().setSeconds(minExpiry).build());
     }
   }
 
