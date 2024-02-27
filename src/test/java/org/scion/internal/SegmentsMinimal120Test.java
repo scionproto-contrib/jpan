@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -49,14 +48,14 @@ import org.scion.testutil.MockTopologyServer;
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
 public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
-  private static final String FIRST_HOP = "127.0.0.74:31012"; // TODO read from TOPO
+  private static String firstFop210;
   private static MockTopologyServer topoServer;
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer =
-        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_120/topology.json"));
+    topoServer = MockTopologyServer.start("topologies/minimal/ASff00_0_120/topology.json");
     InetSocketAddress topoAddr = topoServer.getAddress();
+    firstFop210 = topoServer.getBorderRouterAddressByIA(AS_210);
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
@@ -125,7 +124,7 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop210, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
       checkInterface(path, 2, 450, "2-ff00:0:210");
@@ -171,7 +170,7 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop210, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
       assertEquals(2, path.getInterfacesCount());

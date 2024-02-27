@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -49,14 +48,14 @@ import org.scion.testutil.MockTopologyServer;
  */
 public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
 
-  private static final String BR_120 = "127.0.0.81:31042";
+  private static String firstHop120 = "127.0.0.81:31042";
   private static MockTopologyServer topoServer;
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer =
-        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_121/topology.json"));
+    topoServer = MockTopologyServer.start("topologies/minimal/ASff00_0_121/topology.json");
     InetSocketAddress topoAddr = topoServer.getAddress();
+    firstHop120 = topoServer.getBorderRouterAddressByIA(AS_120);
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
@@ -121,7 +120,7 @@ public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(BR_120, path.getInterface().getAddress().getAddress());
+      assertEquals(firstHop120, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 104, "1-ff00:0:121");
       checkInterface(path, 1, 21, "1-ff00:0:120");
       checkInterface(path, 2, 210, "1-ff00:0:120");
@@ -184,7 +183,7 @@ public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(BR_120, path.getInterface().getAddress().getAddress());
+      assertEquals(firstHop120, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 104, "1-ff00:0:121");
       checkInterface(path, 1, 21, "1-ff00:0:120");
       checkInterface(path, 2, 210, "1-ff00:0:120");

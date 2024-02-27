@@ -83,10 +83,6 @@ public class MockTopologyServer implements Closeable {
     return new MockTopologyServer(Paths.get(TOPOFILE_TINY_111), false);
   }
 
-  public static MockTopologyServer start(Path topoFile) {
-    return new MockTopologyServer(topoFile, false);
-  }
-
   public static MockTopologyServer start(String topoFile) {
     return new MockTopologyServer(Paths.get(topoFile), false);
   }

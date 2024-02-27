@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -52,8 +51,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer =
-        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_110/topology.json"));
+    topoServer = MockTopologyServer.start("topologies/minimal/ASff00_0_110/topology.json");
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
@@ -195,8 +193,8 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1472, path.getMtu());
-      String FIRST_HOP = topoServer.getBorderRouterAddressByIA(AS_120);
-      assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
+      String firstHop = topoServer.getBorderRouterAddressByIA(AS_120);
+      assertEquals(firstHop, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 1, "1-ff00:0:110");
       checkInterface(path, 1, 10, "1-ff00:0:120");
       checkInterface(path, 2, 21, "1-ff00:0:120");

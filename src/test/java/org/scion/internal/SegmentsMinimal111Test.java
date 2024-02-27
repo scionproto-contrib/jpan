@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -49,14 +48,14 @@ import org.scion.testutil.MockTopologyServer;
  */
 public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
 
-  private static final String BR_110 = "127.0.0.33:31016";
+  private static String firstFop110;
   private static MockTopologyServer topoServer;
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer =
-        MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_111/topology.json"));
+    topoServer = MockTopologyServer.start("topologies/minimal/ASff00_0_111/topology.json");
     InetSocketAddress topoAddr = topoServer.getAddress();
+    firstFop110 = topoServer.getBorderRouterAddressByIA(AS_110);
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
@@ -131,7 +130,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1472, path.getMtu());
-      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       assertEquals(2, path.getInterfacesCount());
@@ -187,7 +186,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1450, path.getMtu());
-      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 3, "1-ff00:0:110");
@@ -248,7 +247,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1472, path.getMtu());
-      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -360,7 +359,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -430,7 +429,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(BR_110, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
