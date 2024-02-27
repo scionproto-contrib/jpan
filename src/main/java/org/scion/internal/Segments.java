@@ -470,6 +470,7 @@ public class Segments {
       segments.add(segmentsCore);
       if (coreHasIA[1]) {
         // case D: DST is core
+        // TODO why is this ever used? See e.g. Test F0 111->120
         return combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
       } else {
         from = dstWildcard;

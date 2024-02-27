@@ -114,17 +114,6 @@ public class MockTopologyServer implements Closeable {
     return Integer.parseInt(controlServer.substring(controlServer.indexOf(':') + 1));
   }
 
-  public String getBorderRouterAddress(int interfaceId) {
-    for (BorderRouter br : borderRouters) {
-      for (BorderRouterInterface brif : br.interfaces) {
-        if (brif.id == interfaceId) {
-          return br.internalAddress;
-        }
-      }
-    }
-    throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
-  }
-
   public String getBorderRouterAddressByIA(long remoteIsdAs) {
     for (BorderRouter br : borderRouters) {
       for (BorderRouterInterface brif : br.interfaces) {
