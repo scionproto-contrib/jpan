@@ -41,6 +41,7 @@ import org.scion.testutil.MockTopologyServer;
  * C (DOWN): srcISD == dstISD; src == core; (same ISD, dst is core); Book: 2b<br>
  * D (CORE): srcISD == dstISD; src == core, dst == core; (same ISD, src/dst are cores); Book: 1c<br>
  * E (UP, DOWN): srcISD == dstISD; (same ISD, src/dst are non-cores); Book: 1d,2a,4a<br>
+ * F0 (UP, CORE): srcISD == dstISD; dst == core; (same ISD, dst is core); Book: 1b<br>
  * F (UP, CORE): srcISD != dstISD; dst == core; (different ISDs, dst is core); Book: 1b<br>
  * G (CORE, DOWN): srcISD != dstISD; src == core; (different ISDs, src is cores); Book: -<br>
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
@@ -52,7 +53,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
   private static MockTopologyServer topoServer;
 
   @BeforeAll
-  public static void beforeAll() throws IOException {
+  public static void beforeAll() {
     topoServer =
         MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_111/topology.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();

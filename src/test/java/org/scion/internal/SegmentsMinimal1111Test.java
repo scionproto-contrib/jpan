@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
 import org.scion.ScionService;
-import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
@@ -42,6 +41,7 @@ import org.scion.testutil.MockTopologyServer;
  * C (DOWN): srcISD == dstISD; src == core; (same ISD, dst is core); Book: 2b<br>
  * D (CORE): srcISD == dstISD; src == core, dst == core; (same ISD, src/dst are cores); Book: 1c<br>
  * E (UP, DOWN): srcISD == dstISD; (same ISD, src/dst are non-cores); Book: 1d,2a,4a<br>
+ * F0 (UP, CORE): srcISD == dstISD; dst == core; (same ISD, dst is core); Book: 1b<br>
  * F (UP, CORE): srcISD != dstISD; dst == core; (different ISDs, dst is core); Book: 1b<br>
  * G (CORE, DOWN): srcISD != dstISD; src == core; (different ISDs, src is cores); Book: -<br>
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
@@ -53,7 +53,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
   private static MockTopologyServer topoServer;
 
   @BeforeAll
-  public static void beforeAll() throws IOException {
+  public static void beforeAll() {
     topoServer =
         MockTopologyServer.start(Paths.get("topologies/minimal/ASff00_0_1111/topology.json"));
     InetSocketAddress topoAddr = topoServer.getAddress();
@@ -122,11 +122,11 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
         -90, -67, 121
       };
 
-      System.out.println(ToStringUtil.pathLong(raw)); // TODO
-      System.out.println(ToStringUtil.path(raw)); // TODO
+      // System.out.println(ToStringUtil.pathLong(raw)); // TODO
+      // System.out.println(ToStringUtil.path(raw)); // TODO
       Daemon.Path path = paths.get(0);
-      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
+      // System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      // System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 3, 0, 0);
       checkInfo(rawBB, 10619, 0);

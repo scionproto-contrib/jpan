@@ -55,7 +55,7 @@ public class Segments {
   private Segments() {}
 
   private static List<Daemon.Path> combineSegments(
-      List<Seg.SegmentsResponse> segments,
+      List<List<Seg.PathSegment>> segments,
       long srcIsdAs,
       long dstIsdAs,
       ScionBootstrapper brLookup) {
@@ -69,9 +69,9 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineSegment(
-      Seg.SegmentsResponse segments, ScionBootstrapper brLookup) {
+      List<Seg.PathSegment> segments, ScionBootstrapper brLookup) {
     List<Daemon.Path> paths = new ArrayList<>();
-    for (Seg.PathSegment pathSegment : get(segments)) {
+    for (Seg.PathSegment pathSegment : segments) {
       paths.add(buildPath(brLookup, pathSegment));
     }
     return paths;
@@ -88,8 +88,8 @@ public class Segments {
    * @return Paths
    */
   private static List<Daemon.Path> combineTwoSegments(
-      Seg.SegmentsResponse segments0,
-      Seg.SegmentsResponse segments1,
+      List<Seg.PathSegment> segments0,
+      List<Seg.PathSegment> segments1,
       long srcIsdAs,
       long dstIsdAs,
       ScionBootstrapper brLookup) {
@@ -97,7 +97,7 @@ public class Segments {
     MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
     List<Daemon.Path> paths = new ArrayList<>();
-    for (Seg.PathSegment pathSegment0 : get(segments0)) {
+    for (Seg.PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
       ArrayList<Seg.PathSegment> segmentList1 = segmentsMap1.get(middleIsdAs);
       if (segmentList1 != null) {
@@ -110,9 +110,9 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineThreeSegments(
-      Seg.SegmentsResponse segmentsUp,
-      Seg.SegmentsResponse segmentsCore,
-      Seg.SegmentsResponse segmentsDown,
+      List<Seg.PathSegment> segmentsUp,
+      List<Seg.PathSegment> segmentsCore,
+      List<Seg.PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
       ScionBootstrapper brLookup) {
@@ -121,7 +121,7 @@ public class Segments {
     MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
 
     List<Daemon.Path> paths = new ArrayList<>();
-    for (Seg.PathSegment pathSeg : get(segmentsCore)) {
+    for (Seg.PathSegment pathSeg : segmentsCore) {
       long[] endIAs = getEndingIAs(pathSeg);
       if (upSegments.get(endIAs[0]) != null && downSegments.get(endIAs[1]) != null) {
         buildPath(paths, upSegments.get(endIAs[0]), pathSeg, downSegments.get(endIAs[1]), brLookup);
@@ -275,15 +275,12 @@ public class Segments {
   }
 
   private static MultiMap<Long, Seg.PathSegment> createSegmentsMap(
-      Seg.SegmentsResponse response, long knownIsdAs) {
+      List<Seg.PathSegment> pathSegments, long knownIsdAs) {
     MultiMap<Long, Seg.PathSegment> map = new MultiMap<>();
-    for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> segmentsEntry :
-        response.getSegmentsMap().entrySet()) {
-      for (Seg.PathSegment pathSeg : segmentsEntry.getValue().getSegmentsList()) {
-        long unknownIsdAs = getOtherIsdAs(knownIsdAs, pathSeg);
-        if (unknownIsdAs != -1) {
-          map.put(unknownIsdAs, pathSeg);
-        }
+    for (Seg.PathSegment pathSeg : pathSegments) {
+      long unknownIsdAs = getOtherIsdAs(knownIsdAs, pathSeg);
+      if (unknownIsdAs != -1) {
+        map.put(unknownIsdAs, pathSeg);
       }
     }
     return map;
@@ -339,9 +336,9 @@ public class Segments {
   }
 
   private static boolean[] containsIsdAs(
-      Seg.SegmentsResponse segments, long srcIsdAs, long dstIsdAs) {
+      List<Seg.PathSegment> segments, long srcIsdAs, long dstIsdAs) {
     boolean[] found = new boolean[] {false, false};
-    for (Seg.PathSegment seg : get(segments)) {
+    for (Seg.PathSegment seg : segments) {
       Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
       Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
       if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
@@ -356,7 +353,7 @@ public class Segments {
     return found;
   }
 
-  private static Seg.SegmentsResponse getSegments(
+  private static List<Seg.PathSegment> getSegments(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
       long dstIsdAs) {
@@ -366,9 +363,6 @@ public class Segments {
           ScionUtil.toStringIA(srcIsdAs),
           ScionUtil.toStringIA(dstIsdAs));
     }
-    if (srcIsdAs == dstIsdAs && !isWildcard(srcIsdAs)) {
-      return null;
-    }
     Seg.SegmentsRequest request =
         Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
     try {
@@ -377,7 +371,7 @@ public class Segments {
         // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();
       }
-      return response;
+      return getPathSegments(response);
     } catch (StatusRuntimeException e) {
       if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)
           && e.getMessage().contains("TRC not found")) {
@@ -393,7 +387,7 @@ public class Segments {
     }
   }
 
-  private static List<Seg.PathSegment> get(Seg.SegmentsResponse response) { // TODO remove
+  private static List<Seg.PathSegment> getPathSegments(Seg.SegmentsResponse response) {
     List<Seg.PathSegment> pathSegments = new ArrayList<>();
     for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
         response.getSegmentsMap().entrySet()) {
@@ -437,11 +431,11 @@ public class Segments {
 
     long from = srcIsdAs;
     long to = dstIsdAs;
-    List<Seg.SegmentsResponse> segments = new ArrayList<>();
+    List<List<Seg.PathSegment>> segments = new ArrayList<>();
     if (!brLookup.isLocalAsCore()) {
       // get UP segments
       // TODO find out if dstIsAs is core and directly ask for it.
-      Seg.SegmentsResponse segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
+      List<Seg.PathSegment> segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
       boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
       if (containsIsdAs[1]) {
         // case B: DST is core
@@ -454,9 +448,8 @@ public class Segments {
     if (srcISD == dstISD) {
       // cases C, D, E
       // TODO this is an expensive way to find out whether DST is CORE
-      Seg.SegmentsResponse segmentsCoreOrDown = getSegments(segmentStub, from, dstIsdAs);
-      // TODO this 'if' is horrible. Also, the !=null should NOT be done in getSegments()
-      if (segmentsCoreOrDown != null && !get(segmentsCoreOrDown).isEmpty()) {
+      List<Seg.PathSegment> segmentsCoreOrDown = getSegments(segmentStub, from, dstIsdAs);
+      if (!segmentsCoreOrDown.isEmpty()) {
         // Okay, we found a direct route from src(Wildcard) to DST
         segments.add(segmentsCoreOrDown);
         List<Daemon.Path> paths = combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
@@ -464,14 +457,15 @@ public class Segments {
           return paths;
         }
         // okay, we need CORE!
+        // TODO this is horrible.
         segments.remove(segments.size() - 1);
-        Seg.SegmentsResponse segmentsCore = getSegments(segmentStub, from, dstWildcard);
+        List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
         segments.add(segmentsCore);
         segments.add(segmentsCoreOrDown);
         return combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
       }
       // Try again with wildcard (DST is neither core nor a child of FROM)
-      Seg.SegmentsResponse segmentsCore = getSegments(segmentStub, from, dstWildcard);
+      List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
       boolean[] coreHasIA = containsIsdAs(segmentsCore, from, dstIsdAs);
       segments.add(segmentsCore);
       if (coreHasIA[1]) {
@@ -481,20 +475,20 @@ public class Segments {
         from = dstWildcard;
         // case C: DST is not core
         // We have to query down segments because SRC may not have a segment connected to DST
-        Seg.SegmentsResponse segmentsDown = getSegments(segmentStub, from, dstIsdAs);
+        List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, from, dstIsdAs);
         segments.add(segmentsDown);
         return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
       }
     }
     // remaining cases: F, G, H
-    Seg.SegmentsResponse segmentsCore = getSegments(segmentStub, from, dstWildcard);
+    List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
     boolean[] localCores = Segments.containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
     segments.add(segmentsCore);
     if (localCores[1]) {
       return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
     }
 
-    Seg.SegmentsResponse segmentsDown = getSegments(segmentStub, dstWildcard, dstIsdAs);
+    List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstWildcard, dstIsdAs);
     segments.add(segmentsDown);
     return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
   }
