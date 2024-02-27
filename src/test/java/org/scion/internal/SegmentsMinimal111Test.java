@@ -262,6 +262,58 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
   }
 
   @Test
+  void caseF0_SameIsd_UpCore() throws IOException {
+    addResponses();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_120);
+      //  Available paths to 1-ff00:0:120
+      //  3 Hops:
+      //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120]
+      //            MTU: 1472 NextHop: 127.0.0.33:31016 Status: alive LocalIP: 127.0.0.1
+
+      //  Path:  exp=1709074792 / 2024-02-27T22:59:52Z  mtu=1472
+      //  Path: first hop = 127.0.0.33:31016
+      //  pathIf: 0: 111 561850441793809  1-ff00:0:111
+      //  pathIf: 1: 2 561850441793808  1-ff00:0:110
+      //  pathIf: 2: 1 561850441793808  1-ff00:0:110
+      //  pathIf: 3: 10 561850441793824  1-ff00:0:120
+      //  hop: 0: 0
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      byte[] raw = {
+        0, 0, 32, -128, 0, 0, 118, 2, 101, -34, 21, 41, 0, 0, -69, -38, 101, -34, 21, 40, 0, 63, 0,
+        111, 0, 0, -42, -89, 38, 20, -89, 97, 0, 63, 0, 0, 0, 2, -74, -35, -65, 113, 121, -83, 0,
+        63, 0, 1, 0, 0, 80, 119, -69, 123, 22, -126, 0, 63, 0, 0, 0, 10, 10, 95, -95, -101, -4, -24
+      };
+
+      Daemon.Path path = paths.get(0);
+      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      checkMetaHeader(rawBB, 2, 2, 0);
+      checkInfo(rawBB, 10619, 0);
+      checkInfo(rawBB, 10619, 0);
+      checkHopField(rawBB, 111, 0);
+      checkHopField(rawBB, 0, 2);
+      checkHopField(rawBB, 1, 0);
+      checkHopField(rawBB, 0, 10);
+      assertEquals(0, rawBB.remaining());
+
+      // compare with recorded byte[]
+      checkRaw(raw, path.getRaw().toByteArray());
+
+      assertEquals(1472, path.getMtu());
+      String FIRST_HOP = topoServer.getBorderRouterAddressByIA(AS_110);
+      assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 111, "1-ff00:0:111");
+      checkInterface(path, 1, 2, "1-ff00:0:110");
+      checkInterface(path, 2, 1, "1-ff00:0:110");
+      checkInterface(path, 3, 10, "1-ff00:0:120");
+      assertEquals(4, path.getInterfacesCount());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
+  }
+
+  @Test
   void caseF_DifferentIsd_UpCore_2_Hop() throws IOException {
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {

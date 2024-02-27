@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -147,6 +148,63 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(1, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseF0_SameIsd_CoreDown() throws IOException {
+    addResponses();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_121);
+      assertNotNull(paths);
+      assertFalse(paths.isEmpty());
+      //  Available paths to 1-ff00:0:121
+      //  3 Hops:
+      //  [0] Hops: [1-ff00:0:110 1>10 1-ff00:0:120 21>104 1-ff00:0:121]
+      //            MTU: 1472 NextHop: 127.0.0.25:31002 Status: alive LocalIP: 127.0.0.1
+
+      //  Path:  exp=1709073168 / 2024-02-27T22:32:48Z  mtu=1472
+      //  Path: first hop = 127.0.0.25:31002
+      //  pathIf: 0: 1 561850441793808  1-ff00:0:110
+      //  pathIf: 1: 10 561850441793824  1-ff00:0:120
+      //  pathIf: 2: 21 561850441793824  1-ff00:0:120
+      //  pathIf: 3: 104 561850441793825  1-ff00:0:121
+      //  hop: 0: 0
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      byte[] raw = {
+        0, 0, 32, -128, 0, 0, -2, 50, 101, -34, 14, -48, 1, 0, -88, -116, 101, -34, 14, -48, 0, 63,
+        0, 1, 0, 0, -32, 11, -116, 98, 40, 59, 0, 63, 0, 0, 0, 10, 69, 7, 15, -100, -60, -113, 0,
+        63, 0, 0, 0, 21, -1, 100, 76, 70, -81, 125, 0, 63, 0, 104, 0, 0, -74, -115, 123, 0, -56, 48
+      };
+      // System.out.println(ToStringUtil.pathLong(raw)); // TODO
+      // System.out.println(ToStringUtil.path(raw)); // TODO
+      Daemon.Path path = paths.get(0);
+      // System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      // System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
+      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      checkMetaHeader(rawBB, 2, 2, 0);
+      checkInfo(rawBB, 10619, 0);
+      checkInfo(rawBB, 48280, 1);
+      checkHopField(rawBB, 1, 0);
+      checkHopField(rawBB, 0, 10);
+      checkHopField(rawBB, 0, 21);
+      checkHopField(rawBB, 104, 0);
+      assertEquals(0, rawBB.remaining());
+
+      // compare with recorded byte[]
+      checkRaw(raw, path.getRaw().toByteArray());
+
+      assertEquals(1472, path.getMtu());
+      String FIRST_HOP = topoServer.getBorderRouterAddressByIA(AS_120);
+      assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 1, "1-ff00:0:110");
+      checkInterface(path, 1, 10, "1-ff00:0:120");
+      checkInterface(path, 2, 21, "1-ff00:0:120");
+      checkInterface(path, 3, 104, "1-ff00:0:121");
+      assertEquals(4, path.getInterfacesCount());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
   }
 
   @Test

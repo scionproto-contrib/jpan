@@ -27,6 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -53,6 +55,7 @@ public class MockTopologyServer implements Closeable {
   private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
   private String controlServer;
   private long localIsdAs;
+  private final List<BorderRouter> borderRouters = new ArrayList<>();
 
   private MockTopologyServer(Path topoFile, boolean installNaptr) {
     getAndResetCallCount();
@@ -115,6 +118,28 @@ public class MockTopologyServer implements Closeable {
     return Integer.parseInt(controlServer.substring(controlServer.indexOf(':') + 1));
   }
 
+  public String getBorderRouterAddress(int interfaceId) {
+    for (BorderRouter br : borderRouters) {
+      for (BorderRouterInterface brif : br.interfaces) {
+        if (brif.id == interfaceId) {
+          return br.internalAddress;
+        }
+      }
+    }
+    throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
+  }
+
+  public String getBorderRouterAddressByIA(long remoteIsdAs) {
+    for (BorderRouter br : borderRouters) {
+      for (BorderRouterInterface brif : br.interfaces) {
+        if (brif.isdAs == remoteIsdAs) {
+          return br.internalAddress;
+        }
+      }
+    }
+    throw new ScionRuntimeException("No router found for IsdAs " + remoteIsdAs);
+  }
+
   public int getAndResetCallCount() {
     return callCount.getAndSet(0);
   }
@@ -150,24 +175,25 @@ public class MockTopologyServer implements Closeable {
       JsonObject o = jsonTree.getAsJsonObject();
       localIsdAs = ScionUtil.parseIA(safeGet(o, "isd_as").getAsString());
       // localMtu = safeGet(o, "mtu").getAsInt();
-      // JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
-      //      for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
-      //        JsonObject br = e.getValue().getAsJsonObject();
-      //        String addr = safeGet(br, "internal_addr").getAsString();
-      //        JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
-      //        List<ScionBootstrapper.BorderRouterInterface> interfaces = new ArrayList<>();
-      //        for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
-      //          JsonObject ife = ifEntry.getValue().getAsJsonObject();
-      //          // TODO bandwidth, mtu, ... etc
-      //          JsonObject underlay = ife.getAsJsonObject("underlay");
-      //          interfaces.add(
-      //              new ScionBootstrapper.BorderRouterInterface(
-      //                  ifEntry.getKey(),
-      //                  underlay.get("public").getAsString(),
-      //                  underlay.get("remote").getAsString()));
-      //        }
-      //        borderRouters.add(new ScionBootstrapper.BorderRouter(e.getKey(), addr, interfaces));
-      //      }
+      JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
+        JsonObject br = e.getValue().getAsJsonObject();
+        String addr = safeGet(br, "internal_addr").getAsString();
+        JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
+        List<BorderRouterInterface> interfaces = new ArrayList<>();
+        for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
+          JsonObject ife = ifEntry.getValue().getAsJsonObject();
+          // TODO bandwidth, mtu, ... etc
+          JsonObject underlay = ife.getAsJsonObject("underlay");
+          interfaces.add(
+              new BorderRouterInterface(
+                  ifEntry.getKey(),
+                  ife.get("isd_as").getAsString(),
+                  underlay.get("public").getAsString(),
+                  underlay.get("remote").getAsString()));
+        }
+        borderRouters.add(new BorderRouter(e.getKey(), addr, interfaces));
+      }
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
         JsonObject cs = e.getValue().getAsJsonObject();
@@ -245,6 +271,32 @@ public class MockTopologyServer implements Closeable {
       } finally {
         logger.info("Shutting down topology server");
       }
+    }
+  }
+
+  private static class BorderRouter {
+    private final String name;
+    private final String internalAddress;
+    private final List<BorderRouterInterface> interfaces;
+
+    public BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
+      this.name = name;
+      this.internalAddress = addr;
+      this.interfaces = interfaces;
+    }
+  }
+
+  private static class BorderRouterInterface {
+    final int id;
+    final long isdAs;
+    final String publicUnderlay;
+    final String remoteUnderlay;
+
+    public BorderRouterInterface(String id, String isdAs, String publicU, String remoteU) {
+      this.id = Integer.parseInt(id);
+      this.isdAs = ScionUtil.parseIA(isdAs);
+      this.publicUnderlay = publicU;
+      this.remoteUnderlay = remoteU;
     }
   }
 }
