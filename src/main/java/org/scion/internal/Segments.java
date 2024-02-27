@@ -54,25 +54,25 @@ public class Segments {
 
   private Segments() {}
 
-  private static List<Daemon.Path> combineThreeSegments(
-      Seg.SegmentsResponse segmentsUp,
-      Seg.SegmentsResponse segmentsCore,
-      Seg.SegmentsResponse segmentsDown,
+  private static List<Daemon.Path> combineSegments(
+      List<Seg.SegmentsResponse> segments,
       long srcIsdAs,
       long dstIsdAs,
       ScionBootstrapper brLookup) {
-    // Map IsdAs to pathSegment
-    MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
-    MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
+    if (segments.size() == 1) {
+      return combineSegment(segments.get(0), brLookup);
+    } else if (segments.size() == 2) {
+      return combineTwoSegments(segments.get(0), segments.get(1), srcIsdAs, dstIsdAs, brLookup);
+    }
+    return combineThreeSegments(
+        segments.get(0), segments.get(1), segments.get(2), srcIsdAs, dstIsdAs, brLookup);
+  }
 
+  private static List<Daemon.Path> combineSegment(
+      Seg.SegmentsResponse segments, ScionBootstrapper brLookup) {
     List<Daemon.Path> paths = new ArrayList<>();
-    for (Seg.PathSegment pathSeg : get(segmentsCore)) {
-      long[] endIAs = getEndingIAs(pathSeg);
-      if (upSegments.get(endIAs[0]) != null && downSegments.get(endIAs[1]) != null) {
-        buildPath(paths, upSegments.get(endIAs[0]), pathSeg, downSegments.get(endIAs[1]), brLookup);
-      } else if (upSegments.get(endIAs[1]) != null && downSegments.get(endIAs[0]) != null) {
-        buildPath(paths, upSegments.get(endIAs[1]), pathSeg, downSegments.get(endIAs[0]), brLookup);
-      }
+    for (Seg.PathSegment pathSegment : get(segments)) {
+      paths.add(buildPath(brLookup, pathSegment));
     }
     return paths;
   }
@@ -109,27 +109,27 @@ public class Segments {
     return paths;
   }
 
-  private static List<Daemon.Path> combineSegment(
-      Seg.SegmentsResponse segments, ScionBootstrapper brLookup) {
-    List<Daemon.Path> paths = new ArrayList<>();
-    for (Seg.PathSegment pathSegment : get(segments)) {
-      paths.add(buildPath(brLookup, pathSegment));
-    }
-    return paths;
-  }
-
-  private static List<Daemon.Path> combineSegments(
-      List<Seg.SegmentsResponse> segments,
+  private static List<Daemon.Path> combineThreeSegments(
+      Seg.SegmentsResponse segmentsUp,
+      Seg.SegmentsResponse segmentsCore,
+      Seg.SegmentsResponse segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
       ScionBootstrapper brLookup) {
-    if (segments.size() == 1) {
-      return combineSegment(segments.get(0), brLookup);
-    } else if (segments.size() == 2) {
-      return combineTwoSegments(segments.get(0), segments.get(1), srcIsdAs, dstIsdAs, brLookup);
+    // Map IsdAs to pathSegment
+    MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
+    MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
+
+    List<Daemon.Path> paths = new ArrayList<>();
+    for (Seg.PathSegment pathSeg : get(segmentsCore)) {
+      long[] endIAs = getEndingIAs(pathSeg);
+      if (upSegments.get(endIAs[0]) != null && downSegments.get(endIAs[1]) != null) {
+        buildPath(paths, upSegments.get(endIAs[0]), pathSeg, downSegments.get(endIAs[1]), brLookup);
+      } else if (upSegments.get(endIAs[1]) != null && downSegments.get(endIAs[0]) != null) {
+        buildPath(paths, upSegments.get(endIAs[1]), pathSeg, downSegments.get(endIAs[0]), brLookup);
+      }
     }
-    return combineThreeSegments(
-        segments.get(0), segments.get(1), segments.get(2), srcIsdAs, dstIsdAs, brLookup);
+    return paths;
   }
 
   private static void buildPath(
@@ -423,15 +423,11 @@ public class Segments {
     int dstISD = ScionUtil.extractIsd(dstIsdAs);
 
     if (srcIsdAs == dstIsdAs) {
-      // case A
-      // return empty path
-      List<Daemon.Path> paths = new ArrayList<>();
+      // case A: same AS, return empty path
       Daemon.Path.Builder path = Daemon.Path.newBuilder();
       path.setMtu(brLookup.getLocalMtu());
-      Instant now = Instant.now();
-      path.setExpiration(Timestamp.newBuilder().setSeconds(now.getEpochSecond()).build());
-      paths.add(path.build());
-      return paths;
+      path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
+      return Collections.singletonList(path.build());
     }
 
     // TODO in future we can find out whether an AS is CORE by parsing the TRC files:
