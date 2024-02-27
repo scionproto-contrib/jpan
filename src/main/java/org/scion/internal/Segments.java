@@ -155,12 +155,12 @@ public class Segments {
     }
 
     // path meta header
-    int patrhMetaHeader = 0;
+    int pathMetaHeader = 0;
     for (int i = 0; i < segments.length; i++) {
       int hopCount = segments[i].getAsEntriesCount();
-      patrhMetaHeader |= hopCount << (6 * (2 - i));
+      pathMetaHeader |= hopCount << (6 * (2 - i));
     }
-    raw.putInt(patrhMetaHeader);
+    raw.putInt(pathMetaHeader);
 
     // info fields
     boolean[] reversed = new boolean[segments.length];
@@ -399,7 +399,6 @@ public class Segments {
         response.getSegmentsMap().entrySet()) {
       pathSegments.addAll(seg.getValue().getSegmentsList());
     }
-
     return pathSegments;
   }
 
