@@ -347,7 +347,7 @@ public class Segments {
       if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
         throw new UnsupportedOperationException("Unsigned entries are not supported");
       }
-      // TODO add ALL instead of just ends
+      // TODO for shortcut/on-path add ALL instead of just ends
       long iaFirst = getBody(asEntryFirst.getSigned()).getIsdAs();
       long iaLast = getBody(asEntryLast.getSigned()).getIsdAs();
       found[0] |= (iaFirst == srcIsdAs) || (iaLast == srcIsdAs);
