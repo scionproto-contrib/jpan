@@ -348,25 +348,6 @@ public class Segments {
     return new long[] {bodyFirst.getIsdAs(), bodyLast.getIsdAs()};
   }
 
-  // TODO use primitive set!?!
-  public static Set<Long> getAllEndingIAs(Seg.SegmentsResponse segments) {
-    Set<Long> IAs = new HashSet<>();
-    for (Seg.PathSegment seg : get(segments)) {
-      Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
-      Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
-      if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
-        throw new UnsupportedOperationException("Unsigned entries are not supported");
-      }
-      Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst.getSigned());
-      Seg.ASEntrySignedBody bodyLast = getBody(asEntryLast.getSigned());
-
-      // TODO add ALL instead of just ends
-      IAs.add(bodyFirst.getIsdAs());
-      IAs.add(bodyLast.getIsdAs());
-    }
-    return IAs;
-  }
-
   private static Seg.ASEntrySignedBody getBody(Signed.SignedMessage sm) {
     try {
       Signed.HeaderAndBodyInternal habi =
@@ -391,18 +372,22 @@ public class Segments {
     }
   }
 
-  private static boolean[] containsIsdAs(Set<Long> IAs, long srcIsdAs, long dstIsdAs) {
-    boolean[] found = new boolean[] {false, false};
-    for (long ia : IAs) {
-      found[0] |= ia == srcIsdAs;
-      found[1] |= ia == dstIsdAs;
-    }
-    return found;
-  }
-
   private static boolean[] containsIsdAs(
       Seg.SegmentsResponse segments, long srcIsdAs, long dstIsdAs) {
-    return containsIsdAs(getAllEndingIAs(segments), srcIsdAs, dstIsdAs);
+    boolean[] found = new boolean[] {false, false};
+    for (Seg.PathSegment seg : get(segments)) {
+      Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
+      Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
+      if (!asEntryFirst.hasSigned() || !asEntryLast.hasSigned()) {
+        throw new UnsupportedOperationException("Unsigned entries are not supported");
+      }
+      // TODO add ALL instead of just ends
+      long iaFirst = getBody(asEntryFirst.getSigned()).getIsdAs();
+      long iaLast = getBody(asEntryLast.getSigned()).getIsdAs();
+      found[0] |= (iaFirst == srcIsdAs) || (iaLast == srcIsdAs);
+      found[1] |= (iaFirst == dstIsdAs) || (iaLast == dstIsdAs);
+    }
+    return found;
   }
 
   private static Seg.SegmentsResponse getSegments(
