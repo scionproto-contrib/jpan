@@ -127,8 +127,8 @@ public class ScmpChannel implements AutoCloseable {
   }
 
   private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
-    private final ByteBuffer bufferReceive;
-    private final ByteBuffer bufferSend;
+    private ByteBuffer bufferReceive;
+    private ByteBuffer bufferSend;
     private final Selector selector;
 
     protected InternalChannel(ScionService service, RequestPath path, int port) throws IOException {
@@ -224,6 +224,16 @@ public class ScmpChannel implements AutoCloseable {
             }
           }
         }
+      }
+    }
+
+    @Override
+    protected void resizeBuffers(int sizeReceive, int sizeSend) {
+      if (bufferReceive.capacity() != sizeReceive) {
+        bufferReceive = ByteBuffer.allocateDirect(sizeReceive);
+      }
+      if (bufferSend.capacity() != sizeSend) {
+        bufferSend = ByteBuffer.allocateDirect(sizeSend);
       }
     }
 
