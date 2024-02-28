@@ -301,17 +301,19 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       } else {
         throw new UnsupportedOperationException();
       }
-    } else if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
-      // TODO resize buf
+    } else if (StandardSocketOptions.SO_RCVBUF.equals(option)
+        || StandardSocketOptions.SO_SNDBUF.equals(option)) {
       channel.setOption(option, t);
-    } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
-      // TODO resize buf
-      channel.setOption(option, t);
+      resizeBuffers(
+          channel.getOption(StandardSocketOptions.SO_RCVBUF),
+          channel.getOption(StandardSocketOptions.SO_SNDBUF));
     } else {
       channel.setOption(option, t);
     }
     return (C) this;
   }
+
+  protected abstract void resizeBuffers(int sizeReceive, int sizeSend);
 
   /**
    * @param path path

@@ -103,7 +103,7 @@ public class ScionBootstrapper {
         if (STR_X_SCION_TCP.equals(naptrService)) {
           String host = nr.getReplacement().toString();
           String naptrFlag = nr.getFlags();
-          LOG.info("Found DNS entry: " + naptrService);
+          LOG.info("Found DNS entry: {}", naptrService);
           int port = queryTXT(hostName);
           if ("A".equals(naptrFlag)) {
             InetAddress addr = DNSHelper.queryA(host);
@@ -240,14 +240,14 @@ public class ScionBootstrapper {
   }
 
   public void refreshTopology() {
-    // TODO check timeout from dig netsec-w37w3w.inf.ethz.ch?
+    // TODO check timeout from NAPTR record
     // TODO verify local DNS?? How?
     // init();
     throw new UnsupportedOperationException();
   }
 
   private String getTopologyFile() throws IOException {
-    LOG.info("Getting topology from bootstrap server: " + topologyResource);
+    LOG.info("Getting topology from bootstrap server: {}", topologyResource);
     controlServices.clear();
     discoveryServices.clear();
     // TODO https????

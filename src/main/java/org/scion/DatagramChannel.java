@@ -26,8 +26,8 @@ import org.scion.internal.ScionHeaderParser;
 public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     implements ByteChannel, Closeable {
 
-  private final ByteBuffer bufferReceive;
-  private final ByteBuffer bufferSend;
+  private ByteBuffer bufferReceive;
+  private ByteBuffer bufferSend;
 
   protected DatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
       throws IOException {
@@ -59,6 +59,16 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
   @Override
   public synchronized boolean isBlocking() {
     return super.isBlocking();
+  }
+
+  @Override
+  protected void resizeBuffers(int sizeReceive, int sizeSend) {
+    if (bufferReceive.capacity() != sizeReceive) {
+      bufferReceive = ByteBuffer.allocateDirect(sizeReceive);
+    }
+    if (bufferSend.capacity() != sizeSend) {
+      bufferSend = ByteBuffer.allocateDirect(sizeSend);
+    }
   }
 
   public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {

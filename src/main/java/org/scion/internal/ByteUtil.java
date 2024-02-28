@@ -16,12 +16,20 @@ package org.scion.internal;
 
 public class ByteUtil {
 
-  /** Mutable integer. */
-  public static class MutInt {
-    public int v;
+  /** Mutable long integer. */
+  public static class MutLong {
+    public long v;
 
-    MutInt(int v) {
+    MutLong(long v) {
       this.v = v;
+    }
+
+    public long get() {
+      return v;
+    }
+
+    public void set(long l) {
+      this.v = l;
     }
   }
 

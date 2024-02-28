@@ -17,7 +17,6 @@ package org.scion;
 import java.net.SocketOption;
 
 public final class ScionSocketOptions {
-  // TODO options for Daemon ports/IPs?
 
   /**
    * If set to 'true', the Scion header parser will throw errors when encountering problems while
@@ -28,28 +27,16 @@ public final class ScionSocketOptions {
       new SciSocketOption<>("SN_API_THROW_PARSER_FAILURE", Boolean.class);
 
   /**
-   * TODO not yet implemented. If set to 'true', the receive() and read() operations will read new
-   * packets directly into the ByteBuffer provided by the user. The ByteBuffer will contain the
-   * header and the position of will be set to the first byte of the payload. This has two
-   * advantages: the payload does not need to be copied (saving one copy operation) and the Scion
-   * packet header is directly available to the user. If set to 'false', the receive() and read()
-   * operations will copy the payload to the ByteBuffer provided by the user. Default is 'false'
+   * If set to 'true', the receive() and read() operations will read new packets directly into the
+   * ByteBuffer provided by the user. The ByteBuffer will contain the header and the position of
+   * will be set to the first byte of the payload. This has two advantages: the payload does not
+   * need to be copied (saving one copy operation) and the Scion packet header is directly available
+   * to the user. If set to 'false', the receive() and read() operations will copy the payload to
+   * the ByteBuffer provided by the user. Default is 'false'
    */
   @Deprecated // TODO implement
   public static final SocketOption<Boolean> SN_API_WRITE_TO_USER_BUFFER =
       new SciSocketOption<>("SN_API_WRITE_TO_USER_BUFFER", Boolean.class);
-
-  // TODO can we use this size for the ByteBuffer in the channel? In the original socket
-  //   they probably refer to a different type of byffer, i.e. if packets are generated
-  //   faster than they can be sent.
-  //   -> The Channel only has *one* buffer....
-  //  /**  	The size of the socket send buffer. Default is 2000. */
-  //  public static final SocketOption<Integer> SSO_SNDBUF = new SciSocketOption<>("SSO_SNDBUF",
-  // Integer.class);;
-  //
-  //  /**  	The size of the socket receive buffer. Default is 2000. */
-  //  public static final SocketOption<Integer> SSO_RCVBUF = new SciSocketOption<>("SSO_RCVBUF",
-  // Integer.class);;
 
   /**
    * Before sending a packet, a new path will be requested if now() + pathExpirationMargin >
