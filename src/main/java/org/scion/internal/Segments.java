@@ -427,7 +427,6 @@ public class Segments {
     //      https://docs.anapaya.net/en/latest/resources/isd-as-assignments/#as-assignments
     //     ./bazel-bin/scion-pki/cmd/scion-pki/scion-pki_/scion-pki trc inspect
     //         ../../Downloads/ISD64.bundle
-    //     Or we use logic. If SRC is not CORE then DST must be CORE.
 
     long from = srcIsdAs;
     long to = dstIsdAs;
@@ -496,9 +495,5 @@ public class Segments {
 
   private static long toWildcard(long isdAs) {
     return (isdAs >>> 48) << 48;
-  }
-
-  private static boolean isWildcard(long isdAs) {
-    return toWildcard(isdAs) == isdAs;
   }
 }
