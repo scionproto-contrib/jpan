@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#14](https://github.com/tzaeschke/phtree-cpp/pull/14), 
   [#15](https://github.com/tzaeschke/phtree-cpp/pull/15),
   [#17](https://github.com/tzaeschke/phtree-cpp/pull/17),
-  [#19](https://github.com/tzaeschke/phtree-cpp/pull/19)
+  [#19](https://github.com/tzaeschke/phtree-cpp/pull/19),
+  [#20](https://github.com/tzaeschke/phtree-cpp/pull/21)
 - BREAKING CHANGE:`ScionService` instances created via `Scion.newXYZ`
   will not be considered by `Scion.defaultService()`. Also, `DatagramChannel.getService()`
   does not create a service if none exists.
@@ -28,6 +29,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#13](https://github.com/tzaeschke/phtree-cpp/pull/13)
 - CI (only) failures on JDK 8. [#10](https://github.com/tzaeschke/phtree-cpp/pull/10)
 - Sporadic CI (only) failures. [#12](https://github.com/tzaeschke/phtree-cpp/pull/12)
+
+### Removed
+
+- Removed all code related to DatagramSockets
+  [#21](https://github.com/tzaeschke/phtree-cpp/pull/21)
+
 
 ## [0.1.0-ALPHA] - 2024-02-01
 
