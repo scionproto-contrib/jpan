@@ -58,7 +58,6 @@ public class ScionHeaderParser {
    * @param data The datagram to read from.
    * @return A new ScionSocketAddress including raw path.
    */
-  // TODO this is a bit weird to have the firstHopAddress here....
   public static ResponsePath extractResponsePath(
       ByteBuffer data, InetSocketAddress firstHopAddress) {
     int pos = data.position();
@@ -337,7 +336,7 @@ public class ScionHeaderParser {
     i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
     i1 = writeInt(i1, 0, 8, hdrType.code); // NextHdr = 17 is for UDP OverlayHeader
-    int newHdrLen = (calcLen(pathHeaderLength, dl, sl) - 1) / 4 + 1;
+    int newHdrLen = (calcLen(pathHeaderLength, sl, dl) - 1) / 4 + 1;
     i1 = writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
     i1 = writeInt(i1, 16, 16, userPacketLength); // PayloadLen (+ overlay!)
     data.putInt(i1);

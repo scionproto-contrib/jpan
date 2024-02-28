@@ -63,11 +63,10 @@ public class ScionService {
 
   private static final String DNS_TXT_KEY = "scion";
   private static final Object LOCK = new Object();
-  private static ScionService DEFAULT = null;
   private static final String ERR_INVALID_TXT = "Invalid TXT entry: ";
+  private static ScionService defaultService = null;
 
   private final ScionBootstrapper bootstrapper;
-  // TODO create subclasses for these two? We can only have either one of them, not both.
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
 
@@ -133,28 +132,28 @@ public class ScionService {
     synchronized (LOCK) {
       // This is not 100% thread safe, but the worst that can happen is that
       // we call close() on a Service that has already been closed.
-      if (DEFAULT != null) {
-        return DEFAULT;
+      if (defaultService != null) {
+        return defaultService;
       }
       // try bootstrap service IP
       String fileName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
       if (fileName != null) {
-        DEFAULT = new ScionService(fileName, Mode.BOOTSTRAP_TOPO_FILE);
-        return DEFAULT;
+        defaultService = new ScionService(fileName, Mode.BOOTSTRAP_TOPO_FILE);
+        return defaultService;
       }
 
       String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
       if (server != null) {
-        DEFAULT = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
-        return DEFAULT;
+        defaultService = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
+        return defaultService;
       }
 
       String naptrName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
       if (naptrName != null) {
-        DEFAULT = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
-        return DEFAULT;
+        defaultService = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
+        return defaultService;
       }
 
       // try daemon
@@ -163,8 +162,8 @@ public class ScionService {
       String daemonPort =
           ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
       try {
-        DEFAULT = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
-        return DEFAULT;
+        defaultService = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
+        return defaultService;
       } catch (ScionRuntimeException e) {
         throw new ScionRuntimeException(
             "Could not connect to daemon, DNS or bootstrap resource.", e);
@@ -174,13 +173,13 @@ public class ScionService {
 
   public static void closeDefault() {
     synchronized (LOCK) {
-      if (DEFAULT != null) {
+      if (defaultService != null) {
         try {
-          DEFAULT.close();
+          defaultService.close();
         } catch (IOException e) {
           throw new ScionRuntimeException(e);
         } finally {
-          DEFAULT = null;
+          defaultService = null;
         }
       }
     }
@@ -191,9 +190,9 @@ public class ScionService {
         new Thread(
             () -> {
               try {
-                if (DEFAULT != null) {
-                  DEFAULT.shutdownHook = null;
-                  DEFAULT.close();
+                if (defaultService != null) {
+                  defaultService.shutdownHook = null;
+                  defaultService.close();
                 }
               } catch (IOException e) {
                 // Ignore, we just want to get out.

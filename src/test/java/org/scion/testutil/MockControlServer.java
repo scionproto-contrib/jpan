@@ -151,16 +151,42 @@ public class MockControlServer implements AutoCloseable {
       long maskISD = -1L << 48;
       long srcWildcard = srcIA & maskISD;
       long dstWildcard = dstIA & maskISD;
-      responses.put(key(srcIA, dstIA), response);
+      addResponse(key(srcIA, dstIA), response);
       if (dstIsCore) {
-        responses.put(key(srcIA, dstWildcard), response);
+        addResponse(key(srcIA, dstWildcard), response);
       }
       if (srcIsCore) {
-        responses.put(key(srcWildcard, dstIA), response);
+        addResponse(key(srcWildcard, dstIA), response);
       }
       if (srcIsCore && dstIsCore) {
-        responses.put(key(srcWildcard, dstWildcard), response);
+        addResponse(key(srcWildcard, dstWildcard), response);
       }
+    }
+
+    private void addResponse(String key, Seg.SegmentsResponse response) {
+      if (!responses.containsKey(key)) {
+        responses.put(key, response);
+        return;
+      }
+      // merge new response with existing response
+      Seg.SegmentsResponse existing = responses.get(key);
+      int existingKey = existing.getSegmentsMap().entrySet().iterator().next().getKey();
+      int newKey = response.getSegmentsMap().entrySet().iterator().next().getKey();
+      if (newKey != existingKey) {
+        throw new UnsupportedOperationException();
+      }
+      List<Seg.PathSegment> listExisting =
+          existing.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
+      List<Seg.PathSegment> listNew =
+          response.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
+      Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
+      Seg.SegmentsResponse.Segments.Builder segmentsBuilder =
+          Seg.SegmentsResponse.Segments.newBuilder();
+      segmentsBuilder.addAllSegments(listExisting);
+      segmentsBuilder.addAllSegments(listNew);
+
+      replyBuilder.putSegments(existingKey, segmentsBuilder.build());
+      responses.put(key, replyBuilder.build());
     }
 
     public void clearSegments() {

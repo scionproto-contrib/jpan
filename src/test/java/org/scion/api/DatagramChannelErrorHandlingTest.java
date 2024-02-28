@@ -40,7 +40,7 @@ class DatagramChannelErrorHandlingTest {
 
   @Disabled
   @Test
-  void testDummyChannel() throws IOException {
+  void testErrorHandling() throws IOException {
     MockDatagramChannel mock = MockDatagramChannel.open();
     MockNetwork.startTiny();
     InetSocketAddress dstAddr = new InetSocketAddress("127.0.0.1", 12345);
