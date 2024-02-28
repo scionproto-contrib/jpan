@@ -32,12 +32,12 @@ public class ProtobufPathDemo {
 
   public static void main(String[] args) {
     try (Scion.CloseableService daemon =
-        Scion.newServiceWithDaemon(DemoConstants.daemon121_minimal)) {
+        Scion.newServiceWithDaemon(DemoConstants.daemon110_minimal)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(DemoConstants.ia121, DemoConstants.ia210);
+      demo.testPathsDaemon(DemoConstants.ia110, DemoConstants.ia211);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
