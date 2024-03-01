@@ -1,0 +1,24 @@
+<!DOCTYPE module PUBLIC
+        "-//Puppy Crawl//DTD Check Configuration 1.3//EN"
+        "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
+<module name="Checker">
+    <module name="TreeWalker">
+        <!-- Checks for imports                              -->
+        <!-- See http://checkstyle.sf.net/config_import.html -->
+        <module name="AvoidStarImport">
+            <property name="excludes" value="java.io,java.util,java.net,io.grpc,org.junit.jupiter.api.Assertions,org.scion.internal.ByteUtil,org.scion,org.scion.demo.inspector.ByteUtil,org.xbill.DNS"/>
+<!--            <property name="severity" value="warning" />-->
+        </module>
+        <module name="NeedBraces"/>
+    </module>
+<!--    <module name="RegexpHeader">-->
+<!--        <property name="headerFile" value="checkstyle/java.header.txt"/>-->
+<!--        <property name="fileExtensions" value="java"/>-->
+<!--    </module>-->
+    <module name="Header">
+<!--        <property name="headerFile" value="java.header.txt"/>-->
+        <property name="headerFile" value="${base_dir}/config/checkstyle/java.header.txt"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="ignoreLines" value="1"/>
+    </module>
+</module>
