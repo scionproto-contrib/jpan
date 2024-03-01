@@ -34,9 +34,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import org.scion.internal.DNSHelper;
-import org.scion.internal.ScionBootstrapper;
-import org.scion.internal.Segments;
+
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;

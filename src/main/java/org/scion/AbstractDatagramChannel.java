@@ -24,10 +24,9 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
 import java.util.function.Consumer;
-import org.scion.internal.ExtensionHeader;
+
 import org.scion.internal.InternalConstants;
 import org.scion.internal.ScionHeaderParser;
-import org.scion.internal.ScmpParser;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
