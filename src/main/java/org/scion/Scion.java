@@ -15,9 +15,10 @@
 package org.scion;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 public final class Scion {
+
+  private Scion() {}
 
   /**
    * Returns the default instance of the ScionService. The default instance is connected to the
@@ -40,8 +41,8 @@ public final class Scion {
   }
 
   /**
-   * Create a new service instance. The new service will become the default service un;less there is
-   * already a default service.
+   * Create a new service instance that connects to a daemon. Services created with this method will
+   * never be returned by {@link #defaultService()}.
    *
    * @param hostAndPort of the local daemon in the form of IP:port
    * @return new ScionService instance
@@ -51,8 +52,8 @@ public final class Scion {
   }
 
   /**
-   * Create a new service instance. The new service will become the default service un;less there is
-   * already a default service.
+   * Create a new service instance that uses DNS NAPTR entries to connect to a control service.
+   * Services created with this method will never be returned by {@link #defaultService()}.
    *
    * @param hostName of the host whose DNS entry contains hints for control service etc.
    * @return new ScionService instance
@@ -62,8 +63,8 @@ public final class Scion {
   }
 
   /**
-   * Create a new service instance. The new service will become the default service un;less there is
-   * already a default service.
+   * Create a new service instance that uses a bootstrap server host/port to locate a control
+   * server. Services created with this method will never be returned by {@link #defaultService()}.
    *
    * @param hostAndPort of the bootstrap server.
    * @return new ScionService instance
@@ -73,8 +74,8 @@ public final class Scion {
   }
 
   /**
-   * Create a new service instance. The new service will become the default service un;less there is
-   * already a default service.
+   * Create a new service instance that reads a topology file to determine the address of a control
+   * server. Services created with this method will never be returned by {@link #defaultService()}.
    *
    * @param filePath name (and location) of the topology json file.
    * @return new ScionService instance
@@ -87,10 +88,6 @@ public final class Scion {
 
     private CloseableService(String address, Mode mode) {
       super(address, mode);
-    }
-
-    public void close() throws IOException {
-      super.close();
     }
   }
 }
