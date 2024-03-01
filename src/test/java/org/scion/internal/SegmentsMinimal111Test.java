@@ -14,7 +14,6 @@
 
 package org.scion.internal;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -26,8 +25,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
-import org.scion.Scion;
-import org.scion.ScionService;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;

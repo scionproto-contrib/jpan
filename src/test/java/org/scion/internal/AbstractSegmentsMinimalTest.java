@@ -22,7 +22,7 @@ import com.google.protobuf.Timestamp;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Arrays;
-import org.scion.ScionUtil;
+
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.crypto.Signed;
 import org.scion.proto.daemon.Daemon;

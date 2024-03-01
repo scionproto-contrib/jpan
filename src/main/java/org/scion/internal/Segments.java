@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.*;
 
-import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.proto.crypto.Signed;
