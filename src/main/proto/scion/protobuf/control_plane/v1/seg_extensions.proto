@@ -1,0 +1,153 @@
+// Copyright 2020 Anapaya Systems
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option java_package = "org.scion.proto.control_plane";
+
+package proto.control_plane.v1;
+
+import "scion/protobuf/control_plane/experimental/v1/seg_detached_extensions.proto";
+
+message PathSegmentExtensions {
+    // Optional static info extension.
+    StaticInfoExtension static_info = 1;
+    // Optional hidden path extension.
+    HiddenPathExtension hidden_path = 2;
+
+    // Optional digests of detached extensions.
+    DigestExtension digests = 1000;
+}
+
+message HiddenPathExtension {
+    // Indicate if this is a hidden path.
+    bool is_hidden = 1;
+}
+
+message StaticInfoExtension {
+    // Approximate, lower-bound latency for paths based on this ASEntry.
+    LatencyInfo latency = 1;
+    // Approximate, maximum bandwidth for paths based on this ASEntry.
+    BandwidthInfo bandwidth = 2;
+    // Geographical coordinates describing the location of the routers for
+    // relevant interfaces of this AS. The key is the interface identifier.
+    map<uint64, GeoCoordinates> geo = 3;
+    // Description of the underlying network for the inter-AS links, for the
+    // relevant interfaces of this AS. The key is the interface identifier.
+    map<uint64, LinkType> link_type = 4;
+    // Number of AS internal hops between the construction-egress and the
+    // relevant other interfaces. These are:
+    // - construction-ingress interface (if any)
+    // - sibling child interfaces,
+    // - core interfaces, at start or end of a segment
+    // - peer interfaces
+    // The key is the interface identifier of the other interface.
+    map<uint64, uint32> internal_hops = 5;
+    // Generic note
+    string note = 6;
+}
+
+// LatencyInfo specifies approximate lower-bound latency values.
+// The separate intra and inter AS latency information allows to reconstruct
+// latency values for all paths (cross-over, shortcut, peering) based on this
+// ASEntry.
+// All values are in microseconds.
+message LatencyInfo {
+    // Latency between construction-egress interface and the relevant other
+    // interfaces. These are:
+    // - construction-ingress interface (if any)
+    // - sibling child interfaces,
+    // - core interfaces, at start or end of a segment
+    // - peer interfaces
+    // The key is the interface identifier of the other interface.
+    map<uint64, uint32> intra = 1;
+    // Latency between the local interface and the interface in the neighbor AS
+    // for the relevant links. These are:
+    // - link at construction-egress interface (if any)
+    // - peer links
+    // The key is the interface identifier of the local interface associated
+    // with the link.
+    map<uint64, uint32> inter = 2;
+}
+
+// BandwidthInfo specifies approximate maximum link bandwidth.
+// The separate intra and inter AS bandwidth information allows to reconstruct
+// bandwidth values for all paths (cross-over, shortcut, peering) based on this
+// ASEntry.
+// All values are in Kbit/s.
+message BandwidthInfo {
+    // Bandwidth between construction-egress interface and the relevant other
+    // interfaces. These are:
+    // - construction-ingress interface (if any)
+    // - sibling child interfaces,
+    // - core interfaces, if this is the start of a segment, or the end of a core segment
+    // - peer interfaces
+    // The key is the interface identifier of the other interface.
+    map<uint64, uint64> intra = 1;
+    // Bandwidth between the local interface and the interface in the neighbor AS
+    // for the relevant links. These are:
+    // - link at construction-egress interface (if any)
+    // - peer links
+    // The key is the interface identifier of the local interface associated
+    // with the link.
+    map<uint64, uint64> inter = 2;
+}
+
+message GeoCoordinates {
+    // Latitude of the geographic coordinate, in the WGS 84 datum.
+    float latitude = 1;
+    // Longitude of the geographic coordinate, in the WGS 84 datum.
+    float longitude = 2;
+    // Civic address of the location.
+    string address = 3;
+}
+
+enum LinkType {
+    // Unspecified link type.
+    LINK_TYPE_UNSPECIFIED = 0;
+    // Direct physical connection.
+    LINK_TYPE_DIRECT = 1;
+    // Connection with local routing/switching.
+    LINK_TYPE_MULTI_HOP = 2;
+    // Connection overlayed over publicly routed Internet.
+    LINK_TYPE_OPEN_NET = 3;
+}
+
+message DigestExtension {
+    message Digest {
+        // Raw digest of the metadata.
+        bytes digest = 1;
+    }
+
+    // The digest of the detached EPIC extension. The hash input is defined as follows:
+    //
+    // input = totalLen ||
+    //         epic.Detached.AuthHopEntry ||
+    //         epic.Detached.AuthPeerEntries[0] ||
+    //         epic.Detached.AuthPeerEntries[1] ||
+    //         ...
+    //         epic.Detached.AuthPeerEntries[n-1]
+    //
+    // Here, 'n' denotes the number of peer entries.
+    //
+    // 'totalLen' is equal to (n+1), and therefore encodes the
+    // total number of authenticators used in the hash.
+    //
+    Digest epic = 1000;
+}
+
+message PathSegmentUnsignedExtensions {
+    // Optional EPIC extension.
+    proto.control_plane.experimental.v1.EPICDetachedExtension epic = 1000;
+}

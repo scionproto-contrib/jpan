@@ -1,0 +1,84 @@
+// Copyright 2020 Anapaya Systems
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option java_package = "org.scion.proto.hidden_segment";
+
+package proto.hidden_segment.v1;
+
+import "scion/protobuf/control_plane/v1/seg.proto";
+import "scion/protobuf/crypto/v1/signed.proto";
+
+service HiddenSegmentRegistrationService {
+    // HiddenSegmentRegistration registers hidden segments at the remote.
+    rpc HiddenSegmentRegistration(HiddenSegmentRegistrationRequest) returns (HiddenSegmentRegistrationResponse) {}
+}
+
+message Segments {
+    // List of path segments.
+    repeated proto.control_plane.v1.PathSegment segments = 1;
+}
+
+message HiddenSegmentRegistrationRequest {
+    // The signed hidden segment registration request. The body of the
+    // SignedMessage is the serialized HiddenSegmentRegistrationRequestBody.
+    proto.crypto.v1.SignedMessage signed_request = 1;
+}
+
+message HiddenSegmentRegistrationRequestBody {
+    // Mapping from path segment type to path segments. The key is the integer
+    // representation of the control_plane.v1.SegmentType enum.
+    map<int32, Segments> segments = 1;
+
+    // GroupID is the group ID to which these segments should be registered.
+    uint64 group_id = 2;
+}
+
+message HiddenSegmentRegistrationResponse {}
+
+service HiddenSegmentLookupService {
+    // HiddenSegments returns all segments that match the request.
+    rpc HiddenSegments(HiddenSegmentsRequest) returns (HiddenSegmentsResponse) {}
+}
+
+message HiddenSegmentsRequest {
+    // Hidden path group IDs for which a hidden segment is requested.
+    repeated uint64 group_ids = 1;
+    // The destination ISD-AS of the segment.
+    uint64 dst_isd_as = 2;
+}
+
+message HiddenSegmentsResponse {
+    // Mapping from path segment type to path segments. The key is the integer
+    // representation of the control_plane.v1.SegmentType enum.
+    map<int32, Segments> segments = 1;
+}
+
+service AuthoritativeHiddenSegmentLookupService {
+    // HiddenSegments returns all segments that match the request.
+    rpc AuthoritativeHiddenSegments(AuthoritativeHiddenSegmentsRequest) returns (AuthoritativeHiddenSegmentsResponse) {}
+}
+
+message AuthoritativeHiddenSegmentsRequest {
+    // The signed hidden segment request. The body of the SignedMessage is the
+    // serialized HiddenSegmentRegistrationRequestBody.
+    proto.crypto.v1.SignedMessage signed_request = 1;
+}
+
+message AuthoritativeHiddenSegmentsResponse {
+    // Mapping from path segment type to path segments. The key is the integer
+    // representation of the control_plane.v1.SegmentType enum.
+    map<int32, Segments> segments = 1;
+}
