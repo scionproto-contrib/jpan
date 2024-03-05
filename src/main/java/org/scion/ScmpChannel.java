@@ -55,7 +55,7 @@ public class ScmpChannel implements AutoCloseable {
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
-    RequestPath path = (RequestPath) channel.getCurrentPath();
+    RequestPath path = (RequestPath) channel.getConnectionPath();
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
     sendScmpRequest(() -> channel.sendEchoRequest(request), Scmp.TypeCode.TYPE_129);
     return request;
@@ -72,7 +72,7 @@ public class ScmpChannel implements AutoCloseable {
    */
   public Collection<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
     List<Scmp.TracerouteMessage> requests = new ArrayList<>();
-    RequestPath path = (RequestPath) channel.getCurrentPath();
+    RequestPath path = (RequestPath) channel.getConnectionPath();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     for (int i = 0; i < nodes.size(); i++) {
       Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(i, path);
@@ -141,7 +141,7 @@ public class ScmpChannel implements AutoCloseable {
       super.channel().configureBlocking(false);
       super.channel().register(selector, SelectionKey.OP_READ);
 
-      super.setPath(path);
+      super.setConnectionPath(path);
       // listen on ANY interface: 0.0.0.0 / [::]
       super.bind(new InetSocketAddress("[::]", port));
     }

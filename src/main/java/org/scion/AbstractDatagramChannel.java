@@ -34,7 +34,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private final java.nio.channels.DatagramChannel channel;
   private boolean isConnected = false;
   private InetSocketAddress connection;
-  private RequestPath path;
+  // This path is only used for write() after connect(), not for send()
+  private RequestPath connectionPath;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private ScionService service;
@@ -69,17 +70,19 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Set the path policy. The default path policy is set in PathPolicy.DEFAULT, which currently
-   * means to use the first path returned by the daemon or control service. If the channel is
-   * connected, this method will request a new path using the new policy.
+   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT} If the
+   * channel is connected, this method will request a new path using the new policy.
+   *
+   * <p>After initially setting the path policy, it is used to request a new path during write() and
+   * send() whenever a path turns out to be close to expiration.
    *
    * @param pathPolicy the new path policy
    * @see PathPolicy#DEFAULT
    */
   public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
     this.pathPolicy = pathPolicy;
-    if (path != null) {
-      updatePath(path);
+    if (connectionPath != null) {
+      updatePath(connectionPath);
     }
   }
 
@@ -112,7 +115,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     channel.disconnect();
     connection = null;
     isConnected = false;
-    path = null;
+    connectionPath = null;
   }
 
   public synchronized boolean isOpen() {
@@ -126,7 +129,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     channel.close();
     isConnected = false;
     connection = null;
-    path = null;
+    connectionPath = null;
   }
 
   /**
@@ -166,7 +169,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   @SuppressWarnings("unchecked")
   public synchronized C connect(RequestPath path) throws IOException {
     checkConnected(false);
-    this.path = path;
+    this.connectionPath = path;
     isConnected = true;
     connection = path.getFirstHopAddress();
     channel.connect(connection);
@@ -174,16 +177,17 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Get the currently connected path.
+   * Get the currently connected path. The connected path is set during {@link
+   * #connect(RequestPath)} and may be refreshed when expired.
    *
    * @return the current Path or `null` if not path is connected.
    */
-  public synchronized Path getCurrentPath() {
-    return path;
+  public synchronized Path getConnectionPath() {
+    return connectionPath;
   }
 
-  protected synchronized void setPath(RequestPath path) {
-    this.path = path;
+  protected synchronized void setConnectionPath(RequestPath path) {
+    this.connectionPath = path;
   }
 
   protected ResponsePath receiveFromChannel(
@@ -209,8 +213,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       // in extensions headers.
       hdrType = receiveExtensionHeader(buffer, hdrType);
 
+      ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       if (hdrType == expectedHdrType) {
-        return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+        return path;
       }
       receiveScmp(buffer, path);
     }
@@ -400,7 +405,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         this.connection = newPath.getFirstHopAddress();
         channel.connect(this.connection);
       }
-      this.path = newPath;
+      this.connectionPath = newPath;
     }
     return newPath;
   }
