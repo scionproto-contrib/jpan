@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#18](https://github.com/tzaeschke/phtree-cpp/pull/18)
 - Doc cleanup
   [#22](https://github.com/tzaeschke/phtree-cpp/pull/22)
-
+- BREAKING CHANGE: `getCurrentPath()` renamed to `getConnectionPath()`
+  [#31](https://github.com/tzaeschke/phtree-cpp/pull/31)
 
 ### Fixed
 - Fixed: SCMP problem when pinging local AS.

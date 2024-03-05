@@ -467,7 +467,7 @@ class DatagramChannelApiTest {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
           try {
             channel.write(sendBuf);
-            RequestPath newPath = (RequestPath) channel.getCurrentPath();
+            RequestPath newPath = (RequestPath) channel.getConnectionPath();
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
           } catch (IOException e) {
@@ -517,17 +517,17 @@ class DatagramChannelApiTest {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (DatagramChannel channel = DatagramChannel.open()) {
-      assertNull(channel.getCurrentPath());
+      assertNull(channel.getConnectionPath());
 
       // connect should set a path
       channel.connect(addr);
-      assertNotNull(channel.getCurrentPath());
+      assertNotNull(channel.getConnectionPath());
       channel.disconnect();
-      assertNull(channel.getCurrentPath());
+      assertNull(channel.getConnectionPath());
 
       // send should NOT set a path
       channel.send(buffer, addr);
-      assertNull(channel.getCurrentPath());
+      assertNull(channel.getConnectionPath());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
