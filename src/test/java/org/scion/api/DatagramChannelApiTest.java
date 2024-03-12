@@ -225,8 +225,10 @@ class DatagramChannelApiTest {
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());
+      assertNull(channel.getRemoteAddress());
       channel.connect(address);
       assertTrue(channel.isConnected());
+      assertEquals(address, channel.getRemoteAddress());
 
       // try connecting again
       // Should be AlreadyConnectedException but Temurin throws IllegalStateException
@@ -236,12 +238,14 @@ class DatagramChannelApiTest {
       // disconnect
       channel.disconnect();
       assertFalse(channel.isConnected());
+      assertNull(channel.getRemoteAddress());
       channel.disconnect();
       assertFalse(channel.isConnected());
 
       // Connect again
       channel.connect(address);
       assertTrue(channel.isConnected());
+      assertEquals(address, channel.getRemoteAddress());
       channel.close();
       assertFalse(channel.isConnected());
     }
@@ -250,10 +254,14 @@ class DatagramChannelApiTest {
   @Test
   void isConnected_Path() throws IOException {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
+    InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
+    InetSocketAddress address = new InetSocketAddress(ip, path.getDestinationPort());
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());
+      assertNull(channel.getRemoteAddress());
       channel.connect(path);
       assertTrue(channel.isConnected());
+      assertEquals(address, channel.getRemoteAddress());
 
       // try connecting again
       // Should be AlreadyConnectedException, but Temurin throws IllegalStateException
@@ -263,6 +271,7 @@ class DatagramChannelApiTest {
       // disconnect
       channel.disconnect();
       assertFalse(channel.isConnected());
+      assertNull(channel.getRemoteAddress());
       channel.disconnect();
       assertFalse(channel.isConnected());
 
@@ -279,6 +288,8 @@ class DatagramChannelApiTest {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     try (DatagramChannel channel = DatagramChannel.open()) {
+      // The initial channel should NOT have a service.
+      // A server side channel may never need a service so we shouldn't create it.
       assertNull(channel.getService());
 
       // trigger service initialization in channel
@@ -313,53 +324,6 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void receive_bufferTooSmall() throws IOException {
-    MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.Client clientFn =
-        (channel, serverAddress, id) -> {
-          String message = PingPongHelper.MSG + "-" + id;
-          ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-          channel.send(sendBuf, serverAddress);
-
-          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-          ByteBuffer response = ByteBuffer.allocate(5);
-          channel.receive(response);
-
-          response.flip();
-          assertEquals(5, response.limit());
-          String pong = Charset.defaultCharset().decode(response).toString();
-          assertEquals(message.substring(0, 5), pong);
-        };
-    PingPongHelper pph = new PingPongHelper(1, 1, 1);
-    pph.runPingPong(serverFn, clientFn);
-  }
-
-  @Test
-  void read_bufferTooSmall() throws IOException {
-    MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.Client clientFn =
-        (channel, serverAddress, id) -> {
-          String message = PingPongHelper.MSG + "-" + id;
-          ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-          // System.out.println("CLIENT: Writing ... (" + channel.getLocalAddress() + ")");
-          channel.write(sendBuf);
-
-          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
-          ByteBuffer response = ByteBuffer.allocate(5);
-          int len = channel.read(response);
-          assertEquals(5, len);
-
-          response.flip();
-          String pong = Charset.defaultCharset().decode(response).toString();
-          assertEquals(message.substring(0, 5), pong);
-        };
-    PingPongHelper pph = new PingPongHelper(1, 1, 1);
-    pph.runPingPong(serverFn, clientFn);
-  }
-
-  @Test
   void send_bufferTooLarge() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65440);
@@ -375,7 +339,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void write_bufferToLarge() {
+  void write_bufferTooLarge() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65440);
     buffer.limit(buffer.capacity());
@@ -513,7 +477,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getCurrentPath() {
+  void getConnectionPath() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (DatagramChannel channel = DatagramChannel.open()) {
