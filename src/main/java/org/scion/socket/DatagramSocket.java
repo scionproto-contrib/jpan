@@ -430,7 +430,8 @@ public class DatagramSocket extends java.net.DatagramSocket {
     // return channel;
   }
 
-  public synchronized <T> DatagramSocket setOption(SocketOption<T> name, T value) throws IOException {
+  public synchronized <T> DatagramSocket setOption(SocketOption<T> name, T value)
+      throws IOException {
     channel.setOption(name, value);
     return this;
   }
