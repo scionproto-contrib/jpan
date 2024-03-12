@@ -18,25 +18,17 @@ import java.io.*;
 import java.net.*;
 import org.scion.socket.DatagramSocket;
 
-@Deprecated // This does not work.
 public class PingPongSocketServer {
-  private final DatagramSocket socket;
 
-  public PingPongSocketServer(int port, InetAddress localAddress) throws SocketException {
-    socket = new DatagramSocket(port, localAddress);
-  }
+  public static int port = 44444;
 
   public static void main(String[] args) throws UnknownHostException {
-    int port = 44444;
-
     InetAddress localAddress = InetAddress.getByName("::1");
     // InetAddress localAddress = InetAddress.getByName("127.0.0.1");
     // InetAddress localAddress = InetAddress.getByName("127.0.0.10");
-    // System.out.println("IPv4: " + (localAddress instanceof Inet4Address));
     // InetAddress localAddress = InetAddress.getByName("fd00:f00d:cafe::7f00:c");
     try {
-      PingPongSocketServer server = new PingPongSocketServer(port, localAddress);
-      server.service();
+      service(port, localAddress);
     } catch (SocketException ex) {
       System.out.println("Socket error: " + ex.getMessage());
     } catch (IOException ex) {
@@ -44,31 +36,28 @@ public class PingPongSocketServer {
     }
   }
 
-  private void service() throws IOException {
-    while (true) {
-      // TODO avoid byte[]? Or use byte[] internally?  --> May be to small!!!  -> Not transparently
-      // plugable!
-      //      -> users need to adapt array size. Without adaptation: requires copy.....
-      //      -> Copy is alright, but high performance user may want a a way to avoid the copy....
-      //      -> Make this configurable via OPTIONS?
-      DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
-      System.out.println("--- USER - Waiting for packet ----------------------");
-      socket.receive(request);
-      String msg = new String(request.getData(), request.getOffset(), request.getLength());
-      System.out.println("Received (from " + request.getSocketAddress() + "): " + msg);
+  private static void service(int port, InetAddress localAddress) throws IOException {
+    try (DatagramSocket socket = new DatagramSocket(port, localAddress)) {
+      while (true) {
+        DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
+        System.out.println("--- USER - Waiting for packet ----------------------");
+        socket.receive(request);
+        String msg = new String(request.getData(), request.getOffset(), request.getLength());
+        System.out.println("Received (from " + request.getSocketAddress() + "): " + msg);
 
-      byte[] buffer = ("Re: " + msg).getBytes();
+        byte[] buffer = ("Re: " + msg).getBytes();
 
-      InetAddress clientAddress = request.getAddress();
-      int clientPort = request.getPort();
+        InetAddress clientAddress = request.getAddress();
+        int clientPort = request.getPort();
 
-      // DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress,
-      // clientPort);
-      // IPv6 border router port???
-      System.out.println("--- USER - Sending packet ----------------------");
-      // TODO fix this, we should not specify the daemon port here!!
-      DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 31012);
-      socket.send(response);
+        // DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress,
+        // clientPort);
+        // IPv6 border router port???
+        System.out.println("--- USER - Sending packet ----------------------");
+        // TODO fix this, we are ignoring the port here.....
+        DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 3101);
+        socket.send(response);
+      }
     }
   }
 }

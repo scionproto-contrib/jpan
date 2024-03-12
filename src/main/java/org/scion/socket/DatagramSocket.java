@@ -69,7 +69,8 @@ public class DatagramSocket extends java.net.DatagramSocket {
     this(bindAddress, null);
   }
 
-  public DatagramSocket(ScionService service) throws SocketException {
+  // "private" to avoid ambiguity with DatagramSocket((SockeAddress) null) -> use create()
+  private DatagramSocket(ScionService service) throws SocketException {
     super(new DummyDatagramSocketImpl());
     try {
       channel = new SelectingDatagramChannel(service);
@@ -78,7 +79,8 @@ public class DatagramSocket extends java.net.DatagramSocket {
     }
   }
 
-  public DatagramSocket(SocketAddress bindAddress, ScionService service) throws SocketException {
+  // "private" for consistency, all non-standard constructors are private -> use create()
+  private DatagramSocket(SocketAddress bindAddress, ScionService service) throws SocketException {
     this(service);
     // DatagramSockets always immediately bind unless the bindAddress is null.
     if (bindAddress != null) {
@@ -88,6 +90,15 @@ public class DatagramSocket extends java.net.DatagramSocket {
         throw new SocketException(e.getMessage());
       }
     }
+  }
+
+  public static DatagramSocket create(ScionService service) throws SocketException {
+    return new DatagramSocket(service);
+  }
+
+  public static DatagramSocket create(SocketAddress bindAddress, ScionService service)
+      throws SocketException {
+    return new DatagramSocket(bindAddress, service);
   }
 
   public static synchronized void setDatagramSocketImplFactory(DatagramSocketImplFactory factory)

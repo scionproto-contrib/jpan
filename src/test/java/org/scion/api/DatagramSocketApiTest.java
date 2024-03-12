@@ -127,7 +127,7 @@ class DatagramSocketApiTest {
   @Test
   void getLocalAddress_withExplicitBind() throws IOException {
     InetSocketAddress addr = new InetSocketAddress("localhost", dummyPort);
-    try (DatagramSocket socket = new DatagramSocket((SocketAddress) null)) {
+    try (DatagramSocket socket = new DatagramSocket(null)) {
       socket.bind(addr);
       //      java.net.DatagramSocket ds = new java.net.DatagramSocket(addr); // TODO
       //      assertEquals(addr, ds.getLocalAddress());
@@ -137,7 +137,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getLocalAddress_withoutBind() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket((SocketAddress) null)) {
+    try (DatagramSocket socket = new DatagramSocket(null)) {
       assertNull(socket.getLocalAddress());
     }
   }
@@ -353,7 +353,7 @@ class DatagramSocketApiTest {
   void getService_non_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-    try (DatagramSocket socket = new DatagramSocket(service2)) {
+    try (DatagramSocket socket = DatagramSocket.create(service2)) {
       assertEquals(service2, socket.getService());
       assertNotEquals(service1, socket.getService());
     }
@@ -576,5 +576,64 @@ class DatagramSocketApiTest {
       socket.setOption(StandardSocketOptions.SO_RCVBUF, bufSizeReceive + 1000);
       assertEquals(bufSizeReceive + 1000, socket.getOption(StandardSocketOptions.SO_RCVBUF));
     }
+  }
+
+  @Test
+  void testBug_doubleSendCausesNPE_2() throws IOException {
+    try (DatagramSocket socket = new DatagramSocket()) {
+      assertFalse(socket.isConnected());
+      assertNull(socket.getConnectionPath());
+      assertNull(socket.getRemoteSocketAddress());
+      socket.send(dummyPacket);
+      socket.send(dummyPacket);
+    }
+  }
+
+  @Test
+  void testBug_doubleSendCausesNPE() throws IOException {
+    MockDaemon.closeDefault(); // We don't need the daemon here
+    PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
+    PingPongSocketHelper.Client clientFn =
+        (socket, path, id) -> {
+          System.out.println(
+              "Sending:............" + socket.isConnected() + "   " + socket.getConnectionPath());
+          // assertFalse(socket.isConnected());
+
+          String msg = PingPongSocketHelper.MSG;
+          byte[] sendBuf = msg.getBytes();
+          DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, toAddress(path));
+          socket.send(request);
+          System.out.println("Sent!");
+
+          System.out.println("Receiving ... (" + socket.getLocalSocketAddress() + ")");
+          byte[] buffer = new byte[512];
+          DatagramPacket response = new DatagramPacket(buffer, buffer.length);
+          socket.receive(response);
+
+          String pong = new String(buffer, 0, response.getLength());
+
+          System.out.println("Received: " + pong);
+
+          //          String msg = PingPongSocketHelper.MSG;
+          //          DatagramPacket packet1 = new DatagramPacket(msg.getBytes(), msg.length(),
+          // toAddress(path));
+          //          try {
+          //            socket.send(packet1);
+          //          } catch (IOException e) {
+          //            throw new RuntimeException(e);
+          //          }
+          //
+          //          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() +
+          // ")");
+          //          DatagramPacket packet2 = new DatagramPacket(new byte[100], 100);
+          //          socket.receive(packet2);
+          //
+          //          ByteBuffer response = ByteBuffer.wrap(packet2.getData(), 0,
+          // packet2.getLength());
+          //          String pong = Charset.defaultCharset().decode(response).toString();
+          //          assertEquals(PingPongSocketHelper.MSG, pong);
+        };
+    PingPongSocketHelper pph = new PingPongSocketHelper(1, 1, 5);
+    pph.runPingPong(serverFn, clientFn, true, false);
   }
 }
