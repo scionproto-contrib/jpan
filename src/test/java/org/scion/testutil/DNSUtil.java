@@ -39,7 +39,7 @@ public class DNSUtil {
       Name name = Name.fromString(asHost + "."); // "iinf.ethz.ch.";
       Name replacement = new Name("topohost.x.y."); // "netsec-w37w3w.inf.ethz.ch."
 
-      Cache c = new Cache(DClass.IN);
+      Cache c = Lookup.getDefaultCache(DClass.IN);
       TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, "x-sciondiscovery=" + topoPort);
       c.addRecord(txt, 10);
 

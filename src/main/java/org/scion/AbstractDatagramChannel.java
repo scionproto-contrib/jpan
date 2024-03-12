@@ -86,7 +86,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected synchronized ScionService getOrCreateService() {
+  public synchronized ScionService getOrCreateService() {
     if (service == null) {
       service = ScionService.defaultService();
     }
@@ -109,6 +109,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public synchronized InetSocketAddress getLocalAddress() throws IOException {
     return (InetSocketAddress) channel.getLocalAddress();
+  }
+
+  public SocketAddress getRemoteAddress() throws UnknownHostException {
+    Path path = getConnectionPath();
+    if (path != null) {
+      InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
+      return new InetSocketAddress(ip, path.getDestinationPort());
+    }
+    return null;
   }
 
   public synchronized void disconnect() throws IOException {
