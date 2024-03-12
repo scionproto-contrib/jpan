@@ -91,6 +91,10 @@ Datagram Socket design considerations:
     Otherwise we can (as proposed in JEP 373) wrap around an old DatagramSocket and use
     the nio implementation only when it is available (running on JDK 15 or later).
     See also deprecation note: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/DatagramSocket.html#setDatagramSocketImplFactory(java.net.DatagramSocketImplFactory)
+- Implementation using DatagramSocketImpl is also not possible because it does not allow
+  overriding getRemoteAddress() etc. These methods should return the address of the remote
+  end host.
+  The only viable solution appears to be to reimplement DatagramSocket.
 
 - **Copy buffers?** We copy a packet's data array to a new DatagramPacket for the user.
   The alternative would be to use offset/length, however, this would not be really
@@ -98,17 +102,6 @@ Datagram Socket design considerations:
   - Replacing the buffer in the user's packet is bad, this may be surprising for users
   - Using the buffer directly to read SCION packets is also bad because it may be too small
   - --> We definitely need to copy.
-- **Inherit DatagramSocket?** For now we do not inherit DatagramSocket.
-  - Making DatagramSocket a super class of ScionDatagramSocket can easily be done later on.
-  - Disadvantages 
-    - When the JDK adds methods to DatagramSocket, these are initially not implemented
-      in our implementation and may cause erroneous behavior. 
-    - Implementing missing methods later on is difficult because it may not be compatible with
-      earlier JDK version. At the very least, we cannot use `@Override`.
-  - Advantages
-    - Better "plugability", users can use a variable of type DatagramSocket to store
-      a `ScionDatagramSocket`.
-
 
 ## Paths
 

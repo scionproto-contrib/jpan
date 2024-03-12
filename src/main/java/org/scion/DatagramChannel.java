@@ -179,4 +179,12 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     }
     return len - bufferSend.remaining();
   }
+
+  protected ByteBuffer bufferSend() {
+    return bufferSend;
+  }
+
+  protected ByteBuffer bufferReceive() {
+    return bufferReceive;
+  }
 }

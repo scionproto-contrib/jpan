@@ -45,6 +45,29 @@ public final class ScionSocketOptions {
   public static final SocketOption<Integer> SN_PATH_EXPIRY_MARGIN =
       new SciSocketOption<>("SN_PATH_EXPIRY_MARGIN", Integer.class);
 
+  /**
+   * When cleaning up the path cache, the {@link org.scion.socket.DatagramSocket} will retain the
+   * SN_RESPONSE_PATH_CACHE_MIN most recent paths.
+   */
+  public static final SocketOption<Integer> SN_RESPONSE_PATH_CACHE_MIN =
+      new SciSocketOption<>("SN_RESPONSE_PATH_CACHE_MIN", Integer.class);
+
+  /**
+   * A {@link org.scion.socket.DatagramSocket} will clean up its path cache once it passes
+   * SN_RESPONSE_PATH_CACHE_MAX entries.
+   */
+  public static final SocketOption<Integer> SN_RESPONSE_PATH_CACHE_MAX =
+      new SciSocketOption<>("SN_RESPONSE_PATH_CACHE_MAX", Integer.class);
+
+  /**
+   * Set the traffic class SCION header.
+   *
+   * @deprecated This feature may be removed in a future release
+   */
+  @Deprecated
+  public static final SocketOption<Integer> SN_TRAFFIC_CLASS =
+      new SciSocketOption<>("SN_TRAFFIC_CLASS", Integer.class);
+
   private ScionSocketOptions() {}
 
   static class SciSocketOption<T> implements SocketOption<T> {

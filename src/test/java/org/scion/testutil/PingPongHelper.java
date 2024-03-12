@@ -19,45 +19,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
-import java.util.Iterator;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.DatagramChannel;
 import org.scion.Path;
 import org.scion.RequestPath;
-import org.scion.Scion;
 
-public class PingPongHelper {
-
-  public static final String MSG = "Hello scion!";
-  private static final int TIMEOUT = 10; // seconds
-  private final CountDownLatch shutDownBarrier;
-
-  private final int nClients;
-  private final int nServers;
-  private final int nRounds;
-
-  private final AtomicInteger nRoundsClient = new AtomicInteger();
-  private final AtomicInteger nRoundsServer = new AtomicInteger();
-  private final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
+public class PingPongHelper extends PingPongHelperBase {
 
   public PingPongHelper(int nServers, int nClients, int nRounds) {
-    this.nClients = nClients;
-    this.nServers = nServers;
-    this.nRounds = nRounds;
-    shutDownBarrier = new CountDownLatch(nClients + nServers);
-    MockNetwork.getAndResetForwardCount();
+    super(nServers, nClients, nRounds);
   }
 
-  private abstract class AbstractEndpoint implements Runnable {
-    protected final int id;
-
-    AbstractEndpoint(int id) {
-      this.id = id;
+  private abstract class AbstractChannelEndpoint extends AbstractEndpoint {
+    AbstractChannelEndpoint(int id) {
+      super(id);
     }
 
     abstract void runImpl(DatagramChannel channel) throws IOException;
@@ -79,7 +54,7 @@ public class PingPongHelper {
     }
   }
 
-  private class ClientEndpoint extends AbstractEndpoint {
+  private class ClientEndpoint extends AbstractChannelEndpoint {
     private final Client client;
     private final RequestPath remoteAddress;
     private final int nRounds;
@@ -105,7 +80,7 @@ public class PingPongHelper {
     }
   }
 
-  private class ServerEndpoint extends AbstractEndpoint {
+  private class ServerEndpoint extends AbstractChannelEndpoint {
     private final Server server;
     private final InetSocketAddress localAddress;
     private final int nRounds;
@@ -140,66 +115,10 @@ public class PingPongHelper {
   }
 
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
-    try {
-      MockNetwork.startTiny();
-
-      InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
-      RequestPath scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
-      Thread[] servers = new Thread[nServers];
-      for (int i = 0; i < servers.length; i++) {
-        servers[i] = new Thread(new ServerEndpoint(serverFn, i, serverAddress, nRounds * nClients));
-        servers[i].setName("Server-thread-" + i);
-        servers[i].start();
-      }
-
-      Thread[] clients = new Thread[nClients];
-      for (int i = 0; i < clients.length; i++) {
-        clients[i] = new Thread(new ClientEndpoint(clientFn, i, scionAddress, nRounds));
-        clients[i].setName("Client-thread-" + i);
-        clients[i].start();
-      }
-
-      // This enables shutdown in case of an error.
-      // Wait for all threads to finish.
-      if (!shutDownBarrier.await(TIMEOUT, TimeUnit.SECONDS)) {
-        for (Thread client : clients) {
-          client.interrupt();
-        }
-        for (Thread server : servers) {
-          server.interrupt();
-        }
-        if (!shutDownBarrier.await(1, TimeUnit.SECONDS)) {
-          checkExceptions();
-          fail();
-        }
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    } catch (IOException e) {
-      exceptions.add(e);
-      throw new RuntimeException(e);
-    } finally {
-      MockNetwork.stopTiny();
-      checkExceptions();
-    }
-
-    if (reset) {
-      assertEquals(nRounds * nClients * 2, MockNetwork.getAndResetForwardCount());
-    }
-    assertEquals(nRounds * nClients, nRoundsClient.get());
-    assertEquals(nRounds * nClients, nRoundsServer.get());
-  }
-
-  private void checkExceptions() {
-    for (Iterator<Throwable> it = exceptions.iterator(); it.hasNext(); ) {
-      Throwable t = it.next();
-      if (t instanceof ClosedByInterruptException) {
-        it.remove();
-      }
-      t.printStackTrace();
-    }
-    assertEquals(0, exceptions.size());
-    exceptions.clear();
+    runPingPong(
+        (id, address, nRounds) -> new Thread(new ServerEndpoint(serverFn, id, address, nRounds)),
+        (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
+        reset);
   }
 
   public static void defaultClient(DatagramChannel channel, Path serverAddress, int id)
