@@ -17,6 +17,7 @@ package org.scion;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.NotYetConnectedException;
@@ -118,7 +119,11 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     // + 8 for UDP overlay header length
     Path actualPath =
         buildHeader(bufferSend, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
-    bufferSend.put(srcBuffer);
+    try {
+      bufferSend.put(srcBuffer);
+    } catch (BufferOverflowException e) {
+      throw new IOException("Packet is larger than max send buffer size.");
+    }
     bufferSend.flip();
     sendRaw(bufferSend, actualPath.getFirstHopAddress());
     return actualPath;

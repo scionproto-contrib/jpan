@@ -15,6 +15,7 @@
 package org.scion.testutil;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -48,6 +49,7 @@ public class MockNetwork {
 
   public static final String BORDER_ROUTER_HOST = "127.0.0.1";
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
+  public static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
   public static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
@@ -154,8 +156,9 @@ public class MockNetwork {
     scmpErrorOnNextPacket.set(null);
   }
 
-  public static InetSocketAddress getTinyServerAddress() {
-    return new InetSocketAddress(TINY_SRV_ADDR_1, TINY_SRV_PORT_1);
+  public static InetSocketAddress getTinyServerAddress() throws IOException {
+    return new InetSocketAddress(
+        InetAddress.getByAddress(TINY_SRV_NAME_1, TINY_SRV_ADDR_BYTES_1), TINY_SRV_PORT_1);
   }
 
   public static int getAndResetForwardCount() {

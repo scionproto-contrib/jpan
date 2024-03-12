@@ -11,6 +11,9 @@
 - Review + clean up
 
 ### 0.2.0
+- Allow disabling local address resolution in DNS to local-IA. Resolving 127.0.0.x to
+  localIA is fine for many purposes, but it can be confusing when testing a local
+  mock-network (tiny, minimal, ...)
 - SCMP errors handling (above)
   - Especially for type ¨5: External Interface Down" and "6: Internal Connectivity Down"
     Problem: we need to receive() or read() to actually receive SCMP errors.
