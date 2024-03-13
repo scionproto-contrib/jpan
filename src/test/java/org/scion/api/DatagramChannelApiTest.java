@@ -54,6 +54,7 @@ class DatagramChannelApiTest {
       throw new RuntimeException(e);
     }
   }
+
   @BeforeEach
   public void beforeEach() throws IOException {
     MockDaemon.createAndStartDefault();
