@@ -15,6 +15,23 @@
 package org.scion.internal;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 @Disabled
-public class SimpleCacheTest {}
+class SimpleCacheTest {
+
+  private static class Pair {
+    int i;
+    String s;
+
+    Pair(int i, String s) {
+      this.i = i;
+      this.s = s;
+    }
+  }
+
+  @Test
+  void smokeTest() {
+    SimpleCache<String, Pair> cache = new SimpleCache<>(10);
+  }
+}
