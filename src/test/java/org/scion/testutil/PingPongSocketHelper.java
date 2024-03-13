@@ -134,10 +134,4 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     channel.send(packet);
   }
-
-  public static void noCheckServer(DatagramSocket channel) throws IOException {
-    DatagramPacket packet = new DatagramPacket(new byte[2000], 2000);
-    channel.receive(packet);
-    channel.send(packet);
-  }
 }

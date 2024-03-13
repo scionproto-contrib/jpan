@@ -80,21 +80,10 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void createJDS() throws IOException {
-    InetAddress ipAddr = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
-    InetSocketAddress socketAddr = new InetSocketAddress(ipAddr, dummyPort);
-    try (java.net.DatagramSocket socket = new java.net.DatagramSocket(socketAddr)) {
-      assertEquals(socketAddr, socket.getLocalSocketAddress());
-    }
-  }
-
-  @Test
   void create() throws IOException {
-    InetAddress ipAddr = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-    InetSocketAddress socketAddr = new InetSocketAddress(ipAddr, dummyPort);
-    try (DatagramSocket socket = new DatagramSocket(socketAddr)) {
+    try (DatagramSocket socket = new DatagramSocket(dummyAddress)) {
       InetSocketAddress local = (InetSocketAddress) socket.getLocalSocketAddress();
-      assertEquals(socketAddr, local);
+      assertEquals(dummyAddress, local);
     }
   }
 
@@ -116,22 +105,18 @@ class DatagramSocketApiTest {
 
   @Test
   void getLocalAddress_withImplicitBind() throws IOException {
-    InetSocketAddress addr = new InetSocketAddress("localhost", dummyPort);
-    try (DatagramSocket socket = new DatagramSocket(addr)) {
-      //      java.net.DatagramSocket ds = new java.net.DatagramSocket(addr); // TODO
-      //      assertEquals(addr, ds.getLocalAddress());
-      assertEquals(addr, socket.getLocalSocketAddress());
+    InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
+    try (DatagramSocket socket = new DatagramSocket(address)) {
+      assertEquals(address, socket.getLocalSocketAddress());
     }
   }
 
   @Test
   void getLocalAddress_withExplicitBind() throws IOException {
-    InetSocketAddress addr = new InetSocketAddress("localhost", dummyPort);
+    InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
     try (DatagramSocket socket = new DatagramSocket(null)) {
-      socket.bind(addr);
-      //      java.net.DatagramSocket ds = new java.net.DatagramSocket(addr); // TODO
-      //      assertEquals(addr, ds.getLocalAddress());
-      assertEquals(addr, socket.getLocalSocketAddress());
+      socket.bind(address);
+      assertEquals(address, socket.getLocalSocketAddress());
     }
   }
 
@@ -168,7 +153,6 @@ class DatagramSocketApiTest {
 
   @Test
   void send_requiresAddressWithScionTxt() {
-    ByteBuffer buffer = ByteBuffer.allocate(100);
     InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);
     try (DatagramSocket socket = new DatagramSocket()) {
@@ -444,7 +428,8 @@ class DatagramSocketApiTest {
           IllegalBlockingModeException.class,
           () -> {
             // This test is cheating a bit. As it is currently implemented, the
-            // IllegalBlockingModeException is thrown by configureBlocking(), not by send().
+            // IllegalBlockingModeException is thrown by configureBlocking(),
+            // if is not possible to have a channel that would throw it during send().
             socket.getScionChannel().configureBlocking(true);
             socket.send(dummyPacket);
           });
