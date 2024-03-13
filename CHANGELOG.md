@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Code coverage. [#11](https://github.com/tzaeschke/phtree-cpp/pull/11)
 - `DatagramSocket` [#31](https://github.com/netsec-ethz/scion-java-client/pull/31)
+  TODO: 
+  - document/test additional methods in socket (connect, get/set Cache/Path)
+  - Test Cache
+  - Clean up Demos
   
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
