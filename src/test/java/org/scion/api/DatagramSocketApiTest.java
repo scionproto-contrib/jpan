@@ -579,64 +579,19 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void testBug_doubleSendCausesNPE_2() throws IOException {
+  void testBug_doubleSendCausesNPE() throws IOException {
     try (DatagramSocket server = new DatagramSocket(dummyPort)) {
+      assertFalse(server.isConnected());
       try (DatagramSocket client = new DatagramSocket()) {
         assertFalse(client.isConnected());
         assertNull(client.getConnectionPath());
         assertNull(client.getRemoteSocketAddress());
         client.send(dummyPacket);
+        assertFalse(client.isConnected());
         // The second send() used to fail with NPE
         client.send(dummyPacket);
+        assertFalse(client.isConnected());
       }
     }
-  }
-
-  @Test
-  void testBug_doubleSendCausesNPE() throws IOException {
-    MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
-    PingPongSocketHelper.Client clientFn =
-        (socket, path, id) -> {
-          System.out.println(
-              "Sending:............" + socket.isConnected() + "   " + socket.getConnectionPath());
-          // assertFalse(socket.isConnected());
-
-          String msg = PingPongSocketHelper.MSG;
-          byte[] sendBuf = msg.getBytes();
-          DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, toAddress(path));
-          socket.send(request);
-          System.out.println("Sent!");
-
-          System.out.println("Receiving ... (" + socket.getLocalSocketAddress() + ")");
-          byte[] buffer = new byte[512];
-          DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-          socket.receive(response);
-
-          String pong = new String(buffer, 0, response.getLength());
-
-          System.out.println("Received: " + pong);
-
-          //          String msg = PingPongSocketHelper.MSG;
-          //          DatagramPacket packet1 = new DatagramPacket(msg.getBytes(), msg.length(),
-          // toAddress(path));
-          //          try {
-          //            socket.send(packet1);
-          //          } catch (IOException e) {
-          //            throw new RuntimeException(e);
-          //          }
-          //
-          //          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() +
-          // ")");
-          //          DatagramPacket packet2 = new DatagramPacket(new byte[100], 100);
-          //          socket.receive(packet2);
-          //
-          //          ByteBuffer response = ByteBuffer.wrap(packet2.getData(), 0,
-          // packet2.getLength());
-          //          String pong = Charset.defaultCharset().decode(response).toString();
-          //          assertEquals(PingPongSocketHelper.MSG, pong);
-        };
-    PingPongSocketHelper pph = new PingPongSocketHelper(1, 1, 5);
-    pph.runPingPong(serverFn, clientFn, true, false);
   }
 }

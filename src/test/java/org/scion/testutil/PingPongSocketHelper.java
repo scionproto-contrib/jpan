@@ -57,15 +57,12 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     private final Client client;
     private final RequestPath remoteAddress;
     private final int nRounds;
-    private final boolean doConnect;
 
-    ClientEndpoint(
-        Client client, int id, RequestPath remoteAddress, int nRounds, boolean doConnect) {
+    ClientEndpoint(Client client, int id, RequestPath remoteAddress, int nRounds) {
       super(id);
       this.client = client;
       this.remoteAddress = remoteAddress;
       this.nRounds = nRounds;
-      this.doConnect = doConnect;
     }
 
     @Override
@@ -74,9 +71,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
         InetAddress ipAddress = InetAddress.getByAddress(remoteAddress.getDestinationAddress());
         InetSocketAddress iSAddress =
             new InetSocketAddress(ipAddress, remoteAddress.getDestinationPort());
-        if (doConnect) {
-          socket.connect(iSAddress);
-        }
+        socket.connect(iSAddress);
         for (int i = 0; i < nRounds; i++) {
           client.run(socket, remoteAddress, id);
           nRoundsClient.incrementAndGet();
@@ -118,13 +113,13 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   }
 
   public void runPingPong(Server serverFn, Client clientFn) {
-    runPingPong(serverFn, clientFn, true, true);
+    runPingPong(serverFn, clientFn, true);
   }
 
-  public void runPingPong(Server serverFn, Client clientFn, boolean reset, boolean connect) {
+  public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
         (id, address, nRounds) -> new Thread(new ServerEndpoint(serverFn, id, address, nRounds)),
-        (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds, connect)),
+        (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
         reset);
   }
 
