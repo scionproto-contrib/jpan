@@ -235,7 +235,6 @@ class DatagramSocketApiTest {
       t.interrupt();
       assertInstanceOf(SocketTimeoutException.class, exception.get(), exception.get().getMessage());
       // Verify that it waited for at least "timeout"
-      System.out.println("00000000000 Timeout: " + timeMs.get());
       assertTrue(timeMs.get() >= timeOutMs);
       // Verify that it waited less than te JUnit test timeout
       assertTrue(timeMs.get() < 1.5 * timeOutMs);
