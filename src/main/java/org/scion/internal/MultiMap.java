@@ -20,28 +20,16 @@ public class MultiMap<K, V> {
   private final HashMap<K, ArrayList<V>> map = new HashMap<>();
 
   public void put(K key, V value) {
-    ArrayList<V> entry = map.get(key);
-    if (entry == null) {
-      entry = new ArrayList<>();
-      map.put(key, entry);
-    }
-    entry.add(value);
+    map.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
   }
 
-  public ArrayList<V> get(K key) {
-    return map.get(key);
+  public List<V> get(K key) {
+    ArrayList<V> result = map.get(key);
+    return result == null ? Collections.emptyList() : result;
   }
 
   public boolean contains(K key) {
     return map.containsKey(key);
-  }
-
-  public Set<Map.Entry<K, ArrayList<V>>> entrySet() {
-    return map.entrySet();
-  }
-
-  public Collection<ArrayList<V>> values() {
-    return map.values();
   }
 
   public boolean isEmpty() {
