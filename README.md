@@ -21,7 +21,6 @@ The following artifact contains the complete SCION Java client:
 ```
 
 ### Planned features
-- `DatagramSocket` and `DatagramPacket`
 - `Selector` for `DatagramChannel`
 - Path creation with short-cuts, on-path and peering routes
 - `/etc/scion/hosts` and `/etc/hosts`, see https://github.com/netsec-ethz/scion-apps
@@ -76,7 +75,8 @@ The central classes of the API are:
 
 ### Features
 Supported:
-- DatagramChannel support: read(), write(), receive(), send(), bind(), connect(), ... 
+- DatagramChannel support: read(), write(), receive(), send(), bind(), connect(), ...
+- DatagramSocket support
 - Path selection policies
 - Path expiry/refresh
 - Packet validation
@@ -90,7 +90,6 @@ Supported:
 
 Missing:
 - DatagramChannel support for Selectors
-- DatagramSockets
 - Path construction with short-cuts, on-path, peering
 - EPIC
 - RHINE
@@ -220,6 +219,39 @@ Options are defined in `ScionSocketOptions`, see javadoc for details.
 |-------------------------------|---------|-----------------------------------------------------------------|
 | `SN_API_WRITE_TO_USER_BUFFER`    | `false` | Throw exception when receiving an invalid packet          | 
 | `SN_PATH_EXPIRY_MARGIN` | `2`     | A new path is requested if `now + margin > pathExpirationDate` | 
+
+
+## DatagramSocket
+
+`DatagramSocket` work similar to `DatagramChannel` in terms of using `Path` or `Service`.
+`DatagramSocket` is somewhat discouraged because it requires storing/caching of paths internally
+which can lead to increased memory usage of even failure to resolve paths, especially when handling
+multiple connections over a single socket.
+
+The problem is that `DatagramPacket` and `InetAddress` are not extensible to store path information.
+For a server to be able to send data back to a client, it has to remember these paths internally.
+This is done internally in a path cache that stores the received path for every remote IP address.
+The cache is by default limited to 100 entries (`setPathCacheCapacity()`). In cse there are more 
+than 100 remote clients, the cache will 'forget' those paths that haven't been used for the longest
+time. That means the server won't be able to send anything anymore to these forgotten clients.
+
+This can become a security problem if an attacker initiates connections from many different (or 
+spoofed) IPs, causing the cache to consume a lot of memory or to overflow, being unable to
+answer to valid requests.
+
+Internally, the `DatagramSocket` uses a SCION `DatagraChannel`.
+
+API beyond the standard Java `DatagramScoket`:
+
+* `create(ScionService)` and `create(SocketAddress, ScionService)` for creating a `DatagramSocket`
+  with a non-default `ScionService`.
+* `connect(RequestPath path)` for connecting to a remote host
+* `getConnectionPath()` gets the connected path if the socket has been connected 
+* `getCachedPath(InetAddress address)` get the cached path for a given IP
+* `setPathCacheCapacity(int capacity)` and `getPathCacheCapacity()` for managing the cache size
+* `setOption(...)` and `getOption()` are supported even though they were only added in Java 9.
+  They support the same (additional) options as `DatagramChannel`. 
+
 
 ## Performance pitfalls
 
