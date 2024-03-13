@@ -55,7 +55,7 @@ class DatagramSocketApiTest {
           (Inet6Address)
               InetAddress.getByAddress(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
       dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-      dummyAddress = new InetSocketAddress(dummyIPv4, 1);
+      dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
       dummyPacket = new DatagramPacket(new byte[100], 100, dummyAddress);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
@@ -580,12 +580,15 @@ class DatagramSocketApiTest {
 
   @Test
   void testBug_doubleSendCausesNPE_2() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
-      assertFalse(socket.isConnected());
-      assertNull(socket.getConnectionPath());
-      assertNull(socket.getRemoteSocketAddress());
-      socket.send(dummyPacket);
-      socket.send(dummyPacket);
+    try (DatagramSocket server = new DatagramSocket(dummyPort)) {
+      try (DatagramSocket client = new DatagramSocket()) {
+        assertFalse(client.isConnected());
+        assertNull(client.getConnectionPath());
+        assertNull(client.getRemoteSocketAddress());
+        client.send(dummyPacket);
+        // The second send() used to fail with NPE
+        client.send(dummyPacket);
+      }
     }
   }
 
