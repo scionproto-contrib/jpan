@@ -14,6 +14,7 @@
 
 package org.scion;
 
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -30,6 +31,8 @@ import org.scion.proto.daemon.Daemon;
 public class RequestPath extends Path {
 
   private final Daemon.Path pathProtoc;
+  // We store the first hop separately to void creating unnecessary objects.
+  private final InetSocketAddress firstHop;
 
   static RequestPath create(Daemon.Path path, long dstIsdAs, byte[] dstIP, int dstPort) {
     return new RequestPath(path, dstIsdAs, dstIP, dstPort);
@@ -38,6 +41,18 @@ public class RequestPath extends Path {
   private RequestPath(Daemon.Path path, long dstIsdAs, byte[] dstIP, int dstPort) {
     super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
     this.pathProtoc = path;
+    if (getRawPath().length == 0) {
+      // local AS has path length 0
+      try {
+        InetAddress address = InetAddress.getByAddress(getDestinationAddress());
+        firstHop = new InetSocketAddress(address, getDestinationPort());
+      } catch (UnknownHostException e) {
+        // This is impossible, an IP address cannot be unknown
+        throw new UncheckedIOException(e);
+      }
+    } else {
+      firstHop = getFirstHopAddress(pathProtoc);
+    }
   }
 
   private Daemon.Path protoPath() {
@@ -51,22 +66,20 @@ public class RequestPath extends Path {
 
   @Override
   public InetSocketAddress getFirstHopAddress() throws UnknownHostException {
-    if (getRawPath() == null || getRawPath().length == 0) {
-      // local AS
-      InetAddress addr = InetAddress.getByAddress(getDestinationAddress());
-      return new InetSocketAddress(addr, getDestinationPort());
-    }
-    return getFirstHopAddress(pathProtoc);
+    return firstHop;
   }
 
-  private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath)
-      throws UnknownHostException {
-    String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
-    int splitIndex = underlayAddressString.indexOf(':');
-    InetAddress underlayAddress =
-        InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
-    int underlayPort = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
-    return new InetSocketAddress(underlayAddress, underlayPort);
+  private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
+    try {
+      String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
+      int splitIndex = underlayAddressString.indexOf(':');
+      InetAddress ip = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+      int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+      return new InetSocketAddress(ip, port);
+    } catch (UnknownHostException e) {
+      // This really should never happen, the first hop is a literal IP address.
+      throw new UncheckedIOException(e);
+    }
   }
 
   /**
