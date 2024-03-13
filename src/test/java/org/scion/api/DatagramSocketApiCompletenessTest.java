@@ -40,7 +40,6 @@ class DatagramSocketApiCompletenessTest {
       }
       List<Method> matches = methods.get(required.getName());
       boolean foundImplementation = false;
-      assertNotNull(matches, "Method not found: " + required);
       assertFalse(matches.isEmpty(), "Method not found: " + required);
       for (Method implemented : matches) {
         if (required.getParameterCount() == implemented.getParameterCount()) {
