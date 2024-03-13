@@ -32,9 +32,8 @@ import org.scion.internal.ScmpParser;
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
-  private boolean isConnected = false;
-  private InetSocketAddress connection;
-  // This path is only used for write() after connect(), not for send()
+  // This path is only used for write() after connect(), not for send().
+  // Whether we have a connectionPath is independent of whether the underlying channel is connected.
   private RequestPath connectionPath;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
@@ -122,8 +121,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public synchronized void disconnect() throws IOException {
     channel.disconnect();
-    connection = null;
-    isConnected = false;
     connectionPath = null;
   }
 
@@ -136,8 +133,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public void close() throws IOException {
     channel.disconnect();
     channel.close();
-    isConnected = false;
-    connection = null;
     connectionPath = null;
   }
 
@@ -163,13 +158,17 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
-   * border router (first hop) instead of the remote host. - The path will be replaced with a new
-   * path once it is expired.
+   * Connect to a destination host. Note:<br>
+   * - A SCION channel will internally connect to the next border router (first hop) instead of the
+   * remote host. <br>
+   * - The path will be replaced with a new path once it is expired.
    *
-   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
-   * instead it calls bind(). That means this method does NOT perform any additional security checks
-   * associated with connect(), only those associated with bind().
+   * <p>
+   *
+   * <p>NB: This method does internally not call {@link
+   * java.nio.channels.DatagramChannel}.connect(), instead it calls bind(). That means this method
+   * does NOT perform any additional security checks associated with connect(), only those
+   * associated with bind().
    *
    * @param path Path to the remote host.
    * @return This channel.
@@ -179,9 +178,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public synchronized C connect(RequestPath path) throws IOException {
     checkConnected(false);
     this.connectionPath = path;
-    isConnected = true;
-    connection = path.getFirstHopAddress();
-    channel.connect(connection);
+    channel.connect(path.getFirstHopAddress());
     return (C) this;
   }
 
@@ -274,6 +271,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected void checkConnected(boolean requiredState) {
+    boolean isConnected = connectionPath != null;
     if (requiredState != isConnected) {
       if (isConnected) {
         throw new AlreadyConnectedException();
@@ -284,11 +282,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   public synchronized boolean isConnected() {
-    if (!channel.isOpen() || !channel.isConnected()) {
-      // This may happen when the channel gets disconnected due to being interrupted.
-      isConnected = false;
-    }
-    return isConnected;
+    return connectionPath != null;
   }
 
   @SuppressWarnings("unchecked")
@@ -369,10 +363,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     } else {
       // For sending request path we need to have a valid local external address.
       // For a valid local external address we need to be connected.
-      if (!isConnected()) {
-        isConnected = true;
-        connection = path.getFirstHopAddress();
-        channel.connect(connection);
+      if (!channel.isConnected()) {
+        channel.connect(path.getFirstHopAddress());
       }
 
       srcIA = getOrCreateService().getLocalIsdAs();
@@ -407,14 +399,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     // expired, get new path
     RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
 
-    if (isConnected) { // equal to !isBound at this point
-      if (!newPath.getFirstHopAddress().equals(this.connection)) {
-        // TODO only reconnect if firstHop is on different interface....?!
+    if (connectionPath != null) { // equal to !isBound at this point
+      if (!newPath.getFirstHopAddress().equals(path.getFirstHopAddress())) {
         channel.disconnect();
-        this.connection = newPath.getFirstHopAddress();
-        channel.connect(this.connection);
+        channel.connect(newPath.getFirstHopAddress());
       }
-      this.connectionPath = newPath;
+      connectionPath = newPath;
     }
     return newPath;
   }

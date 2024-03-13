@@ -41,6 +41,19 @@ import org.scion.testutil.PingPongHelper;
 class DatagramChannelApiTest {
 
   private static final int dummyPort = 44444;
+  private static final InetAddress dummyIPv4;
+  private static final InetSocketAddress dummyAddress;
+  private static final DatagramPacket dummyPacket;
+
+  static {
+    try {
+      dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
+      dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
+      dummyPacket = new DatagramPacket(new byte[100], 100, dummyAddress);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @BeforeEach
   public void beforeEach() throws IOException {
@@ -494,6 +507,24 @@ class DatagramChannelApiTest {
       assertNull(channel.getConnectionPath());
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  void testBug_doubleSendCausesNPE() throws IOException {
+    try (DatagramChannel server = DatagramChannel.open()) {
+      server.bind(dummyAddress);
+      try (DatagramChannel client = DatagramChannel.open()) {
+        assertFalse(client.isConnected());
+        assertNull(client.getConnectionPath());
+        assertNull(client.getRemoteAddress());
+        ByteBuffer buffer = ByteBuffer.allocate(50);
+        client.send(buffer, dummyAddress);
+        assertFalse(client.isConnected());
+        // The second send() used to fail with NPE
+        client.send(buffer, dummyAddress);
+        assertFalse(client.isConnected());
+      }
     }
   }
 
