@@ -79,7 +79,6 @@ class SimpleCacheTest {
   @Test
   void testReduceCapacity() {
     SimpleCache<Integer, Pair> cache = new SimpleCache<>(10);
-    assertEquals(10, cache.getCapacity());
     List<Pair> list = new ArrayList<>();
 
     for (int i = 0; i < 30; i++) {
@@ -101,5 +100,18 @@ class SimpleCacheTest {
         assertEquals(list.get(i), cache.get(i));
       }
     }
+  }
+
+  @Test
+  void testSetCapacity() {
+    SimpleCache<Integer, Pair> cache = new SimpleCache<>(42);
+    assertEquals(42, cache.getCapacity());
+
+    cache.setCapacity(100);
+    assertEquals(100, cache.getCapacity());
+
+    assertThrows(IllegalArgumentException.class, () -> cache.setCapacity(0));
+
+    assertThrows(IllegalArgumentException.class, () -> new SimpleCache<>(0));
   }
 }

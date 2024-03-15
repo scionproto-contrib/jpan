@@ -71,6 +71,9 @@ public class SimpleCache<K, V> {
   }
 
   public void setCapacity(int capacity) {
+    if (capacity < 1) {
+      throw new IllegalArgumentException();
+    }
     this.capacity = capacity;
     checkCapacity(0);
   }
