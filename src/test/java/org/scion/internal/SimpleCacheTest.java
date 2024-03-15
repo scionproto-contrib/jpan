@@ -77,4 +77,31 @@ class SimpleCacheTest {
       }
     }
   }
+
+  @Test
+  void testReduceCapacity() {
+    SimpleCache<Integer, Pair> cache = new SimpleCache<>(10);
+    assertEquals(10, cache.getCapacity());
+    List<Pair> list = new ArrayList<>();
+
+    for (int i = 0; i < 30; i++) {
+      Pair p = new Pair(i, Integer.toString(i));
+      cache.put(i, p);
+      list.add(p);
+      // keep using the first 2 entries
+      assertNotNull(cache.get(i % 2));
+    }
+
+    cache.setCapacity(5);
+    assertEquals(5, cache.getCapacity());
+
+    // Test latest 3 remain and most used 2 remain
+    for (int i = 0; i < list.size(); i++) {
+      if (i >= 2 && i < 27) {
+        assertNull(cache.get(i));
+      } else {
+        assertEquals(list.get(i), cache.get(i));
+      }
+    }
+  }
 }
