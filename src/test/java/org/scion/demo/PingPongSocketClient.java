@@ -21,6 +21,8 @@ import org.scion.testutil.MockDNS;
 
 public class PingPongSocketClient {
 
+  public static boolean PRINT = true;
+
   public static void main(String[] args) throws IOException {
     DemoTopology.configureMock(); // Tiny111_112();
     MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
@@ -33,31 +35,28 @@ public class PingPongSocketClient {
 
     InetAddress serverIP = InetAddress.getByName(serverHostname);
     InetSocketAddress serverAddress = new InetSocketAddress(serverIP, PingPongSocketServer.port);
-    // Path.create(ScionUtil.parseIA("1-ff00:0:112"), serverHostname, serverPort);
     try (DatagramSocket socket = new DatagramSocket(null)) {
-      while (true) {
-        String msg = "Hello there!";
-        byte[] sendBuf = msg.getBytes();
-        DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
-        socket.send(request);
-        System.out.println("Sent!");
+      String msg = "Hello there!";
+      byte[] sendBuf = msg.getBytes();
+      DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);
+      socket.send(request);
+      println("Sent: " + msg);
 
-        System.out.println("Receiving ... (" + socket.getLocalSocketAddress() + ")");
-        byte[] buffer = new byte[512];
-        DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-        socket.receive(response);
+      println("Receiving ... (" + socket.getLocalSocketAddress() + ")");
+      byte[] buffer = new byte[512];
+      DatagramPacket response = new DatagramPacket(buffer, buffer.length);
+      socket.receive(response);
 
-        String pong = new String(buffer, 0, response.getLength());
-
-        System.out.println("Received: " + pong);
-
-        Thread.sleep(1000);
-      }
+      String pong = new String(buffer, 0, response.getLength());
+      println("Received: " + pong);
     } catch (SocketTimeoutException e) {
-      System.out.println("Timeout error: " + e.getMessage());
       throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    }
+  }
+
+  private static void println(String msg) {
+    if (PRINT) {
+      System.out.println(msg);
     }
   }
 }

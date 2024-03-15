@@ -20,13 +20,12 @@ import org.scion.socket.DatagramSocket;
 
 public class PingPongSocketServer {
 
+  public static boolean PRINT = true;
   public static int port = 44444;
 
   public static void main(String[] args) throws UnknownHostException {
     InetAddress localAddress = InetAddress.getByName("::1");
     // InetAddress localAddress = InetAddress.getByName("127.0.0.1");
-    // InetAddress localAddress = InetAddress.getByName("127.0.0.10");
-    // InetAddress localAddress = InetAddress.getByName("fd00:f00d:cafe::7f00:c");
     try {
       service(port, localAddress);
     } catch (SocketException ex) {
@@ -38,26 +37,23 @@ public class PingPongSocketServer {
 
   private static void service(int port, InetAddress localAddress) throws IOException {
     try (DatagramSocket socket = new DatagramSocket(port, localAddress)) {
-      while (true) {
-        DatagramPacket request = new DatagramPacket(new byte[65536], 65536);
-        System.out.println("--- USER - Waiting for packet ----------------------");
-        socket.receive(request);
-        String msg = new String(request.getData(), request.getOffset(), request.getLength());
-        System.out.println("Received (from " + request.getSocketAddress() + "): " + msg);
+      DatagramPacket packet = new DatagramPacket(new byte[100], 100);
+      println("Waiting for packet ... ");
+      socket.receive(packet);
+      String msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
+      println("Received (from " + packet.getSocketAddress() + "): " + msg);
 
-        byte[] buffer = ("Re: " + msg).getBytes();
+      String msgAnswer = "Re: " + msg;
+      packet.setData(msgAnswer.getBytes());
 
-        InetAddress clientAddress = request.getAddress();
-        int clientPort = request.getPort();
+      socket.send(packet);
+      println("Sent answer: " + msgAnswer);
+    }
+  }
 
-        // DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress,
-        // clientPort);
-        // IPv6 border router port???
-        System.out.println("--- USER - Sending packet ----------------------");
-        // TODO fix this, we are ignoring the port here.....
-        DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, 3101);
-        socket.send(response);
-      }
+  private static void println(String msg) {
+    if (PRINT) {
+      System.out.println(msg);
     }
   }
 }

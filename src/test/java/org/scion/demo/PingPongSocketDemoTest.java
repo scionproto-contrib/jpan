@@ -21,7 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.ScionService;
 
-public class PingPongDemoTest {
+public class PingPongSocketDemoTest {
 
   @BeforeAll
   public static void beforeAll() {
@@ -31,15 +31,13 @@ public class PingPongDemoTest {
   @Test
   void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
-    PingPongChannelServer.PRINT = false;
-    PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
-    PingPongChannelClient.PRINT = false;
-    PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
+    PingPongSocketServer.PRINT = false;
+    PingPongSocketClient.PRINT = false;
     Thread server =
         new Thread(
             () -> {
               try {
-                PingPongChannelServer.main(null);
+                PingPongSocketServer.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);
@@ -53,7 +51,7 @@ public class PingPongDemoTest {
         new Thread(
             () -> {
               try {
-                PingPongChannelClient.main(null);
+                PingPongSocketClient.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);

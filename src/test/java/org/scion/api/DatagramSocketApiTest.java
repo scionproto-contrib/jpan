@@ -37,6 +37,7 @@ import org.scion.socket.DatagramSocket;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
+import org.scion.testutil.MockNetwork;
 import org.scion.testutil.PingPongSocketHelper;
 
 class DatagramSocketApiTest {
@@ -365,6 +366,30 @@ class DatagramSocketApiTest {
       assertTrue(msg.contains("too long") || msg.contains("larger than"), ex.getMessage());
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  void send_wrongPort() throws IOException {
+    // We do not allow changing the port on returned packets.
+    // Technically it would be possible to do that, but it requires changing the Path object,
+    // introducing problems with concurrent use of Path objects.
+    // (in the case of Sockets, Paths are somewhat protected from concurrent usage, but that
+    // can be circumvented by using socket.getChannel() or socket.getCachedPath().)
+    int size = 10;
+    try (DatagramSocket server = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+      SocketAddress serverAddress = server.getLocalSocketAddress();
+
+      try (DatagramSocket client = new DatagramSocket()) {
+        DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
+        client.send(packet);
+      }
+
+      DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
+      server.receive(packet);
+      packet.setPort(packet.getPort() + 1);
+      Throwable ex = assertThrows(IllegalArgumentException.class, () -> server.send(packet));
+      assertTrue(ex.getMessage().contains("Illegal port"));
     }
   }
 

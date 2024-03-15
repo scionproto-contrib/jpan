@@ -258,6 +258,10 @@ public class DatagramSocket extends java.net.DatagramSocket {
           // check expiration only for RequestPaths
           RequestPath request = (RequestPath) path;
           path = channel.getPathPolicy().filter(channel.getOrCreateService().getPaths(request));
+        } else {
+          if (path.getDestinationPort() != packet.getPort()) {
+            throw new IllegalArgumentException("Illegal port, must be the same as received port.");
+          }
         }
         if (path == null) {
           throw new IOException("Address is not resolvable in SCION: " + packet.getAddress());
