@@ -588,6 +588,66 @@ class DatagramSocketApiTest {
   }
 
   @Test
+  void testCache() throws IOException {
+    int size = 10;
+    try (DatagramSocket server = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+      assertFalse(server.isConnected()); // connected sockets do not have a cache
+      SocketAddress serverAddress = server.getLocalSocketAddress();
+      InetSocketAddress clientAddress1;
+      InetSocketAddress clientAddress2;
+
+      // 1st client
+      try (DatagramSocket client = new DatagramSocket(11111, InetAddress.getByAddress(new byte[]{127,0,0,11}))) {
+        client.connect(serverAddress);
+        assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
+        clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();
+        DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
+        client.send(packet1);
+      }
+
+      DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
+      server.receive(packet1);
+      assertEquals(clientAddress1, packet1.getSocketAddress());
+
+      Path path1 = server.getCachedPath(packet1.getAddress());
+      assertEquals(clientAddress1, toAddress(path1));
+
+      // 2nd client
+      try (DatagramSocket client = new DatagramSocket(22222, InetAddress.getByAddress(new byte[]{127,0,0,22}))) {
+        client.connect(serverAddress);
+        assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
+        clientAddress2= (InetSocketAddress) client.getLocalSocketAddress();
+        DatagramPacket packet2 = new DatagramPacket(new byte[size], size, serverAddress);
+        client.send(packet2);
+      }
+
+      assertNotEquals(clientAddress1, clientAddress2);
+      assertTrue(server.getPathCacheCapacity() > 1);
+
+      DatagramPacket packet2 = new DatagramPacket(new byte[size], size, serverAddress);
+      server.receive(packet2);
+      assertEquals(clientAddress2, packet2.getSocketAddress());
+
+      // path 1 should still be there
+      path1 = server.getCachedPath(packet1.getAddress());
+      assertEquals(clientAddress1, toAddress(path1));
+      // path 2 should also be there
+      Path path2 = server.getCachedPath(packet2.getAddress());
+      assertEquals(clientAddress2, toAddress(path2));
+
+      // reduce capacity
+      server.setPathCacheCapacity(1);
+      assertEquals(1, server.getPathCacheCapacity());
+
+      // path 1 should be gone now.
+      assertNull(server.getCachedPath(packet1.getAddress()));
+      // path 2 should be there
+      path2 = server.getCachedPath(packet2.getAddress());
+      assertEquals(clientAddress2, toAddress(path2));
+    }
+  }
+
+  @Test
   void testBug_doubleSendCausesNPE() throws IOException {
     try (DatagramSocket server = new DatagramSocket(dummyPort)) {
       assertFalse(server.isConnected());
