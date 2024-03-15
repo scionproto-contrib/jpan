@@ -467,11 +467,15 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   public synchronized void setPathCacheCapacity(int capacity) {
-    pathCache.setCapacity(capacity);
+    synchronized (pathCache) {
+      pathCache.setCapacity(capacity);
+    }
   }
 
   public synchronized int getPathCacheCapacity() {
-    return pathCache.getCapacity();
+    synchronized (pathCache) {
+      return pathCache.getCapacity();
+    }
   }
 
   /**
