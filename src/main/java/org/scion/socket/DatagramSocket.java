@@ -285,9 +285,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
       // timeout occurred
       throw new SocketTimeoutException();
     }
-    if (channel.getConnectionPath() instanceof RequestPath) {
-      // We have a request path
-    } else {
+    if (!channel.isConnected()) {
       synchronized (pathCache) {
         pathCache.put(InetAddress.getByAddress(path.getDestinationAddress()), path);
       }
