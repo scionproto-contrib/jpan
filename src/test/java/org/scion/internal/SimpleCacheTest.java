@@ -14,6 +14,10 @@
 
 package org.scion.internal;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +35,46 @@ class SimpleCacheTest {
   }
 
   @Test
-  void smokeTest() {
-    SimpleCache<String, Pair> cache = new SimpleCache<>(10);
+  void testInsertOnly() {
+    SimpleCache<Integer, Pair> cache = new SimpleCache<>(10);
+    List<Pair> list = new ArrayList<>();
+
+    for (int i = 0; i < 30; i++) {
+      Pair p = new Pair(i, Integer.toString(i));
+      cache.put(i, p);
+      list.add(p);
+    }
+
+    // Test latest 10 remain
+    for (int i = 0; i < list.size(); i++) {
+      if (i < 20) {
+        assertNull(cache.get(i));
+      } else {
+        assertEquals(list.get(i), cache.get(i));
+      }
+    }
+  }
+
+  @Test
+  void testMultiGet() {
+    SimpleCache<Integer, Pair> cache = new SimpleCache<>(10);
+    List<Pair> list = new ArrayList<>();
+
+    for (int i = 0; i < 30; i++) {
+      Pair p = new Pair(i, Integer.toString(i));
+      cache.put(i, p);
+      list.add(p);
+      // keep using the first 5 entries
+      assertNotNull(cache.get(i % 5));
+    }
+
+    // Test latest 5 remain and most used 5 remain
+    for (int i = 0; i < list.size(); i++) {
+      if (i >= 5 && i < 25) {
+        assertNull(cache.get(i));
+      } else {
+        assertEquals(list.get(i), cache.get(i));
+      }
+    }
   }
 }
