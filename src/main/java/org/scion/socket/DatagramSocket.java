@@ -278,8 +278,9 @@ public class DatagramSocket extends java.net.DatagramSocket {
     checkOpen();
     checkBlockingMode();
 
-    // TODO make field / configurable size / direct buffer
-    ByteBuffer receiveBuffer = ByteBuffer.wrap(datagramPacket.getData());
+    ByteBuffer receiveBuffer =
+        ByteBuffer.wrap(
+            datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength());
     ResponsePath path = channel.receive(receiveBuffer);
     if (path == null) {
       // timeout occurred
@@ -291,10 +292,6 @@ public class DatagramSocket extends java.net.DatagramSocket {
       }
     }
     receiveBuffer.flip();
-    // TODO this may be a useful optimization but needs to be configurable:
-    //    datagramPacket.setData(receiveBuffer.array(), 0, receiveBuffer.limit());
-    // receiveBuffer.get(datagramPacket.getData(), datagramPacket.getOffset(),
-    // receiveBuffer.limit());
     datagramPacket.setLength(receiveBuffer.limit());
     datagramPacket.setAddress(InetAddress.getByAddress(path.getDestinationAddress()));
     datagramPacket.setPort(path.getDestinationPort());
