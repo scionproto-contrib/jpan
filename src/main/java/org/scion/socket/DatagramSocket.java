@@ -51,7 +51,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
 
   private final SelectingDatagramChannel channel;
   private boolean isBound = false;
-  private final SimpleCache<InetAddress, Path> pathCache = new SimpleCache<>(100);
+  private final SimpleCache<InetSocketAddress, Path> pathCache = new SimpleCache<>(100);
 
   public DatagramSocket() throws SocketException {
     this(new InetSocketAddress(0), null);
@@ -250,7 +250,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
     } else {
       InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
       synchronized (pathCache) {
-        path = pathCache.get(packet.getAddress());
+        path = pathCache.get(addr);
         if (path == null) {
           path = channel.getPathPolicy().filter(channel.getOrCreateService().getPaths(addr));
         } else if (path instanceof RequestPath
@@ -266,7 +266,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
         if (path == null) {
           throw new IOException("Address is not resolvable in SCION: " + packet.getAddress());
         }
-        pathCache.put(addr.getAddress(), path);
+        pathCache.put(addr, path);
       }
     }
     ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
@@ -288,7 +288,9 @@ public class DatagramSocket extends java.net.DatagramSocket {
     }
     if (!channel.isConnected()) {
       synchronized (pathCache) {
-        pathCache.put(InetAddress.getByAddress(path.getDestinationAddress()), path);
+        InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
+        InetSocketAddress addr = new InetSocketAddress(ip, path.getDestinationPort());
+        pathCache.put(addr, path);
       }
     }
     receiveBuffer.flip();
@@ -460,7 +462,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
     return (RequestPath) channel.getConnectionPath();
   }
 
-  public synchronized Path getCachedPath(InetAddress address) {
+  public synchronized Path getCachedPath(InetSocketAddress address) {
     synchronized (pathCache) {
       return pathCache.get(address);
     }

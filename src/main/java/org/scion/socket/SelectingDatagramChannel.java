@@ -97,38 +97,6 @@ class SelectingDatagramChannel extends org.scion.DatagramChannel {
     }
   }
 
-  //    protected ResponsePath receiveFromChannel(
-  //            ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
-  //        while (true) {
-  //            buffer.clear();
-  //            InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
-  //            if (srcAddress == null) {
-  //                // this indicates nothing is available - non-blocking mode
-  //                return null;
-  //            }
-  //            buffer.flip();
-  //
-  //            if (!validate(buffer.asReadOnlyBuffer())) {
-  //                continue;
-  //            }
-  //
-  //            InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-  //            // From here on we use linear reading using the buffer's position() mechanism
-  //            buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-  //            // Check for extension headers.
-  //            // This should be mostly unnecessary, however we sometimes saw SCMP error headers
-  // wrapped
-  //            // in extensions headers.
-  //            hdrType = receiveExtensionHeader(buffer, hdrType);
-  //
-  //            ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-  //            if (hdrType == expectedHdrType) {
-  //                return path;
-  //            }
-  //            receiveScmp(buffer, path);
-  //        }
-  //    }
-
   public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
     ResponsePath receivePath =
         receiveFromTimeoutChannel(bufferReceive(), InternalConstants.HdrTypes.UDP);

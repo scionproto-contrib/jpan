@@ -609,7 +609,7 @@ class DatagramSocketApiTest {
       server.receive(packet1);
       assertEquals(clientAddress1, packet1.getSocketAddress());
 
-      Path path1 = server.getCachedPath(packet1.getAddress());
+      Path path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
       assertEquals(clientAddress1, toAddress(path1));
 
       // 2nd client
@@ -629,10 +629,10 @@ class DatagramSocketApiTest {
       assertEquals(clientAddress2, packet2.getSocketAddress());
 
       // path 1 should still be there
-      path1 = server.getCachedPath(packet1.getAddress());
+      path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
       assertEquals(clientAddress1, toAddress(path1));
       // path 2 should also be there
-      Path path2 = server.getCachedPath(packet2.getAddress());
+      Path path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
       assertEquals(clientAddress2, toAddress(path2));
 
       // reduce capacity
@@ -640,9 +640,9 @@ class DatagramSocketApiTest {
       assertEquals(1, server.getPathCacheCapacity());
 
       // path 1 should be gone now.
-      assertNull(server.getCachedPath(packet1.getAddress()));
+      assertNull(server.getCachedPath((InetSocketAddress) packet1.getSocketAddress()));
       // path 2 should be there
-      path2 = server.getCachedPath(packet2.getAddress());
+      path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
       assertEquals(clientAddress2, toAddress(path2));
     }
   }

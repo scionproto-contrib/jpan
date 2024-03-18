@@ -43,7 +43,6 @@ class DatagramSocketConcurrentPingPongTest {
   }
 
   private final LinkedBlockingDeque<Entry> queue = new LinkedBlockingDeque<>();
-  private final LinkedBlockingDeque<DatagramPacket> queue2 = new LinkedBlockingDeque<>();
 
   @AfterAll
   public static void afterAll() {
@@ -85,7 +84,7 @@ class DatagramSocketConcurrentPingPongTest {
     String msg = new String(request.getData(), request.getOffset(), request.getLength());
     assertEquals(MSG, msg);
 
-    queue.add(new Entry(msg, (InetSocketAddress) request.getSocketAddress()));
+    queue.offer(new Entry(msg, (InetSocketAddress) request.getSocketAddress()));
     System.out.println("SERVER: --- receiver - added -------- " + msg);
 
     //      try {
@@ -96,6 +95,12 @@ class DatagramSocketConcurrentPingPongTest {
   }
 
   private void sender(DatagramSocket socket) throws IOException {
+
+          try {
+              Thread.sleep(10);
+          } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+          }
     System.out.println("SERVER: --- sender - waiting -------- " + socket.getLocalSocketAddress());
     Entry e;
     try {
