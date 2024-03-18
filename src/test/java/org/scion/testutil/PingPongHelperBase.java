@@ -34,7 +34,7 @@ public class PingPongHelperBase {
   protected final CountDownLatch shutDownBarrier;
 
   private final int nClients;
-  private final int nServers;
+  protected final int nServers;
   private final int nRounds;
 
   protected final AtomicInteger nRoundsClient = new AtomicInteger();

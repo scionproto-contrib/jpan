@@ -19,6 +19,9 @@ import static org.scion.testutil.PingPongHelperBase.MSG;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.RequestPath;
@@ -27,7 +30,20 @@ import org.scion.socket.DatagramSocket;
 import org.scion.testutil.MockNetwork;
 import org.scion.testutil.PingPongSocketHelper;
 
-class DatagramSocketPingPongTest {
+class DatagramSocketConcurrentPingPongTest {
+
+  private static class Entry {
+    String msg;
+    InetSocketAddress address;
+
+    Entry(String msg, InetSocketAddress address) {
+      this.msg = msg;
+      this.address = address;
+    }
+  }
+
+  private final LinkedBlockingDeque<Entry> queue = new LinkedBlockingDeque<>();
+  private final LinkedBlockingDeque<DatagramPacket> queue2 = new LinkedBlockingDeque<>();
 
   @AfterAll
   public static void afterAll() {
@@ -36,11 +52,12 @@ class DatagramSocketPingPongTest {
   }
 
   @Test
-  void test() {
-    PingPongSocketHelper.Server serverFn = this::server;
+  void test() throws IOException {
+    PingPongSocketHelper.Server receiverFn = this::receiver;
+    PingPongSocketHelper.Server senderFn = this::sender;
     PingPongSocketHelper.Client clientFn = this::client;
-    PingPongSocketHelper pph = new PingPongSocketHelper(1, 10, 10);
-    pph.runPingPong(serverFn, clientFn, false);
+    PingPongSocketHelper pph = new PingPongSocketHelper(2, 10, 10);
+    pph.runPingPongSharedServerSocket(receiverFn, senderFn, clientFn, false);
     assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
   }
 
@@ -60,20 +77,39 @@ class DatagramSocketPingPongTest {
     assertEquals(MSG, pong);
   }
 
-  private void server(DatagramSocket socket) throws IOException {
+  private void receiver(DatagramSocket socket) throws IOException {
     DatagramPacket request = new DatagramPacket(new byte[200], 200);
-    // System.out.println("SERVER: --- USER - Waiting for packet ---------------------- ");
+    System.out.println("SERVER: --- receiver - waiting -------- " + socket.getLocalSocketAddress());
     socket.receive(request);
 
     String msg = new String(request.getData(), request.getOffset(), request.getLength());
     assertEquals(MSG, msg);
 
-    byte[] buffer = msg.getBytes();
-    InetAddress clientAddress = request.getAddress();
-    int clientPort = request.getPort();
+    queue.add(new Entry(msg, (InetSocketAddress) request.getSocketAddress()));
+    System.out.println("SERVER: --- receiver - added -------- " + msg);
 
-    // System.out.println(
-    //    "SERVER: --- USER - Sending packet -------- " + clientAddress + " : " + clientPort);
+    //      try {
+    //          Thread.sleep(100);
+    //      } catch (InterruptedException e) {
+    //          throw new RuntimeException(e);
+    //      }
+  }
+
+  private void sender(DatagramSocket socket) throws IOException {
+    System.out.println("SERVER: --- sender - waiting -------- " + socket.getLocalSocketAddress());
+    Entry e;
+    try {
+      e = queue.poll(10, TimeUnit.SECONDS);
+    } catch (InterruptedException ex) {
+      throw new RuntimeException(ex);
+    }
+
+    byte[] buffer = e.msg.getBytes();
+    InetAddress clientAddress = e.address.getAddress();
+    int clientPort = e.address.getPort();
+
+    System.out.println(
+        "SERVER: --- sender - sending -------- " + clientAddress + " : " + clientPort);
     DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
     socket.send(response);
   }

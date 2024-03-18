@@ -104,6 +104,29 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     }
   }
 
+  /** Multi-threaded server endpoint. */
+  private class ServerEndpointMT extends AbstractSocketEndpoint {
+    private final Server server;
+    private final int nRounds;
+    private final DatagramSocket socket;
+
+    ServerEndpointMT(
+        Server server, DatagramSocket socket, int id, InetSocketAddress localAddress, int nRounds) {
+      super(id);
+      this.server = server;
+      this.socket = socket;
+      this.nRounds = nRounds;
+    }
+
+    @Override
+    public final void runImpl() throws IOException {
+      for (int i = 0; i < nRounds; i++) {
+        server.run(socket);
+        nRoundsServer.incrementAndGet();
+      }
+    }
+  }
+
   public interface Client {
     void run(DatagramSocket socket, RequestPath path, int id) throws IOException;
   }
@@ -119,6 +142,21 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
         (id, address, nRounds) -> new Thread(new ServerEndpoint(serverFn, id, address, nRounds)),
+        (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
+        reset);
+  }
+
+  public void runPingPongSharedServerSocket(
+      Server receiverFn, Server senderFn, Client clientFn, boolean reset) throws IOException {
+    DatagramSocket socket = new DatagramSocket(MockNetwork.getTinyServerAddress());
+    if (nServers != 2) {
+      throw new IllegalStateException();
+    }
+    runPingPong(
+        (id, address, nRounds) ->
+            new Thread(
+                new ServerEndpointMT(
+                    (id % 2 == 0) ? receiverFn : senderFn, socket, id, address, nRounds)),
         (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
         reset);
   }
