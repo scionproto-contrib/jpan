@@ -17,10 +17,12 @@ package org.scion.demo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.ScionService;
+import org.scion.testutil.MockDNS;
 
 public class PingPongSocketDemoTest {
 
@@ -29,7 +31,13 @@ public class PingPongSocketDemoTest {
     ScionService.closeDefault();
   }
 
-  @Disabled
+  @AfterAll
+  public static void afterAll() {
+    DemoTopology.shutDown();
+    MockDNS.clear();
+    ScionService.closeDefault();
+  }
+
   @Test
   void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
