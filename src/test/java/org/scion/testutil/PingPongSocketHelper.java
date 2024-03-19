@@ -148,17 +148,18 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
   public void runPingPongSharedServerSocket(
       Server receiverFn, Server senderFn, Client clientFn, boolean reset) throws IOException {
-    DatagramSocket socket = new DatagramSocket(MockNetwork.getTinyServerAddress());
     if (nServers != 2) {
       throw new IllegalStateException();
     }
-    runPingPong(
-        (id, address, nRounds) ->
-            new Thread(
-                new ServerEndpointMT(
-                    (id % 2 == 0) ? receiverFn : senderFn, socket, id, address, nRounds)),
-        (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
-        reset);
+    try (DatagramSocket socket = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+      runPingPong(
+          (id, address, nRounds) ->
+              new Thread(
+                  new ServerEndpointMT(
+                      (id % 2 == 0) ? receiverFn : senderFn, socket, id, address, nRounds)),
+          (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
+          reset);
+    }
   }
 
   public static void defaultServer(DatagramSocket channel) throws IOException {

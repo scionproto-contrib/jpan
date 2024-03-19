@@ -42,7 +42,6 @@ class DatagramChannelMultiSendInetAddrTest {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn = this::client;
     PingPongHelper pph = new PingPongHelper(1, 20, 50);
-    // TODO this fails only when running ALL unit tests
     pph.runPingPong(serverFn, clientFn);
   }
 

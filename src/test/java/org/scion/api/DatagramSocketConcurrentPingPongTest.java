@@ -98,11 +98,11 @@ class DatagramSocketConcurrentPingPongTest {
 
   private void sender(DatagramSocket socket) throws IOException {
 
-          try {
-              Thread.sleep(10);
-          } catch (InterruptedException e) {
-              throw new RuntimeException(e);
-          }
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
     System.out.println("SERVER: --- sender - waiting -------- " + socket.getLocalSocketAddress());
     Entry e;
     try {
