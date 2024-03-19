@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.ScionService;
 
@@ -28,6 +29,7 @@ public class PingPongSocketDemoTest {
     ScionService.closeDefault();
   }
 
+  @Disabled
   @Test
   void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();

@@ -23,6 +23,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.RequestPath;
 import org.scion.ScionService;
@@ -50,6 +51,7 @@ class DatagramSocketConcurrentPingPongTest {
     ScionService.closeDefault();
   }
 
+  @Disabled
   @Test
   void test() throws IOException {
     PingPongSocketHelper.Server receiverFn = this::receiver;

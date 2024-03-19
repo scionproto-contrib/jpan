@@ -32,6 +32,8 @@ import org.scion.internal.ScmpParser;
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
+  private final Object stateLock = new Object();
+
   // This path is only used for write() after connect(), not for send().
   // Whether we have a connectionPath is independent of whether the underlying channel is connected.
   private RequestPath connectionPath;
@@ -55,17 +57,23 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.service = service;
   }
 
-  protected synchronized void configureBlocking(boolean block) throws IOException {
-    channel.configureBlocking(block);
+  protected void configureBlocking(boolean block) throws IOException {
+    synchronized (stateLock) {
+      channel.configureBlocking(block);
+    }
   }
 
   // `protected` because it should not be visible in ScmpChannel API.
-  protected synchronized boolean isBlocking() {
-    return channel.isBlocking();
+  protected boolean isBlocking() {
+    synchronized (stateLock) {
+      return channel.isBlocking();
+    }
   }
 
-  public synchronized PathPolicy getPathPolicy() {
-    return this.pathPolicy;
+  public PathPolicy getPathPolicy() {
+    synchronized (stateLock) {
+      return this.pathPolicy;
+    }
   }
 
   /**
@@ -78,36 +86,48 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @param pathPolicy the new path policy
    * @see PathPolicy#DEFAULT
    */
-  public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
-    this.pathPolicy = pathPolicy;
-    if (connectionPath != null) {
-      updatePath(connectionPath);
+  public void setPathPolicy(PathPolicy pathPolicy) throws IOException {
+    synchronized (stateLock) {
+      this.pathPolicy = pathPolicy;
+      if (connectionPath != null) {
+        updatePath(connectionPath);
+      }
     }
   }
 
-  public synchronized ScionService getOrCreateService() {
-    if (service == null) {
-      service = ScionService.defaultService();
+  public ScionService getOrCreateService() {
+    synchronized (stateLock) {
+      if (service == null) {
+        service = ScionService.defaultService();
+      }
+      return this.service;
     }
-    return this.service;
   }
 
-  public synchronized ScionService getService() {
-    return this.service;
+  public ScionService getService() {
+    synchronized (stateLock) {
+      return this.service;
+    }
   }
 
   protected DatagramChannel channel() {
-    return channel;
+    synchronized (stateLock) {
+      return channel;
+    }
   }
 
   @SuppressWarnings("unchecked")
-  public synchronized C bind(InetSocketAddress address) throws IOException {
-    channel.bind(address);
-    return (C) this;
+  public C bind(InetSocketAddress address) throws IOException {
+    synchronized (stateLock) {
+      channel.bind(address);
+      return (C) this;
+    }
   }
 
-  public synchronized InetSocketAddress getLocalAddress() throws IOException {
-    return (InetSocketAddress) channel.getLocalAddress();
+  public InetSocketAddress getLocalAddress() throws IOException {
+    synchronized (stateLock) {
+      return (InetSocketAddress) channel.getLocalAddress();
+    }
   }
 
   public SocketAddress getRemoteAddress() throws UnknownHostException {
@@ -119,21 +139,26 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return null;
   }
 
-  public synchronized void disconnect() throws IOException {
-    channel.disconnect();
-    connectionPath = null;
+  public void disconnect() throws IOException {
+    synchronized (stateLock) {
+      channel.disconnect();
+      connectionPath = null;
+    }
   }
 
-  public synchronized boolean isOpen() {
-    return channel.isOpen();
+  public boolean isOpen() {
+    synchronized (stateLock) {
+      return channel.isOpen();
+    }
   }
 
   @Override
-  // TODO not synchronized yet, think about a more fine grained lock (see JDK Channel impl)
   public void close() throws IOException {
-    channel.disconnect();
-    channel.close();
-    connectionPath = null;
+    synchronized (stateLock) {
+      channel.disconnect();
+      channel.close();
+      connectionPath = null;
+    }
   }
 
   /**
@@ -148,22 +173,22 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @return This channel.
    * @throws IOException for example when the first hop (border router) cannot be connected.
    */
-  public synchronized C connect(SocketAddress addr) throws IOException {
-    checkConnected(false);
-    if (!(addr instanceof InetSocketAddress)) {
-      throw new IllegalArgumentException(
-          "connect() requires an InetSocketAddress or a ScionSocketAddress.");
+  public C connect(SocketAddress addr) throws IOException {
+    synchronized (stateLock) {
+      checkConnected(false);
+      if (!(addr instanceof InetSocketAddress)) {
+        throw new IllegalArgumentException(
+            "connect() requires an InetSocketAddress or a ScionSocketAddress.");
+      }
+      return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
     }
-    return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
   }
 
   /**
    * Connect to a destination host. Note:<br>
    * - A SCION channel will internally connect to the next border router (first hop) instead of the
    * remote host. <br>
-   * - The path will be replaced with a new path once it is expired.
-   *
-   * <p>
+   * - The path will be replaced with a new path once it is expired.<br>
    *
    * <p>NB: This method does internally not call {@link
    * java.nio.channels.DatagramChannel}.connect(), instead it calls bind(). That means this method
@@ -175,11 +200,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @throws IOException for example when the first hop (border router) cannot be connected.
    */
   @SuppressWarnings("unchecked")
-  public synchronized C connect(RequestPath path) throws IOException {
-    checkConnected(false);
-    this.connectionPath = path;
-    channel.connect(path.getFirstHopAddress());
-    return (C) this;
+  public C connect(RequestPath path) throws IOException {
+    synchronized (stateLock) {
+      checkConnected(false);
+      this.connectionPath = path;
+      if (!channel.isConnected()) {
+        // We must connect the underlying channel in order to get a local address.
+        channel.connect(path.getFirstHopAddress());
+      }
+      return (C) this;
+    }
   }
 
   /**
@@ -188,12 +218,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    *
    * @return the current Path or `null` if not path is connected.
    */
-  public synchronized Path getConnectionPath() {
-    return connectionPath;
+  public Path getConnectionPath() {
+    synchronized (stateLock) {
+      return connectionPath;
+    }
   }
 
-  protected synchronized void setConnectionPath(RequestPath path) {
-    this.connectionPath = path;
+  protected void setConnectionPath(RequestPath path) {
+    synchronized (stateLock) {
+      this.connectionPath = path;
+    }
   }
 
   protected ResponsePath receiveFromChannel(
@@ -249,8 +283,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected void checkListeners(Scmp.Message scmpMsg) {
-    if (errorListener != null && scmpMsg.getTypeCode().isError()) {
-      errorListener.accept(scmpMsg);
+    synchronized (stateLock) {
+      if (errorListener != null && scmpMsg.getTypeCode().isError()) {
+        errorListener.accept(scmpMsg);
+      }
     }
   }
 
@@ -258,75 +294,87 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     channel.send(buffer, address);
   }
 
-  public synchronized Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
-    Consumer<Scmp.Message> old = errorListener;
-    errorListener = listener;
-    return old;
+  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
+    synchronized (stateLock) {
+      Consumer<Scmp.Message> old = errorListener;
+      errorListener = listener;
+      return old;
+    }
   }
 
   protected void checkOpen() throws ClosedChannelException {
-    if (!channel.isOpen()) {
-      throw new ClosedChannelException();
+    synchronized (stateLock) {
+      if (!channel.isOpen()) {
+        throw new ClosedChannelException();
+      }
     }
   }
 
   protected void checkConnected(boolean requiredState) {
-    boolean isConnected = connectionPath != null;
-    if (requiredState != isConnected) {
-      if (isConnected) {
-        throw new AlreadyConnectedException();
-      } else {
-        throw new NotYetConnectedException();
-      }
-    }
-  }
-
-  public synchronized boolean isConnected() {
-    return connectionPath != null;
-  }
-
-  @SuppressWarnings({"unchecked", "deprecation"})
-  public synchronized <T> T getOption(SocketOption<T> option) throws IOException {
-    if (option instanceof ScionSocketOptions.SciSocketOption) {
-      if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
-        return (T) (Boolean) cfgReportFailedValidation;
-      } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
-        return (T) (Integer) cfgExpirationSafetyMargin;
-      } else if (ScionSocketOptions.SN_TRAFFIC_CLASS.equals(option)) {
-        throw new UnsupportedOperationException();
-      } else {
-        throw new UnsupportedOperationException();
-      }
-    }
-    return channel.getOption(option);
-  }
-
-  @SuppressWarnings({"unchecked", "deprecation"})
-  public synchronized <T> C setOption(SocketOption<T> option, T t) throws IOException {
-    if (option instanceof ScionSocketOptions.SciSocketOption) {
-      if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
-        cfgReportFailedValidation = (Boolean) t;
-      } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
-        cfgExpirationSafetyMargin = (Integer) t;
-      } else if (ScionSocketOptions.SN_TRAFFIC_CLASS.equals(option)) {
-        int trafficClass = (Integer) t;
-        if (trafficClass < 0 || trafficClass > 255) {
-          throw new IllegalArgumentException("trafficClass is not in range 0 -- 255");
+    synchronized (stateLock) {
+      boolean isConnected = connectionPath != null;
+      if (requiredState != isConnected) {
+        if (isConnected) {
+          throw new AlreadyConnectedException();
+        } else {
+          throw new NotYetConnectedException();
         }
-        throw new UnsupportedOperationException();
-      } else {
-        throw new UnsupportedOperationException();
       }
-    } else if (StandardSocketOptions.SO_RCVBUF.equals(option)
-        || StandardSocketOptions.SO_SNDBUF.equals(option)) {
-      channel.setOption(option, t);
-      resizeBuffers(
-          channel.getOption(StandardSocketOptions.SO_RCVBUF),
-          channel.getOption(StandardSocketOptions.SO_SNDBUF));
-    } else {
-      channel.setOption(option, t);
     }
-    return (C) this;
+  }
+
+  public boolean isConnected() {
+    synchronized (stateLock) {
+      return connectionPath != null;
+    }
+  }
+
+  @SuppressWarnings({"unchecked", "deprecation"})
+  public <T> T getOption(SocketOption<T> option) throws IOException {
+    synchronized (stateLock) {
+      if (option instanceof ScionSocketOptions.SciSocketOption) {
+        if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
+          return (T) (Boolean) cfgReportFailedValidation;
+        } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
+          return (T) (Integer) cfgExpirationSafetyMargin;
+        } else if (ScionSocketOptions.SN_TRAFFIC_CLASS.equals(option)) {
+          throw new UnsupportedOperationException();
+        } else {
+          throw new UnsupportedOperationException();
+        }
+      }
+      return channel.getOption(option);
+    }
+  }
+
+  @SuppressWarnings({"unchecked", "deprecation"})
+  public <T> C setOption(SocketOption<T> option, T t) throws IOException {
+    synchronized (stateLock) {
+      if (option instanceof ScionSocketOptions.SciSocketOption) {
+        if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
+          cfgReportFailedValidation = (Boolean) t;
+        } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
+          cfgExpirationSafetyMargin = (Integer) t;
+        } else if (ScionSocketOptions.SN_TRAFFIC_CLASS.equals(option)) {
+          int trafficClass = (Integer) t;
+          if (trafficClass < 0 || trafficClass > 255) {
+            throw new IllegalArgumentException("trafficClass is not in range 0 -- 255");
+          }
+          throw new UnsupportedOperationException();
+        } else {
+          throw new UnsupportedOperationException();
+        }
+      } else if (StandardSocketOptions.SO_RCVBUF.equals(option)
+          || StandardSocketOptions.SO_SNDBUF.equals(option)) {
+        channel.setOption(option, t);
+        resizeBuffers(
+            channel.getOption(StandardSocketOptions.SO_RCVBUF),
+            channel.getOption(StandardSocketOptions.SO_SNDBUF));
+      } else {
+        channel.setOption(option, t);
+      }
+      return (C) this;
+    }
   }
 
   protected abstract void resizeBuffers(int sizeReceive, int sizeSend);
@@ -340,11 +388,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected Path buildHeader(
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
-    if (path instanceof RequestPath) {
-      path = ensureUpToDate((RequestPath) path);
+    synchronized (stateLock) {
+      if (path instanceof RequestPath) {
+        path = ensureUpToDate((RequestPath) path);
+      }
+      buildHeaderNoRefresh(buffer, path, payloadLength, hdrType);
+      return path;
     }
-    buildHeaderNoRefresh(buffer, path, payloadLength, hdrType);
-    return path;
   }
 
   /**
@@ -357,50 +407,54 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected void buildHeaderNoRefresh(
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
-    buffer.clear();
-    long srcIA;
-    byte[] srcAddress;
-    int srcPort;
-    if (path instanceof ResponsePath) {
-      // We could get source IA, address and port locally, but it seems cleaner
-      // to get these from the inverted header.
-      ResponsePath rPath = (ResponsePath) path;
-      srcIA = rPath.getSourceIsdAs();
-      srcAddress = rPath.getSourceAddress();
-      srcPort = rPath.getSourcePort();
-    } else {
-      // For sending request path we need to have a valid local external address.
-      // For a valid local external address we need to be connected.
-      if (!channel.isConnected()) {
-        channel.connect(path.getFirstHopAddress());
+    synchronized (stateLock) {
+      buffer.clear();
+      long srcIA;
+      byte[] srcAddress;
+      int srcPort;
+      if (path instanceof ResponsePath) {
+        // We could get source IA, address and port locally, but it seems cleaner
+        // to get these from the inverted header.
+        ResponsePath rPath = (ResponsePath) path;
+        srcIA = rPath.getSourceIsdAs();
+        srcAddress = rPath.getSourceAddress();
+        srcPort = rPath.getSourcePort();
+      } else {
+        // For sending request path we need to have a valid local external address.
+        // For a valid local external address we need to be connected.
+        if (!channel.isConnected()) {
+          channel.connect(path.getFirstHopAddress());
+        }
+
+        srcIA = getOrCreateService().getLocalIsdAs();
+        // Get external host address. This must be done *after* refreshing the path!
+        InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+        srcAddress = srcSocketAddress.getAddress().getAddress();
+        srcPort = srcSocketAddress.getPort();
       }
 
-      srcIA = getOrCreateService().getLocalIsdAs();
-      // Get external host address. This must be done *after* refreshing the path!
-      InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
-      srcAddress = srcSocketAddress.getAddress().getAddress();
-      srcPort = srcSocketAddress.getPort();
-    }
+      long dstIA = path.getDestinationIsdAs();
+      byte[] dstAddress = path.getDestinationAddress();
+      int dstPort = path.getDestinationPort();
 
-    long dstIA = path.getDestinationIsdAs();
-    byte[] dstAddress = path.getDestinationAddress();
-    int dstPort = path.getDestinationPort();
+      byte[] rawPath = path.getRawPath();
+      ScionHeaderParser.write(
+          buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress, hdrType);
+      ScionHeaderParser.writePath(buffer, rawPath);
 
-    byte[] rawPath = path.getRawPath();
-    ScionHeaderParser.write(
-        buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress, hdrType);
-    ScionHeaderParser.writePath(buffer, rawPath);
-
-    if (hdrType == InternalConstants.HdrTypes.UDP) {
-      ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
+      if (hdrType == InternalConstants.HdrTypes.UDP) {
+        ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
+      }
     }
   }
 
   protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
-    if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
-      return path;
+    synchronized (stateLock) {
+      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
+        return path;
+      }
+      return updatePath(path);
     }
-    return updatePath(path);
   }
 
   private RequestPath updatePath(RequestPath path) throws IOException {
@@ -418,10 +472,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected boolean validate(ByteBuffer buffer) throws ScionException {
-    String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
-    if (validationResult != null && cfgReportFailedValidation) {
-      throw new ScionException(validationResult);
+    synchronized (stateLock) {
+      String validationResult = ScionHeaderParser.validate(buffer.asReadOnlyBuffer());
+      if (validationResult != null && cfgReportFailedValidation) {
+        throw new ScionException(validationResult);
+      }
+      return validationResult == null;
     }
-    return validationResult == null;
   }
 }

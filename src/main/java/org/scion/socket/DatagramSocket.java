@@ -19,6 +19,7 @@ import java.io.UncheckedIOException;
 import java.net.*;
 import java.net.DatagramSocketImpl;
 import java.nio.ByteBuffer;
+import java.nio.channels.AlreadyBoundException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.IllegalBlockingModeException;
 import java.time.Instant;
@@ -52,6 +53,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   private final SelectingDatagramChannel channel;
   private boolean isBound = false;
   private final SimpleCache<InetSocketAddress, Path> pathCache = new SimpleCache<>(100);
+  private final Object closeLock = new Object();
 
   public DatagramSocket() throws SocketException {
     this(new InetSocketAddress(0), null);
@@ -86,6 +88,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
     if (bindAddress != null) {
       try {
         channel.bind(checkAddress(bindAddress));
+        isBound = true;
       } catch (IOException e) {
         throw new SocketException(e.getMessage());
       }
@@ -125,13 +128,25 @@ public class DatagramSocket extends java.net.DatagramSocket {
     return (InetSocketAddress) address;
   }
 
-  @Override
-  public synchronized void bind(SocketAddress address) throws SocketException {
-    if (isBound()) {
-      throw new SocketException("already bound");
+  private static void checkAddress(InetAddress address) {
+    if (address == null) {
+      throw new IllegalArgumentException("Address must not be null");
     }
+  }
+
+  private static void checkPort(int port) {
+    if (port < 0 || port > 65535) {
+      throw new IllegalArgumentException("Port out of range");
+    }
+  }
+
+  @Override
+  public void bind(SocketAddress address) throws SocketException {
     try {
       channel.bind(checkAddress(address));
+      isBound = true;
+    } catch (AlreadyBoundException e) {
+      throw new SocketException("already bound");
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }
@@ -147,6 +162,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
 
   @Override
   public synchronized void connect(InetAddress address, int port) {
+    checkAddress(address);
     try {
       connect(new InetSocketAddress(address, port));
     } catch (IOException e) {
@@ -176,32 +192,35 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public synchronized boolean isBound() {
+  public boolean isBound() {
     return isBound;
   }
 
   @Override
-  public synchronized boolean isConnected() {
+  public boolean isConnected() {
     return channel.isConnected();
   }
 
   @Override
   public synchronized void close() {
-    try {
-      channel.close();
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
+    synchronized (closeLock) {
+      try {
+        channel.close();
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      }
     }
-    isBound = false;
   }
 
   @Override
-  public synchronized boolean isClosed() {
-    return !channel.isOpen();
+  public boolean isClosed() {
+    synchronized (closeLock) {
+      return !channel.isOpen();
+    }
   }
 
   @Override
-  public synchronized InetAddress getInetAddress() {
+  public InetAddress getInetAddress() {
     try {
       return channel.getLocalAddress().getAddress();
     } catch (IOException e) {
@@ -210,7 +229,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public synchronized int getPort() {
+  public int getPort() {
     try {
       return channel.getLocalAddress().getPort();
     } catch (IOException e) {
@@ -219,7 +238,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public synchronized SocketAddress getRemoteSocketAddress() {
+  public SocketAddress getRemoteSocketAddress() {
     try {
       return channel.getRemoteAddress();
     } catch (UnknownHostException e) {
@@ -228,7 +247,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public synchronized SocketAddress getLocalSocketAddress() {
+  public SocketAddress getLocalSocketAddress() {
     try {
       return channel.getLocalAddress();
     } catch (IOException e) {
@@ -237,70 +256,74 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public synchronized void send(DatagramPacket packet) throws IOException {
+  public void send(DatagramPacket packet) throws IOException {
     checkOpen();
     checkBlockingMode();
-    if (isConnected() && !channel.getRemoteAddress().equals(packet.getSocketAddress())) {
-      throw new IllegalArgumentException();
-    }
+    checkAddress(packet.getAddress());
+    checkPort(packet.getPort());
 
-    Path path;
-    if (channel.isConnected()) {
-      path = channel.getConnectionPath();
-    } else {
-      InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
-      synchronized (pathCache) {
-        path = pathCache.get(addr);
-        if (path == null) {
-          path = channel.getPathPolicy().filter(channel.getOrCreateService().getPaths(addr));
-        } else if (path instanceof RequestPath
-            && ((RequestPath) path).getExpiration() > Instant.now().getEpochSecond()) {
-          // check expiration only for RequestPaths
-          RequestPath request = (RequestPath) path;
-          path = channel.getPathPolicy().filter(channel.getOrCreateService().getPaths(request));
-        } else {
-          if (path.getDestinationPort() != packet.getPort()) {
-            throw new IllegalArgumentException("Illegal port, must be the same as received port.");
+    // Synchronize on packet because this is what the Java DatagramSocket does.
+    synchronized (packet) {
+      if (isConnected() && !channel.getRemoteAddress().equals(packet.getSocketAddress())) {
+        throw new IllegalArgumentException("Packet address does not match connected address");
+      }
+
+      Path path;
+      if (channel.isConnected()) {
+        path = channel.getConnectionPath();
+      } else {
+        InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
+        synchronized (pathCache) {
+          path = pathCache.get(addr);
+          if (path == null) {
+            path = channel.getPathPolicy().filter(channel.getOrCreateService().getPaths(addr));
+          } else if (path instanceof RequestPath
+              && ((RequestPath) path).getExpiration() > Instant.now().getEpochSecond()) {
+            // check expiration only for RequestPaths
+            RequestPath request = (RequestPath) path;
+            path = channel.getPathPolicy().filter(channel.getOrCreateService().getPaths(request));
           }
+          if (path == null) {
+            throw new IOException("Address is not resolvable in SCION: " + packet.getAddress());
+          }
+          pathCache.put(addr, path);
         }
-        if (path == null) {
-          throw new IOException("Address is not resolvable in SCION: " + packet.getAddress());
-        }
-        pathCache.put(addr, path);
       }
+      ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+      channel.send(buf, path);
     }
-    ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
-    channel.send(buf, path);
   }
 
   @Override
-  public synchronized void receive(DatagramPacket datagramPacket) throws IOException {
+  public synchronized void receive(DatagramPacket packet) throws IOException {
     checkOpen();
     checkBlockingMode();
 
-    ByteBuffer receiveBuffer =
-        ByteBuffer.wrap(
-            datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength());
-    ResponsePath path = channel.receive(receiveBuffer);
-    if (path == null) {
-      // timeout occurred
-      throw new SocketTimeoutException();
-    }
-    if (!channel.isConnected()) {
-      synchronized (pathCache) {
-        InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
-        InetSocketAddress addr = new InetSocketAddress(ip, path.getDestinationPort());
-        pathCache.put(addr, path);
+    // We synchronize on the packet because that is what the Java socket does.
+    synchronized (packet) {
+      ByteBuffer receiveBuffer =
+          ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+      ResponsePath path = channel.receive(receiveBuffer);
+      if (path == null) {
+        // timeout occurred
+        throw new SocketTimeoutException();
       }
+      if (!channel.isConnected()) {
+        synchronized (pathCache) {
+          InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
+          InetSocketAddress addr = new InetSocketAddress(ip, path.getDestinationPort());
+          pathCache.put(addr, path);
+        }
+      }
+      receiveBuffer.flip();
+      packet.setLength(receiveBuffer.limit());
+      packet.setAddress(InetAddress.getByAddress(path.getDestinationAddress()));
+      packet.setPort(path.getDestinationPort());
     }
-    receiveBuffer.flip();
-    datagramPacket.setLength(receiveBuffer.limit());
-    datagramPacket.setAddress(InetAddress.getByAddress(path.getDestinationAddress()));
-    datagramPacket.setPort(path.getDestinationPort());
   }
 
   @Override
-  public synchronized InetAddress getLocalAddress() {
+  public InetAddress getLocalAddress() {
     try {
       InetSocketAddress address = channel.getLocalAddress();
       if (address == null) {
@@ -313,7 +336,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public synchronized int getLocalPort() {
+  public int getLocalPort() {
     try {
       return channel.getLocalAddress().getPort();
     } catch (IOException e) {

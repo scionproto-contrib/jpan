@@ -53,12 +53,12 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
   // TODO we return `void` here. If we implement SelectableChannel
   //  this can be changed to return SelectableChannel.
   @Override
-  public synchronized void configureBlocking(boolean block) throws IOException {
+  public void configureBlocking(boolean block) throws IOException {
     super.configureBlocking(block);
   }
 
   @Override
-  public synchronized boolean isBlocking() {
+  public boolean isBlocking() {
     return super.isBlocking();
   }
 

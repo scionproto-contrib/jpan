@@ -81,8 +81,16 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void create() throws IOException {
+  void create_unbound() throws IOException {
+    try (DatagramSocket socket = new DatagramSocket(null)) {
+      assertFalse(socket.isBound());
+    }
+  }
+
+  @Test
+  void create_bound() throws IOException {
     try (DatagramSocket socket = new DatagramSocket(dummyAddress)) {
+      assertTrue(socket.isBound());
       InetSocketAddress local = (InetSocketAddress) socket.getLocalSocketAddress();
       assertEquals(dummyAddress, local);
     }
@@ -108,6 +116,7 @@ class DatagramSocketApiTest {
   void getLocalAddress_withImplicitBind() throws IOException {
     InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
     try (DatagramSocket socket = new DatagramSocket(address)) {
+      assertTrue(socket.isBound());
       assertEquals(address, socket.getLocalSocketAddress());
     }
   }
@@ -116,7 +125,9 @@ class DatagramSocketApiTest {
   void getLocalAddress_withExplicitBind() throws IOException {
     InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
     try (DatagramSocket socket = new DatagramSocket(null)) {
+      assertFalse(socket.isBound());
       socket.bind(address);
+      assertTrue(socket.isBound());
       assertEquals(address, socket.getLocalSocketAddress());
     }
   }
@@ -124,6 +135,7 @@ class DatagramSocketApiTest {
   @Test
   void getLocalAddress_withoutBind() throws IOException {
     try (DatagramSocket socket = new DatagramSocket(null)) {
+      assertFalse(socket.isBound());
       assertNull(socket.getLocalAddress());
     }
   }
@@ -233,7 +245,10 @@ class DatagramSocketApiTest {
       assertThrows(IllegalArgumentException.class, () -> socket.connect(dummyIPv4, -1));
 
       // Null IP
-      assertThrows(IllegalArgumentException.class, () -> socket.connect(null, -1));
+      assertThrows(IllegalArgumentException.class, () -> socket.connect(null, 12345));
+
+      // Null socket address
+      assertThrows(IllegalArgumentException.class, () -> socket.connect((SocketAddress) null));
 
       // Wrong SocketAddress type
       SocketAddress badAddress =
@@ -386,10 +401,43 @@ class DatagramSocketApiTest {
       }
 
       DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
+      SocketAddress clientAddress = packet.getSocketAddress();
       server.receive(packet);
+
       packet.setPort(packet.getPort() + 1);
+      server.send(packet); // Any exception because ...
+
+      assertFalse(server.isConnected());
+      server.connect(clientAddress);
+      // Once connected, the packet address has to match the connected address.
       Throwable ex = assertThrows(IllegalArgumentException.class, () -> server.send(packet));
-      assertTrue(ex.getMessage().contains("Illegal port"));
+      assertTrue(ex.getMessage().contains("Packet address does not match connected address"));
+    }
+  }
+
+  @Test
+  void send_wrongAddress() throws IOException {
+    int size = 10;
+    try (DatagramSocket server = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+      SocketAddress serverAddress = server.getLocalSocketAddress();
+
+      try (DatagramSocket client = new DatagramSocket()) {
+        DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
+        client.send(packet);
+      }
+
+      DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
+      server.receive(packet);
+      SocketAddress clientAddress = packet.getSocketAddress();
+
+      // Address is null
+      packet.setSocketAddress(clientAddress);
+      packet.setAddress(null);
+      assertThrows(IllegalArgumentException.class, () -> server.send(packet));
+
+      // control: works
+      packet.setSocketAddress(clientAddress);
+      server.send(packet);
     }
   }
 

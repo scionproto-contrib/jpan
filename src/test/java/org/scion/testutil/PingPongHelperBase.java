@@ -49,7 +49,7 @@ public class PingPongHelperBase {
     MockNetwork.getAndResetForwardCount();
   }
 
-  protected abstract class AbstractEndpoint implements Runnable {
+  protected abstract static class AbstractEndpoint implements Runnable {
     protected final int id;
 
     AbstractEndpoint(int id) {
