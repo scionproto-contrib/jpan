@@ -93,7 +93,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public synchronized void send(ByteBuffer srcBuffer, SocketAddress destination)
+  public void send(ByteBuffer srcBuffer, SocketAddress destination)
       throws IOException {
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
@@ -115,18 +115,23 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public synchronized Path send(ByteBuffer srcBuffer, Path path) throws IOException {
-    // + 8 for UDP overlay header length
-    Path actualPath =
-        buildHeader(bufferSend, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+  public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
+    writeLock().lock();
     try {
-      bufferSend.put(srcBuffer);
-    } catch (BufferOverflowException e) {
-      throw new IOException("Packet is larger than max send buffer size.");
+      // + 8 for UDP overlay header length
+      Path actualPath =
+          buildHeader(bufferSend, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      try {
+        bufferSend.put(srcBuffer);
+      } catch (BufferOverflowException e) {
+        throw new IOException("Packet is larger than max send buffer size.");
+      }
+      bufferSend.flip();
+      sendRaw(bufferSend, actualPath.getFirstHopAddress());
+      return actualPath;
+    } finally {
+      writeLock().unlock();
     }
-    bufferSend.flip();
-    sendRaw(bufferSend, actualPath.getFirstHopAddress());
-    return actualPath;
   }
 
   /**

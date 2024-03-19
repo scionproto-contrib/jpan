@@ -23,6 +23,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.internal.ExtensionHeader;
 import org.scion.internal.InternalConstants;
@@ -33,6 +34,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   private final java.nio.channels.DatagramChannel channel;
   private final Object stateLock = new Object();
+  private final ReentrantLock readLock = new ReentrantLock();
+  private final ReentrantLock writeLock = new ReentrantLock();
 
   // This path is only used for write() after connect(), not for send().
   // Whether we have a connectionPath is independent of whether the underlying channel is connected.
@@ -420,15 +423,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcAddress = rPath.getSourceAddress();
         srcPort = rPath.getSourcePort();
       } else {
-        // For sending request path we need to have a valid local external address.
-        // For a valid local external address we need to be connected.
-        if (!channel.isConnected()) {
-          channel.connect(path.getFirstHopAddress());
-        }
-
         srcIA = getOrCreateService().getLocalIsdAs();
         // Get external host address. This must be done *after* refreshing the path!
         InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+        if (srcSocketAddress == null || srcSocketAddress.getAddress().isAnyLocalAddress()) {
+          // For sending request path we need to have a valid local external address.
+          // For a valid local external address we need to be connected.
+          // TODO use bind() i.o. connect????
+          channel.connect(path.getFirstHopAddress());
+          srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+        }
         srcAddress = srcSocketAddress.getAddress().getAddress();
         srcPort = srcSocketAddress.getPort();
       }
@@ -479,5 +483,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       }
       return validationResult == null;
     }
+  }
+
+  protected ReentrantLock readLock() {
+    return this.readLock;
+  }
+
+  protected ReentrantLock writeLock() {
+    return writeLock;
   }
 }

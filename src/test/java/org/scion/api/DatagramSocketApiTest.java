@@ -404,6 +404,7 @@ class DatagramSocketApiTest {
       SocketAddress clientAddress = packet.getSocketAddress();
       server.receive(packet);
 
+      // Modify packet - port
       packet.setPort(packet.getPort() + 1);
       server.send(packet); // Any exception because ...
 
