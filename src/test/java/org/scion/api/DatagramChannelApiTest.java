@@ -517,6 +517,7 @@ class DatagramChannelApiTest {
 
       // send should NOT set a path
       if (Util.getJavaMajorVersion() >= 14) {
+        // This fails because of disconnect(), see https://bugs.openjdk.org/browse/JDK-8231880
         channel.send(buffer, addr);
         assertNull(channel.getConnectionPath());
       }

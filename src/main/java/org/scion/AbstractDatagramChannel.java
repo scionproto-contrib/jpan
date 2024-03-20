@@ -194,9 +194,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * - The path will be replaced with a new path once it is expired.<br>
    *
    * <p>NB: This method does internally not call {@link
-   * java.nio.channels.DatagramChannel}.connect(), instead it calls bind(). That means this method
-   * does NOT perform any additional security checks associated with connect(), only those
-   * associated with bind().
+   * java.nio.channels.DatagramChannel}.connect(). That means this method
+   * does NOT perform any additional security checks associated with connect().
+   *
+   * <p>
+   * "connect()" is understood to provide connect to a destination address (IP+port).<br>
+   * - send()ing packet to another destination will cause an Exception.<br>
+   * - packets received from a different destination will be dropped.<br>
+   * - connecting to a given Path only connects to the destination address, the
+   *   path (route) itself may change, i.e. different border routers may be used.
    *
    * @param path Path to the remote host.
    * @return This channel.
@@ -204,6 +210,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    */
   @SuppressWarnings("unchecked")
   public C connect(RequestPath path) throws IOException {
+    // We decide that a connection only determines the remote host.
+    // The route to the remote host (i.e. border routers) may change.
+    // It therefore makes no sense to connect() internally to the first hop.
+    // Moreover, the first hop may change, which would require us to disconnect() and
+    // re-connect(), which causes two problems:
+    // a) connect() may block infinitely if a receive() is in progress and
+    // b) disconnect() sets the local port to 0
+    //    (before JDK 14, see https://bugs.openjdk.org/browse/JDK-8231880).
     synchronized (stateLock) {
       checkConnected(false);
       this.connectionPath = path;
