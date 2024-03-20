@@ -147,39 +147,56 @@ public class ScmpChannel implements AutoCloseable {
     }
 
     synchronized Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {
-      // EchoHeader = 8 + data
-      int len = 8 + request.getData().length;
-      Path path = request.getPath();
-      buildHeaderNoRefresh(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-      ScmpParser.buildScmpPing(
-          bufferSend, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
-      bufferSend.flip();
-      request.setSizeSent(bufferSend.remaining());
-      sendRaw(bufferSend, path.getFirstHopAddress());
+      try {
+        Path path = request.getPath();
+        super.channel().connect(path.getFirstHopAddress());
+        // EchoHeader = 8 + data
+        int len = 8 + request.getData().length;
+        buildHeaderNoRefresh(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
+        ScmpParser.buildScmpPing(
+            bufferSend,
+            getLocalAddress().getPort(),
+            request.getSequenceNumber(),
+            request.getData());
+        bufferSend.flip();
+        request.setSizeSent(bufferSend.remaining());
+        sendRaw(bufferSend, path.getFirstHopAddress());
 
-      receiveRequest(request);
-      request.setSizeReceived(bufferReceive.position());
-      return request;
+        receiveRequest(request);
+        request.setSizeReceived(bufferReceive.position());
+        return request;
+      } finally {
+        if (super.channel().isConnected()) {
+          super.channel().disconnect();
+        }
+      }
     }
 
     synchronized Scmp.TimedMessage sendTracerouteRequest(
         Scmp.TracerouteMessage request, PathHeaderParser.Node node) throws IOException {
-      Path path = request.getPath();
-      // TracerouteHeader = 24
-      int len = 24;
-      buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
-      int interfaceNumber = request.getSequenceNumber();
-      ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
-      bufferSend.flip();
+      try {
+        Path path = request.getPath();
+        super.channel().connect(path.getFirstHopAddress());
+        // TracerouteHeader = 24
+        int len = 24;
+        buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+        int interfaceNumber = request.getSequenceNumber();
+        ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
+        bufferSend.flip();
 
-      // Set flags for border routers to return SCMP packet
-      int posPath = ScionHeaderParser.extractPathHeaderPosition(bufferSend);
-      bufferSend.put(posPath + node.posHopFlags, node.hopFlags);
+        // Set flags for border routers to return SCMP packet
+        int posPath = ScionHeaderParser.extractPathHeaderPosition(bufferSend);
+        bufferSend.put(posPath + node.posHopFlags, node.hopFlags);
 
-      sendRaw(bufferSend, path.getFirstHopAddress());
+        sendRaw(bufferSend, path.getFirstHopAddress());
 
-      receiveRequest(request);
-      return request;
+        receiveRequest(request);
+        return request;
+      } finally {
+        if (super.channel().isConnected()) {
+          super.channel().disconnect();
+        }
+      }
     }
 
     synchronized void receiveRequest(Scmp.TimedMessage request) throws IOException {

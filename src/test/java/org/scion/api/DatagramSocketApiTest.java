@@ -27,11 +27,19 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.*;
+import org.scion.PackageVisibilityHelper;
+import org.scion.Path;
+import org.scion.PathPolicy;
+import org.scion.RequestPath;
+import org.scion.Scion;
+import org.scion.ScionAddress;
+import org.scion.ScionService;
+import org.scion.ScionSocketOptions;
 import org.scion.proto.daemon.Daemon;
 import org.scion.socket.DatagramSocket;
 import org.scion.testutil.ExamplePacket;
@@ -39,6 +47,7 @@ import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockNetwork;
 import org.scion.testutil.PingPongSocketHelper;
+import org.scion.testutil.Util;
 
 class DatagramSocketApiTest {
 
@@ -332,6 +341,34 @@ class DatagramSocketApiTest {
   }
 
   @Test
+  void bind() throws IOException {
+    //    try (java.net.DatagramSocket socket = new java.net.DatagramSocket(null)) {
+    //      assertNull(socket.getLocalSocketAddress());
+    //      socket.bind(null);
+    //      InetSocketAddress address2 = (InetSocketAddress) socket.getLocalSocketAddress();
+    //      assertTrue(address2.getPort() > 0);
+    //    }
+    try (DatagramSocket socket = new DatagramSocket(null)) {
+      assertNull(socket.getLocalSocketAddress());
+      socket.bind(null);
+      InetSocketAddress address2 = (InetSocketAddress) socket.getLocalSocketAddress();
+      assertTrue(address2.getPort() > 0);
+    }
+  }
+
+  @Test
+  void bind_fails() throws IOException {
+    //    try (java.net.DatagramSocket socket = new java.net.DatagramSocket()) {
+    //      Exception ex = assertThrows(SocketException.class, () -> socket.bind(null));
+    //      assertTrue(ex.getMessage().contains("already bound"));
+    //    }
+    try (DatagramSocket socket = new DatagramSocket()) {
+      Exception ex = assertThrows(SocketException.class, () -> socket.bind(null));
+      assertTrue(ex.getMessage().contains("already bound"));
+    }
+  }
+
+  @Test
   void getService_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
@@ -595,10 +632,13 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void getConnectionPath() {
+  void getConnectionPath() throws IOException {
     RequestPath path = ExamplePacket.PATH;
     DatagramPacket packet = new DatagramPacket(new byte[50], 50, toAddress(path));
     try (DatagramSocket channel = new DatagramSocket()) {
+      assertNull(channel.getConnectionPath());
+      // send should NOT set a path
+      channel.send(packet);
       assertNull(channel.getConnectionPath());
 
       // connect should set a path
@@ -608,10 +648,10 @@ class DatagramSocketApiTest {
       assertNull(channel.getConnectionPath());
 
       // send should NOT set a path
-      channel.send(packet);
-      assertNull(channel.getConnectionPath());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      if (Util.getJavaMajorVersion() >= 14) {
+        channel.send(packet);
+        assertNull(channel.getConnectionPath());
+      }
     }
   }
 

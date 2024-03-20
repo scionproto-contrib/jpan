@@ -160,19 +160,22 @@ We use this interface IP as return address in the SCION path.
     * Instead of throwing an exception, we could also
       try to look for a path that has a first hop compatible with the
       bound interface.
-2) If the channel is not bound or bound to a wildcard address,
-   then we check all interfaces to find one that is likely to be
-   reachable by the first hop border router.
-    * We can cache the information but probably have to consider
-      the possibility that interfaces may appear dynamically or
-      may change their external IP, e.g. mobile Wifi or 5G
+2) If the channel is not bound or bound to a wildcard address, we can:
+    * either check all interfaces to find one that is likely to be
+      reachable by the first hop border router.
+    * or open s separate channel/socket and connect() to the first hop.
 3) Selection of the return IP must be done every time the path changes:
     * Path expires
-    * First hop becomes unreachable due to network change (e.g. mobile)
+    * First hop becomes unreachable or interfaces appear dynamically due to topology changes 
+      (e.g. mobile WiFi or 5G)
     * Explicit path change requested by user.
 
 Situations with link local or site local addresses can only
 be ignored. If the first hop is reachable via these addresse
+
+We used to use `connnect(firstHop)` to ensure a valid external IP. However,
+`connect()` blocks when used concurrently while a `receive()` is in progress.
+-> Solution: Use separate channel/socket with `connect()` to find external IP.
 
 # TODO
 

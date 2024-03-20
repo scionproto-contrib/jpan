@@ -27,7 +27,11 @@ import org.scion.RequestPath;
 public class PingPongHelper extends PingPongHelperBase {
 
   public PingPongHelper(int nServers, int nClients, int nRounds) {
-    super(nServers, nClients, nRounds);
+    this(nServers, nClients, nRounds, true);
+  }
+
+  public PingPongHelper(int nServers, int nClients, int nRounds, boolean connect) {
+    super(nServers, nClients, nRounds, connect);
   }
 
   private abstract class AbstractChannelEndpoint extends AbstractEndpoint {
@@ -56,24 +60,27 @@ public class PingPongHelper extends PingPongHelperBase {
 
   private class ClientEndpoint extends AbstractChannelEndpoint {
     private final Client client;
-    private final RequestPath remoteAddress;
+    private final RequestPath path;
     private final int nRounds;
+    private final boolean connect;
 
-    ClientEndpoint(Client client, int id, RequestPath remoteAddress, int nRounds) {
+    ClientEndpoint(Client client, int id, RequestPath path, int nRounds, boolean connect) {
       super(id);
       this.client = client;
-      this.remoteAddress = remoteAddress;
+      this.path = path;
       this.nRounds = nRounds;
+      this.connect = connect;
     }
 
     @Override
     public final void runImpl(DatagramChannel channel) throws IOException {
-      InetAddress inetAddress = InetAddress.getByAddress(remoteAddress.getDestinationAddress());
-      InetSocketAddress iSAddress =
-          new InetSocketAddress(inetAddress, remoteAddress.getDestinationPort());
-      channel.connect(iSAddress);
+      if (connect) {
+        InetAddress inetAddress = InetAddress.getByAddress(path.getDestinationAddress());
+        InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getDestinationPort());
+        channel.connect(iSAddress);
+      }
       for (int i = 0; i < nRounds; i++) {
-        client.run(channel, remoteAddress, id);
+        client.run(channel, path, id);
         nRoundsClient.incrementAndGet();
       }
       channel.disconnect();
@@ -117,7 +124,8 @@ public class PingPongHelper extends PingPongHelperBase {
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
         (id, address, nRounds) -> new Thread(new ServerEndpoint(serverFn, id, address, nRounds)),
-        (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
+        (id, path, nRounds) ->
+            new Thread(new ClientEndpoint(clientFn, id, path, nRounds, connectClients)),
         reset);
   }
 
@@ -141,6 +149,7 @@ public class PingPongHelper extends PingPongHelperBase {
 
   public static void defaultServer(DatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
+    // System.out.println("SERVER: Receiving ... (" + channel.getLocalAddress() + ")");
     Path address = channel.receive(request);
 
     request.flip();
@@ -150,5 +159,6 @@ public class PingPongHelper extends PingPongHelperBase {
 
     request.flip();
     channel.send(request, address);
+    // System.out.println("SERVER: Sent: " + address);
   }
 }

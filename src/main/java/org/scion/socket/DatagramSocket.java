@@ -128,6 +128,13 @@ public class DatagramSocket extends java.net.DatagramSocket {
     return (InetSocketAddress) address;
   }
 
+  private static InetSocketAddress checkAddressOrNull(SocketAddress address) {
+    if (address != null && !(address instanceof InetSocketAddress)) {
+      throw new IllegalArgumentException("Address must be an InetSocketAddress");
+    }
+    return (InetSocketAddress) address;
+  }
+
   private static void checkAddress(InetAddress address) {
     if (address == null) {
       throw new IllegalArgumentException("Address must not be null");
@@ -143,7 +150,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   @Override
   public void bind(SocketAddress address) throws SocketException {
     try {
-      channel.bind(checkAddress(address));
+      channel.bind(checkAddressOrNull(address));
       isBound = true;
     } catch (AlreadyBoundException e) {
       throw new SocketException("already bound");

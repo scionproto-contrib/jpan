@@ -426,15 +426,37 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcIA = getOrCreateService().getLocalIsdAs();
         // Get external host address. This must be done *after* refreshing the path!
         InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
-        if (srcSocketAddress == null || srcSocketAddress.getAddress().isAnyLocalAddress()) {
+        if (srcSocketAddress == null) {
+          // We need to bind in order to have a return port.
+          // This is also what the Java channel does internally before send().
+          channel.bind(null);
+          srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+        }
+        if (srcSocketAddress.getAddress().isAnyLocalAddress()) {
           // For sending request path we need to have a valid local external address.
           // For a valid local external address we need to be connected.
           // TODO use bind() i.o. connect????
-          channel.connect(path.getFirstHopAddress());
-          srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+
+//          channel.connect(path.getFirstHopAddress());
+//          srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+//          System.out.println("SEND: SRV " + srcSocketAddress);
+//          srcAddress = srcSocketAddress.getAddress().getAddress();
+
+          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+
+          // TODO we should only do this if the path does not alread have a valid IP.
+          //   In fact, the should probably done during path creation.
+          //          srcSocketAddress = findSrcAddress(path.getFirstHopAddress());
+        } else {
+          srcAddress = srcSocketAddress.getAddress().getAddress();
         }
-        srcAddress = srcSocketAddress.getAddress().getAddress();
         srcPort = srcSocketAddress.getPort();
+        if (srcPort == 0) {
+          // This has apparently been fixed in Java 14: https://bugs.openjdk.org/browse/JDK-8231880
+          // TODO -> maybe we should adopt this fix for the DatagramChannel in Java 8, i.e. rebind!
+          throw new IllegalStateException("Local port is 0. This happens after calling " +
+                  "disconnect(). Please connect() or bind() before send() or write().");
+        }
       }
 
       long dstIA = path.getDestinationIsdAs();

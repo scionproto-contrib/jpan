@@ -37,6 +37,7 @@ import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.PingPongHelper;
+import org.scion.testutil.Util;
 
 class DatagramChannelApiTest {
 
@@ -297,6 +298,16 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void bind() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertNull(channel.getLocalAddress());
+      channel.bind(null);
+      InetSocketAddress address = channel.getLocalAddress();
+      assertTrue(address.getPort() > 0);
+    }
+  }
+
+  @Test
   void getService_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
@@ -408,15 +419,14 @@ class DatagramChannelApiTest {
         (channel, expiredPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
           try {
-            channel.disconnect();
             RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
-            // assertNull(channel.getCurrentPath());
+            assertNull(channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        });
+        }, false);
   }
 
   @Test
@@ -429,11 +439,11 @@ class DatagramChannelApiTest {
             RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
-            // assertNull(channel.getCurrentPath());
+            assertEquals(newPath, channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        });
+        }, true);
   }
 
   @Test
@@ -450,10 +460,11 @@ class DatagramChannelApiTest {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        });
+        }, true);
   }
 
-  private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod) throws IOException {
+  private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod, boolean connect)
+      throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn =
@@ -462,7 +473,6 @@ class DatagramChannelApiTest {
           RequestPath expiredPath = createExpiredPath(basePath);
           sendMethod.accept(channel, expiredPath);
 
-          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
           ByteBuffer response = ByteBuffer.allocate(100);
           channel.receive(response);
 
@@ -470,7 +480,7 @@ class DatagramChannelApiTest {
           String pong = Charset.defaultCharset().decode(response).toString();
           assertEquals(PingPongHelper.MSG, pong);
         };
-    PingPongHelper pph = new PingPongHelper(1, 10, 5);
+    PingPongHelper pph = new PingPongHelper(1, 10, 5, connect);
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -490,10 +500,13 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getConnectionPath() {
+  void getConnectionPath() throws IOException {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (DatagramChannel channel = DatagramChannel.open()) {
+      assertNull(channel.getConnectionPath());
+      // send should NOT set a path
+      channel.send(buffer, addr);
       assertNull(channel.getConnectionPath());
 
       // connect should set a path
@@ -503,10 +516,10 @@ class DatagramChannelApiTest {
       assertNull(channel.getConnectionPath());
 
       // send should NOT set a path
-      channel.send(buffer, addr);
-      assertNull(channel.getConnectionPath());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      if (Util.getJavaMajorVersion() >= 14) {
+        channel.send(buffer, addr);
+        assertNull(channel.getConnectionPath());
+      }
     }
   }
 

@@ -41,14 +41,13 @@ class DatagramChannelMultiSendInetAddrTest {
   void test() {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 20, 50);
+    PingPongHelper pph = new PingPongHelper(1, 20, 50, false);
     pph.runPingPong(serverFn, clientFn);
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
     String message = PingPongHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-    channel.disconnect();
     // Test send() with InetAddress
     InetAddress inetServerAddress = InetAddress.getByAddress(serverAddress.getDestinationAddress());
     InetSocketAddress inetServerSocketAddress =

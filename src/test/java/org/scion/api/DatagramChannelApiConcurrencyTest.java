@@ -136,6 +136,7 @@ class DatagramChannelApiConcurrencyTest {
   private void receive(DatagramChannel channel, AtomicInteger receiveCount) {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try {
+      System.out.println("REC: " + channel.getLocalAddress());
       channel.receive(buffer);
       buffer.flip();
       assertEquals(12, buffer.remaining());
@@ -152,6 +153,7 @@ class DatagramChannelApiConcurrencyTest {
     ByteBuffer buffer = ByteBuffer.wrap("Hello scion!".getBytes());
     try {
       buffer.flip();
+      System.out.println("SEND: " + channel.getLocalAddress() + " -> " + dummyAddress);
       channel.send(buffer, dummyAddress);
       latch.countDown();
     } catch (IOException e) {

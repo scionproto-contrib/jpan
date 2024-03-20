@@ -26,7 +26,7 @@ import org.scion.socket.DatagramSocket;
 public class PingPongSocketHelper extends PingPongHelperBase {
 
   public PingPongSocketHelper(int nServers, int nClients, int nRounds) {
-    super(nServers, nClients, nRounds);
+    super(nServers, nClients, nRounds, false);
   }
 
   private abstract class AbstractSocketEndpoint extends AbstractEndpoint {

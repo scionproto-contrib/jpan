@@ -36,15 +36,17 @@ public class PingPongHelperBase {
   private final int nClients;
   protected final int nServers;
   private final int nRounds;
+  protected final boolean connectClients;
 
   protected final AtomicInteger nRoundsClient = new AtomicInteger();
   protected final AtomicInteger nRoundsServer = new AtomicInteger();
   protected final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
 
-  public PingPongHelperBase(int nServers, int nClients, int nRounds) {
+  protected PingPongHelperBase(int nServers, int nClients, int nRounds, boolean connect) {
     this.nClients = nClients;
     this.nServers = nServers;
     this.nRounds = nRounds;
+    this.connectClients = connect;
     shutDownBarrier = new CountDownLatch(nClients + nServers);
     MockNetwork.getAndResetForwardCount();
   }

@@ -80,7 +80,6 @@ class DatagramSocketConcurrentPingPongTest {
 
   private void receiver(DatagramSocket socket) throws IOException {
     DatagramPacket request = new DatagramPacket(new byte[200], 200);
-    System.out.println("SERVER: --- receiver - waiting -------- " + socket.getLocalSocketAddress());
     socket.receive(request);
 
     String msg = new String(request.getData(), request.getOffset(), request.getLength());
