@@ -178,7 +178,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     bufferSend.put(src);
     bufferSend.flip();
 
-    int sent = channel().write(bufferSend);
+    int sent = channel().send(bufferSend, getConnectionPath().getFirstHopAddress());
     if (sent < bufferSend.limit() || bufferSend.remaining() > 0) {
       throw new ScionException("Failed to send all data.");
     }

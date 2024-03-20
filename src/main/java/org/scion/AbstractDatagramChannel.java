@@ -221,6 +221,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       checkConnected(false);
       this.connectionPath = path;
+      // TODO can it be connected already -> remove if-clause?
+      // TODO However, underlay connect() is required for getLocalAddress() (external API)
       if (!channel.isConnected()) {
         // We must connect the underlying channel in order to get a local address.
         channel.connect(path.getFirstHopAddress());
