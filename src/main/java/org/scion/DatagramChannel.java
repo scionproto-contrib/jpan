@@ -147,7 +147,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
    * @see ByteChannel#read(ByteBuffer)
    */
   @Override
-  public synchronized int read(ByteBuffer dst) throws IOException {
+  public int read(ByteBuffer dst) throws IOException {
     checkOpen();
     checkConnected(true);
 
