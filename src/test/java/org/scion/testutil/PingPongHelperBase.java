@@ -115,7 +115,9 @@ public class PingPongHelperBase {
       assertEquals(nRounds * nClients * 2, MockNetwork.getAndResetForwardCount());
     }
     assertEquals(nRounds * nClients, nRoundsClient.get());
-    assertEquals(nRounds * nClients, nRoundsServer.get());
+    // For now, we assume that every request is handles by every server thread.
+    // we may have to make this configurable for future tests that work differently.
+    assertEquals(nServers * nRounds * nClients, nRoundsServer.get());
   }
 
   private void checkExceptions() {
