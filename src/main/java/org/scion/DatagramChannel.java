@@ -64,22 +64,29 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
 
   @Override
   protected void resizeBuffers(int sizeReceive, int sizeSend) {
-    if (bufferReceive.capacity() != sizeReceive) {
-      bufferReceive = ByteBuffer.allocateDirect(sizeReceive);
-    }
-    if (bufferSend.capacity() != sizeSend) {
-      bufferSend = ByteBuffer.allocateDirect(sizeSend);
-    }
+    synchronized (bufferReceive) {
+      if (bufferReceive.capacity() != sizeReceive) {
+        bufferReceive = ByteBuffer.allocateDirect(sizeReceive);
+      }
+      if (bufferSend.capacity() != sizeSend) {
+        bufferSend = ByteBuffer.allocateDirect(sizeSend);
+      }
+      }
   }
 
   public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
-    ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.UDP);
-    if (receivePath == null) {
-      return null; // non-blocking, nothing available
+    readLock().lock();
+    try {
+      ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.UDP);
+      if (receivePath == null) {
+        return null; // non-blocking, nothing available
+      }
+      ScionHeaderParser.extractUserPayload(bufferReceive, userBuffer);
+      bufferReceive.clear();
+      return receivePath;
+    } finally {
+      readLock().unlock();
     }
-    ScionHeaderParser.extractUserPayload(bufferReceive, userBuffer);
-    bufferReceive.clear();
-    return receivePath;
   }
 
   /**
@@ -169,20 +176,25 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
    */
   @Override
   public synchronized int write(ByteBuffer src) throws IOException {
-    checkOpen();
-    checkConnected(true);
+    writeLock().lock();
+    try {
+      checkOpen();
+      checkConnected(true);
 
-    int len = src.remaining();
-    // + 8 for UDP overlay header length
-    buildHeader(bufferSend, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);
-    bufferSend.put(src);
-    bufferSend.flip();
+      int len = src.remaining();
+      // + 8 for UDP overlay header length
+      buildHeader(bufferSend, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);
+      bufferSend.put(src);
+      bufferSend.flip();
 
-    int sent = channel().send(bufferSend, getConnectionPath().getFirstHopAddress());
-    if (sent < bufferSend.limit() || bufferSend.remaining() > 0) {
-      throw new ScionException("Failed to send all data.");
+      int sent = channel().send(bufferSend, getConnectionPath().getFirstHopAddress());
+      if (sent < bufferSend.limit() || bufferSend.remaining() > 0) {
+        throw new ScionException("Failed to send all data.");
+      }
+      return len - bufferSend.remaining();
+    } finally {
+      writeLock().unlock();
     }
-    return len - bufferSend.remaining();
   }
 
   protected ByteBuffer bufferSend() {

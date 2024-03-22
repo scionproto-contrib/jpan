@@ -118,7 +118,7 @@ class DatagramChannelApiConcurrencyTest {
           s1.start();
 
           // Check that sending in parallel works
-          senderLatch.await(10, TimeUnit.SECONDS);
+          senderLatch.await(1, TimeUnit.SECONDS);
           assertEquals(0, receiveCount.get());
 
           // Check that these work
