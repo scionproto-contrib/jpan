@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.socket.DatagramSocket;
@@ -68,7 +67,6 @@ class DatagramSocketApiConcurrencyTest {
   /**
    * Test 2x receive() and 1x send().
    */
-  @Disabled
   @Test
   void concurrentReceive() throws IOException {
     concurrentReceive(this::receive, this::receive, this::send, false);

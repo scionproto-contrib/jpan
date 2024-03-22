@@ -488,7 +488,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
     return supportedOptions;
   }
 
-  public synchronized RequestPath getConnectionPath() {
+  public RequestPath getConnectionPath() {
     return (RequestPath) channel.getConnectionPath();
   }
 
