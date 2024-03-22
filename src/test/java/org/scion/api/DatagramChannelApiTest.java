@@ -44,13 +44,11 @@ class DatagramChannelApiTest {
   private static final int dummyPort = 44444;
   private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
-  private static final DatagramPacket dummyPacket;
 
   static {
     try {
       dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
       dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
-      dummyPacket = new DatagramPacket(new byte[100], 100, dummyAddress);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
