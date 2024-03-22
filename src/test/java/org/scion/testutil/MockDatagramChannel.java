@@ -26,7 +26,20 @@ import org.scion.Path;
 import org.scion.ScionSocketOptions;
 
 public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
-  private boolean isOpen = true;
+
+  private static final InetAddress BIND_ANY_IP;
+  private static final InetSocketAddress BIND_ANY_SOCKET;
+
+    static {
+        try {
+            BIND_ANY_IP = InetAddress.getByAddress(new byte[]{0,0,0,0});
+            BIND_ANY_SOCKET = new InetSocketAddress(BIND_ANY_IP, 33333);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean isOpen = true;
   private boolean isConnected = false;
   private boolean isBlocking = false;
   private SocketAddress bindAddress;
@@ -60,7 +73,11 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
   @Override
   public java.nio.channels.DatagramChannel bind(SocketAddress socketAddress) throws IOException {
-    bindAddress = socketAddress;
+    if (socketAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    } else {
+      bindAddress = socketAddress;
+    }
     return this;
   }
 
@@ -117,6 +134,9 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   public java.nio.channels.DatagramChannel connect(SocketAddress socketAddress) throws IOException {
     connectAddress = socketAddress;
     isConnected = true;
+    if (bindAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    }
     return this;
   }
 
@@ -134,11 +154,17 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
   @Override
   public SocketAddress receive(ByteBuffer byteBuffer) throws IOException {
+    if (bindAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    }
     return receiveCallback.apply(byteBuffer);
   }
 
   @Override
   public int send(ByteBuffer byteBuffer, SocketAddress socketAddress) throws IOException {
+    if (bindAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    }
     throw new UnsupportedOperationException();
   }
 

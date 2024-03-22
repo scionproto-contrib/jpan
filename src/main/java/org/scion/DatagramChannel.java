@@ -72,7 +72,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     }
   }
 
-  public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
+  public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
     ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.UDP);
     if (receivePath == null) {
       return null; // non-blocking, nothing available

@@ -82,9 +82,68 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void getLocalAddress_withBindNull() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
   void getLocalAddress_withoutBind() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertNull(channel.getLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withConnect() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.connect(dummyAddress);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertFalse(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withSendAddress() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.send(ByteBuffer.allocate(100), dummyAddress);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withSendRequestPath() throws IOException {
+    RequestPath path = PackageVisibilityHelper.createDummyPath();
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.send(ByteBuffer.allocate(100), path);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withSendResponsePath() throws IOException {
+    ByteBuffer rawPacket = ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG);
+    ResponsePath response = PackageVisibilityHelper.getResponsePath(rawPacket, dummyAddress);
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.send(ByteBuffer.allocate(100), response);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+      // double check that we used a responsePath
+      assertNull(channel.getConnectionPath());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withReceive() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.configureBlocking(false);
+      channel.receive(ByteBuffer.allocate(100));
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
     }
   }
 
@@ -426,7 +485,8 @@ class DatagramChannelApiTest {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        }, false);
+        },
+        false);
   }
 
   @Test
@@ -443,7 +503,8 @@ class DatagramChannelApiTest {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        }, true);
+        },
+        true);
   }
 
   @Test
@@ -460,7 +521,8 @@ class DatagramChannelApiTest {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        }, true);
+        },
+        true);
   }
 
   private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod, boolean connect)

@@ -129,6 +129,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
+  private void ensureBound() throws IOException {
+    synchronized (stateLock) {
+      if (localAddress == null) {
+        bind(null);
+      }
+    }
+  }
+
   /**
    * Returns the local address. Note that this may change as the path changes,
    * e.g. if we connect to a new border router on a different network interface.
@@ -228,11 +236,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     // - fresh channel has getLocalAddress() == null
     // - connect() and send() cause internal bind()
     //   -> bind() after connect() or send() causes AlreadyBoundException
-    //   - send() binds to ANY
+    //   - send(), receive() and bind(null) bind to ANY
     // - connect() and bind() conflict with concurrent receiver()
     // - connect() after bind() is fine, but it changes the local address from ANY to specific IF
 
-    // For an API user:
+    // Externally, for an API user:
     // Our policy is that a connection only determines the _address_ of the remote host,
     // the _route_ to the remote host (i.e. border routers) may change.
     //
@@ -253,6 +261,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       checkConnected(false);
       this.connectionPath = path;
       this.localAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+      // TODO check this vs ensureBound()...
       if (channel.getLocalAddress() == null) {
         channel.bind(null);
       }
@@ -281,6 +290,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected ResponsePath receiveFromChannel(
       ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
+    ensureBound();
     while (true) {
       buffer.clear();
       InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
@@ -457,6 +467,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     synchronized (stateLock) {
+      ensureBound();
       buffer.clear();
       long srcIA;
       byte[] srcAddress;
@@ -472,12 +483,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcIA = getOrCreateService().getLocalIsdAs();
         // Get external host address. This must be done *after* refreshing the path!
         InetSocketAddress srcSocketAddress = getLocalAddress();
-        if (srcSocketAddress == null) {
-          // We need to bind in order to have a return port.
-          // This is also what the Java channel does internally before send().
-          bind(null);
-          srcSocketAddress = getLocalAddress();
-        }
         if (srcSocketAddress.getAddress().isAnyLocalAddress()) {
           // For sending request path we need to have a valid local external address.
           // If the local address is a wildcard address then we get the external IP
@@ -485,7 +490,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
           // TODO cache this or add it to path object?
           srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
-          //throw new IllegalStateException(); // TODO
         } else {
           srcAddress = srcSocketAddress.getAddress().getAddress();
         }
