@@ -40,6 +40,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   // This path is only used for write() after connect(), not for send().
   // Whether we have a connectionPath is independent of whether the underlying channel is connected.
   private RequestPath connectionPath;
+  private byte[] localAddress;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private ScionService service;
@@ -123,13 +124,25 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public C bind(InetSocketAddress address) throws IOException {
     synchronized (stateLock) {
       channel.bind(address);
+      localAddress = ((InetSocketAddress)channel.getLocalAddress()).getAddress().getAddress();
       return (C) this;
     }
   }
 
+  /**
+   * Returns the local address. Note that this may change as the path changes,
+   * e.g. if we connect to a new border router on a different network interface.
+   * @see DatagramChannel#getLocalAddress()
+   * @return The local address.
+   * @throws IOException If an I/O error occurs
+   */
   public InetSocketAddress getLocalAddress() throws IOException {
     synchronized (stateLock) {
-      return (InetSocketAddress) channel.getLocalAddress();
+      if (localAddress == null) {
+        return null;
+      }
+      int port = ((InetSocketAddress)channel.getLocalAddress()).getPort();
+      return new InetSocketAddress(InetAddress.getByAddress(localAddress), port);
     }
   }
 
@@ -196,6 +209,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * <p>NB: This method does internally not call {@link
    * java.nio.channels.DatagramChannel}.connect(). That means this method
    * does NOT perform any additional security checks associated with connect().
+   * It will however perform a `bind(null)` unless the channel is already bound.
    *
    * <p>
    * "connect()" is understood to provide connect to a destination address (IP+port).<br>
@@ -210,22 +224,37 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    */
   @SuppressWarnings("unchecked")
   public C connect(RequestPath path) throws IOException {
-    // We decide that a connection only determines the remote host.
-    // The route to the remote host (i.e. border routers) may change.
-    // It therefore makes no sense to connect() internally to the first hop.
-    // Moreover, the first hop may change, which would require us to disconnect() and
+    // For reference: Java DatagramChannel logic:
+    // - fresh channel has getLocalAddress() == null
+    // - connect() and send() cause internal bind()
+    //   -> bind() after connect() or send() causes AlreadyBoundException
+    //   - send() binds to ANY
+    // - connect() and bind() conflict with concurrent receiver()
+    // - connect() after bind() is fine, but it changes the local address from ANY to specific IF
+
+    // For an API user:
+    // Our policy is that a connection only determines the _address_ of the remote host,
+    // the _route_ to the remote host (i.e. border routers) may change.
+    //
+    // Internally:
+    // However, internally, we do _not_ connect() to the first hop.
+    // Usually, connections prevent receiving/sending packets to other IPs.
+    // Since this IP (which is the first hop) may change, which would require us to disconnect() and
     // re-connect(), which causes two problems:
     // a) connect() may block infinitely if a receive() is in progress and
     // b) disconnect() sets the local port to 0
     //    (before JDK 14, see https://bugs.openjdk.org/browse/JDK-8231880).
+    //
+    // Externally:
+    // We still need to make getLocalAddress() return a local IP after connect() so
+    // we call bind(null). We have to do it here, and not lazily during getLocalAddress(),
+    // because bind() may block when a concurrent receive() is on progress.
     synchronized (stateLock) {
       checkConnected(false);
       this.connectionPath = path;
-      // TODO can it be connected already -> remove if-clause?
-      // TODO However, underlay connect() is required for getLocalAddress() (external API)
-      if (!channel.isConnected()) {
-        // We must connect the underlying channel in order to get a local address.
-        channel.connect(path.getFirstHopAddress());
+      this.localAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+      if (channel.getLocalAddress() == null) {
+        channel.bind(null);
       }
       return (C) this;
     }
@@ -243,9 +272,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected void setConnectionPath(RequestPath path) {
+  protected void setConnectionPath(RequestPath path) throws UnknownHostException {
     synchronized (stateLock) {
       this.connectionPath = path;
+      this.localAddress = service.getExternalIP(path.getFirstHopAddress());
     }
   }
 
@@ -441,28 +471,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       } else {
         srcIA = getOrCreateService().getLocalIsdAs();
         // Get external host address. This must be done *after* refreshing the path!
-        InetSocketAddress srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+        InetSocketAddress srcSocketAddress = getLocalAddress();
         if (srcSocketAddress == null) {
           // We need to bind in order to have a return port.
           // This is also what the Java channel does internally before send().
-          channel.bind(null);
-          srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
+          bind(null);
+          srcSocketAddress = getLocalAddress();
         }
         if (srcSocketAddress.getAddress().isAnyLocalAddress()) {
           // For sending request path we need to have a valid local external address.
-          // For a valid local external address we need to be connected.
-          // TODO use bind() i.o. connect????
+          // If the local address is a wildcard address then we get the external IP
+          // elsewhere (from the service).
 
-//          channel.connect(path.getFirstHopAddress());
-//          srcSocketAddress = (InetSocketAddress) channel.getLocalAddress();
-//          System.out.println("SEND: SRV " + srcSocketAddress);
-//          srcAddress = srcSocketAddress.getAddress().getAddress();
-
+          // TODO cache this or add it to path object?
           srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
-
-          // TODO we should only do this if the path does not alread have a valid IP.
-          //   In fact, the should probably done during path creation.
-          //          srcSocketAddress = findSrcAddress(path.getFirstHopAddress());
+          //throw new IllegalStateException(); // TODO
         } else {
           srcAddress = srcSocketAddress.getAddress().getAddress();
         }
@@ -509,6 +532,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         channel.connect(newPath.getFirstHopAddress());
       }
       connectionPath = newPath;
+      localAddress = service.getExternalIP(newPath.getFirstHopAddress());
     }
     return newPath;
   }
