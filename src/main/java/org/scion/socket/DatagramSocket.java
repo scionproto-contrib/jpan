@@ -486,6 +486,30 @@ public class DatagramSocket extends java.net.DatagramSocket {
     return supportedOptions;
   }
 
+  /**
+   * This method is currently not supported in SCION. It is public because some JDKs make this
+   * method public.
+   *
+   * @param mcastaddr multicast address
+   * @param netIf network interface
+   * @throws IOException in case of IO error
+   */
+  public void joinGroup(SocketAddress mcastaddr, NetworkInterface netIf) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * This method is currently not supported in SCION. It is public because some JDKs make this
+   * method public.
+   *
+   * @param mcastaddr multicast address
+   * @param netIf network interface
+   * @throws IOException in case of IO error
+   */
+  public void leaveGroup(SocketAddress mcastaddr, NetworkInterface netIf) {
+    throw new UnsupportedOperationException();
+  }
+
   public RequestPath getConnectionPath() {
     return (RequestPath) channel.getConnectionPath();
   }
