@@ -148,7 +148,7 @@ public class ScmpChannel implements AutoCloseable {
         ByteBuffer buffer = bufferSend();
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
-        buildHeaderNoRefresh(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
+        buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
         ScmpParser.buildScmpPing(
             buffer, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
         buffer.flip();
@@ -173,7 +173,7 @@ public class ScmpChannel implements AutoCloseable {
         ByteBuffer buffer = bufferSend();
         // TracerouteHeader = 24
         int len = 24;
-        buildHeaderNoRefresh(buffer, path, len, InternalConstants.HdrTypes.SCMP);
+        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
         int interfaceNumber = request.getSequenceNumber();
         ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), interfaceNumber);
         buffer.flip();

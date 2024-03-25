@@ -465,14 +465,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @return argument path or a new path if the argument path was expired
    * @throws IOException in case of IOException.
    */
-  protected Path buildHeader(
+  protected Path checkPathAndBuildHeader(
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     synchronized (stateLock) {
       if (path instanceof RequestPath) {
         path = ensureUpToDate((RequestPath) path);
       }
-      buildHeaderNoRefresh(buffer, path, payloadLength, hdrType);
+      buildHeader(buffer, path, payloadLength, hdrType);
       return path;
     }
   }
@@ -484,7 +484,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @param hdrType Header type e.g. SCMP
    * @throws IOException in case of IOException.
    */
-  protected void buildHeaderNoRefresh(
+  protected void buildHeader(
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     synchronized (stateLock) {
