@@ -45,6 +45,15 @@ public final class ScionSocketOptions {
   public static final SocketOption<Integer> SN_PATH_EXPIRY_MARGIN =
       new SciSocketOption<>("SN_PATH_EXPIRY_MARGIN", Integer.class);
 
+  /**
+   * Set the traffic class SCION header.
+   *
+   * @deprecated This feature may be removed in a future release
+   */
+  @Deprecated
+  public static final SocketOption<Integer> SN_TRAFFIC_CLASS =
+      new SciSocketOption<>("SN_TRAFFIC_CLASS", Integer.class);
+
   private ScionSocketOptions() {}
 
   static class SciSocketOption<T> implements SocketOption<T> {

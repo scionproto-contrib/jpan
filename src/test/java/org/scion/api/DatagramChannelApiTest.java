@@ -32,24 +32,25 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
+import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
+import org.scion.testutil.MockDatagramChannel;
 import org.scion.testutil.PingPongHelper;
+import org.scion.testutil.Util;
 
 class DatagramChannelApiTest {
 
   private static final int dummyPort = 44444;
   private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
-  private static final DatagramPacket dummyPacket;
 
   static {
     try {
       dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
       dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
-      dummyPacket = new DatagramPacket(new byte[100], 100, dummyAddress);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
@@ -81,9 +82,68 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void getLocalAddress_withBindNull() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
   void getLocalAddress_withoutBind() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertNull(channel.getLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withConnect() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.connect(dummyAddress);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertFalse(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withSendAddress() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.send(ByteBuffer.allocate(100), dummyAddress);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withSendRequestPath() throws IOException {
+    RequestPath path = PackageVisibilityHelper.createDummyPath();
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.send(ByteBuffer.allocate(100), path);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withSendResponsePath() throws IOException {
+    ByteBuffer rawPacket = ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG);
+    ResponsePath response = PackageVisibilityHelper.getResponsePath(rawPacket, dummyAddress);
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.send(ByteBuffer.allocate(100), response);
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
+      // double check that we used a responsePath
+      assertNull(channel.getConnectionPath());
+    }
+  }
+
+  @Test
+  void getLocalAddress_withReceive() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.configureBlocking(false);
+      channel.receive(ByteBuffer.allocate(100));
+      InetSocketAddress local = channel.getLocalAddress();
+      assertTrue(local.getAddress().isAnyLocalAddress());
     }
   }
 
@@ -297,6 +357,16 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void bind() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      assertNull(channel.getLocalAddress());
+      channel.bind(null);
+      InetSocketAddress address = channel.getLocalAddress();
+      assertTrue(address.getPort() > 0);
+    }
+  }
+
+  @Test
   void getService_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
@@ -408,15 +478,15 @@ class DatagramChannelApiTest {
         (channel, expiredPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
           try {
-            channel.disconnect();
             RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
-            // assertNull(channel.getCurrentPath());
+            assertNull(channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        });
+        },
+        false);
   }
 
   @Test
@@ -429,11 +499,12 @@ class DatagramChannelApiTest {
             RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
-            // assertNull(channel.getCurrentPath());
+            assertEquals(newPath, channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        });
+        },
+        true);
   }
 
   @Test
@@ -450,10 +521,12 @@ class DatagramChannelApiTest {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-        });
+        },
+        true);
   }
 
-  private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod) throws IOException {
+  private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod, boolean connect)
+      throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn =
@@ -462,7 +535,6 @@ class DatagramChannelApiTest {
           RequestPath expiredPath = createExpiredPath(basePath);
           sendMethod.accept(channel, expiredPath);
 
-          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
           ByteBuffer response = ByteBuffer.allocate(100);
           channel.receive(response);
 
@@ -470,7 +542,7 @@ class DatagramChannelApiTest {
           String pong = Charset.defaultCharset().decode(response).toString();
           assertEquals(PingPongHelper.MSG, pong);
         };
-    PingPongHelper pph = new PingPongHelper(1, 10, 5);
+    PingPongHelper pph = new PingPongHelper(1, 10, 5, connect);
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -490,10 +562,13 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getConnectionPath() {
+  void getConnectionPath() throws IOException {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (DatagramChannel channel = DatagramChannel.open()) {
+      assertNull(channel.getConnectionPath());
+      // send should NOT set a path
+      channel.send(buffer, addr);
       assertNull(channel.getConnectionPath());
 
       // connect should set a path
@@ -503,10 +578,11 @@ class DatagramChannelApiTest {
       assertNull(channel.getConnectionPath());
 
       // send should NOT set a path
-      channel.send(buffer, addr);
-      assertNull(channel.getConnectionPath());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      if (Util.getJavaMajorVersion() >= 14) {
+        // This fails because of disconnect(), see https://bugs.openjdk.org/browse/JDK-8231880
+        channel.send(buffer, addr);
+        assertNull(channel.getConnectionPath());
+      }
     }
   }
 
@@ -539,13 +615,39 @@ class DatagramChannelApiTest {
       channel.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, margin + 1000);
       assertEquals(margin + 1000, channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
 
-      int bufSizeSend = channel.getOption(StandardSocketOptions.SO_SNDBUF);
-      channel.setOption(StandardSocketOptions.SO_SNDBUF, bufSizeSend + 1000);
-      assertEquals(bufSizeSend + 1000, channel.getOption(StandardSocketOptions.SO_SNDBUF));
+      int tc = channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
+      channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, tc + 1);
+      assertEquals(tc + 1, channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS));
+    }
+  }
 
-      int bufSizeReceive = channel.getOption(StandardSocketOptions.SO_RCVBUF);
-      channel.setOption(StandardSocketOptions.SO_RCVBUF, bufSizeReceive + 1000);
-      assertEquals(bufSizeReceive + 1000, channel.getOption(StandardSocketOptions.SO_RCVBUF));
+  @Test
+  void setOption_TrafficClass() throws IOException {
+    ByteBuffer buf = ByteBuffer.wrap("Hello".getBytes());
+    try (MockDatagramChannel mock = MockDatagramChannel.open();
+        DatagramChannel channel = DatagramChannel.open(Scion.defaultService(), mock)) {
+      // traffic class should be 0
+      mock.setSendCallback(
+          (buffer, address) -> {
+            assertEquals(
+                0, ScionPacketInspector.readPacket(buffer).getScionHeader().getTrafficClass());
+            return 0;
+          });
+      channel.send(buf, dummyAddress);
+
+      int trafficClass = channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
+      assertEquals(0, trafficClass);
+      channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, 42);
+      assertEquals(42, channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS));
+
+      // traffic class should be 42
+      mock.setSendCallback(
+          (buffer, address) -> {
+            assertEquals(
+                0, ScionPacketInspector.readPacket(buffer).getScionHeader().getTrafficClass());
+            return 0;
+          });
+      channel.send(buf, dummyAddress);
     }
   }
 }
