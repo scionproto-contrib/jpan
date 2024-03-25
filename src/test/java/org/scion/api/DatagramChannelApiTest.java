@@ -32,10 +32,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
+import org.scion.demo.inspector.ScionPacketInspector;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 import org.scion.testutil.MockDNS;
 import org.scion.testutil.MockDaemon;
+import org.scion.testutil.MockDatagramChannel;
 import org.scion.testutil.PingPongHelper;
 import org.scion.testutil.Util;
 
@@ -612,6 +614,40 @@ class DatagramChannelApiTest {
       int margin = channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN);
       channel.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, margin + 1000);
       assertEquals(margin + 1000, channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
+
+      int tc = channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
+      channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, tc + 1);
+      assertEquals(tc + 1, channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS));
+    }
+  }
+
+  @Test
+  void setOption_TrafficClass() throws IOException {
+    ByteBuffer buf = ByteBuffer.wrap("Hello".getBytes());
+    try (MockDatagramChannel mock = MockDatagramChannel.open();
+        DatagramChannel channel = DatagramChannel.open(Scion.defaultService(), mock)) {
+      // traffic class should be 0
+      mock.setSendCallback(
+          (buffer, address) -> {
+            assertEquals(
+                0, ScionPacketInspector.readPacket(buffer).getScionHeader().getTrafficClass());
+            return 0;
+          });
+      channel.send(buf, dummyAddress);
+
+      int trafficClass = channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
+      assertEquals(0, trafficClass);
+      channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, 42);
+      assertEquals(42, channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS));
+
+      // traffic class should be 42
+      mock.setSendCallback(
+          (buffer, address) -> {
+            assertEquals(
+                0, ScionPacketInspector.readPacket(buffer).getScionHeader().getTrafficClass());
+            return 0;
+          });
+      channel.send(buf, dummyAddress);
     }
   }
 }

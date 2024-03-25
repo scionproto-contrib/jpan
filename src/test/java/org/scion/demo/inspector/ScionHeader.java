@@ -30,7 +30,7 @@ public class ScionHeader {
   //  4 bit: Version : Currently, only 0 is supported.
   private int version;
   //  8 bit: TrafficClass / QoS
-  private int trafficLClass;
+  private int trafficClass;
   // 20 bit: FlowID
   private int flowId;
   //  8 bit: NextHdr
@@ -82,7 +82,7 @@ public class ScionHeader {
     int i1 = data.getInt();
     int i2 = data.getInt();
     version = readInt(i0, 0, 4);
-    trafficLClass = readInt(i0, 4, 8);
+    trafficClass = readInt(i0, 4, 8);
     flowId = readInt(i0, 12, 20);
     nextHeader = readInt(i1, 0, 8);
     hdrLen = readInt(i1, 8, 8);
@@ -197,7 +197,7 @@ public class ScionHeader {
     sb.append("Common Header: " + "  VER=")
         .append(version)
         .append("  TrafficClass=")
-        .append(trafficLClass)
+        .append(trafficClass)
         .append("  FlowID=")
         .append(flowId)
         // .append("\n")
@@ -318,5 +318,9 @@ public class ScionHeader {
 
   public Constants.HdrTypes nextHeader() {
     return Constants.HdrTypes.parse(nextHeader);
+  }
+
+  public int getTrafficClass() {
+    return trafficClass;
   }
 }

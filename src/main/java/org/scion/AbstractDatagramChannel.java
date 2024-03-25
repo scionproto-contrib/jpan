@@ -53,6 +53,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           Constants.PROPERTY_PATH_EXPIRY_MARGIN,
           Constants.ENV_PATH_EXPIRY_MARGIN,
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
+  private int cfgTrafficClass;
   private Consumer<Scmp.Message> errorListener;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
@@ -396,7 +397,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
           return (T) (Integer) cfgExpirationSafetyMargin;
         } else if (ScionSocketOptions.SN_TRAFFIC_CLASS.equals(option)) {
-          throw new UnsupportedOperationException();
+          return (T) (Integer) cfgTrafficClass;
         } else {
           throw new UnsupportedOperationException();
         }
@@ -418,7 +419,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           if (trafficClass < 0 || trafficClass > 255) {
             throw new IllegalArgumentException("trafficClass is not in range 0 -- 255");
           }
-          throw new UnsupportedOperationException();
+          cfgTrafficClass = trafficClass;
         } else {
           throw new UnsupportedOperationException();
         }
