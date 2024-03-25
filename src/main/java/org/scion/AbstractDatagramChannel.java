@@ -23,7 +23,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.internal.ExtensionHeader;
@@ -44,7 +44,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   // This path is only used for write() after connect(), not for send().
   // Whether we have a connectionPath is independent of whether the underlying channel is connected.
   private RequestPath connectionPath;
-  private byte[] localAddress;
+  private InetAddress localAddress;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private ScionService service;
@@ -131,7 +131,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public C bind(InetSocketAddress address) throws IOException {
     synchronized (stateLock) {
       channel.bind(address);
-      localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress().getAddress();
+      localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
       return (C) this;
     }
   }
@@ -158,7 +158,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         return null;
       }
       int port = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-      return new InetSocketAddress(InetAddress.getByAddress(localAddress), port);
+      return new InetSocketAddress(localAddress, port);
     }
   }
 
@@ -503,20 +503,18 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       } else {
         srcIA = getOrCreateService().getLocalIsdAs();
         // Get external host address. This must be done *after* refreshing the path!
-        InetSocketAddress srcSocketAddress = getLocalAddress();
-        if (srcSocketAddress.getAddress().isAnyLocalAddress()) {
+        if (localAddress.isAnyLocalAddress()) {
           // For sending request path we need to have a valid local external address.
           // If the local address is a wildcard address then we get the external IP
           // elsewhere (from the service).
 
           // TODO cache this or add it to path object?
           // TODO use localAddress directly, why do we get it again?
-          InetAddress inetAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
-          srcAddress = inetAddress.getAddress();
+          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress()).getAddress();
         } else {
-          srcAddress = srcSocketAddress.getAddress().getAddress();
+          srcAddress = localAddress.getAddress();
         }
-        srcPort = srcSocketAddress.getPort();
+        srcPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
         if (srcPort == 0) {
           // This has apparently been fixed in Java 14: https://bugs.openjdk.org/browse/JDK-8231880
           // TODO -> maybe we should adopt this fix for the DatagramChannel in Java 8, i.e. rebind!
@@ -562,15 +560,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     // update connected path
     connectionPath = newPath;
     // update local address
-    byte[] oldLocalAddress = localAddress;
+    InetAddress oldLocalAddress = localAddress;
     // TODO we should not change the local address if bind() was called with an explicit address!
     // API: returning the localAddress should return non-ANY if we have a connection
     //     I.e. getExternalIP() is fine if we have a connection.
     //     It is NOT fine if we are bound to an explicit IP/port
-    InetAddress inetAddress = getOrCreateService().getExternalIP(newPath.getFirstHopAddress());
-    localAddress = inetAddress.getAddress();
-    if (!Arrays.equals(localAddress, oldLocalAddress)) {
-      resizeBuffers(inetAddress);
+    localAddress = getOrCreateService().getExternalIP(newPath.getFirstHopAddress());
+    if (!Objects.equals(localAddress, oldLocalAddress)) {
+      resizeBuffers(localAddress);
     }
   }
 
