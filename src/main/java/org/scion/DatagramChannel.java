@@ -111,7 +111,8 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
       ByteBuffer buffer = bufferSend();
       // + 8 for UDP overlay header length
       Path actualPath =
-          checkPathAndBuildHeader(buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+          checkPathAndBuildHeader(
+              buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
       try {
         buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {

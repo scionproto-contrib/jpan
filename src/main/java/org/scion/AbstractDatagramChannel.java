@@ -239,12 +239,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    */
   @SuppressWarnings("unchecked")
   public C connect(RequestPath path) throws IOException {
-    // For reference: Java DatagramChannel logic:
+    // For reference: Java DatagramChannel behavior:
     // - fresh channel has getLocalAddress() == null
     // - connect() and send() cause internal bind()
     //   -> bind() after connect() or send() causes AlreadyBoundException
     //   - send(), receive() and bind(null) bind to ANY
-    // - connect() and bind() conflict with concurrent receiver()
+    // - connect() and bind() have lock conflict with concurrent call to receiver()
     // - connect() after bind() is fine, but it changes the local address from ANY to specific IF
 
     // We have two manage two connection states, internal (state of the internallly used channel)
@@ -509,7 +509,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           // elsewhere (from the service).
 
           // TODO cache this or add it to path object?
-          // TODO use localAddress directly, why do we get it again?
           srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress()).getAddress();
         } else {
           srcAddress = localAddress.getAddress();
@@ -517,7 +516,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
         if (srcPort == 0) {
           // This has apparently been fixed in Java 14: https://bugs.openjdk.org/browse/JDK-8231880
-          // TODO -> maybe we should adopt this fix for the DatagramChannel in Java 8, i.e. rebind!
           throw new IllegalStateException(
               "Local port is 0. This happens after calling "
                   + "disconnect(). Please connect() or bind() before send() or write().");
