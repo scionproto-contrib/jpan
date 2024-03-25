@@ -83,6 +83,8 @@ public class MockDaemon implements AutoCloseable {
       DEFAULT.close();
       DEFAULT = null;
     }
+    System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
+    System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
   }
 
   private MockDaemon(InetSocketAddress address) {

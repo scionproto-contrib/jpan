@@ -29,7 +29,9 @@ import static org.scion.Constants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +76,7 @@ public class ScionService {
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
   private Thread shutdownHook;
+  private final java.nio.channels.DatagramChannel[] ifDiscoveryChannel = {null};
 
   protected enum Mode {
     DAEMON,
@@ -481,5 +484,26 @@ public class ScionService {
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
     return Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
+  }
+
+  /**
+   * Determine the network interface and external IP used for connecting to the specified address.
+   *
+   * @param firstHopAddress Reachable address.
+   */
+  InetAddress getExternalIP(InetSocketAddress firstHopAddress) {
+    synchronized (ifDiscoveryChannel) {
+      try {
+        if (ifDiscoveryChannel[0] == null) {
+          ifDiscoveryChannel[0] = java.nio.channels.DatagramChannel.open();
+        }
+        ifDiscoveryChannel[0].connect(firstHopAddress);
+        SocketAddress address = ifDiscoveryChannel[0].getLocalAddress();
+        ifDiscoveryChannel[0].disconnect();
+        return ((InetSocketAddress) address).getAddress();
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      }
+    }
   }
 }

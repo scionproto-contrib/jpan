@@ -52,7 +52,7 @@ public class PingPongChannelClient {
     println("Received from server at: " + remoteAddress + "  message: " + message);
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException {
+  public static void main(String[] args) throws IOException {
     // Demo setup
     switch (NETWORK) {
       case MOCK_TOPOLOGY_IPV4:

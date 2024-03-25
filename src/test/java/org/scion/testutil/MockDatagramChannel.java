@@ -20,12 +20,23 @@ import java.nio.ByteBuffer;
 import java.nio.channels.MembershipKey;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.scion.Path;
-import org.scion.ScionSocketOptions;
 
 public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
+
+  private static final InetAddress BIND_ANY_IP;
+  private static final InetSocketAddress BIND_ANY_SOCKET;
+
+  static {
+    try {
+      BIND_ANY_IP = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
+      BIND_ANY_SOCKET = new InetSocketAddress(BIND_ANY_IP, 33333);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private boolean isOpen = true;
   private boolean isConnected = false;
   private boolean isBlocking = false;
@@ -37,7 +48,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
         throw new UnsupportedOperationException();
       };
 
-  private BiConsumer<ByteBuffer, Path> sendCallback =
+  private BiFunction<ByteBuffer, SocketAddress, Integer> sendCallback =
       (byteBuffer, path) -> {
         throw new UnsupportedOperationException();
       };
@@ -54,46 +65,36 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     receiveCallback = cb;
   }
 
-  public void setSendCallback(BiConsumer<ByteBuffer, Path> cb) {
+  public void setSendCallback(BiFunction<ByteBuffer, SocketAddress, Integer> cb) {
     sendCallback = cb;
   }
 
   @Override
   public java.nio.channels.DatagramChannel bind(SocketAddress socketAddress) throws IOException {
-    bindAddress = socketAddress;
+    if (socketAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    } else {
+      bindAddress = socketAddress;
+    }
     return this;
   }
 
   @Override
-  public <T> java.nio.channels.DatagramChannel setOption(SocketOption<T> socketOption, T t)
-      throws IOException {
-    //        if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
-    //            cfgReportFailedValidation = (Boolean) t;
-    //        } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
-    //            cfgExpirationSafetyMargin = (Integer) t;
-    //        } else if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
-    //            // TODO resize buf
-    //            channel.setOption(option, t);
-    //        } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
-    //            // TODO resize buf
-    //            channel.setOption(option, t);
-    //        } else {
-    //            channel.setOption(option, t);
-    //        }
-    //        return (C) this;
+  public <T> java.nio.channels.DatagramChannel setOption(SocketOption<T> option, T t) {
+    //    if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
+    //      cfgRCVBUF = (Integer) t;
+    //    } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
+    //      cfgSNDBUF = (Integer) t;
+    //    }
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public <T> T getOption(SocketOption<T> option) throws IOException {
-    if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
-      return (T) (Boolean) false; // cfgReportFailedValidation;
-    } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
-      return (T) (Integer) 10; // cfgExpirationSafetyMargin;
-    } else if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
-      return (T) (Integer) 1000;
+  public <T> T getOption(SocketOption<T> option) {
+    if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
+      return (T) (Integer) 10000;
     } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
-      return (T) (Integer) 1000;
+      return (T) (Integer) 10000;
     }
     throw new UnsupportedOperationException();
   }
@@ -117,29 +118,38 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   public java.nio.channels.DatagramChannel connect(SocketAddress socketAddress) throws IOException {
     connectAddress = socketAddress;
     isConnected = true;
+    if (bindAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    }
     return this;
   }
 
   @Override
-  public java.nio.channels.DatagramChannel disconnect() throws IOException {
+  public java.nio.channels.DatagramChannel disconnect() {
     connectAddress = null;
     isConnected = false;
     return this;
   }
 
   @Override
-  public SocketAddress getRemoteAddress() throws IOException {
+  public SocketAddress getRemoteAddress() {
     return connectAddress;
   }
 
   @Override
   public SocketAddress receive(ByteBuffer byteBuffer) throws IOException {
+    if (bindAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    }
     return receiveCallback.apply(byteBuffer);
   }
 
   @Override
   public int send(ByteBuffer byteBuffer, SocketAddress socketAddress) throws IOException {
-    throw new UnsupportedOperationException();
+    if (bindAddress == null) {
+      bindAddress = BIND_ANY_SOCKET;
+    }
+    return sendCallback.apply(byteBuffer, socketAddress);
   }
 
   @Override
@@ -168,20 +178,18 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   @Override
-  public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface)
-      throws IOException {
+  public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public MembershipKey join(
-      InetAddress inetAddress, NetworkInterface networkInterface, InetAddress inetAddress1)
-      throws IOException {
+      InetAddress inetAddress, NetworkInterface networkInterface, InetAddress inetAddress1) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  protected void implCloseSelectableChannel() throws IOException {
+  protected void implCloseSelectableChannel() {
     isConnected = false;
     isOpen = false;
     connectAddress = null;
@@ -189,7 +197,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   @Override
-  protected void implConfigureBlocking(boolean b) throws IOException {
+  protected void implConfigureBlocking(boolean b) {
     this.isBlocking = b;
   }
 }

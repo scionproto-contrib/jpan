@@ -16,7 +16,6 @@ package org.scion.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,7 @@ public class PingPongDemoTest {
             () -> {
               try {
                 PingPongChannelServer.main(null);
-              } catch (IOException e) {
+              } catch (Throwable e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);
               }
@@ -55,7 +54,7 @@ public class PingPongDemoTest {
             () -> {
               try {
                 PingPongChannelClient.main(null);
-              } catch (IOException | InterruptedException e) {
+              } catch (Throwable e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);
               }
@@ -67,6 +66,9 @@ public class PingPongDemoTest {
     // just in case
     server.interrupt();
     client.interrupt();
+    // join again to make sure the interrupt was handled
+    server.join(100);
+    client.join(100);
 
     assertEquals(0, failures.get());
   }

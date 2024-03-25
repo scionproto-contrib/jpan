@@ -36,9 +36,13 @@ public class ScionPacketInspector {
     return new ScionPacketInspector();
   }
 
-  public static ScionPacketInspector readPacket(ByteBuffer buffer) throws IOException {
+  public static ScionPacketInspector readPacket(ByteBuffer buffer) {
     ScionPacketInspector spi = new ScionPacketInspector();
-    spi.read(buffer);
+    try {
+      spi.read(buffer);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     return spi;
   }
 
