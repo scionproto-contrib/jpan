@@ -21,7 +21,6 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
-import org.scion.RequestPath;
 import org.scion.ResponsePath;
 import org.scion.ScionService;
 import org.scion.internal.InternalConstants;
@@ -43,13 +42,6 @@ class SelectingDatagramChannel extends org.scion.DatagramChannel {
     this.selector = Selector.open();
     super.channel().configureBlocking(false);
     super.channel().register(selector, SelectionKey.OP_READ);
-  }
-
-  SelectingDatagramChannel(ScionService service, RequestPath path, int port) throws IOException {
-    this(service);
-    super.setConnectionPath(path);
-    // listen on ANY interface: 0.0.0.0 / [::]
-    super.bind(new InetSocketAddress("[::]", port));
   }
 
   public void setTimeOut(int timeoutMilliseconds) {
@@ -97,6 +89,7 @@ class SelectingDatagramChannel extends org.scion.DatagramChannel {
     }
   }
 
+  @Override
   public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
     ResponsePath receivePath =
         receiveFromTimeoutChannel(bufferReceive(), InternalConstants.HdrTypes.UDP);

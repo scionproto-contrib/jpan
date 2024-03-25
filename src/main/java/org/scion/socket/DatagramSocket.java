@@ -46,8 +46,6 @@ public class DatagramSocket extends java.net.DatagramSocket {
     supportedOptions.add(ScionSocketOptions.SN_RESPONSE_PATH_CACHE_MAX);
     supportedOptions.add(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE);
     supportedOptions.add(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN);
-    supportedOptions.add(StandardSocketOptions.SO_SNDBUF);
-    supportedOptions.add(StandardSocketOptions.SO_RCVBUF);
   }
 
   private final SelectingDatagramChannel channel;
@@ -148,7 +146,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public void bind(SocketAddress address) throws SocketException {
+  public synchronized void bind(SocketAddress address) throws SocketException {
     try {
       channel.bind(checkAddressOrNull(address));
       isBound = true;

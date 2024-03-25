@@ -88,12 +88,6 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     //            cfgReportFailedValidation = (Boolean) t;
     //        } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
     //            cfgExpirationSafetyMargin = (Integer) t;
-    //        } else if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
-    //            // TODO resize buf
-    //            channel.setOption(option, t);
-    //        } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
-    //            // TODO resize buf
-    //            channel.setOption(option, t);
     //        } else {
     //            channel.setOption(option, t);
     //        }

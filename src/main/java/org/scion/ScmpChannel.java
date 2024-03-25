@@ -17,7 +17,6 @@ package org.scion;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
-import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -127,43 +126,37 @@ public class ScmpChannel implements AutoCloseable {
   }
 
   private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
-    private ByteBuffer bufferReceive;
-    private ByteBuffer bufferSend;
     private final Selector selector;
 
     protected InternalChannel(ScionService service, RequestPath path, int port) throws IOException {
       super(service);
-      this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
-      this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
 
       // selector
       this.selector = Selector.open();
       super.channel().configureBlocking(false);
       super.channel().register(selector, SelectionKey.OP_READ);
 
-      super.setConnectionPath(path);
       // listen on ANY interface: 0.0.0.0 / [::]
       super.bind(new InetSocketAddress("[::]", port));
+      super.connect(path);
     }
 
     synchronized Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {
       try {
         Path path = request.getPath();
         super.channel().connect(path.getFirstHopAddress());
+        ByteBuffer buffer = bufferSend();
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
-        buildHeaderNoRefresh(bufferSend, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
+        buildHeaderNoRefresh(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
         ScmpParser.buildScmpPing(
-            bufferSend,
-            getLocalAddress().getPort(),
-            request.getSequenceNumber(),
-            request.getData());
-        bufferSend.flip();
-        request.setSizeSent(bufferSend.remaining());
-        sendRaw(bufferSend, path.getFirstHopAddress());
+            buffer, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
+        buffer.flip();
+        request.setSizeSent(buffer.remaining());
+        sendRaw(buffer, path.getFirstHopAddress());
 
         receiveRequest(request);
-        request.setSizeReceived(bufferReceive.position());
+        request.setSizeReceived(bufferReceive().position());
         return request;
       } finally {
         if (super.channel().isConnected()) {
@@ -177,18 +170,19 @@ public class ScmpChannel implements AutoCloseable {
       try {
         Path path = request.getPath();
         super.channel().connect(path.getFirstHopAddress());
+        ByteBuffer buffer = bufferSend();
         // TracerouteHeader = 24
         int len = 24;
-        buildHeaderNoRefresh(bufferSend, path, len, InternalConstants.HdrTypes.SCMP);
+        buildHeaderNoRefresh(buffer, path, len, InternalConstants.HdrTypes.SCMP);
         int interfaceNumber = request.getSequenceNumber();
-        ScmpParser.buildScmpTraceroute(bufferSend, getLocalAddress().getPort(), interfaceNumber);
-        bufferSend.flip();
+        ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), interfaceNumber);
+        buffer.flip();
 
         // Set flags for border routers to return SCMP packet
-        int posPath = ScionHeaderParser.extractPathHeaderPosition(bufferSend);
-        bufferSend.put(posPath + node.posHopFlags, node.hopFlags);
+        int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
+        buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
-        sendRaw(bufferSend, path.getFirstHopAddress());
+        sendRaw(buffer, path.getFirstHopAddress());
 
         receiveRequest(request);
         return request;
@@ -200,9 +194,9 @@ public class ScmpChannel implements AutoCloseable {
     }
 
     synchronized void receiveRequest(Scmp.TimedMessage request) throws IOException {
-      ResponsePath receivePath = receiveWithTimeout(bufferReceive);
+      ResponsePath receivePath = receiveWithTimeout(bufferReceive());
       if (receivePath != null) {
-        ScmpParser.consume(bufferReceive, request);
+        ScmpParser.consume(bufferReceive(), request);
         request.setPath(receivePath);
         checkListeners(request);
       } else {
@@ -241,16 +235,6 @@ public class ScmpChannel implements AutoCloseable {
             }
           }
         }
-      }
-    }
-
-    @Override
-    protected void resizeBuffers(int sizeReceive, int sizeSend) {
-      if (bufferReceive.capacity() != sizeReceive) {
-        bufferReceive = ByteBuffer.allocateDirect(sizeReceive);
-      }
-      if (bufferSend.capacity() != sizeSend) {
-        bufferSend = ByteBuffer.allocateDirect(sizeSend);
       }
     }
 

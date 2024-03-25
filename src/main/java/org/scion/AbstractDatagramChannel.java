@@ -23,6 +23,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.internal.ExtensionHeader;
@@ -33,6 +34,9 @@ import org.scion.internal.ScmpParser;
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
   private final java.nio.channels.DatagramChannel channel;
+  private ByteBuffer bufferReceive;
+  private ByteBuffer bufferSend;
+
   private final Object stateLock = new Object();
   private final ReentrantLock readLock = new ReentrantLock();
   private final ReentrantLock writeLock = new ReentrantLock();
@@ -59,6 +63,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       ScionService service, java.nio.channels.DatagramChannel channel) {
     this.channel = channel;
     this.service = service;
+    this.bufferReceive = ByteBuffer.allocateDirect(2000);
+    this.bufferSend = ByteBuffer.allocateDirect(2000);
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -93,8 +99,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public void setPathPolicy(PathPolicy pathPolicy) throws IOException {
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
-      if (connectionPath != null) {
-        updatePath(connectionPath);
+      if (isConnected()) {
+        connectionPath = pathPolicy.filter(getOrCreateService().getPaths(connectionPath));
+        updateConnection(connectionPath, true);
       }
     }
   }
@@ -240,6 +247,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     // - connect() and bind() conflict with concurrent receiver()
     // - connect() after bind() is fine, but it changes the local address from ANY to specific IF
 
+    // We have two manage two connection states, internal (state of the internallly used channel)
+    // and external (as reported to API users).
+
     // Externally, for an API user:
     // Our policy is that a connection only determines the _address_ of the remote host,
     // the _route_ to the remote host (i.e. border routers) may change.
@@ -253,18 +263,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     // b) disconnect() sets the local port to 0
     //    (before JDK 14, see https://bugs.openjdk.org/browse/JDK-8231880).
     //
-    // Externally:
+    // Again, externally:
     // We still need to make getLocalAddress() return a local IP after connect() so
     // we call bind(null). We have to do it here, and not lazily during getLocalAddress(),
     // because bind() may block when a concurrent receive() is on progress.
     synchronized (stateLock) {
       checkConnected(false);
-      this.connectionPath = path;
-      this.localAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
-      // TODO check this vs ensureBound()...
-      if (channel.getLocalAddress() == null) {
-        channel.bind(null);
-      }
+      ensureBound();
+      updateConnection(path, false);
       return (C) this;
     }
   }
@@ -278,13 +284,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public Path getConnectionPath() {
     synchronized (stateLock) {
       return connectionPath;
-    }
-  }
-
-  protected void setConnectionPath(RequestPath path) throws UnknownHostException {
-    synchronized (stateLock) {
-      this.connectionPath = path;
-      this.localAddress = service.getExternalIP(path.getFirstHopAddress());
     }
   }
 
@@ -423,12 +422,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         } else {
           throw new UnsupportedOperationException();
         }
-      } else if (StandardSocketOptions.SO_RCVBUF.equals(option)
-          || StandardSocketOptions.SO_SNDBUF.equals(option)) {
-        channel.setOption(option, t);
-        resizeBuffers(
-            channel.getOption(StandardSocketOptions.SO_RCVBUF),
-            channel.getOption(StandardSocketOptions.SO_SNDBUF));
       } else {
         channel.setOption(option, t);
       }
@@ -436,7 +429,35 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected abstract void resizeBuffers(int sizeReceive, int sizeSend);
+  protected final ByteBuffer bufferSend() {
+    return bufferSend;
+  }
+
+  protected final ByteBuffer bufferReceive() {
+    return bufferReceive;
+  }
+
+  private void resizeBuffers(InetAddress address) throws SocketException {
+    int mtu;
+    mtu = NetworkInterface.getByInetAddress(address).getMTU();
+    readLock().lock();
+    try {
+      if (bufferReceive.capacity() < mtu) {
+        bufferReceive = ByteBuffer.allocateDirect(mtu);
+      }
+    } finally {
+      readLock().unlock();
+    }
+
+    writeLock().lock();
+    try {
+      if (bufferSend.capacity() < mtu) {
+        bufferSend = ByteBuffer.allocateDirect(mtu);
+      }
+    } finally {
+      writeLock().unlock();
+    }
+  }
 
   /**
    * @param path path
@@ -489,7 +510,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           // elsewhere (from the service).
 
           // TODO cache this or add it to path object?
-          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+          // TODO use localAddress directly, why do we get it again?
+          InetAddress inetAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+          srcAddress = inetAddress.getAddress();
         } else {
           srcAddress = srcSocketAddress.getAddress().getAddress();
         }
@@ -523,23 +546,32 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
         return path;
       }
-      return updatePath(path);
+      // expired, get new path
+      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
+      if (isConnected()) {
+        updateConnection(newPath, true);
+      }
+      return newPath;
     }
   }
 
-  private RequestPath updatePath(RequestPath path) throws IOException {
-    // expired, get new path
-    RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
-
-    if (connectionPath != null) { // equal to !isBound at this point
-      if (!newPath.getFirstHopAddress().equals(path.getFirstHopAddress())) {
-        channel.disconnect();
-        channel.connect(newPath.getFirstHopAddress());
-      }
-      connectionPath = newPath;
-      localAddress = service.getExternalIP(newPath.getFirstHopAddress());
+  private void updateConnection(RequestPath newPath, boolean mustBeConnected) throws IOException {
+    if (mustBeConnected && !isConnected()) {
+      throw new IllegalStateException();
     }
-    return newPath;
+    // update connected path
+    connectionPath = newPath;
+    // update local address
+    byte[] oldLocalAddress = localAddress;
+    // TODO we should not change the local address if bind() was called with an explicit address!
+    // API: returning the localAddress should return non-ANY if we have a connection
+    //     I.e. getExternalIP() is fine if we have a connection.
+    //     It is NOT fine if we are bound to an explicit IP/port
+    InetAddress inetAddress = getOrCreateService().getExternalIP(newPath.getFirstHopAddress());
+    localAddress = inetAddress.getAddress();
+    if (!Arrays.equals(localAddress, oldLocalAddress)) {
+      resizeBuffers(inetAddress);
+    }
   }
 
   protected boolean validate(ByteBuffer buffer) throws ScionException {

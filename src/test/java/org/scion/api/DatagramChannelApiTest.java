@@ -612,14 +612,6 @@ class DatagramChannelApiTest {
       int margin = channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN);
       channel.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, margin + 1000);
       assertEquals(margin + 1000, channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
-
-      int bufSizeSend = channel.getOption(StandardSocketOptions.SO_SNDBUF);
-      channel.setOption(StandardSocketOptions.SO_SNDBUF, bufSizeSend + 1000);
-      assertEquals(bufSizeSend + 1000, channel.getOption(StandardSocketOptions.SO_SNDBUF));
-
-      int bufSizeReceive = channel.getOption(StandardSocketOptions.SO_RCVBUF);
-      channel.setOption(StandardSocketOptions.SO_RCVBUF, bufSizeReceive + 1000);
-      assertEquals(bufSizeReceive + 1000, channel.getOption(StandardSocketOptions.SO_RCVBUF));
     }
   }
 }

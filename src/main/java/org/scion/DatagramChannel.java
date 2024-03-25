@@ -27,14 +27,9 @@ import org.scion.internal.ScionHeaderParser;
 public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     implements ByteChannel, Closeable {
 
-  private ByteBuffer bufferReceive;
-  private ByteBuffer bufferSend;
-
   protected DatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
       throws IOException {
     super(service, channel);
-    this.bufferReceive = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_RCVBUF));
-    this.bufferSend = ByteBuffer.allocateDirect(getOption(StandardSocketOptions.SO_SNDBUF));
   }
 
   public static DatagramChannel open() throws IOException {
@@ -62,27 +57,16 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     return super.isBlocking();
   }
 
-  @Override
-  protected void resizeBuffers(int sizeReceive, int sizeSend) {
-    synchronized (bufferReceive) {
-      if (bufferReceive.capacity() != sizeReceive) {
-        bufferReceive = ByteBuffer.allocateDirect(sizeReceive);
-      }
-      if (bufferSend.capacity() != sizeSend) {
-        bufferSend = ByteBuffer.allocateDirect(sizeSend);
-      }
-    }
-  }
-
   public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
-      ResponsePath receivePath = receiveFromChannel(bufferReceive, InternalConstants.HdrTypes.UDP);
+      ByteBuffer buffer = bufferReceive();
+      ResponsePath receivePath = receiveFromChannel(buffer, InternalConstants.HdrTypes.UDP);
       if (receivePath == null) {
         return null; // non-blocking, nothing available
       }
-      ScionHeaderParser.extractUserPayload(bufferReceive, userBuffer);
-      bufferReceive.clear();
+      ScionHeaderParser.extractUserPayload(buffer, userBuffer);
+      buffer.clear();
       return receivePath;
     } finally {
       readLock().unlock();
@@ -124,16 +108,17 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
   public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
     writeLock().lock();
     try {
+      ByteBuffer buffer = bufferSend();
       // + 8 for UDP overlay header length
       Path actualPath =
-          buildHeader(bufferSend, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+          buildHeader(buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
       try {
-        bufferSend.put(srcBuffer);
+        buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {
         throw new IOException("Packet is larger than max send buffer size.");
       }
-      bufferSend.flip();
-      sendRaw(bufferSend, actualPath.getFirstHopAddress());
+      buffer.flip();
+      sendRaw(buffer, actualPath.getFirstHopAddress());
       return actualPath;
     } finally {
       writeLock().unlock();
@@ -180,27 +165,20 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
       checkOpen();
       checkConnected(true);
 
+      ByteBuffer buffer = bufferSend();
       int len = src.remaining();
       // + 8 for UDP overlay header length
-      buildHeader(bufferSend, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);
-      bufferSend.put(src);
-      bufferSend.flip();
+      buildHeader(buffer, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);
+      buffer.put(src);
+      buffer.flip();
 
-      int sent = channel().send(bufferSend, getConnectionPath().getFirstHopAddress());
-      if (sent < bufferSend.limit() || bufferSend.remaining() > 0) {
+      int sent = channel().send(buffer, getConnectionPath().getFirstHopAddress());
+      if (sent < buffer.limit() || buffer.remaining() > 0) {
         throw new ScionException("Failed to send all data.");
       }
-      return len - bufferSend.remaining();
+      return len - buffer.remaining();
     } finally {
       writeLock().unlock();
     }
-  }
-
-  protected ByteBuffer bufferSend() {
-    return bufferSend;
-  }
-
-  protected ByteBuffer bufferReceive() {
-    return bufferReceive;
   }
 }

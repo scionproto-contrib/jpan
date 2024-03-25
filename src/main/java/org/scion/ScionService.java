@@ -29,6 +29,7 @@ import static org.scion.Constants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Paths;
@@ -490,7 +491,7 @@ public class ScionService {
    *
    * @param firstHopAddress Reachable address.
    */
-  byte[] getExternalIP(InetSocketAddress firstHopAddress) {
+  InetAddress getExternalIP(InetSocketAddress firstHopAddress) {
     synchronized (ifDiscoveryChannel) {
       try {
         if (ifDiscoveryChannel[0] == null) {
@@ -499,7 +500,7 @@ public class ScionService {
         ifDiscoveryChannel[0].connect(firstHopAddress);
         SocketAddress address = ifDiscoveryChannel[0].getLocalAddress();
         ifDiscoveryChannel[0].disconnect();
-        return ((InetSocketAddress) address).getAddress().getAddress();
+        return ((InetSocketAddress) address).getAddress();
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
