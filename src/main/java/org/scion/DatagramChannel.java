@@ -88,9 +88,9 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
-    send(
-        srcBuffer,
-        getPathPolicy().filter(getOrCreateService().getPaths((InetSocketAddress) destination)));
+    InetSocketAddress dst = (InetSocketAddress) destination;
+    Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
+    send(srcBuffer, path);
   }
 
   /**
