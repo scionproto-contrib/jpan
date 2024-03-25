@@ -644,7 +644,7 @@ class DatagramChannelApiTest {
       mock.setSendCallback(
           (buffer, address) -> {
             assertEquals(
-                0, ScionPacketInspector.readPacket(buffer).getScionHeader().getTrafficClass());
+                42, ScionPacketInspector.readPacket(buffer).getScionHeader().getTrafficClass());
             return 0;
           });
       channel.send(buf, dummyAddress);
