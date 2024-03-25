@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#22](https://github.com/netsec-ethz/scion-java-client/pull/22)
 - BREAKING CHANGE: `getCurrentPath()` renamed to `getConnectionPath()`
   [#30](https://github.com/netsec-ethz/scion-java-client/pull/30)
+- Cleaned up `MultiMap` utility class 
+  [#34](https://github.com/netsec-ethz/scion-java-client/pull/34)
+- Cleaned up `DatagramChannel`: Fixed connect()/disconnect(), improved concurrency,
+  fixed buffer resizing wrt MTU, general clean up.
+  [#35](https://github.com/netsec-ethz/scion-java-client/pull/35)
 
 ### Fixed
 - Fixed: SCMP problem when pinging local AS.
@@ -34,6 +39,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - CI (only) failures on JDK 8. [#10](https://github.com/netsec-ethz/scion-java-client/pull/10)
 - Sporadic CI (only) failures. [#12](https://github.com/netsec-ethz/scion-java-client/pull/12)
 - Small fixes for 0.1.0 release. [#32](https://github.com/netsec-ethz/scion-java-client/pull/32)
+- Fix NPE after 2nd send() in unconnected channel + cleanup. 
+  [#33](https://github.com/netsec-ethz/scion-java-client/pull/33)
 
 ### Removed
 
