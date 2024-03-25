@@ -124,7 +124,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public C bind(InetSocketAddress address) throws IOException {
     synchronized (stateLock) {
       channel.bind(address);
-      localAddress = ((InetSocketAddress)channel.getLocalAddress()).getAddress().getAddress();
+      localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress().getAddress();
       return (C) this;
     }
   }
@@ -138,8 +138,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Returns the local address. Note that this may change as the path changes,
-   * e.g. if we connect to a new border router on a different network interface.
+   * Returns the local address. Note that this may change as the path changes, e.g. if we connect to
+   * a new border router on a different network interface.
+   *
    * @see DatagramChannel#getLocalAddress()
    * @return The local address.
    * @throws IOException If an I/O error occurs
@@ -149,7 +150,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (localAddress == null) {
         return null;
       }
-      int port = ((InetSocketAddress)channel.getLocalAddress()).getPort();
+      int port = ((InetSocketAddress) channel.getLocalAddress()).getPort();
       return new InetSocketAddress(InetAddress.getByAddress(localAddress), port);
     }
   }
@@ -215,16 +216,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * - The path will be replaced with a new path once it is expired.<br>
    *
    * <p>NB: This method does internally not call {@link
-   * java.nio.channels.DatagramChannel}.connect(). That means this method
-   * does NOT perform any additional security checks associated with connect().
-   * It will however perform a `bind(null)` unless the channel is already bound.
+   * java.nio.channels.DatagramChannel}.connect(). That means this method does NOT perform any
+   * additional security checks associated with connect(). It will however perform a `bind(null)`
+   * unless the channel is already bound.
    *
-   * <p>
-   * "connect()" is understood to provide connect to a destination address (IP+port).<br>
+   * <p>"connect()" is understood to provide connect to a destination address (IP+port).<br>
    * - send()ing packet to another destination will cause an Exception.<br>
    * - packets received from a different destination will be dropped.<br>
-   * - connecting to a given Path only connects to the destination address, the
-   *   path (route) itself may change, i.e. different border routers may be used.
+   * - connecting to a given Path only connects to the destination address, the path (route) itself
+   * may change, i.e. different border routers may be used.
    *
    * @param path Path to the remote host.
    * @return This channel.
@@ -497,8 +497,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         if (srcPort == 0) {
           // This has apparently been fixed in Java 14: https://bugs.openjdk.org/browse/JDK-8231880
           // TODO -> maybe we should adopt this fix for the DatagramChannel in Java 8, i.e. rebind!
-          throw new IllegalStateException("Local port is 0. This happens after calling " +
-                  "disconnect(). Please connect() or bind() before send() or write().");
+          throw new IllegalStateException(
+              "Local port is 0. This happens after calling "
+                  + "disconnect(). Please connect() or bind() before send() or write().");
         }
       }
 

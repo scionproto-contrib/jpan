@@ -27,7 +27,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -687,7 +686,8 @@ class DatagramSocketApiTest {
       InetSocketAddress clientAddress2;
 
       // 1st client
-      try (DatagramSocket client = new DatagramSocket(11111, InetAddress.getByAddress(new byte[]{127,0,0,11}))) {
+      try (DatagramSocket client =
+          new DatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
         clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();
@@ -703,10 +703,11 @@ class DatagramSocketApiTest {
       assertEquals(clientAddress1, toAddress(path1));
 
       // 2nd client
-      try (DatagramSocket client = new DatagramSocket(22222, InetAddress.getByAddress(new byte[]{127,0,0,22}))) {
+      try (DatagramSocket client =
+          new DatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 22}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
-        clientAddress2= (InetSocketAddress) client.getLocalSocketAddress();
+        clientAddress2 = (InetSocketAddress) client.getLocalSocketAddress();
         DatagramPacket packet2 = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet2);
       }

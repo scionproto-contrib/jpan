@@ -71,7 +71,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
       if (bufferSend.capacity() != sizeSend) {
         bufferSend = ByteBuffer.allocateDirect(sizeSend);
       }
-      }
+    }
   }
 
   public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
@@ -100,8 +100,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public void send(ByteBuffer srcBuffer, SocketAddress destination)
-      throws IOException {
+  public void send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }

@@ -30,16 +30,16 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   private static final InetAddress BIND_ANY_IP;
   private static final InetSocketAddress BIND_ANY_SOCKET;
 
-    static {
-        try {
-            BIND_ANY_IP = InetAddress.getByAddress(new byte[]{0,0,0,0});
-            BIND_ANY_SOCKET = new InetSocketAddress(BIND_ANY_IP, 33333);
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
-        }
+  static {
+    try {
+      BIND_ANY_IP = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
+      BIND_ANY_SOCKET = new InetSocketAddress(BIND_ANY_IP, 33333);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
     }
+  }
 
-    private boolean isOpen = true;
+  private boolean isOpen = true;
   private boolean isConnected = false;
   private boolean isBlocking = false;
   private SocketAddress bindAddress;

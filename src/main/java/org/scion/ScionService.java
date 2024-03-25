@@ -29,16 +29,12 @@ import static org.scion.Constants.PROPERTY_DAEMON_PORT;
 
 import io.grpc.*;
 import java.io.IOException;
-import java.lang.ref.Reference;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.scion.internal.DNSHelper;
 import org.scion.internal.ScionBootstrapper;
 import org.scion.internal.Segments;
@@ -490,8 +486,8 @@ public class ScionService {
   }
 
   /**
-   * Determine the network interface and external IP used for connecting to
-   * the specified address.
+   * Determine the network interface and external IP used for connecting to the specified address.
+   *
    * @param firstHopAddress Reachable address.
    */
   byte[] getExternalIP(InetSocketAddress firstHopAddress) {
@@ -503,9 +499,9 @@ public class ScionService {
         ifDiscoveryChannel[0].connect(firstHopAddress);
         SocketAddress address = ifDiscoveryChannel[0].getLocalAddress();
         ifDiscoveryChannel[0].disconnect();
-        return ((InetSocketAddress)address).getAddress().getAddress();
+        return ((InetSocketAddress) address).getAddress().getAddress();
       } catch (IOException e) {
-          throw new ScionRuntimeException(e);
+        throw new ScionRuntimeException(e);
       }
     }
   }

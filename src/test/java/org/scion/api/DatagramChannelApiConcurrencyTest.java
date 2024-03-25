@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,17 +62,13 @@ class DatagramChannelApiConcurrencyTest {
     ScionService.closeDefault();
   }
 
-  /**
-   * Test 2x receive() and 1x send().
-   */
+  /** Test 2x receive() and 1x send(). */
   @Test
   void concurrentReceive() throws IOException {
     concurrentReceive(this::receive, this::receive, this::send, false);
   }
 
-  /**
-   * Test 2x read() and 1x write().
-   */
+  /** Test 2x read() and 1x write(). */
   @Test
   void concurrentRead() throws IOException {
     concurrentReceive(this::read, this::read, this::write, true);
@@ -87,10 +82,9 @@ class DatagramChannelApiConcurrencyTest {
     void run(DatagramChannel channel, CountDownLatch receiveCount);
   }
 
-  /**
-   * Test 2x receive() and 1x send().
-   */
-  private void concurrentReceive(Reader c1, Reader c2, Writer w1, boolean connect) throws IOException {
+  /** Test 2x receive() and 1x send(). */
+  private void concurrentReceive(Reader c1, Reader c2, Writer w1, boolean connect)
+      throws IOException {
     AtomicInteger receiveCount = new AtomicInteger();
     CountDownLatch senderLatch = new CountDownLatch(1);
     ByteBuffer buffer = ByteBuffer.allocate(100);
