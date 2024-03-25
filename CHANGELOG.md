@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Small fixes for 0.1.0 release. [#32](https://github.com/netsec-ethz/scion-java-client/pull/32)
 - Fix NPE after 2nd send() in unconnected channel + cleanup. 
   [#33](https://github.com/netsec-ethz/scion-java-client/pull/33)
+- Fixed traffic class not set. [#36](https://github.com/netsec-ethz/scion-java-client/pull/36)
 
 ### Removed
 

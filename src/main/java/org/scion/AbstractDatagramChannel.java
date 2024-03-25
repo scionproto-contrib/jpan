@@ -529,7 +529,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
       byte[] rawPath = path.getRawPath();
       ScionHeaderParser.write(
-          buffer, payloadLength, rawPath.length, srcIA, srcAddress, dstIA, dstAddress, hdrType);
+          buffer,
+          payloadLength,
+          rawPath.length,
+          srcIA,
+          srcAddress,
+          dstIA,
+          dstAddress,
+          hdrType,
+          cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
 
       if (hdrType == InternalConstants.HdrTypes.UDP) {

@@ -92,7 +92,8 @@ public class HeaderComposeTest {
         srcAddress,
         dstIA,
         dstAddress,
-        InternalConstants.HdrTypes.UDP);
+        InternalConstants.HdrTypes.UDP,
+        0);
     ScionHeaderParser.writePath(p, path);
 
     // Overlay header
