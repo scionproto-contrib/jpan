@@ -22,7 +22,6 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.scion.ScionSocketOptions;
 
 public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
@@ -81,29 +80,21 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   @Override
-  public <T> java.nio.channels.DatagramChannel setOption(SocketOption<T> socketOption, T t)
-      throws IOException {
-    //        if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
-    //            cfgReportFailedValidation = (Boolean) t;
-    //        } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
-    //            cfgExpirationSafetyMargin = (Integer) t;
-    //        } else {
-    //            channel.setOption(option, t);
-    //        }
-    //        return (C) this;
+  public <T> java.nio.channels.DatagramChannel setOption(SocketOption<T> option, T t) {
+    //    if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
+    //      cfgRCVBUF = (Integer) t;
+    //    } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
+    //      cfgSNDBUF = (Integer) t;
+    //    }
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public <T> T getOption(SocketOption<T> option) throws IOException {
-    if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
-      return (T) (Boolean) false; // cfgReportFailedValidation;
-    } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
-      return (T) (Integer) 10; // cfgExpirationSafetyMargin;
-    } else if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
-      return (T) (Integer) 1000;
+  public <T> T getOption(SocketOption<T> option) {
+    if (StandardSocketOptions.SO_RCVBUF.equals(option)) {
+      return (T) (Integer) 10000;
     } else if (StandardSocketOptions.SO_SNDBUF.equals(option)) {
-      return (T) (Integer) 1000;
+      return (T) (Integer) 10000;
     }
     throw new UnsupportedOperationException();
   }
@@ -134,14 +125,14 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   @Override
-  public java.nio.channels.DatagramChannel disconnect() throws IOException {
+  public java.nio.channels.DatagramChannel disconnect() {
     connectAddress = null;
     isConnected = false;
     return this;
   }
 
   @Override
-  public SocketAddress getRemoteAddress() throws IOException {
+  public SocketAddress getRemoteAddress() {
     return connectAddress;
   }
 
@@ -187,20 +178,18 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   @Override
-  public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface)
-      throws IOException {
+  public MembershipKey join(InetAddress inetAddress, NetworkInterface networkInterface) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public MembershipKey join(
-      InetAddress inetAddress, NetworkInterface networkInterface, InetAddress inetAddress1)
-      throws IOException {
+      InetAddress inetAddress, NetworkInterface networkInterface, InetAddress inetAddress1) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  protected void implCloseSelectableChannel() throws IOException {
+  protected void implCloseSelectableChannel() {
     isConnected = false;
     isOpen = false;
     connectAddress = null;
@@ -208,7 +197,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   @Override
-  protected void implConfigureBlocking(boolean b) throws IOException {
+  protected void implConfigureBlocking(boolean b) {
     this.isBlocking = b;
   }
 }
