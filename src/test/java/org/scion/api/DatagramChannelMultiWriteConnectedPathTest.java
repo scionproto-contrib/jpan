@@ -21,6 +21,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.DatagramChannel;
+import org.scion.Path;
+import org.scion.RequestPath;
+import org.scion.ScionService;
 import org.scion.testutil.PingPongHelper;
 
 /** Test read()/write() operations on DatagramChannel connected with a path. */

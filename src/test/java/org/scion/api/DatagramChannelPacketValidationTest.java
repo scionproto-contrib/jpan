@@ -29,6 +29,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.scion.DatagramChannel;
+import org.scion.ScionService;
+import org.scion.ScionSocketOptions;
+import org.scion.internal.ScionHeaderParser;
 import org.scion.testutil.ExamplePacket;
 
 class DatagramChannelPacketValidationTest {

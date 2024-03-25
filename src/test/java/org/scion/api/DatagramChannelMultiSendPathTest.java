@@ -21,6 +21,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.DatagramChannel;
+import org.scion.Path;
+import org.scion.ScionService;
 import org.scion.testutil.PingPongHelper;
 
 /** Test receive()/send(Path) operations on DatagramChannel. */
@@ -36,14 +39,13 @@ class DatagramChannelMultiSendPathTest {
   void test() {
     PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
     PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 20, 50);
+    PingPongHelper pph = new PingPongHelper(1, 20, 50, false);
     pph.runPingPong(serverFn, clientFn);
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
     String message = PingPongHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-    channel.disconnect();
     channel.send(sendBuf, serverAddress);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");

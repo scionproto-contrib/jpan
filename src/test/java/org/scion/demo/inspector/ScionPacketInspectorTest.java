@@ -21,6 +21,8 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
+import org.scion.ScionUtil;
 import org.scion.testutil.ExamplePacket;
 
 public class ScionPacketInspectorTest {

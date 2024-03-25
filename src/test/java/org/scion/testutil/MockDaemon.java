@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
+import org.scion.Constants;
 import org.scion.proto.daemon.Daemon;
 import org.scion.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -83,6 +83,8 @@ public class MockDaemon implements AutoCloseable {
       DEFAULT.close();
       DEFAULT = null;
     }
+    System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
+    System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
   }
 
   private MockDaemon(InetSocketAddress address) {
