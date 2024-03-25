@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#30](https://github.com/netsec-ethz/scion-java-client/pull/30)
 - Cleaned up `MultiMap` utility class 
   [#34](https://github.com/netsec-ethz/scion-java-client/pull/34)
+- Cleaned up `DatagramChannel`: Fixed connect()/disconnect(), improved concurrency,
+  fixed buffer resizing wrt MTU, general clean up.
+  [#35](https://github.com/netsec-ethz/scion-java-client/pull/35)
 
 ### Fixed
 - Fixed: SCMP problem when pinging local AS.
