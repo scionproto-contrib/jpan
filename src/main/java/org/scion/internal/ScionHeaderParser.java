@@ -324,7 +324,8 @@ public class ScionHeaderParser {
       byte[] srcAddress,
       long dstIsdAs,
       byte[] dstAddress,
-      InternalConstants.HdrTypes hdrType) {
+      InternalConstants.HdrTypes hdrType,
+      int trafficClass) {
     int sl = srcAddress.length / 4 - 1;
     int dl = dstAddress.length / 4 - 1;
 
@@ -332,7 +333,7 @@ public class ScionHeaderParser {
     int i1 = 0;
     int i2 = 0;
     i0 = writeInt(i0, 0, 4, 0); // version = 0
-    i0 = writeInt(i0, 4, 8, 0); // TrafficClass = 0
+    i0 = writeInt(i0, 4, 8, trafficClass); // TrafficClass = 0
     i0 = writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
     i1 = writeInt(i1, 0, 8, hdrType.code); // NextHdr = 17 is for UDP OverlayHeader
