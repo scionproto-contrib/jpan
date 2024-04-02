@@ -207,7 +207,7 @@ public class ScionServiceTest {
     MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try {
       ScionService pathService = Scion.defaultService();
-      // TXT entry: "scion=64-2:0:9,129.132.230.98"
+      // TXT entry: "scion=64-2:0:9,129.x.x.x"
       ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
       assertNotNull(sAddr);
       assertEquals(1, sAddr.getIsd());
@@ -223,7 +223,7 @@ public class ScionServiceTest {
 
   @Test
   void getScionAddress_Failure_IpOnly() {
-    // TXT entry: "scion=64-2:0:9,129.132.230.98"
+    // TXT entry: "scion=64-2:0:9,129.x.x.x"
     Exception ex = assertThrows(ScionRuntimeException.class, Scion::defaultService);
     assertTrue(ex.getMessage().contains("DNS"), ex.getMessage());
   }

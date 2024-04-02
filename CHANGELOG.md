@@ -12,9 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#38](https://github.com/netsec-ethz/scion-java-client/pull/38)
 - Support for `/etc/scion/hosts` and for OS search domains (`/etc/resolv.conf`). 
   [#40](https://github.com/netsec-ethz/scion-java-client/pull/40)
-  
 TODO:
 - doc: domain search option and /etc/scion/hosts
+- test: /etc/scion/hosts
 - make proper tests for (missing) PROPERTY_USE_DNS_SEARCH_DOMAINS
 - Remove ethz.ch and similar from the code!
 

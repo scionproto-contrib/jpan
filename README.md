@@ -171,7 +171,6 @@ For proper testing it is recommended to use one of the following:
 In order to find a path to a destination IP, a `DatagramChannel` or `DatagramSocket` must know the 
 ISD/AS numbers of the destination.
 
-
 If the destination host has a DNS TXT entry for SCION then this be used to determine the 
 destination ISD/AS.
 Alternatively, the ISD/AS can be specified explicitly.
@@ -180,7 +179,7 @@ Alternatively, the ISD/AS can be specified explicitly.
 ```
 $ dig TXT ethz.ch
 ...
-ethz.ch.		610	IN	TXT	"scion=64-2:0:9,129.132.230.98"
+ethz.ch.		610	IN	TXT	"scion=64-2:0:9,129.x.x.x"
 ...
 ```
 
@@ -195,7 +194,7 @@ channel.connect(serverAddress);
 We can use the ISD/AS directly to request a path:
 ```
 long isdAs = ScionUtil.parseIA("64-2:0:9");
-InetSocketAddress serverAddress = new InetSocketAddress("129.132.19.216", 80);​
+InetSocketAddress serverAddress = new InetSocketAddress("129.x.x.x", 80);​
 Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
 channel.connect(path);
 ```

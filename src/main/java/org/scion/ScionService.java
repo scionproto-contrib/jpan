@@ -374,9 +374,6 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public long getIsdAs(String hostName) throws ScionException {
-    // $ dig +short TXT ethz.ch | grep "scion="
-    // "scion=64-2:0:9,129.132.230.98"
-
     // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName, DNS_TXT_KEY);
     if (txtFromProperties != null) {
@@ -409,9 +406,6 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public ScionAddress getScionAddress(String hostName) throws ScionException {
-    // $ dig +short TXT ethz.ch | grep "scion="
-    // "scion=64-2:0:9,129.132.230.98"
-
     // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName, DNS_TXT_KEY);
     if (txtFromProperties != null) {
@@ -479,7 +473,7 @@ public class ScionService {
   }
 
   private ScionAddress parseTxtRecord(String txtEntry, String hostName) throws ScionException {
-    // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
+    // dnsEntry example: "scion=64-2:0:9,129.x.x.x"
     int posComma = txtEntry.indexOf(',');
     if (posComma < 0) {
       throw new ScionException(ERR_INVALID_TXT + txtEntry);
@@ -493,7 +487,7 @@ public class ScionService {
   }
 
   private long parseTxtRecordToIA(String txtEntry) {
-    // dnsEntry example: "scion=64-2:0:9,129.132.230.98"
+    // dnsEntry example: "scion=64-2:0:9,129.x.x.x"
     int posComma = txtEntry.indexOf(',');
     if (posComma < 0) {
       throw new ScionRuntimeException(ERR_INVALID_TXT + txtEntry);
