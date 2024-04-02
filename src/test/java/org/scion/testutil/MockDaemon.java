@@ -40,7 +40,7 @@ public class MockDaemon implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
 
   public static final String DEFAULT_IP = "127.0.0.15";
-  public static final int DEFAULT_PORT = 30255;
+  public static final int DEFAULT_PORT = 22222; // 30255 in production
   public static final InetSocketAddress DEFAULT_ADDRESS =
       new InetSocketAddress(DEFAULT_IP, DEFAULT_PORT);
   public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
@@ -60,8 +60,7 @@ public class MockDaemon implements AutoCloseable {
   };
 
   private static void setEnvironment() {
-    System.setProperty(Constants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
-    System.setProperty(Constants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
+    System.setProperty(Constants.PROPERTY_DAEMON, DEFAULT_IP + ":" + DEFAULT_PORT);
   }
 
   public static MockDaemon createForBorderRouter(List<InetSocketAddress> borderRouter) {
@@ -83,8 +82,7 @@ public class MockDaemon implements AutoCloseable {
       DEFAULT.close();
       DEFAULT = null;
     }
-    System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-    System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
+    System.clearProperty(Constants.PROPERTY_DAEMON);
   }
 
   private MockDaemon(InetSocketAddress address) {
