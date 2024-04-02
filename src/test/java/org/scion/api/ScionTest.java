@@ -40,8 +40,7 @@ public class ScionTest {
 
   @BeforeAll
   public static void beforeAll() {
-    System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-    System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
+    System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
