@@ -167,7 +167,7 @@ public class ScionService {
           ENV_USE_DNS_SEARCH_DOMAINS,
           DEFAULT_USE_DNS_SEARCH_DOMAINS)) {
         String dnsResolver = DNSHelper.searchForDiscoveryService();
-        defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
+        return defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
       }
 
       // try daemon

@@ -16,9 +16,7 @@ package org.scion;
 
 import java.net.SocketOption;
 
-/**
- * A home for SCION (SN) channel/socket options.
- */
+/** A home for SCION (SN) channel/socket options. */
 public final class ScionSocketOptions {
 
   /**

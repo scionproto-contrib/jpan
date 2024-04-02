@@ -92,8 +92,6 @@ public class ScmpEchoDemo {
         }
       case PRODUCTION:
         {
-          System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
-          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "129.132.121.175:8041");
           // Port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
           demo.runDemo(DemoConstants.iaOVGU, serviceIP);
