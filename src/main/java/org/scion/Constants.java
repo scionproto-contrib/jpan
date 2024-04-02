@@ -40,8 +40,29 @@ public final class Constants {
   /** Paths are refreshed when their expiry is less than X seconds away. */
   public static final String ENV_PATH_EXPIRY_MARGIN = "SCION_PATH_EXPIRY_MARGIN";
 
+  /**
+   * Semicolon separated list of full paths of SCION hosts files. On Linux the default is
+   * "/etc/scion/hosts".
+   */
+  public static final String PROPERTY_HOSTS_FILES = "org.scion.hostsFiles";
+
+  /**
+   * Semicolon separated list of full paths of SCION hosts files. On Linux the default is
+   * "/etc/scion/hosts".
+   */
+  public static final String ENV_HOSTS_FILES = "SCION_HOSTS_FILES";
+
   /** Time (in seconds) before expiration at which a paths is automatically renewed. */
   public static final int DEFAULT_PATH_EXPIRY_MARGIN = 10;
+
+  /**
+   * Disable usage of OS search domains for DNS lookup, e.g from /etc/resolv.conf. This needs to be
+   * disabled for JUnit testing.
+   */
+  public static final String PROPERTY_USE_DNS_SEARCH_DOMAINS = "USE_OS_DNS_SEARCH_DOMAINS";
+
+  public static final String ENV_USE_DNS_SEARCH_DOMAINS = "org.scion.test.useOsDnsSearchDomains";
+  public static final boolean DEFAULT_USE_DNS_SEARCH_DOMAINS = true;
 
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two

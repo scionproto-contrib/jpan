@@ -15,14 +15,17 @@
 package org.scion;
 
 import static org.scion.Constants.DEFAULT_DAEMON;
+import static org.scion.Constants.DEFAULT_USE_DNS_SEARCH_DOMAINS;
 import static org.scion.Constants.ENV_BOOTSTRAP_HOST;
 import static org.scion.Constants.ENV_BOOTSTRAP_NAPTR_NAME;
 import static org.scion.Constants.ENV_BOOTSTRAP_TOPO_FILE;
 import static org.scion.Constants.ENV_DAEMON;
+import static org.scion.Constants.ENV_USE_DNS_SEARCH_DOMAINS;
 import static org.scion.Constants.PROPERTY_BOOTSTRAP_HOST;
 import static org.scion.Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME;
 import static org.scion.Constants.PROPERTY_BOOTSTRAP_TOPO_FILE;
 import static org.scion.Constants.PROPERTY_DAEMON;
+import static org.scion.Constants.PROPERTY_USE_DNS_SEARCH_DOMAINS;
 
 import io.grpc.*;
 import java.io.IOException;
@@ -34,6 +37,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.scion.internal.DNSHelper;
+import org.scion.internal.HostsFileParser;
 import org.scion.internal.ScionBootstrapper;
 import org.scion.internal.Segments;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -74,6 +78,7 @@ public class ScionService {
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
   private Thread shutdownHook;
   private final java.nio.channels.DatagramChannel[] ifDiscoveryChannel = {null};
+  private final HostsFileParser hostsFile = new HostsFileParser();
 
   protected enum Mode {
     DAEMON,
@@ -154,6 +159,15 @@ public class ScionService {
       if (naptrName != null) {
         defaultService = new ScionService(naptrName, Mode.BOOTSTRAP_VIA_DNS);
         return defaultService;
+      }
+
+      // TODO try local daemon before trying discovery service
+      if (ScionUtil.getPropertyOrEnv(
+          PROPERTY_USE_DNS_SEARCH_DOMAINS,
+          ENV_USE_DNS_SEARCH_DOMAINS,
+          DEFAULT_USE_DNS_SEARCH_DOMAINS)) {
+        String dnsResolver = DNSHelper.searchForDiscoveryService();
+        defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
       }
 
       // try daemon
@@ -281,6 +295,12 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
+    if (dstAddress.getHostName() != null) {
+      ScionAddress address = getScionAddress(dstAddress.getHostName());
+      address.getInetAddress();
+      // TODO use result & cache result
+    }
+
     long dstIsdAs = getIsdAs(dstAddress.getHostString());
     return getPaths(dstIsdAs, dstAddress);
   }
@@ -361,6 +381,12 @@ public class ScionService {
     String txtFromProperties = findTxtRecordInProperties(hostName, DNS_TXT_KEY);
     if (txtFromProperties != null) {
       return parseTxtRecordToIA(txtFromProperties);
+    }
+
+    // Check /etc/scion/hosts
+    HostsFileParser.HostEntry entry = hostsFile.find(hostName);
+    if (entry != null) {
+      return entry.getIsdAs();
     }
 
     // Use local ISD/AS for localhost addresses

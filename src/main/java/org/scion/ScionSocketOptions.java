@@ -16,12 +16,15 @@ package org.scion;
 
 import java.net.SocketOption;
 
+/**
+ * A home for SCION (SN) channel/socket options.
+ */
 public final class ScionSocketOptions {
 
   /**
    * If set to 'true', the Scion header parser will throw errors when encountering problems while
    * parsing a packet header. If set to 'false', problematic packets are silently dropped. Default
-   * is 'false'
+   * is 'false'.
    */
   public static final SocketOption<Boolean> SN_API_THROW_PARSER_FAILURE =
       new SciSocketOption<>("SN_API_THROW_PARSER_FAILURE", Boolean.class);
@@ -32,7 +35,7 @@ public final class ScionSocketOptions {
    * will be set to the first byte of the payload. This has two advantages: the payload does not
    * need to be copied (saving one copy operation) and the Scion packet header is directly available
    * to the user. If set to 'false', the receive() and read() operations will copy the payload to
-   * the ByteBuffer provided by the user. Default is 'false'
+   * the ByteBuffer provided by the user. Default is 'false'.
    */
   @Deprecated // TODO implement
   public static final SocketOption<Boolean> SN_API_WRITE_TO_USER_BUFFER =

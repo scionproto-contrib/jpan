@@ -59,8 +59,21 @@ public class DNSUtil {
           new NAPTRRecord(
               name, DClass.IN, 5000, 1, 1, naptrFlag, "x-sciondiscovery:tcp", "", replacement);
       c.addRecord(nr2, 10);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
-      Lookup.setDefaultCache(c, DClass.IN);
+  public static void installScionTXT(String asHost, String isdAs, String ipAddress) {
+    installTXT(asHost, "\"scion=" + isdAs + "," + ipAddress + "\"");
+  }
+
+  public static void installTXT(String asHost, String entry) {
+    try {
+      Name name = Name.fromString(asHost + "."); // "inf.ethz.ch.";
+      Cache c = Lookup.getDefaultCache(DClass.IN);
+      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, entry);
+      c.addRecord(txt, 10);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

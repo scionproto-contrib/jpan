@@ -20,12 +20,17 @@ import org.scion.ScionRuntimeException;
 import org.xbill.DNS.AAAARecord;
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.Lookup;
+import org.xbill.DNS.NAPTRRecord;
+import org.xbill.DNS.Name;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.TXTRecord;
 import org.xbill.DNS.TextParseException;
 import org.xbill.DNS.Type;
 
 public class DNSHelper {
+
+  private static final String STR_X_SCION = "x-sciondiscovery";
+  private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
 
   public static String queryTXT(String hostName, String key) {
     try {
@@ -73,5 +78,59 @@ public class DNSHelper {
       return ar.getAddress();
     }
     return null;
+  }
+
+  public static String searchForDiscoveryService() {
+    try {
+      for (Name n : Lookup.getDefaultSearchPath()) {
+        String a = getScionDiscoveryAddress(n.toString());
+        System.out.println("SP: " + n + " -> " + a);
+        if (a != null) {
+          return a;
+        }
+      }
+      return null;
+    } catch (IOException e) {
+      throw new ScionRuntimeException("Error looking up NAPTR records from OS DNS search paths", e);
+    }
+  }
+
+  public static String getScionDiscoveryAddress(String hostName) throws IOException {
+    Record[] records = new Lookup(hostName, Type.NAPTR).run();
+    if (records == null) {
+      return null;
+    }
+
+    for (int i = 0; i < records.length; i++) {
+      NAPTRRecord nr = (NAPTRRecord) records[i];
+      String naptrService = nr.getService();
+      if (STR_X_SCION_TCP.equals(naptrService)) {
+        String host = nr.getReplacement().toString();
+        String naptrFlag = nr.getFlags();
+        int port = getScionDiscoveryPort(hostName);
+        if ("A".equals(naptrFlag)) {
+          InetAddress addr = DNSHelper.queryA(host);
+          return addr.getHostAddress() + ":" + port;
+        }
+        if ("AAAA".equals(naptrFlag)) {
+          InetAddress addr = DNSHelper.queryAAAA(host);
+          return "[" + addr.getHostAddress() + "]:" + port;
+        } // keep going and collect more hints
+      }
+    }
+    return null;
+  }
+
+  private static int getScionDiscoveryPort(String hostName) {
+    String txtEntry = DNSHelper.queryTXT(hostName, STR_X_SCION);
+    if (txtEntry == null) {
+      throw new ScionRuntimeException(
+          "Could not find bootstrap TXT port record for host: " + hostName);
+    }
+    int port = Integer.parseInt(txtEntry);
+    if (port < 0 || port > 65536) {
+      throw new ScionRuntimeException("Error parsing TXT entry: " + txtEntry);
+    }
+    return port;
   }
 }

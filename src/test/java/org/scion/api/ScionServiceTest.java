@@ -19,11 +19,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
+import org.scion.internal.DNSHelper;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockNetwork;
 import org.scion.testutil.MockTopologyServer;
@@ -43,6 +48,7 @@ public class ScionServiceTest {
 
   @BeforeEach
   public void beforeEach() {
+    ScionService.closeDefault();
     // reset counter
     MockDaemon.getAndResetCallCount();
   }
@@ -267,5 +273,51 @@ public class ScionServiceTest {
     } finally {
       MockDaemon.closeDefault();
     }
+  }
+
+  @Test
+  void getIsdAs_etcHostsFile() throws IOException, URISyntaxException {
+    URL resource = getClass().getClassLoader().getResource("etc-scion-hosts");
+    java.nio.file.Path file = Paths.get(resource.toURI());
+    System.setProperty(Constants.PROPERTY_HOSTS_FILES, file.toString());
+    MockDaemon.createAndStartDefault();
+    try {
+      ScionService service = Scion.defaultService();
+      // line 1
+      long ia1 = service.getIsdAs("test-server");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:111"), ia1);
+      long ia1IP = service.getIsdAs("42.0.0.11");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:111"), ia1IP);
+
+      // line 2
+      long ia2a = service.getIsdAs("test-server-1");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia2a);
+      long ia2b = service.getIsdAs("test-server-2");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia2b);
+      long ia2IP = service.getIsdAs("42.0.0.12");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia2IP);
+
+      // line 3
+      long ia3 = service.getIsdAs("test-server-ipv6");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:113"), ia3);
+      long ia3IP = service.getIsdAs("::42");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:113"), ia3IP);
+
+      // Should all fail for various reasons, but ensure that these domains
+      // did not get registered despite being in the hosts file:
+      assertThrows(IOException.class, () -> service.getIsdAs("hello"));
+      assertThrows(IOException.class, () -> service.getIsdAs("42.0.0.10"));
+      assertThrows(Exception.class, () -> service.getIsdAs(""));
+    } finally {
+      MockDaemon.closeDefault();
+      System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
+    }
+  }
+
+  // TODO test properly
+  @Disabled
+  @Test
+  void x() throws IOException {
+    DNSHelper.searchForDiscoveryService();
   }
 }
