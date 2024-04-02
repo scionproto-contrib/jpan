@@ -108,7 +108,6 @@
 - Multipathing: We probably ignore that for now. Multipathing can be done in
   many different ways, it may be difficult to design a one-size-fits-all API.
   E.g. "Hercules" uses a round-robin fashion with multiple path to fire UDP packets. 
-- MulticastSocket / MulticastChannel (?)
 
 - For Android look into
   - android.net.Network: 

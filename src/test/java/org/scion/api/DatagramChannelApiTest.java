@@ -605,7 +605,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void setOption() throws IOException {
+  void setOption_SCION() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.getOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE));
       DatagramChannel dc = channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
@@ -618,6 +618,14 @@ class DatagramChannelApiTest {
       int tc = channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
       channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, tc + 1);
       assertEquals(tc + 1, channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS));
+
+      channel.close();
+      assertThrows(
+          ClosedChannelException.class,
+          () -> channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
+      assertThrows(
+          ClosedChannelException.class,
+          () -> channel.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, 11));
     }
   }
 
@@ -648,6 +656,34 @@ class DatagramChannelApiTest {
             return 0;
           });
       channel.send(buf, dummyAddress);
+    }
+  }
+
+  @Test
+  void setOption_Standard() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      DatagramChannel ds = channel.setOption(StandardSocketOptions.SO_RCVBUF, 10000);
+      assertEquals(channel, ds);
+      assertEquals(10000, channel.getOption(StandardSocketOptions.SO_RCVBUF));
+
+      channel.setOption(StandardSocketOptions.SO_SNDBUF, 10000);
+      assertEquals(10000, channel.getOption(StandardSocketOptions.SO_SNDBUF));
+
+      channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+      assertTrue(channel.getOption(StandardSocketOptions.SO_REUSEADDR));
+
+      channel.setOption(StandardSocketOptions.IP_TOS, 5);
+      assertEquals(5, channel.getOption(StandardSocketOptions.IP_TOS));
+
+      assertThrows(
+          UnsupportedOperationException.class,
+          () -> channel.getOption(StandardSocketOptions.SO_BROADCAST));
+      channel.close();
+      assertThrows(
+          ClosedChannelException.class, () -> channel.getOption(StandardSocketOptions.SO_RCVBUF));
+      assertThrows(
+          ClosedChannelException.class,
+          () -> channel.setOption(StandardSocketOptions.SO_RCVBUF, 10000));
     }
   }
 }
