@@ -57,7 +57,6 @@ class DemoTopology {
   }
 
   private static void configurePathService(String address, int port) {
-    System.setProperty(Constants.PROPERTY_DAEMON_HOST, address);
-    System.setProperty(Constants.PROPERTY_DAEMON_PORT, String.valueOf(port));
+    System.setProperty(Constants.PROPERTY_DAEMON, address + ":" + port);
   }
 }

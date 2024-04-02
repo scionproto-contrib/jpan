@@ -40,8 +40,7 @@ public class ScionTest {
 
   @BeforeAll
   public static void beforeAll() {
-    System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-    System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
+    System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
@@ -66,8 +65,7 @@ public class ScionTest {
 
   @AfterEach
   public void afterEach() throws IOException {
-    System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-    System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
+    System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
@@ -81,8 +79,7 @@ public class ScionTest {
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
     MockDaemon.createAndStartDefault();
-    System.setProperty(Constants.PROPERTY_DAEMON_HOST, "[::1]");
-    System.setProperty(Constants.PROPERTY_DAEMON_PORT, String.valueOf(DEFAULT_PORT));
+    System.setProperty(Constants.PROPERTY_DAEMON, "[::1]:" + DEFAULT_PORT);
     try {
       ScionService service = Scion.defaultService();
       RequestPath path = service.getPaths(dstIA, dstAddress).get(0);

@@ -60,8 +60,7 @@ public class MockDaemon implements AutoCloseable {
   };
 
   private static void setEnvironment() {
-    System.setProperty(Constants.PROPERTY_DAEMON_HOST, DEFAULT_IP);
-    System.setProperty(Constants.PROPERTY_DAEMON_PORT, "" + DEFAULT_PORT);
+    System.setProperty(Constants.PROPERTY_DAEMON, DEFAULT_IP + ":" + DEFAULT_PORT);
   }
 
   public static MockDaemon createForBorderRouter(List<InetSocketAddress> borderRouter) {
@@ -83,8 +82,7 @@ public class MockDaemon implements AutoCloseable {
       DEFAULT.close();
       DEFAULT = null;
     }
-    System.clearProperty(Constants.PROPERTY_DAEMON_HOST);
-    System.clearProperty(Constants.PROPERTY_DAEMON_PORT);
+    System.clearProperty(Constants.PROPERTY_DAEMON);
   }
 
   private MockDaemon(InetSocketAddress address) {
