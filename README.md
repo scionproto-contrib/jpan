@@ -221,6 +221,15 @@ Options are defined in `ScionSocketOptions`, see javadoc for details.
 | `SN_API_WRITE_TO_USER_BUFFER`    | `false` | Throw exception when receiving an invalid packet          | 
 | `SN_PATH_EXPIRY_MARGIN` | `2`     | A new path is requested if `now + margin > pathExpirationDate` | 
 
+The following standard options are **not** supported:
+
+| Option                         | 
+|--------------------------------|
+| `StandardSocketOptions.SO_BROADCAST` | 
+| `StandardSocketOptions.IP_MULTICAST_IF` |
+| `StandardSocketOptions.IP_MULTICAST_TTL` |
+| `StandardSocketOptions.IP_MULTICAST_LOOP` |
+
 ## Performance pitfalls
 
 - **Using `SocketAddress` for `send()`**. `send(buffer, socketAddress)` is a convenience function. However, when sending 
@@ -248,8 +257,8 @@ attempt to get network information in the following order until it succeeds:
 - Check for DNS NAPTR record (if record entry name is given)
 - Check for to daemon
 
-The reason that the daemon is checked last is that it has a default setting (localhost:30255) while
-the other options are skipped if no property or environment variable is defined. 
+The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
+while the other options are skipped if no property or environment variable is defined. 
 
 | Option                              | Java property                    | Environment variable         | Default value |
 |-------------------------------------|----------------------------------|------------------------------|---------------|

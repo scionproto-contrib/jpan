@@ -390,6 +390,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   @SuppressWarnings({"unchecked", "deprecation"})
   public <T> T getOption(SocketOption<T> option) throws IOException {
+    checkOpen();
     synchronized (stateLock) {
       if (option instanceof ScionSocketOptions.SciSocketOption) {
         if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
@@ -402,12 +403,17 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           throw new UnsupportedOperationException();
         }
       }
+
+      if (StandardSocketOptions.SO_BROADCAST.equals(option)) {
+        throw new UnsupportedOperationException();
+      }
       return channel.getOption(option);
     }
   }
 
   @SuppressWarnings({"unchecked", "deprecation"})
   public <T> C setOption(SocketOption<T> option, T t) throws IOException {
+    checkOpen();
     synchronized (stateLock) {
       if (option instanceof ScionSocketOptions.SciSocketOption) {
         if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
@@ -424,6 +430,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           throw new UnsupportedOperationException();
         }
       } else {
+        if (StandardSocketOptions.SO_BROADCAST.equals(option)) {
+          throw new UnsupportedOperationException();
+        }
         channel.setOption(option, t);
       }
       return (C) this;
