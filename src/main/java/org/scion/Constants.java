@@ -15,12 +15,9 @@
 package org.scion;
 
 public final class Constants {
-  public static final String PROPERTY_DAEMON_HOST = "org.scion.daemon.host";
-  public static final String ENV_DAEMON_HOST = "SCION_DAEMON_HOST";
-  public static final String DEFAULT_DAEMON_HOST = "localhost";
-  public static final String PROPERTY_DAEMON_PORT = "org.scion.daemon.port";
-  public static final String ENV_DAEMON_PORT = "SCION_DAEMON_PORT";
-  public static final String DEFAULT_DAEMON_PORT = "30255";
+  public static final String PROPERTY_DAEMON = "org.scion.daemon";
+  public static final String ENV_DAEMON = "SCION_DAEMON";
+  public static final String DEFAULT_DAEMON = "localhost:30255";
 
   /** Address of bootstrap server (http), e.g. 192.168.42.42 */
   public static final String PROPERTY_BOOTSTRAP_HOST = "org.scion.bootstrap.host";
