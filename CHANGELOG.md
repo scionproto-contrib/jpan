@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Code coverage. [#11](https://github.com/tzaeschke/phtree-cpp/pull/11)
+- Global JUnit callback for initial setup. THis allows setting global properties before cantrally
+  before running any tests.
+  [#38](https://github.com/netsec-ethz/scion-java-client/pull/38)
+ 
   
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
