@@ -17,7 +17,6 @@ package org.scion.testutil;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.scion.Constants;
 import org.scion.Scion;
 
 public class JUnitSetUp
