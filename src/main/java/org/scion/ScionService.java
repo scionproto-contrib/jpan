@@ -14,18 +14,15 @@
 
 package org.scion;
 
-import static org.scion.Constants.DEFAULT_DAEMON_HOST;
-import static org.scion.Constants.DEFAULT_DAEMON_PORT;
+import static org.scion.Constants.DEFAULT_DAEMON;
 import static org.scion.Constants.ENV_BOOTSTRAP_HOST;
 import static org.scion.Constants.ENV_BOOTSTRAP_NAPTR_NAME;
 import static org.scion.Constants.ENV_BOOTSTRAP_TOPO_FILE;
-import static org.scion.Constants.ENV_DAEMON_HOST;
-import static org.scion.Constants.ENV_DAEMON_PORT;
+import static org.scion.Constants.ENV_DAEMON;
 import static org.scion.Constants.PROPERTY_BOOTSTRAP_HOST;
 import static org.scion.Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME;
 import static org.scion.Constants.PROPERTY_BOOTSTRAP_TOPO_FILE;
-import static org.scion.Constants.PROPERTY_DAEMON_HOST;
-import static org.scion.Constants.PROPERTY_DAEMON_PORT;
+import static org.scion.Constants.PROPERTY_DAEMON;
 
 import io.grpc.*;
 import java.io.IOException;
@@ -160,12 +157,9 @@ public class ScionService {
       }
 
       // try daemon
-      String daemonHost =
-          ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_HOST, ENV_DAEMON_HOST, DEFAULT_DAEMON_HOST);
-      String daemonPort =
-          ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON_PORT, ENV_DAEMON_PORT, DEFAULT_DAEMON_PORT);
+      String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
       try {
-        defaultService = new ScionService(daemonHost + ":" + daemonPort, Mode.DAEMON);
+        defaultService = new ScionService(daemon, Mode.DAEMON);
         return defaultService;
       } catch (ScionRuntimeException e) {
         throw new ScionRuntimeException(

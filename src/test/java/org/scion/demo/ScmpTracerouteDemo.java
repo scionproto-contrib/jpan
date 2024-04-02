@@ -59,10 +59,7 @@ public class ScmpTracerouteDemo {
         {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/scionproto-tiny-110.json");
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_HOST, toHost(DemoConstants.daemon1111_minimal));
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_PORT, toPort(DemoConstants.daemon1111_minimal));
+          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia110);
           break;
@@ -71,10 +68,7 @@ public class ScmpTracerouteDemo {
         {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/minimal/ASff00_0_1111/topology.json");
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_HOST, toHost(DemoConstants.daemon1111_minimal));
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_PORT, toPort(DemoConstants.daemon1111_minimal));
+          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia211);
           break;

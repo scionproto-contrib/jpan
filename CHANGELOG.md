@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#33](https://github.com/netsec-ethz/scion-java-client/pull/33)
 - Fixed traffic class not set. [#36](https://github.com/netsec-ethz/scion-java-client/pull/36)
 - Fixed handling of channel options. [#37](https://github.com/netsec-ethz/scion-java-client/pull/37)
+- Merged SCION_DAEMON_HOST and SCION_DAEMON_PORT into a single SCION_DAEMON property.
+  [#39](https://github.com/netsec-ethz/scion-java-client/pull/39)
 
 ### Removed
 
