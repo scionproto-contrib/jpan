@@ -163,25 +163,27 @@ public class ScionService {
         return defaultService;
       }
 
-      // TODO try local daemon before trying discovery service
-      if (ScionUtil.getPropertyOrEnv(
-          PROPERTY_USE_OS_SEARCH_DOMAINS,
-          ENV_USE_OS_SEARCH_DOMAINS,
-          DEFAULT_USE_OS_SEARCH_DOMAINS)) {
-        String dnsResolver = DNSHelper.searchForDiscoveryService();
-        defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
-        return defaultService;
-      }
-
       // try daemon
       String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
       try {
         defaultService = new ScionService(daemon, Mode.DAEMON);
         return defaultService;
       } catch (ScionRuntimeException e) {
-        throw new ScionRuntimeException(
-            "Could not connect to daemon, DNS or bootstrap resource.", e);
+        LOG.info(e.getMessage());
+        // Ignore!
       }
+
+      // try normal network
+      if (ScionUtil.getPropertyOrEnv(
+              PROPERTY_USE_OS_SEARCH_DOMAINS,
+              ENV_USE_OS_SEARCH_DOMAINS,
+              DEFAULT_USE_OS_SEARCH_DOMAINS)) {
+        String dnsResolver = DNSHelper.searchForDiscoveryService();
+        defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
+        return defaultService;
+      }
+      throw new ScionRuntimeException(
+              "Could not connect to daemon, DNS or bootstrap resource.");
     }
   }
 

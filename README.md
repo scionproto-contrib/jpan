@@ -261,8 +261,8 @@ attempt to get network information in the following order until it succeeds:
 - For debugging: Check for local topology file (if file name is given)
 - For debugging: Check for bootstrap server address (if address is given)
 - For debugging: Check for DNS NAPTR record (if record entry name is given)
-- Check search domain (as given in /etc/resolv.conf) for topology server 
 - Check for to daemon
+- Check search domain (as given in /etc/resolv.conf) for topology server
 
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
