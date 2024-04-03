@@ -163,9 +163,9 @@ public class ScionService {
 
       // TODO try local daemon before trying discovery service
       if (ScionUtil.getPropertyOrEnv(
-              PROPERTY_USE_OS_SEARCH_DOMAINS,
-              ENV_USE_OS_SEARCH_DOMAINS,
-              DEFAULT_USE_OS_SEARCH_DOMAINS)) {
+          PROPERTY_USE_OS_SEARCH_DOMAINS,
+          ENV_USE_OS_SEARCH_DOMAINS,
+          DEFAULT_USE_OS_SEARCH_DOMAINS)) {
         String dnsResolver = DNSHelper.searchForDiscoveryService();
         defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
         return defaultService;

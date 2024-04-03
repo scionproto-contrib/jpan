@@ -317,12 +317,28 @@ public class ScionServiceTest {
   }
 
   @Test
-  void testDomainSearchResolver_notFound() throws IOException {
+  void testDomainSearchResolver_invalidHost() throws IOException {
     try {
       String searchHost = "hello.there.com";
       Name n = Name.fromString(searchHost);
       Lookup.setDefaultSearchPath(n);
       // Topology server cannot be found
+      assertNull(DNSHelper.searchForDiscoveryService());
+      Throwable t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
+      assertTrue(
+          t.getMessage().contains("Could not connect to daemon, DNS or bootstrap resource."));
+    } finally {
+      Lookup.setDefaultSearchPath(Collections.emptyList());
+    }
+  }
+
+  @Test
+  void testDomainSearchResolver_nonScionHost() throws IOException {
+    try {
+      String searchHost = "localhost"; // "google.com";
+      Name n = Name.fromString(searchHost);
+      Lookup.setDefaultSearchPath(n);
+      // Topology server is not SCION enabled
       assertNull(DNSHelper.searchForDiscoveryService());
       Throwable t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(
