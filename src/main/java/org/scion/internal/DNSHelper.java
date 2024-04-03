@@ -84,7 +84,6 @@ public class DNSHelper {
     try {
       for (Name n : Lookup.getDefaultSearchPath()) {
         String a = getScionDiscoveryAddress(n.toString());
-        System.out.println("SP: " + n + " -> " + a);
         if (a != null) {
           return a;
         }

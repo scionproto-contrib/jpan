@@ -22,16 +22,18 @@ import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.internal.DNSHelper;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockNetwork;
 import org.scion.testutil.MockTopologyServer;
+import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Name;
 
 public class ScionServiceTest {
 
@@ -314,10 +316,37 @@ public class ScionServiceTest {
     }
   }
 
-  // TODO test properly
-  @Disabled
   @Test
-  void x() throws IOException {
-    DNSHelper.searchForDiscoveryService();
+  void testDomainSearchResolver_notFound() throws IOException {
+    try {
+      String searchHost = "hello.there.com";
+      Name n = Name.fromString(searchHost);
+      Lookup.setDefaultSearchPath(n);
+      // Topology server cannot be found
+      assertNull(DNSHelper.searchForDiscoveryService());
+      Throwable t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
+      assertTrue(
+          t.getMessage().contains("Could not connect to daemon, DNS or bootstrap resource."));
+    } finally {
+      Lookup.setDefaultSearchPath(Collections.emptyList());
+    }
+  }
+
+  @Test
+  void testDomainSearchResolver() throws IOException {
+    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
+    try {
+      String searchHost = MockTopologyServer.TOPO_HOST;
+      // Change to use custom search domain
+      Lookup.setDefaultSearchPath(Name.fromString(searchHost));
+      // Lookup topology server
+      String address = MockNetwork.getTopoServer().getAddress().toString();
+      assertEquals(address.substring(1), DNSHelper.searchForDiscoveryService());
+      ScionService service = Scion.defaultService();
+      assertEquals(MockNetwork.getTopoServer().getLocalIsdAs(), service.getLocalIsdAs());
+    } finally {
+      Lookup.setDefaultSearchPath(Collections.emptyList());
+      MockNetwork.stopTiny();
+    }
   }
 }
