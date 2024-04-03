@@ -28,7 +28,7 @@ public class JUnitSetUp
   public void beforeAll(ExtensionContext context) {
     if (!started) {
       started = true;
-      System.setProperty(Constants.PROPERTY_USE_DNS_SEARCH_DOMAINS, "false");
+      System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
       context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put("SCION JUnit global", this);
     }
   }

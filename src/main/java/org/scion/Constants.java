@@ -59,10 +59,10 @@ public final class Constants {
    * Disable usage of OS search domains for DNS lookup, e.g from /etc/resolv.conf. This needs to be
    * disabled for JUnit testing.
    */
-  public static final String PROPERTY_USE_DNS_SEARCH_DOMAINS = "USE_OS_DNS_SEARCH_DOMAINS";
+  public static final String PROPERTY_USE_OS_SEARCH_DOMAINS = "SCION_USE_OS_SEARCH_DOMAINS";
 
-  public static final String ENV_USE_DNS_SEARCH_DOMAINS = "org.scion.test.useOsDnsSearchDomains";
-  public static final boolean DEFAULT_USE_DNS_SEARCH_DOMAINS = true;
+  public static final String ENV_USE_OS_SEARCH_DOMAINS = "org.scion.test.useOsSearchDomains";
+  public static final boolean DEFAULT_USE_OS_SEARCH_DOMAINS = true;
 
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
