@@ -197,6 +197,10 @@ public class MockTopologyServer implements Closeable {
     return e;
   }
 
+  public long getLocalIsdAs() {
+    return localIsdAs;
+  }
+
   private class TopologyServerImpl implements Runnable {
     private final String topologyFile;
 

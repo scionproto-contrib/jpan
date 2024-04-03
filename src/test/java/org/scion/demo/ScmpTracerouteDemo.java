@@ -44,7 +44,7 @@ public class ScmpTracerouteDemo {
 
   private static final Network network = Network.PRODUCTION;
 
-  public static void main(String[] args) throws IOException, InterruptedException {
+  public static void main(String[] args) throws IOException {
     switch (network) {
       case MOCK_TOPOLOGY:
         {
@@ -75,9 +75,7 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
-          System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
-          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "129.132.121.175:8041");
-          // Port must be 30041 for networks that expect a dispatcher
+          // Local port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
           demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
@@ -118,15 +116,5 @@ public class ScmpTracerouteDemo {
     if (PRINT) {
       System.out.println(msg);
     }
-  }
-
-  private static String toHost(String addrString) {
-    int posColon = addrString.indexOf(':');
-    return addrString.substring(0, posColon);
-  }
-
-  private static String toPort(String addrString) {
-    int posColon = addrString.indexOf(':');
-    return addrString.substring(posColon + 1);
   }
 }

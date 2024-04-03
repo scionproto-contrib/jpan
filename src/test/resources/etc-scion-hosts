@@ -1,0 +1,14 @@
+# /etc/scion/hosts test file
+1-ff00:0:111,[42.0.0.11] test-server
+1-ff00:0:112,[42.0.0.12] test-server-1 test-server-2
+1-ff00:0:113,[::42] test-server-ipv6
+
+# And some wrong lines
+1-ff00:0:114;[42.0.0.10] test-server
+1-ff00:0:114,[42.0.0.10]
+1-ff00:0:114,42.0.0.10] test-server
+1-ff00:0:114,[42.0.0.10 test-server
+ff00:0:114,[42.0.0.10] test-server
+1-ff00:0:114,[hello] test-server
+1-ff00:0:114,[] test-server
+hello,[hello] hello

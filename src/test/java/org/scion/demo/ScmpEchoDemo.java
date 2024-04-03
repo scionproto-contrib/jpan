@@ -27,12 +27,10 @@ public class ScmpEchoDemo {
   private static final boolean PRINT = true;
   private final int localPort;
   private static final InetSocketAddress serviceIP;
-  private static final InetSocketAddress ethzIP;
 
   static {
     try {
       serviceIP = new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
-      ethzIP = new InetSocketAddress(Inet4Address.getByName("129.132.230.98"), 30041);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
@@ -55,7 +53,7 @@ public class ScmpEchoDemo {
 
   private static final Network network = Network.PRODUCTION;
 
-  public static void main(String[] args) throws IOException, InterruptedException {
+  public static void main(String[] args) throws IOException {
     switch (network) {
       case MOCK_TOPOLOGY:
         {
@@ -80,10 +78,7 @@ public class ScmpEchoDemo {
           System.setProperty(
               Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
               "topologies/minimal/ASff00_0_1111/topology.json");
-          // System.setProperty(Constants.PROPERTY_DAEMON_HOST,
-          // toHost(DemoConstants.daemon1111_minimal));
-          // System.setProperty(Constants.PROPERTY_DAEMON_PORT,
-          // toPort(DemoConstants.daemon1111_minimal));
+          // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
           demo.runDemo(DemoConstants.ia211, serviceIP);
           // demo.runDemo(DemoConstants.ia111, toAddr(DemoConstants.daemon111_minimal));
@@ -92,12 +87,11 @@ public class ScmpEchoDemo {
         }
       case PRODUCTION:
         {
-          System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
-          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "129.132.121.175:8041");
-          // Port must be 30041 for networks that expect a dispatcher
+          // Local port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(30041);
-          demo.runDemo(DemoConstants.iaOVGU, serviceIP);
-          // demo.runDemo(DemoConstants.iaETH, ethzIP);
+          // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
+          InetAddress ethzIP = Scion.defaultService().getScionAddress("ethz.ch").getInetAddress();
+          demo.runDemo(DemoConstants.iaETH, new InetSocketAddress(ethzIP, 30041));
           // demo.runDemo(DemoConstants.iaGEANT, serviceIP);
           break;
         }
@@ -163,15 +157,5 @@ public class ScmpEchoDemo {
     int posColon = addrString.indexOf(':');
     InetAddress addr = InetAddress.getByName(addrString.substring(0, posColon));
     return new InetSocketAddress(addr, 30041);
-  }
-
-  private static String toHost(String addrString) {
-    int posColon = addrString.indexOf(':');
-    return addrString.substring(0, posColon);
-  }
-
-  private static String toPort(String addrString) {
-    int posColon = addrString.indexOf(':');
-    return addrString.substring(posColon + 1);
   }
 }

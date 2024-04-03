@@ -32,7 +32,7 @@
         <scion.maven-plugin-plugin.version>3.8.2</scion.maven-plugin-plugin.version>
         <scion.maven-resources-plugin.version>3.3.1</scion.maven-resources-plugin.version>
         <scion.maven-source-plugin.version>3.2.1</scion.maven-source-plugin.version>
-        <scion.maven-surefire-plugin.version>3.0.0</scion.maven-surefire-plugin.version>
+        <scion.maven-surefire-plugin.version>3.1.2</scion.maven-surefire-plugin.version>
         <scion.nexus-staging-maven-plugin.version>1.6.13</scion.nexus-staging-maven-plugin.version>
     </properties>
 
@@ -101,7 +101,7 @@
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>junit-jupiter-engine</artifactId>
             <version>${scion.junit.version}</version>
             <scope>test</scope>
         </dependency>
@@ -281,7 +281,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>${scion.maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

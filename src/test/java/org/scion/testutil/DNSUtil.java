@@ -22,25 +22,16 @@ import org.xbill.DNS.*;
 public class DNSUtil {
 
   public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort) {
+    installNAPTR(asHost, topoAddr, "x-sciondiscovery=" + topoPort, "x-sciondiscovery:tcp");
+  }
 
-    // NAPTR:
-    // flags=A
-    // service=x-sciondiscovery:tcp
-    // regExp=
-    // order=1
-    // pref=1
-    // repl=netsec-w37w3w.inf.ethz.ch.
-    // addName=netsec-w37w3w.inf.ethz.ch.
-    // dClass=1
-    // name=inf.ethz.ch.
-    // ttl=2533
-
+  public static void installNAPTR(String asHost, byte[] topoAddr, String txtStr, String naptrKey) {
     try {
-      Name name = Name.fromString(asHost + "."); // "iinf.ethz.ch.";
-      Name replacement = new Name("topohost.x.y."); // "netsec-w37w3w.inf.ethz.ch."
+      Name name = Name.fromString(asHost + ".");
+      Name replacement = new Name("topohost.x.y.");
 
       Cache c = Lookup.getDefaultCache(DClass.IN);
-      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, "x-sciondiscovery=" + topoPort);
+      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, txtStr);
       c.addRecord(txt, 10);
 
       InetAddress addr = InetAddress.getByAddress(topoAddr);
@@ -56,11 +47,23 @@ public class DNSUtil {
       }
 
       NAPTRRecord nr2 =
-          new NAPTRRecord(
-              name, DClass.IN, 5000, 1, 1, naptrFlag, "x-sciondiscovery:tcp", "", replacement);
+          new NAPTRRecord(name, DClass.IN, 5000, 1, 1, naptrFlag, naptrKey, "", replacement);
       c.addRecord(nr2, 10);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
-      Lookup.setDefaultCache(c, DClass.IN);
+  public static void installScionTXT(String asHost, String isdAs, String ipAddress) {
+    installTXT(asHost, "\"scion=" + isdAs + "," + ipAddress + "\"");
+  }
+
+  public static void installTXT(String asHost, String entry) {
+    try {
+      Name name = Name.fromString(asHost + "."); // "inf.ethz.ch.";
+      Cache c = Lookup.getDefaultCache(DClass.IN);
+      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, entry);
+      c.addRecord(txt, 10);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

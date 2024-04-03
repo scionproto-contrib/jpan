@@ -164,7 +164,10 @@ public class Segments {
     Seg.SegmentsRequest request =
         Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
     try {
+      long t0 = System.nanoTime();
       Seg.SegmentsResponse response = segmentStub.segments(request);
+      long t1 = System.nanoTime();
+      LOG.info("CS request took {} ms.", (t1 - t0) / 1_000_000);
       if (response.getSegmentsMap().size() > 1) {
         // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();

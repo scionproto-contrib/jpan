@@ -24,7 +24,6 @@ The following artifact contains the complete SCION Java client:
 - `DatagramSocket` and `DatagramPacket`
 - `Selector` for `DatagramChannel`
 - Path creation with short-cuts, on-path and peering routes
-- `/etc/scion/hosts` and `/etc/hosts`, see https://github.com/netsec-ethz/scion-apps
 - Improve docs, demos and testing
 - EPIC, path authentication and other SCION features
 - TCP
@@ -80,10 +79,11 @@ Supported:
 - Path selection policies
 - Path expiry/refresh
 - Packet validation
-- DNS/TXT scion entry lookup
+- SCION address lookup via DNS/TXT entry or `/etc/scion/hosts` 
+  (see https://github.com/netsec-ethz/scion-apps)
 - Configurable:
   - daemon address
-  - bootstrapping via topo file, bootstrapper IP or DNS 
+  - bootstrapping via topo file, bootstrapper IP, DNS NAPTR entry or /etc/resolv.conf 
   - path expiry
 - Packet inspector for debugging
 - No "dispatcher"
@@ -171,31 +171,33 @@ For proper testing it is recommended to use one of the following:
 In order to find a path to a destination IP, a `DatagramChannel` or `DatagramSocket` must know the 
 ISD/AS numbers of the destination.
 
-
 If the destination host has a DNS TXT entry for SCION then this be used to determine the 
-destination ISD/AS.
-Alternatively, the ISD/AS can be specified explicitly.
-
-#### DNS lookup
-```
-$ dig TXT ethz.ch
-...
-ethz.ch.		610	IN	TXT	"scion=64-2:0:9,129.132.230.98"
-...
-```
-
-```
-InetSocketAddress serverAddress = new InetSocketAddress("ethz.ch", 80);​
+destination ISD/AS. For example, if `dig TXT your-domain.org` returns something like
+`your-domain.org.		610	IN	TXT	"scion=64-2:0:9,129.x.x.x"`, then you can simply
+use something like:
+```java
+InetSocketAddress serverAddress = new InetSocketAddress("your-domain.org", 80);
 channel.connect(serverAddress);
 ```
 
+Alternatively, the ISD/AS can be specified explicitly in several ways.
 
-#### Explicit ISD/AS specification
+#### /etc/scion/hosts file
+
+Create a file `/etc/scion/hosts` to assign ISD/AS ans SCION IP to host names:
+```
+# /etc/scion/hosts test file
+1-ff00:0:111,[42.0.0.11] test-server
+1-ff00:0:112,[42.0.0.12] test-server-1 test-server-2
+1-ff00:0:113,[::42] test-server-ipv6
+```
+
+#### Specify ISD/AS in program
 
 We can use the ISD/AS directly to request a path:
 ```
 long isdAs = ScionUtil.parseIA("64-2:0:9");
-InetSocketAddress serverAddress = new InetSocketAddress("129.132.19.216", 80);​
+InetSocketAddress serverAddress = new InetSocketAddress("129.x.x.x", 80);
 Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
 channel.connect(path);
 ```
@@ -246,32 +248,44 @@ The following standard options are **not** supported:
 ## Configuration
 
 ### Bootstrapping / daemon
-In order to find paths and connect to the local AS, the application needs either a [local 
-installation of SCION](https://docs.scion.org/en/latest/dev/run.html) 
-or some other means to get bootstrap information.
+The SCION Java client can be used with a local daemon or in standalone mode (without daemon).
+The daemon is available if you have a [local installation of SCION](https://docs.scion.org/en/latest/dev/run.html).
+Standalone mode will directly connect to a topology server and control server, in a properly
+configured AS this should all happen automatically.
+
+There are also several methods that allow specifying a local topology file, a topology server 
+address or a different DNS server with a scion NAPTR record. These are only meant for debugging. 
 
 The method `Scion.defaultService()` (internally called by `DatagramChannel.open()`) will 
 attempt to get network information in the following order until it succeeds:
-- Check for local topology file (if file name is given)
-- Check for bootstrap server address (if address is given)
-- Check for DNS NAPTR record (if record entry name is given)
+- For debugging: Check for local topology file (if file name is given)
+- For debugging: Check for bootstrap server address (if address is given)
+- For debugging: Check for DNS NAPTR record (if record entry name is given)
 - Check for to daemon
+- Check search domain (as given in /etc/resolv.conf) for topology server
 
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
 
-| Option                              | Java property                    | Environment variable         | Default value   |
-|-------------------------------------|----------------------------------|------------------------------|-----------------|
-| Daemon port                         | `org.scion.daemon.port`          | `SCION_DAEMON`               | localhost:30255 | 
-| Bootstrap topology file path        | `org.scion.bootstrap.topoFile`   | `SCION_BOOTSTRAP_TOPO_FILE`  |                 | 
-| Bootstrap server host               | `org.scion.bootstrap.host`       | `SCION_BOOTSTRAP_HOST`       |                 |
-| Bootstrap DNS NAPTR entry host name | `org.scion.bootstrap.naptr.name` | `SCION_BOOTSTRAP_NAPTR_NAME` |                 | 
+| Option                              | Java property                    | Environment variable          | Default value   |
+|-------------------------------------|----------------------------------|-------------------------------|-----------------|
+| Daemon port                         | `org.scion.daemon.port`          | `SCION_DAEMON`                | localhost:30255 | 
+| Bootstrap topology file path        | `org.scion.bootstrap.topoFile`   | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
+| Bootstrap server host               | `org.scion.bootstrap.host`       | `SCION_BOOTSTRAP_HOST`        |                 |
+| Bootstrap DNS NAPTR entry host name | `org.scion.bootstrap.naptr.name` | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
+| Bootstrap DNS NAPTR entry host name | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            | 
 
-### Other
+### DNS
+The SCION Java client will check the OS default DNS server to resolve SCION addresses.
+In addition, addresses can be specified in a `/etc/scion/hosts` file. The location of the hosts file
+is configurable, see next section.  
 
-| Option                                                                                                               | Java property           | Environment variable | Default value |
-|----------------------------------------------------------------------------------------------------------------------|-------------------------|----------------------|---------------|
-| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 10           |
+### Other Options
+
+| Option                                                                                                               | Java property           | Environment variable | Default value      |
+|----------------------------------------------------------------------------------------------------------------------|-------------------------|----------------------|--------------------|
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 10                 |
+| Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles` | `SCION_HOSTS_FILES`  | `/etc/scion/hosts` |
 
 ## FAQ / trouble shooting
 

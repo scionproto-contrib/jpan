@@ -17,6 +17,7 @@ package org.scion.testutil;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.scion.Constants;
 import org.scion.Scion;
 
 public class JUnitSetUp
@@ -27,7 +28,8 @@ public class JUnitSetUp
   public void beforeAll(ExtensionContext context) {
     if (!started) {
       started = true;
-      context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put("any unique name", this);
+      System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
+      context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put("SCION JUnit global", this);
     }
   }
 
@@ -37,7 +39,7 @@ public class JUnitSetUp
   }
 
   @Override
-  public void beforeEach(ExtensionContext context) throws Exception {
+  public void beforeEach(ExtensionContext context) {
     Scion.closeDefault();
   }
 }
