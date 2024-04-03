@@ -12,10 +12,10 @@ It provides functionality similar to
 [scion-rs (Rust)](https://github.com/MystenLabs/scion-rs). 
 
 The following artifact contains the complete SCION Java client:
-``` 
+```xml 
 <dependency>
     <groupId>org.scion</groupId>
-    <artifactId>scion-java-client</artifactId>
+    <artifactId>scion-java-client</artifactId>  <!-- This has changed to `client` on `master` -->
     <version>0.1.0-ALPHA</version>
 </dependency>
 ```
