@@ -47,7 +47,6 @@ import org.slf4j.LoggerFactory;
 public class ScionBootstrapper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
-  private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
   private static final String BASE_URL = "";
   private static final String TOPOLOGY_ENDPOINT = "topology";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);

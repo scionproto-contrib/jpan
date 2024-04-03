@@ -39,7 +39,7 @@ public class JUnitSetUp
   }
 
   @Override
-  public void beforeEach(ExtensionContext context) throws Exception {
+  public void beforeEach(ExtensionContext context) {
     Scion.closeDefault();
   }
 }

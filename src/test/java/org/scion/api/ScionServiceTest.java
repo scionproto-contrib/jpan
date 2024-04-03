@@ -260,33 +260,30 @@ public class ScionServiceTest {
     try {
       Throwable t;
       DNSUtil.clear();
-      DNSUtil.installNAPTR(
-          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscoveryyyy=12345", KEY_X_TCP);
-      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "yyyy=12345", KEY_X_TCP);
+      t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
       DNSUtil.clear();
-      DNSUtil.installNAPTR(
-          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=1x2345", "x-sciondiscovery:tcp");
-      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=1x2345", KEY_X_TCP);
+      t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
       DNSUtil.clear();
-      DNSUtil.installNAPTR(
-          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=100000", "x-sciondiscovery:tcp");
-      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=100000", KEY_X_TCP);
+      t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
+      // Valid entry, but invalid port
       DNSUtil.clear();
-      DNSUtil.installNAPTR(
-          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=10000", "x-sciondiscovery:tcp");
-      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=10000", KEY_X_TCP);
+      t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Error while getting topology file"));
 
+      // Invalid NAPTR key
       DNSUtil.clear();
-      DNSUtil.installNAPTR(
-          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=10000", "x-wrong:tcp");
-      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=10000", "x-wrong:tcp");
+      t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("No valid DNS NAPTR entry found"));
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);

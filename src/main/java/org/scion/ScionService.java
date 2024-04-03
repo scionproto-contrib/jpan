@@ -298,12 +298,6 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
-    if (dstAddress.getHostName() != null) {
-      ScionAddress address = getScionAddress(dstAddress.getHostName());
-      address.getInetAddress();
-      // TODO use result & cache result
-    }
-
     long dstIsdAs = getIsdAs(dstAddress.getHostString());
     return getPaths(dstIsdAs, dstAddress);
   }

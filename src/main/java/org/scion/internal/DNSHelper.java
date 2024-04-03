@@ -35,41 +35,23 @@ public class DNSHelper {
   private static final Logger LOG = LoggerFactory.getLogger(DNSHelper.class);
   private static final String STR_X_SCION = "x-sciondiscovery";
   private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
-
-  //  public static String queryTXT(String hostName, String key) {
-  //    try {
-  //      Record[] records = new Lookup(hostName, Type.TXT).run();
-  //      if (records == null) {
-  //        return null;
-  //      }
-  //      for (int i = 0; i < records.length; i++) {
-  //        TXTRecord txt = (TXTRecord) records[i];
-  //        String entry = txt.rdataToString();
-  //        if (entry.startsWith("\"" + key + "=")) {
-  //          if (entry.endsWith("\"")) {
-  //            return entry.substring(key.length() + 2, entry.length() - 1);
-  //          }
-  //          LOG.info("Error parsing TXT entry: {}", entry);
-  //        }
-  //      }
-  //    } catch (TextParseException e) {
-  //      LOG.info("Error parsing TXT entry: {}", e.getMessage());
-  //    }
-  //    return null;
-  //  }
+  private static final String ERR_PARSING_TXT = "Error parsing TXT entry: ";
+  private static final String ERR_PARSING_TXT_LOG = ERR_PARSING_TXT + "{}";
+  private static final String ERR_PARSING_TXT_LOG2 = ERR_PARSING_TXT + "{} {}";
 
   /**
    * Perform a DNS lookup on "hostName" for a TXT entry with key "key". All matching entries are
    * forwarded to the "valueParser" until the "valueParser" returns not "null".
    *
-   * @param hostName
-   * @param key
-   * @param valueParser
+   * @param hostName host name
+   * @param key TXT key
+   * @param valueParser TXT value parsing function
    * @return The result of "valueParser" or "null" if no matching entry was found or if
    *     "valueParser" returned "null" for all matching entries.
    * @param <R> Result type.
    */
   public static <R> R queryTXT(String hostName, String key, Function<String, R> valueParser) {
+
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
@@ -86,11 +68,11 @@ public class DNSHelper {
               return result;
             }
           }
-          LOG.info("Error parsing TXT entry: {}", entry);
+          LOG.info(ERR_PARSING_TXT_LOG, entry);
         }
       }
     } catch (TextParseException e) {
-      LOG.info("Error parsing TXT entry: {}", e.getMessage());
+      LOG.info(ERR_PARSING_TXT_LOG, e.getMessage());
     }
     return null;
   }
@@ -170,12 +152,12 @@ public class DNSHelper {
               try {
                 int port = Integer.parseInt(txtEntry);
                 if (port < 0 || port > 65536) {
-                  LOG.info("Error parsing TXT entry: {}", txtEntry);
+                  LOG.info(ERR_PARSING_TXT_LOG, txtEntry);
                   return null;
                 }
                 return port;
               } catch (NumberFormatException e) {
-                LOG.info("Error parsing TXT entry: {} {}", txtEntry, e.getMessage());
+                LOG.info(ERR_PARSING_TXT_LOG2, txtEntry, e.getMessage());
                 return null;
               }
             });
