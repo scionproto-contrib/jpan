@@ -311,8 +311,8 @@ public class ScionServiceTest {
   @Test
   void getScionAddress_Failure_InvalidTXT() {
     Scion.closeDefault();
-    //  testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55\"");
-    //  testInvalidTxtEntry("\"scion=1-ff00:0:110,127.0.0.55");
+    testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55\"");
+    testInvalidTxtEntry("\"scion=1-ff00:0:110,127.0.0.55");
     testInvalidTxtEntry("\"scion=1-xxxx:0:110,127.0.0.55\"");
     testInvalidTxtEntry("\"scion=1-ff:00:0:110,127.0.0.55\"");
     testInvalidTxtEntry("\"scion=1-ff:00:0:110,127.55\"");
