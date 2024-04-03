@@ -16,7 +16,10 @@ package org.scion.internal;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.function.Function;
 import org.scion.ScionRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xbill.DNS.AAAARecord;
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.Lookup;
@@ -29,10 +32,44 @@ import org.xbill.DNS.Type;
 
 public class DNSHelper {
 
+  private static final Logger LOG = LoggerFactory.getLogger(DNSHelper.class);
   private static final String STR_X_SCION = "x-sciondiscovery";
   private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
 
-  public static String queryTXT(String hostName, String key) {
+  //  public static String queryTXT(String hostName, String key) {
+  //    try {
+  //      Record[] records = new Lookup(hostName, Type.TXT).run();
+  //      if (records == null) {
+  //        return null;
+  //      }
+  //      for (int i = 0; i < records.length; i++) {
+  //        TXTRecord txt = (TXTRecord) records[i];
+  //        String entry = txt.rdataToString();
+  //        if (entry.startsWith("\"" + key + "=")) {
+  //          if (entry.endsWith("\"")) {
+  //            return entry.substring(key.length() + 2, entry.length() - 1);
+  //          }
+  //          LOG.info("Error parsing TXT entry: {}", entry);
+  //        }
+  //      }
+  //    } catch (TextParseException e) {
+  //      LOG.info("Error parsing TXT entry: {}", e.getMessage());
+  //    }
+  //    return null;
+  //  }
+
+  /**
+   * Perform a DNS lookup on "hostName" for a TXT entry with key "key". All matching entries are
+   * forwarded to the "valueParser" until the "valueParser" returns not "null".
+   *
+   * @param hostName
+   * @param key
+   * @param valueParser
+   * @return The result of "valueParser" or "null" if no matching entry was found or if
+   *     "valueParser" returned "null" for all matching entries.
+   * @param <R> Result type.
+   */
+  public static <R> R queryTXT(String hostName, String key, Function<String, R> valueParser) {
     try {
       Record[] records = new Lookup(hostName, Type.TXT).run();
       if (records == null) {
@@ -41,15 +78,19 @@ public class DNSHelper {
       for (int i = 0; i < records.length; i++) {
         TXTRecord txt = (TXTRecord) records[i];
         String entry = txt.rdataToString();
-        if (entry.startsWith("\"" + key)) {
-          if (!entry.endsWith("\"") || entry.length() < key.length() + 3) {
-            throw new ScionRuntimeException("Error parsing TXT entry: " + entry);
+        if (entry.startsWith("\"" + key + "=")) {
+          if (entry.endsWith("\"")) {
+            String data = entry.substring(key.length() + 2, entry.length() - 1);
+            R result = valueParser.apply(data);
+            if (result != null) {
+              return result;
+            }
           }
-          return entry.substring(key.length() + 2, entry.length() - 1);
+          LOG.info("Error parsing TXT entry: {}", entry);
         }
       }
     } catch (TextParseException e) {
-      throw new ScionRuntimeException("Error parsing TXT entry: " + e.getMessage());
+      LOG.info("Error parsing TXT entry: {}", e.getMessage());
     }
     return null;
   }
@@ -121,15 +162,27 @@ public class DNSHelper {
   }
 
   private static int getScionDiscoveryPort(String hostName) {
-    String txtEntry = DNSHelper.queryTXT(hostName, STR_X_SCION);
-    if (txtEntry == null) {
+    Integer discoveryPort =
+        DNSHelper.queryTXT(
+            hostName,
+            STR_X_SCION,
+            txtEntry -> {
+              try {
+                int port = Integer.parseInt(txtEntry);
+                if (port < 0 || port > 65536) {
+                  LOG.info("Error parsing TXT entry: {}", txtEntry);
+                  return null;
+                }
+                return port;
+              } catch (NumberFormatException e) {
+                LOG.info("Error parsing TXT entry: {} {}", txtEntry, e.getMessage());
+                return null;
+              }
+            });
+    if (discoveryPort == null) {
       throw new ScionRuntimeException(
-          "Could not find bootstrap TXT port record for host: " + hostName);
+          "Could not find valid TXT " + STR_X_SCION + " record for host: " + hostName);
     }
-    int port = Integer.parseInt(txtEntry);
-    if (port < 0 || port > 65536) {
-      throw new ScionRuntimeException("Error parsing TXT entry: " + txtEntry);
-    }
-    return port;
+    return discoveryPort;
   }
 }

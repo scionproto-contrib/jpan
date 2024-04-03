@@ -91,7 +91,7 @@ public class ScionBootstrapper {
     try {
       String addr = DNSHelper.getScionDiscoveryAddress(hostName);
       if (addr == null) {
-        throw new ScionRuntimeException("No DNS NAPTR entry found for host: " + hostName);
+        throw new ScionRuntimeException("No valid DNS NAPTR entry found for host: " + hostName);
       }
       return addr;
     } catch (IOException e) {

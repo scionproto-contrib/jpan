@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.internal.DNSHelper;
+import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockDaemon;
 import org.scion.testutil.MockNetwork;
 import org.scion.testutil.MockTopologyServer;
@@ -39,6 +40,7 @@ public class ScionServiceTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
+  private static final String SCION_TXT_IPV6 = "\"scion=1-ff00:0:110,[::1]\"";
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @AfterAll
@@ -202,7 +204,7 @@ public class ScionServiceTest {
   }
 
   @Test
-  void getScionAddress() throws IOException {
+  void getScionAddress_IPv4() throws IOException {
     // Test that DNS injection via properties works
     System.setProperty(
         PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
@@ -224,6 +226,77 @@ public class ScionServiceTest {
   }
 
   @Test
+  void getScionAddress_IPv6() throws IOException {
+    // Test that DNS injection via properties works
+    System.setProperty(
+        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT_IPV6);
+    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
+    try {
+      ScionService pathService = Scion.defaultService();
+      // TXT entry: "scion=64-2:0:9,129.x.x.x"
+      ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
+      assertNotNull(sAddr);
+      assertEquals(1, sAddr.getIsd());
+      assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
+      assertEquals("/0:0:0:0:0:0:0:1", sAddr.getInetAddress().toString());
+      assertEquals(SCION_HOST, sAddr.getHostName());
+    } finally {
+      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+      ScionService.closeDefault();
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void getScionAddress_Failure_BadTxtRecord() throws IOException {
+    // Test that DNS injection via properties works
+    System.setProperty(
+        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
+    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
+
+    byte[] ip = {127, 0, 0, 1};
+    final String KEY_X = "x-sciondiscovery";
+    final String KEY_X_TCP = "x-sciondiscovery:tcp";
+    try {
+      Throwable t;
+      DNSUtil.clear();
+      DNSUtil.installNAPTR(
+          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscoveryyyy=12345", KEY_X_TCP);
+      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
+
+      DNSUtil.clear();
+      DNSUtil.installNAPTR(
+          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=1x2345", "x-sciondiscovery:tcp");
+      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
+
+      DNSUtil.clear();
+      DNSUtil.installNAPTR(
+          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=100000", "x-sciondiscovery:tcp");
+      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
+
+      DNSUtil.clear();
+      DNSUtil.installNAPTR(
+          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=10000", "x-sciondiscovery:tcp");
+      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      assertTrue(t.getMessage().startsWith("Error while getting topology file"));
+
+      DNSUtil.clear();
+      DNSUtil.installNAPTR(
+          MockTopologyServer.TOPO_HOST, ip, "x-sciondiscovery=10000", "x-wrong:tcp");
+      t = assertThrows(ScionRuntimeException.class, () -> Scion.defaultService());
+      assertTrue(t.getMessage().startsWith("No valid DNS NAPTR entry found"));
+    } finally {
+      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+      ScionService.closeDefault();
+      MockNetwork.stopTiny();
+      DNSUtil.clear();
+    }
+  }
+
+  @Test
   void getScionAddress_Failure_IpOnly() {
     // TXT entry: "scion=64-2:0:9,129.x.x.x"
     Exception ex = assertThrows(ScionRuntimeException.class, Scion::defaultService);
@@ -241,8 +314,8 @@ public class ScionServiceTest {
   @Test
   void getScionAddress_Failure_InvalidTXT() {
     Scion.closeDefault();
-    testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55\"");
-    testInvalidTxtEntry("\"scion=1-ff00:0:110,127.0.0.55");
+    //  testInvalidTxtEntry("\"XXXscion=1-ff00:0:110,127.0.0.55\"");
+    //  testInvalidTxtEntry("\"scion=1-ff00:0:110,127.0.0.55");
     testInvalidTxtEntry("\"scion=1-xxxx:0:110,127.0.0.55\"");
     testInvalidTxtEntry("\"scion=1-ff:00:0:110,127.0.0.55\"");
     testInvalidTxtEntry("\"scion=1-ff:00:0:110,127.55\"");

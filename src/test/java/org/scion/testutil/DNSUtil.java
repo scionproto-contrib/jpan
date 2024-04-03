@@ -22,12 +22,16 @@ import org.xbill.DNS.*;
 public class DNSUtil {
 
   public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort) {
+    installNAPTR(asHost, topoAddr, "x-sciondiscovery=" + topoPort, "x-sciondiscovery:tcp");
+  }
+
+  public static void installNAPTR(String asHost, byte[] topoAddr, String txtStr, String naptrKey) {
     try {
       Name name = Name.fromString(asHost + ".");
       Name replacement = new Name("topohost.x.y.");
 
       Cache c = Lookup.getDefaultCache(DClass.IN);
-      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, "x-sciondiscovery=" + topoPort);
+      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, txtStr);
       c.addRecord(txt, 10);
 
       InetAddress addr = InetAddress.getByAddress(topoAddr);
@@ -43,8 +47,7 @@ public class DNSUtil {
       }
 
       NAPTRRecord nr2 =
-          new NAPTRRecord(
-              name, DClass.IN, 5000, 1, 1, naptrFlag, "x-sciondiscovery:tcp", "", replacement);
+          new NAPTRRecord(name, DClass.IN, 5000, 1, 1, naptrFlag, naptrKey, "", replacement);
       c.addRecord(nr2, 10);
     } catch (IOException e) {
       throw new RuntimeException(e);
