@@ -346,4 +346,38 @@ public class Scmp {
         return new Scmp.Message(null, -1, -1, path);
     }
   }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param path Path to destination
+   * @return New SCMP channel
+   */
+  public static ScmpChannel createChannel(RequestPath path) throws IOException {
+    return new ScmpChannel(path);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param path Path to destination
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  public static ScmpChannel createChannel(RequestPath path, int listeningPort) throws IOException {
+    return new ScmpChannel(Scion.defaultService(), path, listeningPort);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param service the ScionService instance
+   * @param path Path to destination
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  public static ScmpChannel createChannel(ScionService service, RequestPath path, int listeningPort)
+      throws IOException {
+    return new ScmpChannel(service, path, listeningPort);
+  }
 }

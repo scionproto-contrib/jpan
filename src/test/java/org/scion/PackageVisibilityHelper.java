@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.List;
 import org.scion.internal.InternalConstants;
+import org.scion.internal.ScionHeaderParser;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.ExamplePacket;
 

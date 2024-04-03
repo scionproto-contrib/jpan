@@ -16,6 +16,7 @@ package org.scion.testutil;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.ScionService;
 
 class PingPongHelperTest {
 
