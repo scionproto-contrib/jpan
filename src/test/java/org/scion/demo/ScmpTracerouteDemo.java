@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import org.scion.*;
 import org.scion.Scmp;
+import org.scion.testutil.MockDNS;
 
 public class ScmpTracerouteDemo {
 
@@ -43,7 +44,7 @@ public class ScmpTracerouteDemo {
 
   private static final Network network = Network.PRODUCTION;
 
-  public static void main(String[] args) throws IOException, InterruptedException {
+  public static void main(String[] args) throws IOException {
     switch (network) {
       case MOCK_TOPOLOGY:
         {
@@ -58,10 +59,7 @@ public class ScmpTracerouteDemo {
         {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/scionproto-tiny-110.json");
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_HOST, toHost(DemoConstants.daemon1111_minimal));
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_PORT, toPort(DemoConstants.daemon1111_minimal));
+          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia110);
           break;
@@ -70,19 +68,14 @@ public class ScmpTracerouteDemo {
         {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/minimal/ASff00_0_1111/topology.json");
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_HOST, toHost(DemoConstants.daemon1111_minimal));
-          System.setProperty(
-              Constants.PROPERTY_DAEMON_PORT, toPort(DemoConstants.daemon1111_minimal));
+          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
         {
-          System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, "ethz.ch");
-          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "129.132.121.175:8041");
-          // Port must be 30041 for networks that expect a dispatcher
+          // Local port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
           demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
@@ -123,15 +116,5 @@ public class ScmpTracerouteDemo {
     if (PRINT) {
       System.out.println(msg);
     }
-  }
-
-  private static String toHost(String addrString) {
-    int posColon = addrString.indexOf(':');
-    return addrString.substring(0, posColon);
-  }
-
-  private static String toPort(String addrString) {
-    int posColon = addrString.indexOf(':');
-    return addrString.substring(posColon + 1);
   }
 }

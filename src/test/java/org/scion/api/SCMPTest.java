@@ -27,6 +27,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.*;
 import org.scion.demo.inspector.ScionPacketInspector;
+import org.scion.internal.ScionHeaderParser;
 import org.scion.testutil.MockNetwork;
 
 public class SCMPTest {
