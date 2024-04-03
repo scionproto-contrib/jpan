@@ -31,11 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.scion.Scion;
+import org.scion.ScionException;
+import org.scion.ScionRuntimeException;
 import org.scion.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xbill.DNS.*;
-import org.xbill.DNS.Record;
 
 /**
  * The ScionBootstrapper tries to find the address of the control server.
@@ -47,8 +47,6 @@ import org.xbill.DNS.Record;
 public class ScionBootstrapper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
-  private static final String STR_X_SCION = "x-sciondiscovery";
-  private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
   private static final String BASE_URL = "";
   private static final String TOPOLOGY_ENDPOINT = "topology";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
@@ -90,47 +88,14 @@ public class ScionBootstrapper {
 
   private static String bootstrapViaDNS(String hostName) {
     try {
-      Record[] records = new Lookup(hostName, Type.NAPTR).run();
-      if (records == null) {
-        throw new ScionRuntimeException("No DNS NAPTR entry found for host: " + hostName);
+      String addr = DNSHelper.getScionDiscoveryAddress(hostName);
+      if (addr == null) {
+        throw new ScionRuntimeException("No valid DNS NAPTR entry found for host: " + hostName);
       }
-
-      for (int i = 0; i < records.length; i++) {
-        NAPTRRecord nr = (NAPTRRecord) records[i];
-        String naptrService = nr.getService();
-        if (STR_X_SCION_TCP.equals(naptrService)) {
-          String host = nr.getReplacement().toString();
-          String naptrFlag = nr.getFlags();
-          LOG.info("Found DNS entry: {}", naptrService);
-          int port = queryTXT(hostName);
-          if ("A".equals(naptrFlag)) {
-            InetAddress addr = DNSHelper.queryA(host);
-            return addr.getHostAddress() + ":" + port;
-          }
-          if ("AAAA".equals(naptrFlag)) {
-            InetAddress addr = DNSHelper.queryAAAA(host);
-            return "[" + addr.getHostAddress() + "]:" + port;
-          } // keep going and collect more hints
-        }
-      }
+      return addr;
     } catch (IOException e) {
       throw new ScionRuntimeException("Error while bootstrapping Scion via DNS: " + e.getMessage());
     }
-
-    return null;
-  }
-
-  private static int queryTXT(String hostName) {
-    String txtEntry = DNSHelper.queryTXT(hostName, STR_X_SCION);
-    if (txtEntry == null) {
-      throw new ScionRuntimeException(
-          "Could not find bootstrap TXT port record for host: " + hostName);
-    }
-    int port = Integer.parseInt(txtEntry);
-    if (port < 0 || port > 65536) {
-      throw new ScionRuntimeException("Error parsing TXT entry: " + txtEntry);
-    }
-    return port;
   }
 
   private static JsonElement safeGet(JsonObject o, String name) {

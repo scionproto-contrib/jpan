@@ -22,7 +22,7 @@ import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.*;
-
+import org.scion.ScionRuntimeException;
 import org.scion.ScionUtil;
 import org.scion.proto.control_plane.Seg;
 import org.scion.proto.control_plane.SegmentLookupServiceGrpc;
@@ -164,7 +164,10 @@ public class Segments {
     Seg.SegmentsRequest request =
         Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
     try {
+      long t0 = System.nanoTime();
       Seg.SegmentsResponse response = segmentStub.segments(request);
+      long t1 = System.nanoTime();
+      LOG.info("CS request took {} ms.", (t1 - t0) / 1_000_000);
       if (response.getSegmentsMap().size() > 1) {
         // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();
@@ -239,11 +242,8 @@ public class Segments {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
-      ArrayList<Seg.PathSegment> segmentList1 = segmentsMap1.get(middleIsdAs);
-      if (segmentList1 != null) {
-        for (Seg.PathSegment pathSegment1 : segmentList1) {
-          paths.add(buildPath(brLookup, pathSegment0, pathSegment1));
-        }
+      for (Seg.PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
+        paths.add(buildPath(brLookup, pathSegment0, pathSegment1));
       }
     }
     return paths;
@@ -263,9 +263,9 @@ public class Segments {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSeg : segmentsCore) {
       long[] endIAs = getEndingIAs(pathSeg);
-      if (upSegments.get(endIAs[0]) != null && downSegments.get(endIAs[1]) != null) {
+      if (upSegments.contains(endIAs[0]) && downSegments.contains(endIAs[1])) {
         buildPath(paths, upSegments.get(endIAs[0]), pathSeg, downSegments.get(endIAs[1]), brLookup);
-      } else if (upSegments.get(endIAs[1]) != null && downSegments.get(endIAs[0]) != null) {
+      } else if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
         buildPath(paths, upSegments.get(endIAs[1]), pathSeg, downSegments.get(endIAs[0]), brLookup);
       }
     }
