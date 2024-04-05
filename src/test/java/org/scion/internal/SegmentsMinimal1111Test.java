@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
 import org.scion.ScionService;
+import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
@@ -177,6 +178,12 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
         47, 0, 63, 0, 111, 4, 88, 63, -115, -73, 79, 31, 37, 0, 63, 0, -22, 0, 0, 68, -20, 91, 1,
         58, -37
       };
+
+      System.out.println(ToStringUtil.pathLong(raw)); // TODO
+      System.out.println(ToStringUtil.path(raw)); // TODO
+      Daemon.Path path = paths.get(0);
+      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
+      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
 
       //      Daemon.Path path = paths.get(0);
       //      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();

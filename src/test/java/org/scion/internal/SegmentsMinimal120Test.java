@@ -105,11 +105,7 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
         -105, -8, -28
       };
 
-      System.out.println(ToStringUtil.pathLong(raw)); // TODO
-      System.out.println(ToStringUtil.path(raw)); // TODO
       Daemon.Path path = paths.get(0);
-      System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 2, 0);
       checkInfo(rawBB, 10619, 0);
