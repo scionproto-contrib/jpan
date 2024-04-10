@@ -102,14 +102,19 @@ public class PingPongChannelClient {
   }
 
   private static void doClientStuff(long destinationIA) throws IOException {
+    println("Client starting ...");
     try (DatagramChannel channel = startClient()) {
       String msg = "Hello scion";
+      println("Client getting server address " + channel.getLocalAddress() + " ...");
       InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
+      println("Client got server address " + serverAddress);
+      println("Client getting path " + channel.getLocalAddress() + " ...");
       Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
-      println("CLIENT: Sending from " + channel.getLocalAddress() + " ...");
+      println("Client got path:  " + path);
+      println("Client sending from " + channel.getLocalAddress() + " ...");
       sendMessage(channel, msg, path);
 
-      println("CLIENT: Waiting at " + channel.getLocalAddress() + " ...");
+      println("Client waiting at " + channel.getLocalAddress() + " ...");
       receiveMessage(channel);
     }
   }
