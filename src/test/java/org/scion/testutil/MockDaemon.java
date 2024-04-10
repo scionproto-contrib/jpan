@@ -155,6 +155,7 @@ public class MockDaemon implements AutoCloseable {
     @Override
     public void paths(
         Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
+      System.out.println("Hello paths");
       logger.info(
           "Got request from client: " + req.getSourceIsdAs() + " / " + req.getDestinationIsdAs());
       callCount.incrementAndGet();
@@ -190,6 +191,7 @@ public class MockDaemon implements AutoCloseable {
 
     @Override
     public void aS(Daemon.ASRequest req, StreamObserver<Daemon.ASResponse> responseObserver) {
+      System.out.println("Hello paths");
       logger.info("Got AS request from client: " + req.getIsdAs());
       callCount.incrementAndGet();
       Daemon.ASResponse.Builder replyBuilder = Daemon.ASResponse.newBuilder();
