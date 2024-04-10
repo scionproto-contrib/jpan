@@ -2,6 +2,9 @@ name: Java
 
 on: [push]
 
+env:
+  time: 3
+
 jobs:
   format-check:
     name: Check Code Formatting
@@ -32,6 +35,7 @@ jobs:
 #      - name: Install dependencies
 #        run: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
       - name: Run tests and collect coverage
+        timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn -B test
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
@@ -44,6 +48,7 @@ jobs:
       matrix:
         # run different builds with the listed java versions
         java: [ 8, 11, 17, 21 ]
+    name: "build-ubuntu Java ${{ matrix.java }}"
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -52,4 +57,37 @@ jobs:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
       - name: Build with Maven
+        timeout-minutes: ${{ fromJSON(env.time) }}
+        run: mvn --batch-mode --update-snapshots install
+
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 8
+          distribution: 'temurin'
+      - name: Build with Maven
+        timeout-minutes: ${{ fromJSON(env.time) }}
+        run: mvn --batch-mode --update-snapshots install
+
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 8
+          distribution: 'temurin'
+      - name: Enable 127.0.0.x addresses
+        run: |
+          chmod +x ./config/enable-macos-loopback.sh
+          ./config/enable-macos-loopback.sh
+      - name: Build with Maven
+        timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn --batch-mode --update-snapshots install

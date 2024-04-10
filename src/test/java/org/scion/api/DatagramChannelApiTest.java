@@ -422,9 +422,9 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void write_bufferTooLarge() {
+  void write_bufferTooLarge() throws IOException {
     RequestPath addr = ExamplePacket.PATH;
-    ByteBuffer buffer = ByteBuffer.allocate(65440);
+    ByteBuffer buffer = ByteBuffer.allocate(100_000);
     buffer.limit(buffer.capacity());
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.connect(addr);
@@ -432,8 +432,6 @@ class DatagramChannelApiTest {
       String msg = ex.getMessage();
       // Linux vs Windows(?)
       assertTrue(msg.contains("too long") || msg.contains("larger than"), ex.getMessage());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -672,8 +670,12 @@ class DatagramChannelApiTest {
       channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
       assertTrue(channel.getOption(StandardSocketOptions.SO_REUSEADDR));
 
-      channel.setOption(StandardSocketOptions.IP_TOS, 5);
-      assertEquals(5, channel.getOption(StandardSocketOptions.IP_TOS));
+      // The following fails on Windows.
+      // From https://docs.oracle.com/javase/9/docs/api/java/net/StandardSocketOptions.html#IP_TOS
+      // "The behavior of this socket option on [...], or an IPv6 socket, is not defined in this
+      // release."
+      // channel.setOption(StandardSocketOptions.IP_TOS, 5);
+      // assertEquals(5, channel.getOption(StandardSocketOptions.IP_TOS));
 
       assertThrows(
           UnsupportedOperationException.class,

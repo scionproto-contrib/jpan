@@ -72,7 +72,8 @@ public class HostsFileParser {
 
     for (String file : hostsFiles.split(";")) {
       Path path = Paths.get(file);
-      if (!Files.exists(path)) {
+      // On Windows /etc/hosts is reported as ¨: not a file"
+      if (!Files.exists(path) || !Files.isRegularFile(path)) {
         LOG.info(PATH_LINUX + " not found.");
         return;
       }

@@ -311,6 +311,7 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress) {
+    System.out.println("DDDDD: SS.getPaths()");
     return getPaths(dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort());
   }
 

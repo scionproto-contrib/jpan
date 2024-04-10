@@ -310,6 +310,12 @@ Compilation failure: Compilation failure:
 
 This can be fixed by building with Java JDK 1.8.
 
+### Failures/timeout when running tests on MacOS
+
+This happens because the tests uses local IP addresses other than 127.0.0.1, e.g. 127.0.0.15.
+These are blocked by default on MacOS. To enable these addresses you can run the script
+`./config/enable-macos-loopback.sh`.
+
 
 ## License
 

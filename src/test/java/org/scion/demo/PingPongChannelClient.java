@@ -52,7 +52,17 @@ public class PingPongChannelClient {
     println("Received from server at: " + remoteAddress + "  message: " + message);
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
+    try {
+      run();
+    } catch (IOException e) {
+      println(e.getMessage());
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static void run() throws IOException {
     // Demo setup
     switch (NETWORK) {
       case MOCK_TOPOLOGY_IPV4:
@@ -92,13 +102,24 @@ public class PingPongChannelClient {
   }
 
   private static void doClientStuff(long destinationIA) throws IOException {
+    println("Client starting ...");
     try (DatagramChannel channel = startClient()) {
       String msg = "Hello scion";
+      println("Client getting server address " + channel.getLocalAddress() + " ...");
       InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
+      println("Client got server address " + serverAddress);
+      println(
+          "Client getting path to "
+              + ScionUtil.toStringIA(destinationIA)
+              + ","
+              + serverAddress
+              + " ...");
       Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
+      println("Client got path:  " + path);
+      println("Client sending from " + channel.getLocalAddress() + " ...");
       sendMessage(channel, msg, path);
 
-      println("Waiting at " + channel.getLocalAddress() + " ...");
+      println("Client waiting at " + channel.getLocalAddress() + " ...");
       receiveMessage(channel);
     }
   }
