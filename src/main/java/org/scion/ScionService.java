@@ -311,6 +311,7 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress) {
+    System.out.println("DDDDD: SS.getPaths()");
     return getPaths(dstIsdAs, dstAddress.getAddress().getAddress(), dstAddress.getPort());
   }
 
@@ -334,11 +335,15 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort) {
+    System.out.println("DDDDD: SS.getPaths2()");
     long srcIsdAs = getLocalIsdAs();
+    System.out.println("DDDDD: SS.getPaths21()");
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
+    System.out.println("DDDDD: SS.getPaths22()");
     if (paths.isEmpty()) {
       return Collections.emptyList();
     }
+    System.out.println("DDDDD: SS.getPaths23()");
     List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
       scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress, dstPort));
