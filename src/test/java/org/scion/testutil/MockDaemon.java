@@ -155,9 +155,8 @@ public class MockDaemon implements AutoCloseable {
     @Override
     public void paths(
         Daemon.PathsRequest req, StreamObserver<Daemon.PathsResponse> responseObserver) {
-      // logger.info(
-      //     "Got request from client: " + req.getSourceIsdAs() + " / " +
-      // req.getDestinationIsdAs());
+      logger.info(
+          "Got request from client: " + req.getSourceIsdAs() + " / " + req.getDestinationIsdAs());
       callCount.incrementAndGet();
       ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       long expirySecs = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
@@ -191,7 +190,7 @@ public class MockDaemon implements AutoCloseable {
 
     @Override
     public void aS(Daemon.ASRequest req, StreamObserver<Daemon.ASResponse> responseObserver) {
-      // logger.info("Got AS request from client: " + req.getIsdAs());
+      logger.info("Got AS request from client: " + req.getIsdAs());
       callCount.incrementAndGet();
       Daemon.ASResponse.Builder replyBuilder = Daemon.ASResponse.newBuilder();
       if (req.getIsdAs() == 0) { // 0 -> local AS
