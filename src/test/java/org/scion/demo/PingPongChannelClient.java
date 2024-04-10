@@ -33,7 +33,7 @@ public class PingPongChannelClient {
   }
 
   public static DatagramChannel startClient() throws IOException {
-    DatagramChannel client = DatagramChannel.open().bind(null);
+    DatagramChannel client = DatagramChannel.open();
     client.configureBlocking(true);
     return client;
   }
@@ -108,7 +108,7 @@ public class PingPongChannelClient {
       println("Client getting server address " + channel.getLocalAddress() + " ...");
       InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
       println("Client got server address " + serverAddress);
-      println("Client getting path " + channel.getLocalAddress() + " ...");
+      println("Client getting path to " + ScionUtil.toStringIA(destinationIA) + "," + serverAddress + " ...");
       Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
       println("Client got path:  " + path);
       println("Client sending from " + channel.getLocalAddress() + " ...");
