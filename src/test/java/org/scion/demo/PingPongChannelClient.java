@@ -52,7 +52,17 @@ public class PingPongChannelClient {
     println("Received from server at: " + remoteAddress + "  message: " + message);
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
+      try {
+          run();
+      } catch (IOException e) {
+        println(e.getMessage());
+        e.printStackTrace();
+        throw new RuntimeException(e);
+      }
+  }
+
+  private static void run() throws IOException {
     // Demo setup
     switch (NETWORK) {
       case MOCK_TOPOLOGY_IPV4:
@@ -96,9 +106,10 @@ public class PingPongChannelClient {
       String msg = "Hello scion";
       InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
       Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
+      println("CLIENT: Sending from " + channel.getLocalAddress() + " ...");
       sendMessage(channel, msg, path);
 
-      println("Waiting at " + channel.getLocalAddress() + " ...");
+      println("CLIENT: Waiting at " + channel.getLocalAddress() + " ...");
       receiveMessage(channel);
     }
   }
