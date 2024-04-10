@@ -33,7 +33,7 @@ public class PingPongChannelClient {
   }
 
   public static DatagramChannel startClient() throws IOException {
-    DatagramChannel client = DatagramChannel.open();
+    DatagramChannel client = DatagramChannel.open().bind(null);
     client.configureBlocking(true);
     return client;
   }

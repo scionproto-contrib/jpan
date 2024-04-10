@@ -56,14 +56,7 @@ public class HostsFileParser {
   }
 
   public HostsFileParser() {
-    try {
-      init();
-    } catch (Throwable t) {
-      LOG.error(t.getMessage());
-      LOG.error("Error reading hosts file: ", t);
-      t.printStackTrace();
-      throw new RuntimeException(t);
-    }
+    init();
   }
 
   private void init() {
@@ -79,6 +72,7 @@ public class HostsFileParser {
 
     for (String file : hostsFiles.split(";")) {
       Path path = Paths.get(file);
+      // On Windows /etc/hosts is reported as ¨: not a file"
       if (!Files.exists(path) || !Files.isRegularFile(path)) {
         LOG.info(PATH_LINUX + " not found.");
         return;

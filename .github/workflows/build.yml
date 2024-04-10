@@ -88,12 +88,6 @@ jobs:
         run: |
           chmod +x ./config/enable-macos-loopback.sh
           ./config/enable-macos-loopback.sh
-      - name: Ping 127.0.0.1
-        run: ping -c 3 127.0.0.1
-      - name: ifconfig
-        run: ifconfig
-      - name: Ping 127.0.0.15
-        run: ping -c 3 127.0.0.15
       - name: Build with Maven
         timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn --batch-mode --update-snapshots install

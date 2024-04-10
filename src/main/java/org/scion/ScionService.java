@@ -91,11 +91,8 @@ public class ScionService {
 
   protected ScionService(String addressOrHost, Mode mode) {
     if (mode == Mode.DAEMON) {
-      System.out.println("DDDDD: SS.constructor() - 1");
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
-      System.out.println("DDDDD: SS.constructor() - 2");
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
-      System.out.println("DDDDD: SS.constructor() - 3");
       segmentStub = null;
       bootstrapper = null;
       LOG.info("Path service started with daemon {} {}", channel, addressOrHost);
@@ -118,21 +115,14 @@ public class ScionService {
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info("Path service started with control service {} {}", channel, csHost);
     }
-    System.out.println("DDDDD: SS.constructor() - 4");
     shutdownHook = addShutdownHook();
-    System.out.println("DDDDD: SS.constructor() - 5");
     try {
-      System.out.println("DDDDD: SS.constructor() - 6");
       getLocalIsdAs(); // Init
-      System.out.println("DDDDD: SS.constructor() - 7");
     } catch (RuntimeException e) {
       // If this fails for whatever reason we want to make sure that the channel is closed.
-      System.out.println("DDDDD: SS.constructor() - 8: " + e.getMessage());
       try {
         close();
-        System.out.println("DDDDD: SS.constructor() - 9");
       } catch (IOException ex) {
-        System.out.println("DDDDD: SS.constructor() - 10: " + e.getMessage());
         // Ignore, we just want to get out.
       }
       throw e;
@@ -146,16 +136,13 @@ public class ScionService {
    * @return default instance
    */
   static ScionService defaultService() {
-    System.out.println("DDDDD: SS.defaultService() - 1");
     synchronized (LOCK) {
       // This is not 100% thread safe, but the worst that can happen is that
       // we call close() on a Service that has already been closed.
-      System.out.println("DDDDD: SS.defaultService() - 2");
       if (defaultService != null) {
         return defaultService;
       }
       // try bootstrap service IP
-      System.out.println("DDDDD: SS.defaultService() - 3");
       String fileName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
       if (fileName != null) {
@@ -163,14 +150,12 @@ public class ScionService {
         return defaultService;
       }
 
-      System.out.println("DDDDD: SS.defaultService() - 4");
       String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
       if (server != null) {
         defaultService = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
         return defaultService;
       }
 
-      System.out.println("DDDDD: SS.defaultService() - 5");
       String naptrName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
       if (naptrName != null) {
@@ -179,20 +164,16 @@ public class ScionService {
       }
 
       // try daemon
-      System.out.println("DDDDD: SS.defaultService() - 6");
       String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
-      System.out.println("DDDDD: SS.defaultService() - 6b: " + daemon);
       try {
         defaultService = new ScionService(daemon, Mode.DAEMON);
         return defaultService;
       } catch (ScionRuntimeException e) {
         LOG.info(e.getMessage());
-        System.out.println("DDDDD: SS.defaultService() - 6c: " + e.getMessage());
         // Ignore!
       }
 
       // try normal network
-      System.out.println("DDDDD: SS.defaultService() - 7");
       if (ScionUtil.getPropertyOrEnv(
           PROPERTY_USE_OS_SEARCH_DOMAINS,
           ENV_USE_OS_SEARCH_DOMAINS,
@@ -201,7 +182,6 @@ public class ScionService {
         defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
         return defaultService;
       }
-      System.out.println("DDDDD: SS.defaultService() - 8");
       throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
   }
@@ -355,15 +335,11 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<RequestPath> getPaths(long dstIsdAs, byte[] dstAddress, int dstPort) {
-    System.out.println("DDDDD: SS.getPaths2()");
     long srcIsdAs = getLocalIsdAs();
-    System.out.println("DDDDD: SS.getPaths21()");
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
-    System.out.println("DDDDD: SS.getPaths22()");
     if (paths.isEmpty()) {
       return Collections.emptyList();
     }
-    System.out.println("DDDDD: SS.getPaths23()");
     List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
       scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress, dstPort));
