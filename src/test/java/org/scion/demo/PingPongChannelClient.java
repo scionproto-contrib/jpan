@@ -53,13 +53,13 @@ public class PingPongChannelClient {
   }
 
   public static void main(String[] args) {
-      try {
-          run();
-      } catch (IOException e) {
-        println(e.getMessage());
-        e.printStackTrace();
-        throw new RuntimeException(e);
-      }
+    try {
+      run();
+    } catch (IOException e) {
+      println(e.getMessage());
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
   }
 
   private static void run() throws IOException {
@@ -108,7 +108,12 @@ public class PingPongChannelClient {
       println("Client getting server address " + channel.getLocalAddress() + " ...");
       InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
       println("Client got server address " + serverAddress);
-      println("Client getting path to " + ScionUtil.toStringIA(destinationIA) + "," + serverAddress + " ...");
+      println(
+          "Client getting path to "
+              + ScionUtil.toStringIA(destinationIA)
+              + ","
+              + serverAddress
+              + " ...");
       Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
       println("Client got path:  " + path);
       println("Client sending from " + channel.getLocalAddress() + " ...");
