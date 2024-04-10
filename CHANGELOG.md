@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#38](https://github.com/netsec-ethz/scion-java-client/pull/38)
 - Support for `/etc/scion/hosts` and for OS search domains (e.g. `/etc/resolv.conf`). 
   [#40](https://github.com/netsec-ethz/scion-java-client/pull/40)
+- CI builds for Windows and MacOS. [#41](https://github.com/netsec-ethz/scion-java-client/pull/41)
 
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
