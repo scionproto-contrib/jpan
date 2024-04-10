@@ -136,13 +136,16 @@ public class ScionService {
    * @return default instance
    */
   static ScionService defaultService() {
+    System.out.println("DDDDD: SS.defaultService() - 1");
     synchronized (LOCK) {
       // This is not 100% thread safe, but the worst that can happen is that
       // we call close() on a Service that has already been closed.
+      System.out.println("DDDDD: SS.defaultService() - 2");
       if (defaultService != null) {
         return defaultService;
       }
       // try bootstrap service IP
+      System.out.println("DDDDD: SS.defaultService() - 3");
       String fileName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
       if (fileName != null) {
@@ -150,12 +153,14 @@ public class ScionService {
         return defaultService;
       }
 
+      System.out.println("DDDDD: SS.defaultService() - 4");
       String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
       if (server != null) {
         defaultService = new ScionService(server, Mode.BOOTSTRAP_SERVER_IP);
         return defaultService;
       }
 
+      System.out.println("DDDDD: SS.defaultService() - 5");
       String naptrName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
       if (naptrName != null) {
@@ -164,6 +169,7 @@ public class ScionService {
       }
 
       // try daemon
+      System.out.println("DDDDD: SS.defaultService() - 6");
       String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
       try {
         defaultService = new ScionService(daemon, Mode.DAEMON);
@@ -174,6 +180,7 @@ public class ScionService {
       }
 
       // try normal network
+      System.out.println("DDDDD: SS.defaultService() - 7");
       if (ScionUtil.getPropertyOrEnv(
           PROPERTY_USE_OS_SEARCH_DOMAINS,
           ENV_USE_OS_SEARCH_DOMAINS,
@@ -182,6 +189,7 @@ public class ScionService {
         defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
         return defaultService;
       }
+      System.out.println("DDDDD: SS.defaultService() - 8");
       throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
   }
