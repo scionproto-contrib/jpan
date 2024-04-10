@@ -171,11 +171,13 @@ public class ScionService {
       // try daemon
       System.out.println("DDDDD: SS.defaultService() - 6");
       String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
+      System.out.println("DDDDD: SS.defaultService() - 6b: " + daemon);
       try {
         defaultService = new ScionService(daemon, Mode.DAEMON);
         return defaultService;
       } catch (ScionRuntimeException e) {
         LOG.info(e.getMessage());
+        System.out.println("DDDDD: SS.defaultService() - 6c: " + e.getMessage());
         // Ignore!
       }
 
