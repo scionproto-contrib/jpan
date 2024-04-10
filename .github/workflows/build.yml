@@ -86,6 +86,7 @@ jobs:
           distribution: 'temurin'
       - name: Enable 127.0.0.x addresses
         run: |
+          chmod +x ./config/enable-macos-loopback.sh
           ./config/enable-macos-loopback.sh
       - name: Ping 127.0.0.1
         run: ping -c 3 127.0.0.1
