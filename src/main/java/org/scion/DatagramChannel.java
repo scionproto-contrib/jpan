@@ -178,6 +178,8 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
         throw new ScionException("Failed to send all data.");
       }
       return len - buffer.remaining();
+    } catch (BufferOverflowException e) {
+      throw new IOException("Source buffer larger than MTU", e);
     } finally {
       writeLock().unlock();
     }

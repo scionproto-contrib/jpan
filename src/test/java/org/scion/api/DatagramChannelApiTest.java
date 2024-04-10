@@ -422,9 +422,9 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void write_bufferTooLarge() {
+  void write_bufferTooLarge() throws IOException {
     RequestPath addr = ExamplePacket.PATH;
-    ByteBuffer buffer = ByteBuffer.allocate(65440);
+    ByteBuffer buffer = ByteBuffer.allocate(100_000);
     buffer.limit(buffer.capacity());
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.connect(addr);
@@ -432,8 +432,6 @@ class DatagramChannelApiTest {
       String msg = ex.getMessage();
       // Linux vs Windows(?)
       assertTrue(msg.contains("too long") || msg.contains("larger than"), ex.getMessage());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
