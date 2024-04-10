@@ -84,16 +84,15 @@ jobs:
         with:
           java-version: 8
           distribution: 'temurin'
-      - name: Ping local
-        run: ping -c 3 localhost
+      - name: Enable 127.0.0.x addresses
+        run: |
+          ./config/enable-macos-loopback.sh
       - name: Ping 127.0.0.1
         run: ping -c 3 127.0.0.1
       - name: ifconfig
         run: ifconfig
       - name: Ping 127.0.0.15
         run: ping -c 3 127.0.0.15
-      - name: Ping ::1
-        run: ping -c 3 ::1
       - name: Build with Maven
         timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn --batch-mode --update-snapshots install
