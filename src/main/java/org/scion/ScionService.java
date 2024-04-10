@@ -91,8 +91,11 @@ public class ScionService {
 
   protected ScionService(String addressOrHost, Mode mode) {
     if (mode == Mode.DAEMON) {
+      System.out.println("DDDDD: SS.constructor() - 1");
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
+      System.out.println("DDDDD: SS.constructor() - 2");
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
+      System.out.println("DDDDD: SS.constructor() - 3");
       segmentStub = null;
       bootstrapper = null;
       LOG.info("Path service started with daemon {} {}", channel, addressOrHost);
@@ -115,14 +118,21 @@ public class ScionService {
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
       LOG.info("Path service started with control service {} {}", channel, csHost);
     }
+    System.out.println("DDDDD: SS.constructor() - 4");
     shutdownHook = addShutdownHook();
+    System.out.println("DDDDD: SS.constructor() - 5");
     try {
+      System.out.println("DDDDD: SS.constructor() - 6");
       getLocalIsdAs(); // Init
+      System.out.println("DDDDD: SS.constructor() - 7");
     } catch (RuntimeException e) {
       // If this fails for whatever reason we want to make sure that the channel is closed.
+      System.out.println("DDDDD: SS.constructor() - 8: " + e.getMessage());
       try {
         close();
+        System.out.println("DDDDD: SS.constructor() - 9");
       } catch (IOException ex) {
+        System.out.println("DDDDD: SS.constructor() - 10: " + e.getMessage());
         // Ignore, we just want to get out.
       }
       throw e;
