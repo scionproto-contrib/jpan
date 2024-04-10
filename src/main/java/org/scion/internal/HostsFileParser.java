@@ -56,7 +56,14 @@ public class HostsFileParser {
   }
 
   public HostsFileParser() {
-    init();
+    try {
+      init();
+    } catch (Throwable t) {
+      LOG.error(t.getMessage());
+      LOG.error("Error reading hosts file: ", t);
+      t.printStackTrace();
+      throw new RuntimeException(t);
+    }
   }
 
   private void init() {

@@ -672,8 +672,12 @@ class DatagramChannelApiTest {
       channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
       assertTrue(channel.getOption(StandardSocketOptions.SO_REUSEADDR));
 
-      channel.setOption(StandardSocketOptions.IP_TOS, 5);
-      assertEquals(5, channel.getOption(StandardSocketOptions.IP_TOS));
+      // The following fails on Windows.
+      // From https://docs.oracle.com/javase/9/docs/api/java/net/StandardSocketOptions.html#IP_TOS
+      // "The behavior of this socket option on [...], or an IPv6 socket, is not defined in this
+      // release."
+      // channel.setOption(StandardSocketOptions.IP_TOS, 5);
+      // assertEquals(5, channel.getOption(StandardSocketOptions.IP_TOS));
 
       assertThrows(
           UnsupportedOperationException.class,
