@@ -72,7 +72,7 @@ public class HostsFileParser {
 
     for (String file : hostsFiles.split(";")) {
       Path path = Paths.get(file);
-      if (!Files.exists(path)) {
+      if (!Files.exists(path) || !Files.isRegularFile(path)) {
         LOG.info(PATH_LINUX + " not found.");
         return;
       }
