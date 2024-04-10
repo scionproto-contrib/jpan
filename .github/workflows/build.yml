@@ -3,14 +3,13 @@ name: Java
 on: [push]
 
 env:
-  TIMEOUT: 3
+  time: 3
 
 jobs:
   format-check:
     name: Check Code Formatting
     continue-on-error: true
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ fromJSON(TIMEOUT) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +24,6 @@ jobs:
     name: Codecov
     continue-on-error: true
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ env.TIMEOUT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,6 +35,7 @@ jobs:
 #      - name: Install dependencies
 #        run: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
       - name: Run tests and collect coverage
+        timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn -B test
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
