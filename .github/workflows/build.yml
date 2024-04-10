@@ -3,14 +3,14 @@ name: Java
 on: [push]
 
 env:
-  BUILD_TIMEOUT: 3
+  TIMEOUT: 3
 
 jobs:
   format-check:
     name: Check Code Formatting
     continue-on-error: true
     runs-on: ubuntu-latest
-    timeout-minutes: "${{ fromJSON(BUILD_TIMEOUT) }}"
+    timeout-minutes: "${{ fromJSON(TIMEOUT) }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
