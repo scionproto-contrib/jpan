@@ -44,7 +44,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ env.TIMEOUT }}
     strategy:
       matrix:
         # run different builds with the listed java versions
@@ -57,12 +56,12 @@ jobs:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
       - name: Build with Maven
+        timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn --batch-mode --update-snapshots install
 
 
   build-windows:
     runs-on: windows-latest
-    timeout-minutes: ${{ env.TIMEOUT }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -71,12 +70,12 @@ jobs:
           java-version: 8
           distribution: 'temurin'
       - name: Build with Maven
+        timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn --batch-mode --update-snapshots install
 
 
   build-macos:
     runs-on: macos-latest
-    timeout-minutes: ${{ env.TIMEOUT }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -85,4 +84,5 @@ jobs:
           java-version: 8
           distribution: 'temurin'
       - name: Build with Maven
+        timeout-minutes: ${{ fromJSON(env.time) }}
         run: mvn --batch-mode --update-snapshots install
