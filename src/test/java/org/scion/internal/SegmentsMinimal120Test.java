@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.scion.PackageVisibilityHelper;
 import org.scion.Scion;
 import org.scion.ScionService;
-import org.scion.demo.util.ToStringUtil;
 import org.scion.proto.daemon.Daemon;
 import org.scion.testutil.DNSUtil;
 import org.scion.testutil.MockControlServer;
