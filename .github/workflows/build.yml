@@ -10,7 +10,7 @@ jobs:
     name: Check Code Formatting
     continue-on-error: true
     runs-on: ubuntu-latest
-    timeout-minutes: "${{ fromJSON(TIMEOUT) }}"
+    timeout-minutes: ${{ fromJSON(env.TIMEOUT) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
