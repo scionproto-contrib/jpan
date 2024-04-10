@@ -88,6 +88,8 @@ jobs:
         run: ping -c 3 localhost
       - name: Ping 127.0.0.1
         run: ping -c 3 127.0.0.1
+      - name: ifconfig
+        run: ifconfig
       - name: Ping 127.0.0.15
         run: ping -c 3 127.0.0.15
       - name: Ping ::1
