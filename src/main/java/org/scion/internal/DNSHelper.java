@@ -55,27 +55,31 @@ public class DNSHelper {
   public static <R> R queryTXT(String hostName, String key, Function<String, R> valueParser) {
     String nameStr = hostName.endsWith(".") ? hostName : hostName + ".";
     try {
-      Name name = Name.fromString(nameStr);
-      Record[] records = new Lookup(name, Type.TXT).run();
-      if (records == null) {
-        return null;
-      }
-      for (int i = 0; i < records.length; i++) {
-        TXTRecord txt = (TXTRecord) records[i];
-        String entry = txt.rdataToString();
-        if (entry.startsWith("\"" + key + "=")) {
-          if (entry.endsWith("\"")) {
-            String data = entry.substring(key.length() + 2, entry.length() - 1);
-            R result = valueParser.apply(data);
-            if (result != null) {
-              return result;
-            }
-          }
-          LOG.info(ERR_PARSING_TXT_LOG, entry);
-        }
-      }
+      return queryTXT(Name.fromString(nameStr), key, valueParser);
     } catch (TextParseException e) {
       LOG.info(ERR_PARSING_TXT_LOG, e.getMessage());
+    }
+    return null;
+  }
+
+  public static <R> R queryTXT(Name name, String key, Function<String, R> valueParser) {
+    Record[] records = new Lookup(name, Type.TXT).run();
+    if (records == null) {
+      return null;
+    }
+    for (int i = 0; i < records.length; i++) {
+      TXTRecord txt = (TXTRecord) records[i];
+      String entry = txt.rdataToString();
+      if (entry.startsWith("\"" + key + "=")) {
+        if (entry.endsWith("\"")) {
+          String data = entry.substring(key.length() + 2, entry.length() - 1);
+          R result = valueParser.apply(data);
+          if (result != null) {
+            return result;
+          }
+        }
+        LOG.info(ERR_PARSING_TXT_LOG, entry);
+      }
     }
     return null;
   }
@@ -99,20 +103,20 @@ public class DNSHelper {
   }
 
   public static String searchForDiscoveryService() {
-    try {
-      for (Name n : Lookup.getDefaultSearchPath()) {
-        String a = getScionDiscoveryAddress(n.toString());
-        if (a != null) {
-          return a;
-        }
+    for (Name domain : Lookup.getDefaultSearchPath()) {
+      String a = getScionDiscoveryAddress(domain);
+      if (a != null) {
+        return a;
       }
-      return null;
-    } catch (IOException e) {
-      throw new ScionRuntimeException("Error looking up NAPTR records from OS DNS search paths", e);
     }
+    return null;
   }
 
   public static String getScionDiscoveryAddress(String hostName) throws IOException {
+    return getScionDiscoveryAddress(Name.fromString(hostName));
+  }
+
+  private static String getScionDiscoveryAddress(Name hostName) {
     Record[] records = new Lookup(hostName, Type.NAPTR).run();
     if (records == null) {
       return null;
@@ -137,7 +141,7 @@ public class DNSHelper {
     return null;
   }
 
-  private static int getScionDiscoveryPort(String hostName) {
+  private static int getScionDiscoveryPort(Name hostName) {
     Integer discoveryPort =
         DNSHelper.queryTXT(
             hostName,
