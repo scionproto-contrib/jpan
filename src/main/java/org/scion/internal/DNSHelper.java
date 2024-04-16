@@ -39,6 +39,8 @@ public class DNSHelper {
   private static final String ERR_PARSING_TXT_LOG = ERR_PARSING_TXT + "{}";
   private static final String ERR_PARSING_TXT_LOG2 = ERR_PARSING_TXT + "{} {}";
 
+  private DNSHelper() {}
+
   /**
    * Perform a DNS lookup on "hostName" for a TXT entry with key "key". All matching entries are
    * forwarded to the "valueParser" until the "valueParser" returns not "null".
@@ -51,73 +53,70 @@ public class DNSHelper {
    * @param <R> Result type.
    */
   public static <R> R queryTXT(String hostName, String key, Function<String, R> valueParser) {
-
+    String nameStr = hostName.endsWith(".") ? hostName : hostName + ".";
     try {
-      Record[] records = new Lookup(hostName, Type.TXT).run();
-      if (records == null) {
-        return null;
-      }
-      for (int i = 0; i < records.length; i++) {
-        TXTRecord txt = (TXTRecord) records[i];
-        String entry = txt.rdataToString();
-        if (entry.startsWith("\"" + key + "=")) {
-          if (entry.endsWith("\"")) {
-            String data = entry.substring(key.length() + 2, entry.length() - 1);
-            R result = valueParser.apply(data);
-            if (result != null) {
-              return result;
-            }
-          }
-          LOG.info(ERR_PARSING_TXT_LOG, entry);
-        }
-      }
+      return queryTXT(Name.fromString(nameStr), key, valueParser);
     } catch (TextParseException e) {
       LOG.info(ERR_PARSING_TXT_LOG, e.getMessage());
     }
     return null;
   }
 
-  public static InetAddress queryA(String hostName) throws IOException {
+  public static <R> R queryTXT(Name name, String key, Function<String, R> valueParser) {
+    Record[] records = new Lookup(name, Type.TXT).run();
+    if (records == null) {
+      return null;
+    }
+    for (int i = 0; i < records.length; i++) {
+      TXTRecord txt = (TXTRecord) records[i];
+      String entry = txt.rdataToString();
+      if (entry.startsWith("\"" + key + "=")) {
+        if (entry.endsWith("\"")) {
+          String data = entry.substring(key.length() + 2, entry.length() - 1);
+          R result = valueParser.apply(data);
+          if (result != null) {
+            return result;
+          }
+        }
+        LOG.info(ERR_PARSING_TXT_LOG, entry);
+      }
+    }
+    return null;
+  }
+
+  public static InetAddress queryA(Name hostName) {
     Record[] recordsA = new Lookup(hostName, Type.A).run();
     if (recordsA == null) {
       throw new ScionRuntimeException("No DNS A entry found for host: " + hostName);
     }
-    for (int i = 0; i < recordsA.length; i++) {
-      ARecord ar = (ARecord) recordsA[i];
-      // TODO just return the first one for now
-      return ar.getAddress();
-    }
-    return null;
+    // just return the first one for now
+    return ((ARecord) recordsA[0]).getAddress();
   }
 
-  public static InetAddress queryAAAA(String hostName) throws IOException {
+  public static InetAddress queryAAAA(Name hostName) {
     Record[] recordsA = new Lookup(hostName, Type.AAAA).run();
     if (recordsA == null) {
       throw new ScionRuntimeException("No DNS AAAA entry found for host: " + hostName);
     }
-    for (int i = 0; i < recordsA.length; i++) {
-      AAAARecord ar = (AAAARecord) recordsA[i];
-      // TODO just return the first one for now
-      return ar.getAddress();
+    // just return the first one for now
+    return ((AAAARecord) recordsA[0]).getAddress();
+  }
+
+  public static String searchForDiscoveryService() {
+    for (Name domain : Lookup.getDefaultSearchPath()) {
+      String a = getScionDiscoveryAddress(domain);
+      if (a != null) {
+        return a;
+      }
     }
     return null;
   }
 
-  public static String searchForDiscoveryService() {
-    try {
-      for (Name n : Lookup.getDefaultSearchPath()) {
-        String a = getScionDiscoveryAddress(n.toString());
-        if (a != null) {
-          return a;
-        }
-      }
-      return null;
-    } catch (IOException e) {
-      throw new ScionRuntimeException("Error looking up NAPTR records from OS DNS search paths", e);
-    }
+  public static String getScionDiscoveryAddress(String hostName) throws IOException {
+    return getScionDiscoveryAddress(Name.fromString(hostName));
   }
 
-  public static String getScionDiscoveryAddress(String hostName) throws IOException {
+  private static String getScionDiscoveryAddress(Name hostName) {
     Record[] records = new Lookup(hostName, Type.NAPTR).run();
     if (records == null) {
       return null;
@@ -127,15 +126,14 @@ public class DNSHelper {
       NAPTRRecord nr = (NAPTRRecord) records[i];
       String naptrService = nr.getService();
       if (STR_X_SCION_TCP.equals(naptrService)) {
-        String host = nr.getReplacement().toString();
         String naptrFlag = nr.getFlags();
         int port = getScionDiscoveryPort(hostName);
         if ("A".equals(naptrFlag)) {
-          InetAddress addr = DNSHelper.queryA(host);
+          InetAddress addr = DNSHelper.queryA(nr.getReplacement());
           return addr.getHostAddress() + ":" + port;
         }
         if ("AAAA".equals(naptrFlag)) {
-          InetAddress addr = DNSHelper.queryAAAA(host);
+          InetAddress addr = DNSHelper.queryAAAA(nr.getReplacement());
           return "[" + addr.getHostAddress() + "]:" + port;
         } // keep going and collect more hints
       }
@@ -143,7 +141,7 @@ public class DNSHelper {
     return null;
   }
 
-  private static int getScionDiscoveryPort(String hostName) {
+  private static int getScionDiscoveryPort(Name hostName) {
     Integer discoveryPort =
         DNSHelper.queryTXT(
             hostName,

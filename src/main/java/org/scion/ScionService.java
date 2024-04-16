@@ -418,6 +418,12 @@ public class ScionService {
       return address;
     }
 
+    // Check /etc/scion/hosts
+    HostsFileParser.HostEntry entry = hostsFile.find(hostName);
+    if (entry != null) {
+      return ScionAddress.create(entry.getIsdAs(), entry.getAddress());
+    }
+
     // Use local ISD/AS for localhost addresses
     if (isLocalhost(hostName)) {
       return ScionAddress.create(getLocalIsdAs(), hostName, hostName);

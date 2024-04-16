@@ -224,9 +224,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * - The path will be replaced with a new path once it is expired.<br>
    *
    * <p>NB: This method does internally not call {@link
-   * java.nio.channels.DatagramChannel}.connect(). That means this method does NOT perform any
-   * additional security checks associated with connect(). It will however perform a `bind(null)`
-   * unless the channel is already bound.
+   * java.nio.channels.DatagramChannel#connect(SocketAddress)}. That means this method does NOT
+   * perform any additional security checks associated with connect(). It will however perform a
+   * `bind(null)` unless the channel is already bound.
    *
    * <p>"connect()" is understood to provide connect to a destination address (IP+port).<br>
    * - send()ing packet to another destination will cause an Exception.<br>
@@ -248,7 +248,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     // - connect() and bind() have lock conflict with concurrent call to receiver()
     // - connect() after bind() is fine, but it changes the local address from ANY to specific IF
 
-    // We have two manage two connection states, internal (state of the internallly used channel)
+    // We have two manage two connection states, internal (state of the internally used channel)
     // and external (as reported to API users).
 
     // Externally, for an API user:
