@@ -14,8 +14,6 @@
 
 package org.scion;
 
-import java.net.Inet4Address;
-import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -35,20 +33,18 @@ public class ScionAddress {
     this.isdAs = isdAs;
   }
 
+  static ScionAddress create(long isdAs, InetAddress address) {
+    return new ScionAddress(isdAs, address.getHostName(), address);
+  }
+
   static ScionAddress create(long isdAs, String hostName, String ipString) {
-    InetAddress ip;
     try {
-      if (ipString.indexOf('.') > 0) {
-        ip = Inet4Address.getByName(ipString);
-      } else {
-        // Must be IPv6 or invalid
-        ip = Inet6Address.getByName(ipString);
-      }
+      InetAddress ip = InetAddress.getByName(ipString);
+      return new ScionAddress(isdAs, hostName, ip);
     } catch (UnknownHostException e) {
       // This should never happen because we always call getByName() with an IP address
-      throw new RuntimeException(e);
+      throw new ScionRuntimeException(e);
     }
-    return new ScionAddress(isdAs, hostName, ip);
   }
 
   public long getIsdAs() {
