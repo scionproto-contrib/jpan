@@ -52,7 +52,7 @@ class DatagramChannelMultiSendPathTest {
     ByteBuffer response = ByteBuffer.allocate(512);
     Path address = channel.receive(response);
     assertNotNull(address);
-    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
+    assertEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
     assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
 
     response.flip();

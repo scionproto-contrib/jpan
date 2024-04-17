@@ -14,6 +14,7 @@
 
 package org.scion.jpan;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 
@@ -37,7 +38,7 @@ public class ResponsePath extends Path {
       byte[] srcIP,
       int srcPort,
       long dstIsdAs,
-      byte[] dstIP,
+      InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
     return new ResponsePath(
@@ -50,7 +51,7 @@ public class ResponsePath extends Path {
       byte[] srcIP,
       int srcPort,
       long dstIsdAs,
-      byte[] dstIP,
+      InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
     super(rawPath, dstIsdAs, dstIP, dstPort);

@@ -34,22 +34,16 @@ public class RequestPath extends Path {
   // We store the first hop separately to void creating unnecessary objects.
   private final InetSocketAddress firstHop;
 
-  static RequestPath create(Daemon.Path path, long dstIsdAs, byte[] dstIP, int dstPort) {
+  static RequestPath create(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
     return new RequestPath(path, dstIsdAs, dstIP, dstPort);
   }
 
-  private RequestPath(Daemon.Path path, long dstIsdAs, byte[] dstIP, int dstPort) {
+  private RequestPath(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
     super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
     this.pathProtoc = path;
     if (getRawPath().length == 0) {
       // local AS has path length 0
-      try {
-        InetAddress address = InetAddress.getByAddress(getDestinationAddress());
-        firstHop = new InetSocketAddress(address, getDestinationPort());
-      } catch (UnknownHostException e) {
-        // This is impossible, an IP address cannot be unknown
-        throw new UncheckedIOException(e);
-      }
+      firstHop = new InetSocketAddress(getDestinationAddress(), getDestinationPort());
     } else {
       firstHop = getFirstHopAddress(pathProtoc);
     }

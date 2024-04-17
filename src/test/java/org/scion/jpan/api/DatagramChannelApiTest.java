@@ -156,11 +156,7 @@ class DatagramChannelApiTest {
 
     RequestPath path =
         PackageVisibilityHelper.createDummyPath(
-            sAddr.getIsdAs(),
-            sAddr.getInetAddress().getAddress(),
-            dummyPort,
-            new byte[100],
-            firstHop);
+            sAddr.getIsdAs(), sAddr.getInetAddress(), dummyPort, new byte[100], firstHop);
 
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.connect(path);
@@ -327,7 +323,7 @@ class DatagramChannelApiTest {
   @Test
   void isConnected_Path() throws IOException {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
-    InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
+    InetAddress ip = path.getDestinationAddress();
     InetSocketAddress address = new InetSocketAddress(ip, path.getDestinationPort());
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());

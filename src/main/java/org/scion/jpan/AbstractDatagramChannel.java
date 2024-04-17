@@ -163,11 +163,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  public SocketAddress getRemoteAddress() throws UnknownHostException {
+  public SocketAddress getRemoteAddress() {
     Path path = getConnectionPath();
     if (path != null) {
-      InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
-      return new InetSocketAddress(ip, path.getDestinationPort());
+      return new InetSocketAddress(path.getDestinationAddress(), path.getDestinationPort());
     }
     return null;
   }
@@ -532,10 +531,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         }
       }
 
-      long dstIA = path.getDestinationIsdAs();
-      byte[] dstAddress = path.getDestinationAddress();
-      int dstPort = path.getDestinationPort();
-
       byte[] rawPath = path.getRawPath();
       ScionHeaderParser.write(
           buffer,
@@ -543,13 +538,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           rawPath.length,
           srcIA,
           srcAddress,
-          dstIA,
-          dstAddress,
+          path.getDestinationIsdAs(),
+          path.getDestinationAddress().getAddress(),
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
 
       if (hdrType == InternalConstants.HdrTypes.UDP) {
+        int dstPort = path.getDestinationPort();
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
     }

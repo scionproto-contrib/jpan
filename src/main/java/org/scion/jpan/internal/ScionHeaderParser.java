@@ -100,11 +100,19 @@ public class ScionHeaderParser {
     int srcPort = Short.toUnsignedInt(data.getShort());
     int dstPort = Short.toUnsignedInt(data.getShort());
 
+    InetAddress srcIP;
+    try {
+      srcIP = InetAddress.getByAddress(bytesSrc);
+    } catch (UnknownHostException e) {
+      // this cannot happen
+      throw new IllegalStateException(e);
+    }
+
     // rewind to original offset
     data.position(pos);
     // Swap src and dst.
     return ResponsePath.create(
-        path, dstIsdAs, bytesDst, dstPort, srcIsdAs, bytesSrc, srcPort, firstHopAddress);
+        path, dstIsdAs, bytesDst, dstPort, srcIsdAs, srcIP, srcPort, firstHopAddress);
   }
 
   /**
