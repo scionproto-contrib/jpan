@@ -1,7 +1,7 @@
 
 
 
-# SCION Java client
+# JPAN - Java API for path aware networking with SCION
 
 [![codecov](https://codecov.io/gh/netsec-ethz/scion-java-client/graph/badge.svg?token=3U8J50E4N5)](https://codecov.io/gh/netsec-ethz/scion-java-client)
 
@@ -11,7 +11,7 @@ It provides functionality similar to
 [PAN (Go)](https://pkg.go.dev/github.com/netsec-ethz/scion-apps/pkg/pan) and 
 [scion-rs (Rust)](https://github.com/MystenLabs/scion-rs). 
 
-The following artifact contains the complete SCION Java client:
+The following artifact contains the complete SCION Java implementation:
 ```xml 
 <dependency>
     <groupId>org.scion</groupId>
@@ -30,15 +30,15 @@ The following artifact contains the complete SCION Java client:
 - Many more
 
 ### WARNING
-This client can directly connect to SCION **without dispatcher**.
+JPAN can directly connect to SCION **without dispatcher**.
 
 Currently (January 2024), the SCION system uses a "dispatcher" (a process that runs on endhosts,
 listens on a fixed port (30041) and forwards any incoming SCION packets, after stripping the SCION 
 header, to local application).
 
-This Java client cannot be used with a dispatcher.
-The Java client can be used in one of the following ways:
-- You can use the client stand-alone (without local SCION installation),
+JPAN cannot be used with a dispatcher.
+JPAN can be used in one of the following ways:
+- You can use JPAN stand-alone (without local SCION installation),
   however it must listen on port 30041 for incoming SCION packets because
   SCION routers currently will forward data only to that port. 
 - If you need a local SCION installation (Go implementation),
@@ -113,10 +113,9 @@ try (DatagramChannel channel = DatagramChannel.open()) {
 
 ### Local installation
 
-If you want to work on the SCION Java library or simply browse the code locally, you can
-install it locally.
+If you want to work on JPAN or simply browse the code locally, you can install it locally.
 
-The SCION Java client is implemented as a 
+JPAN is available as a 
 [Maven artifact](https://central.sonatype.com/artifact/org.scion/scion-java-client).
 Many IDEs comes with maven plugins. If you want to use Maven from the command line, you
 can install it with `sudo apt install maven` (Ubuntu etc) or download it 
@@ -248,7 +247,7 @@ The following standard options are **not** supported:
 ## Configuration
 
 ### Bootstrapping / daemon
-The SCION Java client can be used with a local daemon or in standalone mode (without daemon).
+JPAN can be used with a local daemon or in standalone mode (without daemon).
 The daemon is available if you have a [local installation of SCION](https://docs.scion.org/en/latest/dev/run.html).
 Standalone mode will directly connect to a topology server and control server, in a properly
 configured AS this should all happen automatically.
@@ -276,7 +275,7 @@ while the other options are skipped if no property or environment variable is de
 | Bootstrap DNS NAPTR entry host name | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            | 
 
 ### DNS
-The SCION Java client will check the OS default DNS server to resolve SCION addresses.
+JPAN will check the OS default DNS server to resolve SCION addresses.
 In addition, addresses can be specified in a `/etc/scion/hosts` file. The location of the hosts file
 is configurable, see next section.  
 
