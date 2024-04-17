@@ -49,7 +49,7 @@ class DatagramChannelMultiSendInetAddrTest {
     String message = PingPongHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     // Test send() with InetAddress
-    InetAddress inetServerAddress = InetAddress.getByAddress(serverAddress.getDestinationAddress());
+    InetAddress inetServerAddress = serverAddress.getDestinationAddress();
     InetSocketAddress inetServerSocketAddress =
         new InetSocketAddress(inetServerAddress, serverAddress.getDestinationPort());
     channel.send(sendBuf, inetServerSocketAddress);
@@ -58,7 +58,7 @@ class DatagramChannelMultiSendInetAddrTest {
     ByteBuffer response = ByteBuffer.allocate(512);
     Path address = channel.receive(response);
     assertNotNull(address);
-    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
+    assertEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
     assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
 
     response.flip();

@@ -25,10 +25,10 @@ import java.util.Arrays;
 public abstract class Path {
   private final byte[] pathRaw;
   private final long dstIsdAs;
-  private final byte[] dstAddress;
+  private final InetAddress dstAddress;
   private final int dstPort;
 
-  protected Path(byte[] rawPath, long dstIsdAs, byte[] dstIP, int dstPort) {
+  protected Path(byte[] rawPath, long dstIsdAs, InetAddress dstIP, int dstPort) {
     this.pathRaw = rawPath;
     this.dstIsdAs = dstIsdAs;
     this.dstAddress = dstIP;
@@ -45,7 +45,7 @@ public abstract class Path {
     return dstPort;
   }
 
-  public byte[] getDestinationAddress() {
+  public InetAddress getDestinationAddress() {
     return dstAddress;
   }
 
@@ -59,7 +59,7 @@ public abstract class Path {
         + "dstIsdAs="
         + ScionUtil.toStringIA(dstIsdAs)
         + ", dstAddress="
-        + Arrays.toString(dstAddress)
+        + dstAddress
         + ", dstPort="
         + dstPort
         + ", pathRaw="

@@ -191,7 +191,7 @@ public class ScionServiceTest {
       //  raw: {}
       assertEquals(1, paths.size());
       RequestPath path = paths.get(0);
-      InetAddress addr = InetAddress.getByAddress(path.getDestinationAddress());
+      InetAddress addr = path.getDestinationAddress();
       InetSocketAddress sAddr = new InetSocketAddress(addr, path.getDestinationPort());
       assertEquals(sAddr, path.getFirstHopAddress());
       assertEquals(dstIA, path.getDestinationIsdAs());

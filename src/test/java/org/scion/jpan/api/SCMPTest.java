@@ -283,8 +283,13 @@ public class SCMPTest {
   private RequestPath getPathTo112() {
     ScionService service = Scion.defaultService();
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    List<RequestPath> paths = service.getPaths(dstIA, new byte[] {0, 0, 0, 0}, 12345);
-    return paths.get(0);
+    try {
+      InetAddress zero = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
+      List<RequestPath> paths = service.getPaths(dstIA, zero, 12345);
+      return paths.get(0);
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private RequestPath getPathToLocalAS() {

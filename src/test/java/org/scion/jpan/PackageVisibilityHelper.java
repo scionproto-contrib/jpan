@@ -60,11 +60,25 @@ public class PackageVisibilityHelper {
 
   public static RequestPath createDummyPath() {
     InetSocketAddress dstAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    return createDummyPath(0, ExamplePacket.SRC_HOST, 55555, new byte[0], dstAddr);
+    try {
+      InetAddress dstIP = InetAddress.getByAddress(ExamplePacket.SRC_HOST);
+      return createDummyPath(0, dstIP, 55555, new byte[0], dstAddr);
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   public static RequestPath createDummyPath(
       long dstIsdAs, byte[] dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
+    try {
+      return createDummyPath(dstIsdAs, InetAddress.getByAddress(dstHost), dstPort, raw, firstHop);
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  public static RequestPath createDummyPath(
+      long dstIsdAs, InetAddress dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
     ByteString bs = ByteString.copyFrom(raw);
     String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
     Daemon.Interface inter =
@@ -86,13 +100,19 @@ public class PackageVisibilityHelper {
       byte[] dstIP,
       int dstPort,
       InetSocketAddress firstHop) {
-    return ResponsePath.create(raw, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHop);
+    try {
+      InetAddress src = InetAddress.getByAddress(srcIP);
+      InetAddress dst = InetAddress.getByAddress(dstIP);
+      return ResponsePath.create(raw, srcIsdAs, src, srcPort, dstIsdAs, dst, dstPort, firstHop);
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   public static RequestPath createRequestPath110_112(
       Daemon.Path.Builder builder,
       long dstIsdAs,
-      byte[] dstHost,
+      InetAddress dstHost,
       int dstPort,
       InetSocketAddress firstHop) {
     ByteString bs = ByteString.copyFrom(ExamplePacket.PATH_RAW_TINY_110_112);

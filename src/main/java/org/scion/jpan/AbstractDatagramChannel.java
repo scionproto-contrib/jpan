@@ -163,11 +163,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  public SocketAddress getRemoteAddress() throws UnknownHostException {
+  public SocketAddress getRemoteAddress() {
     Path path = getConnectionPath();
     if (path != null) {
-      InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
-      return new InetSocketAddress(ip, path.getDestinationPort());
+      return new InetSocketAddress(path.getDestinationAddress(), path.getDestinationPort());
     }
     return null;
   }
@@ -501,7 +500,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       ensureBound();
       buffer.clear();
       long srcIA;
-      byte[] srcAddress;
+      InetAddress srcAddress;
       int srcPort;
       if (path instanceof ResponsePath) {
         // We could get source IA, address and port locally, but it seems cleaner
@@ -519,9 +518,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           // elsewhere (from the service).
 
           // TODO cache this or add it to path object?
-          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress()).getAddress();
+          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
         } else {
-          srcAddress = localAddress.getAddress();
+          srcAddress = localAddress;
         }
         srcPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
         if (srcPort == 0) {
@@ -532,24 +531,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         }
       }
 
-      long dstIA = path.getDestinationIsdAs();
-      byte[] dstAddress = path.getDestinationAddress();
-      int dstPort = path.getDestinationPort();
-
       byte[] rawPath = path.getRawPath();
       ScionHeaderParser.write(
           buffer,
           payloadLength,
           rawPath.length,
           srcIA,
-          srcAddress,
-          dstIA,
-          dstAddress,
+          srcAddress.getAddress(),
+          path.getDestinationIsdAs(),
+          path.getDestinationAddress().getAddress(),
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
 
       if (hdrType == InternalConstants.HdrTypes.UDP) {
+        int dstPort = path.getDestinationPort();
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
     }

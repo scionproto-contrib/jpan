@@ -75,7 +75,7 @@ public class PingPongHelper extends PingPongHelperBase {
     @Override
     public final void runImpl(DatagramChannel channel) throws IOException {
       if (connect) {
-        InetAddress inetAddress = InetAddress.getByAddress(path.getDestinationAddress());
+        InetAddress inetAddress = path.getDestinationAddress();
         InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getDestinationPort());
         channel.connect(iSAddress);
       }
@@ -139,7 +139,7 @@ public class PingPongHelper extends PingPongHelperBase {
     ByteBuffer response = ByteBuffer.allocate(512);
     Path address = channel.receive(response);
     assertNotNull(address);
-    assertArrayEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
+    assertEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
     assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
 
     response.flip();

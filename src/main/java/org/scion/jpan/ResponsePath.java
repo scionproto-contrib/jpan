@@ -14,8 +14,8 @@
 
 package org.scion.jpan;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 
 /**
  * A ResponsePath is created/returned when receiving a packet. Besides being a Path, it contains
@@ -28,16 +28,16 @@ public class ResponsePath extends Path {
   private final InetSocketAddress firstHopAddress;
   // The ResponsePath gets source information from the incoming packet.
   private final long srcIsdAs;
-  private final byte[] srcAddress;
+  private final InetAddress srcAddress;
   private final int srcPort;
 
   public static ResponsePath create(
       byte[] rawPath,
       long srcIsdAs,
-      byte[] srcIP,
+      InetAddress srcIP,
       int srcPort,
       long dstIsdAs,
-      byte[] dstIP,
+      InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
     return new ResponsePath(
@@ -47,10 +47,10 @@ public class ResponsePath extends Path {
   private ResponsePath(
       byte[] rawPath,
       long srcIsdAs,
-      byte[] srcIP,
+      InetAddress srcIP,
       int srcPort,
       long dstIsdAs,
-      byte[] dstIP,
+      InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
     super(rawPath, dstIsdAs, dstIP, dstPort);
@@ -69,7 +69,7 @@ public class ResponsePath extends Path {
     return srcIsdAs;
   }
 
-  public byte[] getSourceAddress() {
+  public InetAddress getSourceAddress() {
     return srcAddress;
   }
 
@@ -86,7 +86,7 @@ public class ResponsePath extends Path {
         + ", srcIsdAs="
         + srcIsdAs
         + ", srcAddress="
-        + Arrays.toString(srcAddress)
+        + srcAddress
         + ", srcPort="
         + srcPort
         + '}';

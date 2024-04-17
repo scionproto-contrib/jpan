@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Cleaned up `DatagramChannel`: Fixed connect()/disconnect(), improved concurrency,
   fixed buffer resizing wrt MTU, general clean up.
   [#35](https://github.com/netsec-ethz/scion-java-client/pull/35)
+- **BREAKING CHANGE**: Renamed project to `jpan`. 
+  [#43](https://github.com/netsec-ethz/scion-java-client/pull/43)
+- **BREAKING CHANGE**: `Path` now returns `InetAddress` instead of `byte[]`
+  [#44](https://github.com/netsec-ethz/scion-java-client/pull/44)
 
 ### Fixed
 - Fixed: SCMP problem when pinging local AS.
@@ -54,7 +58,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Some cleanup related to hists file parser. [#42](https://github.com/netsec-ethz/scion-java-client/pull/42)
 
 ### Removed
-
 - Removed all code related to DatagramSockets
   [#21](https://github.com/netsec-ethz/scion-java-client/pull/21)
 

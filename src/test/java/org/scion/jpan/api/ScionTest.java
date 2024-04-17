@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -173,7 +174,8 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(MockTopologyServer.TOPO_HOST)) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
-      List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
+      InetAddress ip123 = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
+      List<RequestPath> paths = ss.getPaths(iaDst, ip123, 12345);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
@@ -192,7 +194,8 @@ public class ScionTest {
     try (Scion.CloseableService ss =
         Scion.newServiceWithBootstrapServer(ToStringUtil.toAddressPort(topoAddr))) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
-      List<RequestPath> paths = ss.getPaths(iaDst, new byte[] {123, 123, 123, 123}, 12345);
+      InetAddress ip123 = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
+      List<RequestPath> paths = ss.getPaths(iaDst, ip123, 12345);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
