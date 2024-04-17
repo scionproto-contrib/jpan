@@ -37,7 +37,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   fixed buffer resizing wrt MTU, general clean up.
   [#35](https://github.com/netsec-ethz/scion-java-client/pull/35)
 - **BREAKING CHANGE**: Renamed project to `jpan`. 
-  [#43](https://github.com/netsec-ethz/scion-java-client/pull/43)
+  [#43](https://github.com/netsec-ethz/scion-java-client/pull/43),
+  [#46](https://github.com/netsec-ethz/scion-java-client/pull/46)
 - **BREAKING CHANGE**: `Path` now returns `InetAddress` instead of `byte[]`
   [#44](https://github.com/netsec-ethz/scion-java-client/pull/44)
 
