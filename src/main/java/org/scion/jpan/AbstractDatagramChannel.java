@@ -45,6 +45,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   // Whether we have a connectionPath is independent of whether the underlying channel is connected.
   private RequestPath connectionPath;
   private InetAddress localAddress;
+  private boolean isBoundToAddress = false;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private ScionService service;
@@ -55,6 +56,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
   private int cfgTrafficClass;
   private Consumer<Scmp.Message> errorListener;
+  private boolean cfgRemoteDispatcher = false;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
     this(service, DatagramChannel.open());
@@ -132,6 +134,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public C bind(InetSocketAddress address) throws IOException {
     synchronized (stateLock) {
       channel.bind(address);
+      isBoundToAddress = address != null;
       localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
       return (C) this;
     }
@@ -348,8 +351,32 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected void sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {
-    channel.send(buffer, address);
+  /**
+   * Assume that the destination host uses a dispatcher.
+   *
+   * <p>Calling this method sets an internal flag that forces the destination port of intra-AS
+   * packets to be 30041 independent of the UDP-overlay port. This flag has no effect for inter-AS
+   * packets or if the overlay port is already 30041.
+   *
+   * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
+   *     30041.
+   * @deprecated To be removed once dispatchers have been removed
+   */
+  @Deprecated
+  public void configureRemoteDispatcher(boolean hasDispatcher) {
+    this.cfgRemoteDispatcher = hasDispatcher;
+  }
+
+  protected int sendRaw(ByteBuffer buffer, InetSocketAddress address, Path path)
+      throws IOException {
+    if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
+      return channel.send(buffer, new InetSocketAddress(address.getAddress(), 30041));
+    }
+    return channel.send(buffer, address);
+  }
+
+  protected int sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {
+    return sendRaw(buffer, address, null);
   }
 
   public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
@@ -573,13 +600,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     connectionPath = newPath;
     // update local address
     InetAddress oldLocalAddress = localAddress;
-    // TODO we should not change the local address if bind() was called with an explicit address!
-    // API: returning the localAddress should return non-ANY if we have a connection
-    //     I.e. getExternalIP() is fine if we have a connection.
-    //     It is NOT fine if we are bound to an explicit IP/port
-    localAddress = getOrCreateService().getExternalIP(newPath.getFirstHopAddress());
-    if (!Objects.equals(localAddress, oldLocalAddress)) {
-      resizeBuffers(localAddress);
+    // we should not change the local address if bind() was called with an explicit address!
+    if (!isBoundToAddress) {
+      // API: returning the localAddress should return non-ANY if we have a connection
+      //     I.e. getExternalIP() is fine if we have a connection.
+      //     It is NOT fine if we are bound to an explicit IP/port
+      localAddress = getOrCreateService().getExternalIP(newPath.getFirstHopAddress());
+      if (!Objects.equals(localAddress, oldLocalAddress)) {
+        resizeBuffers(localAddress);
+      }
     }
   }
 

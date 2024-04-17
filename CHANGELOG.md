@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for `/etc/scion/hosts` and for OS search domains (e.g. `/etc/resolv.conf`). 
   [#40](https://github.com/netsec-ethz/scion-java-client/pull/40)
 - CI builds for Windows and MacOS. [#41](https://github.com/netsec-ethz/scion-java-client/pull/41)
+- Added support communicating with a dispatcher-endhost in the local AS, see 
+  `DatagramChannel.configureRemoteDispatcher`. 
+  [#46](https://github.com/netsec-ethz/scion-java-client/pull/46)
 
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
@@ -38,7 +41,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#35](https://github.com/netsec-ethz/scion-java-client/pull/35)
 - **BREAKING CHANGE**: Renamed project to `jpan`. 
   [#43](https://github.com/netsec-ethz/scion-java-client/pull/43),
-  [#46](https://github.com/netsec-ethz/scion-java-client/pull/46)
+  [#45](https://github.com/netsec-ethz/scion-java-client/pull/45)
 - **BREAKING CHANGE**: `Path` now returns `InetAddress` instead of `byte[]`
   [#44](https://github.com/netsec-ethz/scion-java-client/pull/44)
 

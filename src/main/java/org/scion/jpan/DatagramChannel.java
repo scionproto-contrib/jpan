@@ -119,7 +119,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      sendRaw(buffer, actualPath.getFirstHopAddress());
+      sendRaw(buffer, actualPath.getFirstHopAddress(), actualPath);
       return actualPath;
     } finally {
       writeLock().unlock();
@@ -173,7 +173,7 @@ public class DatagramChannel extends AbstractDatagramChannel<DatagramChannel>
       buffer.put(src);
       buffer.flip();
 
-      int sent = channel().send(buffer, getConnectionPath().getFirstHopAddress());
+      int sent = sendRaw(buffer, getConnectionPath().getFirstHopAddress(), getConnectionPath());
       if (sent < buffer.limit() || buffer.remaining() > 0) {
         throw new ScionException("Failed to send all data.");
       }
