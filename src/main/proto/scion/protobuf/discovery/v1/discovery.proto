@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option java_package = "org.scion.proto.discovery";
+option java_package = "org.scion.jpan.proto.discovery";
 
 package proto.discovery.v1;
 

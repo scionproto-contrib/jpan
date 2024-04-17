@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option java_package = "org.scion.proto.crypto";
+option java_package = "org.scion.jpan.proto.crypto";
 
 package proto.crypto.v1;
 

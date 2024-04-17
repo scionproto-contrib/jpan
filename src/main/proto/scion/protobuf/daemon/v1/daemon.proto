@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option java_package = "org.scion.proto.daemon";
+option java_package = "org.scion.jpan.proto.daemon";
 //option java_multiple_files = true;
 
 package proto.daemon.v1;

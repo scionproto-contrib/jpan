@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option java_package = "org.scion.proto.hidden_segment";
+option java_package = "org.scion.jpan.proto.hidden_segment";
 
 package proto.hidden_segment.v1;
 
