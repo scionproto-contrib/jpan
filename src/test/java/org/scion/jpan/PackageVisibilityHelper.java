@@ -101,8 +101,9 @@ public class PackageVisibilityHelper {
       int dstPort,
       InetSocketAddress firstHop) {
     try {
+      InetAddress src = InetAddress.getByAddress(srcIP);
       InetAddress dst = InetAddress.getByAddress(dstIP);
-      return ResponsePath.create(raw, srcIsdAs, srcIP, srcPort, dstIsdAs, dst, dstPort, firstHop);
+      return ResponsePath.create(raw, srcIsdAs, src, srcPort, dstIsdAs, dst, dstPort, firstHop);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }

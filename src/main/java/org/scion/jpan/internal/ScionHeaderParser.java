@@ -101,8 +101,10 @@ public class ScionHeaderParser {
     int dstPort = Short.toUnsignedInt(data.getShort());
 
     InetAddress srcIP;
+    InetAddress dstIP;
     try {
       srcIP = InetAddress.getByAddress(bytesSrc);
+      dstIP = InetAddress.getByAddress(bytesDst);
     } catch (UnknownHostException e) {
       // this cannot happen
       throw new IllegalStateException(e);
@@ -112,7 +114,7 @@ public class ScionHeaderParser {
     data.position(pos);
     // Swap src and dst.
     return ResponsePath.create(
-        path, dstIsdAs, bytesDst, dstPort, srcIsdAs, srcIP, srcPort, firstHopAddress);
+        path, dstIsdAs, dstIP, dstPort, srcIsdAs, srcIP, srcPort, firstHopAddress);
   }
 
   /**

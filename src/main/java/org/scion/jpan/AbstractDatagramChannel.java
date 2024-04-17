@@ -500,7 +500,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       ensureBound();
       buffer.clear();
       long srcIA;
-      byte[] srcAddress;
+      InetAddress srcAddress;
       int srcPort;
       if (path instanceof ResponsePath) {
         // We could get source IA, address and port locally, but it seems cleaner
@@ -518,9 +518,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           // elsewhere (from the service).
 
           // TODO cache this or add it to path object?
-          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress()).getAddress();
+          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
         } else {
-          srcAddress = localAddress.getAddress();
+          srcAddress = localAddress;
         }
         srcPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
         if (srcPort == 0) {
@@ -537,7 +537,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           payloadLength,
           rawPath.length,
           srcIA,
-          srcAddress,
+          srcAddress.getAddress(),
           path.getDestinationIsdAs(),
           path.getDestinationAddress().getAddress(),
           hdrType,
