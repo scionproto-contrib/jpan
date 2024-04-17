@@ -26,17 +26,17 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.scion.jpan.*;
 import org.scion.internal.SimpleCache;
+import org.scion.jpan.*;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
  *
  * <p>Note: use of this class is discouraged in favor of org.scion.{@link
- * org.scion.jpan.DatagramChannel}. The reason is that this class' API (InetAddress and DatagramPacket)
- * cannot be extended to support SCION paths. As a consequence, a server needs to cache paths
- * internally which requires memory and may cause exceptions if more connections (=paths) are
- * managed than the configured thresholds allows.
+ * org.scion.jpan.DatagramChannel}. The reason is that this class' API (InetAddress and
+ * DatagramPacket) cannot be extended to support SCION paths. As a consequence, a server needs to
+ * cache paths internally which requires memory and may cause exceptions if more connections
+ * (=paths) are managed than the configured thresholds allows.
  */
 public class DatagramSocket extends java.net.DatagramSocket {
 

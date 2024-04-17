@@ -15,7 +15,6 @@
 package org.scion.jpan.internal;
 
 import java.net.InetAddress;
-
 import org.scion.internal.SimpleCache;
 import org.scion.jpan.ScionAddress;
 import org.scion.jpan.ScionException;

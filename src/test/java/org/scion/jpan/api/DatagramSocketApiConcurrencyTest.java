@@ -30,9 +30,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.socket.DatagramSocket;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
-import org.scion.jpan.socket.DatagramSocket;
 
 class DatagramSocketApiConcurrencyTest {
 

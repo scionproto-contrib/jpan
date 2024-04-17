@@ -20,7 +20,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.*;
+import org.scion.jpan.internal.MultiMap;
 import org.scion.jpan.socket.DatagramSocket;
 
 class DatagramSocketApiCompletenessTest {
