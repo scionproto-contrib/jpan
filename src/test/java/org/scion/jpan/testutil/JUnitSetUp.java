@@ -58,7 +58,11 @@ public class JUnitSetUp
       System.clearProperty(Constants.PROPERTY_DAEMON);
       System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
       System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
-      context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put("SCION JUnit global", this);
+      context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put("any unique name", this);
+      // TODO change default daemon port?
+      //  -> Avoid confusion with Minimal / scionProto / local installation
+
+      //     System.out.println("Singleton::Start-Once");
     }
   }
 

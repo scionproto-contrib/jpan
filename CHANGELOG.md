@@ -23,6 +23,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Demo cleanup an new `ScmpShowpathsDemo`.
   [#49](https://github.com/netsec-ethz/scion-java-client/pull/49)
 
+- `DatagramSocket` [#31](https://github.com/netsec-ethz/scion-java-client/pull/31)
+  TODO: 
+  - TODO use AddressResolver/Cache!!!!! 
+  - document/test additional methods in socket (connect, get/set Cache/Path)
+  - TODO cleanup search domains:
+    - rename method parameters from hostName to domainName
+    - test sub-domains, e.g. netsec.inf.ethz.ch and xyz.netsec.inf.ethz.ch
+    - Implement/Document assumeDestinationDispatcher() for AS-internal destinations.
+    - FIX: DatagramSocket. receives stores path in cache when using FLUPKE!
+    - WRITE test that covers the rawPath==0 part of the RequestPath constructor
+  
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
   [#9](https://github.com/netsec-ethz/scion-java-client/pull/9)

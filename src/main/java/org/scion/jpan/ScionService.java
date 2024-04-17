@@ -294,24 +294,26 @@ public class ScionService {
   /**
    * Requests paths from the local ISD/AS to the destination.
    *
-   * @param dstAddress Destination IP address
+   * @param dstAddress Destination IP address. It will try to perform a DNS look up to map the
+   *     hostName to SCION address.
    * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
-    long dstIsdAs = getIsdAs(dstAddress.getHostString());
-    return getPaths(dstIsdAs, dstAddress);
+    ScionAddress sa = getScionAddress(dstAddress.getHostName());
+    return getPaths(sa.getIsdAs(), sa.getInetAddress().getAddress(), dstAddress.getPort());
   }
 
   /**
    * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
-   * @param dstAddress Destination IP address
+   * @param dstScionAddress Destination IP address. Must belong to a SCION enabled end host.
    * @return All paths returned by the path service.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress) {
-    return getPaths(dstIsdAs, dstAddress.getAddress(), dstAddress.getPort());
+  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
+    // TODO change method API name to make clear that this requires a SCION IP.
+    return getPaths(dstIsdAs, dstScionAddress.getAddress(), dstScionAddress.getPort());
   }
 
   /**
