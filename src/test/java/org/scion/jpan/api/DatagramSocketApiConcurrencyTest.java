@@ -17,7 +17,10 @@ package org.scion.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -26,10 +29,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.*;
-import org.scion.socket.DatagramSocket;
-import org.scion.testutil.MockDNS;
-import org.scion.testutil.MockDaemon;
+import org.scion.jpan.*;
+import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.MockDaemon;
+import org.scion.jpan.socket.DatagramSocket;
 
 class DatagramSocketApiConcurrencyTest {
 

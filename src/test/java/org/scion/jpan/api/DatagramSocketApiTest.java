@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.api;
+package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,22 +33,15 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.PackageVisibilityHelper;
-import org.scion.Path;
-import org.scion.PathPolicy;
-import org.scion.RequestPath;
-import org.scion.Scion;
-import org.scion.ScionAddress;
-import org.scion.ScionService;
-import org.scion.ScionSocketOptions;
-import org.scion.proto.daemon.Daemon;
-import org.scion.socket.DatagramSocket;
-import org.scion.testutil.ExamplePacket;
-import org.scion.testutil.MockDNS;
-import org.scion.testutil.MockDaemon;
-import org.scion.testutil.MockNetwork;
-import org.scion.testutil.PingPongSocketHelper;
-import org.scion.testutil.Util;
+import org.scion.jpan.*;
+import org.scion.jpan.proto.daemon.Daemon;
+import org.scion.jpan.socket.DatagramSocket;
+import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.MockDaemon;
+import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.PingPongSocketHelper;
+import org.scion.jpan.testutil.Util;
 
 class DatagramSocketApiTest {
 
@@ -312,7 +305,7 @@ class DatagramSocketApiTest {
   @Test
   void isConnected_Path() throws IOException {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
-    InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
+    InetAddress ip = path.getDestinationAddress();
     InetSocketAddress address = new InetSocketAddress(ip, path.getDestinationPort());
     try (DatagramSocket socket = new DatagramSocket()) {
       assertFalse(socket.isConnected());
@@ -663,12 +656,7 @@ class DatagramSocketApiTest {
   }
 
   private static InetSocketAddress toAddress(Path path) {
-    try {
-      InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
-      return new InetSocketAddress(ip, path.getDestinationPort());
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+    return new InetSocketAddress(path.getDestinationAddress(), path.getDestinationPort());
   }
 
   @Test

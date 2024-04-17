@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.api;
+package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.scion.testutil.PingPongHelperBase.MSG;
+import static org.scion.jpan.testutil.PingPongHelperBase.MSG;
 
 import java.io.IOException;
 import java.net.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import org.scion.RequestPath;
-import org.scion.ScionService;
-import org.scion.socket.DatagramSocket;
-import org.scion.testutil.MockNetwork;
-import org.scion.testutil.PingPongSocketHelper;
+import org.scion.jpan.RequestPath;
+import org.scion.jpan.ScionService;
+import org.scion.jpan.socket.DatagramSocket;
+import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.PingPongSocketHelper;
 
 class DatagramSocketPingPongTest {
 
@@ -46,7 +46,7 @@ class DatagramSocketPingPongTest {
 
   private void client(DatagramSocket socket, RequestPath requestPath, int id) throws IOException {
     byte[] sendBuf = MSG.getBytes();
-    InetAddress addr = InetAddress.getByAddress(requestPath.getDestinationAddress());
+    InetAddress addr = requestPath.getDestinationAddress();
     int port = requestPath.getDestinationPort();
     DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, addr, port);
     socket.send(request);

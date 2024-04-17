@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.scion.demo.inspector.ScionPacketInspector;
+import org.scion.jpan.demo.inspector.ScionPacketInspector;
 
 public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 

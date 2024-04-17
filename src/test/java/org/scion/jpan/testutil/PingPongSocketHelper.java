@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.testutil;
+package org.scion.jpan.testutil;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import org.scion.RequestPath;
-import org.scion.socket.DatagramSocket;
+import org.scion.jpan.RequestPath;
+import org.scion.jpan.socket.DatagramSocket;
 
 public class PingPongSocketHelper extends PingPongHelperBase {
 
@@ -68,7 +68,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     @Override
     public final void runImpl() throws IOException {
       try (DatagramSocket socket = new DatagramSocket()) {
-        InetAddress ipAddress = InetAddress.getByAddress(remoteAddress.getDestinationAddress());
+        InetAddress ipAddress = remoteAddress.getDestinationAddress();
         InetSocketAddress iSAddress =
             new InetSocketAddress(ipAddress, remoteAddress.getDestinationPort());
         socket.connect(iSAddress);

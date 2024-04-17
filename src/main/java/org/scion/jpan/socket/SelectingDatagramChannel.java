@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.socket;
+package org.scion.jpan.socket;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -21,17 +21,17 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
-import org.scion.ResponsePath;
-import org.scion.ScionService;
-import org.scion.internal.InternalConstants;
-import org.scion.internal.ScionHeaderParser;
+import org.scion.jpan.ResponsePath;
+import org.scion.jpan.ScionService;
+import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.ScionHeaderParser;
 
 /**
  * DatagramChannel with support for timeout.
  *
  * <p>The class is non-public for now. It may be removed (or not) once we implement Selectors.
  */
-class SelectingDatagramChannel extends org.scion.DatagramChannel {
+class SelectingDatagramChannel extends org.scion.jpan.DatagramChannel {
   private final Selector selector;
   private int timeoutMs = 0;
 

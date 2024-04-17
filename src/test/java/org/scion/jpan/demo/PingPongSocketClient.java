@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.demo;
+package org.scion.jpan.demo;
 
 import java.io.IOException;
 import java.net.*;
-import org.scion.socket.DatagramSocket;
-import org.scion.testutil.MockDNS;
+import org.scion.jpan.socket.DatagramSocket;
+import org.scion.jpan.testutil.MockDNS;
 
 public class PingPongSocketClient {
 

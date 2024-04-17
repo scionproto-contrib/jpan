@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
+package org.scion.jpan.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,9 +22,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
-import org.scion.*;
-import org.scion.testutil.DNSUtil;
-import org.scion.testutil.MockDaemon;
+import org.scion.jpan.*;
+import org.scion.jpan.testutil.DNSUtil;
+import org.scion.jpan.testutil.MockDaemon;
 
 class AddressResolverTest {
 

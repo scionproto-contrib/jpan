@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.internal;
+package org.scion.jpan.internal;
 
 import java.net.InetAddress;
-import org.scion.ScionAddress;
-import org.scion.ScionException;
-import org.scion.ScionService;
+
+import org.scion.internal.SimpleCache;
+import org.scion.jpan.ScionAddress;
+import org.scion.jpan.ScionException;
+import org.scion.jpan.ScionService;
 
 public class AddressResolver {
 

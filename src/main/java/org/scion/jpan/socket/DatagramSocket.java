@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.socket;
+package org.scion.jpan.socket;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -26,14 +26,14 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.scion.*;
+import org.scion.jpan.*;
 import org.scion.internal.SimpleCache;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
  *
  * <p>Note: use of this class is discouraged in favor of org.scion.{@link
- * org.scion.DatagramChannel}. The reason is that this class' API (InetAddress and DatagramPacket)
+ * org.scion.jpan.DatagramChannel}. The reason is that this class' API (InetAddress and DatagramPacket)
  * cannot be extended to support SCION paths. As a consequence, a server needs to cache paths
  * internally which requires memory and may cause exceptions if more connections (=paths) are
  * managed than the configured thresholds allows.
@@ -250,11 +250,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
 
   @Override
   public SocketAddress getRemoteSocketAddress() {
-    try {
-      return channel.getRemoteAddress();
-    } catch (UnknownHostException e) {
-      throw new ScionRuntimeException(e);
-    }
+    return channel.getRemoteAddress();
   }
 
   @Override
@@ -322,14 +318,14 @@ public class DatagramSocket extends java.net.DatagramSocket {
       }
       if (!channel.isConnected()) {
         synchronized (pathCache) {
-          InetAddress ip = InetAddress.getByAddress(path.getDestinationAddress());
+          InetAddress ip = path.getDestinationAddress();
           InetSocketAddress addr = new InetSocketAddress(ip, path.getDestinationPort());
           pathCache.put(addr, path);
         }
       }
       receiveBuffer.flip();
       packet.setLength(receiveBuffer.limit());
-      packet.setAddress(InetAddress.getByAddress(path.getDestinationAddress()));
+      packet.setAddress(path.getDestinationAddress());
       packet.setPort(path.getDestinationPort());
     }
   }
@@ -545,7 +541,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
    *     implemented.
    */
   @Deprecated
-  public synchronized org.scion.DatagramChannel getScionChannel() {
+  public synchronized org.scion.jpan.DatagramChannel getScionChannel() {
     return channel;
   }
 
@@ -564,11 +560,11 @@ public class DatagramSocket extends java.net.DatagramSocket {
   /**
    * Assume that the destination host uses a dispatcher.
    *
-   * <p>See {@link org.scion.DatagramChannel#configureRemoteDispatcher(boolean)}.
+   * <p>See {@link org.scion.jpan.DatagramChannel#configureRemoteDispatcher(boolean)}.
    *
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
-   * @see org.scion.DatagramChannel#configureRemoteDispatcher(boolean)
+   * @see org.scion.jpan.DatagramChannel#configureRemoteDispatcher(boolean)
    * @deprecated To be remove once dispatchers have been removed
    */
   @Deprecated

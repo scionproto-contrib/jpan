@@ -12,17 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.api;
+package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.scion.*;
-import org.scion.internal.MultiMap;
+import org.scion.jpan.*;
+import org.scion.jpan.socket.DatagramSocket;
 
 class DatagramSocketApiCompletenessTest {
 
@@ -30,7 +29,7 @@ class DatagramSocketApiCompletenessTest {
   void testApiCompleteness() {
     // Test that org.scion.DatagramSocket overrides ALL methods of java.net.DatagramSocket
     MultiMap<String, Method> methods = new MultiMap<>();
-    for (Method m : org.scion.socket.DatagramSocket.class.getDeclaredMethods()) {
+    for (Method m : DatagramSocket.class.getDeclaredMethods()) {
       methods.put(m.getName(), m);
     }
 

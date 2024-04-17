@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.demo;
+package org.scion.jpan.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.scion.ScionService;
-import org.scion.testutil.MockDNS;
+import org.scion.jpan.ScionService;
+import org.scion.jpan.testutil.MockDNS;
 
 public class PingPongSocketDemoTest {
 

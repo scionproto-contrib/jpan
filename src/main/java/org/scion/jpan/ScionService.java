@@ -301,7 +301,7 @@ public class ScionService {
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
     ScionAddress sa = getScionAddress(dstAddress.getHostName());
-    return getPaths(sa.getIsdAs(), sa.getInetAddress().getAddress(), dstAddress.getPort());
+    return getPaths(sa.getIsdAs(), sa.getInetAddress(), dstAddress.getPort());
   }
 
   /**
