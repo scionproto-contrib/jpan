@@ -36,6 +36,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.scion.internal.SimpleCache;
 import org.scion.jpan.internal.DNSHelper;
 import org.scion.jpan.internal.HostsFileParser;
 import org.scion.jpan.internal.ScionBootstrapper;
@@ -81,6 +83,7 @@ public class ScionService {
   private Thread shutdownHook;
   private final java.nio.channels.DatagramChannel[] ifDiscoveryChannel = {null};
   private final HostsFileParser hostsFile = new HostsFileParser();
+  private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
 
   protected enum Mode {
     DAEMON,
@@ -374,6 +377,11 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public long getIsdAs(String hostName) throws ScionException {
+    ScionAddress scionAddress = scionAddressCache.get(hostName);
+    if (scionAddress != null) {
+      return scionAddress.getIsdAs();
+    }
+
     // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName);
     if (txtFromProperties != null) {
@@ -410,6 +418,11 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public ScionAddress getScionAddress(String hostName) throws ScionException {
+    ScionAddress scionAddress = scionAddressCache.get(hostName);
+    if (scionAddress != null) {
+      return scionAddress;
+    }
+
     // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName);
     if (txtFromProperties != null) {
@@ -435,10 +448,16 @@ public class ScionService {
     ScionAddress fromDNS =
         DNSHelper.queryTXT(hostName, DNS_TXT_KEY, x -> parseTxtRecord(x, hostName));
     if (fromDNS != null) {
-      return fromDNS;
+      return addToCache(fromDNS);
     }
 
     throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
+  }
+
+  private ScionAddress addToCache(ScionAddress address) {
+    scionAddressCache.put(address.getHostName(), address);
+    scionAddressCache.put(address.getInetAddress().getHostAddress(), address);
+    return address;
   }
 
   private boolean isLocalhost(String hostName) {
