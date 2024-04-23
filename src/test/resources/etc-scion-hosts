@@ -1,11 +1,16 @@
-# /etc/scion/hosts test file
+# /etc/scion/hosts test file with bad formatting
+
 1-ff00:0:111,[42.0.0.11] test-server
-1-ff00:0:112,[42.0.0.12] test-server-1 test-server-2
-1-ff00:0:113,[::42] test-server-ipv6
+#1-ff00:0:111,[42.0.0.111] test-server
+  1-ff00:0:112,[42.0.0.12]  test-server-1   test-server-2  # comment with other test-server
+	1-ff00:0:112,[42.0.0.13]	test-server-3	test-server-4	# tabs instead of spaces
+ 1-ff00:0:113,[::42] test-server-ipv6
 
 # And some wrong lines
 1-ff00:0:114;[42.0.0.10] test-server
 1-ff00:0:114,[42.0.0.10]
+#1-ff00:0:114,
+#1-ff00:0:114
 1-ff00:0:114,42.0.0.10] test-server
 1-ff00:0:114,[42.0.0.10 test-server
 ff00:0:114,[42.0.0.10] test-server

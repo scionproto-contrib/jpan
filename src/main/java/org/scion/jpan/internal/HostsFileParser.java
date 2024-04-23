@@ -20,7 +20,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -99,7 +98,7 @@ public class HostsFileParser {
       if (s.isEmpty() || s.startsWith("#")) {
         return;
       }
-      String[] lineParts = s.split(" ");
+      String[] lineParts = s.split("\\s+");
       check(lineParts.length >= 2, "Expected ` `");
       String[] addrParts = lineParts[0].split(",");
       check(addrParts.length == 2, "Expected `,`");
@@ -115,8 +114,12 @@ public class HostsFileParser {
       // TODO
       // 4) Singleton ?!?!?!?!!!
 
-      String[] hostNames = Arrays.copyOfRange(lineParts, 1, lineParts.length);
-      for (String hostName : hostNames) {
+      for (int i = 1; i < lineParts.length; i++) {
+        String hostName = lineParts[i];
+        if (hostName.startsWith("#")) {
+          // ignore comments
+          break;
+        }
         entries.put(hostName, new HostEntry(isdIa, inetAddr, hostName));
       }
       // The following may differ, e.g. for IPv6
