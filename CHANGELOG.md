@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added support communicating with a dispatcher-endhost in the local AS, see 
   `DatagramChannel.configureRemoteDispatcher`. 
   [#46](https://github.com/netsec-ethz/scion-java-client/pull/46)
+- Support for comments, multiple spaces and tabs in `/etc/scion/hosts`. 
+  [#47](https://github.com/netsec-ethz/scion-java-client/pull/47)
 
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"

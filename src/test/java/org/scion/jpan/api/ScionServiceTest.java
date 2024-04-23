@@ -16,6 +16,8 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -351,6 +353,7 @@ public class ScionServiceTest {
   void getIsdAs_etcHostsFile() throws IOException, URISyntaxException {
     URL resource = getClass().getClassLoader().getResource("etc-scion-hosts");
     java.nio.file.Path file = Paths.get(resource.toURI());
+    assertTrue(containsTabs(file)); // Check that tabs didn't get removed by autoformatting
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, file.toString());
     MockDaemon.createAndStartDefault();
     try {
@@ -361,7 +364,7 @@ public class ScionServiceTest {
       long ia1IP = service.getIsdAs("42.0.0.11");
       assertEquals(ScionUtil.parseIA("1-ff00:0:111"), ia1IP);
 
-      // line 2
+      // line 2 - multiple spaces and comment
       long ia2a = service.getIsdAs("test-server-1");
       assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia2a);
       long ia2b = service.getIsdAs("test-server-2");
@@ -369,11 +372,19 @@ public class ScionServiceTest {
       long ia2IP = service.getIsdAs("42.0.0.12");
       assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia2IP);
 
-      // line 3
-      long ia3 = service.getIsdAs("test-server-ipv6");
-      assertEquals(ScionUtil.parseIA("1-ff00:0:113"), ia3);
-      long ia3IP = service.getIsdAs("::42");
-      assertEquals(ScionUtil.parseIA("1-ff00:0:113"), ia3IP);
+      // line 3 - same ISD/AS as line 2 - tabs and comment
+      long ia3a = service.getIsdAs("test-server-3");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia3a);
+      long ia3b = service.getIsdAs("test-server-4");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia3b);
+      long ia3IP = service.getIsdAs("42.0.0.13");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:112"), ia3IP);
+
+      // line 4 = IPv6
+      long ia4 = service.getIsdAs("test-server-ipv6");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:113"), ia4);
+      long ia4IP = service.getIsdAs("::42");
+      assertEquals(ScionUtil.parseIA("1-ff00:0:113"), ia4IP);
 
       // Should all fail for various reasons, but ensure that these domains
       // did not get registered despite being in the hosts file:
@@ -384,6 +395,17 @@ public class ScionServiceTest {
       MockDaemon.closeDefault();
       System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
     }
+  }
+
+  private boolean containsTabs(java.nio.file.Path file) throws IOException {
+    BufferedReader br = new BufferedReader(new FileReader(file.toFile()));
+    String st;
+    while ((st = br.readLine()) != null) {
+      if (st.contains("\t")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test
