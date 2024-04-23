@@ -16,9 +16,15 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.proto.daemon.Daemon;
+import org.scion.jpan.testutil.ExamplePacket;
 
 class ScionUtilTest {
 
@@ -35,7 +41,7 @@ class ScionUtilTest {
   }
 
   @Test
-  void testToStringIA() {
+  void toStringIA() {
     assertEquals("0-0:0:0", ScionUtil.toStringIA(0));
     assertEquals("42-0:0:0", ScionUtil.toStringIA(42L << 48));
     assertEquals("0-fedc:0:0", ScionUtil.toStringIA(0xfedcL << 32));
@@ -46,7 +52,7 @@ class ScionUtilTest {
   }
 
   @Test
-  void testToStringIA2() {
+  void toStringIA2() {
     assertEquals("0-0:0:0", ScionUtil.toStringIA(0, 0));
     assertEquals("42-0:0:0", ScionUtil.toStringIA(42, 0));
     assertEquals("0-fedc:0:0", ScionUtil.toStringIA(0, 0xfedcL << 32));
@@ -57,7 +63,7 @@ class ScionUtilTest {
   }
 
   @Test
-  void testToStringIA2_fails() {
+  void toStringIA2_fails() {
     Exception exception;
     exception = assertThrows(IllegalArgumentException.class, () -> ScionUtil.toStringIA(-1, 0));
     assertTrue(exception.getMessage().contains("ISD out of range"));
@@ -72,7 +78,7 @@ class ScionUtilTest {
   }
 
   @Test
-  void testExtractAS() {
+  void extractAs() {
     assertEquals(0L, ScionUtil.extractAs(0));
     assertEquals(0L, ScionUtil.extractAs((42L << 48)));
     assertEquals(0xfedcba987654L, ScionUtil.extractAs((42L << 48) + 0xfedcba987654L));
@@ -80,10 +86,41 @@ class ScionUtilTest {
   }
 
   @Test
-  void testExtractISD() {
+  void extractIsd() {
     assertEquals(0, ScionUtil.extractIsd(0));
     assertEquals(42, ScionUtil.extractIsd((42L << 48)));
     assertEquals(42, ScionUtil.extractIsd((42L << 48) | 0xfedcba987654L));
     assertEquals(65000, ScionUtil.extractIsd((65000L << 48) | 0xfedcba987654L));
+  }
+
+  @Test
+  void toStringPath_requestPath() throws UnknownHostException {
+    RequestPath pathLocal = createRequestPathLocal();
+    assertEquals("[]", ScionUtil.toStringPath(pathLocal));
+    RequestPath pathRemote = createRequestPathRemote();
+    assertEquals("[1-ff00:0:110 2>1 1-ff00:0:112]", ScionUtil.toStringPath(pathRemote));
+  }
+
+  private RequestPath createRequestPathLocal() throws UnknownHostException {
+    return PackageVisibilityHelper.createRequestPath110_110(
+        Daemon.Path.newBuilder(),
+        ExamplePacket.SRC_IA,
+        InetAddress.getByAddress(ExamplePacket.SRC_HOST),
+        12345);
+  }
+
+  private RequestPath createRequestPathRemote() throws UnknownHostException {
+    return PackageVisibilityHelper.createRequestPath110_112(
+        Daemon.Path.newBuilder(),
+        ExamplePacket.DST_IA,
+        InetAddress.getByAddress(ExamplePacket.DST_HOST),
+        12345,
+        ExamplePacket.FIRST_HOP);
+  }
+
+  @Test
+  void toStringPath_raw() {
+    assertEquals("[]", ScionUtil.toStringPath(new byte[] {}));
+    assertEquals("[2>1]", ScionUtil.toStringPath(ExamplePacket.PATH_RAW_TINY_110_112));
   }
 }

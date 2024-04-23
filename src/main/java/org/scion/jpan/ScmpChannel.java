@@ -244,4 +244,16 @@ public class ScmpChannel implements AutoCloseable {
       selector.close();
     }
   }
+
+  public RequestPath getConnectionPath() {
+    return (RequestPath) channel.getConnectionPath();
+  }
+
+  public InetSocketAddress getLocalAddress() throws IOException {
+    return channel.getLocalAddress();
+  }
+
+  public InetSocketAddress getRemoteAddress() throws IOException {
+    return channel.getRemoteAddress();
+  }
 }

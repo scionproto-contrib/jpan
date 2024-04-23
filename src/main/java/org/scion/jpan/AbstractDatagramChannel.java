@@ -166,7 +166,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  public SocketAddress getRemoteAddress() {
+  /**
+   * Returns the remote address.
+   *
+   * @see DatagramChannel#getRemoteAddress()
+   * @return The remote address.
+   * @throws IOException If an I/O error occurs
+   */
+  public InetSocketAddress getRemoteAddress() throws IOException {
     Path path = getConnectionPath();
     if (path != null) {
       return new InetSocketAddress(path.getDestinationAddress(), path.getDestinationPort());
