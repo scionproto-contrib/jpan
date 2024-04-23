@@ -43,19 +43,19 @@ public class ByteUtil {
    * @param bitCount number of bits to read
    * @return extracted bits as int.
    */
-  static int readInt(int input, int bitOffset, int bitCount) {
+  public static int readInt(int input, int bitOffset, int bitCount) {
     int mask = (-1) >>> (32 - bitCount);
     int shift = 32 - bitOffset - bitCount;
     return (input >>> shift) & mask;
   }
 
-  static long readLong(long input, int bitOffset, int bitCount) {
+  public static long readLong(long input, int bitOffset, int bitCount) {
     long mask = (-1L) >>> (64 - bitCount);
     int shift = 64 - bitOffset - bitCount;
     return (input >>> shift) & mask;
   }
 
-  static boolean readBoolean(int input, int bitOffset) {
+  public static boolean readBoolean(int input, int bitOffset) {
     int mask = 1;
     int shift = 32 - bitOffset - 1;
     return ((input >>> shift) & mask) != 0;

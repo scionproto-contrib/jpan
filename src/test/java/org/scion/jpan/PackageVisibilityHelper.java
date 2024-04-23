@@ -109,6 +109,12 @@ public class PackageVisibilityHelper {
     }
   }
 
+  public static RequestPath createRequestPath110_110(
+      Daemon.Path.Builder builder, long isdAs, InetAddress dstHost, int dstPort) {
+    Daemon.Path path = builder.build();
+    return RequestPath.create(path, isdAs, dstHost, dstPort);
+  }
+
   public static RequestPath createRequestPath110_112(
       Daemon.Path.Builder builder,
       long dstIsdAs,

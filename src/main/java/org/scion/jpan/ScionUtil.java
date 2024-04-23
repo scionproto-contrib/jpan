@@ -14,6 +14,9 @@
 
 package org.scion.jpan;
 
+import java.nio.ByteBuffer;
+import org.scion.jpan.internal.PathRawParser;
+
 /** Scion utility functions. */
 public class ScionUtil {
 
@@ -93,6 +96,57 @@ public class ScionUtil {
     mask >>>= 16;
     s += Long.toString(ia & mask, 16);
     return s;
+  }
+
+  public static String toStringPath(byte[] raw) {
+    if (raw.length == 0) {
+      return "[]";
+    }
+    PathRawParser ph = new PathRawParser();
+    ph.read(ByteBuffer.wrap(raw));
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    int[] segLen = {ph.getSegLen(0), ph.getSegLen(1), ph.getSegLen(2)};
+    int offset = 0;
+    for (int j = 0; j < segLen.length; j++) {
+      boolean flagC = ph.getInfoField(j).getFlagC();
+      for (int i = offset; i < offset + segLen[j] - 1; i++) {
+        PathRawParser.HopField hfE = ph.getHopField(i);
+        PathRawParser.HopField hfI = ph.getHopField(i + 1);
+        if (flagC) {
+          sb.append(hfE.getEgress()).append(">").append(hfI.getIngress());
+        } else {
+          sb.append(hfE.getIngress()).append(">").append(hfI.getEgress());
+        }
+        if (i < ph.getHopCount() - 2) {
+          sb.append(" ");
+        }
+      }
+      offset += segLen[j];
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+
+  public static String toStringPath(RequestPath path) {
+    if (path.getInterfacesList().isEmpty()) {
+      return "[]";
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    int nInterfcaces = path.getInterfacesList().size();
+    for (int i = 0; i < nInterfcaces; i++) {
+      RequestPath.PathInterface pIf = path.getInterfacesList().get(i);
+      if (i % 2 == 0) {
+        sb.append(ScionUtil.toStringIA(pIf.getIsdAs())).append(" ");
+        sb.append(pIf.getId()).append(">");
+      } else {
+        sb.append(pIf.getId()).append(" ");
+      }
+    }
+    sb.append(ScionUtil.toStringIA(path.getInterfacesList().get(nInterfcaces - 1).getIsdAs()));
+    sb.append("]");
+    return sb.toString();
   }
 
   private static void checkLimits(int isd, long as) {

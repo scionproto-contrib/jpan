@@ -104,15 +104,21 @@ public class ScmpEchoDemo {
 
     println("Listening at port " + localPort + " ...");
 
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.connect(path);
+      println("Resolved local address: ");
+      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
+    }
+
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
       for (int i = 0; i < 10; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(i, data);
         if (i == 0) {
-          printHeader(dstIA, dstAddress, data, msg);
+          printHeader(scmpChannel, dstIA, dstAddress, data, msg);
         }
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getSizeReceived() + " bytes from ";
-        // TODO proper address
+        // TODO get actual address from response
         InetAddress addr = msg.getPath().getDestinationAddress();
         echoMsgStr += ScionUtil.toStringIA(dstIA) + "," + addr.getHostAddress();
         echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
@@ -131,19 +137,29 @@ public class ScmpEchoDemo {
   }
 
   private void printHeader(
-      long dstIA, InetSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
-    println(
-        "PING "
-            + ScionUtil.toStringIA(dstIA)
-            + ","
-            + dstAddress.getHostString()
-            + ":"
-            + dstAddress.getPort()
-            + " pld="
-            + data.remaining()
-            + "B scion_pkt="
-            + msg.getSizeSent()
-            + "B");
+      ScmpChannel channel,
+      long dstIA,
+      InetSocketAddress dstAddress,
+      ByteBuffer data,
+      Scmp.EchoMessage msg)
+      throws IOException {
+    String nl = System.lineSeparator();
+    StringBuilder sb = new StringBuilder();
+    sb.append("Actual local address:").append(nl);
+    sb.append("  ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
+
+    RequestPath path = channel.getConnectionPath();
+    sb.append("Using path:").append(nl);
+    sb.append("  Hops:").append(ScionUtil.toStringPath(path));
+    sb.append(" MTU: ").append(path.getMtu());
+    sb.append(" NextHop: ").append(path.getInterface().getAddress()).append(nl);
+
+    sb.append("PING ").append(ScionUtil.toStringIA(dstIA)).append(",");
+    sb.append(dstAddress.getHostString()).append(":").append(dstAddress.getPort());
+    sb.append(" pld=").append(data.remaining());
+    sb.append("B scion_pkt=").append(msg.getSizeSent()).append("B");
+
+    println(sb.toString());
   }
 
   private static void println(String msg) {

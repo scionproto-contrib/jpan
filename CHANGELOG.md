@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#46](https://github.com/netsec-ethz/scion-java-client/pull/46)
 - Support for comments, multiple spaces and tabs in `/etc/scion/hosts`. 
   [#47](https://github.com/netsec-ethz/scion-java-client/pull/47)
+- Added helper methods for `ScmpChannel` and `ScionUtil.toStringPath()`.
+  [#48](https://github.com/netsec-ethz/scion-java-client/pull/48)
 
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
