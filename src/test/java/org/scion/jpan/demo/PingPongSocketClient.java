@@ -31,7 +31,8 @@ public class PingPongSocketClient {
 
   private static void run() throws IOException {
     // String serverHostname = "::1";
-    String serverHostname = "0:0:0:0:0:0:0:1";
+    // String serverHostname = "0:0:0:0:0:0:0:1";
+    String serverHostname = "127.0.0.1";
 
     InetAddress serverIP = InetAddress.getByName(serverHostname);
     InetSocketAddress serverAddress = new InetSocketAddress(serverIP, PingPongSocketServer.port);

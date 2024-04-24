@@ -15,7 +15,10 @@
 package org.scion.jpan.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,18 +44,28 @@ public class PingPongSocketDemoTest {
   void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
     PingPongSocketServer.PRINT = false;
+    //PingPongSocketServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
     PingPongSocketClient.PRINT = false;
+    CountDownLatch barrier = new CountDownLatch(1);
     Thread server =
         new Thread(
             () -> {
               try {
+                barrier.countDown();
                 PingPongSocketServer.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
+                e.printStackTrace();
                 throw new RuntimeException(e);
               }
             });
     server.start();
+    Thread.sleep(1000);
+    // Yes this is bad, not least because the barrier is counted down before the server starts.
+    // But it is the best we can do here.
+    if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
+      fail();
+    }
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.
@@ -63,6 +76,7 @@ public class PingPongSocketDemoTest {
                 PingPongSocketClient.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
+                e.printStackTrace();
                 throw new RuntimeException(e);
               }
             });

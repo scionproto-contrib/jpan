@@ -20,19 +20,23 @@ import java.nio.ByteBuffer;
 import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
 
-public class PingPongChannelServer {
+public class PingPongSoServer {
 
   public static boolean PRINT = true;
   private static final int SERVER_PORT = 44444;
   public static DemoConstants.Network NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
+  public static final String HOST_NAME = "ping.pong.org";
 
-  public static InetSocketAddress getServerAddress() {
+  public static InetSocketAddress getServerAddress() throws UnknownHostException {
     switch (NETWORK) {
-      case MOCK_TOPOLOGY:
-        return new InetSocketAddress("::1", SERVER_PORT);
+//      case MOCK_TOPOLOGY:
+//        InetAddress ia = InetAddress.getByAddress(HOST_NAME, new byte[]{0, 0, 0, 0, 0, 0, 0, 0});
+//        return new InetSocketAddress("::1", SERVER_PORT);
       case MOCK_TOPOLOGY_IPV4:
       case SCION_PROTO:
-        return new InetSocketAddress("127.0.0.1", SERVER_PORT);
+        InetAddress ia = InetAddress.getByAddress(HOST_NAME, new byte[]{127,0,0,1});
+        return new InetSocketAddress(ia, SERVER_PORT);
+        //return new InetSocketAddress("127.0.0.1", SERVER_PORT);
       default:
         throw new UnsupportedOperationException();
     }

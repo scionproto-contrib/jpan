@@ -16,8 +16,10 @@ package org.scion.jpan.demo;
 
 import java.io.*;
 import java.net.*;
-import java.nio.ByteBuffer;
+import java.util.Arrays;
+
 import org.scion.jpan.*;
+import org.scion.jpan.socket.DatagramSocket;
 import org.scion.jpan.testutil.MockDNS;
 
 /**
@@ -27,16 +29,13 @@ import org.scion.jpan.testutil.MockDNS;
  * "tiny". Note that the constants for "minimal" differ somewhat from the scionproto topology, see
  * <a href="https://github.com/scionproto/scion">...</a>.
  */
-public class PingPongChannelClient {
+public class PingPongSoClient {
 
   public static boolean PRINT = true;
-  public static DemoConstants.Network NETWORK = PingPongChannelServer.NETWORK;
+  public static DemoConstants.Network NETWORK = PingPongSoServer.NETWORK;
 
-  private static String extractMessage(ByteBuffer buffer) {
-    buffer.flip();
-    byte[] bytes = new byte[buffer.remaining()];
-    buffer.get(bytes);
-    return new String(bytes);
+  private static String extractMessage(DatagramPacket buffer) {
+    return new String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
   }
 
   public static DatagramChannel startClient() throws IOException {
@@ -45,18 +44,24 @@ public class PingPongChannelClient {
     return client;
   }
 
-  public static void sendMessage(DatagramChannel client, String msg, Path serverAddress)
+  public static void sendMessage(DatagramSocket client, String msg, Path serverAddress)
       throws IOException {
-    ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
-    client.send(buffer, serverAddress);
+    DatagramPacket buffer =
+        new DatagramPacket(
+            msg.getBytes(),
+            0,
+            msg.length(),
+            serverAddress.getDestinationAddress(),
+            serverAddress.getDestinationPort());
+    client.send(buffer);
     println("Sent to server at: " + serverAddress + "  message: " + msg);
   }
 
-  public static void receiveMessage(DatagramChannel channel) throws IOException {
-    ByteBuffer buffer = ByteBuffer.allocate(1024);
-    Path remoteAddress = channel.receive(buffer);
+  public static void receiveMessage(DatagramSocket socket) throws IOException {
+    DatagramPacket buffer = new DatagramPacket(new byte[100], 100);
+    socket.receive(buffer);
     String message = extractMessage(buffer);
-    println("Received from server at: " + remoteAddress + "  message: " + message);
+    println("Received from server at: " + buffer.getSocketAddress() + "  message: " + message);
   }
 
   public static void main(String[] args) {
@@ -75,7 +80,10 @@ public class PingPongChannelClient {
       case MOCK_TOPOLOGY_IPV4:
         {
           DemoTopology.configureMock(true);
-          MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+          InetSocketAddress addr = PingPongSoServer.getServerAddress();
+          MockDNS.install("1-ff00:0:112", addr.getHostName(), addr.getAddress().getHostAddress());
+          //MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
+          //MockDNS.install("1-ff00:0:112", "127.0.0.1", "127.0.0.1");
           doClientStuff(DemoConstants.ia112);
           DemoTopology.shutDown();
           break;
@@ -104,10 +112,10 @@ public class PingPongChannelClient {
 
   private static void doClientStuff(long destinationIA) throws IOException {
     println("Client starting ...");
-    try (DatagramChannel channel = startClient()) {
+    try (DatagramSocket socket = new DatagramSocket(null)) {
       String msg = "Hello scion";
-      println("Client getting server address " + channel.getLocalAddress() + " ...");
-      InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress();
+      println("Client getting server address " + socket.getLocalAddress() + " ...");
+      InetSocketAddress serverAddress = PingPongSoServer.getServerAddress();
       println("Client got server address " + serverAddress);
       println(
           "Client getting path to "
@@ -117,11 +125,11 @@ public class PingPongChannelClient {
               + " ...");
       Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
       println("Client got path:  " + path);
-      println("Client sending from " + channel.getLocalAddress() + " ...");
-      sendMessage(channel, msg, path);
+      println("Client sending from " + socket.getLocalAddress() + " ...");
+      sendMessage(socket, msg, path);
 
-      println("Client waiting at " + channel.getLocalAddress() + " ...");
-      receiveMessage(channel);
+      println("Client waiting at " + socket.getLocalAddress() + " ...");
+      receiveMessage(socket);
     }
   }
 

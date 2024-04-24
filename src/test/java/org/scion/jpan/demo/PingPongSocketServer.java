@@ -24,8 +24,8 @@ public class PingPongSocketServer {
   public static int port = 44444;
 
   public static void main(String[] args) throws UnknownHostException {
-    InetAddress localAddress = InetAddress.getByName("::1");
-    // InetAddress localAddress = InetAddress.getByName("127.0.0.1");
+    // InetAddress localAddress = InetAddress.getByName("::1");
+    InetAddress localAddress = InetAddress.getByName("127.0.0.1");
     try {
       service(port, localAddress);
     } catch (SocketException ex) {
