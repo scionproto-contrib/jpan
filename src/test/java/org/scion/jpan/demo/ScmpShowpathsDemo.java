@@ -21,7 +21,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
 
 /**
- * This demo mimics the "scion traceroute" command available in scionproto (<a
+ * This demo mimics the "scion ping" command available in scionproto (<a
  * href="https://github.com/scionproto/scion">...</a>). This demo also demonstrates different ways
  * of connecting to a network: <br>
  * - JUNIT_MOCK shows how to use the mock network in this library (for JUnit tests) <br>
@@ -33,10 +33,11 @@ import org.scion.jpan.testutil.MockDNS;
  *
  * <p>Commented out lines show alternative ways to connect or alternative destinations.
  */
-public class ScmpTracerouteDemo {
+public class ScmpShowpathsDemo {
 
   public static final boolean PRINT = true;
   private final int localPort;
+  private static final String NL = System.lineSeparator();
 
   private enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network
@@ -44,11 +45,11 @@ public class ScmpTracerouteDemo {
     PRODUCTION // production network
   }
 
-  public ScmpTracerouteDemo() {
+  public ScmpShowpathsDemo() {
     this(12345); // Any port is fine unless we connect to a dispatcher network
   }
 
-  public ScmpTracerouteDemo(int localPort) {
+  public ScmpShowpathsDemo(int localPort) {
     this.localPort = localPort;
   }
 
@@ -60,7 +61,7 @@ public class ScmpTracerouteDemo {
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          ScmpShowpathsDemo demo = new ScmpShowpathsDemo();
           demo.runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
@@ -68,16 +69,16 @@ public class ScmpTracerouteDemo {
       case SCION_PROTO:
         {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-          //   "topologies/minimal/ASff00_0_1111/topology.json");
+          // "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          ScmpShowpathsDemo demo = new ScmpShowpathsDemo();
           demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
+          ScmpShowpathsDemo demo = new ScmpShowpathsDemo(30041);
           demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
           break;
@@ -87,49 +88,39 @@ public class ScmpTracerouteDemo {
 
   private void runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
-    // Dummy address. The traceroute will contact the control service IP instead.
+    // dummy address
     InetSocketAddress destinationAddress =
-        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {1, 2, 3, 4}), 12345);
+        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
     List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
       String src = ScionUtil.toStringIA(service.getLocalIsdAs());
       String dst = ScionUtil.toStringIA(destinationIA);
       throw new IOException("No path found from " + src + " to " + dst);
     }
-    RequestPath path = paths.get(0);
 
     println("Listening on port " + localPort + " ...");
-    try (DatagramChannel channel = DatagramChannel.open()) {
-      channel.connect(path);
-      println("Resolved local address: ");
-      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
-    }
+    println("Available paths to " + ScionUtil.toStringIA(destinationIA));
 
-    try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      printPath(scmpChannel);
-      List<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest();
-      for (Scmp.TracerouteMessage msg : results) {
-        String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
-        String out = "" + msg.getSequenceNumber();
-        out += " " + ScionUtil.toStringIA(msg.getIsdAs());
-        out += " IfID=" + msg.getIfID();
-        out += " " + millis + "ms";
-        println(out);
+    int id = 0;
+    for (RequestPath path : paths) {
+      String localIP;
+      try (DatagramChannel channel = DatagramChannel.open()) {
+        channel.connect(path);
+        localIP = channel.getLocalAddress().getAddress().getHostAddress();
       }
+      String sb =
+          "["
+              + id++
+              + "] Hops: "
+              + ScionUtil.toStringPath(path)
+              + " MTU: "
+              + path.getMtu()
+              + " NextHop: "
+              + path.getInterface().getAddress()
+              + " LocalIP: "
+              + localIP;
+      println(sb);
     }
-  }
-
-  private void printPath(ScmpChannel channel) {
-    String nl = System.lineSeparator();
-    StringBuilder sb = new StringBuilder();
-    // sb.append("Actual local address:").append(nl);
-    // sb.append("  ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
-    RequestPath path = channel.getConnectionPath();
-    sb.append("Using path:").append(nl);
-    sb.append("  Hops: ").append(ScionUtil.toStringPath(path));
-    sb.append(" MTU: ").append(path.getMtu());
-    sb.append(" NextHop: ").append(path.getInterface().getAddress()).append(nl);
-    println(sb.toString());
   }
 
   private static void println(String msg) {

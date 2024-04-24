@@ -22,7 +22,6 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
@@ -69,7 +68,7 @@ public class ScmpChannel implements AutoCloseable {
    *     If a request times out, the traceroute is aborted.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Collection<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
+  public List<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
     List<Scmp.TracerouteMessage> requests = new ArrayList<>();
     RequestPath path = (RequestPath) channel.getConnectionPath();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
