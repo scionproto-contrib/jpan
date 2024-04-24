@@ -24,15 +24,14 @@ public class PingPongChannelServer {
 
   public static boolean PRINT = true;
   private static final int SERVER_PORT = 44444;
-  public static DemoConstants.Network NETWORK = DemoConstants.Network.MINIMAL_PROTO;
+  public static DemoConstants.Network NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
 
   public static InetSocketAddress getServerAddress(DemoConstants.Network network) {
     switch (network) {
       case MOCK_TOPOLOGY:
-      case TINY_PROTO:
         return new InetSocketAddress("::1", SERVER_PORT);
       case MOCK_TOPOLOGY_IPV4:
-      case MINIMAL_PROTO:
+      case SCION_PROTO:
         return new InetSocketAddress("127.0.0.1", SERVER_PORT);
       default:
         throw new UnsupportedOperationException();

@@ -79,10 +79,10 @@ public class ScmpEchoDemo {
         // Same as:
         // scion ping 2-ff00:0:211,127.0.0.10 --sciond 127.0.0.43:30255
         {
-          // System.setProperty(
-          //     Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-          //     "topologies/minimal/ASff00_0_1111/topology.json");
-          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
+          System.setProperty(
+              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+              "topologies/minimal/ASff00_0_1111/topology.json");
+          // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
           demo.runDemo(DemoConstants.ia211, serviceIP);
           // demo.runDemo(DemoConstants.ia111, toAddr(DemoConstants.daemon111_minimal));

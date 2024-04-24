@@ -17,12 +17,16 @@ package org.scion.jpan.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.jpan.DatagramChannel;
-import org.scion.jpan.Path;
-import org.scion.jpan.Scion;
-import org.scion.jpan.ScionUtil;
+import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
 
+/**
+ * Example of client/server using SCION. <br>
+ * - MOCK_TOPOLOGY and MOCK_TOPOLOGY_IPV4 use the JUnit mock network of this library. <br>
+ * - SCION_PROTO works with a local topology from the scionproto golang implementation such as
+ * "tiny". Note that the constants for "minimal" differ somewhat from the scionproto topology, see
+ * <a href="https://github.com/scionproto/scion">...</a>.
+ */
 public class PingPongChannelClient {
 
   public static boolean PRINT = true;
@@ -84,18 +88,12 @@ public class PingPongChannelClient {
           DemoTopology.shutDown();
           break;
         }
-      case TINY_PROTO:
+      case SCION_PROTO:
         {
-          DemoTopology.configureTiny110_112();
-          MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-          doClientStuff(DemoConstants.ia112);
-          DemoTopology.shutDown();
-          break;
-        }
-      case MINIMAL_PROTO:
-        {
-          Scion.newServiceWithTopologyFile("topologies/minimal/ASff00_0_1111/topology.json");
-          // Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal);
+          System.setProperty(
+              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+              "topologies/minimal/ASff00_0_1111/topology.json");
+          // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           doClientStuff(DemoConstants.ia112);
           break;
         }
