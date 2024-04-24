@@ -47,10 +47,12 @@ public class PingPongDemoTest {
                 PingPongChannelServer.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
+                e.printStackTrace();
                 throw new RuntimeException(e);
               }
             });
     server.start();
+    Thread.sleep(1000);
     // Yes this is bad, not least because the barrier is counted down before the server starts.
     // But it is the best we can do here.
     if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
@@ -66,6 +68,7 @@ public class PingPongDemoTest {
                 PingPongChannelClient.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
+                e.printStackTrace();
                 throw new RuntimeException(e);
               }
             });
