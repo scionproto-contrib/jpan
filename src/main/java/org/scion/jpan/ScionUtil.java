@@ -28,13 +28,13 @@ public class ScionUtil {
 
   // IA represents the ISD (ISolation Domain) and AS (Autonomous System) Id of a given SCION AS.
   // The highest 16 bit form the ISD number and the lower 48 bits form the AS number.
-  private static final int ISDBits = 16;
-  private static final int MaxISD = (1 << ISDBits) - 1;
-  private static final int ASBits = 48;
-  private static final long MaxAS = (1L << ASBits) - 1L;
-  private static final int asPartBits = 16;
-  private static final int asPartBase = 16;
-  private static final int asParts = ASBits / asPartBits;
+  private static final int ISD_BITS = 16;
+  private static final int MAX_ISD = (1 << ISD_BITS) - 1;
+  private static final int AS_BITS = 48;
+  private static final long MAX_AS = (1L << AS_BITS) - 1L;
+  private static final int AS_PART_BITS = 16;
+  private static final int AS_PART_BASE = 16;
+  private static final int AS_PARTS = AS_BITS / AS_PART_BITS;
 
   /** ParseIA parses an IA from a string of the format 'isd-as'. */
   public static long parseIA(String ia) {
@@ -45,7 +45,7 @@ public class ScionUtil {
     int isd = Integer.parseUnsignedInt(parts[0], 10);
     long as = parseAS(parts[1]);
     checkLimits(isd, as);
-    return Integer.toUnsignedLong(isd) << ASBits | (as & MaxAS);
+    return Integer.toUnsignedLong(isd) << AS_BITS | (as & MAX_AS);
   }
 
   /**
@@ -59,13 +59,13 @@ public class ScionUtil {
       return Integer.parseUnsignedInt(as, 10);
     }
 
-    if (parts.length != asParts) {
+    if (parts.length != AS_PARTS) {
       throw new IllegalArgumentException("Wrong number of ':' separators in value=" + as);
     }
     long parsed = 0;
-    for (int i = 0; i < asParts; i++) {
-      parsed <<= asPartBits;
-      parsed |= Long.parseUnsignedLong(parts[i], asPartBase) & 0xFFFF;
+    for (int i = 0; i < AS_PARTS; i++) {
+      parsed <<= AS_PART_BITS;
+      parsed |= Long.parseUnsignedLong(parts[i], AS_PART_BASE) & 0xFFFF;
     }
     return parsed;
   }
@@ -150,17 +150,17 @@ public class ScionUtil {
   }
 
   private static void checkLimits(int isd, long as) {
-    if (isd < 0 || isd > MaxISD) {
+    if (isd < 0 || isd > MAX_ISD) {
       throw new IllegalArgumentException("ISD out of range: " + isd);
     }
-    if (as < 0 || as > MaxAS) {
+    if (as < 0 || as > MAX_AS) {
       throw new IllegalArgumentException("AS out of range: " + as);
     }
   }
 
   public static String getPropertyOrEnv(String propertyName, String envName) {
     String value = System.getProperty(propertyName);
-    return value != null ? value : System.getenv(envName);
+    return value != null || Constants.debugIgnoreEnvironment ? value : System.getenv(envName);
   }
 
   public static String getPropertyOrEnv(String propertyName, String envName, String defaultValue) {
@@ -180,10 +180,12 @@ public class ScionUtil {
   }
 
   public static int extractIsd(long isdAs) {
-    return (int) (isdAs >>> ASBits);
+    return (int) (isdAs >>> AS_BITS);
   }
 
   public static long extractAs(long isdAs) {
-    return isdAs & MaxAS;
+    return isdAs & MAX_AS;
   }
+
+  private ScionUtil() {}
 }

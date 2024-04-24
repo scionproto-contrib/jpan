@@ -70,5 +70,11 @@ public final class Constants {
    */
   static final String DEBUG_PROPERTY_MOCK_DNS_TXT = "DEBUG_SCION_MOCK_DNS_TXT";
 
+  /**
+   * Non-public property that allows ignoring all environment variables. This is useful for running
+   * the tests on a host with a SCION installation.
+   */
+  static boolean debugIgnoreEnvironment = false;
+
   private Constants() {}
 }
