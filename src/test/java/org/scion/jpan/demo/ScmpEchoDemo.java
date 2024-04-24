@@ -21,6 +21,19 @@ import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
 
+/**
+ * This demo mimics the "scion ping" command available in scionproto (<a
+ * href="https://github.com/scionproto/scion">...</a>). This demo also demonstrates different ways
+ * of connecting to a network: <br>
+ * - JUNIT_MOCK shows how to use the mock network in this library (for JUnit tests) <br>
+ * - SCION_PROTO shows how to connect to a local topology from the scionproto go implementation such
+ * as "tiny". Note that the constants for "minimal" differ somewhat from the scionproto topology.
+ * <br>
+ * - PRODUCTION shows different ways how to connect to the production network. Note: While the
+ * production network uses the dispatcher, the demo needs to use port 30041.
+ *
+ * <p>Commented out lines show alternative ways to connect or alternative destinations.
+ */
 public class ScmpEchoDemo {
 
   private static final boolean PRINT = true;
@@ -36,9 +49,8 @@ public class ScmpEchoDemo {
   }
 
   private enum Network {
-    MOCK_TOPOLOGY, // SCION Java JUnit mock network
-    TINY_PROTO, // Try to connect to "tiny" scionproto network
-    MINIMAL_PROTO, // Try to connect to "minimal" scionproto network
+    JUNIT_MOCK, // SCION Java JUnit mock network
+    SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
   }
 
@@ -54,7 +66,7 @@ public class ScmpEchoDemo {
 
   public static void main(String[] args) throws IOException {
     switch (network) {
-      case MOCK_TOPOLOGY:
+      case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
@@ -63,16 +75,9 @@ public class ScmpEchoDemo {
           DemoTopology.shutDown();
           break;
         }
-      case TINY_PROTO:
-        {
-          DemoTopology.configureTiny110_112();
-          MockDNS.install("1-ff00:0:112", "0:0:0:0:0:0:0:1", "::1");
-          ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(DemoConstants.ia110, serviceIP);
-          DemoTopology.shutDown();
-          break;
-        }
-      case MINIMAL_PROTO:
+      case SCION_PROTO:
+        // Same as:
+        // scion ping 2-ff00:0:211,127.0.0.10 --sciond 127.0.0.43:30255
         {
           System.setProperty(
               Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
@@ -102,8 +107,7 @@ public class ScmpEchoDemo {
     RequestPath path = paths.get(0);
     ByteBuffer data = ByteBuffer.allocate(0);
 
-    println("Listening at port " + localPort + " ...");
-
+    println("Listening on port " + localPort + " ...");
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.connect(path);
       println("Resolved local address: ");
@@ -111,10 +115,11 @@ public class ScmpEchoDemo {
     }
 
     try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
+      printPath(scmpChannel);
       for (int i = 0; i < 10; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(i, data);
         if (i == 0) {
-          printHeader(scmpChannel, dstIA, dstAddress, data, msg);
+          printHeader(dstIA, dstAddress, data, msg);
         }
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getSizeReceived() + " bytes from ";
@@ -136,30 +141,35 @@ public class ScmpEchoDemo {
     }
   }
 
-  private void printHeader(
-      ScmpChannel channel,
-      long dstIA,
-      InetSocketAddress dstAddress,
-      ByteBuffer data,
-      Scmp.EchoMessage msg)
-      throws IOException {
+  private void printPath(ScmpChannel channel) {
     String nl = System.lineSeparator();
     StringBuilder sb = new StringBuilder();
-    sb.append("Actual local address:").append(nl);
-    sb.append("  ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
-
+    //    sb.append("Actual local address:").append(nl);
+    //    sb.append("
+    // ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
     RequestPath path = channel.getConnectionPath();
     sb.append("Using path:").append(nl);
-    sb.append("  Hops:").append(ScionUtil.toStringPath(path));
+    sb.append("  Hops: ").append(ScionUtil.toStringPath(path));
     sb.append(" MTU: ").append(path.getMtu());
     sb.append(" NextHop: ").append(path.getInterface().getAddress()).append(nl);
-
-    sb.append("PING ").append(ScionUtil.toStringIA(dstIA)).append(",");
-    sb.append(dstAddress.getHostString()).append(":").append(dstAddress.getPort());
-    sb.append(" pld=").append(data.remaining());
-    sb.append("B scion_pkt=").append(msg.getSizeSent()).append("B");
-
     println(sb.toString());
+  }
+
+  private void printHeader(
+      long dstIA, InetSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
+    String sb =
+        "PING "
+            + ScionUtil.toStringIA(dstIA)
+            + ","
+            + dstAddress.getHostString()
+            + ":"
+            + dstAddress.getPort()
+            + " pld="
+            + data.remaining()
+            + "B scion_pkt="
+            + msg.getSizeSent()
+            + "B";
+    println(sb);
   }
 
   private static void println(String msg) {

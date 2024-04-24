@@ -21,12 +21,11 @@ public class DemoConstants {
   public enum Network {
     MOCK_TOPOLOGY, // SCION Java JUnit mock network
     MOCK_TOPOLOGY_IPV4, // SCION Java JUnit mock network, IPv4 only
-    TINY_PROTO, // Try to connect to "tiny" scionproto network
-    MINIMAL_PROTO, // Try to connect to "minimal" scionproto network
+    SCION_PROTO, // Try to connect to "minimal" or "tiny" scionproto network
     PRODUCTION // production network
   }
 
-  // ----------------  ISD/AS for local test networks ----------------
+  // ----------------  ISD/AS for local test networks ("tiny" and "minimal")  -----------
   public static final long ia110 = ScionUtil.parseIA("1-ff00:0:110");
   public static final long ia111 = ScionUtil.parseIA("1-ff00:0:111");
   public static final long ia1111 = ScionUtil.parseIA("1-ff00:0:1111");
@@ -38,7 +37,7 @@ public class DemoConstants {
   public static final long ia210 = ScionUtil.parseIA("2-ff00:0:210");
   public static final long ia211 = ScionUtil.parseIA("2-ff00:0:211");
 
-  // ----------------  "minimal" network ----------------
+  // ----------------  "minimal" network - daemons and control servers  ---------------
   public static final String daemon110_minimal = "127.0.0.29:30255";
   public static final String daemon111_minimal = "127.0.0.37:30255";
   public static final String daemon1111_minimal = "127.0.0.43:30255";
@@ -51,18 +50,18 @@ public class DemoConstants {
   public static final String csAddr120_minimal = "127.0.0.75:31008";
   public static final String csAddr210_minimal = "127.0.0.91:31038";
 
-  // ----------------   "tiny" network  ------------------------
+  // ----------------  "tiny" network - daemons and control servers  ------------------
   public static final String daemon110_tiny = "127.0.0.12:30255";
   public static final String daemon111_tiny = "127.0.0.19:30255";
   public static final String csAddr110_tiny = "127.0.0.11:31000";
   public static final String csAddr111_tiny = "127.0.0.18:31006";
   public static final String csAddr112_tiny = "[fd00:f00d:cafe::7f00:a]:31010";
 
-  // ----------------   "default" network  ------------------------
+  // ----------------  "default" network - control servers  ------------------------
   public static final String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
   public static final String csAddr111_default = "[fd00:f00d:cafe::7f00:1c]:31022";
 
-  // ----------------  Production network  ----------------
+  // ----------------  ISD/AS for Production network  ----------------
   public static final long iaETH = ScionUtil.parseIA("64-2:0:9");
   public static final long iaETH_CORE = ScionUtil.parseIA("64-0:0:22f");
   public static final long iaGEANT = ScionUtil.parseIA(ScionUtil.toStringIA(71, 20965));
@@ -71,5 +70,4 @@ public class DemoConstants {
   public static final long iaEquinix = ScionUtil.parseIA("71-2:0:48");
   public static final long iaCyberex = ScionUtil.parseIA("71-2:0:49");
   public static final long iaPrinceton = ScionUtil.parseIA(ScionUtil.toStringIA(71, 88));
-  public static final String csETH = "192.168.53.20:30252";
 }

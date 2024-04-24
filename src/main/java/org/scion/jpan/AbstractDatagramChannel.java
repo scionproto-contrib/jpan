@@ -118,6 +118,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
+  /**
+   * Return the ScionService used by this channel. Unless the service is provided during channel
+   * construction, the service will only be created when it is actually required, e.g. for creating
+   * lookup up a path from a daemon or control server. That mean that a server side channel may
+   * never have a ScionService instance because it never needs to look up paths.
+   *
+   * @return the service or 'null'.
+   */
   public ScionService getService() {
     synchronized (stateLock) {
       return this.service;
