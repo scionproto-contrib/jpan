@@ -33,7 +33,7 @@ import org.scion.jpan.testutil.MockDNS;
  *
  * <p>Commented out lines show alternative ways to connect or alternative destinations.
  */
-public class ScmpShowpathsDemo {
+public class ShowpathsDemo {
 
   public static final boolean PRINT = true;
   private final int localPort;
@@ -45,15 +45,15 @@ public class ScmpShowpathsDemo {
     PRODUCTION // production network
   }
 
-  public ScmpShowpathsDemo() {
+  public ShowpathsDemo() {
     this(12345); // Any port is fine unless we connect to a dispatcher network
   }
 
-  public ScmpShowpathsDemo(int localPort) {
+  public ShowpathsDemo(int localPort) {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.SCION_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException {
     switch (network) {
@@ -61,7 +61,7 @@ public class ScmpShowpathsDemo {
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ScmpShowpathsDemo demo = new ScmpShowpathsDemo();
+          ShowpathsDemo demo = new ShowpathsDemo();
           demo.runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
@@ -71,14 +71,14 @@ public class ScmpShowpathsDemo {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          ScmpShowpathsDemo demo = new ScmpShowpathsDemo();
+          ShowpathsDemo demo = new ShowpathsDemo();
           demo.runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
-          ScmpShowpathsDemo demo = new ScmpShowpathsDemo(30041);
+          ShowpathsDemo demo = new ShowpathsDemo(30041);
           demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
           break;

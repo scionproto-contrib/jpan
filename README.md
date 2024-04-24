@@ -140,6 +140,7 @@ Some demos can be found in [src/test/java/org/scion/demo](src/test/java/org/scio
   and [server](src/test/java/org/scion/jpan/demo/PingPongChannelServer.java)
 - [SCMP echo](src/test/java/org/scion/jpan/demo/ScmpEchoDemo.java)
 - [SCMP traceroute](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
+- [show paths](src/test/java/org/scion/jpan/demo/ScmpShowpathsDemo.java)
 
 
 ### General documentation

@@ -62,7 +62,7 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.SCION_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException {
     switch (network) {

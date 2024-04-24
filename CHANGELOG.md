@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#47](https://github.com/netsec-ethz/scion-java-client/pull/47)
 - Added helper methods for `ScmpChannel` and `ScionUtil.toStringPath()`.
   [#48](https://github.com/netsec-ethz/scion-java-client/pull/48),
+- Demo cleanup an new `ScmpShowpathsDemo`.
   [#49](https://github.com/netsec-ethz/scion-java-client/pull/49)
 
 ### Changed
