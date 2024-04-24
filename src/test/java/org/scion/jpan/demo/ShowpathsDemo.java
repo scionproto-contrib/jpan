@@ -37,7 +37,6 @@ public class ShowpathsDemo {
 
   public static final boolean PRINT = true;
   private final int localPort;
-  private static final String NL = System.lineSeparator();
 
   private enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network
