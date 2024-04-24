@@ -66,6 +66,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Merged SCION_DAEMON_HOST and SCION_DAEMON_PORT into a single SCION_DAEMON property.
   [#39](https://github.com/netsec-ethz/scion-java-client/pull/39)
 - Some cleanup related to hists file parser. [#42](https://github.com/netsec-ethz/scion-java-client/pull/42)
+- Added proper error when ports 30255 or 31000 are in use when running tests
+  [#50](https://github.com/netsec-ethz/scion-java-client/pull/50)
 
 ### Removed
 - Removed all code related to DatagramSockets

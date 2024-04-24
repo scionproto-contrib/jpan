@@ -252,10 +252,11 @@ The following standard options are **not** supported:
 ## Configuration
 
 ### Bootstrapping / daemon
-JPAN can be used with a local daemon or in standalone mode (without daemon).
-The daemon is available if you have a [local installation of SCION](https://docs.scion.org/en/latest/dev/run.html).
-Standalone mode will directly connect to a topology server and control server, in a properly
-configured AS this should all happen automatically.
+JPAN can be used in standalone mode or with a local daemon.
+- Standalone mode will directly connect to a topology server and control server, in a properly
+  configured AS this should all happen automatically - this is the **RECOMMENDED WAY** of using this 
+  library.
+- The daemon is available if you have a [local installation of SCION](https://docs.scion.org/en/latest/dev/run.html).
 
 There are also several methods that allow specifying a local topology file, a topology server 
 address or a different DNS server with a scion NAPTR record. These are only meant for debugging. 
@@ -266,7 +267,7 @@ attempt to get network information in the following order until it succeeds:
 - For debugging: Check for bootstrap server address (if address is given)
 - For debugging: Check for DNS NAPTR record (if record entry name is given)
 - Check for to daemon
-- Check search domain (as given in /etc/resolv.conf) for topology server
+- Check search domain (as given in `/etc/resolv.conf`) for topology server
 
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
@@ -303,7 +304,22 @@ The certificates can be renewed by recreating the network with
 This error occurs when requesting a path with an ISD/AS code that is not
 known in the network.
 
-### Cannot find symbol javax.annotation.Generated
+### IllegalThreadStateException
+```
+[WARNING] thread Thread[grpc-default-worker-ELG-1-1,5,com.app.SimpleScmp] was interrupted but is still alive after waiting at least 15000msecs
+...
+[WARNING] Couldn't destroy threadgroup org.codehaus.mojo.exec.ExecJavaMojo$IsolatedThreadGroup[name=com.app.SimpleScmp,maxpri=10]
+java.lang.IllegalThreadStateException
+at java.lang.ThreadGroup.destroy (ThreadGroup.java:803)
+at org.codehaus.mojo.exec.ExecJavaMojo.execute (ExecJavaMojo.java:321)
+...
+```
+This can happen in your JUnit tests if the `ScionService` is not closed properly.
+To fix, close the service manually, for example by calling `ScionService.close()`.
+In normal applications this is rarely necessary because services are closed automatically by a 
+shut-down hook when the application shuts down.
+
+### "Cannot find symbol javax.annotation.Generated"
 
 ```
 Compilation failure: Compilation failure: 

@@ -14,20 +14,49 @@
 
 package org.scion.jpan.testutil;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.scion.jpan.Constants;
+import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 
 public class JUnitSetUp
     implements BeforeAllCallback, BeforeEachCallback, ExtensionContext.Store.CloseableResource {
   private static boolean started = false;
+  private static boolean failed = false;
 
   @Override
   public void beforeAll(ExtensionContext context) {
     if (!started) {
       started = true;
+
+      // Ignore environment variables
+      PackageVisibilityHelper.setIgnoreEnvironment(true);
+
+      // Check for daemon
+      try (ServerSocket ignored = new java.net.ServerSocket(30255)) {
+        // empty
+      } catch (IOException e) {
+        failed = true;
+        throw new IllegalStateException("JUnit tests cannot run while port 30255 is in use.");
+      }
+
+      // Check for control server
+      try (ServerSocket ignored = new java.net.ServerSocket(31000)) {
+        // empty
+      } catch (IOException e) {
+        failed = true;
+        throw new IllegalStateException("JUnit tests cannot run while port 31000 is in use.");
+      }
+
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
+      System.clearProperty(Constants.PROPERTY_DAEMON);
+      System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
       System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
       context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put("SCION JUnit global", this);
     }
@@ -41,5 +70,8 @@ public class JUnitSetUp
   @Override
   public void beforeEach(ExtensionContext context) {
     Scion.closeDefault();
+    if (failed) {
+      System.exit(1);
+    }
   }
 }
