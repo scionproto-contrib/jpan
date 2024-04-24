@@ -15,7 +15,10 @@
 package org.scion.jpan.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -35,10 +38,12 @@ public class PingPongDemoTest {
     PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
     PingPongChannelClient.PRINT = false;
     PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
+    CountDownLatch barrier = new CountDownLatch(1);
     Thread server =
         new Thread(
             () -> {
               try {
+                barrier.countDown();
                 PingPongChannelServer.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
@@ -46,6 +51,11 @@ public class PingPongDemoTest {
               }
             });
     server.start();
+    // Yes this is bad, not least because the barrier is counted down before the server starts.
+    // But it is the best we can do here.
+    if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
+      fail();
+    }
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.
