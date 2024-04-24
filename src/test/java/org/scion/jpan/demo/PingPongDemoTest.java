@@ -54,7 +54,7 @@ public class PingPongDemoTest {
     // Yes this is bad, not least because the barrier is counted down before the server starts.
     // But it is the best we can do here.
     if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
-        fail();
+      fail();
     }
 
     // Yes, there is a race condition because client may send a packet before
