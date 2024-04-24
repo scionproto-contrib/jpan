@@ -36,7 +36,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.scion.internal.SimpleCache;
 import org.scion.jpan.internal.DNSHelper;
 import org.scion.jpan.internal.HostsFileParser;

@@ -250,7 +250,11 @@ public class DatagramSocket extends java.net.DatagramSocket {
 
   @Override
   public SocketAddress getRemoteSocketAddress() {
-    return channel.getRemoteAddress();
+    try {
+      return channel.getRemoteAddress();
+    } catch (IOException e) {
+      throw new ScionRuntimeException(e);
+    }
   }
 
   @Override
