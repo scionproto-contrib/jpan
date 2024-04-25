@@ -30,9 +30,9 @@ The following artifact contains the complete SCION Java implementation:
 - Many more
 
 ### WARNING
-JPAN can directly connect to SCION **without dispatcher**.
+JPAN connects directly to SCION **without dispatcher**.
 
-Currently (January 2024), the SCION system uses a "dispatcher" (a process that runs on endhosts,
+Currently (April 2024), the SCION system uses a "dispatcher" (a process that runs on endhosts,
 listens on a fixed port (30041) and forwards any incoming SCION packets, after stripping the SCION 
 header, to local application).
 
