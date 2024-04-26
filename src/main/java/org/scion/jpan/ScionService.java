@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.scion.internal.SimpleCache;
 import org.scion.jpan.internal.DNSHelper;
 import org.scion.jpan.internal.HostsFileParser;
 import org.scion.jpan.internal.ScionBootstrapper;
@@ -81,6 +82,7 @@ public class ScionService {
   private Thread shutdownHook;
   private final java.nio.channels.DatagramChannel[] ifDiscoveryChannel = {null};
   private final HostsFileParser hostsFile = new HostsFileParser();
+  private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
 
   protected enum Mode {
     DAEMON,
@@ -294,24 +296,26 @@ public class ScionService {
   /**
    * Requests paths from the local ISD/AS to the destination.
    *
-   * @param dstAddress Destination IP address
+   * @param dstAddress Destination IP address. It will try to perform a DNS look up to map the
+   *     hostName to SCION address.
    * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
-    long dstIsdAs = getIsdAs(dstAddress.getHostString());
-    return getPaths(dstIsdAs, dstAddress);
+    ScionAddress sa = getScionAddress(dstAddress.getHostName());
+    return getPaths(sa.getIsdAs(), sa.getInetAddress(), dstAddress.getPort());
   }
 
   /**
    * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
-   * @param dstAddress Destination IP address
+   * @param dstScionAddress Destination IP address. Must belong to a SCION enabled end host.
    * @return All paths returned by the path service.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstAddress) {
-    return getPaths(dstIsdAs, dstAddress.getAddress(), dstAddress.getPort());
+  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
+    // TODO change method API name to make clear that this requires a SCION IP.
+    return getPaths(dstIsdAs, dstScionAddress.getAddress(), dstScionAddress.getPort());
   }
 
   /**
@@ -372,6 +376,11 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public long getIsdAs(String hostName) throws ScionException {
+    ScionAddress scionAddress = scionAddressCache.get(hostName);
+    if (scionAddress != null) {
+      return scionAddress.getIsdAs();
+    }
+
     // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName);
     if (txtFromProperties != null) {
@@ -408,6 +417,11 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public ScionAddress getScionAddress(String hostName) throws ScionException {
+    ScionAddress scionAddress = scionAddressCache.get(hostName);
+    if (scionAddress != null) {
+      return scionAddress;
+    }
+
     // Look for TXT in application properties
     String txtFromProperties = findTxtRecordInProperties(hostName);
     if (txtFromProperties != null) {
@@ -433,10 +447,16 @@ public class ScionService {
     ScionAddress fromDNS =
         DNSHelper.queryTXT(hostName, DNS_TXT_KEY, x -> parseTxtRecord(x, hostName));
     if (fromDNS != null) {
-      return fromDNS;
+      return addToCache(fromDNS);
     }
 
     throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
+  }
+
+  private ScionAddress addToCache(ScionAddress address) {
+    scionAddressCache.put(address.getHostName(), address);
+    scionAddressCache.put(address.getInetAddress().getHostAddress(), address);
+    return address;
   }
 
   private boolean isLocalhost(String hostName) {

@@ -21,6 +21,28 @@ import org.xbill.DNS.*;
 
 public class DNSUtil {
 
+  public static InetAddress install(String asHost, byte[] addrBytes) {
+    try {
+      Name name = Name.fromString(asHost + ".");
+      Cache c = Lookup.getDefaultCache(DClass.IN);
+      if (addrBytes.length == 4) {
+        ARecord a = new ARecord(name, DClass.IN, 5000, InetAddress.getByAddress(addrBytes));
+        c.addRecord(a, 10);
+        // remove trailing top-level `.`
+        return InetAddress.getByAddress(asHost, a.getAddress().getAddress());
+      } else if (addrBytes.length == 16) {
+        AAAARecord a = new AAAARecord(name, DClass.IN, 5000, InetAddress.getByAddress(addrBytes));
+        c.addRecord(a, 10);
+        // remove trailing top-level `.`
+        return InetAddress.getByAddress(asHost, a.getAddress().getAddress());
+      } else {
+        throw new IllegalArgumentException();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort) {
     installNAPTR(asHost, topoAddr, "x-sciondiscovery=" + topoPort, "x-sciondiscovery:tcp");
   }
@@ -60,7 +82,7 @@ public class DNSUtil {
 
   public static void installTXT(String asHost, String entry) {
     try {
-      Name name = Name.fromString(asHost + "."); // "inf.ethz.ch.";
+      Name name = Name.fromString(asHost + ".");
       Cache c = Lookup.getDefaultCache(DClass.IN);
       TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, entry);
       c.addRecord(txt, 10);
@@ -71,5 +93,16 @@ public class DNSUtil {
 
   public static void clear() {
     Lookup.setDefaultCache(new Cache(), DClass.IN);
+  }
+
+  private static Name toName(String hostName) {
+    try {
+      if (hostName.endsWith(".")) {
+        return Name.fromString(hostName);
+      }
+      return Name.fromString(hostName + ".");
+    } catch (TextParseException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
