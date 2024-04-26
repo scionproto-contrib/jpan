@@ -192,7 +192,7 @@
                         </goals>
                         <configuration>
                             <optimizeCodegen>false</optimizeCodegen>
-                            <!--                            <protocVersion>3.23.0</protocVersion>-->
+                            <protocVersion>3.27.0</protocVersion>
                             <includeStdTypes>true</includeStdTypes>
                             <!--                        </configuration>-->
                             <!--                        <configuration>-->
