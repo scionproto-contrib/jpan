@@ -191,6 +191,7 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
+                            <protocArtifact>com.google.protobuf:protoc:3.21.1</protocArtifact>
                             <optimizeCodegen>false</optimizeCodegen>
                             <protocVersion>3.24.0</protocVersion>
                             <includeStdTypes>true</includeStdTypes>
