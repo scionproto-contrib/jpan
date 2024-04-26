@@ -98,6 +98,10 @@ public class ScionUtil {
     return s;
   }
 
+  /**
+   * @param raw A raw path
+   * @return The sequence or border router interface IDs.
+   */
   public static String toStringPath(byte[] raw) {
     if (raw.length == 0) {
       return "[]";
@@ -128,6 +132,10 @@ public class ScionUtil {
     return sb.toString();
   }
 
+  /**
+   * @param path A RequestPath
+   * @return ISD/AS codes and border outer interface IDs along the path.
+   */
   public static String toStringPath(RequestPath path) {
     if (path.getInterfacesList().isEmpty()) {
       return "[]";

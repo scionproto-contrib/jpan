@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#48](https://github.com/netsec-ethz/scion-java-client/pull/48),
 - Demo cleanup an new `ScmpShowpathsDemo`.
   [#49](https://github.com/netsec-ethz/scion-java-client/pull/49)
+- Channel demo cleanup. [#52](https://github.com/netsec-ethz/scion-java-client/pull/52)
 
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"

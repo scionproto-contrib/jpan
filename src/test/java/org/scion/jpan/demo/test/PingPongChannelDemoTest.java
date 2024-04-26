@@ -12,19 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.demo;
+package org.scion.jpan.demo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.demo.DemoTopology;
+import org.scion.jpan.demo.PingPongChannelClient;
+import org.scion.jpan.demo.PingPongChannelServer;
+import org.scion.jpan.testutil.MockDNS;
 
-public class PingPongDemoTest {
+public class PingPongChannelDemoTest {
 
   @BeforeAll
   public static void beforeAll() {
+    ScionService.closeDefault();
+  }
+
+  @AfterAll
+  public static void afterAll() {
+    DemoTopology.shutDown();
+    MockDNS.clear();
     ScionService.closeDefault();
   }
 
@@ -32,20 +47,27 @@ public class PingPongDemoTest {
   void test() throws InterruptedException {
     AtomicInteger failures = new AtomicInteger();
     PingPongChannelServer.PRINT = false;
-    PingPongChannelServer.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
     PingPongChannelClient.PRINT = false;
-    PingPongChannelClient.NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
+    CountDownLatch barrier = new CountDownLatch(1);
     Thread server =
         new Thread(
             () -> {
               try {
+                barrier.countDown();
                 PingPongChannelServer.main(null);
               } catch (Throwable e) {
                 failures.incrementAndGet();
+                e.printStackTrace();
                 throw new RuntimeException(e);
               }
             });
     server.start();
+    // Yes this is bad, the barrier is counted down before the server socket starts listening.
+    // But it is the best we can easily do here.
+    Thread.sleep(100);
+    if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
+      fail();
+    }
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.
