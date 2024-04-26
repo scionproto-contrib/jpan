@@ -20,7 +20,7 @@ import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 
 /** Helper class for setting up a demo topology. */
-class DemoTopology {
+public class DemoTopology {
 
   InetSocketAddress clientDaemonAddress;
 
@@ -52,7 +52,7 @@ class DemoTopology {
     return configureMock(false);
   }
 
-  static void shutDown() {
+  public static void shutDown() {
     MockNetwork.stopTiny();
   }
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.demo;
+package org.scion.jpan.demo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -24,6 +24,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.demo.DemoTopology;
+import org.scion.jpan.demo.PingPongChannelClient;
+import org.scion.jpan.demo.PingPongChannelServer;
 import org.scion.jpan.testutil.MockDNS;
 
 public class PingPongChannelDemoTest {
