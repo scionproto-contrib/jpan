@@ -19,48 +19,51 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
+import org.scion.jpan.ScionUtil;
 
 public class PingPongChannelServer {
 
   public static boolean PRINT = true;
-  private static final int SERVER_PORT = 44444;
-  public static DemoConstants.Network NETWORK = DemoConstants.Network.MOCK_TOPOLOGY_IPV4;
 
-  public static InetSocketAddress getServerAddress(DemoConstants.Network network) {
-    switch (network) {
-      case MOCK_TOPOLOGY:
-        return new InetSocketAddress("::1", SERVER_PORT);
-      case MOCK_TOPOLOGY_IPV4:
-      case SCION_PROTO:
-        return new InetSocketAddress("127.0.0.1", SERVER_PORT);
-      default:
-        throw new UnsupportedOperationException();
+  public static final String SERVER_HOST_NAME = "ping.pong.org";
+  public static final InetSocketAddress SERVER_ADDRESS;
+  public static final int SERVER_PORT = 44444;
+
+  static {
+    try {
+      byte[] serverIP = InetAddress.getLoopbackAddress().getAddress();
+      InetAddress address = InetAddress.getByAddress(SERVER_HOST_NAME, serverIP);
+      SERVER_ADDRESS = new InetSocketAddress(address, SERVER_PORT);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
     }
   }
 
-  private static DatagramChannel startServer() throws IOException {
-    InetSocketAddress address = getServerAddress(NETWORK);
-    DatagramChannel server = DatagramChannel.open().bind(address);
-    println("Server started at: " + address);
-    return server;
+  public static void main(String[] args) throws UnknownHostException {
+    try {
+      service();
+    } catch (SocketException ex) {
+      System.out.println("Socket error: " + ex.getMessage());
+    } catch (IOException ex) {
+      System.out.println("I/O error: " + ex.getMessage());
+    }
   }
 
-  private static void sendMessage(DatagramChannel channel, String msg, Path path)
-      throws IOException {
-    ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
-    channel.send(buffer, path);
-    println("Sent to client at: " + path + "  message: " + msg);
-  }
+  private static void service() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(SERVER_ADDRESS);
+      ByteBuffer buffer = ByteBuffer.allocate(100);
+      println("Waiting for packet ... ");
+      Path path = channel.receive(buffer);
+      String msg = extractMessage(buffer);
+      String remoteAddress = path.getDestinationAddress() + ":" + path.getDestinationPort();
+      String borderRouterInterfaces = ScionUtil.toStringPath(path.getRawPath());
+      println("Received (from " + remoteAddress + ") via " + borderRouterInterfaces + "): " + msg);
 
-  private static Path receiveMessage(DatagramChannel server) throws IOException {
-    ByteBuffer buffer = ByteBuffer.allocate(1024);
-    println("Waiting ...");
-
-    Path remoteAddress = server.receive(buffer);
-    String message = extractMessage(buffer);
-    println("Received from client at: " + remoteAddress + "  message: " + message);
-
-    return remoteAddress;
+      String msgAnswer = "Re: " + msg;
+      channel.send(ByteBuffer.wrap(msgAnswer.getBytes()), path);
+      println("Sent answer: " + msgAnswer);
+    }
   }
 
   private static String extractMessage(ByteBuffer buffer) {
@@ -68,13 +71,6 @@ public class PingPongChannelServer {
     byte[] bytes = new byte[buffer.remaining()];
     buffer.get(bytes);
     return new String(bytes);
-  }
-
-  public static void main(String[] args) throws IOException {
-    try (DatagramChannel channel = startServer()) {
-      Path remoteAddress = receiveMessage(channel);
-      sendMessage(channel, "Re: Hello scion", remoteAddress);
-    }
   }
 
   private static void println(String msg) {

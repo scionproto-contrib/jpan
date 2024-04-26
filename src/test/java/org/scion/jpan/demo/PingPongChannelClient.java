@@ -14,115 +14,65 @@
 
 package org.scion.jpan.demo;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.jpan.*;
+import org.scion.jpan.DatagramChannel;
+import org.scion.jpan.RequestPath;
+import org.scion.jpan.ScionUtil;
 import org.scion.jpan.testutil.MockDNS;
 
 /**
- * Example of client/server using SCION. <br>
- * - MOCK_TOPOLOGY and MOCK_TOPOLOGY_IPV4 use the JUnit mock network of this library. <br>
- * - SCION_PROTO works with a local topology from the scionproto golang implementation such as
- * "tiny". Note that the constants for "minimal" differ somewhat from the scionproto topology, see
- * <a href="https://github.com/scionproto/scion">...</a>.
+ * Minimal ping pong client/server demo. The client sends a text message to a server and the server
+ * responds with an extended message. Client and server are in different ASes connected by a mock
+ * border router.
+ *
+ * <p>To better see what is happening you can set the logging level to INFO in
+ * src/test/resources/simplelogger.properties
  */
 public class PingPongChannelClient {
 
   public static boolean PRINT = true;
-  public static DemoConstants.Network NETWORK = PingPongChannelServer.NETWORK;
+
+  public static void main(String[] args) throws IOException {
+    // The following starts a mock daemon for a local AS "1-ff00:0:110" and a border router that
+    // connects to "1-ff00:0:112"
+    DemoTopology.configureMock(true);
+    // This is used by the DatagramSocket internally to look up the ISD/AS code.
+    MockDNS.install("1-ff00:0:112", PingPongChannelServer.SERVER_ADDRESS.getAddress());
+    run();
+    DemoTopology.shutDown();
+  }
+
+  private static void run() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.configureBlocking(true);
+      channel.connect(PingPongChannelServer.SERVER_ADDRESS);
+      String msg = "Hello there!";
+      ByteBuffer sendBuf = ByteBuffer.wrap(msg.getBytes());
+      channel.write(sendBuf);
+      println(
+          "Sent via "
+              + ScionUtil.toStringPath((RequestPath) channel.getConnectionPath())
+              + ": "
+              + msg);
+
+      println("Receiving ... (" + channel.getLocalAddress() + ")");
+      ByteBuffer buffer = ByteBuffer.allocate(512);
+      channel.read(buffer);
+
+      String pong = extractMessage(buffer);
+      println("Received: " + pong);
+    } catch (SocketTimeoutException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   private static String extractMessage(ByteBuffer buffer) {
     buffer.flip();
     byte[] bytes = new byte[buffer.remaining()];
     buffer.get(bytes);
     return new String(bytes);
-  }
-
-  public static DatagramChannel startClient() throws IOException {
-    DatagramChannel client = DatagramChannel.open().bind(null);
-    client.configureBlocking(true);
-    return client;
-  }
-
-  public static void sendMessage(DatagramChannel client, String msg, Path serverAddress)
-      throws IOException {
-    ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
-    client.send(buffer, serverAddress);
-    println("Sent to server at: " + serverAddress + "  message: " + msg);
-  }
-
-  public static void receiveMessage(DatagramChannel channel) throws IOException {
-    ByteBuffer buffer = ByteBuffer.allocate(1024);
-    Path remoteAddress = channel.receive(buffer);
-    String message = extractMessage(buffer);
-    println("Received from server at: " + remoteAddress + "  message: " + message);
-  }
-
-  public static void main(String[] args) {
-    try {
-      run();
-    } catch (IOException e) {
-      println(e.getMessage());
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static void run() throws IOException {
-    // Demo setup
-    switch (NETWORK) {
-      case MOCK_TOPOLOGY_IPV4:
-        {
-          DemoTopology.configureMock(true);
-          MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-          doClientStuff(DemoConstants.ia112);
-          DemoTopology.shutDown();
-          break;
-        }
-      case MOCK_TOPOLOGY:
-        {
-          DemoTopology.configureMock();
-          MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          doClientStuff(DemoConstants.ia112);
-          DemoTopology.shutDown();
-          break;
-        }
-      case SCION_PROTO:
-        {
-          System.setProperty(
-              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-              "topologies/minimal/ASff00_0_1111/topology.json");
-          // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          doClientStuff(DemoConstants.ia112);
-          break;
-        }
-      default:
-        throw new UnsupportedOperationException();
-    }
-  }
-
-  private static void doClientStuff(long destinationIA) throws IOException {
-    println("Client starting ...");
-    try (DatagramChannel channel = startClient()) {
-      String msg = "Hello scion";
-      println("Client getting server address " + channel.getLocalAddress() + " ...");
-      InetSocketAddress serverAddress = PingPongChannelServer.getServerAddress(NETWORK);
-      println("Client got server address " + serverAddress);
-      println(
-          "Client getting path to "
-              + ScionUtil.toStringIA(destinationIA)
-              + ","
-              + serverAddress
-              + " ...");
-      Path path = Scion.defaultService().getPaths(destinationIA, serverAddress).get(0);
-      println("Client got path:  " + path);
-      println("Client sending from " + channel.getLocalAddress() + " ...");
-      sendMessage(channel, msg, path);
-
-      println("Client waiting at " + channel.getLocalAddress() + " ...");
-      receiveMessage(channel);
-    }
   }
 
   private static void println(String msg) {

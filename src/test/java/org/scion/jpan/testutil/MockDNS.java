@@ -14,9 +14,13 @@
 
 package org.scion.jpan.testutil;
 
+import java.net.InetAddress;
 import org.scion.jpan.PackageVisibilityHelper;
 
 public class MockDNS {
+  public static void install(String isdAs, InetAddress addr) {
+    install(isdAs, addr.getHostName(), addr.getHostAddress());
+  }
 
   public static void install(String isdAs, String hostName, String address) {
     String entry = System.getProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "");
