@@ -4,7 +4,7 @@
 
     <groupId>org.scion</groupId>
     <artifactId>jpan</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.1-ALPHA-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
