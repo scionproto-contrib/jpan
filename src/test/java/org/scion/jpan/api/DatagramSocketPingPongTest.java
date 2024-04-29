@@ -46,8 +46,8 @@ class DatagramSocketPingPongTest {
 
   private void client(DatagramSocket socket, RequestPath requestPath, int id) throws IOException {
     byte[] sendBuf = MSG.getBytes();
-    InetAddress addr = requestPath.getDestinationAddress();
-    int port = requestPath.getDestinationPort();
+    InetAddress addr = requestPath.getRemoteAddress();
+    int port = requestPath.getRemotePort();
     DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, addr, port);
     socket.send(request);
 

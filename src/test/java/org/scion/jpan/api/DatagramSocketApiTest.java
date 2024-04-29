@@ -305,8 +305,8 @@ class DatagramSocketApiTest {
   @Test
   void isConnected_Path() throws IOException {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
-    InetAddress ip = path.getDestinationAddress();
-    InetSocketAddress address = new InetSocketAddress(ip, path.getDestinationPort());
+    InetAddress ip = path.getRemoteAddress();
+    InetSocketAddress address = new InetSocketAddress(ip, path.getRemotePort());
     try (DatagramSocket socket = new DatagramSocket()) {
       assertFalse(socket.isConnected());
       assertNull(socket.getRemoteSocketAddress());
@@ -647,16 +647,16 @@ class DatagramSocketApiTest {
     RequestPath expiredPath =
         PackageVisibilityHelper.createRequestPath110_112(
             builder,
-            basePath.getDestinationIsdAs(),
-            basePath.getDestinationAddress(),
-            basePath.getDestinationPort(),
+            basePath.getRemoteIsdAs(),
+            basePath.getRemoteAddress(),
+            basePath.getRemotePort(),
             basePath.getFirstHopAddress());
     assertTrue(Instant.now().getEpochSecond() > expiredPath.getExpiration());
     return expiredPath;
   }
 
   private static InetSocketAddress toAddress(Path path) {
-    return new InetSocketAddress(path.getDestinationAddress(), path.getDestinationPort());
+    return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
   }
 
   @Test

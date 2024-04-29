@@ -329,15 +329,15 @@ public class DatagramSocket extends java.net.DatagramSocket {
       }
       if (!channel.isConnected()) {
         synchronized (pathCache) {
-          InetAddress ip = path.getDestinationAddress();
-          InetSocketAddress addr = new InetSocketAddress(ip, path.getDestinationPort());
+          InetAddress ip = path.getRemoteAddress();
+          InetSocketAddress addr = new InetSocketAddress(ip, path.getRemotePort());
           pathCache.put(addr, path);
         }
       }
       receiveBuffer.flip();
       packet.setLength(receiveBuffer.limit());
-      packet.setAddress(path.getDestinationAddress());
-      packet.setPort(path.getDestinationPort());
+      packet.setAddress(path.getRemoteAddress());
+      packet.setPort(path.getRemotePort());
     }
   }
 

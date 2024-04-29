@@ -68,9 +68,9 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     @Override
     public final void runImpl() throws IOException {
       try (DatagramSocket socket = new DatagramSocket()) {
-        InetAddress ipAddress = remoteAddress.getDestinationAddress();
+        InetAddress ipAddress = remoteAddress.getRemoteAddress();
         InetSocketAddress iSAddress =
-            new InetSocketAddress(ipAddress, remoteAddress.getDestinationPort());
+            new InetSocketAddress(ipAddress, remoteAddress.getRemotePort());
         socket.connect(iSAddress);
         for (int i = 0; i < nRounds; i++) {
           client.run(socket, remoteAddress, id);
