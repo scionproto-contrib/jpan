@@ -75,7 +75,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
     this(bindAddress, null);
   }
 
-  // "private" to avoid ambiguity with DatagramSocket((SockeAddress) null) -> use create()
+  // "private" to avoid ambiguity with DatagramSocket((SocketAddress) null) -> use create()
   private DatagramSocket(ScionService service) throws SocketException {
     super(new DummyDatagramSocketImpl());
     try {
@@ -630,6 +630,18 @@ public class DatagramSocket extends java.net.DatagramSocket {
   public synchronized DatagramSocket setRemoteDispatcher(boolean hasDispatcher) {
     channel.configureRemoteDispatcher(hasDispatcher);
     return this;
+  }
+
+  /**
+   * Specify an source address override. See {@link
+   * org.scion.jpan.DatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
+   *
+   * @param overrideSourceAddress Override address
+   * @deprecated This will likely be removed in a future version
+   */
+  @Deprecated
+  public synchronized void setOverrideSourceAddress(InetSocketAddress overrideSourceAddress) {
+    channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 
   private static class DummyDatagramSocketImpl extends DatagramSocketImpl {

@@ -684,4 +684,47 @@ class DatagramChannelApiTest {
           () -> channel.setOption(StandardSocketOptions.SO_RCVBUF, 10000));
     }
   }
+
+  @Test
+  void setOverrideSourceAddress() throws IOException {
+    ByteBuffer buf = ByteBuffer.wrap("Hello".getBytes());
+    InetAddress overrideSrcIP = InetAddress.getByAddress(new byte[] {42, 42, 42, 42});
+    int overrideSrcPort = 4242;
+    InetSocketAddress overrideSrc = new InetSocketAddress(overrideSrcIP, overrideSrcPort);
+    try (MockDatagramChannel mock = MockDatagramChannel.open();
+        DatagramChannel channel = DatagramChannel.open(Scion.defaultService(), mock)) {
+
+      // initialize local address
+      mock.setSendCallback((buffer, address) -> 0);
+      channel.send(buf, dummyAddress);
+
+      // src should be 127.0.0.1
+      int localPort = channel.getLocalAddress().getPort();
+      InetAddress localIP = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
+      InetSocketAddress localAddress = new InetSocketAddress(localIP, localPort);
+      mock.setSendCallback((buffer, address) -> checkAddress(buffer, localAddress));
+      channel.send(buf, dummyAddress);
+
+      // src should be overrideAddress
+      channel.setOverrideSourceAddress(overrideSrc);
+      mock.setSendCallback((buffer, address) -> checkAddress(buffer, overrideSrc));
+      channel.send(buf, dummyAddress);
+
+      // src should be local address again
+      channel.setOverrideSourceAddress(null);
+      mock.setSendCallback((buffer, address) -> checkAddress(buffer, localAddress));
+      channel.send(buf, dummyAddress);
+    }
+  }
+
+  private int checkAddress(ByteBuffer buffer, InetSocketAddress expectedAddress) {
+    ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+    try {
+      assertEquals(expectedAddress.getAddress(), spi.getScionHeader().getSrcHostAddress());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    assertEquals(expectedAddress.getPort(), spi.getOverlayHeaderUdp().getSrcPort());
+    return 0;
+  }
 }
