@@ -18,9 +18,9 @@ import java.net.*;
 import java.util.Arrays;
 
 /**
- * A Path is an InetSocketAddress/ISD/AS of a destination host plu a path to that host.
+ * A Path is an InetSocketAddress/ISD/AS of a destination host plus a path to that host.
  *
- * <p>This class is threadsafe.
+ * <p>This class is thread safe.
  */
 public abstract class Path {
   private final byte[] pathRaw;
@@ -41,26 +41,26 @@ public abstract class Path {
 
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
-  public int getDestinationPort() {
+  public int getRemotePort() {
     return dstPort;
   }
 
-  public InetAddress getDestinationAddress() {
+  public InetAddress getRemoteAddress() {
     return dstAddress;
   }
 
-  public long getDestinationIsdAs() {
+  public long getRemoteIsdAs() {
     return dstIsdAs;
   }
 
   @Override
   public String toString() {
     return "Path{"
-        + "dstIsdAs="
+        + "rmtIsdAs="
         + ScionUtil.toStringIA(dstIsdAs)
-        + ", dstAddress="
+        + ", rmtAddress="
         + dstAddress
-        + ", dstPort="
+        + ", rmtPort="
         + dstPort
         + ", pathRaw="
         + Arrays.toString(pathRaw)

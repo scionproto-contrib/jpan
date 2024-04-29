@@ -323,8 +323,8 @@ class DatagramChannelApiTest {
   @Test
   void isConnected_Path() throws IOException {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
-    InetAddress ip = path.getDestinationAddress();
-    InetSocketAddress address = new InetSocketAddress(ip, path.getDestinationPort());
+    InetAddress ip = path.getRemoteAddress();
+    InetSocketAddress address = new InetSocketAddress(ip, path.getRemotePort());
     try (DatagramChannel channel = DatagramChannel.open()) {
       assertFalse(channel.isConnected());
       assertNull(channel.getRemoteAddress());
@@ -547,9 +547,9 @@ class DatagramChannelApiTest {
     RequestPath expiredPath =
         PackageVisibilityHelper.createRequestPath110_112(
             builder,
-            basePath.getDestinationIsdAs(),
-            basePath.getDestinationAddress(),
-            basePath.getDestinationPort(),
+            basePath.getRemoteIsdAs(),
+            basePath.getRemoteAddress(),
+            basePath.getRemotePort(),
             basePath.getFirstHopAddress());
     assertTrue(Instant.now().getEpochSecond() > expiredPath.getExpiration());
     return expiredPath;

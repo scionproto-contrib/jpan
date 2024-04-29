@@ -90,7 +90,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT} If the
+   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
    * channel is connected, this method will request a new path using the new policy.
    *
    * <p>After initially setting the path policy, it is used to request a new path during write() and
@@ -109,7 +109,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  public ScionService getOrCreateService() {
+  protected ScionService getOrCreateService() {
     synchronized (stateLock) {
       if (service == null) {
         service = ScionService.defaultService();
@@ -184,7 +184,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public InetSocketAddress getRemoteAddress() throws IOException {
     Path path = getConnectionPath();
     if (path != null) {
-      return new InetSocketAddress(path.getDestinationAddress(), path.getDestinationPort());
+      return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
     }
     return null;
   }
@@ -548,9 +548,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         // We could get source IA, address and port locally, but it seems cleaner
         // to get these from the inverted header.
         ResponsePath rPath = (ResponsePath) path;
-        srcIA = rPath.getSourceIsdAs();
-        srcAddress = rPath.getSourceAddress();
-        srcPort = rPath.getSourcePort();
+        srcIA = rPath.getLocalIsdAs();
+        srcAddress = rPath.getLocalAddress();
+        srcPort = rPath.getLocalPort();
       } else {
         srcIA = getOrCreateService().getLocalIsdAs();
         // Get external host address. This must be done *after* refreshing the path!
@@ -580,14 +580,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           rawPath.length,
           srcIA,
           srcAddress.getAddress(),
-          path.getDestinationIsdAs(),
-          path.getDestinationAddress().getAddress(),
+          path.getRemoteIsdAs(),
+          path.getRemoteAddress().getAddress(),
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
 
       if (hdrType == InternalConstants.HdrTypes.UDP) {
-        int dstPort = path.getDestinationPort();
+        int dstPort = path.getRemotePort();
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
     }

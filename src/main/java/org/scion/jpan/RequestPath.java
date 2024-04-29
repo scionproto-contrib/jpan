@@ -43,7 +43,7 @@ public class RequestPath extends Path {
     this.pathProtoc = path;
     if (getRawPath().length == 0) {
       // local AS has path length 0
-      firstHop = new InetSocketAddress(getDestinationAddress(), getDestinationPort());
+      firstHop = new InetSocketAddress(getRemoteAddress(), getRemotePort());
     } else {
       firstHop = getFirstHopAddress(pathProtoc);
     }

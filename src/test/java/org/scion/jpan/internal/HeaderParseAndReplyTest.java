@@ -58,8 +58,8 @@ class HeaderParseAndReplyTest {
     assertEquals("Hello scion", payload);
 
     // remote address
-    assertEquals(44444, remoteAddr.getDestinationPort());
-    assertEquals("1-ff00:0:110", ScionUtil.toStringIA(remoteAddr.getDestinationIsdAs()));
+    assertEquals(44444, remoteAddr.getRemotePort());
+    assertEquals("1-ff00:0:110", ScionUtil.toStringIA(remoteAddr.getRemoteIsdAs()));
     assertEquals(firstHop, remoteAddr.getFirstHopAddress());
 
     // path

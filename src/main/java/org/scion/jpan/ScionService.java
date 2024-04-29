@@ -325,8 +325,7 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<RequestPath> getPaths(RequestPath path) {
-    return getPaths(
-        path.getDestinationIsdAs(), path.getDestinationAddress(), path.getDestinationPort());
+    return getPaths(path.getRemoteIsdAs(), path.getRemoteAddress(), path.getRemotePort());
   }
 
   /**

@@ -52,6 +52,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#45](https://github.com/netsec-ethz/scion-java-client/pull/45)
 - **BREAKING CHANGE**: `Path` now returns `InetAddress` instead of `byte[]`
   [#44](https://github.com/netsec-ethz/scion-java-client/pull/44)
+- BREAKING CHANGE: Changed `Path` API: destination->remote and source->local
+  [#55](https://github.com/netsec-ethz/scion-java-client/pull/55)
 
 ### Fixed
 - Fixed: SCMP problem when pinging local AS.

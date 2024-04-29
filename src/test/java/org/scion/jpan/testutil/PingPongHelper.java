@@ -75,8 +75,8 @@ public class PingPongHelper extends PingPongHelperBase {
     @Override
     public final void runImpl(DatagramChannel channel) throws IOException {
       if (connect) {
-        InetAddress inetAddress = path.getDestinationAddress();
-        InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getDestinationPort());
+        InetAddress inetAddress = path.getRemoteAddress();
+        InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getRemotePort());
         channel.connect(iSAddress);
       }
       for (int i = 0; i < nRounds; i++) {
@@ -139,8 +139,8 @@ public class PingPongHelper extends PingPongHelperBase {
     ByteBuffer response = ByteBuffer.allocate(512);
     Path address = channel.receive(response);
     assertNotNull(address);
-    assertEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
-    assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
+    assertEquals(serverAddress.getRemoteAddress(), address.getRemoteAddress());
+    assertEquals(serverAddress.getRemotePort(), address.getRemotePort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
