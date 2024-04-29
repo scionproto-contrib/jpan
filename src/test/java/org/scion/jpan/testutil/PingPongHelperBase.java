@@ -79,6 +79,7 @@ public class PingPongHelperBase {
         servers[i].setName("Server-thread-" + i);
         servers[i].start();
       }
+      Thread.sleep(100); // Wait for server(s) to start
 
       Thread[] clients = new Thread[nClients];
       for (int i = 0; i < clients.length; i++) {
