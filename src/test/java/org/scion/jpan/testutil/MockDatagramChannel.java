@@ -20,8 +20,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.MembershipKey;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.scion.jpan.demo.inspector.ScionPacketInspector;
 
 public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
@@ -199,5 +201,30 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   @Override
   protected void implConfigureBlocking(boolean b) {
     this.isBlocking = b;
+  }
+
+  /**
+   * Configures the mock as a simple echo system. Packets from send() are reversed and added to a
+   * queue that is consumed by receive().
+   */
+  public void configureSimpleEcho() {
+    ConcurrentLinkedDeque<ByteBuffer> packets = new ConcurrentLinkedDeque<>();
+    ConcurrentLinkedDeque<InetSocketAddress> addresses = new ConcurrentLinkedDeque<>();
+    setSendCallback(
+        (byteBuffer, address) -> {
+          ScionPacketInspector spi = ScionPacketInspector.readPacket(byteBuffer);
+          spi.reversePath();
+          ByteBuffer buf2 = ByteBuffer.allocate(1000);
+          spi.writePacket(buf2, new byte[] {64});
+          buf2.flip();
+          packets.add(buf2);
+          addresses.add((InetSocketAddress) address);
+          return 1;
+        });
+    setReceiveCallback(
+        byteBuffer -> {
+          byteBuffer.put(packets.pop());
+          return addresses.pop();
+        });
   }
 }
