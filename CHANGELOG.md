@@ -72,6 +72,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#50](https://github.com/netsec-ethz/scion-java-client/pull/50)
 - Fix `Unsupported platform: protoc-3.11.4-osx-aarch_64.exe.`
   [#53](https://github.com/netsec-ethz/scion-java-client/pull/53)
+- Fixed spurious CI failure and SimpleCache packet name.
+  [#55](https://github.com/netsec-ethz/scion-java-client/pull/55)
 
 ### Removed
 - Removed all code related to DatagramSockets
