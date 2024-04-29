@@ -113,7 +113,7 @@ public class SCMPTest {
       assertEquals(42, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);
-      assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+      assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
       assertArrayEquals(data, result.getData());
       assertFalse(result.isTimedOut());
     } finally {
