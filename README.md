@@ -28,7 +28,7 @@ The following artifact contains the complete SCION Java implementation:
 - TCP
 - Many more
 
-### WARNING
+### WARNING - Dispatcher
 JPAN connects directly to SCION **without dispatcher**.
 
 Currently (April 2024), the SCION system uses a "dispatcher" (a process that runs on endhosts,
@@ -48,6 +48,17 @@ JPAN can be used in one of the following ways:
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding
   to forward incoming data to your Java application port. The application port must not be 30041.
+
+### WARNING - NAT
+JPAN does not work well when using a local NAT.
+The problem is that the SCION header must contain the external IP address (i.e. the IP visible to 
+first border router) of the end host. When using a NAT, this needs to be the external IP of the NAT.
+
+JPAN cannot currently auto-detect this IP.
+To work with a NAT, please use `setOverrideSourceAddress(externalAddress)` to force JPAN to use
+the specified external address instead of the eternal IP of the end-host.
+
+Note that this solution only works for NATs, there is currently no solution for proxies.
 
 ## API
 
@@ -334,6 +345,9 @@ The certificates can be renewed by recreating the network with
 ### ERROR: "TRC NOT FOUND"
 This error occurs when requesting a path with an ISD/AS code that is not
 known in the network.
+
+### Response packets cannot get past a local NAT or PROXY
+Solving this requires some additional configuration, see `setOverrideSourceAddress` above.
 
 ### IllegalThreadStateException
 ```
