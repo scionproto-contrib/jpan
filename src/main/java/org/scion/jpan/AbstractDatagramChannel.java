@@ -57,6 +57,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private int cfgTrafficClass;
   private Consumer<Scmp.Message> errorListener;
   private boolean cfgRemoteDispatcher = false;
+  private InetSocketAddress overrideExternalAddress = null;
 
   protected AbstractDatagramChannel(ScionService service) throws IOException {
     this(service, DatagramChannel.open());
@@ -382,6 +383,20 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.cfgRemoteDispatcher = hasDispatcher;
   }
 
+  /**
+   * This allows overriding the source address in SCION headers. This can be useful when a host is
+   * located behind a NAT. The specified source address should in this case be the external address
+   * of the NAT.
+   *
+   * @deprecated This is deprecated because it is considered a workaround and will likely be removed
+   *     in a future version.
+   * @param address The external source address
+   */
+  @Deprecated
+  public void setOverrideSourceAddress(InetSocketAddress address) {
+    this.overrideExternalAddress = address;
+  }
+
   protected int sendRaw(ByteBuffer buffer, InetSocketAddress address, Path path)
       throws IOException {
     if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
@@ -553,23 +568,30 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcPort = rPath.getLocalPort();
       } else {
         srcIA = getOrCreateService().getLocalIsdAs();
-        // Get external host address. This must be done *after* refreshing the path!
-        if (localAddress.isAnyLocalAddress()) {
-          // For sending request path we need to have a valid local external address.
-          // If the local address is a wildcard address then we get the external IP
-          // elsewhere (from the service).
-
-          // TODO cache this or add it to path object?
-          srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+        if (overrideExternalAddress != null) {
+          // Use specified external address. This can be useful to work with NATs.
+          srcAddress = overrideExternalAddress.getAddress();
+          srcPort = overrideExternalAddress.getPort();
         } else {
-          srcAddress = localAddress;
-        }
-        srcPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-        if (srcPort == 0) {
-          // This has apparently been fixed in Java 14: https://bugs.openjdk.org/browse/JDK-8231880
-          throw new IllegalStateException(
-              "Local port is 0. This happens after calling "
-                  + "disconnect(). Please connect() or bind() before send() or write().");
+          // Get external host address. This must be done *after* refreshing the path!
+          if (localAddress.isAnyLocalAddress()) {
+            // For sending request path we need to have a valid local external address.
+            // If the local address is a wildcard address then we get the external IP
+            // elsewhere (from the service).
+
+            // TODO cache this or add it to path object?
+            srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+          } else {
+            srcAddress = localAddress;
+          }
+          srcPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
+          if (srcPort == 0) {
+            // This has apparently been fixed in Java 14:
+            // https://bugs.openjdk.org/browse/JDK-8231880
+            throw new IllegalStateException(
+                "Local port is 0. This happens after calling "
+                    + "disconnect(). Please connect() or bind() before send() or write().");
+          }
         }
       }
 

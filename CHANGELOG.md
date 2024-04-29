@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Channel demo cleanup. [#52](https://github.com/netsec-ethz/scion-java-client/pull/52)
 - Address/ISD/AS caching. [#54](https://github.com/netsec-ethz/scion-java-client/pull/54)
 - `DatagramSocket` [#31](https://github.com/netsec-ethz/scion-java-client/pull/31)
+- `setOverrideSourceAddress()` [#58](https://github.com/netsec-ethz/scion-java-client/pull/58)
   
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
