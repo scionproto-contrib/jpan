@@ -24,12 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#49](https://github.com/netsec-ethz/scion-java-client/pull/49)
 - Channel demo cleanup. [#52](https://github.com/netsec-ethz/scion-java-client/pull/52)
 - Address/ISD/AS caching. [#54](https://github.com/netsec-ethz/scion-java-client/pull/54)
-
 - `DatagramSocket` [#31](https://github.com/netsec-ethz/scion-java-client/pull/31)
-  TODO: 
-  - TODO cleanup search domains:
-    - FIX: DatagramSocket. receives stores path in cache when using FLUPKE!
-    - WRITE test that covers the rawPath==0 part of the RequestPath constructor
   
 ### Changed
 - BREAKING CHANGE: Changed maven artifactId to "client"
