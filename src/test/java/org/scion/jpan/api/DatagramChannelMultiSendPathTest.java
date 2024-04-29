@@ -52,8 +52,8 @@ class DatagramChannelMultiSendPathTest {
     ByteBuffer response = ByteBuffer.allocate(512);
     Path address = channel.receive(response);
     assertNotNull(address);
-    assertEquals(serverAddress.getDestinationAddress(), address.getDestinationAddress());
-    assertEquals(serverAddress.getDestinationPort(), address.getDestinationPort());
+    assertEquals(serverAddress.getRemoteAddress(), address.getRemoteAddress());
+    assertEquals(serverAddress.getRemotePort(), address.getRemotePort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();

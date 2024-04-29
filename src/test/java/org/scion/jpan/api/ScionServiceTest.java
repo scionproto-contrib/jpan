@@ -121,7 +121,7 @@ public class ScionServiceTest {
       //    0: 1 561850441793810
       assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
       // assertEquals(srcIA, path.getSourceIsdAs());
-      assertEquals(dstIA, path.getDestinationIsdAs());
+      assertEquals(dstIA, path.getRemoteIsdAs());
       assertEquals(36, path.getRawPath().length);
 
       assertEquals("127.0.0.10:31004", path.getInterface().getAddress());
@@ -161,7 +161,7 @@ public class ScionServiceTest {
       for (RequestPath path : paths) {
         assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
         // assertEquals(srcIA, path.getSourceIsdAs());
-        assertEquals(dstIA, path.getDestinationIsdAs());
+        assertEquals(dstIA, path.getRemoteIsdAs());
       }
 
       // get local AS, get PATH
@@ -193,10 +193,10 @@ public class ScionServiceTest {
       //  raw: {}
       assertEquals(1, paths.size());
       RequestPath path = paths.get(0);
-      InetAddress addr = path.getDestinationAddress();
-      InetSocketAddress sAddr = new InetSocketAddress(addr, path.getDestinationPort());
+      InetAddress addr = path.getRemoteAddress();
+      InetSocketAddress sAddr = new InetSocketAddress(addr, path.getRemotePort());
       assertEquals(sAddr, path.getFirstHopAddress());
-      assertEquals(dstIA, path.getDestinationIsdAs());
+      assertEquals(dstIA, path.getRemoteIsdAs());
 
       // get local AS, get PATH
       assertEquals(2, MockDaemon.getAndResetCallCount());

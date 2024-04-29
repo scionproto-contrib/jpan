@@ -65,15 +65,15 @@ public class ResponsePath extends Path {
     return firstHopAddress;
   }
 
-  public long getSourceIsdAs() {
+  public long getLocalIsdAs() {
     return srcIsdAs;
   }
 
-  public InetAddress getSourceAddress() {
+  public InetAddress getLocalAddress() {
     return srcAddress;
   }
 
-  public int getSourcePort() {
+  public int getLocalPort() {
     return srcPort;
   }
 
@@ -83,11 +83,11 @@ public class ResponsePath extends Path {
         + super.toString()
         + ", firstHopAddress="
         + firstHopAddress
-        + ", srcIsdAs="
+        + ", localIsdAs="
         + srcIsdAs
-        + ", srcAddress="
+        + ", localAddress="
         + srcAddress
-        + ", srcPort="
+        + ", localPort="
         + srcPort
         + '}';
   }

@@ -124,7 +124,7 @@ public class ScmpEchoDemo {
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getSizeReceived() + " bytes from ";
         // TODO get actual address from response
-        InetAddress addr = msg.getPath().getDestinationAddress();
+        InetAddress addr = msg.getPath().getRemoteAddress();
         echoMsgStr += ScionUtil.toStringIA(dstIA) + "," + addr.getHostAddress();
         echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
         if (msg.isTimedOut()) {

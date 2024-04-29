@@ -50,9 +50,9 @@ class DatagramChannelMultiWriteConnectedInetSocketTest {
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.disconnect();
     // Test send() with InetAddress
-    InetAddress inetAddress = serverAddress.getDestinationAddress();
+    InetAddress inetAddress = serverAddress.getRemoteAddress();
     InetSocketAddress inetServerSocketAddress =
-        new InetSocketAddress(inetAddress, serverAddress.getDestinationPort());
+        new InetSocketAddress(inetAddress, serverAddress.getRemotePort());
     channel.connect(inetServerSocketAddress);
     assertTrue(channel.isConnected());
     channel.write(sendBuf);
