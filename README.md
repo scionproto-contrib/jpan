@@ -91,8 +91,6 @@ The central classes of the API are:
   - `Message` (for SCMP errors) and `EchoMessage`/`TracerouteMessage` types.
   - `createChannel(...)` for sending echo and traceroute requests
 - **TODO** Currently residing in `test`: `ScionPacketInspector`: A packet inspector and builder.
-- **TODO** `DatagramSocket` and `DatagramPacket`: These work similar to the old `java.net.DatagramSocket`.
-  This is currently deprecated because it does not work well.
 
 ### Features
 Supported:
