@@ -90,7 +90,6 @@ The central classes of the API are:
   - `ScmpType` and `ScmpCode` enums with text messages. 
   - `Message` (for SCMP errors) and `EchoMessage`/`TracerouteMessage` types.
   - `createChannel(...)` for sending echo and traceroute requests
-- **TODO** Currently residing in `test`: `ScionPacketInspector`: A packet inspector and builder.
 
 ### Features
 Supported:
