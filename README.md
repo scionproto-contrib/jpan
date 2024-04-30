@@ -5,8 +5,9 @@
 
 [![codecov](https://codecov.io/gh/netsec-ethz/scion-java-client/graph/badge.svg?token=3U8J50E4N5)](https://codecov.io/gh/netsec-ethz/scion-java-client)
 
-This library is pure Java network stack for using [SCION](https://scion.org). More information about SCION can be found [here](https://docs.scion.org).
-It provides functionality similar to 
+This library is 100% pure Java network stack for using [SCION](https://scion.org). It currently provides UDP and
+[SCMP](https://docs.scion.org/en/latest/protocols/scmp.html). More information about SCION 
+can be found [here](https://docs.scion.org). JPAN provides functionality similar to 
 [snet (Go)](https://pkg.go.dev/github.com/scionproto/scion/pkg/snet),
 [PAN (Go)](https://pkg.go.dev/github.com/netsec-ethz/scion-apps/pkg/pan) and 
 [scion-rs (Rust)](https://github.com/MystenLabs/scion-rs). 
@@ -15,17 +16,23 @@ The following artifact contains the complete SCION Java implementation:
 ```xml 
 <dependency>
     <groupId>org.scion</groupId>
-    <artifactId>scion-java-client</artifactId>  <!-- This has changed to `client` on `master` -->
-    <version>0.1.0-ALPHA</version>
+    <artifactId>jpan</artifactId>
+    <version>0.1.0</version>
 </dependency>
 ```
 
+### Feature summary
+- 100% Java
+- UDP over SCION via `DatagramCHannel` or `DatagramSocket`
+- [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html) (ICMP for SCION)
+- Works stand-alone or with a local SCION daemon (without dispatcher, see below) 
+
 ### Planned features
-- `Selector` for `DatagramChannel`
+- API: `Selector` for `DatagramChannel`
+- API: `Path` extends `InetSocketAddress`
+- Autodetection of NAT external IP
 - Path creation with short-cuts, on-path and peering routes
 - Improve docs, demos and testing
-- EPIC, path authentication and other SCION features
-- TCP
 - Many more
 
 ### WARNING - Dispatcher

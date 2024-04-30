@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+- Nothing
+
+## [0.1.0] - 2024-04-29
+
 ### Added
 - Code coverage. [#11](https://github.com/tzaeschke/phtree-cpp/pull/11)
 - Global JUnit callback for initial setup. THis allows setting global properties before centrally
@@ -101,5 +106,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/netsec-ethz/scion-java-client/compare/v0.1.0-ALPHA...HEAD
+[Unreleased]: https://github.com/netsec-ethz/scion-java-client/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/netsec-ethz/scion-java-client/compare/v0.1.0-ALPHA...v0.1.0
 [0.1.0-ALPHA]: https://github.com/netsec-ethz/scion-java-client/compare/init_root_commit...v0.1.0-ALPHA
