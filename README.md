@@ -62,8 +62,8 @@ The problem is that the SCION header must contain the external IP address (i.e. 
 first border router) of the end host. When using a NAT, this needs to be the external IP of the NAT.
 
 JPAN cannot currently auto-detect this IP.
-To work with a NAT, please use `setOverrideSourceAddress(externalAddress)` to force JPAN to use
-the specified external address instead of the eternal IP of the end-host.
+To work with a NAT, please use `setOverrideSourceAddress(externalAddress)` (new experimental feature) 
+to force JPAN to use the specified external address instead of the eternal IP of the end-host.
 
 Note that this solution only works for NATs, there is currently no solution for proxies.
 
