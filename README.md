@@ -149,9 +149,12 @@ mvn clean install
 ### Demos
 
 Some demos can be found in [src/test/java/org/scion/demo](src/test/java/org/scion/demo).
+Before running the demos, you may have to execute `mvn compile` once.
 
 - `DatagramChannel` ping pong [client](src/test/java/org/scion/jpan/demo/PingPongChannelClient.java) 
   and [server](src/test/java/org/scion/jpan/demo/PingPongChannelServer.java)
+- `DatagramSocket` ping pong [client](src/test/java/org/scion/jpan/demo/PingPongSocketClient.java)
+  and [server](src/test/java/org/scion/jpan/demo/PingPongSocketServer.java)
 - [SCMP echo](src/test/java/org/scion/jpan/demo/ScmpEchoDemo.java)
 - [SCMP traceroute](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
 - [show paths](src/test/java/org/scion/jpan/demo/ScmpShowpathsDemo.java)
@@ -219,18 +222,6 @@ InetSocketAddress serverAddress = new InetSocketAddress("129.x.x.x", 80);
 Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
 channel.connect(path);
 ```
-
-
-### Demo application - ping pong
-
-There is a simple ping pong client-server application in `src/test/demo`.
-
-It has some hardcoded ports/IP so it works only with the scionproto `tiny.topo` and only with the 
-dispatcher-free version of scionproto: https://github.com/scionproto/scion/pull/4344
-
-The client and server communicate directly with the border router (without dispatcher).
-
-The server is located in `1-ff00:0:112` (IP `[::1]:44444`). The client is located in `1-ff00:0:110`.
 
 ### Options
 
