@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.scion</groupId>
@@ -53,16 +55,15 @@
         <developer>
             <id>tzaeschke</id>
             <name>Tilmann Zäschke</name>
-            <email>ztilmann@ethz.ch</email>
             <organization>ETH Zurich</organization>
             <timezone>1</timezone>
         </developer>
     </developers>
 
     <scm>
-        <url>https://github.com/netsec-ethz/scion-java-client</url>
-        <connection>scm:git:git@github.com:netsec-ethz/scion-java-client.git</connection>
-        <developerConnection>scm:git:git@github.com:netsec-ethz/scion-java-client.git
+        <url>https://github.com/scionproto-contrib/jpan</url>
+        <connection>scm:git:git@github.com:scionproto-contrib/jpan.git</connection>
+        <developerConnection>scm:git:git@github.com:scionproto-contrib/jpan.git
         </developerConnection>
         <tag>HEAD</tag>
     </scm>
@@ -156,7 +157,6 @@
             <version>${scion.dnsjava.version}</version>
         </dependency>
 
-        <!-- Do we need this? TODO -->
         <dependency>
             <groupId>com.google.googlejavaformat</groupId>
             <artifactId>google-java-format</artifactId>
@@ -194,10 +194,6 @@
                             <optimizeCodegen>false</optimizeCodegen>
                             <protocVersion>3.24.0</protocVersion>
                             <includeStdTypes>true</includeStdTypes>
-                            <!--                        </configuration>-->
-                            <!--                        <configuration>-->
-                            <!--                            <addProtoSources>all</addProtoSources>-->
-                            <!--                            <includeMavenTypes>direct</includeMavenTypes>-->
                             <includeDirectories>
                                 <include>src/main/proto</include>
                             </includeDirectories>
@@ -207,11 +203,9 @@
                             <outputTargets>
                                 <outputTarget>
                                     <type>java</type>
-                                    <!--                                    <outputDirectory>src/main/java</outputDirectory>-->
                                 </outputTarget>
                                 <outputTarget>
                                     <type>grpc-java</type>
-                                    <!--                                    <outputDirectory>src/main/java</outputDirectory>-->
                                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.59.0
                                     </pluginArtifact>
                                 </outputTarget>
