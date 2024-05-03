@@ -25,6 +25,7 @@ import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +58,7 @@ public class MockNetwork {
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
+  static CountDownLatch barrier = null;
   public static final int BORDER_ROUTER_PORT1 = 30555;
   private static final int BORDER_ROUTER_PORT2 = 30556;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
@@ -96,8 +98,15 @@ public class MockNetwork {
         new MockBorderRouter(
             1, BORDER_ROUTER_PORT1 + 10, BORDER_ROUTER_PORT2 + 10, localIPv4, remoteIPv4));
 
+    barrier = new CountDownLatch(brList.size());
     for (MockBorderRouter br : brList) {
       routers.execute(br);
+    }
+    try {
+      barrier.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
     }
 
     List<InetSocketAddress> brAddrList =
@@ -232,6 +241,7 @@ class MockBorderRouter implements Runnable {
       chnLocal.register(selector, SelectionKey.OP_READ, chnRemote);
       chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
+      MockNetwork.barrier.countDown();
       logger.info(name + " started on ports " + bind1 + " <-> " + bind2);
 
       while (true) {
