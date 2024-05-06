@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Fixed spurious CI failures, esp. Windows. [#61](https://github.com/tzaeschke/phtree-cpp/pull/61) 
 - Fix SCM references in pom file + clean up. [#60](https://github.com/tzaeschke/phtree-cpp/pull/60) 
+- DNS lookup caused by `InetAddress.getByName()`. [#63](https://github.com/tzaeschke/phtree-cpp/pull/63)
 
 ## [0.1.0] - 2024-04-29
 

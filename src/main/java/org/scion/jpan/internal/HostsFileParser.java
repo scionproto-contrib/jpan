@@ -107,9 +107,8 @@ public class HostsFileParser {
       check(addrParts[1].endsWith("]"), "Expected `]` after address");
       String addrStr = addrParts[1].substring(1, addrParts[1].length() - 1).trim();
       check(!addrStr.isEmpty(), "Address is empty");
-      // We allow anything here, even host names (which will trigger a DNS lookup).
-      // Is that ok?
-      InetAddress inetAddr = InetAddress.getByName(addrStr);
+
+      byte[] addrBytes = IPHelper.toByteArray(addrStr);
 
       // TODO
       // 4) Singleton ?!?!?!?!!!
@@ -120,12 +119,15 @@ public class HostsFileParser {
           // ignore comments
           break;
         }
+        InetAddress inetAddr = InetAddress.getByAddress(hostName, addrBytes);
         entries.put(hostName, new HostEntry(isdIa, inetAddr, hostName));
       }
       // The following may differ, e.g. for IPv6
       // TODO find a better way, i.e. use InetAddress instances as keys?
+      InetAddress inetAddr = InetAddress.getByAddress(addrStr, addrBytes);
       entries.put(inetAddr.getHostName(), new HostEntry(isdIa, inetAddr, inetAddr.getHostName()));
-      entries.put(addrStr, new HostEntry(isdIa, inetAddr, addrStr));
+      entries.put(
+          inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr, inetAddr.getHostAddress()));
     } catch (IndexOutOfBoundsException | IllegalArgumentException | UnknownHostException e) {
       LOG.info("ERROR {} while parsing file {}: {}", e.getMessage(), PATH_LINUX, line);
     }
