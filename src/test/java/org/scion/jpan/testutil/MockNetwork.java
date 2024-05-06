@@ -103,10 +103,10 @@ public class MockNetwork {
       routers.execute(br);
     }
     try {
-      barrier.await();
+      barrier.await(1, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new RuntimeException("Timeout while waiting for border routers", e);
     }
 
     List<InetSocketAddress> brAddrList =

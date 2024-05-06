@@ -40,7 +40,7 @@ public class ScionAddress {
   static ScionAddress create(long isdAs, String hostName, byte[] ipBytes) {
     try {
       InetAddress ip = InetAddress.getByAddress(hostName, ipBytes);
-      return new ScionAddress(isdAs, hostName, ip);
+      return new ScionAddress(isdAs, hostName, InetAddress.getByAddress(hostName, ip.getAddress()));
     } catch (UnknownHostException e) {
       // This should never happen because we always call getByName() with an IP address
       throw new ScionRuntimeException(e);

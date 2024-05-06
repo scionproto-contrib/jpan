@@ -79,6 +79,7 @@ public class PingPongHelper extends PingPongHelperBase {
         InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getRemotePort());
         channel.connect(iSAddress);
       }
+      registerStartUpClient();
       for (int i = 0; i < nRounds; i++) {
         client.run(channel, path, id);
         nRoundsClient.incrementAndGet();
@@ -102,6 +103,7 @@ public class PingPongHelper extends PingPongHelperBase {
     @Override
     public final void runImpl(DatagramChannel channel) throws IOException {
       channel.bind(localAddress);
+      registerStartUpServer(channel.getLocalAddress());
       for (int i = 0; i < nRounds; i++) {
         server.run(channel);
         nRoundsServer.incrementAndGet();
@@ -123,9 +125,8 @@ public class PingPongHelper extends PingPongHelperBase {
 
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
-        (id, address, nRounds) -> new Thread(new ServerEndpoint(serverFn, id, address, nRounds)),
-        (id, path, nRounds) ->
-            new Thread(new ClientEndpoint(clientFn, id, path, nRounds, connectClients)),
+        (id, address, nRounds) -> new ServerEndpoint(serverFn, id, address, nRounds),
+        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients),
         reset);
   }
 

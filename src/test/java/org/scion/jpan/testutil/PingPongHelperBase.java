@@ -31,6 +31,7 @@ public class PingPongHelperBase {
 
   public static final String MSG = "Hello scion!";
   private static final int TIMEOUT = 10; // seconds
+  private static final String SERVER_NAME = "ping.pong.org";
   protected final CountDownLatch shutDownBarrier;
 
   private final int nClients;
@@ -38,6 +39,8 @@ public class PingPongHelperBase {
   private final int nRounds;
   protected final boolean connectClients;
 
+  final CountDownLatch startUpBarrierClient;
+  final CountDownLatch startUpBarrierServer;
   protected final AtomicInteger nRoundsClient = new AtomicInteger();
   protected final AtomicInteger nRoundsServer = new AtomicInteger();
   protected final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
@@ -47,45 +50,74 @@ public class PingPongHelperBase {
     this.nServers = nServers;
     this.nRounds = nRounds;
     this.connectClients = connect;
+    startUpBarrierClient = new CountDownLatch(nClients);
+    startUpBarrierServer = new CountDownLatch(nServers);
     shutDownBarrier = new CountDownLatch(nClients + nServers);
     MockNetwork.getAndResetForwardCount();
   }
 
-  protected abstract static class AbstractEndpoint implements Runnable {
+  abstract class AbstractEndpoint extends Thread {
     protected final int id;
+    private InetSocketAddress localAddress;
 
     AbstractEndpoint(int id) {
       this.id = id;
     }
+
+    protected final void registerStartUpClient() {
+      PingPongHelperBase.this.startUpBarrierClient.countDown();
+    }
+
+    protected final void registerStartUpServer(InetSocketAddress localAddress) {
+      try {
+        InetAddress localIP = InetAddress.getByAddress(SERVER_NAME, new byte[] {127, 0, 0, 1});
+        this.localAddress = new InetSocketAddress(localIP, localAddress.getPort());
+      } catch (UnknownHostException e) {
+        throw new RuntimeException(e);
+      }
+      PingPongHelperBase.this.startUpBarrierServer.countDown();
+    }
+
+    public InetSocketAddress getLocalAddress() {
+      return localAddress;
+    }
   }
 
-  public interface ClientFactory {
-    Thread create(int id, RequestPath requestPath, int nRounds);
+  interface ClientFactory {
+    AbstractEndpoint create(int id, RequestPath requestPath, int nRounds);
   }
 
-  public interface ServerFactory {
-    Thread create(int id, InetSocketAddress serverAddress, int nRounds);
+  interface ServerFactory {
+    AbstractEndpoint create(int id, InetSocketAddress serverAddress, int nRounds);
   }
 
-  public void runPingPong(ServerFactory serverFactory, ClientFactory clientFactory, boolean reset) {
+  void runPingPong(ServerFactory serverFactory, ClientFactory clientFactory, boolean reset) {
     try {
       MockNetwork.startTiny();
 
-      InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
-      RequestPath scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
-      Thread[] servers = new Thread[nServers];
+      AbstractEndpoint[] servers = new AbstractEndpoint[nServers];
       for (int i = 0; i < servers.length; i++) {
-        servers[i] = serverFactory.create(i, serverAddress, nRounds * nClients);
+        servers[i] = serverFactory.create(i, null, nRounds * nClients);
         servers[i].setName("Server-thread-" + i);
         servers[i].start();
       }
-      Thread.sleep(100); // Wait for server(s) to start
+      // Wait for server(s) and clients to start
+      if (!startUpBarrierServer.await(1, TimeUnit.SECONDS)) {
+        throw new RuntimeException("Server startup failed: " + startUpBarrierServer);
+      }
+      InetSocketAddress serverAddress = servers[0].getLocalAddress();
+      MockDNS.install(MockNetwork.TINY_SRV_ISD_AS, serverAddress.getAddress());
+      RequestPath scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
 
       Thread[] clients = new Thread[nClients];
       for (int i = 0; i < clients.length; i++) {
         clients[i] = clientFactory.create(i, scionAddress, nRounds);
         clients[i].setName("Client-thread-" + i);
         clients[i].start();
+      }
+      // Wait for server(s) and clients to start
+      if (!startUpBarrierClient.await(1, TimeUnit.SECONDS)) {
+        throw new RuntimeException("Client startup failed: " + startUpBarrierClient);
       }
 
       // This enables shutdown in case of an error.

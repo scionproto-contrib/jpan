@@ -68,6 +68,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     @Override
     public final void runImpl() throws IOException {
       try (DatagramSocket socket = new DatagramSocket()) {
+        registerStartUpClient();
         InetAddress ipAddress = remoteAddress.getRemoteAddress();
         InetSocketAddress iSAddress =
             new InetSocketAddress(ipAddress, remoteAddress.getRemotePort());
@@ -95,7 +96,8 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     @Override
     public final void runImpl() throws IOException {
-      try (DatagramSocket socket = new DatagramSocket(localAddress)) {
+      try (DatagramSocket socket = new DatagramSocket()) {
+        registerStartUpServer((InetSocketAddress) socket.getLocalSocketAddress());
         for (int i = 0; i < nRounds; i++) {
           server.run(socket);
           nRoundsServer.incrementAndGet();
@@ -120,6 +122,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     @Override
     public final void runImpl() throws IOException {
+      registerStartUpServer((InetSocketAddress) socket.getLocalSocketAddress());
       for (int i = 0; i < nRounds; i++) {
         server.run(socket);
         nRoundsServer.incrementAndGet();
@@ -141,8 +144,8 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
-        (id, address, nRounds) -> new Thread(new ServerEndpoint(serverFn, id, address, nRounds)),
-        (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
+        (id, address, nRounds) -> new ServerEndpoint(serverFn, id, address, nRounds),
+        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds),
         reset);
   }
 
@@ -154,10 +157,9 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     try (DatagramSocket socket = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
       runPingPong(
           (id, address, nRounds) ->
-              new Thread(
-                  new ServerEndpointMT(
-                      (id % 2 == 0) ? receiverFn : senderFn, socket, id, address, nRounds)),
-          (id, path, nRounds) -> new Thread(new ClientEndpoint(clientFn, id, path, nRounds)),
+              new ServerEndpointMT(
+                  (id % 2 == 0) ? receiverFn : senderFn, socket, id, address, nRounds),
+          (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds),
           reset);
     }
   }
