@@ -21,6 +21,8 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 
 /**
@@ -67,7 +69,7 @@ public class RequestPath extends Path {
     try {
       String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
       int splitIndex = underlayAddressString.indexOf(':');
-      InetAddress ip = InetAddress.getByName(underlayAddressString.substring(0, splitIndex));
+      InetAddress ip = IPHelper.toInetAddress(underlayAddressString.substring(0, splitIndex));
       int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
       return new InetSocketAddress(ip, port);
     } catch (UnknownHostException e) {

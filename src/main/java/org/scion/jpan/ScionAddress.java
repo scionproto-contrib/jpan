@@ -37,9 +37,9 @@ public class ScionAddress {
     return new ScionAddress(isdAs, address.getHostName(), address);
   }
 
-  static ScionAddress create(long isdAs, String hostName, String ipString) {
+  static ScionAddress create(long isdAs, String hostName, byte[] ipBytes) {
     try {
-      InetAddress ip = InetAddress.getByName(ipString);
+      InetAddress ip = InetAddress.getByAddress(hostName, ipBytes);
       return new ScionAddress(isdAs, hostName, ip);
     } catch (UnknownHostException e) {
       // This should never happen because we always call getByName() with an IP address

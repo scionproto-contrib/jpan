@@ -36,11 +36,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import org.scion.jpan.internal.DNSHelper;
-import org.scion.jpan.internal.HostsFileParser;
-import org.scion.jpan.internal.ScionBootstrapper;
-import org.scion.jpan.internal.Segments;
-import org.scion.jpan.internal.SimpleCache;
+
+import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
@@ -397,7 +394,7 @@ public class ScionService {
     }
 
     // Use local ISD/AS for localhost addresses
-    if (isLocalhost(hostName)) {
+    if (IPHelper.isLocalhost(hostName)) {
       return getLocalIsdAs();
     }
 
@@ -438,8 +435,9 @@ public class ScionService {
     }
 
     // Use local ISD/AS for localhost addresses
-    if (isLocalhost(hostName)) {
-      return ScionAddress.create(getLocalIsdAs(), hostName, hostName);
+    byte[] localBytes = IPHelper.lookupLocalhost(hostName);
+    if (localBytes != null) {
+      return ScionAddress.create(getLocalIsdAs(), hostName, localBytes);
     }
 
     // DNS lookup
@@ -456,14 +454,6 @@ public class ScionService {
     scionAddressCache.put(address.getHostName(), address);
     scionAddressCache.put(address.getInetAddress().getHostAddress(), address);
     return address;
-  }
-
-  private boolean isLocalhost(String hostName) {
-    return hostName.startsWith("127.0.0.")
-        || "::1".equals(hostName)
-        || "0:0:0:0:0:0:0:1".equals(hostName)
-        || "localhost".equals(hostName)
-        || "ip6-localhost".equals(hostName);
   }
 
   private String findTxtRecordInProperties(String hostName) throws ScionException {
@@ -513,7 +503,8 @@ public class ScionService {
     }
     try {
       long isdAs = ScionUtil.parseIA(txtEntry.substring(0, posComma));
-      return ScionAddress.create(isdAs, hostName, txtEntry.substring(posComma + 1));
+      byte[] bytes = IPHelper.toByteArray(txtEntry.substring(posComma + 1));
+      return ScionAddress.create(isdAs, hostName, bytes);
     } catch (IllegalArgumentException e) {
       LOG.info(ERR_INVALID_TXT_LOG2, txtEntry, e.getMessage());
       return null;

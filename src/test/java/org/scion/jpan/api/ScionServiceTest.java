@@ -218,7 +218,7 @@ public class ScionServiceTest {
       assertNotNull(sAddr);
       assertEquals(1, sAddr.getIsd());
       assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
-      assertEquals("/127.0.0.1", sAddr.getInetAddress().toString());
+      assertEquals(SCION_HOST + "/127.0.0.1", sAddr.getInetAddress().toString());
       assertEquals(SCION_HOST, sAddr.getHostName());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
@@ -240,7 +240,7 @@ public class ScionServiceTest {
       assertNotNull(sAddr);
       assertEquals(1, sAddr.getIsd());
       assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
-      assertEquals("/0:0:0:0:0:0:0:1", sAddr.getInetAddress().toString());
+      assertEquals(SCION_HOST + "/0:0:0:0:0:0:0:1", sAddr.getInetAddress().toString());
       assertEquals(SCION_HOST, sAddr.getHostName());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
