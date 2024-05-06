@@ -14,10 +14,9 @@
 
 package org.scion.jpan.internal;
 
-import org.xbill.DNS.Address;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import org.xbill.DNS.Address;
 
 public class IPHelper {
   private IPHelper() {}

@@ -21,7 +21,6 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 

@@ -28,7 +28,6 @@ import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xbill.DNS.Address;
 
 public class HostsFileParser {
 
@@ -127,7 +126,8 @@ public class HostsFileParser {
       // TODO find a better way, i.e. use InetAddress instances as keys?
       InetAddress inetAddr = InetAddress.getByAddress(addrStr, addrBytes);
       entries.put(inetAddr.getHostName(), new HostEntry(isdIa, inetAddr, inetAddr.getHostName()));
-      entries.put(inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr, inetAddr.getHostAddress()));
+      entries.put(
+          inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr, inetAddr.getHostAddress()));
     } catch (IndexOutOfBoundsException | IllegalArgumentException | UnknownHostException e) {
       LOG.info("ERROR {} while parsing file {}: {}", e.getMessage(), PATH_LINUX, line);
     }
