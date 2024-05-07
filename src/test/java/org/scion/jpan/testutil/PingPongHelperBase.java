@@ -88,7 +88,7 @@ public class PingPongHelperBase {
   }
 
   interface ServerFactory {
-    AbstractEndpoint create(int id, InetSocketAddress serverAddress, int nRounds);
+    AbstractEndpoint create(int id, int nRounds);
   }
 
   void runPingPong(ServerFactory serverFactory, ClientFactory clientFactory, boolean reset) {
@@ -97,7 +97,7 @@ public class PingPongHelperBase {
 
       AbstractEndpoint[] servers = new AbstractEndpoint[nServers];
       for (int i = 0; i < servers.length; i++) {
-        servers[i] = serverFactory.create(i, null, nRounds * nClients);
+        servers[i] = serverFactory.create(i, nRounds * nClients);
         servers[i].setName("Server-thread-" + i);
         servers[i].start();
       }

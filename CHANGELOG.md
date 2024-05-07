@@ -17,9 +17,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 TODO
 - Rename Helper to ChannelHelper
 - Remove commented out sleep() in other class
-- Remove unused localAddress parameter for servers
-
-- Separate PR: Fixed ScionAddress construction wrt hostnames 
 
 ## [0.1.0] - 2024-04-29
 

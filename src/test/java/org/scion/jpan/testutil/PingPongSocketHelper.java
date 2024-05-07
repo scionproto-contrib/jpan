@@ -84,13 +84,11 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
   private class ServerEndpoint extends AbstractSocketEndpoint {
     private final Server server;
-    private final InetSocketAddress localAddress;
     private final int nRounds;
 
-    ServerEndpoint(Server server, int id, InetSocketAddress localAddress, int nRounds) {
+    ServerEndpoint(Server server, int id, int nRounds) {
       super(id);
       this.server = server;
-      this.localAddress = localAddress;
       this.nRounds = nRounds;
     }
 
@@ -112,8 +110,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     private final int nRounds;
     private final DatagramSocket socket;
 
-    ServerEndpointMT(
-        Server server, DatagramSocket socket, int id, InetSocketAddress localAddress, int nRounds) {
+    ServerEndpointMT(Server server, DatagramSocket socket, int id, int nRounds) {
       super(id);
       this.server = server;
       this.socket = socket;
@@ -144,7 +141,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
-        (id, address, nRounds) -> new ServerEndpoint(serverFn, id, address, nRounds),
+        (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
         (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds),
         reset);
   }
@@ -156,9 +153,8 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     }
     try (DatagramSocket socket = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
       runPingPong(
-          (id, address, nRounds) ->
-              new ServerEndpointMT(
-                  (id % 2 == 0) ? receiverFn : senderFn, socket, id, address, nRounds),
+          (id, nRounds) ->
+              new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
           (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds),
           reset);
     }

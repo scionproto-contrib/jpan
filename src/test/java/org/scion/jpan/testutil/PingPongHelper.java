@@ -90,19 +90,17 @@ public class PingPongHelper extends PingPongHelperBase {
 
   private class ServerEndpoint extends AbstractChannelEndpoint {
     private final Server server;
-    private final InetSocketAddress localAddress;
     private final int nRounds;
 
-    ServerEndpoint(Server server, int id, InetSocketAddress localAddress, int nRounds) {
+    ServerEndpoint(Server server, int id, int nRounds) {
       super(id);
       this.server = server;
-      this.localAddress = localAddress;
       this.nRounds = nRounds;
     }
 
     @Override
     public final void runImpl(DatagramChannel channel) throws IOException {
-      channel.bind(localAddress);
+      channel.bind(null);
       registerStartUpServer(channel.getLocalAddress());
       for (int i = 0; i < nRounds; i++) {
         server.run(channel);
@@ -125,7 +123,7 @@ public class PingPongHelper extends PingPongHelperBase {
 
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
-        (id, address, nRounds) -> new ServerEndpoint(serverFn, id, address, nRounds),
+        (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
         (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients),
         reset);
   }
