@@ -9,12 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Fixed spurious CI failures, esp. Windows. [#61](https://github.com/tzaeschke/phtree-cpp/pull/61) 
 - Fix SCM references in pom file + clean up. [#60](https://github.com/tzaeschke/phtree-cpp/pull/60) 
-- DNS lookup caused by `InetAddress.getByName()`. [#63](https://github.com/tzaeschke/phtree-cpp/pull/63)
+- DNS lookup caused by `InetAddress.getByName()`. [#63](https://github.com/scionproto-contrib/jpan/pull/63)
+- DNS lookup caused by `InetAddress.getHostName()`. [#64](https://github.com/scionproto-contrib/jpan/pull/64)
 
 ## [0.1.0] - 2024-04-29
 
 ### Added
-- Code coverage. [#11](https://github.com/tzaeschke/phtree-cpp/pull/11)
+- Code coverage. [#11](https://github.com/netsec-ethz/scion-java-client/pull/11)
 - Global JUnit callback for initial setup. THis allows setting global properties before centrally
   before running any tests.
   [#38](https://github.com/netsec-ethz/scion-java-client/pull/38)

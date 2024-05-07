@@ -33,28 +33,23 @@ public class HostsFileParser {
 
   private static final Logger LOG = LoggerFactory.getLogger(HostsFileParser.class);
   private static final String PATH_LINUX = "/etc/scion/hosts";
-  private final String HOSTS_FILES =
+  private final String propHostsFiles =
       ScionUtil.getPropertyOrEnv(Constants.PROPERTY_HOSTS_FILES, Constants.ENV_HOSTS_FILES);
 
+  // We use hostName/addressString as key.
   private final Map<String, HostEntry> entries = new HashMap<>();
 
   public static class HostEntry {
     private final long isdAs;
-    private final String hostName;
     private final InetAddress address;
 
-    HostEntry(long isdAs, InetAddress address, String hostName) {
+    HostEntry(long isdAs, InetAddress address) {
       this.isdAs = isdAs;
-      this.hostName = hostName;
       this.address = address;
     }
 
     public long getIsdAs() {
       return isdAs;
-    }
-
-    public String getHostName() {
-      return hostName;
     }
 
     public InetAddress getAddress() {
@@ -69,8 +64,8 @@ public class HostsFileParser {
   private void init() {
     String hostsFiles;
     String os = System.getProperty("os.name");
-    if (HOSTS_FILES != null && !HOSTS_FILES.isEmpty()) {
-      hostsFiles = HOSTS_FILES;
+    if (propHostsFiles != null && !propHostsFiles.isEmpty()) {
+      hostsFiles = propHostsFiles;
     } else if ("Linux".equals(os)) {
       hostsFiles = PATH_LINUX;
     } else {
@@ -109,10 +104,6 @@ public class HostsFileParser {
       check(!addrStr.isEmpty(), "Address is empty");
 
       byte[] addrBytes = IPHelper.toByteArray(addrStr);
-
-      // TODO
-      // 4) Singleton ?!?!?!?!!!
-
       for (int i = 1; i < lineParts.length; i++) {
         String hostName = lineParts[i];
         if (hostName.startsWith("#")) {
@@ -120,14 +111,13 @@ public class HostsFileParser {
           break;
         }
         InetAddress inetAddr = InetAddress.getByAddress(hostName, addrBytes);
-        entries.put(hostName, new HostEntry(isdIa, inetAddr, hostName));
+        entries.put(hostName, new HostEntry(isdIa, inetAddr));
       }
-      // The following may differ, e.g. for IPv6
-      // TODO find a better way, i.e. use InetAddress instances as keys?
       InetAddress inetAddr = InetAddress.getByAddress(addrStr, addrBytes);
-      entries.put(inetAddr.getHostName(), new HostEntry(isdIa, inetAddr, inetAddr.getHostName()));
-      entries.put(
-          inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr, inetAddr.getHostAddress()));
+      // Use original address string as key
+      entries.put(addrStr, new HostEntry(isdIa, inetAddr));
+      // Use "normalized" address string as key (these may differ fo IPv6)
+      entries.put(inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr));
     } catch (IndexOutOfBoundsException | IllegalArgumentException | UnknownHostException e) {
       LOG.info("ERROR {} while parsing file {}: {}", e.getMessage(), PATH_LINUX, line);
     }
