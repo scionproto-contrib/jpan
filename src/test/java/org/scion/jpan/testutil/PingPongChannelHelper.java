@@ -24,13 +24,13 @@ import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
 
-public class PingPongHelper extends PingPongHelperBase {
+public class PingPongChannelHelper extends PingPongHelperBase {
 
-  public PingPongHelper(int nServers, int nClients, int nRounds) {
+  public PingPongChannelHelper(int nServers, int nClients, int nRounds) {
     this(nServers, nClients, nRounds, true);
   }
 
-  public PingPongHelper(int nServers, int nClients, int nRounds, boolean connect) {
+  public PingPongChannelHelper(int nServers, int nClients, int nRounds, boolean connect) {
     super(nServers, nClients, nRounds, connect);
   }
 
@@ -79,6 +79,7 @@ public class PingPongHelper extends PingPongHelperBase {
         InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getRemotePort());
         channel.connect(iSAddress);
       }
+      registerStartUpClient();
       for (int i = 0; i < nRounds; i++) {
         client.run(channel, path, id);
         nRoundsClient.incrementAndGet();
@@ -89,19 +90,18 @@ public class PingPongHelper extends PingPongHelperBase {
 
   private class ServerEndpoint extends AbstractChannelEndpoint {
     private final Server server;
-    private final InetSocketAddress localAddress;
     private final int nRounds;
 
-    ServerEndpoint(Server server, int id, InetSocketAddress localAddress, int nRounds) {
+    ServerEndpoint(Server server, int id, int nRounds) {
       super(id);
       this.server = server;
-      this.localAddress = localAddress;
       this.nRounds = nRounds;
     }
 
     @Override
     public final void runImpl(DatagramChannel channel) throws IOException {
-      channel.bind(localAddress);
+      channel.bind(null);
+      registerStartUpServer(channel.getLocalAddress());
       for (int i = 0; i < nRounds; i++) {
         server.run(channel);
         nRoundsServer.incrementAndGet();
@@ -123,15 +123,14 @@ public class PingPongHelper extends PingPongHelperBase {
 
   public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
-        (id, address, nRounds) -> new Thread(new ServerEndpoint(serverFn, id, address, nRounds)),
-        (id, path, nRounds) ->
-            new Thread(new ClientEndpoint(clientFn, id, path, nRounds, connectClients)),
+        (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
+        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients),
         reset);
   }
 
   public static void defaultClient(DatagramChannel channel, Path serverAddress, int id)
       throws IOException {
-    String message = PingPongHelper.MSG + "-" + id;
+    String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.send(sendBuf, serverAddress);
 

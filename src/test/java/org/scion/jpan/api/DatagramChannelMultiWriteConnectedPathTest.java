@@ -25,7 +25,7 @@ import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.testutil.PingPongHelper;
+import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test read()/write() operations on DatagramChannel connected with a path. */
 class DatagramChannelMultiWriteConnectedPathTest {
@@ -40,9 +40,9 @@ class DatagramChannelMultiWriteConnectedPathTest {
 
   @Test
   void test() {
-    PingPongHelper.Server serverFn = this::server;
-    PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 10, 10);
+    PingPongChannelHelper.Server serverFn = this::server;
+    PingPongChannelHelper.Client clientFn = this::client;
+    PingPongChannelHelper pph = new PingPongChannelHelper(1, 10, 10);
     pph.runPingPong(serverFn, clientFn);
   }
 

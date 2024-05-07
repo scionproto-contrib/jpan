@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.testutil.PingPongHelper;
+import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test read()/write() operations on DatagramChannel connected with an InetSocketAddress. */
 class DatagramChannelMultiWriteConnectedInetSocketTest {
@@ -39,14 +39,14 @@ class DatagramChannelMultiWriteConnectedInetSocketTest {
 
   @Test
   void test() {
-    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 10, 10);
+    PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
+    PingPongChannelHelper.Client clientFn = this::client;
+    PingPongChannelHelper pph = new PingPongChannelHelper(1, 10, 10);
     pph.runPingPong(serverFn, clientFn);
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
-    String message = PingPongHelper.MSG + "-" + id;
+    String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.disconnect();
     // Test send() with InetAddress

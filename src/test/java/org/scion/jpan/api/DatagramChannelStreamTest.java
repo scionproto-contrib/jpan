@@ -26,7 +26,7 @@ import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.PingPongHelper;
+import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test write/send of multiple packets at once. */
 class DatagramChannelStreamTest {
@@ -41,15 +41,15 @@ class DatagramChannelStreamTest {
 
   @Test
   void test() {
-    PingPongHelper.Server serverFn = this::server;
-    PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 2, 2);
+    PingPongChannelHelper.Server serverFn = this::server;
+    PingPongChannelHelper.Client clientFn = this::client;
+    PingPongChannelHelper pph = new PingPongChannelHelper(1, 2, 2);
     pph.runPingPong(serverFn, clientFn, false);
     assertEquals(2 * 2 * 2 * N_BULK, MockNetwork.getAndResetForwardCount());
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
-    String message = PingPongHelper.MSG + "-" + id;
+    String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
 
     for (int i = 0; i < N_BULK; i++) {
@@ -92,8 +92,8 @@ class DatagramChannelStreamTest {
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();
       received.add(new Pair(returnAddress, msg));
-      assertTrue(msg.startsWith(PingPongHelper.MSG), msg);
-      assertTrue(PingPongHelper.MSG.length() + 3 >= msg.length());
+      assertTrue(msg.startsWith(PingPongChannelHelper.MSG), msg);
+      assertTrue(PingPongChannelHelper.MSG.length() + 3 >= msg.length());
     }
 
     for (int i = 0; i < N_BULK; i++) {

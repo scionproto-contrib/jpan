@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - DNS lookup caused by `InetAddress.getByName()`. [#63](https://github.com/scionproto-contrib/jpan/pull/63)
 - DNS lookup caused by `InetAddress.getHostName()`. [#64](https://github.com/scionproto-contrib/jpan/pull/64)
 - JPAN renaming cleanup. [#65](https://github.com/scionproto-contrib/jpan/pull/65)
+- Clean up PingPong framework startup. [#62](https://github.com/tzaeschke/phtree-cpp/pull/62)
 
 ## [0.1.0] - 2024-04-29
 
