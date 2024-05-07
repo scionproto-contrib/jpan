@@ -22,7 +22,6 @@ import java.net.*;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionService;
@@ -50,7 +49,6 @@ class DatagramSocketConcurrentPingPongTest {
     ScionService.closeDefault();
   }
 
-  @Disabled
   @Test
   void test() throws IOException {
     PingPongSocketHelper.Server receiverFn = this::receiver;
@@ -67,6 +65,7 @@ class DatagramSocketConcurrentPingPongTest {
     int port = requestPath.getRemotePort();
     DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, addr, port);
     socket.send(request);
+    // System.out.println("CLIENT: Sent ... (" + request.getSocketAddress() + ")");
 
     // System.out.println("CLIENT: Receiving ... (" + socket.getLocalSocketAddress() + ")");
     byte[] buffer = new byte[512];
@@ -79,13 +78,14 @@ class DatagramSocketConcurrentPingPongTest {
 
   private void receiver(DatagramSocket socket) throws IOException {
     DatagramPacket request = new DatagramPacket(new byte[200], 200);
+    // System.out.println("SERVER: --- receiver - waiting ----- " + socket.getLocalSocketAddress());
     socket.receive(request);
 
     String msg = new String(request.getData(), request.getOffset(), request.getLength());
     assertEquals(MSG, msg);
 
     queue.offer(new Entry(msg, (InetSocketAddress) request.getSocketAddress()));
-    System.out.println("SERVER: --- receiver - added -------- " + msg);
+    // System.out.println("SERVER: --- receiver - added -------- " + msg);
   }
 
   private void sender(DatagramSocket socket) throws IOException {
@@ -94,7 +94,7 @@ class DatagramSocketConcurrentPingPongTest {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
-    System.out.println("SERVER: --- sender - waiting -------- " + socket.getLocalSocketAddress());
+    // System.out.println("SERVER: --- sender - waiting ----- " + socket.getLocalSocketAddress());
     Entry e;
     try {
       e = queue.poll(10, TimeUnit.SECONDS);
@@ -106,8 +106,7 @@ class DatagramSocketConcurrentPingPongTest {
     InetAddress clientAddress = e.address.getAddress();
     int clientPort = e.address.getPort();
 
-    System.out.println(
-        "SERVER: --- sender - sending -------- " + clientAddress + " : " + clientPort);
+    // System.out.println("SERVER: --- sender - sending ---- " + e.address);
     DatagramPacket response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
     socket.send(response);
   }

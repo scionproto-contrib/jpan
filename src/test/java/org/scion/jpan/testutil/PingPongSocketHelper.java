@@ -153,7 +153,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     if (nServers != 2) {
       throw new IllegalStateException();
     }
-    try (DatagramSocket socket = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+    try (DatagramSocket socket = new DatagramSocket(MockNetwork.TINY_SRV_PORT_1)) {
       runPingPong(
           (id, nRounds) ->
               new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
