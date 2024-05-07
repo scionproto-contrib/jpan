@@ -29,10 +29,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.socket.DatagramSocket;
@@ -235,9 +233,9 @@ class DatagramSocketApiTest {
       t.interrupt();
       assertInstanceOf(SocketTimeoutException.class, exception.get(), exception.get().getMessage());
       // Verify that it waited for at least "timeout"
-      assertTrue(timeMs.get() >= timeOutMs);
+      assertTrue(timeMs.get() >= timeOutMs, timeMs.get() + " >= " + timeOutMs);
       // Verify that it waited less than te JUnit test timeout
-      assertTrue(timeMs.get() < 1.5 * timeOutMs);
+      assertTrue(timeMs.get() < 1.5 * timeOutMs, timeMs.get() + " < 1.5* " + timeOutMs);
     }
   }
 
@@ -545,21 +543,25 @@ class DatagramSocketApiTest {
     }
   }
 
+  @Disabled
   @Test
   void send_AddressResolve_reverseLookupIPv4() throws IOException {
     // TODO
   }
 
+  @Disabled
   @Test
   void send_AddressResolve_reverseLookupIPv6() throws IOException {
     // TODO
   }
 
+  @Disabled
   @Test
   void send_AddressResolve_no_resolve_necessary() throws IOException {
     // TODO
   }
 
+  @Disabled
   @Test
   void send_AddressResolve_resolve_failure() throws IOException {
     // TODO
