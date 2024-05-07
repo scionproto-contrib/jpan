@@ -298,7 +298,8 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
-    ScionAddress sa = getScionAddress(dstAddress.getHostName());
+    // Use getHostString() to avoid DNS reverse lookup.
+    ScionAddress sa = getScionAddress(dstAddress.getHostString());
     return getPaths(sa.getIsdAs(), sa.getInetAddress(), dstAddress.getPort());
   }
 
