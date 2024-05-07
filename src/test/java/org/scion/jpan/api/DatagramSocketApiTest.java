@@ -610,6 +610,7 @@ class DatagramSocketApiTest {
     testExpired(
         (socket, expiredPath) -> {
           String msg = PingPongSocketHelper.MSG;
+
           DatagramPacket packet =
               new DatagramPacket(msg.getBytes(), msg.length(), toAddress(expiredPath));
           try {

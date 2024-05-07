@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - DNS lookup caused by `InetAddress.getByName()`. [#63](https://github.com/tzaeschke/phtree-cpp/pull/63)
 - Clean up PingPong framework startup. [#62](https://github.com/tzaeschke/phtree-cpp/pull/62)
 TODO
-- Rename Helper to ChannelHelper
 - Remove commented out sleep() in other class
 
 ## [0.1.0] - 2024-04-29

@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.testutil.PingPongHelper;
+import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test receive()/send(Path) operations on DatagramChannel. */
 class DatagramChannelMultiSendPathTest {
@@ -37,14 +37,14 @@ class DatagramChannelMultiSendPathTest {
 
   @Test
   void test() {
-    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 20, 50, false);
+    PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
+    PingPongChannelHelper.Client clientFn = this::client;
+    PingPongChannelHelper pph = new PingPongChannelHelper(1, 20, 50, false);
     pph.runPingPong(serverFn, clientFn);
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
-    String message = PingPongHelper.MSG + "-" + id;
+    String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.send(sendBuf, serverAddress);
 

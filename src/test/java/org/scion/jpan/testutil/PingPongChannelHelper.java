@@ -24,13 +24,13 @@ import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
 
-public class PingPongHelper extends PingPongHelperBase {
+public class PingPongChannelHelper extends PingPongHelperBase {
 
-  public PingPongHelper(int nServers, int nClients, int nRounds) {
+  public PingPongChannelHelper(int nServers, int nClients, int nRounds) {
     this(nServers, nClients, nRounds, true);
   }
 
-  public PingPongHelper(int nServers, int nClients, int nRounds, boolean connect) {
+  public PingPongChannelHelper(int nServers, int nClients, int nRounds, boolean connect) {
     super(nServers, nClients, nRounds, connect);
   }
 
@@ -130,7 +130,7 @@ public class PingPongHelper extends PingPongHelperBase {
 
   public static void defaultClient(DatagramChannel channel, Path serverAddress, int id)
       throws IOException {
-    String message = PingPongHelper.MSG + "-" + id;
+    String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.send(sendBuf, serverAddress);
 

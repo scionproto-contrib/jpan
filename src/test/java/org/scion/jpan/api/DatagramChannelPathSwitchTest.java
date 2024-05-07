@@ -28,7 +28,7 @@ import org.scion.jpan.PathPolicy;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.PingPongHelper;
+import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test path switching (changing first hop) on DatagramChannel. */
 class DatagramChannelPathSwitchTest {
@@ -51,9 +51,9 @@ class DatagramChannelPathSwitchTest {
 
   @Test
   void test() {
-    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.Client clientFn = this::client;
-    PingPongHelper pph = new PingPongHelper(1, 2, 10);
+    PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
+    PingPongChannelHelper.Client clientFn = this::client;
+    PingPongChannelHelper pph = new PingPongChannelHelper(1, 2, 10);
     pph.runPingPong(serverFn, clientFn, false);
     assertEquals(2 * 10, MockNetwork.getForwardCount(0));
     assertEquals(2 * 10, MockNetwork.getForwardCount(1));
@@ -61,7 +61,7 @@ class DatagramChannelPathSwitchTest {
   }
 
   private void client(DatagramChannel channel, Path serverAddress, int id) throws IOException {
-    String message = PingPongHelper.MSG + "-" + id;
+    String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
 
     // Use a path policy that alternates between 1st and 2nd path

@@ -38,7 +38,7 @@ import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockDatagramChannel;
-import org.scion.jpan.testutil.PingPongHelper;
+import org.scion.jpan.testutil.PingPongChannelHelper;
 import org.scion.jpan.testutil.Util;
 
 class DatagramChannelApiTest {
@@ -470,7 +470,7 @@ class DatagramChannelApiTest {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiredPath) -> {
-          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
+          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
             RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
@@ -488,7 +488,7 @@ class DatagramChannelApiTest {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiredPath) -> {
-          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
+          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
             RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
@@ -506,7 +506,7 @@ class DatagramChannelApiTest {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiredPath) -> {
-          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongHelper.MSG.getBytes());
+          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
             channel.write(sendBuf);
             RequestPath newPath = (RequestPath) channel.getConnectionPath();
@@ -522,8 +522,8 @@ class DatagramChannelApiTest {
   private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod, boolean connect)
       throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
-    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.Client clientFn =
+    PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
+    PingPongChannelHelper.Client clientFn =
         (channel, basePath, id) -> {
           // Build a path that is already expired
           RequestPath expiredPath = createExpiredPath(basePath);
@@ -534,9 +534,9 @@ class DatagramChannelApiTest {
 
           response.flip();
           String pong = Charset.defaultCharset().decode(response).toString();
-          assertEquals(PingPongHelper.MSG, pong);
+          assertEquals(PingPongChannelHelper.MSG, pong);
         };
-    PingPongHelper pph = new PingPongHelper(1, 10, 5, connect);
+    PingPongChannelHelper pph = new PingPongChannelHelper(1, 10, 5, connect);
     pph.runPingPong(serverFn, clientFn);
   }
 

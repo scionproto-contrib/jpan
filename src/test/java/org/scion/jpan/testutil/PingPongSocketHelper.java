@@ -14,12 +14,14 @@
 
 package org.scion.jpan.testutil;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.socket.DatagramSocket;
 
@@ -160,15 +162,31 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     }
   }
 
-  public static void defaultServer(DatagramSocket channel) throws IOException {
+  public static void defaultClient(DatagramSocket socket, Path path, int id) throws IOException {
+    String message = PingPongChannelHelper.MSG + "-" + id;
+    InetSocketAddress dst = new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
+
+    DatagramPacket packetOut = new DatagramPacket(message.getBytes(), message.length(), dst);
+    socket.send(packetOut);
+
+    // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
+    DatagramPacket packetIn = new DatagramPacket(new byte[100], 100);
+    socket.receive(packetIn);
+
+    ByteBuffer response = ByteBuffer.wrap(packetIn.getData(), 0, packetIn.getLength());
+    String pong = Charset.defaultCharset().decode(response).toString();
+    assertEquals(message, pong);
+  }
+
+  public static void defaultServer(DatagramSocket socket) throws IOException {
     DatagramPacket packet = new DatagramPacket(new byte[512], 512);
-    channel.receive(packet);
+    socket.receive(packet);
 
     ByteBuffer buffer = ByteBuffer.wrap(packet.getData(), 0, packet.getLength());
     String msg = Charset.defaultCharset().decode(buffer).toString();
     assertTrue(msg.startsWith(MSG), msg);
     assertTrue(MSG.length() + 3 >= msg.length());
 
-    channel.send(packet);
+    socket.send(packet);
   }
 }

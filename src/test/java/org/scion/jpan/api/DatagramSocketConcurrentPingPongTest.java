@@ -86,16 +86,9 @@ class DatagramSocketConcurrentPingPongTest {
 
     queue.offer(new Entry(msg, (InetSocketAddress) request.getSocketAddress()));
     System.out.println("SERVER: --- receiver - added -------- " + msg);
-
-    //      try {
-    //          Thread.sleep(100);
-    //      } catch (InterruptedException e) {
-    //          throw new RuntimeException(e);
-    //      }
   }
 
   private void sender(DatagramSocket socket) throws IOException {
-
     try {
       Thread.sleep(10);
     } catch (InterruptedException e) {

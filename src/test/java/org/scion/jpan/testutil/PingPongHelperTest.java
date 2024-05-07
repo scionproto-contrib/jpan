@@ -27,10 +27,18 @@ class PingPongHelperTest {
   }
 
   @Test
-  void test() {
-    PingPongHelper.Server serverFn = PingPongHelper::defaultServer;
-    PingPongHelper.Client clientFn = PingPongHelper::defaultClient;
-    PingPongHelper pph = new PingPongHelper(1, 1, 10);
+  void testChannel() {
+    PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
+    PingPongChannelHelper.Client clientFn = PingPongChannelHelper::defaultClient;
+    PingPongChannelHelper pph = new PingPongChannelHelper(1, 1, 10);
+    pph.runPingPong(serverFn, clientFn);
+  }
+
+  @Test
+  void testSocket() {
+    PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
+    PingPongSocketHelper.Client clientFn = PingPongSocketHelper::defaultClient;
+    PingPongSocketHelper pph = new PingPongSocketHelper(1, 1, 10);
     pph.runPingPong(serverFn, clientFn);
   }
 }
