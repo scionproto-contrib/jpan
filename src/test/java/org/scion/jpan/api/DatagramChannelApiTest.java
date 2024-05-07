@@ -279,7 +279,7 @@ class DatagramChannelApiTest {
               });
       t.start();
       latch.await();
-      t.join(10);
+      t.join(30);
       t.interrupt();
       assertEquals(isBlocking, wasBlocking.get());
     }

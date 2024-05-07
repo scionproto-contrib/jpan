@@ -103,7 +103,9 @@ public class MockNetwork {
       routers.execute(br);
     }
     try {
-      barrier.await(1, TimeUnit.SECONDS);
+      if (!barrier.await(1, TimeUnit.SECONDS)) {
+        throw new IllegalStateException("Failed to start border routers.");
+      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("Timeout while waiting for border routers", e);
