@@ -76,18 +76,18 @@ public class HostsFileParser {
       Path path = Paths.get(file);
       // On Windows /etc/hosts is reported as ¨: not a file"
       if (!Files.exists(path) || !Files.isRegularFile(path)) {
-        LOG.info(PATH_LINUX + " not found.");
+        LOG.info("{} not found.", path);
         return;
       }
       try (Stream<String> lines = Files.lines(path)) {
-        lines.forEach(this::parseLine);
+        lines.forEach((line) -> parseLine(line, path));
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
     }
   }
 
-  private void parseLine(String line) {
+  private void parseLine(String line, Path path) {
     try {
       String s = line.trim();
       if (s.isEmpty() || s.startsWith("#")) {
@@ -104,6 +104,7 @@ public class HostsFileParser {
       check(!addrStr.isEmpty(), "Address is empty");
 
       byte[] addrBytes = IPHelper.toByteArray(addrStr);
+      check(addrBytes != null, "Address string is not a legal address");
       for (int i = 1; i < lineParts.length; i++) {
         String hostName = lineParts[i];
         if (hostName.startsWith("#")) {
@@ -119,7 +120,7 @@ public class HostsFileParser {
       // Use "normalized" address string as key (these may differ fo IPv6)
       entries.put(inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr));
     } catch (IndexOutOfBoundsException | IllegalArgumentException | UnknownHostException e) {
-      LOG.info("ERROR {} while parsing file {}: {}", e.getMessage(), PATH_LINUX, line);
+      LOG.info("ERROR parsing file {}: error=\"{}\" line=\"{}\"", path, e.getMessage(), line);
     }
   }
 
