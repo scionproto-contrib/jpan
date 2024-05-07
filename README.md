@@ -3,7 +3,7 @@
 
 # JPAN - Java API for path aware networking with SCION
 
-[![codecov](https://codecov.io/gh/netsec-ethz/scion-java-client/graph/badge.svg?token=3U8J50E4N5)](https://codecov.io/gh/netsec-ethz/scion-java-client)
+[![codecov](https://codecov.io/gh/scionproto-contrib/jpan/graph/badge.svg?token=3U8J50E4N5)](https://codecov.io/gh/scionproto-contrib/jpan)
 
 This library is 100% pure Java network stack for using [SCION](https://scion.org). It currently provides UDP and
 [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html). More information about SCION 
@@ -134,14 +134,14 @@ try (DatagramChannel channel = DatagramChannel.open()) {
 If you want to work on JPAN or simply browse the code locally, you can install it locally.
 
 JPAN is available as a 
-[Maven artifact](https://central.sonatype.com/artifact/org.scion/scion-java-client).
+[Maven artifact](https://central.sonatype.com/artifact/org.scion/jpan).
 Many IDEs comes with maven plugins. If you want to use Maven from the command line, you
 can install it with `sudo apt install maven` (Ubuntu etc) or download it 
 [here](https://maven.apache.org/index.html).
 
 To install it locally:
 ```bash 
-git clone https://github.com/netsec-ethz/scion-java-client.git
+git clone https://github.com/scionproto-contrib/jpan.git
 cd scion-java-client
 mvn clean install
 ```

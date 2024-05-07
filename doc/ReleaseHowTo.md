@@ -26,7 +26,7 @@
 
 4) Post Release
     - On GitHub, add the new release to the
-      [list of releases](https://github.com/netsec-ethz/scion-java-client/releases).
+      [list of releases](https://github.com/scionproto-contrib/jpan/releases).
     - Announce the release on the appropriate channels.
 
 ## Release Environment
