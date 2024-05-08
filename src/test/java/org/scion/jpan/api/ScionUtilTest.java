@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.RequestPath;
@@ -30,7 +29,7 @@ class ScionUtilTest {
 
   @Test
   void testParseIA() {
-    Assertions.assertEquals(0, ScionUtil.parseIA("0-0"));
+    assertEquals(0, ScionUtil.parseIA("0-0"));
     assertEquals(0, ScionUtil.parseIA("0-0:0:0"));
     assertEquals(42L << 48, ScionUtil.parseIA("42-0:0:0"));
     assertEquals(0xfedcL << 32, ScionUtil.parseIA("0-fedc:0:0"));
@@ -38,6 +37,14 @@ class ScionUtilTest {
     assertEquals(0xfedcL, ScionUtil.parseIA("0-0:0:fedc"));
     assertEquals(42L << 48 | 0xfedcba987654L, ScionUtil.parseIA("42-fedc:ba98:7654"));
     assertEquals(65000L << 48 | 0xfedcba987654L, ScionUtil.parseIA("65000-fedc:ba98:7654"));
+  }
+
+  @Test
+  void testParseIA_decimal() {
+    assertEquals(0, ScionUtil.parseIA("0-0"));
+    assertEquals(12345, ScionUtil.parseIA("0-12345"));
+    assertEquals(42L << 48, ScionUtil.parseIA("42-0"));
+    assertEquals((42L << 48) + 123456, ScionUtil.parseIA("42-123456"));
   }
 
   @Test
