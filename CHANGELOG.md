@@ -4,15 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
+
 ## [Unreleased]
 
 ### Fixed
 - Fixed spurious CI failures, esp. Windows. [#61](https://github.com/tzaeschke/phtree-cpp/pull/61) 
 - Fix SCM references in pom file + clean up. [#60](https://github.com/tzaeschke/phtree-cpp/pull/60) 
-- DNS lookup caused by `InetAddress.getByName()`. [#63](https://github.com/scionproto-contrib/jpan/pull/63)
-- DNS lookup caused by `InetAddress.getHostName()`. [#64](https://github.com/scionproto-contrib/jpan/pull/64)
+- DNS lookup caused by `InetAddress.getByName()`. 
+  [#63](https://github.com/scionproto-contrib/jpan/pull/63)
+- DNS lookup caused by `InetAddress.getHostName()`.
+  [#64](https://github.com/scionproto-contrib/jpan/pull/64)
 - JPAN renaming cleanup. [#65](https://github.com/scionproto-contrib/jpan/pull/65)
-- Clean up PingPong framework startup. [#62](https://github.com/tzaeschke/phtree-cpp/pull/62)
+- Clean up PingPong framework + spurious CI failures. 
+  [#62](https://github.com/tzaeschke/phtree-cpp/pull/62)
+- Missing tests for "decimal:decimal" style ISD/AS codes.
+  [#66](https://github.com/tzaeschke/phtree-cpp/pull/66)
 
 ## [0.1.0] - 2024-04-29
 
@@ -82,7 +89,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed handling of channel options. [#37](https://github.com/scionproto-contrib/jpan/pull/37)
 - Merged SCION_DAEMON_HOST and SCION_DAEMON_PORT into a single SCION_DAEMON property.
   [#39](https://github.com/scionproto-contrib/jpan/pull/39)
-- Some cleanup related to hists file parser. [#42](https://github.com/scionproto-contrib/jpan/pull/42)
+- Some cleanup on to hosts file parser. [#42](https://github.com/scionproto-contrib/jpan/pull/42)
 - Added proper error when ports 30255 or 31000 are in use when running tests
   [#50](https://github.com/scionproto-contrib/jpan/pull/50)
 - Fix `Unsupported platform: protoc-3.11.4-osx-aarch_64.exe.`
