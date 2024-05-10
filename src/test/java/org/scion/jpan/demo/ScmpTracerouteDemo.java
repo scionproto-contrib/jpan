@@ -99,7 +99,7 @@ public class ScmpTracerouteDemo {
     RequestPath path = paths.get(0);
 
     println("Listening on port " + localPort + " ...");
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
       println("Resolved local address: ");
       println("  " + channel.getLocalAddress().getAddress().getHostAddress());

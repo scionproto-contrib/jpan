@@ -103,7 +103,7 @@ public class ShowpathsDemo {
     int id = 0;
     for (RequestPath path : paths) {
       String localIP;
-      try (DatagramChannel channel = DatagramChannel.open()) {
+      try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
         channel.connect(path);
         localIP = channel.getLocalAddress().getAddress().getHostAddress();
       }

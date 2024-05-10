@@ -26,8 +26,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.ResponsePath;
+import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
@@ -77,11 +77,11 @@ class DatagramChannelApiConcurrencyTest {
   }
 
   private interface Reader {
-    void run(DatagramChannel channel, AtomicInteger receiveCount);
+    void run(ScionDatagramChannel channel, AtomicInteger receiveCount);
   }
 
   private interface Writer {
-    void run(DatagramChannel channel, CountDownLatch receiveCount);
+    void run(ScionDatagramChannel channel, CountDownLatch receiveCount);
   }
 
   /** Test 2x receive() and 1x send(). */
@@ -92,11 +92,11 @@ class DatagramChannelApiConcurrencyTest {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     buffer.put("Hello scion!".getBytes());
     buffer.flip();
-    try (DatagramChannel server = DatagramChannel.open()) {
+    try (ScionDatagramChannel server = ScionDatagramChannel.open()) {
       server.bind(dummyAddress);
       server.configureBlocking(false);
 
-      try (DatagramChannel client = DatagramChannel.open()) {
+      try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
         client.configureBlocking(true);
         if (connect) {
           client.connect(dummyAddress);
@@ -155,7 +155,7 @@ class DatagramChannelApiConcurrencyTest {
     }
   }
 
-  private void receive(DatagramChannel channel, AtomicInteger receiveCount) {
+  private void receive(ScionDatagramChannel channel, AtomicInteger receiveCount) {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try {
       channel.receive(buffer);
@@ -170,7 +170,7 @@ class DatagramChannelApiConcurrencyTest {
     }
   }
 
-  private void send(DatagramChannel channel, CountDownLatch latch) {
+  private void send(ScionDatagramChannel channel, CountDownLatch latch) {
     ByteBuffer buffer = ByteBuffer.wrap("Hello scion!".getBytes());
     try {
       buffer.flip();
@@ -181,7 +181,7 @@ class DatagramChannelApiConcurrencyTest {
     }
   }
 
-  private void read(DatagramChannel channel, AtomicInteger receiveCount) {
+  private void read(ScionDatagramChannel channel, AtomicInteger receiveCount) {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try {
       channel.read(buffer);
@@ -196,7 +196,7 @@ class DatagramChannelApiConcurrencyTest {
     }
   }
 
-  private void write(DatagramChannel channel, CountDownLatch latch) {
+  private void write(ScionDatagramChannel channel, CountDownLatch latch) {
     ByteBuffer buffer = ByteBuffer.wrap("Hello scion!".getBytes());
     try {
       buffer.flip();

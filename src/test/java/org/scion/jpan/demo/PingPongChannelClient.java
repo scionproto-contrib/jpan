@@ -17,8 +17,8 @@ package org.scion.jpan.demo;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.RequestPath;
+import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.testutil.MockDNS;
 
@@ -45,7 +45,7 @@ public class PingPongChannelClient {
   }
 
   private static void run() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.configureBlocking(true);
       channel.connect(PingPongChannelServer.SERVER_ADDRESS);
       String msg = "Hello there!";

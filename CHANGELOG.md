@@ -8,7 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-- Nothing yet
+### Changed
+- Some API changes: [#67](https://github.com/scionproto-contrib/jpan/pull/67)
+  - Rename `DatagramChannel` to `ScionDatagramChannel`
+  - Rename `DatagramSocket` to `ScionDatagramSopcketl` and move it to main package
+  - Rename `ScionSocketOptions`  starting with `SN_` to `SCION_`
 
 ## [0.1.1] - 2024-05-10
 

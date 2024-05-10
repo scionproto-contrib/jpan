@@ -341,7 +341,7 @@ public class ScionServiceTest {
     MockDaemon.createAndStartDefault();
     try (Scion.CloseableService service =
         Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
-      try (DatagramChannel channel = service.openChannel()) {
+      try (ScionDatagramChannel channel = service.openChannel()) {
         assertEquals(service, channel.getService());
       }
     } finally {

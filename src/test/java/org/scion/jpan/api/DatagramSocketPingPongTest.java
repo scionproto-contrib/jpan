@@ -22,8 +22,8 @@ import java.net.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.RequestPath;
+import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.socket.DatagramSocket;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongSocketHelper;
 
@@ -44,7 +44,8 @@ class DatagramSocketPingPongTest {
     assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
   }
 
-  private void client(DatagramSocket socket, RequestPath requestPath, int id) throws IOException {
+  private void client(ScionDatagramSocket socket, RequestPath requestPath, int id)
+      throws IOException {
     byte[] sendBuf = MSG.getBytes();
     InetAddress addr = requestPath.getRemoteAddress();
     int port = requestPath.getRemotePort();
@@ -60,7 +61,7 @@ class DatagramSocketPingPongTest {
     assertEquals(MSG, pong);
   }
 
-  private void server(DatagramSocket socket) throws IOException {
+  private void server(ScionDatagramSocket socket) throws IOException {
     DatagramPacket request = new DatagramPacket(new byte[200], 200);
     // System.out.println("SERVER: --- USER - Waiting for packet ---------------------- ");
     socket.receive(request);

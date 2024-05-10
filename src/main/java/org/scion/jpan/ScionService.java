@@ -231,12 +231,13 @@ public class ScionService {
     }
   }
 
-  public DatagramChannel openChannel() throws IOException {
-    return DatagramChannel.open(this);
+  public ScionDatagramChannel openChannel() throws IOException {
+    return ScionDatagramChannel.open(this);
   }
 
-  public DatagramChannel openChannel(java.nio.channels.DatagramChannel channel) throws IOException {
-    return DatagramChannel.open(this, channel);
+  public ScionDatagramChannel openChannel(java.nio.channels.DatagramChannel channel)
+      throws IOException {
+    return ScionDatagramChannel.open(this, channel);
   }
 
   Daemon.ASResponse getASInfo() {

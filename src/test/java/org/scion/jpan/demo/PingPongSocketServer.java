@@ -16,7 +16,7 @@ package org.scion.jpan.demo;
 
 import java.io.*;
 import java.net.*;
-import org.scion.jpan.socket.DatagramSocket;
+import org.scion.jpan.ScionDatagramSocket;
 
 public class PingPongSocketServer {
 
@@ -47,7 +47,7 @@ public class PingPongSocketServer {
   }
 
   private static void service() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket(SERVER_ADDRESS)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(SERVER_ADDRESS)) {
       DatagramPacket packet = new DatagramPacket(new byte[100], 100);
       println("Waiting for packet ... ");
       socket.receive(packet);

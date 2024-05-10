@@ -56,7 +56,7 @@ class DatagramChannelApiServerTest {
   @Test
   void open_withoutService() throws IOException {
     // check that open() (without service argument) does not internally require a ScionService.
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getService());
     }
   }
@@ -64,7 +64,7 @@ class DatagramChannelApiServerTest {
   @Test
   void bind_withoutService() throws IOException {
     // check that open() (without service argument) does not internally require a ScionService.
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.bind(new InetSocketAddress("127.0.0.1", 12345));
       assertNull(channel.getService());
     }
@@ -73,7 +73,7 @@ class DatagramChannelApiServerTest {
   @Test
   void send_withoutService() throws IOException {
     // check that send(ResponsePath) does not internally require a ScionService.
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getService());
       ResponsePath path =
           PackageVisibilityHelper.createDummyResponsePath(
@@ -101,7 +101,7 @@ class DatagramChannelApiServerTest {
           buf.put(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
           return addr;
         });
-    try (DatagramChannel channel = DatagramChannel.open(null, mock)) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null, mock)) {
       assertNull(channel.getService());
       ByteBuffer buffer = ByteBuffer.allocate(100);
       Path path = channel.receive(buffer);

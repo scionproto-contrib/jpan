@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.api;
+package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.socket.DatagramSocket;
+import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 
@@ -73,11 +73,11 @@ class DatagramSocketApiConcurrencyTest {
   }
 
   private interface Reader {
-    void run(DatagramSocket socket, AtomicInteger receiveCount);
+    void run(ScionDatagramSocket socket, AtomicInteger receiveCount);
   }
 
   private interface Writer {
-    void run(DatagramSocket socket, CountDownLatch receiveCount);
+    void run(ScionDatagramSocket socket, CountDownLatch receiveCount);
   }
 
   /** Test 2x receive() and 1x send(). */
@@ -88,8 +88,8 @@ class DatagramSocketApiConcurrencyTest {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     buffer.put("Hello scion!".getBytes());
     buffer.flip();
-    try (DatagramSocket server = new DatagramSocket(dummyAddress)) {
-      try (DatagramSocket client = new DatagramSocket()) {
+    try (ScionDatagramSocket server = new ScionDatagramSocket(dummyAddress)) {
+      try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         if (connect) {
           client.connect(dummyAddress);
         }
@@ -148,7 +148,7 @@ class DatagramSocketApiConcurrencyTest {
     }
   }
 
-  private void receive(DatagramSocket socket, AtomicInteger receiveCount) {
+  private void receive(ScionDatagramSocket socket, AtomicInteger receiveCount) {
     DatagramPacket packet = new DatagramPacket(new byte[100], 100);
     try {
       socket.receive(packet);
@@ -162,7 +162,7 @@ class DatagramSocketApiConcurrencyTest {
     }
   }
 
-  private void send(DatagramSocket socket, CountDownLatch latch) {
+  private void send(ScionDatagramSocket socket, CountDownLatch latch) {
     byte[] bytes = "Hello scion!".getBytes();
     DatagramPacket packet = new DatagramPacket(bytes, bytes.length, dummyAddress);
     try {
