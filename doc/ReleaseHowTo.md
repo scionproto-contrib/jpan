@@ -14,10 +14,10 @@
 3) Release
     - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
     - Run `mvn release:clean`
-    - Run `mvn release:prepare`. This may take a while to process OWASP CVE.
+    - Run `mvn release:prepare`. **NOTE** This may take a while to process OWASP CVE.
     - Run `mvn release:perform`
     - Log in to https://s01.oss.sonatype.org,
-        - go to "Staging Repositories"
+        - go to "Staging Repositories" (may take a minute + "Refresh" to appear)
         - Inspect the release (may take a minute + "Refresh" to appear)
         - Press "Close" (may take a minute + "Refresh" to be available)
         - Press "Release" (may take a minute + "Refresh" to be available)
