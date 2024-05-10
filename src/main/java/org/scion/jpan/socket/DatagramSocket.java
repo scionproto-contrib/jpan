@@ -44,8 +44,8 @@ public class DatagramSocket extends java.net.DatagramSocket {
 
   static {
     HashSet<SocketOption<?>> options = new HashSet<>();
-    options.add(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE);
-    options.add(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN);
+    options.add(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE);
+    options.add(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN);
 
     options.add(StandardSocketOptions.SO_SNDBUF);
     options.add(StandardSocketOptions.SO_RCVBUF);
@@ -461,7 +461,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   public synchronized int getTrafficClass() throws SocketException {
     checkOpen();
     try {
-      return channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
+      return channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS);
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }
@@ -472,7 +472,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
   public synchronized void setTrafficClass(int trafficClass) throws SocketException {
     checkOpen();
     try {
-      channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, trafficClass);
+      channel.setOption(ScionSocketOptions.SCION_TRAFFIC_CLASS, trafficClass);
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }

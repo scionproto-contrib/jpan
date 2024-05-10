@@ -693,21 +693,21 @@ class DatagramSocketApiTest {
   @Test
   void setOption_SCION() throws IOException {
     try (DatagramSocket socket = new DatagramSocket()) {
-      assertFalse(socket.getOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE));
-      DatagramSocket ds = socket.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      assertFalse(socket.getOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
+      DatagramSocket ds = socket.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(socket, ds);
 
-      int margin = socket.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN);
-      socket.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, margin + 1000);
-      assertEquals(margin + 1000, socket.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
+      int margin = socket.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN);
+      socket.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, margin + 1000);
+      assertEquals(margin + 1000, socket.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
 
       socket.close();
       assertThrows(
           ClosedChannelException.class,
-          () -> socket.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
+          () -> socket.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
       assertThrows(
           ClosedChannelException.class,
-          () -> socket.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, 11));
+          () -> socket.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, 11));
     }
   }
 
@@ -715,8 +715,8 @@ class DatagramSocketApiTest {
   void supportedOptions() throws IOException {
     try (DatagramSocket socket = new DatagramSocket()) {
       Set<SocketOption<?>> options = socket.supportedOptions();
-      assertTrue(options.contains(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
-      assertTrue(options.contains(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE));
+      assertTrue(options.contains(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
+      assertTrue(options.contains(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
 
       assertTrue(options.contains(StandardSocketOptions.SO_RCVBUF));
       assertTrue(options.contains(StandardSocketOptions.SO_SNDBUF));

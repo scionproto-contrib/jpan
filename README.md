@@ -229,8 +229,8 @@ Options are defined in `ScionSocketOptions`, see javadoc for details.
 
 | Option                        | Default | Short description                                               |
 |-------------------------------|---------|-----------------------------------------------------------------|
-| `SN_API_WRITE_TO_USER_BUFFER`    | `false` | Throw exception when receiving an invalid packet          | 
-| `SN_PATH_EXPIRY_MARGIN` | `2`     | A new path is requested if `now + margin > pathExpirationDate` | 
+| `SCION_API_THROW_PARSER_FAILURE`    | `false` | Throw exception when receiving an invalid packet          | 
+| `SCION_PATH_EXPIRY_MARGIN` | `2`     | A new path is requested if `now + margin > pathExpirationDate` | 
 
 The following standard options are **not** supported:
 

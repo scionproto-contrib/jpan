@@ -24,8 +24,8 @@ public final class ScionSocketOptions {
    * parsing a packet header. If set to 'false', problematic packets are silently dropped. Default
    * is 'false'.
    */
-  public static final SocketOption<Boolean> SN_API_THROW_PARSER_FAILURE =
-      new SciSocketOption<>("SN_API_THROW_PARSER_FAILURE", Boolean.class);
+  public static final SocketOption<Boolean> SCION_API_THROW_PARSER_FAILURE =
+      new SciSocketOption<>("SCION_API_THROW_PARSER_FAILURE", Boolean.class);
 
   /**
    * If set to 'true', the receive() and read() operations will read new packets directly into the
@@ -36,15 +36,15 @@ public final class ScionSocketOptions {
    * the ByteBuffer provided by the user. Default is 'false'.
    */
   @Deprecated // TODO implement
-  public static final SocketOption<Boolean> SN_API_WRITE_TO_USER_BUFFER =
-      new SciSocketOption<>("SN_API_WRITE_TO_USER_BUFFER", Boolean.class);
+  public static final SocketOption<Boolean> SCION_API_WRITE_TO_USER_BUFFER =
+      new SciSocketOption<>("SCION_API_WRITE_TO_USER_BUFFER", Boolean.class);
 
   /**
    * Before sending a packet, a new path will be requested if now() + pathExpirationMargin >
    * pathExpirationDate.
    */
-  public static final SocketOption<Integer> SN_PATH_EXPIRY_MARGIN =
-      new SciSocketOption<>("SN_PATH_EXPIRY_MARGIN", Integer.class);
+  public static final SocketOption<Integer> SCION_PATH_EXPIRY_MARGIN =
+      new SciSocketOption<>("SCION_PATH_EXPIRY_MARGIN", Integer.class);
 
   /**
    * Set the traffic class SCION header.
@@ -52,8 +52,8 @@ public final class ScionSocketOptions {
    * @deprecated This feature may be removed in a future release
    */
   @Deprecated
-  public static final SocketOption<Integer> SN_TRAFFIC_CLASS =
-      new SciSocketOption<>("SN_TRAFFIC_CLASS", Integer.class);
+  public static final SocketOption<Integer> SCION_TRAFFIC_CLASS =
+      new SciSocketOption<>("SCION_TRAFFIC_CLASS", Integer.class);
 
   private ScionSocketOptions() {}
 

@@ -601,25 +601,26 @@ class DatagramChannelApiTest {
   @Test
   void setOption_SCION() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
-      assertFalse(channel.getOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE));
-      DatagramChannel dc = channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      assertFalse(channel.getOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
+      DatagramChannel dc =
+          channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(channel, dc);
 
-      int margin = channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN);
-      channel.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, margin + 1000);
-      assertEquals(margin + 1000, channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
+      int margin = channel.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN);
+      channel.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, margin + 1000);
+      assertEquals(margin + 1000, channel.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
 
-      int tc = channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
-      channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, tc + 1);
-      assertEquals(tc + 1, channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS));
+      int tc = channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS);
+      channel.setOption(ScionSocketOptions.SCION_TRAFFIC_CLASS, tc + 1);
+      assertEquals(tc + 1, channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS));
 
       channel.close();
       assertThrows(
           ClosedChannelException.class,
-          () -> channel.getOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN));
+          () -> channel.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
       assertThrows(
           ClosedChannelException.class,
-          () -> channel.setOption(ScionSocketOptions.SN_PATH_EXPIRY_MARGIN, 11));
+          () -> channel.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, 11));
     }
   }
 
@@ -637,10 +638,10 @@ class DatagramChannelApiTest {
           });
       channel.send(buf, dummyAddress);
 
-      int trafficClass = channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS);
+      int trafficClass = channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS);
       assertEquals(0, trafficClass);
-      channel.setOption(ScionSocketOptions.SN_TRAFFIC_CLASS, 42);
-      assertEquals(42, channel.getOption(ScionSocketOptions.SN_TRAFFIC_CLASS));
+      channel.setOption(ScionSocketOptions.SCION_TRAFFIC_CLASS, 42);
+      assertEquals(42, channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS));
 
       // traffic class should be 42
       mock.setSendCallback(

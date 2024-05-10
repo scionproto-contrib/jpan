@@ -107,7 +107,7 @@ public class SCMPTest {
     MockNetwork.startTiny();
     try (ScmpChannel channel = Scmp.createChannel(path.get())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Scmp.EchoMessage result = channel.sendEchoRequest(42, ByteBuffer.wrap(data));
       assertEquals(42, result.getSequenceNumber());
@@ -126,7 +126,7 @@ public class SCMPTest {
     MockNetwork.startTiny();
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(100);
       MockNetwork.dropNextPackets(1);
       Scmp.EchoMessage result1 = channel.sendEchoRequest(42, ByteBuffer.allocate(0));
@@ -151,7 +151,7 @@ public class SCMPTest {
     MockNetwork.startTiny();
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       // Exception because network is down.
       assertThrows(IOException.class, () -> channel.sendEchoRequest(42, ByteBuffer.allocate(0)));
@@ -166,7 +166,7 @@ public class SCMPTest {
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       Throwable t =
@@ -193,7 +193,7 @@ public class SCMPTest {
     MockNetwork.startTiny();
     try (ScmpChannel channel = Scmp.createChannel(path.get())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest();
 
       int n = 0;
@@ -224,7 +224,7 @@ public class SCMPTest {
     MockNetwork.startTiny();
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(1000, channel.getTimeOut());
       channel.setTimeOut(100);
       assertEquals(100, channel.getTimeOut());
@@ -254,7 +254,7 @@ public class SCMPTest {
     MockNetwork.startTiny();
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       // IOException because network is down
       assertThrows(IOException.class, channel::sendTracerouteRequest);
@@ -269,7 +269,7 @@ public class SCMPTest {
     try (ScmpChannel channel = Scmp.createChannel(getPathTo112())) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
-      channel.setOption(ScionSocketOptions.SN_API_THROW_PARSER_FAILURE, true);
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       Throwable t = assertThrows(IOException.class, channel::sendTracerouteRequest);

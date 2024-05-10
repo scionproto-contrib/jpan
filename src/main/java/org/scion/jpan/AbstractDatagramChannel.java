@@ -449,11 +449,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     checkOpen();
     synchronized (stateLock) {
       if (option instanceof ScionSocketOptions.SciSocketOption) {
-        if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
+        if (ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE.equals(option)) {
           return (T) (Boolean) cfgReportFailedValidation;
-        } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
+        } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           return (T) (Integer) cfgExpirationSafetyMargin;
-        } else if (ScionSocketOptions.SN_TRAFFIC_CLASS.equals(option)) {
+        } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           return (T) (Integer) cfgTrafficClass;
         } else {
           throw new UnsupportedOperationException();
@@ -472,11 +472,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     checkOpen();
     synchronized (stateLock) {
       if (option instanceof ScionSocketOptions.SciSocketOption) {
-        if (ScionSocketOptions.SN_API_THROW_PARSER_FAILURE.equals(option)) {
+        if (ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE.equals(option)) {
           cfgReportFailedValidation = (Boolean) t;
-        } else if (ScionSocketOptions.SN_PATH_EXPIRY_MARGIN.equals(option)) {
+        } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
-        } else if (ScionSocketOptions.SN_TRAFFIC_CLASS.equals(option)) {
+        } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {
             throw new IllegalArgumentException("trafficClass is not in range 0 -- 255");
