@@ -17,8 +17,8 @@ package org.scion.jpan.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.jpan.DatagramChannel;
 import org.scion.jpan.Path;
+import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionUtil;
 
 public class PingPongChannelServer {
@@ -50,7 +50,7 @@ public class PingPongChannelServer {
   }
 
   private static void service() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.bind(SERVER_ADDRESS);
       ByteBuffer buffer = ByteBuffer.allocate(100);
       println("Waiting for packet ... ");

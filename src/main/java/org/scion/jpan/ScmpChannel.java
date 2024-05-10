@@ -248,7 +248,7 @@ public class ScmpChannel implements AutoCloseable {
    * Get the currently connected path. The connected path is set during channel creation.
    *
    * @return the current Path
-   * @see org.scion.jpan.DatagramChannel#getConnectionPath()
+   * @see ScionDatagramChannel#getConnectionPath()
    */
   public RequestPath getConnectionPath() {
     return (RequestPath) channel.getConnectionPath();
@@ -275,7 +275,7 @@ public class ScmpChannel implements AutoCloseable {
    *
    * @param pathPolicy the new path policy
    * @see PathPolicy#DEFAULT
-   * @see org.scion.jpan.DatagramChannel#setPathPolicy(PathPolicy)
+   * @see ScionDatagramChannel#setPathPolicy(PathPolicy)
    */
   public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
     channel.setPathPolicy(pathPolicy);
@@ -283,7 +283,7 @@ public class ScmpChannel implements AutoCloseable {
 
   /**
    * Specify an source address override. See {@link
-   * org.scion.jpan.DatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
+   * ScionDatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
    *
    * @param overrideSourceAddress Override address
    * @deprecated This will likely be removed in a future version

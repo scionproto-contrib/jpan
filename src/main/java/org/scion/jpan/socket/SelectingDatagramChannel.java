@@ -22,6 +22,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
 import org.scion.jpan.ResponsePath;
+import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
@@ -31,7 +32,7 @@ import org.scion.jpan.internal.ScionHeaderParser;
  *
  * <p>The class is non-public for now. It may be removed (or not) once we implement Selectors.
  */
-class SelectingDatagramChannel extends org.scion.jpan.DatagramChannel {
+class SelectingDatagramChannel extends ScionDatagramChannel {
   private final Selector selector;
   private int timeoutMs = 0;
 

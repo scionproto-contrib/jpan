@@ -76,14 +76,14 @@ class DatagramChannelApiTest {
   @Test
   void getLocalAddress_withBind() throws IOException {
     InetSocketAddress addr = new InetSocketAddress("localhost", dummyPort);
-    try (DatagramChannel channel = DatagramChannel.open().bind(addr)) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open().bind(addr)) {
       assertEquals(addr, channel.getLocalAddress());
     }
   }
 
   @Test
   void getLocalAddress_withBindNull() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open().bind(null)) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open().bind(null)) {
       InetSocketAddress local = channel.getLocalAddress();
       assertTrue(local.getAddress().isAnyLocalAddress());
     }
@@ -91,14 +91,14 @@ class DatagramChannelApiTest {
 
   @Test
   void getLocalAddress_withoutBind() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getLocalAddress());
     }
   }
 
   @Test
   void getLocalAddress_withConnect() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(dummyAddress);
       InetSocketAddress local = channel.getLocalAddress();
       assertFalse(local.getAddress().isAnyLocalAddress());
@@ -107,7 +107,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getLocalAddress_withSendAddress() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.send(ByteBuffer.allocate(100), dummyAddress);
       InetSocketAddress local = channel.getLocalAddress();
       assertTrue(local.getAddress().isAnyLocalAddress());
@@ -117,7 +117,7 @@ class DatagramChannelApiTest {
   @Test
   void getLocalAddress_withSendRequestPath() throws IOException {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.send(ByteBuffer.allocate(100), path);
       InetSocketAddress local = channel.getLocalAddress();
       assertTrue(local.getAddress().isAnyLocalAddress());
@@ -128,7 +128,7 @@ class DatagramChannelApiTest {
   void getLocalAddress_withSendResponsePath() throws IOException {
     ByteBuffer rawPacket = ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PONG);
     ResponsePath response = PackageVisibilityHelper.getResponsePath(rawPacket, dummyAddress);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.send(ByteBuffer.allocate(100), response);
       InetSocketAddress local = channel.getLocalAddress();
       assertTrue(local.getAddress().isAnyLocalAddress());
@@ -139,7 +139,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getLocalAddress_withReceive() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.configureBlocking(false);
       channel.receive(ByteBuffer.allocate(100));
       InetSocketAddress local = channel.getLocalAddress();
@@ -158,7 +158,7 @@ class DatagramChannelApiTest {
         PackageVisibilityHelper.createDummyPath(
             sAddr.getIsdAs(), sAddr.getInetAddress(), dummyPort, new byte[100], firstHop);
 
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
       // Assert that this resolves to a non-local address!
       assertFalse(channel.getLocalAddress().toString().contains("127.0.0."));
@@ -171,7 +171,7 @@ class DatagramChannelApiTest {
   void send_RequiresInetSocketAddress() throws IOException {
     ByteBuffer bb = ByteBuffer.allocate(100);
     Exception exception;
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       SocketAddress addr =
           new SocketAddress() {
             @Override
@@ -191,7 +191,7 @@ class DatagramChannelApiTest {
   void send_requiresAddressWithScionTxt() {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
       assertTrue(ex.getMessage().contains("No DNS TXT entry \"scion\" found"), ex.getMessage());
     } catch (IOException e) {
@@ -205,7 +205,7 @@ class DatagramChannelApiTest {
     String TXT = "\"XXXscion=1-ff00:0:110,127.0.0.55\"";
     System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "127.0.0.55=" + TXT);
     InetSocketAddress addr = new InetSocketAddress("127.0.0.55", 30255);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
       assertTrue(ex.getMessage().contains("Invalid TXT entry"), ex.getMessage());
     } catch (IOException e) {
@@ -217,7 +217,7 @@ class DatagramChannelApiTest {
 
   @Test
   void isOpen() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertTrue(channel.isOpen());
       channel.close();
       assertFalse(channel.isOpen());
@@ -226,7 +226,7 @@ class DatagramChannelApiTest {
 
   @Test
   void isBlocking_default() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertTrue(channel.isBlocking());
     }
   }
@@ -252,7 +252,7 @@ class DatagramChannelApiTest {
   }
 
   interface ChannelConsumer {
-    void accept(DatagramChannel channel) throws InterruptedException, IOException;
+    void accept(ScionDatagramChannel channel) throws InterruptedException, IOException;
   }
 
   private void testBlocking(boolean isBlocking, ChannelConsumer fn)
@@ -261,7 +261,7 @@ class DatagramChannelApiTest {
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
     CountDownLatch latch = new CountDownLatch(1);
     AtomicBoolean wasBlocking = new AtomicBoolean(true);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(address);
       channel.configureBlocking(isBlocking);
       assertEquals(isBlocking, channel.isBlocking());
@@ -292,7 +292,7 @@ class DatagramChannelApiTest {
     // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertFalse(channel.isConnected());
       assertNull(channel.getRemoteAddress());
       channel.connect(address);
@@ -325,7 +325,7 @@ class DatagramChannelApiTest {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
     InetAddress ip = path.getRemoteAddress();
     InetSocketAddress address = new InetSocketAddress(ip, path.getRemotePort());
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertFalse(channel.isConnected());
       assertNull(channel.getRemoteAddress());
       channel.connect(path);
@@ -354,7 +354,7 @@ class DatagramChannelApiTest {
 
   @Test
   void bind() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getLocalAddress());
       channel.bind(null);
       InetSocketAddress address = channel.getLocalAddress();
@@ -366,7 +366,7 @@ class DatagramChannelApiTest {
   void getService_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       // The initial channel should NOT have a service.
       // A server side channel may never need a service so we shouldn't create it.
       assertNull(channel.getService());
@@ -384,7 +384,7 @@ class DatagramChannelApiTest {
   void getService_non_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-    try (DatagramChannel channel = DatagramChannel.open(service2)) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(service2)) {
       assertEquals(service2, channel.getService());
       assertNotEquals(service1, channel.getService());
     }
@@ -393,7 +393,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getPathPolicy() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertEquals(PathPolicy.DEFAULT, channel.getPathPolicy());
       assertEquals(PathPolicy.MIN_HOPS, channel.getPathPolicy());
       channel.setPathPolicy(PathPolicy.MAX_BANDWIDTH);
@@ -407,7 +407,7 @@ class DatagramChannelApiTest {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65440);
     buffer.limit(buffer.capacity());
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
       String msg = ex.getMessage();
       // Linux vs Windows(?)
@@ -422,7 +422,7 @@ class DatagramChannelApiTest {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(100_000);
     buffer.limit(buffer.capacity());
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(addr);
       Exception ex = assertThrows(IOException.class, () -> channel.write(buffer));
       String msg = ex.getMessage();
@@ -434,7 +434,7 @@ class DatagramChannelApiTest {
   @Test
   void read_NotConnectedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertThrows(NotYetConnectedException.class, () -> channel.read(buffer));
     }
   }
@@ -442,7 +442,7 @@ class DatagramChannelApiTest {
   @Test
   void read_ChannelClosedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.close();
       assertThrows(ClosedChannelException.class, () -> channel.read(buffer));
     }
@@ -451,7 +451,7 @@ class DatagramChannelApiTest {
   @Test
   void write_NotConnectedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertThrows(NotYetConnectedException.class, () -> channel.write(buffer));
     }
   }
@@ -459,7 +459,7 @@ class DatagramChannelApiTest {
   @Test
   void write_ChannelClosedFails() throws IOException {
     ByteBuffer buffer = ByteBuffer.allocate(100);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.close();
       assertThrows(ClosedChannelException.class, () -> channel.write(buffer));
     }
@@ -519,7 +519,8 @@ class DatagramChannelApiTest {
         true);
   }
 
-  private void testExpired(BiConsumer<DatagramChannel, RequestPath> sendMethod, boolean connect)
+  private void testExpired(
+      BiConsumer<ScionDatagramChannel, RequestPath> sendMethod, boolean connect)
       throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
@@ -559,7 +560,7 @@ class DatagramChannelApiTest {
   void getConnectionPath() throws IOException {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getConnectionPath());
       // send should NOT set a path
       channel.send(buffer, addr);
@@ -582,9 +583,9 @@ class DatagramChannelApiTest {
 
   @Test
   void testBug_doubleSendCausesNPE() throws IOException {
-    try (DatagramChannel server = DatagramChannel.open()) {
+    try (ScionDatagramChannel server = ScionDatagramChannel.open()) {
       server.bind(dummyAddress);
-      try (DatagramChannel client = DatagramChannel.open()) {
+      try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
         assertFalse(client.isConnected());
         assertNull(client.getConnectionPath());
         assertNull(client.getRemoteAddress());
@@ -600,9 +601,9 @@ class DatagramChannelApiTest {
 
   @Test
   void setOption_SCION() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertFalse(channel.getOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
-      DatagramChannel dc =
+      ScionDatagramChannel dc =
           channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(channel, dc);
 
@@ -628,7 +629,7 @@ class DatagramChannelApiTest {
   void setOption_TrafficClass() throws IOException {
     ByteBuffer buf = ByteBuffer.wrap("Hello".getBytes());
     try (MockDatagramChannel mock = MockDatagramChannel.open();
-        DatagramChannel channel = DatagramChannel.open(Scion.defaultService(), mock)) {
+        ScionDatagramChannel channel = ScionDatagramChannel.open(Scion.defaultService(), mock)) {
       // traffic class should be 0
       mock.setSendCallback(
           (buffer, address) -> {
@@ -656,8 +657,8 @@ class DatagramChannelApiTest {
 
   @Test
   void setOption_Standard() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
-      DatagramChannel ds = channel.setOption(StandardSocketOptions.SO_RCVBUF, 10000);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      ScionDatagramChannel ds = channel.setOption(StandardSocketOptions.SO_RCVBUF, 10000);
       assertEquals(channel, ds);
       assertEquals(10000, channel.getOption(StandardSocketOptions.SO_RCVBUF));
 
@@ -693,7 +694,7 @@ class DatagramChannelApiTest {
     int overrideSrcPort = 4242;
     InetSocketAddress overrideSrc = new InetSocketAddress(overrideSrcIP, overrideSrcPort);
     try (MockDatagramChannel mock = MockDatagramChannel.open();
-        DatagramChannel channel = DatagramChannel.open(Scion.defaultService(), mock)) {
+        ScionDatagramChannel channel = ScionDatagramChannel.open(Scion.defaultService(), mock)) {
 
       // initialize local address
       mock.setSendCallback((buffer, address) -> 0);

@@ -44,7 +44,7 @@ class DatagramChannelErrorHandlingTest {
     MockDatagramChannel mock = MockDatagramChannel.open();
     MockNetwork.startTiny();
     InetSocketAddress dstAddr = new InetSocketAddress("127.0.0.1", 12345);
-    try (DatagramChannel channel = Scion.defaultService().openChannel()) {
+    try (ScionDatagramChannel channel = Scion.defaultService().openChannel()) {
       AtomicInteger scmpReceived = new AtomicInteger();
       channel.setScmpErrorListener(
           message -> {

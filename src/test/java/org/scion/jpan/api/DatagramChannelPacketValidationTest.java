@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.DatagramChannel;
+import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketOptions;
 import org.scion.jpan.internal.ScionHeaderParser;
@@ -146,7 +146,7 @@ class DatagramChannelPacketValidationTest {
         new Thread(
             () -> {
               try {
-                try (DatagramChannel channel = DatagramChannel.open()) {
+                try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
                   channel.configureBlocking(isBlocking);
                   if (openThrowOnBadPacket) {
                     channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);

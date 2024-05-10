@@ -32,11 +32,11 @@ import org.scion.jpan.internal.SimpleCache;
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
  *
- * <p>Note: use of this class is discouraged in favor of org.scion.{@link
- * org.scion.jpan.DatagramChannel}. The reason is that this class' API (InetAddress and
- * DatagramPacket) cannot be extended to support SCION paths. As a consequence, a server needs to
- * cache paths internally which requires memory and may cause exceptions if more connections
- * (=paths) are managed than the configured thresholds allows.
+ * <p>Note: use of this class is discouraged in favor of org.scion.{@link ScionDatagramChannel}. The
+ * reason is that this class' API (InetAddress and DatagramPacket) cannot be extended to support
+ * SCION paths. As a consequence, a server needs to cache paths internally which requires memory and
+ * may cause exceptions if more connections (=paths) are managed than the configured thresholds
+ * allows.
  */
 public class DatagramSocket extends java.net.DatagramSocket {
 
@@ -165,10 +165,10 @@ public class DatagramSocket extends java.net.DatagramSocket {
 
   /**
    * Connect to a destination using a specific path. See {@link
-   * org.scion.jpan.DatagramChannel#connect(RequestPath)} for details.
+   * ScionDatagramChannel#connect(RequestPath)} for details.
    *
    * @param path path to destination
-   * @see org.scion.jpan.DatagramChannel#connect(RequestPath)
+   * @see ScionDatagramChannel#connect(RequestPath)
    */
   public synchronized void connect(RequestPath path) {
     try {
@@ -530,7 +530,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
    * #connect(RequestPath)} and may be refreshed when expired.
    *
    * @return the current Path or `null` if not path is connected.
-   * @see org.scion.jpan.DatagramChannel#getConnectionPath()
+   * @see ScionDatagramChannel#getConnectionPath()
    */
   public RequestPath getConnectionPath() {
     return (RequestPath) channel.getConnectionPath();
@@ -583,7 +583,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
    *     implemented.
    */
   @Deprecated
-  public synchronized org.scion.jpan.DatagramChannel getScionChannel() {
+  public synchronized ScionDatagramChannel getScionChannel() {
     return channel;
   }
 
@@ -591,7 +591,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
    * @return The currently associated ScionService for this socket. This usually returns 'null' for
    *     server side sockets because the service is only created for looking up SCION addresses and
    *     ISD/AS codes, which should not be necessary for a server.
-   * @see org.scion.jpan.DatagramChannel#getService()
+   * @see ScionDatagramChannel#getService()
    */
   public synchronized ScionService getService() {
     return channel.getService();
@@ -610,7 +610,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
    *
    * @param pathPolicy the new path policy
    * @see PathPolicy#DEFAULT
-   * @see org.scion.jpan.DatagramChannel#setPathPolicy(PathPolicy)
+   * @see ScionDatagramChannel#setPathPolicy(PathPolicy)
    */
   public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
     channel.setPathPolicy(pathPolicy);
@@ -619,11 +619,11 @@ public class DatagramSocket extends java.net.DatagramSocket {
   /**
    * Assume that the destination host uses a dispatcher.
    *
-   * <p>See {@link org.scion.jpan.DatagramChannel#configureRemoteDispatcher(boolean)}.
+   * <p>See {@link ScionDatagramChannel#configureRemoteDispatcher(boolean)}.
    *
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
-   * @see org.scion.jpan.DatagramChannel#configureRemoteDispatcher(boolean)
+   * @see ScionDatagramChannel#configureRemoteDispatcher(boolean)
    * @deprecated To be remove once dispatchers have been removed
    */
   @Deprecated
@@ -634,7 +634,7 @@ public class DatagramSocket extends java.net.DatagramSocket {
 
   /**
    * Specify an source address override. See {@link
-   * org.scion.jpan.DatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
+   * ScionDatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
    *
    * @param overrideSourceAddress Override address
    * @deprecated This will likely be removed in a future version
