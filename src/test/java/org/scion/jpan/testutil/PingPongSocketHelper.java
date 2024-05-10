@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
-import org.scion.jpan.socket.DatagramSocket;
+import org.scion.jpan.ScionDatagramSocket;
 
 public class PingPongSocketHelper extends PingPongHelperBase {
 
@@ -69,7 +69,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     @Override
     public final void runImpl() throws IOException {
-      try (DatagramSocket socket = new DatagramSocket()) {
+      try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
         registerStartUpClient();
         InetAddress ipAddress = remoteAddress.getRemoteAddress();
         InetSocketAddress iSAddress =
@@ -96,7 +96,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     @Override
     public final void runImpl() throws IOException {
-      try (DatagramSocket socket = new DatagramSocket()) {
+      try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
         registerStartUpServer((InetSocketAddress) socket.getLocalSocketAddress());
         for (int i = 0; i < nRounds; i++) {
           server.run(socket);
@@ -110,9 +110,9 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   private class ServerEndpointMT extends AbstractSocketEndpoint {
     private final Server server;
     private final int nRounds;
-    private final DatagramSocket socket;
+    private final ScionDatagramSocket socket;
 
-    ServerEndpointMT(Server server, DatagramSocket socket, int id, int nRounds) {
+    ServerEndpointMT(Server server, ScionDatagramSocket socket, int id, int nRounds) {
       super(id);
       this.server = server;
       this.socket = socket;
@@ -130,11 +130,11 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   }
 
   public interface Client {
-    void run(DatagramSocket socket, RequestPath path, int id) throws IOException;
+    void run(ScionDatagramSocket socket, RequestPath path, int id) throws IOException;
   }
 
   public interface Server {
-    void run(DatagramSocket socket) throws IOException;
+    void run(ScionDatagramSocket socket) throws IOException;
   }
 
   public void runPingPong(Server serverFn, Client clientFn) {
@@ -153,7 +153,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     if (nServers != 2) {
       throw new IllegalStateException();
     }
-    try (DatagramSocket socket = new DatagramSocket(MockNetwork.TINY_SRV_PORT_1)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(MockNetwork.TINY_SRV_PORT_1)) {
       runPingPong(
           (id, nRounds) ->
               new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
@@ -162,7 +162,8 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     }
   }
 
-  public static void defaultClient(DatagramSocket socket, Path path, int id) throws IOException {
+  public static void defaultClient(ScionDatagramSocket socket, Path path, int id)
+      throws IOException {
     String message = PingPongChannelHelper.MSG + "-" + id;
     InetSocketAddress dst = new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
 
@@ -178,7 +179,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     assertEquals(message, pong);
   }
 
-  public static void defaultServer(DatagramSocket socket) throws IOException {
+  public static void defaultServer(ScionDatagramSocket socket) throws IOException {
     DatagramPacket packet = new DatagramPacket(new byte[512], 512);
     socket.receive(packet);
 

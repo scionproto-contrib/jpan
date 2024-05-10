@@ -35,8 +35,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.proto.daemon.Daemon;
-import org.scion.jpan.socket.DatagramSocket;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
@@ -86,14 +86,14 @@ class DatagramSocketApiTest {
 
   @Test
   void create_unbound() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket(null)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       assertFalse(socket.isBound());
     }
   }
 
   @Test
   void create_bound() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket(dummyAddress)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(dummyAddress)) {
       assertTrue(socket.isBound());
       InetSocketAddress local = (InetSocketAddress) socket.getLocalSocketAddress();
       assertEquals(dummyAddress, local);
@@ -102,7 +102,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getLocalAddress() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       // 0.0.0.0 or 0:0:0:0:0:0:0:0
       assertTrue(socket.getLocalAddress().isAnyLocalAddress());
       assertTrue(socket.getLocalPort() > 0);
@@ -119,7 +119,7 @@ class DatagramSocketApiTest {
   @Test
   void getLocalAddress_withImplicitBind() throws IOException {
     InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
-    try (DatagramSocket socket = new DatagramSocket(address)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(address)) {
       assertTrue(socket.isBound());
       assertEquals(address, socket.getLocalSocketAddress());
     }
@@ -128,7 +128,7 @@ class DatagramSocketApiTest {
   @Test
   void getLocalAddress_withExplicitBind() throws IOException {
     InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
-    try (DatagramSocket socket = new DatagramSocket(null)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       assertFalse(socket.isBound());
       socket.bind(address);
       assertTrue(socket.isBound());
@@ -138,7 +138,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getLocalAddress_withoutBind() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket(null)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       assertFalse(socket.isBound());
       assertNull(socket.getLocalAddress());
     }
@@ -159,7 +159,7 @@ class DatagramSocketApiTest {
             new byte[100],
             firstHop);
 
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       // This constructor binds() to the local ANY address.
       assertTrue(socket.getLocalAddress().isAnyLocalAddress());
       socket.connect(path);
@@ -172,7 +172,7 @@ class DatagramSocketApiTest {
   void send_requiresAddressWithScionTxt() {
     InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       Exception ex = assertThrows(IOException.class, () -> socket.send(packet));
       assertTrue(ex.getMessage().contains("No DNS TXT entry \"scion\" found"), ex.getMessage());
     } catch (IOException e) {
@@ -186,7 +186,7 @@ class DatagramSocketApiTest {
     System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "127.0.0.55=" + TXT);
     InetSocketAddress addr = new InetSocketAddress("127.0.0.55", 30255);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       Exception ex = assertThrows(IOException.class, () -> socket.send(packet));
       assertTrue(ex.getMessage().contains("Invalid TXT entry"), ex.getMessage());
     } catch (IOException e) {
@@ -198,7 +198,7 @@ class DatagramSocketApiTest {
 
   @Test
   void isOpen() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertFalse(socket.isClosed());
       socket.close();
       assertTrue(socket.isClosed());
@@ -213,7 +213,7 @@ class DatagramSocketApiTest {
     CountDownLatch latch = new CountDownLatch(1);
     AtomicLong timeMs = new AtomicLong();
     AtomicReference<Exception> exception = new AtomicReference<>();
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.setSoTimeout(timeOutMs);
       socket.connect(address);
       // Running a separate thread prevents this from halting infinitely.
@@ -244,7 +244,7 @@ class DatagramSocketApiTest {
 
   @Test
   void connect_fail() throws SocketException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       // Bad port
       assertThrows(IllegalArgumentException.class, () -> socket.connect(dummyIPv4, -1));
 
@@ -274,7 +274,7 @@ class DatagramSocketApiTest {
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
     InetSocketAddress address2 = new InetSocketAddress("127.0.0.2", 22345);
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertFalse(socket.isConnected());
       assertNull(socket.getRemoteSocketAddress());
       socket.connect(address);
@@ -308,7 +308,7 @@ class DatagramSocketApiTest {
     RequestPath path = PackageVisibilityHelper.createDummyPath();
     InetAddress ip = path.getRemoteAddress();
     InetSocketAddress address = new InetSocketAddress(ip, path.getRemotePort());
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertFalse(socket.isConnected());
       assertNull(socket.getRemoteSocketAddress());
       socket.connect(path);
@@ -343,7 +343,7 @@ class DatagramSocketApiTest {
     //      InetSocketAddress address2 = (InetSocketAddress) socket.getLocalSocketAddress();
     //      assertTrue(address2.getPort() > 0);
     //    }
-    try (DatagramSocket socket = new DatagramSocket(null)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       assertNull(socket.getLocalSocketAddress());
       socket.bind(null);
       InetSocketAddress address2 = (InetSocketAddress) socket.getLocalSocketAddress();
@@ -357,7 +357,7 @@ class DatagramSocketApiTest {
     //      Exception ex = assertThrows(SocketException.class, () -> socket.bind(null));
     //      assertTrue(ex.getMessage().contains("already bound"));
     //    }
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       Exception ex = assertThrows(SocketException.class, () -> socket.bind(null));
       assertTrue(ex.getMessage().contains("already bound"));
     }
@@ -367,7 +367,7 @@ class DatagramSocketApiTest {
   void getService_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       // The initial socket should NOT have a service.
       // A server side socket may never need a service so we shouldn't create it.
       assertNull(socket.getService());
@@ -384,7 +384,7 @@ class DatagramSocketApiTest {
   void getService_non_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-    try (DatagramSocket socket = DatagramSocket.create(service2)) {
+    try (ScionDatagramSocket socket = ScionDatagramSocket.create(service2)) {
       assertEquals(service2, socket.getService());
       assertNotEquals(service1, socket.getService());
     }
@@ -393,7 +393,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getPathPolicy() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertEquals(PathPolicy.DEFAULT, socket.getPathPolicy());
       assertEquals(PathPolicy.MIN_HOPS, socket.getPathPolicy());
       socket.setPathPolicy(PathPolicy.MAX_BANDWIDTH);
@@ -404,7 +404,7 @@ class DatagramSocketApiTest {
 
   @Test
   void send_bufferTooLarge() {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       int size = socket.getSendBufferSize() + 1; // Too large, yay!
       DatagramPacket packet = new DatagramPacket(new byte[size], size, dummyAddress);
       Exception ex = assertThrows(IOException.class, () -> socket.send(packet));
@@ -424,10 +424,10 @@ class DatagramSocketApiTest {
     // (in the case of Sockets, Paths are somewhat protected from concurrent usage, but that
     // can be circumvented by using socket.getChannel() or socket.getCachedPath().)
     int size = 10;
-    try (DatagramSocket server = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
       SocketAddress serverAddress = server.getLocalSocketAddress();
 
-      try (DatagramSocket client = new DatagramSocket()) {
+      try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet);
       }
@@ -451,10 +451,10 @@ class DatagramSocketApiTest {
   @Test
   void send_wrongAddress() throws IOException {
     int size = 10;
-    try (DatagramSocket server = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
       SocketAddress serverAddress = server.getLocalSocketAddress();
 
-      try (DatagramSocket client = new DatagramSocket()) {
+      try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet);
       }
@@ -476,7 +476,7 @@ class DatagramSocketApiTest {
 
   @Test
   void receive_IllegalBlockingMode() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       // This test is cheating a bit. As it is currently implemented, the
       // IllegalBlockingModeException is thrown by configureBlocking(), not by send().
       assertThrows(
@@ -492,7 +492,7 @@ class DatagramSocketApiTest {
   void receive_ChannelClosedFails() throws IOException {
     InetSocketAddress addr = new InetSocketAddress("127.0.0.1", 1);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.close();
       Throwable t = assertThrows(SocketException.class, () -> socket.receive(packet));
       assertTrue(t.getMessage().contains("closed"));
@@ -501,7 +501,7 @@ class DatagramSocketApiTest {
 
   @Test
   void send_NullAddress_Exception() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.disconnect();
       // null address
       DatagramPacket packet1 = new DatagramPacket(new byte[100], 100);
@@ -511,7 +511,7 @@ class DatagramSocketApiTest {
 
   @Test
   void send_AddressMismatch_Exception() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.disconnect();
       socket.connect(dummyAddress);
 
@@ -530,7 +530,7 @@ class DatagramSocketApiTest {
   @Test
   void send_AddressResolve_hostName() throws IOException {
     // TODO
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.disconnect();
       socket.connect(dummyAddress);
 
@@ -572,7 +572,7 @@ class DatagramSocketApiTest {
 
   @Test
   void send_IllegalBlockingMode() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertThrows(
           IllegalBlockingModeException.class,
           () -> {
@@ -589,7 +589,7 @@ class DatagramSocketApiTest {
   void send_NonResolvableAddressFails() throws IOException {
     InetSocketAddress addr = new InetSocketAddress("127.127.0.1", 1);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.disconnect();
       assertThrows(IOException.class, () -> socket.send(packet));
     }
@@ -597,7 +597,7 @@ class DatagramSocketApiTest {
 
   @Test
   void send_ChannelClosedFails() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.close();
       Throwable t = assertThrows(SocketException.class, () -> socket.send(dummyPacket));
       assertTrue(t.getMessage().contains("closed"));
@@ -625,7 +625,8 @@ class DatagramSocketApiTest {
         });
   }
 
-  private void testExpired(BiConsumer<DatagramSocket, RequestPath> sendMethod) throws IOException {
+  private void testExpired(BiConsumer<ScionDatagramSocket, RequestPath> sendMethod)
+      throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
     PingPongSocketHelper.Client clientFn =
@@ -669,7 +670,7 @@ class DatagramSocketApiTest {
   void getConnectionPath() throws IOException {
     RequestPath path = ExamplePacket.PATH;
     DatagramPacket packet = new DatagramPacket(new byte[50], 50, toAddress(path));
-    try (DatagramSocket channel = new DatagramSocket()) {
+    try (ScionDatagramSocket channel = new ScionDatagramSocket()) {
       assertNull(channel.getConnectionPath());
       // send should NOT set a path
       channel.send(packet);
@@ -692,9 +693,10 @@ class DatagramSocketApiTest {
 
   @Test
   void setOption_SCION() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertFalse(socket.getOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
-      DatagramSocket ds = socket.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      ScionDatagramSocket ds =
+          socket.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(socket, ds);
 
       int margin = socket.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN);
@@ -713,7 +715,7 @@ class DatagramSocketApiTest {
 
   @Test
   void supportedOptions() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       Set<SocketOption<?>> options = socket.supportedOptions();
       assertTrue(options.contains(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
       assertTrue(options.contains(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
@@ -729,8 +731,8 @@ class DatagramSocketApiTest {
 
   @Test
   void setOption_Standard() throws IOException {
-    try (DatagramSocket socket = new DatagramSocket()) {
-      DatagramSocket ds = socket.setOption(StandardSocketOptions.SO_RCVBUF, 10000);
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
+      ScionDatagramSocket ds = socket.setOption(StandardSocketOptions.SO_RCVBUF, 10000);
       assertEquals(socket, ds);
       assertEquals(10000, socket.getOption(StandardSocketOptions.SO_RCVBUF));
 
@@ -752,15 +754,15 @@ class DatagramSocketApiTest {
   @Test
   void testPathCache() throws IOException {
     int size = 10;
-    try (DatagramSocket server = new DatagramSocket(MockNetwork.getTinyServerAddress())) {
+    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
       assertFalse(server.isConnected()); // connected sockets do not have a cache
       SocketAddress serverAddress = server.getLocalSocketAddress();
       InetSocketAddress clientAddress1;
       InetSocketAddress clientAddress2;
 
       // 1st client
-      try (DatagramSocket client =
-          new DatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
+      try (ScionDatagramSocket client =
+          new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
         clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();
@@ -776,8 +778,8 @@ class DatagramSocketApiTest {
       assertEquals(clientAddress1, toAddress(path1));
 
       // 2nd client
-      try (DatagramSocket client =
-          new DatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 22}))) {
+      try (ScionDatagramSocket client =
+          new ScionDatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 22}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
         clientAddress2 = (InetSocketAddress) client.getLocalSocketAddress();
@@ -813,9 +815,9 @@ class DatagramSocketApiTest {
 
   @Test
   void testBug_doubleSendCausesNPE() throws IOException {
-    try (DatagramSocket server = new DatagramSocket(dummyPort)) {
+    try (ScionDatagramSocket server = new ScionDatagramSocket(dummyPort)) {
       assertFalse(server.isConnected());
-      try (DatagramSocket client = new DatagramSocket()) {
+      try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         assertFalse(client.isConnected());
         assertNull(client.getConnectionPath());
         assertNull(client.getRemoteSocketAddress());

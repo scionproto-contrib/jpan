@@ -16,7 +16,7 @@ package org.scion.jpan.demo;
 
 import java.io.IOException;
 import java.net.*;
-import org.scion.jpan.socket.DatagramSocket;
+import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.testutil.MockDNS;
 
 /**
@@ -43,7 +43,7 @@ public class PingPongSocketClient {
 
   private static void run() throws IOException {
     InetSocketAddress serverAddress = PingPongSocketServer.SERVER_ADDRESS;
-    try (DatagramSocket socket = new DatagramSocket(null)) {
+    try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       String msg = "Hello there!";
       byte[] sendBuf = msg.getBytes();
       DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, serverAddress);

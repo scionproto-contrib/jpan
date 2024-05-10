@@ -20,8 +20,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.MultiMap;
-import org.scion.jpan.socket.DatagramSocket;
 
 class DatagramSocketApiCompletenessTest {
 
@@ -29,7 +29,7 @@ class DatagramSocketApiCompletenessTest {
   void testApiCompleteness() {
     // Test that org.scion.DatagramSocket overrides ALL methods of java.net.DatagramSocket
     MultiMap<String, Method> methods = new MultiMap<>();
-    for (Method m : DatagramSocket.class.getDeclaredMethods()) {
+    for (Method m : ScionDatagramSocket.class.getDeclaredMethods()) {
       methods.put(m.getName(), m);
     }
 

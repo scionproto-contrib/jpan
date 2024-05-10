@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.RequestPath;
+import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.socket.DatagramSocket;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongSocketHelper;
 
@@ -59,7 +59,8 @@ class DatagramSocketConcurrentPingPongTest {
     assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
   }
 
-  private void client(DatagramSocket socket, RequestPath requestPath, int id) throws IOException {
+  private void client(ScionDatagramSocket socket, RequestPath requestPath, int id)
+      throws IOException {
     byte[] sendBuf = MSG.getBytes();
     InetAddress addr = requestPath.getRemoteAddress();
     int port = requestPath.getRemotePort();
@@ -76,7 +77,7 @@ class DatagramSocketConcurrentPingPongTest {
     assertEquals(MSG, pong);
   }
 
-  private void receiver(DatagramSocket socket) throws IOException {
+  private void receiver(ScionDatagramSocket socket) throws IOException {
     DatagramPacket request = new DatagramPacket(new byte[200], 200);
     // System.out.println("SERVER: --- receiver - waiting ----- " + socket.getLocalSocketAddress());
     socket.receive(request);
@@ -88,7 +89,7 @@ class DatagramSocketConcurrentPingPongTest {
     // System.out.println("SERVER: --- receiver - added -------- " + msg);
   }
 
-  private void sender(DatagramSocket socket) throws IOException {
+  private void sender(ScionDatagramSocket socket) throws IOException {
     try {
       Thread.sleep(10);
     } catch (InterruptedException e) {
