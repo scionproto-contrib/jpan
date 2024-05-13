@@ -140,41 +140,45 @@ public class ScmpChannel implements AutoCloseable {
       super.connect(path);
     }
 
-    synchronized Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {
+    Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {
+      writeLock().lock();
       try {
         Path path = request.getPath();
         super.channel().connect(path.getFirstHopAddress());
-        ByteBuffer buffer = bufferSend();
+        ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
         buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-        ScmpParser.buildScmpPing(
-            buffer, getLocalAddress().getPort(), request.getSequenceNumber(), request.getData());
+        int localPort = super.getLocalAddress().getPort();
+        ScmpParser.buildScmpPing(buffer, localPort, request.getSequenceNumber(), request.getData());
         buffer.flip();
         request.setSizeSent(buffer.remaining());
         sendRaw(buffer, path.getFirstHopAddress());
-
-        receiveRequest(request);
-        request.setSizeReceived(bufferReceive().position());
-        return request;
       } finally {
+        writeLock().unlock();
         if (super.channel().isConnected()) {
           super.channel().disconnect();
         }
       }
+
+      int sizeReceived = receiveRequest(request);
+      request.setSizeReceived(sizeReceived);
+      return request;
     }
 
-    synchronized Scmp.TimedMessage sendTracerouteRequest(
+    Scmp.TimedMessage sendTracerouteRequest(
         Scmp.TracerouteMessage request, PathHeaderParser.Node node) throws IOException {
+      writeLock().lock();
       try {
         Path path = request.getPath();
         super.channel().connect(path.getFirstHopAddress());
-        ByteBuffer buffer = bufferSend();
+        ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
         int len = 24;
         buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
         int interfaceNumber = request.getSequenceNumber();
-        ScmpParser.buildScmpTraceroute(buffer, getLocalAddress().getPort(), interfaceNumber);
+        int localPort = super.getLocalAddress().getPort();
+        ScmpParser.buildScmpTraceroute(buffer, localPort, interfaceNumber);
         buffer.flip();
 
         // Set flags for border routers to return SCMP packet
@@ -182,24 +186,32 @@ public class ScmpChannel implements AutoCloseable {
         buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
         sendRaw(buffer, path.getFirstHopAddress());
-
-        receiveRequest(request);
-        return request;
       } finally {
+        writeLock().unlock();
         if (super.channel().isConnected()) {
           super.channel().disconnect();
         }
       }
+
+      receiveRequest(request);
+      return request;
     }
 
-    synchronized void receiveRequest(Scmp.TimedMessage request) throws IOException {
-      ResponsePath receivePath = receiveWithTimeout(bufferReceive());
-      if (receivePath != null) {
-        ScmpParser.consume(bufferReceive(), request);
-        request.setPath(receivePath);
-        checkListeners(request);
-      } else {
-        request.setTimedOut();
+    int receiveRequest(Scmp.TimedMessage request) throws IOException {
+      readLock().lock();
+      try {
+        ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
+        ResponsePath receivePath = receiveWithTimeout(buffer);
+        if (receivePath != null) {
+          ScmpParser.consume(buffer, request);
+          request.setPath(receivePath);
+          checkListeners(request);
+        } else {
+          request.setTimedOut();
+        }
+        return buffer.position();
+      } finally {
+        readLock().unlock();
       }
     }
 
@@ -262,7 +274,7 @@ public class ScmpChannel implements AutoCloseable {
     return channel.getRemoteAddress();
   }
 
-  public synchronized PathPolicy getPathPolicy() {
+  public PathPolicy getPathPolicy() {
     return channel.getPathPolicy();
   }
 
@@ -277,7 +289,7 @@ public class ScmpChannel implements AutoCloseable {
    * @see PathPolicy#DEFAULT
    * @see ScionDatagramChannel#setPathPolicy(PathPolicy)
    */
-  public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
+  public void setPathPolicy(PathPolicy pathPolicy) throws IOException {
     channel.setPathPolicy(pathPolicy);
   }
 
@@ -289,7 +301,7 @@ public class ScmpChannel implements AutoCloseable {
    * @deprecated This will likely be removed in a future version
    */
   @Deprecated
-  public synchronized void setOverrideSourceAddress(InetSocketAddress overrideSourceAddress) {
+  public void setOverrideSourceAddress(InetSocketAddress overrideSourceAddress) {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 }

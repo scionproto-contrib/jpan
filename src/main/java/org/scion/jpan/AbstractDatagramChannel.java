@@ -33,6 +33,7 @@ import org.scion.jpan.internal.ScmpParser;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
+  protected static final int DEFAULT_BUFFER_SIZE = 2000;
   private final java.nio.channels.DatagramChannel channel;
   private ByteBuffer bufferReceive;
   private ByteBuffer bufferSend;
@@ -495,34 +496,40 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected final ByteBuffer bufferSend() {
+  private void checkLockedForRead() {
+    if (!readLock().isLocked()) {
+      throw new IllegalStateException("Access must be READ locked!");
+    }
+  }
+
+  private void checkLockedForWrite() {
+    if (!writeLock().isLocked()) {
+      throw new IllegalStateException("Access must be WRITE locked!");
+    }
+  }
+
+  /**
+   * @param requiredSize minimum required buffer size
+   * @return ByteBuffer usable for sending data.
+   */
+  protected final ByteBuffer getBufferSend(int requiredSize) {
+    checkLockedForWrite();
+    if (bufferSend.capacity() < requiredSize) {
+      bufferSend = ByteBuffer.allocateDirect(requiredSize);
+    }
     return bufferSend;
   }
 
-  protected final ByteBuffer bufferReceive() {
+  /**
+   * @param requiredSize minimum required buffer size
+   * @return ByteBuffer usable for receiving data.
+   */
+  protected final ByteBuffer getBufferReceive(int requiredSize) {
+    checkLockedForRead();
+    if (bufferReceive.capacity() < requiredSize) {
+      bufferReceive = ByteBuffer.allocateDirect(requiredSize);
+    }
     return bufferReceive;
-  }
-
-  private void resizeBuffers(InetAddress address) throws SocketException {
-    int mtu;
-    mtu = NetworkInterface.getByInetAddress(address).getMTU();
-    readLock().lock();
-    try {
-      if (bufferReceive.capacity() < mtu) {
-        bufferReceive = ByteBuffer.allocateDirect(mtu);
-      }
-    } finally {
-      readLock().unlock();
-    }
-
-    writeLock().lock();
-    try {
-      if (bufferSend.capacity() < mtu) {
-        bufferSend = ByteBuffer.allocateDirect(mtu);
-      }
-    } finally {
-      writeLock().unlock();
-    }
   }
 
   /**
@@ -635,16 +642,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
     // update connected path
     connectionPath = newPath;
-    // update local address
-    InetAddress oldLocalAddress = localAddress;
-    // we should not change the local address if bind() was called with an explicit address!
+    // update local address except if bind() was called with an explicit address!
     if (!isBoundToAddress) {
       // API: returning the localAddress should return non-ANY if we have a connection
       //     I.e. getExternalIP() is fine if we have a connection.
       //     It is NOT fine if we are bound to an explicit IP/port
+      InetAddress oldLocalAddress = localAddress;
       localAddress = getOrCreateService().getExternalIP(newPath.getFirstHopAddress());
       if (!Objects.equals(localAddress, oldLocalAddress)) {
-        resizeBuffers(localAddress);
+        // TODO check CS / bootstrapping
       }
     }
   }

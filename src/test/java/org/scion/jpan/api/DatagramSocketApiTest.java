@@ -148,6 +148,7 @@ class DatagramSocketApiTest {
   void getLocalAddress_notLocalhost() throws IOException {
     ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
+    // TODO remove ethz.ch?!?!
     ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
     InetSocketAddress firstHop = new InetSocketAddress("1.1.1.1", dummyPort);
 
