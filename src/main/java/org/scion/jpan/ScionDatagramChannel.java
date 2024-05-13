@@ -60,7 +60,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
-      ByteBuffer buffer = bufferReceive();
+      ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
       ResponsePath receivePath = receiveFromChannel(buffer, InternalConstants.HdrTypes.UDP);
       if (receivePath == null) {
         return null; // non-blocking, nothing available
@@ -108,7 +108,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
     writeLock().lock();
     try {
-      ByteBuffer buffer = bufferSend();
+      ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
       // + 8 for UDP overlay header length
       Path actualPath =
           checkPathAndBuildHeader(
@@ -160,13 +160,13 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @see java.nio.channels.DatagramChannel#write(ByteBuffer[])
    */
   @Override
-  public synchronized int write(ByteBuffer src) throws IOException {
+  public int write(ByteBuffer src) throws IOException {
     writeLock().lock();
     try {
       checkOpen();
       checkConnected(true);
 
-      ByteBuffer buffer = bufferSend();
+      ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
       // + 8 for UDP overlay header length
       checkPathAndBuildHeader(buffer, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);

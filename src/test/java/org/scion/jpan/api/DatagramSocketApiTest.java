@@ -148,6 +148,7 @@ class DatagramSocketApiTest {
   void getLocalAddress_notLocalhost() throws IOException {
     ScionService pathService = Scion.defaultService();
     // TXT entry: "scion=64-2:0:9,129.132.230.98"
+    // TODO remove ethz.ch?!?!
     ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
     InetSocketAddress firstHop = new InetSocketAddress("1.1.1.1", dummyPort);
 
@@ -235,8 +236,9 @@ class DatagramSocketApiTest {
       t.join(3 * timeOutMs);
       t.interrupt();
       assertInstanceOf(SocketTimeoutException.class, exception.get(), exception.get().getMessage());
-      // Verify that it waited for at least "timeout"
-      assertTrue(timeMs.get() >= timeOutMs, timeMs.get() + " >= " + timeOutMs);
+      // Verify that it waited for at least "timeout".
+      // We use 0.9 because Windows otherwise may somehow reports sometimes 48ms for 50ms timeout.
+      assertTrue(timeMs.get() >= timeOutMs * 0.9, timeMs.get() + " >= " + timeOutMs);
       // Verify that it waited less than te JUnit test timeout
       assertTrue(timeMs.get() < 1.5 * timeOutMs, timeMs.get() + " < 1.5* " + timeOutMs);
     }

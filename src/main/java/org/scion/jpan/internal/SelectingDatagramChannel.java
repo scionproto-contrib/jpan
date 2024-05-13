@@ -89,15 +89,20 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   }
 
   @Override
-  public synchronized ResponsePath receive(ByteBuffer userBuffer) throws IOException {
-    ResponsePath receivePath =
-        receiveFromTimeoutChannel(bufferReceive(), InternalConstants.HdrTypes.UDP);
-    if (receivePath == null) {
-      return null; // non-blocking, nothing available
+  public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
+    readLock().lock();
+    try {
+      ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
+      ResponsePath receivePath = receiveFromTimeoutChannel(buffer, InternalConstants.HdrTypes.UDP);
+      if (receivePath == null) {
+        return null; // non-blocking, nothing available
+      }
+      ScionHeaderParser.extractUserPayload(buffer, userBuffer);
+      buffer.clear();
+      return receivePath;
+    } finally {
+      readLock().unlock();
     }
-    ScionHeaderParser.extractUserPayload(bufferReceive(), userBuffer);
-    bufferReceive().clear();
-    return receivePath;
   }
 
   @Override
