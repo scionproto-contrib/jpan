@@ -154,16 +154,16 @@ public class ScmpChannel implements AutoCloseable {
         buffer.flip();
         request.setSizeSent(buffer.remaining());
         sendRaw(buffer, path.getFirstHopAddress());
+
+        int sizeReceived = receiveRequest(request);
+        request.setSizeReceived(sizeReceived);
+        return request;
       } finally {
         writeLock().unlock();
         if (super.channel().isConnected()) {
           super.channel().disconnect();
         }
       }
-
-      int sizeReceived = receiveRequest(request);
-      request.setSizeReceived(sizeReceived);
-      return request;
     }
 
     Scmp.TimedMessage sendTracerouteRequest(
@@ -186,15 +186,15 @@ public class ScmpChannel implements AutoCloseable {
         buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
         sendRaw(buffer, path.getFirstHopAddress());
+
+        receiveRequest(request);
+        return request;
       } finally {
         writeLock().unlock();
         if (super.channel().isConnected()) {
           super.channel().disconnect();
         }
       }
-
-      receiveRequest(request);
-      return request;
     }
 
     int receiveRequest(Scmp.TimedMessage request) throws IOException {
