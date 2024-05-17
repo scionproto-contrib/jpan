@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#74](https://github.com/scionproto-contrib/jpan/issues/74)
 - Topology file parser support for new "local" attribute.
   [#72](https://github.com/scionproto-contrib/jpan/issues/72)
+- Fixed path lookup error when destination isn't reachable.
+  [#70](https://github.com/scionproto-contrib/jpan/issues/70)
 
 ## [0.1.1] - 2024-05-10
 

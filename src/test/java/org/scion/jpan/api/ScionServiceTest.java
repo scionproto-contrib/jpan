@@ -206,6 +206,30 @@ public class ScionServiceTest {
   }
 
   @Test
+  void getPaths_noPathFound() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockDaemon.createAndStartDefault();
+    try {
+      ScionService service = Scion.defaultService();
+      List<RequestPath> paths;
+
+      // local AS
+      paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:111"), dstAddress);
+      assertEquals(0, paths.size());
+
+      // Non-existing AS
+      paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:113"), dstAddress);
+      assertEquals(0, paths.size());
+
+      // non existing ISD
+      paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:112"), dstAddress);
+      assertEquals(0, paths.size());
+    } finally {
+      MockDaemon.closeDefault();
+    }
+  }
+
+  @Test
   void getScionAddress_IPv4() throws IOException {
     // Test that DNS injection via properties works
     System.setProperty(

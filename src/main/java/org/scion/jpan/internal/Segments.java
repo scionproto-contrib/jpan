@@ -140,7 +140,10 @@ public class Segments {
     }
     // remaining cases: F, G, H
     List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
-    boolean[] localCores = Segments.containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
+    if (segmentsCore.isEmpty()) {
+      return Collections.emptyList();
+    }
+    boolean[] localCores = Segments.containsIsdAs(segmentsCore, 0, dstIsdAs);
     segments.add(segmentsCore);
     if (localCores[1]) {
       return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
