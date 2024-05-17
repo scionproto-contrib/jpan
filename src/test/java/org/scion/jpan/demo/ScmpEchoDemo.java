@@ -49,7 +49,7 @@ public class ScmpEchoDemo {
   }
 
   private enum Network {
-    JUNIT_MOCK, // SCION Java JUnit mock network
+    JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
   }
@@ -123,7 +123,6 @@ public class ScmpEchoDemo {
         }
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getSizeReceived() + " bytes from ";
-        // TODO get actual address from response
         InetAddress addr = msg.getPath().getRemoteAddress();
         echoMsgStr += ScionUtil.toStringIA(dstIA) + "," + addr.getHostAddress();
         echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
