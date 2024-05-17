@@ -177,11 +177,16 @@ public class Segments {
       }
       return getPathSegments(response);
     } catch (StatusRuntimeException e) {
-      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)
-          && e.getMessage().contains("TRC not found")) {
-        String msg = ScionUtil.toStringIA(srcIsdAs) + " / " + ScionUtil.toStringIA(dstIsdAs);
-        throw new ScionRuntimeException(
-            "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
+        if (e.getMessage().contains("TRC not found")) {
+          String msg = ScionUtil.toStringIA(srcIsdAs) + " / " + ScionUtil.toStringIA(dstIsdAs);
+          throw new ScionRuntimeException(
+              "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+        }
+        if (e.getMessage().contains("invalid request")) {
+          // path not found
+          return Collections.emptyList();
+        }
       }
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
         throw new ScionRuntimeException(
