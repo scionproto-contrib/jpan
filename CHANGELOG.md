@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Rename `DatagramChannel` to `ScionDatagramChannel`
   - Rename `DatagramSocket` to `ScionDatagramSopcketl` and move it to main package
   - Rename `ScionSocketOptions`  starting with `SN_` to `SCION_`
+- SCMP API changes. [#71](https://github.com/scionproto-contrib/jpan/pull/71)
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
