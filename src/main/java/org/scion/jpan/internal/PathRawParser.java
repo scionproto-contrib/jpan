@@ -45,6 +45,12 @@ public class PathRawParser {
 
   private int len;
 
+  public static PathRawParser create(byte[] rawPath) {
+    PathRawParser p = new PathRawParser();
+    p.read(ByteBuffer.wrap(rawPath));
+    return p;
+  }
+
   public PathRawParser() {
     this.info[0] = new InfoField();
     this.info[1] = new InfoField();
@@ -112,12 +118,23 @@ public class PathRawParser {
     return info[i];
   }
 
-  public int getHopCount() {
+  public int getHopFieldCount() {
     return nHops;
+  }
+
+  public int getHopCount() {
+    return nHops - getSegmentCount();
   }
 
   public HopField getHopField(int i) {
     return hops[i];
+  }
+
+  public int getSegmentCount() {
+    int nSegmentCount = 1;
+    nSegmentCount += segLen[1] > 0 ? 1 : 0;
+    nSegmentCount += segLen[2] > 0 ? 1 : 0;
+    return nSegmentCount;
   }
 
   public int getSegLen(int i) {

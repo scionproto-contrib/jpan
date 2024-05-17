@@ -353,6 +353,7 @@ public class Scmp {
    * @param path Path to destination
    * @return New SCMP channel
    */
+  @Deprecated // Please remove "path" argument
   public static ScmpChannel createChannel(RequestPath path) throws IOException {
     return new ScmpChannel(path);
   }
@@ -364,6 +365,7 @@ public class Scmp {
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
    */
+  @Deprecated // Please remove "path" argument
   public static ScmpChannel createChannel(RequestPath path, int listeningPort) throws IOException {
     return new ScmpChannel(Scion.defaultService(), path, listeningPort);
   }
@@ -376,8 +378,40 @@ public class Scmp {
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
    */
+  @Deprecated // Please remove "path" argument
   public static ScmpChannel createChannel(ScionService service, RequestPath path, int listeningPort)
       throws IOException {
     return new ScmpChannel(service, path, listeningPort);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @return New SCMP channel
+   */
+  public static ScmpChannel createChannel() throws IOException {
+    return new ScmpChannel();
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  public static ScmpChannel createChannel(int listeningPort) throws IOException {
+    return new ScmpChannel(Scion.defaultService(), listeningPort);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param service the ScionService instance
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  public static ScmpChannel createChannel(ScionService service, int listeningPort)
+      throws IOException {
+    return new ScmpChannel(service, listeningPort);
   }
 }

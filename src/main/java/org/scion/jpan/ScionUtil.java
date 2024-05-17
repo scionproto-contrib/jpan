@@ -122,7 +122,7 @@ public class ScionUtil {
         } else {
           sb.append(hfE.getIngress()).append(">").append(hfI.getEgress());
         }
-        if (i < ph.getHopCount() - 2) {
+        if (i < ph.getHopFieldCount() - 2) {
           sb.append(" ");
         }
       }

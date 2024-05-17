@@ -39,7 +39,7 @@ public class ScmpTracerouteDemo {
   private final int localPort;
 
   private enum Network {
-    JUNIT_MOCK, // SCION Java JUnit mock network
+    JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
   }
@@ -61,7 +61,7 @@ public class ScmpTracerouteDemo {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(DemoConstants.ia110);
+          demo.runDemo(DemoConstants.ia112);
           DemoTopology.shutDown();
           break;
         }
@@ -105,13 +105,15 @@ public class ScmpTracerouteDemo {
       println("  " + channel.getLocalAddress().getAddress().getHostAddress());
     }
 
-    try (ScmpChannel scmpChannel = Scmp.createChannel(path, localPort)) {
-      printPath(scmpChannel);
-      List<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest();
+    printPath(path);
+
+    try (ScmpChannel scmpChannel = Scmp.createChannel(localPort)) {
+      List<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest(path);
       for (Scmp.TracerouteMessage msg : results) {
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String out = "" + msg.getSequenceNumber();
         out += " " + ScionUtil.toStringIA(msg.getIsdAs());
+        out += " " + msg.getPath().getRemoteAddress().getHostAddress();
         out += " IfID=" + msg.getIfID();
         out += " " + millis + "ms";
         println(out);
@@ -119,12 +121,11 @@ public class ScmpTracerouteDemo {
     }
   }
 
-  private void printPath(ScmpChannel channel) {
+  private void printPath(RequestPath path) {
     String nl = System.lineSeparator();
     StringBuilder sb = new StringBuilder();
     // sb.append("Actual local address:").append(nl);
     // sb.append("  ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
-    RequestPath path = channel.getConnectionPath();
     sb.append("Using path:").append(nl);
     sb.append("  Hops: ").append(ScionUtil.toStringPath(path));
     sb.append(" MTU: ").append(path.getMtu());
