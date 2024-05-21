@@ -89,6 +89,7 @@ public class Segments {
     long from = srcIsdAs;
     long to = dstIsdAs;
     List<List<Seg.PathSegment>> segments = new ArrayList<>();
+    // First, if necessary, try to get UP segments
     if (!brLookup.isLocalAsCore()) {
       // get UP segments
       // TODO find out if dstIsAs is core and directly ask for it.
@@ -98,10 +99,14 @@ public class Segments {
         // case B: DST is core
         return combineSegment(segmentsUp, brLookup);
       }
+      if (segmentsUp.isEmpty()) {
+        return Collections.emptyList();
+      }
       segments.add(segmentsUp);
       from = srcWildcard;
     }
 
+    // Remote AS in local ISD?
     if (srcISD == dstISD) {
       // cases C, D, E
       // TODO this is an expensive way to find out whether DST is CORE
@@ -170,7 +175,7 @@ public class Segments {
       long t0 = System.nanoTime();
       Seg.SegmentsResponse response = segmentStub.segments(request);
       long t1 = System.nanoTime();
-      LOG.info("CS request took {} ms.", (t1 - t0) / 1_000_000);
+      LOG.info("CS request took {} ms. Segments found: {}", (t1 - t0) / 1_000_000, response.getSegmentsMap().size());
       if (response.getSegmentsMap().size() > 1) {
         // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();

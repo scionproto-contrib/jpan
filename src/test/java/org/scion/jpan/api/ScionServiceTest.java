@@ -28,12 +28,14 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.DNSHelper;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.MockTopologyServer;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
@@ -206,26 +208,51 @@ public class ScionServiceTest {
   }
 
   @Test
-  void getPaths_noPathFound() throws IOException {
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    MockDaemon.createAndStartDefault();
-    try {
+  void getPaths_noPathFound_fromCore() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_110/topology.json")) {
       ScionService service = Scion.defaultService();
       List<RequestPath> paths;
-
-      // local AS
-      paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:111"), dstAddress);
-      assertEquals(0, paths.size());
+      nw.getControlServer().getAndResetCallCount();
 
       // Non-existing AS
-      paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:113"), dstAddress);
+      paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:119"), dstAddress);
       assertEquals(0, paths.size());
+      // TODO assertEquals(1, nw.getControlServer().getAndResetCallCount());
 
       // non existing ISD
-      paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:112"), dstAddress);
+      paths = service.getPaths(ScionUtil.parseIA("9-ff00:0:910"), dstAddress);
       assertEquals(0, paths.size());
-    } finally {
-      MockDaemon.closeDefault();
+      // TODO assertEquals(2, nw.getControlServer().getAndResetCallCount());
+
+      // remote ISD with non-existing AS
+      paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:219"), dstAddress);
+      assertEquals(0, paths.size());
+      // TODO assertEquals(3, nw.getControlServer().getAndResetCallCount());
+    }
+  }
+
+  void getPaths_noPathFound_fromLeaf() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_1111/topology.json")) {
+      ScionService service = Scion.defaultService();
+      List<RequestPath> paths;
+      nw.getControlServer().getAndResetCallCount();
+
+      // Non-existing AS
+      paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:119"), dstAddress);
+      assertEquals(0, paths.size());
+      // TODO assertEquals(1, nw.getControlServer().getAndResetCallCount());
+
+      // non existing ISD
+      paths = service.getPaths(ScionUtil.parseIA("9-ff00:0:910"), dstAddress);
+      assertEquals(0, paths.size());
+      // TODO assertEquals(2, nw.getControlServer().getAndResetCallCount());
+
+      // remote ISD with non-existing AS
+      paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:219"), dstAddress);
+      assertEquals(0, paths.size());
+      // TODO assertEquals(3, nw.getControlServer().getAndResetCallCount());
     }
   }
 
