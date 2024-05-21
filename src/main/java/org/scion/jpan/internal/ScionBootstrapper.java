@@ -167,7 +167,7 @@ public class ScionBootstrapper {
       stream.forEach(s -> contentBuilder.append(s).append("\n"));
     } catch (IOException e) {
       throw new ScionRuntimeException(
-          "Error reading topology file found at: " + file.toAbsolutePath());
+          "Error reading topology file found at: " + file.toAbsolutePath(), e);
     }
     parseTopologyFile(contentBuilder.toString());
     if (controlServices.isEmpty()) {

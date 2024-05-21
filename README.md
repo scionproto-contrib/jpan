@@ -331,6 +331,23 @@ is configurable, see next section.
 
 ## FAQ / trouble shooting
 
+### Enable logging
+
+JPAN uses the slf4j logging library. To use it, you have to install a logger. For example, to use the slf4j simple logger, add the following to your dependencies (eg. maven pom file):
+
+```xml
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>2.0.9</version>
+</dependency>
+```
+
+Then enable the logger by placing a [`simplelogger.properties`](src/test/resources/simplelogger.properties) 
+file into you resources folder, or enable logging programmatically with 
+`System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "Info");` 
+before using *any* JPAN code. 
+
 ### Local testbed (scionproto) does not contain any path
 
 A common problem is that the certificates of the testbed have expired (default validity: 3 days).
