@@ -190,6 +190,11 @@ public class Segments {
         }
         if (e.getMessage().contains("invalid request")) {
           // path not found
+          // TODO test
+          LOG.info("Requesting segments: {} {} failed: {}",
+                  ScionUtil.toStringIA(srcIsdAs),
+                  ScionUtil.toStringIA(dstIsdAs),
+                  e.getMessage());
           return Collections.emptyList();
         }
       }
