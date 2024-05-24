@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
 - Fixed unhelpful error & log message when with topofile has wrong permissions.
   [#74](https://github.com/scionproto-contrib/jpan/issues/74)
+- Topology file parser support for new "local" attribute.
+  [#72](https://github.com/scionproto-contrib/jpan/issues/72)
 
 ## [0.1.1] - 2024-05-10
 

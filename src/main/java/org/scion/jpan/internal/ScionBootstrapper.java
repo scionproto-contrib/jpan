@@ -124,7 +124,7 @@ public class ScionBootstrapper {
         StringBuilder response = new StringBuilder();
         String inputLine;
         while ((inputLine = in.readLine()) != null) {
-          response.append(inputLine); // .append(System.lineSeparator());
+          response.append(inputLine).append(System.lineSeparator());
         }
         return response.toString();
       }
@@ -231,13 +231,14 @@ public class ScionBootstrapper {
         List<BorderRouterInterface> interfaces = new ArrayList<>();
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
           JsonObject ife = ifEntry.getValue().getAsJsonObject();
-          // TODO bandwidth, mtu, ... etc
           JsonObject underlay = ife.getAsJsonObject("underlay");
+          // "public" was changed to "local" in scionproto 0.11
+          JsonElement local =
+              underlay.has(("local")) ? underlay.get(("local")) : underlay.get(("public"));
+          JsonElement remote = underlay.get(("remote"));
           interfaces.add(
               new BorderRouterInterface(
-                  ifEntry.getKey(),
-                  underlay.get("public").getAsString(),
-                  underlay.get("remote").getAsString()));
+                  ifEntry.getKey(), local.getAsString(), remote.getAsString()));
         }
         borderRouters.add(new BorderRouter(e.getKey(), addr, interfaces));
       }
