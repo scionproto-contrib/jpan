@@ -189,20 +189,24 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile_IOError_FilePermissionError()
       throws URISyntaxException, IOException {
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    AclFileAttributeView aclAttr =
-        Files.getFileAttributeView(Paths.get(resource.toURI()), AclFileAttributeView.class);
-    if (aclAttr != null) {
-      // Yay, ACLs are supported on this machine
-      defaultService_bootstrapTopoFile_IOError_FilePermissionError_ACL(aclAttr);
-    } else {
-      // Try POSIX
-      defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX();
+    java.nio.file.Path path = Paths.get(resource.toURI());
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    try {
+      AclFileAttributeView aclAttr = Files.getFileAttributeView(path, AclFileAttributeView.class);
+      if (aclAttr != null) {
+        // Yay, ACLs are supported on this machine
+        defaultService_bootstrapTopoFile_IOError_FilePermissionError_ACL(aclAttr);
+      } else {
+        // Try POSIX
+        defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX(path);
+      }
+    } finally {
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     }
   }
 
   private void defaultService_bootstrapTopoFile_IOError_FilePermissionError_ACL(
       AclFileAttributeView aclAttr) throws IOException {
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     List<AclEntry> oldAttributes = aclAttr.getAcl();
     try {
       aclAttr.setAcl(Collections.emptyList());
@@ -212,18 +216,12 @@ public class ScionTest {
       assertInstanceOf(AccessDeniedException.class, e.getCause());
     } finally {
       aclAttr.setAcl(oldAttributes);
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     }
   }
 
-  private void defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX()
-      throws URISyntaxException, IOException {
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
-    URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    java.nio.file.Path path = Paths.get(resource.toURI());
-    assertTrue(Files.exists(Paths.get(resource.toURI()))); // TODO remove
-    Set<PosixFilePermission> oldAttributes =
-        Files.getPosixFilePermissions(Paths.get(resource.toURI()));
+  private void defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX(
+      java.nio.file.Path path) throws IOException {
+    Set<PosixFilePermission> oldAttributes = Files.getPosixFilePermissions(path);
     try {
       Files.setPosixFilePermissions(path, new HashSet<>());
       Scion.defaultService();
@@ -232,7 +230,6 @@ public class ScionTest {
       assertInstanceOf(AccessDeniedException.class, e.getCause());
     } finally {
       Files.setPosixFilePermissions(path, oldAttributes);
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     }
   }
 
