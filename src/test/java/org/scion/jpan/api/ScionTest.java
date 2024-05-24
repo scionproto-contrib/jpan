@@ -16,7 +16,6 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.*;
@@ -205,7 +204,7 @@ public class ScionTest {
   }
 
   @Test
-  void defaultService_bootstrapTopoFile_IOError() throws URISyntaxException {
+  void defaultService_bootstrapTopoFile_IOError() {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
     try (FileChannel channel = new RandomAccessFile(Paths.get(resource.toURI()).toFile(), "rw").getChannel()) {

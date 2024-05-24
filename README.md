@@ -148,7 +148,7 @@ mvn clean install
 
 ### Demos
 
-Some demos can be found in [src/test/java/org/scion/demo](src/test/java/org/scion/demo).
+Some demos can be found in [src/test/java/org/scion/jpan/demo](src/test/java/org/scion/jpan/demo).
 Before running the demos, you may have to execute `mvn compile` once.
 
 - `DatagramChannel` ping pong [client](src/test/java/org/scion/jpan/demo/PingPongChannelClient.java) 
@@ -157,7 +157,7 @@ Before running the demos, you may have to execute `mvn compile` once.
   and [server](src/test/java/org/scion/jpan/demo/PingPongSocketServer.java)
 - [SCMP echo](src/test/java/org/scion/jpan/demo/ScmpEchoDemo.java)
 - [SCMP traceroute](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
-- [show paths](src/test/java/org/scion/jpan/demo/ScmpShowpathsDemo.java)
+- [show paths](src/test/java/org/scion/jpan/demo/ShowpathsDemo.java)
 
 
 ### General documentation
