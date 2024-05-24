@@ -235,6 +235,10 @@ public class ScionTest {
 
   @Test
   void defaultService_bootstrapTopoFile_IOError() {
+    if (!isWindows()) {
+      // File locking only works on windows
+      return;
+    }
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
     try (FileChannel channel =
@@ -252,6 +256,10 @@ public class ScionTest {
 
   @Test
   void defaultService_etcHostsFile_IO_error() throws URISyntaxException {
+    if (!isWindows()) {
+      // File locking only works on windows
+      return;
+    }
     URL resource = getClass().getClassLoader().getResource("etc-scion-hosts");
     java.nio.file.Path file = Paths.get(resource.toURI());
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, file.toString());
@@ -265,6 +273,11 @@ public class ScionTest {
     } finally {
       System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
     }
+  }
+
+  private static boolean isWindows() {
+    String os = System.getProperty("os.name");
+    return os.startsWith("Windows");
   }
 
   @Test
