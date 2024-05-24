@@ -181,6 +181,7 @@ public class ScionTest {
       Scion.defaultService();
       fail("This should cause an IOException because the file doesn't exist");
     } catch (Exception e) {
+      assertNotNull(e.getCause());
       assertInstanceOf(NoSuchFileException.class, e.getCause());
     }
   }
@@ -188,8 +189,7 @@ public class ScionTest {
   @Test
   void defaultService_bootstrapTopoFile_IOError_FilePermissionError()
       throws URISyntaxException, IOException {
-    URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    java.nio.file.Path path = Paths.get(resource.toURI());
+    java.nio.file.Path path = getPath(TOPO_FILE);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     try {
       AclFileAttributeView aclAttr = Files.getFileAttributeView(path, AclFileAttributeView.class);
@@ -213,6 +213,7 @@ public class ScionTest {
       Scion.defaultService();
       fail("This should cause an IOException because the file doesn't exist");
     } catch (Exception e) {
+      assertNotNull(e.getCause());
       assertInstanceOf(AccessDeniedException.class, e.getCause());
     } finally {
       aclAttr.setAcl(oldAttributes);
@@ -227,6 +228,7 @@ public class ScionTest {
       Scion.defaultService();
       fail("This should cause an IOException because the file doesn't exist");
     } catch (Exception e) {
+      assertNotNull(e.getCause());
       assertInstanceOf(AccessDeniedException.class, e.getCause());
     } finally {
       Files.setPosixFilePermissions(path, oldAttributes);
@@ -234,16 +236,16 @@ public class ScionTest {
   }
 
   @Test
-  void defaultService_bootstrapTopoFile_IOError() {
+  void defaultService_bootstrapTopoFile_IOError() throws URISyntaxException {
     if (!isWindows()) {
       // File locking only works on windows
       return;
     }
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
-    URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    try (FileChannel channel =
-        new RandomAccessFile(Paths.get(resource.toURI()).toFile(), "rw").getChannel()) {
-      channel.lock();
+    java.nio.file.Path file = getPath(TOPO_FILE);
+    try (RandomAccessFile raf = new RandomAccessFile(file.toFile(), "rw");
+        FileChannel channel = raf.getChannel()) {
+      assertNotNull(channel.lock());
       // Attempt opening the file -> should fail
       Scion.defaultService();
       fail("This should cause an IOException because the file is locked");
@@ -260,11 +262,11 @@ public class ScionTest {
       // File locking only works on windows
       return;
     }
-    URL resource = getClass().getClassLoader().getResource("etc-scion-hosts");
-    java.nio.file.Path file = Paths.get(resource.toURI());
+    java.nio.file.Path file = getPath("etc-scion-hosts");
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, file.toString());
-    try (FileChannel channel = new RandomAccessFile(file.toFile(), "rw").getChannel()) {
-      channel.lock();
+    try (RandomAccessFile raf = new RandomAccessFile(file.toFile(), "rw");
+        FileChannel channel = raf.getChannel()) {
+      assertNotNull(channel.lock());
       // Attempt opening the file -> should fail
       Scion.defaultService();
       fail("This should cause an IOException because the file is locked");
@@ -278,6 +280,12 @@ public class ScionTest {
   private static boolean isWindows() {
     String os = System.getProperty("os.name");
     return os.startsWith("Windows");
+  }
+
+  private java.nio.file.Path getPath(String fileName) throws URISyntaxException {
+    URL resource = getClass().getClassLoader().getResource(fileName);
+    assertNotNull(resource);
+    return Paths.get(resource.toURI());
   }
 
   @Test
@@ -313,6 +321,24 @@ public class ScionTest {
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
       assertEquals(1, MockNetwork.getControlServer().getAndResetCallCount());
       assertNotEquals(Scion.defaultService(), ss);
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  /** See Issue #72: <a href="https://github.com/scionproto-contrib/jpan/issues/72">...</a> */
+  @Test
+  void defaultService_bootstrapTopoFile_ScionProto_11() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    try {
+      System.setProperty(
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-scionproto-0.11.json");
+      ScionService service = Scion.defaultService();
+      RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
       MockNetwork.stopTiny();
     }
