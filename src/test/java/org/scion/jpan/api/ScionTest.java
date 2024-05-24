@@ -27,7 +27,6 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.AclEntry;
 import java.nio.file.attribute.AclFileAttributeView;
 import java.util.*;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -186,10 +185,12 @@ public class ScionTest {
   }
 
   @Test
-  void defaultService_bootstrapTopoFile_IOError_FilePermissionError() throws URISyntaxException, IOException {
+  void defaultService_bootstrapTopoFile_IOError_FilePermissionError()
+      throws URISyntaxException, IOException {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    AclFileAttributeView aclAttr = Files.getFileAttributeView(Paths.get(resource.toURI()), AclFileAttributeView.class);
+    AclFileAttributeView aclAttr =
+        Files.getFileAttributeView(Paths.get(resource.toURI()), AclFileAttributeView.class);
     List<AclEntry> oldAttributes = aclAttr.getAcl();
     try {
       aclAttr.setAcl(Collections.emptyList());
@@ -207,7 +208,8 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile_IOError() {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    try (FileChannel channel = new RandomAccessFile(Paths.get(resource.toURI()).toFile(), "rw").getChannel()) {
+    try (FileChannel channel =
+        new RandomAccessFile(Paths.get(resource.toURI()).toFile(), "rw").getChannel()) {
       channel.lock();
       // Attempt opening the file -> should fail
       Scion.defaultService();
