@@ -233,7 +233,7 @@ public class ScionTest {
       Scion.defaultService();
       fail("This should cause an IOException because the file is locked");
     } catch (Exception e) {
-      assertTrue(e.getMessage().contains("locked"));
+      assertTrue(e.getMessage().contains("locked"), e.getMessage());
     } finally {
       System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
     }
