@@ -189,8 +189,7 @@ public class ScionTest {
   @Test
   void defaultService_bootstrapTopoFile_IOError_FilePermissionError()
       throws URISyntaxException, IOException {
-    URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    java.nio.file.Path path = Paths.get(resource.toURI());
+    java.nio.file.Path path = getPath(TOPO_FILE);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     try {
       AclFileAttributeView aclAttr = Files.getFileAttributeView(path, AclFileAttributeView.class);
@@ -244,8 +243,9 @@ public class ScionTest {
     }
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     java.nio.file.Path file = getPath(TOPO_FILE);
-    try (FileChannel channel = new RandomAccessFile(file.toFile(), "rw").getChannel()) {
-      channel.lock();
+    try (RandomAccessFile raf = new RandomAccessFile(file.toFile(), "rw");
+        FileChannel channel = raf.getChannel()) {
+      assertNotNull(channel.lock());
       // Attempt opening the file -> should fail
       Scion.defaultService();
       fail("This should cause an IOException because the file is locked");
@@ -264,7 +264,8 @@ public class ScionTest {
     }
     java.nio.file.Path file = getPath("etc-scion-hosts");
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, file.toString());
-    try (FileChannel channel = new RandomAccessFile(file.toFile(), "rw").getChannel()) {
+    try (RandomAccessFile raf = new RandomAccessFile(file.toFile(), "rw");
+        FileChannel channel = raf.getChannel()) {
       assertNotNull(channel.lock());
       // Attempt opening the file -> should fail
       Scion.defaultService();
@@ -283,6 +284,7 @@ public class ScionTest {
 
   private java.nio.file.Path getPath(String fileName) throws URISyntaxException {
     URL resource = getClass().getClassLoader().getResource(fileName);
+    assertNotNull(resource);
     return Paths.get(resource.toURI());
   }
 
@@ -324,7 +326,7 @@ public class ScionTest {
     }
   }
 
-  /** See Issue #72: https://github.com/scionproto-contrib/jpan/issues/72 */
+  /** See Issue #72: <a href="https://github.com/scionproto-contrib/jpan/issues/72">...</a> */
   @Test
   void defaultService_bootstrapTopoFile_ScionProto_11() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
