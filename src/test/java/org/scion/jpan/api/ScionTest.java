@@ -24,7 +24,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.AclEntry;
 import java.nio.file.attribute.AclFileAttributeView;
@@ -183,7 +182,7 @@ public class ScionTest {
       Scion.defaultService();
       fail("This should cause an IOException because the file doesn't exist");
     } catch (Exception e) {
-      assertTrue(e.getCause() instanceof NoSuchFileException);
+      assertInstanceOf(NoSuchFileException.class, e.getCause());
     }
   }
 
@@ -191,15 +190,14 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile_IOError_FilePermissionError() throws URISyntaxException, IOException {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    java.nio.file.Path path =  Paths.get(resource.toURI());
-    AclFileAttributeView aclAttr = Files.getFileAttributeView(path, AclFileAttributeView.class);
+    AclFileAttributeView aclAttr = Files.getFileAttributeView(Paths.get(resource.toURI()), AclFileAttributeView.class);
     List<AclEntry> oldAttributes = aclAttr.getAcl();
     try {
-      aclAttr.setAcl(Collections.EMPTY_LIST);
+      aclAttr.setAcl(Collections.emptyList());
       Scion.defaultService();
       fail("This should cause an IOException because the file doesn't exist");
     } catch (Exception e) {
-      assertTrue(e.getCause() instanceof AccessDeniedException);
+      assertInstanceOf(AccessDeniedException.class, e.getCause());
     } finally {
       aclAttr.setAcl(oldAttributes);
       System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
@@ -210,14 +208,14 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile_IOError() throws URISyntaxException {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
-    File file = Paths.get(resource.toURI()).toFile();
-    try (FileChannel channel = new RandomAccessFile(file, "rw").getChannel()) {
+    try (FileChannel channel = new RandomAccessFile(Paths.get(resource.toURI()).toFile(), "rw").getChannel()) {
       channel.lock();
       // Attempt opening the file -> should fail
       Scion.defaultService();
       fail("This should cause an IOException because the file is locked");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("locked"));
+    } finally {
       System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     }
   }
@@ -233,7 +231,6 @@ public class ScionTest {
       Scion.defaultService();
       fail("This should cause an IOException because the file is locked");
     } catch (Exception e) {
-      e.printStackTrace();
       assertTrue(e.getMessage().contains("locked"));
     } finally {
       System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
