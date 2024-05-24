@@ -26,6 +26,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.nio.file.attribute.AclEntry;
 import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -187,11 +188,21 @@ public class ScionTest {
   @Test
   void defaultService_bootstrapTopoFile_IOError_FilePermissionError()
       throws URISyntaxException, IOException {
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
     AclFileAttributeView aclAttr =
         Files.getFileAttributeView(Paths.get(resource.toURI()), AclFileAttributeView.class);
-    assertTrue(Files.exists(Paths.get(resource.toURI()))); // TODO remove
+    if (aclAttr != null) {
+      // Yay, ACLs are supported on this machine
+      defaultService_bootstrapTopoFile_IOError_FilePermissionError_ACL(aclAttr);
+    } else {
+      // Try POSIX
+      defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX();
+    }
+  }
+
+  private void defaultService_bootstrapTopoFile_IOError_FilePermissionError_ACL(
+      AclFileAttributeView aclAttr) throws IOException {
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     List<AclEntry> oldAttributes = aclAttr.getAcl();
     try {
       aclAttr.setAcl(Collections.emptyList());
@@ -201,6 +212,26 @@ public class ScionTest {
       assertInstanceOf(AccessDeniedException.class, e.getCause());
     } finally {
       aclAttr.setAcl(oldAttributes);
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    }
+  }
+
+  private void defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX()
+      throws URISyntaxException, IOException {
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
+    java.nio.file.Path path = Paths.get(resource.toURI());
+    assertTrue(Files.exists(Paths.get(resource.toURI()))); // TODO remove
+    Set<PosixFilePermission> oldAttributes =
+        Files.getPosixFilePermissions(Paths.get(resource.toURI()));
+    try {
+      Files.setPosixFilePermissions(path, new HashSet<>());
+      Scion.defaultService();
+      fail("This should cause an IOException because the file doesn't exist");
+    } catch (Exception e) {
+      assertInstanceOf(AccessDeniedException.class, e.getCause());
+    } finally {
+      Files.setPosixFilePermissions(path, oldAttributes);
       System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     }
   }
