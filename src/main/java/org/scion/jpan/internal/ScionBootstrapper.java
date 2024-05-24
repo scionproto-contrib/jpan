@@ -166,8 +166,7 @@ public class ScionBootstrapper {
     try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
       stream.forEach(s -> contentBuilder.append(s).append("\n"));
     } catch (IOException e) {
-      throw new ScionRuntimeException(
-          "Error reading topology file found at: " + file.toAbsolutePath(), e);
+      throw new ScionRuntimeException("Error reading topology file: " + file.toAbsolutePath(), e);
     }
     parseTopologyFile(contentBuilder.toString());
     if (controlServices.isEmpty()) {
