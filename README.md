@@ -148,7 +148,7 @@ mvn clean install
 
 ### Demos
 
-Some demos can be found in [src/test/java/org/scion/demo](src/test/java/org/scion/demo).
+Some demos can be found in [src/test/java/org/scion/jpan/demo](src/test/java/org/scion/jpan/demo).
 Before running the demos, you may have to execute `mvn compile` once.
 
 - `DatagramChannel` ping pong [client](src/test/java/org/scion/jpan/demo/PingPongChannelClient.java) 
@@ -157,7 +157,7 @@ Before running the demos, you may have to execute `mvn compile` once.
   and [server](src/test/java/org/scion/jpan/demo/PingPongSocketServer.java)
 - [SCMP echo](src/test/java/org/scion/jpan/demo/ScmpEchoDemo.java)
 - [SCMP traceroute](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
-- [show paths](src/test/java/org/scion/jpan/demo/ScmpShowpathsDemo.java)
+- [show paths](src/test/java/org/scion/jpan/demo/ShowpathsDemo.java)
 
 
 ### General documentation
@@ -330,6 +330,23 @@ is configurable, see next section.
 | Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles` | `SCION_HOSTS_FILES`  | `/etc/scion/hosts` |
 
 ## FAQ / trouble shooting
+
+### Enable logging
+
+JPAN uses the slf4j logging library. To use it, you have to install a logger. For example, to use the slf4j simple logger, add the following to your dependencies (eg. maven pom file):
+
+```xml
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>2.0.9</version>
+</dependency>
+```
+
+Then enable the logger by placing a [`simplelogger.properties`](src/test/resources/simplelogger.properties) 
+file into you resources folder, or enable logging programmatically with 
+`System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO");` 
+before using *any* JPAN code. 
 
 ### Local testbed (scionproto) does not contain any path
 

@@ -17,10 +17,17 @@ package org.scion.jpan.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.List;
+import java.io.RandomAccessFile;
+import java.net.*;
+import java.nio.channels.FileChannel;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -155,7 +162,6 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
@@ -166,6 +172,112 @@ public class ScionTest {
     } finally {
       MockNetwork.stopTiny();
     }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_IOError_NoSuchFile() {
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE + ".x");
+    try {
+      Scion.defaultService();
+      fail("This should cause an IOException because the file doesn't exist");
+    } catch (Exception e) {
+      assertInstanceOf(NoSuchFileException.class, e.getCause());
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_IOError_FilePermissionError()
+      throws URISyntaxException, IOException {
+    URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
+    java.nio.file.Path path = Paths.get(resource.toURI());
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    try {
+      AclFileAttributeView aclAttr = Files.getFileAttributeView(path, AclFileAttributeView.class);
+      if (aclAttr != null) {
+        // Yay, ACLs are supported on this machine
+        defaultService_bootstrapTopoFile_IOError_FilePermissionError_ACL(aclAttr);
+      } else {
+        // Try POSIX
+        defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX(path);
+      }
+    } finally {
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    }
+  }
+
+  private void defaultService_bootstrapTopoFile_IOError_FilePermissionError_ACL(
+      AclFileAttributeView aclAttr) throws IOException {
+    List<AclEntry> oldAttributes = aclAttr.getAcl();
+    try {
+      aclAttr.setAcl(Collections.emptyList());
+      Scion.defaultService();
+      fail("This should cause an IOException because the file doesn't exist");
+    } catch (Exception e) {
+      assertInstanceOf(AccessDeniedException.class, e.getCause());
+    } finally {
+      aclAttr.setAcl(oldAttributes);
+    }
+  }
+
+  private void defaultService_bootstrapTopoFile_IOError_FilePermissionError_POSIX(
+      java.nio.file.Path path) throws IOException {
+    Set<PosixFilePermission> oldAttributes = Files.getPosixFilePermissions(path);
+    try {
+      Files.setPosixFilePermissions(path, new HashSet<>());
+      Scion.defaultService();
+      fail("This should cause an IOException because the file doesn't exist");
+    } catch (Exception e) {
+      assertInstanceOf(AccessDeniedException.class, e.getCause());
+    } finally {
+      Files.setPosixFilePermissions(path, oldAttributes);
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_IOError() {
+    if (!isWindows()) {
+      // File locking only works on windows
+      return;
+    }
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
+    try (FileChannel channel =
+        new RandomAccessFile(Paths.get(resource.toURI()).toFile(), "rw").getChannel()) {
+      channel.lock();
+      // Attempt opening the file -> should fail
+      Scion.defaultService();
+      fail("This should cause an IOException because the file is locked");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("locked"));
+    } finally {
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    }
+  }
+
+  @Test
+  void defaultService_etcHostsFile_IO_error() throws URISyntaxException {
+    if (!isWindows()) {
+      // File locking only works on windows
+      return;
+    }
+    URL resource = getClass().getClassLoader().getResource("etc-scion-hosts");
+    java.nio.file.Path file = Paths.get(resource.toURI());
+    System.setProperty(Constants.PROPERTY_HOSTS_FILES, file.toString());
+    try (FileChannel channel = new RandomAccessFile(file.toFile(), "rw").getChannel()) {
+      channel.lock();
+      // Attempt opening the file -> should fail
+      Scion.defaultService();
+      fail("This should cause an IOException because the file is locked");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("locked"), e.getMessage());
+    } finally {
+      System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
+    }
+  }
+
+  private static boolean isWindows() {
+    String os = System.getProperty("os.name");
+    return os.startsWith("Windows");
   }
 
   @Test

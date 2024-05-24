@@ -76,7 +76,7 @@ public class HostsFileParser {
       Path path = Paths.get(file);
       // On Windows /etc/hosts is reported as ¨: not a file"
       if (!Files.exists(path) || !Files.isRegularFile(path)) {
-        LOG.info("{} not found.", path);
+        LOG.info("File not found or not accessible: {}", path);
         return;
       }
       try (Stream<String> lines = Files.lines(path)) {
