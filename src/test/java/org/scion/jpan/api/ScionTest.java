@@ -191,6 +191,7 @@ public class ScionTest {
     URL resource = getClass().getClassLoader().getResource(TOPO_FILE);
     AclFileAttributeView aclAttr =
         Files.getFileAttributeView(Paths.get(resource.toURI()), AclFileAttributeView.class);
+    assertTrue(Files.exists(Paths.get(resource.toURI()))); // TODO remove
     List<AclEntry> oldAttributes = aclAttr.getAcl();
     try {
       aclAttr.setAcl(Collections.emptyList());
