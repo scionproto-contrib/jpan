@@ -129,5 +129,6 @@ class ScionUtilTest {
   void toStringPath_raw() {
     assertEquals("[]", ScionUtil.toStringPath(new byte[] {}));
     assertEquals("[2>1]", ScionUtil.toStringPath(ExamplePacket.PATH_RAW_TINY_110_112));
+    assertEquals("[1>5 30>5 7>3 6>1]", ScionUtil.toStringPath(ExamplePacket.PATH_RAW_UP_CORE_DOWN));
   }
 }
