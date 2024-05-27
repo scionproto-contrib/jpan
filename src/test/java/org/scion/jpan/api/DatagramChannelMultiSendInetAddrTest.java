@@ -23,9 +23,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test receive()/send(InetAddress) operations on DatagramChannel. */
@@ -45,21 +45,22 @@ class DatagramChannelMultiSendInetAddrTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {
+  private void client(ScionDatagramChannel channel, ScionSocketAddress serverAddress, int id)
+      throws IOException {
     String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     // Test send() with InetAddress
-    InetAddress inetServerAddress = serverAddress.getRemoteAddress();
+    InetAddress inetServerAddress = serverAddress.getAddress();
     InetSocketAddress inetServerSocketAddress =
-        new InetSocketAddress(inetServerAddress, serverAddress.getRemotePort());
+        new InetSocketAddress(inetServerAddress, serverAddress.getPort());
     channel.send(sendBuf, inetServerSocketAddress);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    Path address = channel.receive(response);
+    ScionSocketAddress address = channel.receive(response);
     assertNotNull(address);
-    assertEquals(serverAddress.getRemoteAddress(), address.getRemoteAddress());
-    assertEquals(serverAddress.getRemotePort(), address.getRemotePort());
+    assertEquals(serverAddress.getAddress(), address.getAddress());
+    assertEquals(serverAddress.getPort(), address.getPort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();

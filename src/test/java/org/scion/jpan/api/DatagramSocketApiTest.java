@@ -634,7 +634,7 @@ class DatagramSocketApiTest {
     PingPongSocketHelper.Client clientFn =
         (channel, basePath, id) -> {
           // Build a path that is already expired
-          RequestPath expiredPath = createExpiredPath(basePath);
+          RequestPath expiredPath = createExpiredPath(basePath.getPath());
           sendMethod.accept(channel, expiredPath);
 
           // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
@@ -666,6 +666,11 @@ class DatagramSocketApiTest {
 
   private static InetSocketAddress toAddress(Path path) {
     return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
+  }
+
+  private static InetSocketAddress toAddress(ScionSocketAddress path) {
+    // TODO do we need this? For Proper equals()?
+    return new InetSocketAddress(path.getAddress(), path.getPort());
   }
 
   @Test
@@ -776,7 +781,8 @@ class DatagramSocketApiTest {
       server.receive(packet1);
       assertEquals(clientAddress1, packet1.getSocketAddress());
 
-      Path path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
+      ScionSocketAddress path1 =
+          server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
       assertEquals(clientAddress1, toAddress(path1));
 
       // 2nd client
@@ -800,7 +806,8 @@ class DatagramSocketApiTest {
       path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
       assertEquals(clientAddress1, toAddress(path1));
       // path 2 should also be there
-      Path path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
+      ScionSocketAddress path2 =
+          server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
       assertEquals(clientAddress2, toAddress(path2));
 
       // reduce capacity

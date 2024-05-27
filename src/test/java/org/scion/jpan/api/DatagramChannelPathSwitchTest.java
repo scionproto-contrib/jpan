@@ -22,11 +22,7 @@ import java.nio.charset.Charset;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Path;
-import org.scion.jpan.PathPolicy;
-import org.scion.jpan.RequestPath;
-import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionService;
+import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
@@ -60,7 +56,8 @@ class DatagramChannelPathSwitchTest {
     assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
   }
 
-  private void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {
+  private void client(ScionDatagramChannel channel, ScionSocketAddress serverAddress, int id)
+      throws IOException {
     String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
 

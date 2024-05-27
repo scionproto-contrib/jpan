@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyBoundException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.IllegalBlockingModeException;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -56,7 +55,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
   private final SelectingDatagramChannel channel;
   private boolean isBound = false;
-  private final SimpleCache<InetSocketAddress, Path> pathCache = new SimpleCache<>(100);
+  private final SimpleCache<InetSocketAddress, ScionSocketAddress> pathCache =
+      new SimpleCache<>(100);
   private final Object closeLock = new Object();
 
   public ScionDatagramSocket() throws SocketException {
@@ -257,7 +257,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   }
 
   @Override
-  public SocketAddress getRemoteSocketAddress() {
+  public ScionSocketAddress getRemoteSocketAddress() {
     try {
       return channel.getRemoteAddress();
     } catch (IOException e) {
@@ -283,34 +283,37 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
     // Synchronize on packet because this is what the Java DatagramSocket does.
     synchronized (packet) {
-      // TODO synchronize also on writeLock()!
-      if (isConnected() && !channel.getRemoteAddress().equals(packet.getSocketAddress())) {
-        throw new IllegalArgumentException("Packet address does not match connected address");
-      }
-
-      Path path;
-      if (channel.isConnected()) {
-        path = channel.getConnectionPath();
-      } else {
-        InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
-        synchronized (pathCache) {
-          path = pathCache.get(addr);
-          if (path == null) {
-            path = channel.getPathPolicy().filter(channel.getOrCreateService2().getPaths(addr));
-          } else if (path instanceof RequestPath
-              && ((RequestPath) path).getExpiration() > Instant.now().getEpochSecond()) {
-            // check expiration only for RequestPaths
-            RequestPath request = (RequestPath) path;
-            path = channel.getPathPolicy().filter(channel.getOrCreateService2().getPaths(request));
-          }
-          if (path == null) {
-            throw new IOException("Address is not resolvable in SCION: " + packet.getAddress());
-          }
-          pathCache.put(addr, path);
+      channel.writeLock().lock();
+      try {
+        if (isConnected() && !channel.getRemoteAddress().equals(packet.getSocketAddress())) {
+          throw new IllegalArgumentException("Packet address does not match connected address");
         }
+
+        ScionSocketAddress dstAddress;
+        if (channel.isConnected()) {
+          dstAddress = channel.getRemoteAddress();
+        } else {
+          InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
+          synchronized (pathCache) {
+            dstAddress = pathCache.get(addr);
+            if (dstAddress == null) {
+              dstAddress =
+                  channel
+                      .getOrCreateService2()
+                      .lookupSocketAddress(packet.getAddress().getHostName(), packet.getPort());
+            }
+            dstAddress.refreshPath(
+                channel.getOrCreateService2(),
+                channel.getPathPolicy(),
+                channel.getCfgExpirySafetyMargin());
+            pathCache.put(addr, dstAddress);
+          }
+        }
+        ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+        channel.send(buf, dstAddress);
+      } finally {
+        channel.writeLock().unlock();
       }
-      ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
-      channel.send(buf, path);
     }
   }
 
@@ -321,25 +324,27 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
     // We synchronize on the packet because that is what the Java socket does.
     synchronized (packet) {
-      ByteBuffer receiveBuffer =
-          ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
-      ResponsePath path = channel.receive(receiveBuffer);
-      if (path == null) {
-        // timeout occurred
-        throw new SocketTimeoutException();
-      }
-      // TODO this is not ideal, a client may not be connected. Use getService()==null?
-      if (!channel.isConnected()) {
-        synchronized (pathCache) {
-          InetAddress ip = path.getRemoteAddress();
-          InetSocketAddress addr = new InetSocketAddress(ip, path.getRemotePort());
-          pathCache.put(addr, path);
+      channel.readLock().lock();
+      try {
+        ByteBuffer receiveBuffer =
+            ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+        ScionSocketAddress path = channel.receive(receiveBuffer);
+        if (path == null) {
+          // timeout occurred
+          throw new SocketTimeoutException();
         }
+        // TODO this is not ideal, a client may not be connected. Use getService()==null?
+        if (!channel.isConnected()) {
+          synchronized (pathCache) {
+            pathCache.put(path, path); // TODO use Set i.o. Map
+          }
+        }
+        receiveBuffer.flip();
+        packet.setLength(receiveBuffer.limit());
+        packet.setSocketAddress(path);
+      } finally {
+        channel.readLock().unlock();
       }
-      receiveBuffer.flip();
-      packet.setLength(receiveBuffer.limit());
-      packet.setAddress(path.getRemoteAddress());
-      packet.setPort(path.getRemotePort());
     }
   }
 
@@ -545,7 +550,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * @return the cached Path or `null` if not path is found.
    * @see #setPathCacheCapacity
    */
-  public synchronized Path getCachedPath(InetSocketAddress address) {
+  public synchronized ScionSocketAddress getCachedPath(InetSocketAddress address) {
     synchronized (pathCache) {
       return pathCache.get(address);
     }

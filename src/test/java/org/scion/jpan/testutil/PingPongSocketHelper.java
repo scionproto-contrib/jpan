@@ -21,9 +21,8 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import org.scion.jpan.Path;
-import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramSocket;
+import org.scion.jpan.ScionSocketAddress;
 
 public class PingPongSocketHelper extends PingPongHelperBase {
 
@@ -57,10 +56,10 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
   private class ClientEndpoint extends AbstractSocketEndpoint {
     private final Client client;
-    private final RequestPath remoteAddress;
+    private final ScionSocketAddress remoteAddress;
     private final int nRounds;
 
-    ClientEndpoint(Client client, int id, RequestPath remoteAddress, int nRounds) {
+    ClientEndpoint(Client client, int id, ScionSocketAddress remoteAddress, int nRounds) {
       super(id);
       this.client = client;
       this.remoteAddress = remoteAddress;
@@ -71,10 +70,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     public final void runImpl() throws IOException {
       try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
         registerStartUpClient();
-        InetAddress ipAddress = remoteAddress.getRemoteAddress();
-        InetSocketAddress iSAddress =
-            new InetSocketAddress(ipAddress, remoteAddress.getRemotePort());
-        socket.connect(iSAddress);
+        socket.connect(remoteAddress);
         for (int i = 0; i < nRounds; i++) {
           client.run(socket, remoteAddress, id);
           nRoundsClient.incrementAndGet();
@@ -130,7 +126,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   }
 
   public interface Client {
-    void run(ScionDatagramSocket socket, RequestPath path, int id) throws IOException;
+    void run(ScionDatagramSocket socket, ScionSocketAddress path, int id) throws IOException;
   }
 
   public interface Server {
@@ -162,12 +158,11 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     }
   }
 
-  public static void defaultClient(ScionDatagramSocket socket, Path path, int id)
+  public static void defaultClient(ScionDatagramSocket socket, ScionSocketAddress path, int id)
       throws IOException {
     String message = PingPongChannelHelper.MSG + "-" + id;
-    InetSocketAddress dst = new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
 
-    DatagramPacket packetOut = new DatagramPacket(message.getBytes(), message.length(), dst);
+    DatagramPacket packetOut = new DatagramPacket(message.getBytes(), message.length(), path);
     socket.send(packetOut);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");

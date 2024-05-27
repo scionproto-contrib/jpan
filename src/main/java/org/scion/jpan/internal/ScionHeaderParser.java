@@ -17,6 +17,7 @@ package org.scion.jpan.internal;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.Constants;
+import org.scion.jpan.Path;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.Scmp;
 
@@ -366,10 +367,11 @@ public class ScionHeaderParser {
       int pathHeaderLength,
       long srcIsdAs,
       byte[] srcAddress,
-      long dstIsdAs,
-      byte[] dstAddress,
+      Path path,
       InternalConstants.HdrTypes hdrType,
       int trafficClass) {
+    long dstIsdAs = path.getRemoteIsdAs();
+    byte[] dstAddress = path.getRemoteAddress().getAddress();
     int sl = srcAddress.length / 4 - 1;
     int dl = dstAddress.length / 4 - 1;
 

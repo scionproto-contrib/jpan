@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.RequestPath;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionUtil;
@@ -81,20 +82,20 @@ public class HeaderComposeTest {
     // Socket internal - compose header data
     pathService = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     long srcIA = pathService.getLocalIsdAs();
-    byte[] path = pathService.getPaths(dstIA, dstSocketAddress).get(0).getRawPath();
+    RequestPath path = pathService.getPaths(dstIA, dstSocketAddress).get(0);
+    byte[] pathRaw = path.getRawPath();
 
     // Socket internal = write header
     ScionHeaderParser.write(
         p,
         userPacket.limit() + 8,
-        path.length,
+        pathRaw.length,
         srcIA,
         srcAddress,
-        dstIA,
-        dstAddress,
+        path,
         InternalConstants.HdrTypes.UDP,
         0);
-    ScionHeaderParser.writePath(p, path);
+    ScionHeaderParser.writePath(p, path.getRawPath());
 
     // Overlay header
     ScionHeaderParser.writeUdpOverlayHeader(p, userPacket.limit(), 44444, dstPort);
