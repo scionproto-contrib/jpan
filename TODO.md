@@ -8,6 +8,8 @@
 ## Plan
 
 ### 0.2.0
+- Fix: call CS only once for UP-Segments. Fix TODOs in ScionServiceTest
+- Implement PingResponder
 - Allow disabling local address resolution in DNS to local-IA. Resolving 127.0.0.x to
   localIA is fine for many purposes, but it can be confusing when testing a local
   mock-network (tiny, minimal, ...)

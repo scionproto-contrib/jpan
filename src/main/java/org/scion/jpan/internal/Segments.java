@@ -89,6 +89,7 @@ public class Segments {
     long from = srcIsdAs;
     long to = dstIsdAs;
     List<List<Seg.PathSegment>> segments = new ArrayList<>();
+    // First, if necessary, try to get UP segments
     if (!brLookup.isLocalAsCore()) {
       // get UP segments
       // TODO find out if dstIsAs is core and directly ask for it.
@@ -98,10 +99,14 @@ public class Segments {
         // case B: DST is core
         return combineSegment(segmentsUp, brLookup);
       }
+      if (segmentsUp.isEmpty()) {
+        return Collections.emptyList();
+      }
       segments.add(segmentsUp);
       from = srcWildcard;
     }
 
+    // Remote AS in local ISD?
     if (srcISD == dstISD) {
       // cases C, D, E
       // TODO this is an expensive way to find out whether DST is CORE
@@ -140,7 +145,10 @@ public class Segments {
     }
     // remaining cases: F, G, H
     List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
-    boolean[] localCores = Segments.containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
+    if (segmentsCore.isEmpty()) {
+      return Collections.emptyList();
+    }
+    boolean[] localCores = Segments.containsIsdAs(segmentsCore, 0, dstIsdAs);
     segments.add(segmentsCore);
     if (localCores[1]) {
       return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
@@ -167,18 +175,31 @@ public class Segments {
       long t0 = System.nanoTime();
       Seg.SegmentsResponse response = segmentStub.segments(request);
       long t1 = System.nanoTime();
-      LOG.info("CS request took {} ms.", (t1 - t0) / 1_000_000);
+      LOG.info(
+          "CS request took {} ms. Segments found: {}",
+          (t1 - t0) / 1_000_000,
+          response.getSegmentsMap().size());
       if (response.getSegmentsMap().size() > 1) {
         // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();
       }
       return getPathSegments(response);
     } catch (StatusRuntimeException e) {
-      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)
-          && e.getMessage().contains("TRC not found")) {
-        String msg = ScionUtil.toStringIA(srcIsdAs) + " / " + ScionUtil.toStringIA(dstIsdAs);
-        throw new ScionRuntimeException(
-            "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
+        if (e.getMessage().contains("TRC not found")) {
+          String msg = ScionUtil.toStringIA(srcIsdAs) + " / " + ScionUtil.toStringIA(dstIsdAs);
+          throw new ScionRuntimeException(
+              "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+        }
+        if (e.getMessage().contains("invalid request")) {
+          // AS not found
+          LOG.info(
+              "Requesting segments: {} {} failed (AS unreachable?): {}",
+              ScionUtil.toStringIA(srcIsdAs),
+              ScionUtil.toStringIA(dstIsdAs),
+              e.getMessage());
+          return Collections.emptyList();
+        }
       }
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
         throw new ScionRuntimeException(
