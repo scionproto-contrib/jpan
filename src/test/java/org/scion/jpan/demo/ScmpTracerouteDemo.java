@@ -78,17 +78,8 @@ public class ScmpTracerouteDemo {
         {
           // Local port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(30041);
-          // demo.runDemo(DemoConstants.iaAnapayaHK);
+          demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
-
-          // KREONET Seattle
-          demo.runDemo(ScionUtil.parseIA("71-2:0:40"));
-          // SWITCH HVR
-          //          demo.runDemo(ScionUtil.parseIA("72-559"));
-          //          // Swisscom HVR
-          //          demo.runDemo(ScionUtil.parseIA("72-3303"));
-          //          // Sunrise HVR
-          //          demo.runDemo(ScionUtil.parseIA("72-6730"));
           break;
         }
     }

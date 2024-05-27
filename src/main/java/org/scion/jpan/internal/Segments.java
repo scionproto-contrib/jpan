@@ -175,7 +175,10 @@ public class Segments {
       long t0 = System.nanoTime();
       Seg.SegmentsResponse response = segmentStub.segments(request);
       long t1 = System.nanoTime();
-      LOG.info("CS request took {} ms. Segments found: {}", (t1 - t0) / 1_000_000, response.getSegmentsMap().size());
+      LOG.info(
+          "CS request took {} ms. Segments found: {}",
+          (t1 - t0) / 1_000_000,
+          response.getSegmentsMap().size());
       if (response.getSegmentsMap().size() > 1) {
         // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();
@@ -189,12 +192,12 @@ public class Segments {
               "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
         }
         if (e.getMessage().contains("invalid request")) {
-          // path not found
-          // TODO test
-          LOG.info("Requesting segments: {} {} failed: {}",
-                  ScionUtil.toStringIA(srcIsdAs),
-                  ScionUtil.toStringIA(dstIsdAs),
-                  e.getMessage());
+          // AS not found
+          LOG.info(
+              "Requesting segments: {} {} failed (AS unreachable?): {}",
+              ScionUtil.toStringIA(srcIsdAs),
+              ScionUtil.toStringIA(dstIsdAs),
+              e.getMessage());
           return Collections.emptyList();
         }
       }

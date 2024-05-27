@@ -14,70 +14,67 @@
 
 package org.scion.jpan.testutil;
 
+import java.net.InetSocketAddress;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.internal.AbstractSegmentsMinimalTest;
 
-import java.net.InetSocketAddress;
-
-/**
- * Mock network for larger topologies than tiny.
- * A local daemon is _not_ supported.
- */
+/** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
-    public static final String AS_HOST = "my-as-host-test.org";// TODO remove from AbstractSegmentsMinimalTest
-    private final MockTopologyServer topoServer;
-    private final MockControlServer controlServer;
+  public static final String AS_HOST =
+      "my-as-host-test.org"; // TODO remove from AbstractSegmentsMinimalTest
+  private final MockTopologyServer topoServer;
+  private final MockControlServer controlServer;
 
-    static class MinimalInitializer extends AbstractSegmentsMinimalTest {
-        public void addResponses() {
-            super.addResponses();
-        }
-
-        void init(MockControlServer controlServer) {
-            AbstractSegmentsMinimalTest.controlServer = controlServer;
-        }
+  static class MinimalInitializer extends AbstractSegmentsMinimalTest {
+    public void addResponses() {
+      super.addResponses();
     }
 
-    public static MockNetwork2 start(String topoFileOfLocalAS) {
-        return new MockNetwork2(topoFileOfLocalAS);
+    void init(MockControlServer controlServer) {
+      AbstractSegmentsMinimalTest.controlServer = controlServer;
     }
+  }
 
-    private MockNetwork2(String topoFileOfLocalAS) {
-        topoServer = MockTopologyServer.start(topoFileOfLocalAS);
-        InetSocketAddress topoAddr = topoServer.getAddress();
-        DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-        controlServer = MockControlServer.start(topoServer.getControlServerPort());
-        System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
-        if (topoFileOfLocalAS.startsWith("topologies/minimal/")) {
-            MinimalInitializer data = new MinimalInitializer();
-            data.init(controlServer);
-            data.addResponses();
-        } else {
-            throw new UnsupportedOperationException();
-        }
-    }
+  public static MockNetwork2 start(String topoFileOfLocalAS) {
+    return new MockNetwork2(topoFileOfLocalAS);
+  }
 
-    public void reset() {
-        controlServer.clearSegments();
-        topoServer.getAndResetCallCount();
-        controlServer.getAndResetCallCount();
+  private MockNetwork2(String topoFileOfLocalAS) {
+    topoServer = MockTopologyServer.start(topoFileOfLocalAS);
+    InetSocketAddress topoAddr = topoServer.getAddress();
+    DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+    controlServer = MockControlServer.start(topoServer.getControlServerPort());
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
+    if (topoFileOfLocalAS.startsWith("topologies/minimal/")) {
+      MinimalInitializer data = new MinimalInitializer();
+      data.init(controlServer);
+      data.addResponses();
+    } else {
+      throw new UnsupportedOperationException();
     }
+  }
 
-    public void close() {
-        controlServer.close();
-        topoServer.close();
-        DNSUtil.clear();
-        System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
-        // Defensive clean up
-        ScionService.closeDefault();
-    }
+  public void reset() {
+    controlServer.clearSegments();
+    topoServer.getAndResetCallCount();
+    controlServer.getAndResetCallCount();
+  }
 
-    public MockTopologyServer getTopoServer() {
-        return topoServer;
-    }
+  public void close() {
+    controlServer.close();
+    topoServer.close();
+    DNSUtil.clear();
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    // Defensive clean up
+    ScionService.closeDefault();
+  }
 
-    public MockControlServer getControlServer() {
-        return controlServer;
-    }
+  public MockTopologyServer getTopoServer() {
+    return topoServer;
+  }
+
+  public MockControlServer getControlServer() {
+    return controlServer;
+  }
 }
