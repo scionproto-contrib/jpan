@@ -49,8 +49,8 @@ public class IPHelper {
     if ("localhost".equals(s)) {
       return new byte[] {127, 0, 0, 1};
     }
-    if ("localhost-ip6".equals(s)) {
-      return new byte[] {127, 0, 0, 1};
+    if ("ip6-localhost".equals(s)) {
+      return new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
     }
     if (s.startsWith("[")) {
       if (s.endsWith("]")) {

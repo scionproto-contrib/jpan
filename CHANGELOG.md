@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#72](https://github.com/scionproto-contrib/jpan/issues/72)
 - Fixed path lookup error when destination isn't reachable.
   [#70](https://github.com/scionproto-contrib/jpan/issues/70)
+- Fixed internal raw path parsing and IP parsing.
+  [#77](https://github.com/scionproto-contrib/jpan/pull/77)
 
 ## [0.1.1] - 2024-05-10
 

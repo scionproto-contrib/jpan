@@ -14,7 +14,6 @@
 
 package org.scion.jpan;
 
-import java.nio.ByteBuffer;
 import org.scion.jpan.internal.PathRawParser;
 
 /** Scion utility functions. */
@@ -103,11 +102,7 @@ public class ScionUtil {
    * @return The sequence or border router interface IDs.
    */
   public static String toStringPath(byte[] raw) {
-    if (raw.length == 0) {
-      return "[]";
-    }
-    PathRawParser ph = new PathRawParser();
-    ph.read(ByteBuffer.wrap(raw));
+    PathRawParser ph = PathRawParser.create(raw);
     StringBuilder sb = new StringBuilder();
     sb.append("[");
     int[] segLen = {ph.getSegLen(0), ph.getSegLen(1), ph.getSegLen(2)};

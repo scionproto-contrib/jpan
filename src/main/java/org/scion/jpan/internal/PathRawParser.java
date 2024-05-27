@@ -47,18 +47,20 @@ public class PathRawParser {
 
   public static PathRawParser create(byte[] rawPath) {
     PathRawParser p = new PathRawParser();
-    p.read(ByteBuffer.wrap(rawPath));
+    if (rawPath.length != 0) {
+      p.read(ByteBuffer.wrap(rawPath));
+    }
     return p;
   }
 
-  public PathRawParser() {
+  private PathRawParser() {
     this.info[0] = new InfoField();
     this.info[1] = new InfoField();
     this.info[2] = new InfoField();
     Arrays.setAll(hops, value -> new HopField());
   }
 
-  public void read(ByteBuffer data) {
+  private void read(ByteBuffer data) {
     int start = data.position();
     // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset
     // calculations below).
