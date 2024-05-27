@@ -57,7 +57,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     return super.isBlocking();
   }
 
-  public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
+  public ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
@@ -67,7 +67,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       }
       ScionHeaderParser.extractUserPayload(buffer, userBuffer);
       buffer.clear();
-      return receivePath;
+      return ScionSocketAddress.fromPath(receivePath);
     } finally {
       readLock().unlock();
     }
@@ -84,20 +84,26 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public void send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
+  public int send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
+    if (destination instanceof ScionSocketAddress) {
+      ScionSocketAddress ssa = (ScionSocketAddress) destination;
+      send(srcBuffer, ssa);
+      return 12345; // TODO
+    }
     InetSocketAddress dst = (InetSocketAddress) destination;
     Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
-    send(srcBuffer, path);
+    send(srcBuffer, ScionSocketAddress.fromPath(path));
+    return 12345; // TODO
   }
 
   /**
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
-   * @param path Path to destination. If this is a Request path and it is expired then it will
+   * @param address Path to destination. If this is a Request path and it is expired then it will
    *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
    * @return either the path argument or a new path if the path was an expired RequestPath. Note
    *     that ResponsePaths are not checked for expiration.
@@ -105,25 +111,33 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
+  public void send(ByteBuffer srcBuffer, ScionSocketAddress address) throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
       // + 8 for UDP overlay header length
-      Path actualPath =
-          checkPathAndBuildHeader(
-              buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      int len = srcBuffer.remaining() + 8;
+      checkPathAndBuildHeader(buffer, address, len, InternalConstants.HdrTypes.UDP);
       try {
         buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      sendRaw(buffer, actualPath.getFirstHopAddress(), actualPath);
-      return actualPath;
+      sendRaw(buffer, address.getPath().getFirstHopAddress(), address.getPath());
+      // TODO consider TRICK
+      //    - If read()/write() is used then we have no problem, getCurrentPath() works fine
+      //    - receive() always contains a ResponsePath -> cannot expire
+      //    - send() on server -> we have a ResponsePath -> cannot be refreshed
+      //    - send() on client -> we have a RequestPath -> use with getCurrentPath() ???
     } finally {
       writeLock().unlock();
     }
+  }
+
+  @Deprecated // Please use another send method instead
+  public void send(ByteBuffer srcBuffer, Path path) throws IOException {
+    send(srcBuffer, ScionSocketAddress.fromPath(path));
   }
 
   /**
@@ -169,7 +183,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
       // + 8 for UDP overlay header length
-      checkPathAndBuildHeader(buffer, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeader(buffer, getRemoteAddress(), len + 8, InternalConstants.HdrTypes.UDP);
       buffer.put(src);
       buffer.flip();
 

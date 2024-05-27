@@ -85,9 +85,8 @@ class DatagramChannelApiServerTest {
               new byte[4],
               1,
               new InetSocketAddress("127.0.0.1", 1));
-      Path p2 = channel.send(ByteBuffer.allocate(0), path);
+      channel.send(ByteBuffer.allocate(0), path);
       assertNull(channel.getService());
-      assertEquals(path, p2);
     }
   }
 
@@ -104,9 +103,9 @@ class DatagramChannelApiServerTest {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open(null, mock)) {
       assertNull(channel.getService());
       ByteBuffer buffer = ByteBuffer.allocate(100);
-      Path path = channel.receive(buffer);
+      ScionSocketAddress remote = channel.receive(buffer);
       assertNull(channel.getService());
-      assertEquals(addr, path.getFirstHopAddress());
+      assertEquals(addr, remote.getPath().getFirstHopAddress());
     }
   }
 }

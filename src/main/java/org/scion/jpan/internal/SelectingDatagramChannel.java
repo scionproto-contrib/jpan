@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.ScionSocketAddress;
 
 /**
  * DatagramChannel with support for timeout.
@@ -89,7 +90,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   }
 
   @Override
-  public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
+  public ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
@@ -99,7 +100,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
       }
       ScionHeaderParser.extractUserPayload(buffer, userBuffer);
       buffer.clear();
-      return receivePath;
+      return ScionSocketAddress.fromPath(receivePath);
     } finally {
       readLock().unlock();
     }

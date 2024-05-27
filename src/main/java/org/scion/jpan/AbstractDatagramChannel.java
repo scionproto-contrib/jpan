@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -180,13 +179,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * Returns the remote address.
    *
    * @see DatagramChannel#getRemoteAddress()
-   * @return The remote address.
+   * @return The remote address as ScionSocketAddress.
    * @throws IOException If an I/O error occurs
    */
-  public InetSocketAddress getRemoteAddress() throws IOException {
+  public ScionSocketAddress getRemoteAddress() throws IOException {
     Path path = getConnectionPath();
     if (path != null) {
-      return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
+      return ScionSocketAddress.fromPath(path);
     }
     return null;
   }
@@ -231,6 +230,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (!(addr instanceof InetSocketAddress)) {
         throw new IllegalArgumentException(
             "connect() requires an InetSocketAddress or a ScionSocketAddress.");
+      }
+      if (addr instanceof ScionSocketAddress) {
+        // TODO check if this is a RequestPath?
+        return connect((RequestPath) ((ScionSocketAddress) addr).getPath());
       }
       return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
     }
@@ -398,13 +401,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.overrideExternalAddress = address;
   }
 
-  protected int sendRaw(ByteBuffer buffer, InetSocketAddress address, Path path)
+  protected int sendRaw(ByteBuffer buffer, InetSocketAddress firstHop, Path path)
       throws IOException {
     if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
+      // TODO remove this once dispatcher is removed
       return channel.send(
-          buffer, new InetSocketAddress(address.getAddress(), Constants.DISPATCHER_PORT));
+          buffer, new InetSocketAddress(firstHop.getAddress(), Constants.DISPATCHER_PORT));
     }
-    return channel.send(buffer, address);
+    return channel.send(buffer, firstHop);
   }
 
   protected int sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {
@@ -534,20 +538,22 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * @param path path
+   * @param dst Destination address
    * @param payloadLength payload length
    * @return argument path or a new path if the argument path was expired
    * @throws IOException in case of IOException.
    */
-  protected Path checkPathAndBuildHeader(
-      ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
+  protected void checkPathAndBuildHeader(
+      ByteBuffer buffer,
+      ScionSocketAddress dst,
+      int payloadLength,
+      InternalConstants.HdrTypes hdrType)
       throws IOException {
     synchronized (stateLock) {
-      if (path instanceof RequestPath) {
-        path = ensureUpToDate((RequestPath) path);
+      if (dst.isRequestAddress()) {
+        ensureUpToDate(dst);
       }
-      buildHeader(buffer, path, payloadLength, hdrType);
-      return path;
+      buildHeader(buffer, dst.getPath(), payloadLength, hdrType);
     }
   }
 
@@ -610,8 +616,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           rawPath.length,
           srcIA,
           srcAddress.getAddress(),
-          path.getRemoteIsdAs(),
-          path.getRemoteAddress().getAddress(),
+          path,
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
@@ -623,17 +628,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
+  protected void ensureUpToDate(ScionSocketAddress address) throws IOException {
     synchronized (stateLock) {
-      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
-        return path;
+      if (address.refreshPath(getOrCreateService(), pathPolicy, cfgExpirationSafetyMargin)) {
+        if (isConnected()) {
+          updateConnection(address.getPath().asRequestPath(), true);
+        }
       }
-      // expired, get new path
-      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
-      if (isConnected()) {
-        updateConnection(newPath, true);
-      }
-      return newPath;
     }
   }
 
@@ -672,5 +673,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected ReentrantLock writeLock() {
     return writeLock;
+  }
+
+  protected int getCfgExpirySafetyMargin() {
+    return cfgExpirationSafetyMargin;
   }
 }
