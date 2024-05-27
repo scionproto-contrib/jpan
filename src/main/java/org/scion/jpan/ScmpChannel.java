@@ -29,11 +29,15 @@ import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathHeaderParser;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScmpChannel implements AutoCloseable {
+  private static final Logger log = LoggerFactory.getLogger(ScmpChannel.class);
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   @Deprecated private RequestPath path;
+  private boolean enableEchoResponse = false;
 
   ScmpChannel() throws IOException {
     this(Scion.defaultService(), 12345);
@@ -162,6 +166,11 @@ public class ScmpChannel implements AutoCloseable {
     channel.setOption(option, t);
   }
 
+  public void setUpScmpResponder(boolean respondToEcho, boolean respondToTraceroute)
+      throws IOException {
+    this.channel.sendResponses(respondToEcho, respondToTraceroute);
+  }
+
   @FunctionalInterface
   private interface IOCallable<V> {
     V call() throws IOException;
@@ -197,7 +206,7 @@ public class ScmpChannel implements AutoCloseable {
         request.setSizeSent(buffer.remaining());
         sendRaw(buffer, path.getFirstHopAddress());
 
-        int sizeReceived = receiveRequest(request);
+        int sizeReceived = receive(request);
         request.setSizeReceived(sizeReceived);
         return request;
       } finally {
@@ -229,7 +238,7 @@ public class ScmpChannel implements AutoCloseable {
 
         sendRaw(buffer, path.getFirstHopAddress());
 
-        receiveRequest(request);
+        receive(request);
         return request;
       } finally {
         writeLock().unlock();
@@ -239,7 +248,7 @@ public class ScmpChannel implements AutoCloseable {
       }
     }
 
-    int receiveRequest(Scmp.TimedMessage request) throws IOException {
+    private int receive(Scmp.TimedMessage request) throws IOException {
       readLock().lock();
       try {
         ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
@@ -288,6 +297,62 @@ public class ScmpChannel implements AutoCloseable {
             }
           }
         }
+      }
+    }
+
+    void sendResponses(boolean echo, boolean traceroute) throws IOException {
+      readLock().lock();
+      writeLock().lock();
+
+      // TODO Scmp.EchoMessage.createRequest()
+      int timeOut = timeOutMs;
+      setTimeOut(Integer.MAX_VALUE);
+
+      try {
+        while (true) {
+          ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
+          ResponsePath path = receiveWithTimeout(buffer);
+          System.out.println("ddddddddddddddddddddddddddddddddddddd " + path);
+          if (path == null) {
+            return; // interrupted ?!?!?
+            // throw new IllegalStateException();
+          }
+
+          Scmp.Type type = ScmpParser.extractType(buffer);
+
+          log.info("Received SCMP message {} from {}", type, path.getRemoteAddress());
+          if (echo && type == Scmp.Type.INFO_128) {
+            Scmp.EchoMessage msg = (Scmp.EchoMessage) Scmp.createMessage(type, path);
+            ScmpParser.consume(buffer, msg);
+            // TODO use this instead to avoid object creation
+            //          ScmpParser.consume(buffer, request);
+            //          request.setPath(receivePath);
+
+            super.channel().connect(path.getFirstHopAddress());
+            // EchoHeader = 8 + data
+            int len = 8 + msg.getData().length;
+            buildHeader(buffer, msg.getPath(), len, InternalConstants.HdrTypes.SCMP);
+            int localPort = super.getLocalAddress().getPort();
+            ScmpParser.buildScmpPing(buffer, localPort, msg.getSequenceNumber(), msg.getData());
+            buffer.flip();
+            msg.setSizeSent(buffer.remaining());
+            sendRaw(buffer, path.getFirstHopAddress());
+            log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
+          } else if (traceroute && type == Scmp.Type.INFO_130) {
+            Scmp.Message msg = Scmp.createMessage(type, path);
+            ScmpParser.consume(buffer, msg);
+            // TODO use this instead to avoid object creation
+            //          ScmpParser.consume(buffer, request);
+            //          request.setPath(receivePath);
+            log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
+          } else {
+            log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
+          }
+        }
+      } finally {
+        setTimeOut(timeOut);
+        writeLock().unlock();
+        readLock().unlock();
       }
     }
 

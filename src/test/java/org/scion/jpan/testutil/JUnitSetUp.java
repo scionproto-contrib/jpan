@@ -69,7 +69,7 @@ public class JUnitSetUp
 
   @Override
   public void beforeEach(ExtensionContext context) {
-    System.setProperty(Constants.PROPERTY_HOSTS_FILES, "....some-invalid-file");
+    System.setProperty(Constants.PROPERTY_HOSTS_FILES, "....invalid-dummy-filename");
     Scion.closeDefault();
     if (failed) {
       System.exit(1);

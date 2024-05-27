@@ -280,7 +280,7 @@ class MockBorderRouter implements Runnable {
 
             switch (PackageVisibilityHelper.getNextHdr(buffer)) {
               case UDP:
-                handleUdp(buffer, srcAddress, outgoing);
+                forwardPacket(buffer, srcAddress, outgoing);
                 break;
               case SCMP:
                 handleScmp(buffer, srcAddress, incoming, outgoing);
@@ -301,7 +301,7 @@ class MockBorderRouter implements Runnable {
     }
   }
 
-  private void handleUdp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
+  private void forwardPacket(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     logger.info(
@@ -325,6 +325,13 @@ class MockBorderRouter implements Runnable {
       DatagramChannel incoming,
       DatagramChannel outgoing)
       throws IOException {
+    InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
+    if (!dstAddress.getAddress().isAnyLocalAddress()) {
+      buffer.position(0); // TODO reset?
+      forwardPacket(buffer, srcAddress, outgoing);
+      return;
+    }
+
     // From here on we use linear reading using the buffer's position() mechanism
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     ResponsePath path =
@@ -345,7 +352,6 @@ class MockBorderRouter implements Runnable {
       answerTraceRoute(buffer, srcAddress, incoming);
     } else {
       // forward error
-      InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
       logger.info(
           name
               + " forwarding SCMP error "

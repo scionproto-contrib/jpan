@@ -132,6 +132,8 @@ public class ScionHeaderParser {
       throws UnknownHostException {
     int start = data.position();
 
+    InternalConstants.HdrTypes type = extractNextHeader(data);
+
     int i1 = data.getInt(start + 4); // nextHeader, hdrLen, payLoadLen
     int i2 = data.getInt(start + 8); // pathType, dt, dl, st, sl
     int hdrLen = ByteUtil.readInt(i1, 8, 8);
@@ -151,9 +153,16 @@ public class ScionHeaderParser {
     data.get(bytesDst);
     InetAddress dstIP = InetAddress.getByAddress(bytesDst);
 
-    // get remote port from UDP overlay
-    data.position(start + hdrLenBytes + 2);
-    int dstPort = Short.toUnsignedInt(data.getShort());
+    int dstPort;
+    if (type == InternalConstants.HdrTypes.UDP) {
+      // get remote port from UDP overlay
+      data.position(start + hdrLenBytes + 2);
+      dstPort = Short.toUnsignedInt(data.getShort());
+    } else if (type == InternalConstants.HdrTypes.SCMP) {
+      dstPort = 30041;
+    } else {
+      throw new UnsupportedOperationException();
+    }
 
     // rewind to original offset
     data.position(start);
