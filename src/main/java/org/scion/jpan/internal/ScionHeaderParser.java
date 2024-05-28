@@ -111,6 +111,7 @@ public class ScionHeaderParser {
     data.position(hdrLenBytes);
     int srcPort = Short.toUnsignedInt(data.getShort());
     int dstPort = Short.toUnsignedInt(data.getShort());
+    // TODO handle SCMP packets
 
     // rewind to original offset
     data.position(pos);
@@ -154,15 +155,23 @@ public class ScionHeaderParser {
     byte[] bytesDst = new byte[(dl + 1) * 4];
     data.get(bytesDst);
     InetAddress dstIP = InetAddress.getByAddress(bytesDst);
+    int dstPort = extractDstPort(data, start + hdrLenBytes, hdrType);
 
+    // rewind to original offset
+    data.position(start);
+    return new InetSocketAddress(dstIP, dstPort);
+  }
+
+  private static int extractDstPort(
+      ByteBuffer data, int scmpHdrOffset, InternalConstants.HdrTypes hdrType) {
     int dstPort;
     if (hdrType == InternalConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
-      data.position(start + hdrLenBytes + 2);
+      data.position(scmpHdrOffset + 2);
       dstPort = Short.toUnsignedInt(data.getShort());
     } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
       // get remote port from SCMP header
-      data.position(start + hdrLenBytes);
+      data.position(scmpHdrOffset);
       int type = ByteUtil.toUnsigned(data.get());
       Scmp.Type t = Scmp.Type.parse(type);
       if (t == Scmp.Type.INFO_128 || t == Scmp.Type.INFO_130) {
@@ -170,18 +179,21 @@ public class ScionHeaderParser {
         dstPort = Constants.SCMP_PORT;
       } else if (t == Scmp.Type.INFO_129 || t == Scmp.Type.INFO_131) {
         // response -> get port from SCMP identifier
-        data.position(start + hdrLenBytes + 4);
+        data.position(scmpHdrOffset + 4);
         dstPort = Short.toUnsignedInt(data.getShort());
       } else {
-        throw new UnsupportedOperationException();
+        int code = ByteUtil.toUnsigned(data.get());
+        Scmp.TypeCode tc = Scmp.TypeCode.parse(type, code);
+        if (tc.isError()) {
+          // TODO try extracting port from attached packet (may be UDP or SCMP)
+          return -1;
+        }
+        throw new UnsupportedOperationException(hdrType.name() + " " + tc.getText());
       }
     } else {
       throw new UnsupportedOperationException();
     }
-
-    // rewind to original offset
-    data.position(start);
-    return new InetSocketAddress(dstIP, dstPort);
+    return dstPort;
   }
 
   /**

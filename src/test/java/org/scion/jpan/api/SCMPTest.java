@@ -402,12 +402,4 @@ public class SCMPTest {
       throw new RuntimeException(e);
     }
   }
-
-  @Test
-  void testScmpParsing() {
-    ByteBuffer buffer = ByteBuffer.wrap(PING_ERROR_4_51_HK);
-    InetSocketAddress firstHop = new InetSocketAddress(Inet4Address.getLoopbackAddress(), 321);
-    Path p = ScionHeaderParser.extractResponsePath(buffer, firstHop);
-    System.out.println(p);
-  }
 }
