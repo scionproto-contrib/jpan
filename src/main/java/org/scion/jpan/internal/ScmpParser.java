@@ -71,7 +71,6 @@ public class ScmpParser {
    *
    * @param data packet data
    * @param holder SCMP message holder
-   * @return ScmpMessage object
    */
   public static void consume(ByteBuffer data, Scmp.Message holder) {
     int type = ByteUtil.toUnsigned(data.get());
