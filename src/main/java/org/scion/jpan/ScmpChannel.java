@@ -36,8 +36,8 @@ public class ScmpChannel implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpChannel.class);
   private int timeOutMs = 1000;
   private final InternalChannel channel;
-  @Deprecated private RequestPath path;
-  private boolean enableEchoResponse = false;
+  @Deprecated private final RequestPath path;
+  private final boolean enableEchoResponse = false;
 
   ScmpChannel() throws IOException {
     this(Scion.defaultService(), 12345);
@@ -201,7 +201,8 @@ public class ScmpChannel implements AutoCloseable {
         int len = 8 + request.getData().length;
         buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
         int localPort = super.getLocalAddress().getPort();
-        ScmpParser.buildScmpPing(buffer, localPort, request.getSequenceNumber(), request.getData());
+        ScmpParser.buildScmpPing(
+            buffer, Scmp.Type.INFO_128, localPort, request.getSequenceNumber(), request.getData());
         buffer.flip();
         request.setSizeSent(buffer.remaining());
         sendRaw(buffer, path.getFirstHopAddress());
@@ -229,7 +230,7 @@ public class ScmpChannel implements AutoCloseable {
         buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
         int interfaceNumber = request.getSequenceNumber();
         int localPort = super.getLocalAddress().getPort();
-        ScmpParser.buildScmpTraceroute(buffer, localPort, interfaceNumber);
+        ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, localPort, interfaceNumber);
         buffer.flip();
 
         // Set flags for border routers to return SCMP packet
@@ -311,39 +312,55 @@ public class ScmpChannel implements AutoCloseable {
       try {
         while (true) {
           ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
+          System.out.println("waiting ddddddddddddddddddddddddddddddddddddd " + path);
           ResponsePath path = receiveWithTimeout(buffer);
           System.out.println("ddddddddddddddddddddddddddddddddddddd " + path);
           if (path == null) {
             return; // interrupted ?!?!?
-            // throw new IllegalStateException();
+            // throw new IllegalStateException(); // TODO ??
           }
 
           Scmp.Type type = ScmpParser.extractType(buffer);
 
           log.info("Received SCMP message {} from {}", type, path.getRemoteAddress());
           if (echo && type == Scmp.Type.INFO_128) {
-            Scmp.EchoMessage msg = (Scmp.EchoMessage) Scmp.createMessage(type, path);
+            Scmp.EchoMessage msg = (Scmp.EchoMessage) Scmp.createMessage(Scmp.Type.INFO_128, path);
             ScmpParser.consume(buffer, msg);
             // TODO use this instead to avoid object creation
             //          ScmpParser.consume(buffer, request);
             //          request.setPath(receivePath);
 
-            super.channel().connect(path.getFirstHopAddress());
+            // super.channel().connect(path.getFirstHopAddress());
             // EchoHeader = 8 + data
             int len = 8 + msg.getData().length;
             buildHeader(buffer, msg.getPath(), len, InternalConstants.HdrTypes.SCMP);
-            int localPort = super.getLocalAddress().getPort();
-            ScmpParser.buildScmpPing(buffer, localPort, msg.getSequenceNumber(), msg.getData());
+            int port = msg.getIdentifier();
+            ScmpParser.buildScmpPing(
+                buffer, Scmp.Type.INFO_129, port, msg.getSequenceNumber(), msg.getData());
             buffer.flip();
             msg.setSizeSent(buffer.remaining());
             sendRaw(buffer, path.getFirstHopAddress());
             log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
           } else if (traceroute && type == Scmp.Type.INFO_130) {
-            Scmp.Message msg = Scmp.createMessage(type, path);
+            Scmp.Message msg = Scmp.createMessage(Scmp.Type.INFO_130, path);
             ScmpParser.consume(buffer, msg);
             // TODO use this instead to avoid object creation
             //          ScmpParser.consume(buffer, request);
             //          request.setPath(receivePath);
+            // TracerouteHeader = 24
+            int len = 24;
+            buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
+            int interfaceNumber = msg.getSequenceNumber();
+            int port = msg.getIdentifier();
+            ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_131, port, interfaceNumber);
+            buffer.flip();
+
+            // Set flags for border routers to return SCMP packet
+            // int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
+            // buffer.put(posPath + node.posHopFlags, node.hopFlags);
+
+            sendRaw(buffer, path.getFirstHopAddress());
+
             log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
           } else {
             log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());

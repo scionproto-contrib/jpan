@@ -17,6 +17,7 @@ package org.scion.jpan.internal;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.ResponsePath;
+import org.scion.jpan.Scmp;
 
 /** Utility methods for reading and writing the Common Header and Address Header. */
 public class ScionHeaderParser {
@@ -87,6 +88,16 @@ public class ScionHeaderParser {
     byte[] bytesSrc = new byte[(sl + 1) * 4];
     data.get(bytesSrc);
 
+    InetAddress srcIP;
+    InetAddress dstIP;
+    try {
+      srcIP = InetAddress.getByAddress(bytesSrc);
+      dstIP = InetAddress.getByAddress(bytesDst);
+    } catch (UnknownHostException e) {
+      // this cannot happen
+      throw new IllegalStateException(e);
+    }
+
     // raw path
     byte[] path = new byte[hdrLenBytes - data.position()];
     if (path.length > 0) {
@@ -99,16 +110,6 @@ public class ScionHeaderParser {
     data.position(hdrLenBytes);
     int srcPort = Short.toUnsignedInt(data.getShort());
     int dstPort = Short.toUnsignedInt(data.getShort());
-
-    InetAddress srcIP;
-    InetAddress dstIP;
-    try {
-      srcIP = InetAddress.getByAddress(bytesSrc);
-      dstIP = InetAddress.getByAddress(bytesDst);
-    } catch (UnknownHostException e) {
-      // this cannot happen
-      throw new IllegalStateException(e);
-    }
 
     // rewind to original offset
     data.position(pos);
@@ -132,7 +133,7 @@ public class ScionHeaderParser {
       throws UnknownHostException {
     int start = data.position();
 
-    InternalConstants.HdrTypes type = extractNextHeader(data);
+    InternalConstants.HdrTypes hdrType = extractNextHeader(data);
 
     int i1 = data.getInt(start + 4); // nextHeader, hdrLen, payLoadLen
     int i2 = data.getInt(start + 8); // pathType, dt, dl, st, sl
@@ -154,12 +155,25 @@ public class ScionHeaderParser {
     InetAddress dstIP = InetAddress.getByAddress(bytesDst);
 
     int dstPort;
-    if (type == InternalConstants.HdrTypes.UDP) {
+    if (hdrType == InternalConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
       data.position(start + hdrLenBytes + 2);
       dstPort = Short.toUnsignedInt(data.getShort());
-    } else if (type == InternalConstants.HdrTypes.SCMP) {
-      dstPort = 30041;
+    } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+      // get remote port from SCMP header
+      data.position(start + hdrLenBytes);
+      int type = ByteUtil.toUnsigned(data.get());
+      Scmp.Type t = Scmp.Type.parse(type);
+      if (t == Scmp.Type.INFO_128 || t == Scmp.Type.INFO_130) {
+        // request -> port is 30041
+        dstPort = 30041;
+      } else if (t == Scmp.Type.INFO_129 || t == Scmp.Type.INFO_131) {
+        // response -> get port from SCMP identifier
+        data.position(start + hdrLenBytes + 4);
+        dstPort = Short.toUnsignedInt(data.getShort());
+      } else {
+        throw new UnsupportedOperationException();
+      }
     } else {
       throw new UnsupportedOperationException();
     }

@@ -30,8 +30,8 @@ public class ScmpParser {
   }
 
   public static void buildScmpPing(
-      ByteBuffer buffer, int identifier, int sequenceNumber, byte[] data) {
-    buffer.put(ByteUtil.toByte(Scmp.Type.INFO_128.id()));
+      ByteBuffer buffer, Scmp.Type type, int identifier, int sequenceNumber, byte[] data) {
+    buffer.put(ByteUtil.toByte(type.id()));
     buffer.put(ByteUtil.toByte(0));
     buffer.putShort((short) 0); // TODO checksum
     buffer.putShort((short) identifier); // unsigned
@@ -39,18 +39,9 @@ public class ScmpParser {
     buffer.put(data);
   }
 
-  public static void buildScmpPing(
-      ByteBuffer buffer, int identifier, int sequenceNumber, ByteBuffer data) {
-    buffer.put(ByteUtil.toByte(Scmp.Type.INFO_128.id()));
-    buffer.put(ByteUtil.toByte(0));
-    buffer.putShort((short) 0); // TODO checksum
-    buffer.putShort((short) identifier); // unsigned
-    buffer.putShort((short) sequenceNumber); // unsigned
-    buffer.put(data);
-  }
-
-  public static void buildScmpTraceroute(ByteBuffer buffer, int identifier, int sequenceNumber) {
-    buffer.put(ByteUtil.toByte(Scmp.Type.INFO_130.id()));
+  public static void buildScmpTraceroute(
+      ByteBuffer buffer, Scmp.Type type, int identifier, int sequenceNumber) {
+    buffer.put(ByteUtil.toByte(type.id()));
     buffer.put(ByteUtil.toByte(0));
     buffer.putShort((short) 0); // TODO checksum
     buffer.putShort((short) identifier); // unsigned

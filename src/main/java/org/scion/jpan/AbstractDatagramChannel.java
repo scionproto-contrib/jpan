@@ -193,7 +193,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public void disconnect() throws IOException {
     synchronized (stateLock) {
-      channel.disconnect();
+      channel.disconnect(); // TODO Why ? We shouldn´t do that...?
       connectionPath = null;
     }
   }
