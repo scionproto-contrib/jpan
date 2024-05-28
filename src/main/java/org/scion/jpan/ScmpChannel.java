@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathHeaderParser;
 import org.scion.jpan.internal.ScionHeaderParser;
@@ -37,7 +38,6 @@ public class ScmpChannel implements AutoCloseable {
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   @Deprecated private final RequestPath path;
-  private final boolean enableEchoResponse = false;
 
   ScmpChannel() throws IOException {
     this(Scion.defaultService(), 12345);
@@ -162,13 +162,36 @@ public class ScmpChannel implements AutoCloseable {
     return channel.setScmpErrorListener(listener);
   }
 
+  /**
+   * Install a listener for echo messages. The listener is called for every incoming echo request
+   * message. A response will be sent iff the listener returns 'true'. Any time spent in the
+   * listener counts towards the RTT of the echo request.
+   *
+   * <p>The listener will only be called for messages received during `setUpScmpEchoResponder()`.
+   *
+   * @param listener THe listener function
+   * @return Any previously installed listener or 'null' if none was installed.
+   * @see #setUpScmpEchoResponder()
+   */
+  public Predicate<Scmp.EchoMessage> setScmpEchoListener(Predicate<Scmp.EchoMessage> listener) {
+    return channel.setScmpEchoListener(listener);
+  }
+
   public <T> void setOption(SocketOption<T> option, T t) throws IOException {
     channel.setOption(option, t);
   }
 
-  public void setUpScmpResponder(boolean respondToEcho, boolean respondToTraceroute)
-      throws IOException {
-    this.channel.sendResponses(respondToEcho, respondToTraceroute);
+  /**
+   * Install an SCMP echo responder. This method blocks until interrupted. While blocking, it will
+   * answer all valid SCMP echo requests.
+   *
+   * <p>SCMP requests can be monitored and intercepted through a listener, see {@link
+   * #setScmpEchoListener(Predicate)}.
+   *
+   * @throws IOException If an IO exception occurs.
+   */
+  public void setUpScmpEchoResponder() throws IOException {
+    this.channel.sendEchoResponses();
   }
 
   @FunctionalInterface
@@ -178,6 +201,7 @@ public class ScmpChannel implements AutoCloseable {
 
   private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
     private final Selector selector;
+    private Predicate<Scmp.EchoMessage> echoListener;
 
     protected InternalChannel(ScionService service, int port) throws IOException {
       super(service);
@@ -301,36 +325,29 @@ public class ScmpChannel implements AutoCloseable {
       }
     }
 
-    void sendResponses(boolean echo, boolean traceroute) throws IOException {
+    void sendEchoResponses() throws IOException {
       readLock().lock();
       writeLock().lock();
-
-      // TODO Scmp.EchoMessage.createRequest()
       int timeOut = timeOutMs;
       setTimeOut(Integer.MAX_VALUE);
-
       try {
         while (true) {
           ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
-          System.out.println("waiting ddddddddddddddddddddddddddddddddddddd " + path);
           ResponsePath path = receiveWithTimeout(buffer);
-          System.out.println("ddddddddddddddddddddddddddddddddddddd " + path);
           if (path == null) {
-            return; // interrupted ?!?!?
-            // throw new IllegalStateException(); // TODO ??
+            return; // interrupted
           }
 
           Scmp.Type type = ScmpParser.extractType(buffer);
-
           log.info("Received SCMP message {} from {}", type, path.getRemoteAddress());
-          if (echo && type == Scmp.Type.INFO_128) {
+          if (type == Scmp.Type.INFO_128) {
             Scmp.EchoMessage msg = (Scmp.EchoMessage) Scmp.createMessage(Scmp.Type.INFO_128, path);
             ScmpParser.consume(buffer, msg);
-            // TODO use this instead to avoid object creation
-            //          ScmpParser.consume(buffer, request);
-            //          request.setPath(receivePath);
 
-            // super.channel().connect(path.getFirstHopAddress());
+            if (!checkEchoListener(msg)) {
+              continue;
+            }
+
             // EchoHeader = 8 + data
             int len = 8 + msg.getData().length;
             buildHeader(buffer, msg.getPath(), len, InternalConstants.HdrTypes.SCMP);
@@ -341,27 +358,6 @@ public class ScmpChannel implements AutoCloseable {
             msg.setSizeSent(buffer.remaining());
             sendRaw(buffer, path.getFirstHopAddress());
             log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
-          } else if (traceroute && type == Scmp.Type.INFO_130) {
-            Scmp.Message msg = Scmp.createMessage(Scmp.Type.INFO_130, path);
-            ScmpParser.consume(buffer, msg);
-            // TODO use this instead to avoid object creation
-            //          ScmpParser.consume(buffer, request);
-            //          request.setPath(receivePath);
-            // TracerouteHeader = 24
-            int len = 24;
-            buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
-            int interfaceNumber = msg.getSequenceNumber();
-            int port = msg.getIdentifier();
-            ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_131, port, interfaceNumber);
-            buffer.flip();
-
-            // Set flags for border routers to return SCMP packet
-            // int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
-            // buffer.put(posPath + node.posHopFlags, node.hopFlags);
-
-            sendRaw(buffer, path.getFirstHopAddress());
-
-            log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
           } else {
             log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
           }
@@ -370,6 +366,23 @@ public class ScmpChannel implements AutoCloseable {
         setTimeOut(timeOut);
         writeLock().unlock();
         readLock().unlock();
+      }
+    }
+
+    protected boolean checkEchoListener(Scmp.EchoMessage scmpMsg) {
+      synchronized (this) {
+        if (echoListener != null && scmpMsg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+          return echoListener.test(scmpMsg);
+        }
+      }
+      return true;
+    }
+
+    public Predicate<Scmp.EchoMessage> setScmpEchoListener(Predicate<Scmp.EchoMessage> listener) {
+      synchronized (this) {
+        Predicate<Scmp.EchoMessage> old = echoListener;
+        echoListener = listener;
+        return old;
       }
     }
 

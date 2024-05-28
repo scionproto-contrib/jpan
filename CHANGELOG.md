@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ## Added
-- SCMP echo/traceroute responder [#78](https://github.com/scionproto-contrib/jpan/pull/78)
+- SCMP echo responder [#78](https://github.com/scionproto-contrib/jpan/pull/78)
 
 ### Changed
 - Some API changes: [#67](https://github.com/scionproto-contrib/jpan/pull/67)
