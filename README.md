@@ -142,9 +142,13 @@ can install it with `sudo apt install maven` (Ubuntu etc) or download it
 To install it locally:
 ```bash 
 git clone https://github.com/scionproto-contrib/jpan.git
-cd scion-java-client
+cd jpan
 mvn clean install
 ```
+
+**Note** on MacOS the tests may fail, see 
+[Troubleshooting below](https://github.com/scionproto-contrib/jpan?tab=readme-ov-file#failurestimeout-when-running-tests-on-macos).
+To skip tests, please use `mvn clean test -DskipTests=true`.
 
 ### Demos
 
