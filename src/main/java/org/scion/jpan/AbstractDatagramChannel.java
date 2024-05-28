@@ -401,7 +401,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected int sendRaw(ByteBuffer buffer, InetSocketAddress address, Path path)
       throws IOException {
     if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
-      return channel.send(buffer, new InetSocketAddress(address.getAddress(), 30041));
+      return channel.send(
+          buffer, new InetSocketAddress(address.getAddress(), Constants.DISPATCHER_PORT));
     }
     return channel.send(buffer, address);
   }

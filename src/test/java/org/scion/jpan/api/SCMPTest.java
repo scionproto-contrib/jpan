@@ -295,7 +295,7 @@ public class SCMPTest {
   private RequestPath getPathTo112() {
     try {
       InetAddress zero = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
-      return getPathTo112(zero, 30041);
+      return getPathTo112(zero, Constants.SCMP_PORT);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }
@@ -323,7 +323,7 @@ public class SCMPTest {
   @Test
   void setUpScmpResponder_echo() throws IOException, InterruptedException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112(InetAddress.getLoopbackAddress(), 30041);
+    RequestPath path = getPathTo112(InetAddress.getLoopbackAddress(), Constants.SCMP_PORT);
     ByteBuffer buf = ByteBuffer.allocate(0);
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
@@ -356,7 +356,7 @@ public class SCMPTest {
   @Test
   void setUpScmpResponder_echo_blocked() throws IOException, InterruptedException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112(InetAddress.getLocalHost(), 30041);
+    RequestPath path = getPathTo112(InetAddress.getLocalHost(), Constants.SCMP_PORT);
     ByteBuffer buf = ByteBuffer.allocate(0);
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
@@ -391,7 +391,7 @@ public class SCMPTest {
   }
 
   private void scmpResponder(CountDownLatch barrier, Predicate<Scmp.EchoMessage> predicate) {
-    try (ScmpChannel responder = Scmp.createChannel(30041)) {
+    try (ScmpChannel responder = Scmp.createChannel(Constants.SCMP_PORT)) {
       responder.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       responder.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       responder.setScmpEchoListener(predicate);
@@ -401,5 +401,13 @@ public class SCMPTest {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
+  }
+
+  @Test
+  void testScmpParsing() {
+    ByteBuffer buffer = ByteBuffer.wrap(PING_ERROR_4_51_HK);
+    InetSocketAddress firstHop = new InetSocketAddress(Inet4Address.getLoopbackAddress(), 321);
+    Path p = ScionHeaderParser.extractResponsePath(buffer, firstHop);
+    System.out.println(p);
   }
 }

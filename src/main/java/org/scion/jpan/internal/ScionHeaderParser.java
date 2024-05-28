@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import java.net.*;
 import java.nio.ByteBuffer;
+import org.scion.jpan.Constants;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.Scmp;
 
@@ -166,7 +167,7 @@ public class ScionHeaderParser {
       Scmp.Type t = Scmp.Type.parse(type);
       if (t == Scmp.Type.INFO_128 || t == Scmp.Type.INFO_130) {
         // request -> port is 30041
-        dstPort = 30041;
+        dstPort = Constants.SCMP_PORT;
       } else if (t == Scmp.Type.INFO_129 || t == Scmp.Type.INFO_131) {
         // response -> get port from SCMP identifier
         data.position(start + hdrLenBytes + 4);
