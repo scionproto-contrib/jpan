@@ -213,7 +213,7 @@ public class MockTopologyServer implements Closeable {
       try (ServerSocketChannel chnLocal = ServerSocketChannel.open()) {
         // Explicit binding to "localhost" to avoid automatic binding to IPv6 which is not
         // supported by GitHub CI (https://github.com/actions/runner-images/issues/668).
-        InetSocketAddress local = new InetSocketAddress(InetAddress.getLocalHost(), 45678);
+        InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 45678);
         chnLocal.bind(local);
         chnLocal.configureBlocking(true);
         ByteBuffer buffer = ByteBuffer.allocate(66000);

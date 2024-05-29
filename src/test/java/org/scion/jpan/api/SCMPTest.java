@@ -354,9 +354,8 @@ public class SCMPTest {
 
   @Test
   void setUpScmpResponder_echo_blocked() throws IOException, InterruptedException {
-    Thread.sleep(200); // TODO
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112(InetAddress.getLocalHost());
+    RequestPath path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
       sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
