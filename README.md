@@ -163,6 +163,8 @@ Before running the demos, you may have to execute `mvn compile` once.
 - [SCMP traceroute](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
 - [show paths](src/test/java/org/scion/jpan/demo/ShowpathsDemo.java)
 
+After compilation, demos can be executed from the IDE (recommended) or from command line.
+For example: `mvn exec:java -Dexec.mainClass="org.scion.jpan.demo.ScmpEchoDemo"`.
 
 ### General documentation
 

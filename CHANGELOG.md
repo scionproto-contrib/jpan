@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Added
 - SCMP echo responder [#78](https://github.com/scionproto-contrib/jpan/pull/78)
+- Maven Java executor [#80](https://github.com/scionproto-contrib/jpan/pull/80)
 
 ### Changed
 - Some API changes: [#67](https://github.com/scionproto-contrib/jpan/pull/67)
