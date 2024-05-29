@@ -83,6 +83,7 @@ public class ScmpTracerouteDemo {
           break;
         }
     }
+    Scion.closeDefault();
   }
 
   private void runDemo(long destinationIA) throws IOException {

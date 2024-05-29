@@ -319,6 +319,16 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <!-- Enable command line execution of demos. -->
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                    <cleanupDaemonThreads>false</cleanupDaemonThreads>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

@@ -100,6 +100,7 @@ public class ScmpEchoDemo {
           break;
         }
     }
+    Scion.closeDefault();
   }
 
   private void runDemo(long dstIA, InetSocketAddress dstAddress) throws IOException {
