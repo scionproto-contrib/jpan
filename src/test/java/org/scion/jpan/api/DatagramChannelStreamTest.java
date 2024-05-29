@@ -22,9 +22,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
@@ -48,8 +48,7 @@ class DatagramChannelStreamTest {
     assertEquals(2 * 2 * 2 * N_BULK, MockNetwork.getAndResetForwardCount());
   }
 
-  private void client(ScionDatagramChannel channel, ScionSocketAddress serverAddress, int id)
-      throws IOException {
+  private void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {
     String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
 
@@ -72,10 +71,10 @@ class DatagramChannelStreamTest {
   }
 
   private static class Pair {
-    ScionSocketAddress path;
+    Path path;
     String msg;
 
-    Pair(ScionSocketAddress path, String msg) {
+    Pair(Path path, String msg) {
       this.path = path;
       this.msg = msg;
     }
@@ -89,7 +88,7 @@ class DatagramChannelStreamTest {
     ArrayList<Pair> received = new ArrayList<>();
     for (int i = 0; i < N_BULK; i++) {
       request.clear();
-      ScionSocketAddress returnAddress = channel.receive(request);
+      Path returnAddress = channel.receive(request);
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();
       received.add(new Pair(returnAddress, msg));

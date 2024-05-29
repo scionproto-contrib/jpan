@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.Scion;
-import org.scion.jpan.ScionSocketAddress;
 
 public class PingPongHelperBase {
 
@@ -85,7 +84,7 @@ public class PingPongHelperBase {
   }
 
   interface ClientFactory {
-    AbstractEndpoint create(int id, ScionSocketAddress requestPath, int nRounds);
+    AbstractEndpoint create(int id, RequestPath requestPath, int nRounds);
   }
 
   interface ServerFactory {
@@ -108,8 +107,7 @@ public class PingPongHelperBase {
       }
       InetSocketAddress serverAddress = servers[0].getLocalAddress();
       MockDNS.install(MockNetwork.TINY_SRV_ISD_AS, serverAddress.getAddress());
-      RequestPath path = Scion.defaultService().getPaths(serverAddress).get(0);
-      ScionSocketAddress scionAddress = ScionSocketAddress.fromPath(path);
+      RequestPath scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
 
       Thread[] clients = new Thread[nClients];
       for (int i = 0; i < clients.length; i++) {

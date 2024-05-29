@@ -26,9 +26,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.ResponsePath;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 
@@ -128,8 +128,8 @@ class DatagramChannelApiConcurrencyTest {
           }
 
           // check that receive is responsive
-          ScionSocketAddress remote = server.receive(buffer);
-          server.send(buffer, remote);
+          ResponsePath path = server.receive(buffer);
+          server.send(buffer, path);
           // wait
           synchronized (receiveCount) {
             receiveCount.wait(1000);
@@ -138,7 +138,7 @@ class DatagramChannelApiConcurrencyTest {
 
           // send again to trigger 2nd receiver
           buffer.flip();
-          server.send(buffer, remote);
+          server.send(buffer, path);
           // wait
           synchronized (receiveCount) {
             receiveCount.wait(1000);

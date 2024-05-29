@@ -141,8 +141,7 @@ public class ScmpChannel implements AutoCloseable {
     } else if (result.isTimedOut()) {
       result.setNanoSeconds(timeOutMs * 1_000_000L);
     } else {
-      throw new IOException(
-          "SCMP error: " + result.getTypeCode() + " " + result.getTypeCode().getText());
+      throw new IOException("SCMP error: " + result.getTypeCode().getText());
     }
   }
 
@@ -408,7 +407,7 @@ public class ScmpChannel implements AutoCloseable {
     return channel.getLocalAddress();
   }
 
-  public ScionSocketAddress getRemoteAddress() throws IOException {
+  public InetSocketAddress getRemoteAddress() throws IOException {
     return channel.getRemoteAddress();
   }
 

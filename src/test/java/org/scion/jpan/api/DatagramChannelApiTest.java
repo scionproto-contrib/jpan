@@ -472,9 +472,7 @@ class DatagramChannelApiTest {
         (channel, expiredPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
-            ScionSocketAddress dst = ScionSocketAddress.fromPath(expiredPath);
-            channel.send(sendBuf, dst);
-            RequestPath newPath = (RequestPath) dst.getPath();
+            RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
             assertNull(channel.getConnectionPath());
@@ -492,8 +490,7 @@ class DatagramChannelApiTest {
         (channel, expiredPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
-            channel.send(sendBuf, expiredPath);
-            RequestPath newPath = (RequestPath) channel.getConnectionPath();
+            RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
             assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
             assertEquals(newPath, channel.getConnectionPath());
@@ -530,7 +527,7 @@ class DatagramChannelApiTest {
     PingPongChannelHelper.Client clientFn =
         (channel, basePath, id) -> {
           // Build a path that is already expired
-          RequestPath expiredPath = createExpiredPath(basePath.getPath());
+          RequestPath expiredPath = createExpiredPath(basePath);
           sendMethod.accept(channel, expiredPath);
 
           ByteBuffer response = ByteBuffer.allocate(100);

@@ -97,7 +97,7 @@ public class HostsFileParser {
       check(lineParts.length >= 2, "Expected ` `");
       String[] addrParts = lineParts[0].split(",");
       check(addrParts.length == 2, "Expected `,`");
-      long isdAs = ScionUtil.parseIA(addrParts[0]);
+      long isdIa = ScionUtil.parseIA(addrParts[0]);
       check(addrParts[1].startsWith("["), "Expected `[` before address");
       check(addrParts[1].endsWith("]"), "Expected `]` after address");
       String addrStr = addrParts[1].substring(1, addrParts[1].length() - 1).trim();
@@ -112,13 +112,13 @@ public class HostsFileParser {
           break;
         }
         InetAddress inetAddr = InetAddress.getByAddress(hostName, addrBytes);
-        entries.put(hostName, new HostEntry(isdAs, inetAddr));
+        entries.put(hostName, new HostEntry(isdIa, inetAddr));
       }
       InetAddress inetAddr = InetAddress.getByAddress(addrStr, addrBytes);
       // Use original address string as key
-      entries.put(addrStr, new HostEntry(isdAs, inetAddr));
+      entries.put(addrStr, new HostEntry(isdIa, inetAddr));
       // Use "normalized" address string as key (these may differ fo IPv6)
-      entries.put(inetAddr.getHostAddress(), new HostEntry(isdAs, inetAddr));
+      entries.put(inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr));
     } catch (IndexOutOfBoundsException | IllegalArgumentException | UnknownHostException e) {
       LOG.info("ERROR parsing file {}: error=\"{}\" line=\"{}\"", path, e.getMessage(), line);
     }

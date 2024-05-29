@@ -299,11 +299,6 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
-    if (dstAddress instanceof ScionSocketAddress
-        && ((ScionSocketAddress) dstAddress).isRequestAddress()) {
-      return getPaths(((ScionSocketAddress) dstAddress).getPath().asRequestPath());
-    }
-
     // Use getHostString() to avoid DNS reverse lookup.
     ScionAddress sa = getScionAddress(dstAddress.getHostString());
     return getPaths(sa.getIsdAs(), sa.getInetAddress(), dstAddress.getPort());
@@ -374,7 +369,7 @@ public class ScionService {
 
   /**
    * @param hostName hostName of the host to resolve
-   * @return The ISD/AS code for a hostname
+   * @return A ScionAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public long getIsdAs(String hostName) throws ScionException {
@@ -413,30 +408,12 @@ public class ScionService {
     throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
   }
 
-  @Deprecated // Please use lookupScionAddress() instead.
-  public ScionAddress getScionAddress(String hostName) throws ScionException {
-    return lookupAddress(hostName);
-  }
-
   /**
-   * Uses DNS and hostfiles to look up a SCIOn enabled IP address for a give host string.
-   *
-   * @param hostName hostName of the host to resolve
-   * @return A ScionSocketAddress
-   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
-   */
-  public ScionSocketAddress lookupSocketAddress(String hostName, int port) throws ScionException {
-    return ScionSocketAddress.fromScionAddress(lookupAddress(hostName), port);
-  }
-
-  /**
-   * Uses DNS and hostfiles to look up a SCIOn enabled IP address for a give host string.
-   *
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
-  public ScionAddress lookupAddress(String hostName) throws ScionException {
+  public ScionAddress getScionAddress(String hostName) throws ScionException {
     ScionAddress scionAddress = scionAddressCache.get(hostName);
     if (scionAddress != null) {
       return scionAddress;

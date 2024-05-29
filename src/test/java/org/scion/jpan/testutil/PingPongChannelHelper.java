@@ -20,8 +20,9 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.scion.jpan.Path;
+import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionSocketAddress;
 
 public class PingPongChannelHelper extends PingPongHelperBase {
 
@@ -59,11 +60,11 @@ public class PingPongChannelHelper extends PingPongHelperBase {
 
   private class ClientEndpoint extends AbstractChannelEndpoint {
     private final Client client;
-    private final ScionSocketAddress path;
+    private final RequestPath path;
     private final int nRounds;
     private final boolean connect;
 
-    ClientEndpoint(Client client, int id, ScionSocketAddress path, int nRounds, boolean connect) {
+    ClientEndpoint(Client client, int id, RequestPath path, int nRounds, boolean connect) {
       super(id);
       this.client = client;
       this.path = path;
@@ -74,7 +75,9 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     @Override
     public final void runImpl(ScionDatagramChannel channel) throws IOException {
       if (connect) {
-        channel.connect(path);
+        InetAddress inetAddress = path.getRemoteAddress();
+        InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getRemotePort());
+        channel.connect(iSAddress);
       }
       registerStartUpClient();
       for (int i = 0; i < nRounds; i++) {
@@ -107,7 +110,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   }
 
   public interface Client {
-    void run(ScionDatagramChannel channel, ScionSocketAddress path, int id) throws IOException;
+    void run(ScionDatagramChannel channel, RequestPath path, int id) throws IOException;
   }
 
   public interface Server {
@@ -125,18 +128,18 @@ public class PingPongChannelHelper extends PingPongHelperBase {
         reset);
   }
 
-  public static void defaultClient(
-      ScionDatagramChannel channel, ScionSocketAddress serverAddress, int id) throws IOException {
+  public static void defaultClient(ScionDatagramChannel channel, Path serverAddress, int id)
+      throws IOException {
     String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.send(sendBuf, serverAddress);
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    ScionSocketAddress address = channel.receive(response);
+    Path address = channel.receive(response);
     assertNotNull(address);
-    assertEquals(serverAddress.getAddress(), address.getAddress());
-    assertEquals(serverAddress.getPort(), address.getPort());
+    assertEquals(serverAddress.getRemoteAddress(), address.getRemoteAddress());
+    assertEquals(serverAddress.getRemotePort(), address.getRemotePort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
@@ -146,7 +149,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   public static void defaultServer(ScionDatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: Receiving ... (" + channel.getLocalAddress() + ")");
-    ScionSocketAddress address = channel.receive(request);
+    Path address = channel.receive(request);
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();

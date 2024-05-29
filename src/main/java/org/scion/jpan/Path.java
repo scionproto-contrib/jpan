@@ -53,10 +53,6 @@ public abstract class Path {
     return dstIsdAs;
   }
 
-  RequestPath asRequestPath() {
-    return (RequestPath) this;
-  }
-
   @Override
   public String toString() {
     return "Path{"

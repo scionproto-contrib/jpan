@@ -23,9 +23,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongSocketHelper;
 
@@ -59,10 +59,12 @@ class DatagramSocketConcurrentPingPongTest {
     assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
   }
 
-  private void client(ScionDatagramSocket socket, ScionSocketAddress requestPath, int id)
+  private void client(ScionDatagramSocket socket, RequestPath requestPath, int id)
       throws IOException {
     byte[] sendBuf = MSG.getBytes();
-    DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, requestPath);
+    InetAddress addr = requestPath.getRemoteAddress();
+    int port = requestPath.getRemotePort();
+    DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, addr, port);
     socket.send(request);
     // System.out.println("CLIENT: Sent ... (" + request.getSocketAddress() + ")");
 
