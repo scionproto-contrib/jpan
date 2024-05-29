@@ -295,16 +295,16 @@ public class SCMPTest {
   private RequestPath getPathTo112() {
     try {
       InetAddress zero = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
-      return getPathTo112(zero, Constants.SCMP_PORT);
+      return getPathTo112(zero);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  private RequestPath getPathTo112(InetAddress dstAddress, int dstPort) {
+  private RequestPath getPathTo112(InetAddress dstAddress) {
     ScionService service = Scion.defaultService();
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    return service.getPaths(dstIA, dstAddress, dstPort).get(0);
+    return service.getPaths(dstIA, dstAddress, Constants.SCMP_PORT).get(0);
   }
 
   private RequestPath getPathToLocalAS() {
@@ -323,8 +323,7 @@ public class SCMPTest {
   @Test
   void setUpScmpResponder_echo() throws IOException, InterruptedException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112(InetAddress.getLoopbackAddress(), Constants.SCMP_PORT);
-    ByteBuffer buf = ByteBuffer.allocate(0);
+    RequestPath path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
       sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
@@ -339,7 +338,7 @@ public class SCMPTest {
 
       // send request
       for (int i = 0; i < 10; i++) {
-        Scmp.EchoMessage msg = sender.sendEchoRequest(path, 1, buf);
+        Scmp.EchoMessage msg = sender.sendEchoRequest(path, 1, ByteBuffer.allocate(0));
         assertNotNull(msg);
         assertFalse(msg.isTimedOut());
         assertEquals(Scmp.TypeCode.TYPE_129, msg.getTypeCode());
@@ -355,9 +354,9 @@ public class SCMPTest {
 
   @Test
   void setUpScmpResponder_echo_blocked() throws IOException, InterruptedException {
+    Thread.sleep(200); // TODO
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112(InetAddress.getLocalHost(), Constants.SCMP_PORT);
-    ByteBuffer buf = ByteBuffer.allocate(0);
+    RequestPath path = getPathTo112(InetAddress.getLocalHost());
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
       sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
