@@ -58,6 +58,7 @@ public class MockNetwork {
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
+  static final AtomicInteger answerNextScmpEchos = new AtomicInteger();
   static CountDownLatch barrier = null;
   public static final int BORDER_ROUTER_PORT1 = 30555;
   private static final int BORDER_ROUTER_PORT2 = 30556;
@@ -130,6 +131,7 @@ public class MockNetwork {
     }
 
     dropNextPackets.getAndSet(0);
+    answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
   }
 
@@ -164,6 +166,7 @@ public class MockNetwork {
       routers = null;
     }
     dropNextPackets.getAndSet(0);
+    answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
   }
 
@@ -179,9 +182,25 @@ public class MockNetwork {
     return nForwardTotal.getAndSet(0);
   }
 
+  /**
+   * Set the routers to drop the next n packets.
+   *
+   * @param n packets to drop
+   */
   public static void dropNextPackets(int n) {
-    // set the routers to drop the next packet
     dropNextPackets.set(n);
+  }
+
+  /**
+   * Set the routers to answer the next n SCMP echo requests. In the real world we would just
+   * compare the SCMP's IP address to the BR's IP address. However, during unit tests this would
+   * always be 127.0.0.1, so it would always match. To avoid the problem we needs this explicit
+   * instruction to answer SCMP echo requests.
+   *
+   * @param n SCMP echo requests to answer
+   */
+  public static void answerNextScmpEchos(int n) {
+    answerNextScmpEchos.set(n);
   }
 
   public static void returnScmpErrorOnNextPacket(Scmp.TypeCode scmpTypeCode) {
@@ -280,7 +299,7 @@ class MockBorderRouter implements Runnable {
 
             switch (PackageVisibilityHelper.getNextHdr(buffer)) {
               case UDP:
-                handleUdp(buffer, srcAddress, outgoing);
+                forwardPacket(buffer, srcAddress, outgoing);
                 break;
               case SCMP:
                 handleScmp(buffer, srcAddress, incoming, outgoing);
@@ -301,7 +320,7 @@ class MockBorderRouter implements Runnable {
     }
   }
 
-  private void handleUdp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
+  private void forwardPacket(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     logger.info(
@@ -325,6 +344,26 @@ class MockBorderRouter implements Runnable {
       DatagramChannel incoming,
       DatagramChannel outgoing)
       throws IOException {
+    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+    Scmp.Type type0 = ScmpParser.extractType(buffer);
+    // ignore SCMP responses
+    if (type0 == Scmp.Type.INFO_129 || type0 == Scmp.Type.INFO_131) {
+      // always forward responses
+      buffer.rewind();
+      forwardPacket(buffer, srcAddress, outgoing);
+      return;
+    }
+
+    // ignore SCMP requests unless we are instructed to answer them
+    if (type0 == Scmp.Type.INFO_128 && MockNetwork.answerNextScmpEchos.get() == 0) {
+      buffer.rewind();
+      forwardPacket(buffer, srcAddress, outgoing);
+      return;
+    }
+    MockNetwork.answerNextScmpEchos.decrementAndGet();
+
+    buffer.rewind();
+    InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     // From here on we use linear reading using the buffer's position() mechanism
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     ResponsePath path =
@@ -345,7 +384,6 @@ class MockBorderRouter implements Runnable {
       answerTraceRoute(buffer, srcAddress, incoming);
     } else {
       // forward error
-      InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
       logger.info(
           name
               + " forwarding SCMP error "

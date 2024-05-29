@@ -92,10 +92,10 @@ public class ScmpEchoDemo {
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
-          ScmpEchoDemo demo = new ScmpEchoDemo(30041);
+          ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
           // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
           InetAddress ethzIP = Scion.defaultService().getScionAddress("ethz.ch").getInetAddress();
-          demo.runDemo(DemoConstants.iaETH, new InetSocketAddress(ethzIP, 30041));
+          demo.runDemo(DemoConstants.iaETH, new InetSocketAddress(ethzIP, Constants.SCMP_PORT));
           // demo.runDemo(DemoConstants.iaGEANT, serviceIP);
           break;
         }
@@ -179,6 +179,6 @@ public class ScmpEchoDemo {
   private static InetSocketAddress toAddr(String addrString) throws UnknownHostException {
     int posColon = addrString.indexOf(':');
     InetAddress addr = InetAddress.getByName(addrString.substring(0, posColon));
-    return new InetSocketAddress(addr, 30041);
+    return new InetSocketAddress(addr, Constants.SCMP_PORT);
   }
 }

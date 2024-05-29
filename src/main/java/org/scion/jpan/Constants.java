@@ -15,6 +15,12 @@
 package org.scion.jpan;
 
 public final class Constants {
+  public static final int SCMP_PORT = 30041;
+  /**
+   * @deprecated Dispatcher support will be removed soon.
+   */
+  @Deprecated public static final int DISPATCHER_PORT = 30041;
+
   public static final String PROPERTY_DAEMON = "org.scion.daemon";
   public static final String ENV_DAEMON = "SCION_DAEMON";
   public static final String DEFAULT_DAEMON = "localhost:30255";

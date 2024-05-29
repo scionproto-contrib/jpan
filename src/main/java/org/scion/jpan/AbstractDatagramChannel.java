@@ -193,7 +193,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public void disconnect() throws IOException {
     synchronized (stateLock) {
-      channel.disconnect();
+      channel.disconnect(); // TODO Why ? We shouldn´t do that...?
       connectionPath = null;
     }
   }
@@ -401,7 +401,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected int sendRaw(ByteBuffer buffer, InetSocketAddress address, Path path)
       throws IOException {
     if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
-      return channel.send(buffer, new InetSocketAddress(address.getAddress(), 30041));
+      return channel.send(
+          buffer, new InetSocketAddress(address.getAddress(), Constants.DISPATCHER_PORT));
     }
     return channel.send(buffer, address);
   }

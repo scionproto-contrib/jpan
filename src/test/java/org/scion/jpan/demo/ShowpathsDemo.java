@@ -77,7 +77,7 @@ public class ShowpathsDemo {
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
-          ShowpathsDemo demo = new ShowpathsDemo(30041);
+          ShowpathsDemo demo = new ShowpathsDemo(Constants.DISPATCHER_PORT);
           demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
           break;
