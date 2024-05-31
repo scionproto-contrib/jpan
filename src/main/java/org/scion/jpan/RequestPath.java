@@ -35,12 +35,18 @@ public class RequestPath extends Path {
   // We store the first hop separately to void creating unnecessary objects.
   private final InetSocketAddress firstHop;
 
+  @Deprecated
   static RequestPath create(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    return new RequestPath(path, dstIsdAs, dstIP, dstPort);
+    ScionSocketAddress dstAddress = new ScionSocketAddress(dstIsdAs, dstIP, dstPort);
+    return new RequestPath(path, dstAddress);
   }
 
-  private RequestPath(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
+  static RequestPath create(ScionSocketAddress dstAddress, Daemon.Path path) {
+    return new RequestPath(path, dstAddress);
+  }
+
+  private RequestPath(Daemon.Path path, ScionSocketAddress dstAddress) {
+    super(path.getRaw().toByteArray(), dstAddress);
     this.pathProtoc = path;
     if (getRawPath().length == 0) {
       // local AS has path length 0

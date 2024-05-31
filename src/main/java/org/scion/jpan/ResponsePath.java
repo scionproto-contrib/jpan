@@ -31,6 +31,7 @@ public class ResponsePath extends Path {
   private final InetAddress srcAddress;
   private final int srcPort;
 
+  @Deprecated
   public static ResponsePath create(
       byte[] rawPath,
       long srcIsdAs,
@@ -40,8 +41,18 @@ public class ResponsePath extends Path {
       InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
-    return new ResponsePath(
-        rawPath, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHopAddress);
+    ScionSocketAddress dstAddress = new ScionSocketAddress(dstIsdAs, dstIP, dstPort);
+    return new ResponsePath(rawPath, srcIsdAs, srcIP, srcPort, dstAddress, firstHopAddress);
+  }
+
+  public static ResponsePath create(
+      byte[] rawPath,
+      long srcIsdAs,
+      InetAddress srcIP,
+      int srcPort,
+      ScionSocketAddress dstAddress,
+      InetSocketAddress firstHopAddress) {
+    return new ResponsePath(rawPath, srcIsdAs, srcIP, srcPort, dstAddress, firstHopAddress);
   }
 
   private ResponsePath(
@@ -49,11 +60,9 @@ public class ResponsePath extends Path {
       long srcIsdAs,
       InetAddress srcIP,
       int srcPort,
-      long dstIsdAs,
-      InetAddress dstIP,
-      int dstPort,
+      ScionSocketAddress dstAddress,
       InetSocketAddress firstHopAddress) {
-    super(rawPath, dstIsdAs, dstIP, dstPort);
+    super(rawPath, dstAddress);
     this.firstHopAddress = firstHopAddress;
     this.srcIsdAs = srcIsdAs;
     this.srcAddress = srcIP;

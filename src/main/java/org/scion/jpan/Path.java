@@ -24,15 +24,14 @@ import java.util.Arrays;
  */
 public abstract class Path {
   private final byte[] pathRaw;
-  private final long dstIsdAs;
-  private final InetAddress dstAddress;
-  private final int dstPort;
+  //  private final long dstIsdAs;
+  //  private final InetAddress dstAddress;
+  //  private final int dstPort;
+  private final ScionSocketAddress dstAddress;
 
-  protected Path(byte[] rawPath, long dstIsdAs, InetAddress dstIP, int dstPort) {
+  protected Path(byte[] rawPath, ScionSocketAddress dstAddress) {
     this.pathRaw = rawPath;
-    this.dstIsdAs = dstIsdAs;
-    this.dstAddress = dstIP;
-    this.dstPort = dstPort;
+    this.dstAddress = dstAddress;
   }
 
   public byte[] getRawPath() {
@@ -42,15 +41,15 @@ public abstract class Path {
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
   public int getRemotePort() {
-    return dstPort;
+    return dstAddress.getPort();
   }
 
   public InetAddress getRemoteAddress() {
-    return dstAddress;
+    return dstAddress.getAddress();
   }
 
   public long getRemoteIsdAs() {
-    return dstIsdAs;
+    return dstAddress.getIsdAs();
   }
 
   RequestPath asRequestPath() {
@@ -59,15 +58,6 @@ public abstract class Path {
 
   @Override
   public String toString() {
-    return "Path{"
-        + "rmtIsdAs="
-        + ScionUtil.toStringIA(dstIsdAs)
-        + ", rmtAddress="
-        + dstAddress
-        + ", rmtPort="
-        + dstPort
-        + ", pathRaw="
-        + Arrays.toString(pathRaw)
-        + '}';
+    return "Path{" + ", rmtAddress=" + dstAddress + ", pathRaw=" + Arrays.toString(pathRaw) + '}';
   }
 }

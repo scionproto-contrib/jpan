@@ -107,7 +107,8 @@ public class PackageVisibilityHelper {
     try {
       InetAddress src = InetAddress.getByAddress(srcIP);
       InetAddress dst = InetAddress.getByAddress(dstIP);
-      return ResponsePath.create(raw, srcIsdAs, src, srcPort, dstIsdAs, dst, dstPort, firstHop);
+      ScionSocketAddress dstAddress = new ScionSocketAddress(dstIsdAs, dst, dstPort);
+      return ResponsePath.create(raw, srcIsdAs, src, srcPort, dstAddress, firstHop);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }

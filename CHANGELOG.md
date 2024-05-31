@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Rename `DatagramSocket` to `ScionDatagramSopcketl` and move it to main package
   - Rename `ScionSocketOptions`  starting with `SN_` to `SCION_`
 - SCMP API changes. [#71](https://github.com/scionproto-contrib/jpan/pull/71)
+- **BREAKING CHANGE**: `ScionSocketChannel.receive()` now returns new `ScionSocketAddress` 
+  which inherits `InetSocketAddress` and can have an associated path (via `getPath()`).
+  [#69](https://github.com/scionproto-contrib/jpan/pull/69)
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)

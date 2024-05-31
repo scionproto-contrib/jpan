@@ -16,10 +16,7 @@ package org.scion.jpan.internal;
 
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.jpan.Constants;
-import org.scion.jpan.Path;
-import org.scion.jpan.ResponsePath;
-import org.scion.jpan.Scmp;
+import org.scion.jpan.*;
 
 /** Utility methods for reading and writing the Common Header and Address Header. */
 public class ScionHeaderParser {
@@ -117,8 +114,8 @@ public class ScionHeaderParser {
     // rewind to original offset
     data.position(pos);
     // Swap src and dst.
-    return ResponsePath.create(
-        path, dstIsdAs, dstIP, dstPort, srcIsdAs, srcIP, srcPort, firstHopAddress);
+    ScionSocketAddress remoteAddress = new ScionSocketAddress(srcIsdAs, srcIP, srcPort);
+    return ResponsePath.create(path, dstIsdAs, dstIP, dstPort, remoteAddress, firstHopAddress);
   }
 
   /**
