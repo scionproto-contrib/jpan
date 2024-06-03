@@ -93,9 +93,11 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       send(srcBuffer, ssa);
       return 12345; // TODO
     }
-    InetSocketAddress dst = (InetSocketAddress) destination;
-    Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
-    send(srcBuffer, ScionSocketAddress.fromPath(path));
+    InetSocketAddress dstISA = (InetSocketAddress) destination;
+    ScionService service = getOrCreateService();
+    ScionSocketAddress dst = service.lookupSocketAddress(dstISA.getHostString(), dstISA.getPort());
+    // TODO dst.refreshPath(service, getPathPolicy(), getCfgExpirySafetyMargin());
+    send(srcBuffer, dst);
     return 12345; // TODO
   }
 

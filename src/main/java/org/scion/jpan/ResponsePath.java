@@ -41,7 +41,7 @@ public class ResponsePath extends Path {
       InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
-    ScionSocketAddress dstAddress = new ScionSocketAddress(dstIsdAs, dstIP, dstPort);
+    ScionSocketAddress dstAddress = ScionSocketAddress.fromScionIP(dstIsdAs, dstIP, dstPort);
     return new ResponsePath(rawPath, srcIsdAs, srcIP, srcPort, dstAddress, firstHopAddress);
   }
 

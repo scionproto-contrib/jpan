@@ -114,7 +114,7 @@ public class ScionHeaderParser {
     // rewind to original offset
     data.position(pos);
     // Swap src and dst.
-    ScionSocketAddress remoteAddress = new ScionSocketAddress(srcIsdAs, srcIP, srcPort);
+    ScionSocketAddress remoteAddress = ScionSocketAddress.fromScionIP(srcIsdAs, srcIP, srcPort);
     return ResponsePath.create(path, dstIsdAs, dstIP, dstPort, remoteAddress, firstHopAddress);
   }
 

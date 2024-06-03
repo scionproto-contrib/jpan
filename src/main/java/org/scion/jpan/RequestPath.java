@@ -37,7 +37,7 @@ public class RequestPath extends Path {
 
   @Deprecated
   static RequestPath create(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    ScionSocketAddress dstAddress = new ScionSocketAddress(dstIsdAs, dstIP, dstPort);
+    ScionSocketAddress dstAddress = ScionSocketAddress.fromScionIP(dstIsdAs, dstIP, dstPort);
     return new RequestPath(path, dstAddress);
   }
 

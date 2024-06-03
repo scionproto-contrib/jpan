@@ -92,7 +92,8 @@ public class PackageVisibilityHelper {
     Timestamp ts = Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond() + 100).build();
     Daemon.Path path =
         Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).setExpiration(ts).build();
-    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
+    ScionSocketAddress addr = ScionSocketAddress.fromScionIP(dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(addr, path);
   }
 
   public static ResponsePath createDummyResponsePath(
@@ -107,7 +108,7 @@ public class PackageVisibilityHelper {
     try {
       InetAddress src = InetAddress.getByAddress(srcIP);
       InetAddress dst = InetAddress.getByAddress(dstIP);
-      ScionSocketAddress dstAddress = new ScionSocketAddress(dstIsdAs, dst, dstPort);
+      ScionSocketAddress dstAddress = ScionSocketAddress.fromScionIP(dstIsdAs, dst, dstPort);
       return ResponsePath.create(raw, srcIsdAs, src, srcPort, dstAddress, firstHop);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
@@ -115,9 +116,10 @@ public class PackageVisibilityHelper {
   }
 
   public static RequestPath createRequestPath110_110(
-      Daemon.Path.Builder builder, long isdAs, InetAddress dstHost, int dstPort) {
+      Daemon.Path.Builder builder, long dstIsdAs, InetAddress dstHost, int dstPort) {
     Daemon.Path path = builder.build();
-    return RequestPath.create(path, isdAs, dstHost, dstPort);
+    ScionSocketAddress addr = ScionSocketAddress.fromScionIP(dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(addr, path);
   }
 
   public static RequestPath createRequestPath110_112(
@@ -141,6 +143,7 @@ public class PackageVisibilityHelper {
             .addInterfaces(
                 Daemon.PathInterface.newBuilder().setId(1).setIsdAs(ExamplePacket.DST_IA).build())
             .build();
-    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
+    ScionSocketAddress addr = ScionSocketAddress.fromScionIP(dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(addr, path);
   }
 }

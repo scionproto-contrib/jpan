@@ -20,9 +20,14 @@ import java.net.InetSocketAddress;
 import java.time.Instant;
 
 /**
- * A ScionSocketAddress is an InetSocketAddress with an attached path. The address part is immutable
- * and paths are immutable, but the address can be assigned a new path. This is necessary to allow
- * paths to be refreshed once they expire, if the policy changes or if the interface changes.
+ * A ScionSocketAddress is an InetSocketAddress with an attached path.
+ *
+ * <p>The address refers to a SCION enabled host. The `fromNonScionIP` method can be used to create
+ * a SCION address from a non-SCION IP.
+ *
+ * <p>The address part is immutable and path objects are immutable, but the address can be assigned
+ * a new path. This is necessary to allow paths to be refreshed once they expire, if the policy
+ * changes or if the interface changes.
  *
  * <p>The address represents the destination address of the path.
  */
@@ -37,12 +42,14 @@ public class ScionSocketAddress extends InetSocketAddress {
   //    this.isdAs = isdAs;
   //  }
 
-  public ScionSocketAddress(long isdAs, InetAddress addr, int port) {
+  // TODO We can make them public later
+  private ScionSocketAddress(long isdAs, InetAddress addr, int port) {
     super(addr, port);
     this.isdAs = isdAs;
   }
 
-  public ScionSocketAddress(long isdAs, InetSocketAddress addr) {
+  // TODO We can make them public later
+  private ScionSocketAddress(long isdAs, InetSocketAddress addr) {
     super(addr.getAddress(), addr.getPort());
     this.isdAs = isdAs;
   }
@@ -59,6 +66,10 @@ public class ScionSocketAddress extends InetSocketAddress {
     return new ScionSocketAddress(address.getIsdAs(), address.getInetAddress(), port);
   }
 
+  public static ScionSocketAddress fromNonScionIP(InetSocketAddress address) throws ScionException {
+    return fromNonScionIP(Scion.defaultService(), address.getAddress(), address.getPort());
+  }
+
   public static ScionSocketAddress fromNonScionIP(InetAddress address, int port)
       throws ScionException {
     return fromNonScionIP(Scion.defaultService(), address, port);
@@ -66,8 +77,7 @@ public class ScionSocketAddress extends InetSocketAddress {
 
   public static ScionSocketAddress fromNonScionIP(
       ScionService service, InetAddress address, int port) throws ScionException {
-    ScionAddress sa = service.getScionAddress(address.getHostName());
-    return new ScionSocketAddress(sa.getIsdAs(), sa.getInetAddress(), port);
+    return service.lookupSocketAddress(address.getHostName(), port);
   }
 
   public static ScionSocketAddress fromScionIP(long isdAs, InetAddress address, int port) {

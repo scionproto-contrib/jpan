@@ -348,14 +348,24 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<RequestPath> getPaths(long dstIsdAs, InetAddress dstAddress, int dstPort) {
+    return getPaths(ScionSocketAddress.fromScionIP(dstIsdAs, dstAddress, dstPort));
+  }
+
+  /**
+   * Request paths from the local ISD/AS to the destination.
+   *
+   * @param dstAddress Destination SCION address
+   * @return All paths returned by the path service.
+   */
+  public List<RequestPath> getPaths(ScionSocketAddress dstAddress) {
     long srcIsdAs = getLocalIsdAs();
-    List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
+    List<Daemon.Path> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
     if (paths.isEmpty()) {
       return Collections.emptyList();
     }
     List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
-      scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress, dstPort));
+      scionPaths.add(RequestPath.create(dstAddress, paths.get(i)));
     }
     return scionPaths;
   }
@@ -444,6 +454,7 @@ public class ScionService {
    * @return A ScionAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
+  @Deprecated // TODO NOW: remove this lookupAddress() method in favor of lookupSocketAddress()
   public ScionAddress lookupAddress(String hostName) throws ScionException {
     ScionAddress scionAddress = scionAddressCache.get(hostName);
     if (scionAddress != null) {

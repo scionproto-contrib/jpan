@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - **BREAKING CHANGE**: `ScionSocketChannel.receive()` now returns new `ScionSocketAddress` 
   which inherits `InetSocketAddress` and can have an associated path (via `getPath()`).
   [#69](https://github.com/scionproto-contrib/jpan/pull/69)
+TODO
+- fix send() return value
+- Try to deprecate/remove ScionAddress.
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
