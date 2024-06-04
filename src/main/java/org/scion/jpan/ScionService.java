@@ -89,12 +89,13 @@ public class ScionService {
 
   protected ScionService(String addressOrHost, Mode mode) {
     if (mode == Mode.DAEMON) {
+      LOG.info("Bootstrapping with daemon: target={}", addressOrHost);
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
       bootstrapper = null;
-      LOG.info("Path service started with daemon {} {}", channel, addressOrHost);
     } else {
+      LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
         bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
       } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
@@ -106,12 +107,12 @@ public class ScionService {
         throw new UnsupportedOperationException();
       }
       String csHost = bootstrapper.getControlServerAddress();
+      LOG.info("Bootstrapping with control service: {}", csHost);
       localIsdAs.set(bootstrapper.getLocalIsdAs());
       // TODO InsecureChannelCredentials: Implement authentication!
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
-      LOG.info("Path service started with control service {} {}", channel, csHost);
     }
     shutdownHook = addShutdownHook();
     try {
