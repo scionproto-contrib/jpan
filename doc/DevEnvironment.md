@@ -19,21 +19,20 @@ Setting up Java and Maven on MacOS can be tricky, so here are some pointers:
 Prerequisites
 
 - Java JDK 8 (=1.8) or later. This can be confirmed by running `java -version` and `javac -version`
-  (if the versions differ, check your `JAVA_HOME` environment variable, see below). 
+  (if the versions differ, check your `JAVA_HOME` environment variable, see below).
 - Maven. This can be confirmed by running `mvn -version`
 
-Good instructions for installing Java and Maven can be found 
+Good instructions for installing Java and Maven can, for example, be found
 [here](https://www.digitalocean.com/community/tutorials/install-maven-mac-os).
 Otherwise, you can follow the instructions below.
-
 
 ### JDK
 
 If JDK is missing or not working (usually it should be installed, but may require some setup to work
 in a console):
 
-1. If `java -version`  works and `javac` works then the JDK is properly installed already. Nothing
-   more to do.
+1. If `java -version`  works and `javac -version` works and report the same version then the JDK is
+   properly installed already. Please continue with installing Maven.
 2. Make sure that `brew` is installed, see for example
    [here](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-homebrew-on-macos).
 3. Check with `brew search jdk` weather a JDK is already installed. If no JDK is installed, install
