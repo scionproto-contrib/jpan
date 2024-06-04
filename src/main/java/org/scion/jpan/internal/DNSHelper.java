@@ -104,6 +104,7 @@ public class DNSHelper {
 
   public static String searchForDiscoveryService() {
     for (Name domain : Lookup.getDefaultSearchPath()) {
+      LOG.debug("Checking discovery service domain: {}", domain);
       String a = getScionDiscoveryAddress(domain);
       if (a != null) {
         return a;
@@ -119,14 +120,17 @@ public class DNSHelper {
   private static String getScionDiscoveryAddress(Name hostName) {
     Record[] records = new Lookup(hostName, Type.NAPTR).run();
     if (records == null) {
+      LOG.debug("Checking discovery service NAPTR: no records found");
       return null;
     }
 
     for (int i = 0; i < records.length; i++) {
       NAPTRRecord nr = (NAPTRRecord) records[i];
       String naptrService = nr.getService();
+      LOG.debug("Checking discovery service NAPTR: {}", naptrService);
       if (STR_X_SCION_TCP.equals(naptrService)) {
         String naptrFlag = nr.getFlags();
+        LOG.debug("Checking discovery service NAPTR flag: {}", naptrFlag);
         int port = getScionDiscoveryPort(hostName);
         if ("A".equals(naptrFlag)) {
           InetAddress addr = DNSHelper.queryA(nr.getReplacement());
