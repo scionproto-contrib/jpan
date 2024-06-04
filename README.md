@@ -153,18 +153,23 @@ To skip tests, please use `mvn clean test -DskipTests=true`.
 ### Demos
 
 Some demos can be found in [src/test/java/org/scion/jpan/demo](src/test/java/org/scion/jpan/demo).
-Before running the demos, you may have to execute `mvn compile` once.
-
-- `DatagramChannel` ping pong [client](src/test/java/org/scion/jpan/demo/PingPongChannelClient.java) 
-  and [server](src/test/java/org/scion/jpan/demo/PingPongChannelServer.java)
-- `DatagramSocket` ping pong [client](src/test/java/org/scion/jpan/demo/PingPongSocketClient.java)
-  and [server](src/test/java/org/scion/jpan/demo/PingPongSocketServer.java)
-- [SCMP echo](src/test/java/org/scion/jpan/demo/ScmpEchoDemo.java)
-- [SCMP traceroute](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
-- [show paths](src/test/java/org/scion/jpan/demo/ShowpathsDemo.java)
+Before running the demos, you may have [set up your development environment](doc/DevEnvironment.md) 
+and execute `mvn install -DskipTests=true`.
 
 After compilation, demos can be executed from the IDE (recommended) or from command line.
 For example: `mvn exec:java -Dexec.mainClass="org.scion.jpan.demo.ScmpEchoDemo"`.
+
+The following demos are included:
+
+- `DatagramChannel` ping pong 
+  [PingPongChannelClient.java](src/test/java/org/scion/jpan/demo/PingPongChannelClient.java) 
+  and [PingPongChannelServer.java](src/test/java/org/scion/jpan/demo/PingPongChannelServer.java)
+- `DatagramSocket` ping pong 
+  [PingPongSocketClient.java](src/test/java/org/scion/jpan/demo/PingPongSocketClient.java)
+  and [PingPongSocketServer.java](src/test/java/org/scion/jpan/demo/PingPongSocketServer.java)
+- SCMP echo: [ScmpEchoDemo.java](src/test/java/org/scion/jpan/demo/ScmpEchoDemo.java)
+- SCMP traceroute [ScmpTracerouteDemo.java](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
+- Showpaths: [ShowpathsDemo.java](src/test/java/org/scion/jpan/demo/ShowpathsDemo.java)
 
 ### General documentation
 
