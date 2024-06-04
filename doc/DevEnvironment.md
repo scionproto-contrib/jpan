@@ -48,3 +48,9 @@ or install it with brew:
 
 - Make sure Xcode is installed
 - Install maven with `brew install maven`
+
+### Running the demos
+
+1. Checkout the source code: `git clone https://github.com/scionproto-contrib/jpan.git`
+2. Compile with `mvn install -DskipTests=true`
+3. Run with `mvn exec:java -Dexec.mainClass="org.scion.jpan.demo.ScmpEchoDemo"`

@@ -154,7 +154,7 @@ To skip tests, please use `mvn clean test -DskipTests=true`.
 
 Some demos can be found in [src/test/java/org/scion/jpan/demo](src/test/java/org/scion/jpan/demo).
 Before running the demos, you may have [set up your development environment](doc/DevEnvironment.md) 
-and execute `mvn compile`.
+and execute `mvn install -DskipTests=true`.
 
 After compilation, demos can be executed from the IDE (recommended) or from command line.
 For example: `mvn exec:java -Dexec.mainClass="org.scion.jpan.demo.ScmpEchoDemo"`.
