@@ -71,6 +71,7 @@ public class HostsFileParser {
     } else {
       hostsFiles = "";
     }
+    LOG.debug("OS={}; hostsFiles=\"{}\"", os, hostsFiles);
 
     for (String file : hostsFiles.split(";")) {
       Path path = Paths.get(file);
