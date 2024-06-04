@@ -183,6 +183,10 @@ public class ScionService {
           return defaultService;
         }
         LOG.info("No DNS record found for bootstrap server.");
+        throw new ScionRuntimeException(
+            "No DNS record found for bootstrap server. This means "
+                + "the DNS server may not have NAPTR records for the bootstrap server or your host "
+                + "may not have the search domains configured in /etc/resolv.conf or similar.");
       }
       throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
