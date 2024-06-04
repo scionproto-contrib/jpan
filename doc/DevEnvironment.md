@@ -18,7 +18,8 @@ Setting up Java and Maven on MacOS can be tricky, so here are some pointers:
 
 Prerequisites
 
-- Java JDK 8 (=1.8) or later. This can be confirmed byt running `javac -version`
+- Java JDK 8 (=1.8) or later. This can be confirmed by running `java -version` and `javac -version`
+  (if the versions differ, check your `JAVA_HOME` environment variable, see below). 
 - Maven. This can be confirmed by running `mvn -version`
 
 Good instructions for installing Java and Maven can be found 
@@ -40,9 +41,6 @@ in a console):
 4. Ensure that `JAVA_HOME` points to the JDK home directory. Check with `echo $JAVA_HOME`.
    Set it with e.g. `export JAVA_HOME=/Library/Java/Java/VirtualMachines/jdk-22.jdk/Contents/Home`
    where `jdk-22.jdk` can vary depending on your JDK version.
-   Best add this line to your `.zshrc` file.
-5. **TBD** Ensure that `JAVA_HOME` is in the path. Check that `java -version` and `javac -version` are
-   correct. If necessary, add it with `export PATH="${JAVA_HOME}/bin:${PATH}"`.    
    Best add this line to your `.zshrc` file.
 
 ### Maven
