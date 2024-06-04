@@ -36,7 +36,7 @@ in a console):
    Set it with e.g. `export JAVA_HOME=/Library/Java/Java/VirtualMachines/jdk-22.jdk/Contents/Home`
    where `jdk-22.jdk` can vary depending on your JDK version.
    Best add this line to your `.zshrc` file.
-4. Ensure that JAVA_HOME is in the path. Check that `java -version` and `javac -version` are
+5. **TBD** Ensure that `JAVA_HOME` is in the path. Check that `java -version` and `javac -version` are
    correct. If necessary, add it with `export PATH="${JAVA_HOME}/bin:${PATH}"`.    
    Best add this line to your `.zshrc` file.
 
