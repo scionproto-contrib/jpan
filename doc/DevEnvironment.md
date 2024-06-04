@@ -21,7 +21,7 @@ Prerequisites
 - Java JDK 8 (=1.8) or later. This can be confirmed byt running `javac -version`
 - Maven. This can be confirmed by running `mvn -version`
 
-Good instructions can be found 
+Good instructions for installing Java and Maven can be found 
 [here](https://www.digitalocean.com/community/tutorials/install-maven-mac-os).
 Otherwise, you can follow the instructions below.
 
