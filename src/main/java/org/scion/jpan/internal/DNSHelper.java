@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.List;
 import java.util.function.Function;
 import org.scion.jpan.ScionRuntimeException;
 import org.slf4j.Logger;
@@ -103,7 +104,12 @@ public class DNSHelper {
   }
 
   public static String searchForDiscoveryService() {
-    for (Name domain : Lookup.getDefaultSearchPath()) {
+    List<Name> domains = Lookup.getDefaultSearchPath();
+    if (domains.isEmpty()) {
+      LOG.warn("No DNS search domain found. Please check your /etc/resolv.conf or similar.");
+    }
+    for (Name domain : domains) {
+      LOG.debug("Checking discovery service domain: {}", domain);
       String a = getScionDiscoveryAddress(domain);
       if (a != null) {
         return a;
@@ -119,6 +125,7 @@ public class DNSHelper {
   private static String getScionDiscoveryAddress(Name hostName) {
     Record[] records = new Lookup(hostName, Type.NAPTR).run();
     if (records == null) {
+      LOG.debug("Checking discovery service NAPTR: no records found");
       return null;
     }
 

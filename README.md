@@ -171,6 +171,8 @@ The following demos are included:
 - SCMP traceroute [ScmpTracerouteDemo.java](src/test/java/org/scion/jpan/demo/ScmpTracerouteDemo.java)
 - Showpaths: [ShowpathsDemo.java](src/test/java/org/scion/jpan/demo/ShowpathsDemo.java)
 
+If you encounter problems, please check the troubleshooting section below. 
+
 ### General documentation
 
 - Reference manual: https://docs.scion.org
@@ -340,7 +342,7 @@ is configurable, see next section.
 | Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 10                 |
 | Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles` | `SCION_HOSTS_FILES`  | `/etc/scion/hosts` |
 
-## FAQ / trouble shooting
+## FAQ / Troubleshooting
 
 ### Enable logging
 

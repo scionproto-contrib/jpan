@@ -89,12 +89,13 @@ public class ScionService {
 
   protected ScionService(String addressOrHost, Mode mode) {
     if (mode == Mode.DAEMON) {
+      LOG.info("Bootstrapping with daemon: target={}", addressOrHost);
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
       bootstrapper = null;
-      LOG.info("Path service started with daemon {} {}", channel, addressOrHost);
     } else {
+      LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
         bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
       } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
@@ -106,12 +107,12 @@ public class ScionService {
         throw new UnsupportedOperationException();
       }
       String csHost = bootstrapper.getControlServerAddress();
+      LOG.info("Bootstrapping with control service: {}", csHost);
       localIsdAs.set(bootstrapper.getLocalIsdAs());
       // TODO InsecureChannelCredentials: Implement authentication!
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
-      LOG.info("Path service started with control service {} {}", channel, csHost);
     }
     shutdownHook = addShutdownHook();
     try {
@@ -177,8 +178,15 @@ public class ScionService {
           ENV_USE_OS_SEARCH_DOMAINS,
           DEFAULT_USE_OS_SEARCH_DOMAINS)) {
         String dnsResolver = DNSHelper.searchForDiscoveryService();
-        defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
-        return defaultService;
+        if (dnsResolver != null) {
+          defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
+          return defaultService;
+        }
+        LOG.info("No DNS record found for bootstrap server.");
+        throw new ScionRuntimeException(
+            "No DNS record found for bootstrap server. This means "
+                + "the DNS server may not have NAPTR records for the bootstrap server or your host "
+                + "may not have the search domains configured in /etc/resolv.conf or similar.");
       }
       throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
