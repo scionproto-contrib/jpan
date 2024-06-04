@@ -178,8 +178,11 @@ public class ScionService {
           ENV_USE_OS_SEARCH_DOMAINS,
           DEFAULT_USE_OS_SEARCH_DOMAINS)) {
         String dnsResolver = DNSHelper.searchForDiscoveryService();
-        defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
-        return defaultService;
+        if (dnsResolver != null) {
+          defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);
+          return defaultService;
+        }
+        LOG.info("No DNS record found for bootstrap server.");
       }
       throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }

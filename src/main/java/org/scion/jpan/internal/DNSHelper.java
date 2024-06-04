@@ -106,7 +106,7 @@ public class DNSHelper {
   public static String searchForDiscoveryService() {
     List<Name> domains = Lookup.getDefaultSearchPath();
     if (domains.isEmpty()) {
-      LOG.warn("No DNS search domain found. Please check your /etc/resolv.con or similar");
+      LOG.warn("No DNS search domain found. Please check your /etc/resolv.conf or similar.");
     }
     for (Name domain : domains) {
       LOG.debug("Checking discovery service domain: {}", domain);
@@ -132,10 +132,8 @@ public class DNSHelper {
     for (int i = 0; i < records.length; i++) {
       NAPTRRecord nr = (NAPTRRecord) records[i];
       String naptrService = nr.getService();
-      LOG.debug("Checking discovery service NAPTR: {}", naptrService);
       if (STR_X_SCION_TCP.equals(naptrService)) {
         String naptrFlag = nr.getFlags();
-        LOG.debug("Checking discovery service NAPTR flag: {}", naptrFlag);
         int port = getScionDiscoveryPort(hostName);
         if ("A".equals(naptrFlag)) {
           InetAddress addr = DNSHelper.queryA(nr.getReplacement());

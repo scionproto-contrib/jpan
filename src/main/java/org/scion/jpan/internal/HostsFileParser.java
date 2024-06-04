@@ -66,7 +66,7 @@ public class HostsFileParser {
     String os = System.getProperty("os.name");
     if (propHostsFiles != null && !propHostsFiles.isEmpty()) {
       hostsFiles = propHostsFiles;
-    } else if ("Linux".equals(os)) {
+    } else if ("Linux".equals(os) || "Mac OS X".equals(os)) {
       hostsFiles = PATH_LINUX;
     } else {
       hostsFiles = "";
