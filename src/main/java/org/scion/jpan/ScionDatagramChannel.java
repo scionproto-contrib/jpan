@@ -169,11 +169,11 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
       // + 8 for UDP overlay header length
-      checkPathAndBuildHeader(buffer, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeader(buffer, getRemoteAddress(), len + 8, InternalConstants.HdrTypes.UDP);
       buffer.put(src);
       buffer.flip();
 
-      int sent = sendRaw(buffer, getConnectionPath().getFirstHopAddress(), getConnectionPath());
+      int sent = sendRaw(buffer, getRemoteAddress().getFirstHopAddress(), getRemoteAddress());
       if (sent < buffer.limit() || buffer.remaining() > 0) {
         throw new ScionException("Failed to send all data.");
       }

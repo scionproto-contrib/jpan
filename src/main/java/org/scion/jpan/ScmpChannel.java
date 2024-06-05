@@ -407,7 +407,7 @@ public class ScmpChannel implements AutoCloseable {
     return channel.getLocalAddress();
   }
 
-  public InetSocketAddress getRemoteAddress() throws IOException {
+  public RequestPath getRemoteAddress() throws IOException {
     return channel.getRemoteAddress();
   }
 

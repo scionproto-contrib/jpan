@@ -21,18 +21,24 @@ import java.util.Arrays;
  * A Path is an InetSocketAddress/ISD/AS of a destination host plus a path to that host.
  *
  * <p>This class is thread safe.
+ *
+ * <p>Design considerations:<br>
+ * - Having Path subclass InetSocketAddress may feel a bit awkward, not least because
+ * getAddress()/getPort() are not immediately clear to refer to the remote host. However,
+ * subclassing InetSocketAddress allows paths to be returned by DatagramChannel.receive(), which
+ * would otherwise not be possible.<br>
+ * - Having two sublasses of Path ensures that RequestPaths and ResponsePath are never mixed up.<br>
+ * - The design also allows immutability, and thus thread safety.<br>
+ * - Having metadata in a separate class makes the API cleaner.
  */
-public abstract class Path {
+public abstract class Path extends InetSocketAddress {
   private final byte[] pathRaw;
   private final long dstIsdAs;
-  private final InetAddress dstAddress;
-  private final int dstPort;
 
   protected Path(byte[] rawPath, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    super(dstIP, dstPort);
     this.pathRaw = rawPath;
     this.dstIsdAs = dstIsdAs;
-    this.dstAddress = dstIP;
-    this.dstPort = dstPort;
   }
 
   public byte[] getRawPath() {
@@ -41,27 +47,35 @@ public abstract class Path {
 
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
+  @Deprecated // Use getPort() instead
   public int getRemotePort() {
-    return dstPort;
+    return getPort();
   }
 
+  @Deprecated // Use getAddress() instead
   public InetAddress getRemoteAddress() {
-    return dstAddress;
+    return getAddress();
   }
 
+  @Deprecated // Use getIsdAs() instead
   public long getRemoteIsdAs() {
+    return dstIsdAs;
+  }
+
+  /**
+   * @return ISD/AS of the remote host.
+   */
+  public long getIsdAs() {
     return dstIsdAs;
   }
 
   @Override
   public String toString() {
     return "Path{"
-        + "rmtIsdAs="
+        + "ISD/AS="
         + ScionUtil.toStringIA(dstIsdAs)
-        + ", rmtAddress="
-        + dstAddress
-        + ", rmtPort="
-        + dstPort
+        + ", address="
+        + super.toString()
         + ", pathRaw="
         + Arrays.toString(pathRaw)
         + '}';

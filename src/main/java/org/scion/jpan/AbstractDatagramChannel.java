@@ -179,16 +179,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   /**
    * Returns the remote address.
    *
+   * @return The remote address or 'null' if this channel is not connected.
    * @see DatagramChannel#getRemoteAddress()
-   * @return The remote address.
+   * @see #connect(SocketAddress)
+   * @see #connect(RequestPath)
    * @throws IOException If an I/O error occurs
    */
-  public InetSocketAddress getRemoteAddress() throws IOException {
-    Path path = getConnectionPath();
-    if (path != null) {
-      return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
-    }
-    return null;
+  public RequestPath getRemoteAddress() throws IOException {
+    return connectionPath;
   }
 
   public void disconnect() throws IOException {
@@ -214,12 +212,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
-   * border router (first hop) instead of the remote host.
+   * Connect to a destination host.
    *
-   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
-   * instead it calls bind(). That means this method does NOT perform any additional security checks
-   * associated with connect(), only those associated with bind().
+   * <p>NB: A SCION channel will internally connect to the next border router (first hop) instead of
+   * the remote host.
+   *
+   * <p>NB: This method does internally not call {@link
+   * java.nio.channels.DatagramChannel}.connect(), instead it calls bind(). That means this method
+   * does NOT perform any additional security checks associated with connect(), only those
+   * associated with bind().
    *
    * @param addr Address of remote host.
    * @return This channel.
@@ -574,6 +575,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcIA = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
         srcPort = rPath.getLocalPort();
+        // TODO do we need to verify that the srcAddress is equal to the used local address?
       } else {
         srcIA = getOrCreateService().getLocalIsdAs();
         if (overrideExternalAddress != null) {
@@ -610,14 +612,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           rawPath.length,
           srcIA,
           srcAddress.getAddress(),
-          path.getRemoteIsdAs(),
-          path.getRemoteAddress().getAddress(),
+          path.getIsdAs(),
+          path.getAddress().getAddress(),
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
 
       if (hdrType == InternalConstants.HdrTypes.UDP) {
-        int dstPort = path.getRemotePort();
+        int dstPort = path.getPort();
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
     }

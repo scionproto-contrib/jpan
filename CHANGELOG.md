@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Rename `DatagramSocket` to `ScionDatagramSopcketl` and move it to main package
   - Rename `ScionSocketOptions`  starting with `SN_` to `SCION_`
 - SCMP API changes. [#71](https://github.com/scionproto-contrib/jpan/pull/71)
+- Make `Path` inherit `InetSocketAddress` [#69](https://github.com/scionproto-contrib/jpan/pull/69) 
+
+TODO
+- Revert metadata being a separate class? go-SNET also has a separate class...
+- Make Path fully immutable?
+- Move design doc from Path javadoc to Design.md
+- return value of send()? Separate PR?
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
