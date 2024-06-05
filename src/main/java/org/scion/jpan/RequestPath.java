@@ -14,10 +14,13 @@
 
 package org.scion.jpan;
 
+import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
+
 import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 
@@ -68,4 +71,35 @@ public class RequestPath extends Path {
   public PathMetadata getMetadata() {
     return metadata;
   }
+
+//  /**
+//   * @param service Service for obtaining new paths when required
+//   * @param pathPolicy PathPolicy for selecting a new path when required
+//   * @param expiryMargin Expiry margin, i.e. a path is considered "expired" if expiry is less than
+//   *     expiryMargin seconds away.
+//   * @return `false` if the path is `null`, it it is a ResponsePath or if it didn't need updating.
+//   *     Returns `true` only if the path was updated.
+//   */
+//  synchronized boolean refreshPath(ScionService service, PathPolicy pathPolicy, int expiryMargin)
+//          throws IOException {
+////    if (path == null) {
+////      path = pathPolicy.filter(service.getPaths(this));
+////      if (path == null) {
+////        throw new IOException("Address is not resolvable in SCION: " + super.toString());
+////      }
+////      return true;
+////    }
+////
+////    if (!(path instanceof RequestPath)) {
+////      return false;
+////    }
+////
+////    RequestPath requestPath = (RequestPath) path;
+//    if (Instant.now().getEpochSecond() + expiryMargin <= getMetadata().getExpiration()) {
+//      return false;
+//    }
+//    // expired, get new path
+//    path = pathPolicy.filter(service.getPaths(requestPath));
+//    return true;
+//  }
 }

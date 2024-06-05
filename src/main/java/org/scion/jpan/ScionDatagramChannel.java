@@ -84,20 +84,23 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public void send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
+  public int send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
+    if (destination instanceof Path) {
+      return send(srcBuffer, (Path) destination);
+    }
     InetSocketAddress dst = (InetSocketAddress) destination;
     Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
-    send(srcBuffer, path);
+    return sendPath(srcBuffer, path);
   }
 
   /**
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
-   * @param path Path to destination. If this is a Request path and it is expired then it will
+   * @param path Path to destination. If this is a RequestPath, and it is expired, then it will
    *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
    * @return either the path argument or a new path if the path was an expired RequestPath. Note
    *     that ResponsePaths are not checked for expiration.
@@ -105,7 +108,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
+  public int sendPath(ByteBuffer srcBuffer, Path path) throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
@@ -119,8 +122,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      sendRaw(buffer, actualPath.getFirstHopAddress(), actualPath);
-      return actualPath;
+      return sendRaw(buffer, actualPath.getFirstHopAddress(), actualPath);
     } finally {
       writeLock().unlock();
     }

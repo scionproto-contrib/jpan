@@ -20,14 +20,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Rename `ScionSocketOptions`  starting with `SN_` to `SCION_`
 - SCMP API changes. [#71](https://github.com/scionproto-contrib/jpan/pull/71)
 - Make `Path` inherit `InetSocketAddress` [#69](https://github.com/scionproto-contrib/jpan/pull/69) 
-  **BREAKING CHANGE**: Access to path metadata has been moved to `Path.getMetadata()`
+  - **BREAKING CHANGE**: Access to path metadata has been moved to `Path.getMetadata()`.
+  - **BREAKING CHANGE**: ScionDatagramChannel.send(buffer, path) returns 'int'.
 
 TODO
 - Revert metadata being a separate class? go-SNET also has a separate class...
 - Make Path fully immutable?
+  --> How do we refresh Paths? How do we return refreshed paths from send()?
+  --> Maybe not return, but cache refreshed path, either in Path itself (weird?) or
+      in ScionService?
+- Move expiryMargin to ScionService? 
 - Move design doc from Path javadoc to Design.md
 - return value of send()? Separate PR?
-- deprecate/remove getConnectedPath()
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)

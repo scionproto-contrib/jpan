@@ -629,17 +629,43 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
     synchronized (stateLock) {
-      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin
-          <= path.getMetadata().getExpiration()) {
-        return path;
-      }
-      // expired, get new path
-      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
-      if (isConnected()) {
-        updateConnection(newPath, true);
+      // TODO remove
+//      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin
+//          <= path.getMetadata().getExpiration()) {
+//        return path;
+//      }
+//      // expired, get new path
+//      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
+//      if (isConnected()) {
+//        updateConnection(newPath, true);
+//      }
+//      return newPath;
+
+      // TODO ensure that refresh always heappens, e.g. in v1 we call in inside send()....
+      RequestPath newPath = refresh(path);
+      if (path != refresh(path) && isConnected()) {
+        // TODO move this `if` into refresh()?
+          updateConnection(path, true);
       }
       return newPath;
+
+//
+//      // TODO this assumes that the part modifies itself!
+//      if (path.refreshPath(getOrCreateService(), pathPolicy, cfgExpirationSafetyMargin)) {
+//        if (isConnected()) {
+//          updateConnection(path, true);
+//        }
+//      }
+
     }
+  }
+
+  private RequestPath refresh(RequestPath path) {
+    if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getMetadata().getExpiration()) {
+      return path;
+    }
+    // expired, get new path
+    return pathPolicy.filter(service.getPaths(path));
   }
 
   private void updateConnection(RequestPath newPath, boolean mustBeConnected) throws IOException {
