@@ -625,7 +625,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
     synchronized (stateLock) {
-      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
+      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin
+          <= path.getMetadata().getExpiration()) {
         return path;
       }
       // expired, get new path
