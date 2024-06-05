@@ -53,7 +53,7 @@ public class PingPongChannelClient {
       channel.write(sendBuf);
       println(
           "Sent via "
-              + ScionUtil.toStringPath((RequestPath) channel.getConnectionPath())
+              + ScionUtil.toStringPath((RequestPath) channel.getRemoteAddress())
               + ": "
               + msg);
 

@@ -398,7 +398,9 @@ public class ScmpChannel implements AutoCloseable {
    *
    * @return the current Path
    * @see ScionDatagramChannel#getConnectionPath()
+   * @deprecated Please use getRemoteAddress() instead
    */
+  @Deprecated
   public RequestPath getConnectionPath() {
     return (RequestPath) channel.getConnectionPath();
   }

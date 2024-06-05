@@ -301,7 +301,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * #connect(RequestPath)} and may be refreshed when expired.
    *
    * @return the current Path or `null` if not path is connected.
+   * @deprecated Please use getRemoteAddress() instead
    */
+  @Deprecated
   public Path getConnectionPath() {
     synchronized (stateLock) {
       return connectionPath;

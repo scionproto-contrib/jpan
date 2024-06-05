@@ -133,7 +133,7 @@ class DatagramChannelApiTest {
       InetSocketAddress local = channel.getLocalAddress();
       assertTrue(local.getAddress().isAnyLocalAddress());
       // double check that we used a responsePath
-      assertNull(channel.getConnectionPath());
+      assertNull(channel.getRemoteAddress());
     }
   }
 
@@ -476,7 +476,7 @@ class DatagramChannelApiTest {
             assertTrue(
                 newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
-            assertNull(channel.getConnectionPath());
+            assertNull(channel.getRemoteAddress());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
@@ -495,7 +495,7 @@ class DatagramChannelApiTest {
             assertTrue(
                 newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
-            assertEquals(newPath, channel.getConnectionPath());
+            assertEquals(newPath, channel.getRemoteAddress());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
@@ -511,7 +511,7 @@ class DatagramChannelApiTest {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
             channel.write(sendBuf);
-            RequestPath newPath = (RequestPath) channel.getConnectionPath();
+            RequestPath newPath = channel.getRemoteAddress();
             assertTrue(
                 newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
@@ -564,22 +564,22 @@ class DatagramChannelApiTest {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      assertNull(channel.getConnectionPath());
+      assertNull(channel.getRemoteAddress());
       // send should NOT set a path
       channel.send(buffer, addr);
-      assertNull(channel.getConnectionPath());
+      assertNull(channel.getRemoteAddress());
 
       // connect should set a path
       channel.connect(addr);
-      assertNotNull(channel.getConnectionPath());
+      assertNotNull(channel.getRemoteAddress());
       channel.disconnect();
-      assertNull(channel.getConnectionPath());
+      assertNull(channel.getRemoteAddress());
 
       // send should NOT set a path
       if (Util.getJavaMajorVersion() >= 14) {
         // This fails because of disconnect(), see https://bugs.openjdk.org/browse/JDK-8231880
         channel.send(buffer, addr);
-        assertNull(channel.getConnectionPath());
+        assertNull(channel.getRemoteAddress());
       }
     }
   }

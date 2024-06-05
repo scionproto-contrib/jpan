@@ -58,12 +58,12 @@ class DatagramChannelErrorHandlingTest {
       RequestPath path1 = paths.get(0);
       channel.connect(path0);
       channel.write(ByteBuffer.allocate(0));
-      assertEquals(path0, channel.getConnectionPath());
+      assertEquals(path0, channel.getRemoteAddress());
 
       // TODO Use mock instead of daemon?
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_5);
       channel.write(ByteBuffer.allocate(0));
-      assertEquals(path0, channel.getConnectionPath());
+      assertEquals(path0, channel.getRemoteAddress());
       assertEquals(1, scmpReceived.get());
       // mock.setSendCallback((byteBuffer,path) -> {});
 

@@ -533,7 +533,9 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    *
    * @return the current Path or `null` if not path is connected.
    * @see ScionDatagramChannel#getConnectionPath()
+   * @deprecated Please use getRemoteAddress() instead
    */
+  @Deprecated
   public RequestPath getConnectionPath() {
     return (RequestPath) channel.getConnectionPath();
   }
