@@ -25,13 +25,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - **BREAKING CHANGE**: ScionDatagramChannel.send(buffer, path) returns 'int'.
 
 TODO
-- Make Path fully immutable?
-  --> How do we refresh Paths? How do we return refreshed paths from send()?
-  --> Maybe not return, but cache refreshed path, either in Path itself (weird?) or
-      in ScionService?
 - Move expiryMargin to ScionService? 
-- Move design doc from Path javadoc to Design.md
-- return value of send()? Separate PR?
+- return value of send()? Separate PR? -> test send() result
 
 TODO general
 - Why are these synchronized, they are only reading? isBlocking(), getPathPolicy(), ...

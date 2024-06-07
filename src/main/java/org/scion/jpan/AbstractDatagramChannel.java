@@ -400,9 +400,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.overrideExternalAddress = address;
   }
 
-  protected int sendRaw(ByteBuffer buffer, Path path)
-      throws IOException {
-    if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
+  protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
+    if (cfgRemoteDispatcher && path.getRawPath().length == 0) {
       InetAddress remoteHostIP = path.getFirstHopAddress().getAddress();
       return channel.send(buffer, new InetSocketAddress(remoteHostIP, Constants.DISPATCHER_PORT));
     }

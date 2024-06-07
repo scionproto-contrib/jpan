@@ -64,15 +64,35 @@ used or returned by `Scion.defaultService()`.
 
 ## Paths
 
-There are two types of paths (both inherit `Path`:
+`Path` contains a destination IA:IP:port, a raw path and a first hop IP:port.
 
+There are two subclasses of paths (both inherit `Path`):
+ 
 - `RequestPath` are used to send initial request. They are retrieved from a path service and contain
   meta information.
-- `ResponsePath` are used to respond to a client request. They are extracted from SCION packets.
+- `ResponsePath` are used to respond to a client request. They are extracted from SCION packets. 
+  They also contains origin ISD/AS:IP:port.
 
-`Path` contains a destination IA:IP:port, a raw path and a first hop IP:port.
-`RequestPath` also contains path meta information.
-`ResponsePath` also contains origin IA:IP:port.
+### Design choices - Subclassing InetSocketAddress
+
+`Path` is a subclass of `InetSocketAddress`. This is useful for `DatagramChannel`'s `receive()` 
+(which returns an `InetScoketAddress`) and `send()` which requires an `InetSocketAddress` as
+argument.
+
+The catch here is that `Path` has `getAddress()` and `getPort()` which are now contracted to 
+return the *remote* IP/port. Ideally they would be called `getRemoteAddress()` and`getRemotePort()` 
+but that is not possible. 
+
+### Design choices - Mutable & separate "details"
+
+For concurrent usage, `Path`s should be thread safe. THis would ideally be achieved by making them
+immutable. 
+The problem is that paths expire or can otherwise be invalidated. We could make this explicit and
+force API users to either manage expiry/invalidation manually. 
+
+The alternative is to move the path of `Path` that is mutable to a new class `PathDetails`.
+`PathDetails` is itself immutable and is referenced atomically from `Path`, so thread safe
+behaviour is still easily achievable.
 
 ## DatagramSocket
 

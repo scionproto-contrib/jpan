@@ -21,16 +21,6 @@ import java.util.Arrays;
  * A Path is an InetSocketAddress/ISD/AS of a destination host plus a path to that host.
  *
  * <p>This class is thread safe.
- *
- * <p>Design considerations:<br>
- * - Having Path inherit InetSocketAddress may feel a bit awkward, not least because
- * getAddress()/getPort() are not immediately clear to refer to the remote host. However,
- * subclassing InetSocketAddress allows paths to be returned from DatagramChannel.receive(), which
- * would otherwise not be possible.<br>
- * - Having two subclasses of Path ensures that RequestPaths and ResponsePath are never mixed up.
- * <br>
- * - The design also allows immutability, and thus thread safety.<br>
- * - Having metadata in a separate class makes the API cleaner.
  */
 public abstract class Path extends InetSocketAddress {
   private final long dstIsdAs;
