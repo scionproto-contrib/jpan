@@ -85,9 +85,8 @@ class DatagramChannelApiServerTest {
               new byte[4],
               1,
               new InetSocketAddress("127.0.0.1", 1));
-      Path p2 = channel.send(ByteBuffer.allocate(0), path);
+      channel.send(ByteBuffer.allocate(0), path);
       assertNull(channel.getService());
-      assertEquals(path, p2);
     }
   }
 

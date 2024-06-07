@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -86,7 +85,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   public PathPolicy getPathPolicy() {
-    synchronized (stateLock) {
+    synchronized (stateLock) { // TODO why synchronized???
       return this.pathPolicy;
     }
   }
@@ -539,18 +538,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   /**
    * @param path path
    * @param payloadLength payload length
-   * @return argument path or a new path if the argument path was expired
    * @throws IOException in case of IOException.
    */
-  protected Path checkPathAndBuildHeader(
+  protected void checkPathAndBuildHeader(
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     synchronized (stateLock) {
       if (path instanceof RequestPath) {
-        path = ensureUpToDate((RequestPath) path);
+        RequestPath requestPath = (RequestPath) path;
+        ScionService svc = getOrCreateService();
+        if (svc.refreshPath(requestPath, getPathPolicy(), cfgExpirationSafetyMargin)
+            && isConnected()) {
+          updateConnection(requestPath, true);
+        }
       }
       buildHeader(buffer, path, payloadLength, hdrType);
-      return path;
     }
   }
 
@@ -625,47 +627,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
     }
-  }
-
-  protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
-    synchronized (stateLock) {
-      // TODO remove
-//      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin
-//          <= path.getMetadata().getExpiration()) {
-//        return path;
-//      }
-//      // expired, get new path
-//      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
-//      if (isConnected()) {
-//        updateConnection(newPath, true);
-//      }
-//      return newPath;
-
-      // TODO ensure that refresh always heappens, e.g. in v1 we call in inside send()....
-      RequestPath newPath = refresh(path);
-      if (path != refresh(path) && isConnected()) {
-        // TODO move this `if` into refresh()?
-          updateConnection(path, true);
-      }
-      return newPath;
-
-//
-//      // TODO this assumes that the part modifies itself!
-//      if (path.refreshPath(getOrCreateService(), pathPolicy, cfgExpirationSafetyMargin)) {
-//        if (isConnected()) {
-//          updateConnection(path, true);
-//        }
-//      }
-
-    }
-  }
-
-  private RequestPath refresh(RequestPath path) {
-    if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getMetadata().getExpiration()) {
-      return path;
-    }
-    // expired, get new path
-    return pathPolicy.filter(service.getPaths(path));
   }
 
   private void updateConnection(RequestPath newPath, boolean mustBeConnected) throws IOException {

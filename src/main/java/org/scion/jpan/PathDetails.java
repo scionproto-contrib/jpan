@@ -14,26 +14,54 @@
 
 package org.scion.jpan;
 
+import java.io.UncheckedIOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 
 /**
- * PathMetadata contains additional meta information such as bandwidth, latency or geo coordinates.
- * PathMetadata is available from a RequestPaths are created/returned by the ScionService when
- * requesting a new path from the control service.
+ * PathDetails contains the raw path and meta information such as bandwidth, latency or geo
+ * coordinates. PathDetails is available from RequestPaths that are created/returned by the
+ * ScionService when requesting a new path from the control service.
  */
-public class PathMetadata {
+public class PathDetails {
 
   private final Daemon.Path pathProtoc;
+  private final byte[] pathRaw;
+  // We store the first hop separately to void creating unnecessary objects.
+  private final InetSocketAddress firstHop;
 
-  static PathMetadata create(Daemon.Path path) {
-    return new PathMetadata(path);
+  static PathDetails create(Daemon.Path path, InetAddress dstIP, int dstPort) {
+    return new PathDetails(path, dstIP, dstPort);
   }
 
-  private PathMetadata(Daemon.Path path) {
+  private PathDetails(Daemon.Path path, InetAddress dstIP, int dstPort) {
     this.pathProtoc = path;
+    this.pathRaw = path.getRaw().toByteArray();
+    if (getRawPath().length == 0) {
+      // local AS has path length 0
+      firstHop = new InetSocketAddress(dstIP, dstPort);
+    } else {
+      firstHop = getFirstHopAddress(path);
+    }
+  }
+
+  private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
+    try {
+      String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
+      int splitIndex = underlayAddressString.indexOf(':');
+      InetAddress ip = IPHelper.toInetAddress(underlayAddressString.substring(0, splitIndex));
+      int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+      return new InetSocketAddress(ip, port);
+    } catch (UnknownHostException e) {
+      // This really should never happen, the first hop is a literal IP address.
+      throw new UncheckedIOException(e);
+    }
   }
 
   private Daemon.Path protoPath() {
@@ -43,6 +71,14 @@ public class PathMetadata {
               + " were retrieved directly from a path server.");
     }
     return pathProtoc;
+  }
+
+  public InetSocketAddress getFirstHopAddress() throws UnknownHostException {
+    return firstHop;
+  }
+
+  public byte[] getRawPath() {
+    return pathRaw;
   }
 
   /**

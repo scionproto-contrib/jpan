@@ -619,8 +619,8 @@ class DatagramSocketApiTest {
             socket.send(packet);
             RequestPath newPath = socket.getConnectionPath();
             assertTrue(
-                newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
-            assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
+                newPath.getDetails().getExpiration() > expiredPath.getDetails().getExpiration());
+            assertTrue(Instant.now().getEpochSecond() < newPath.getDetails().getExpiration());
             // assertNull(channel.getCurrentPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
@@ -661,7 +661,7 @@ class DatagramSocketApiTest {
             basePath.getRemoteAddress(),
             basePath.getRemotePort(),
             basePath.getFirstHopAddress());
-    assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
+    assertTrue(Instant.now().getEpochSecond() > expiredPath.getDetails().getExpiration());
     return expiredPath;
   }
 

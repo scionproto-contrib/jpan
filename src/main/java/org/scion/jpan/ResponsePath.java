@@ -22,6 +22,8 @@ import java.net.InetSocketAddress;
  * ISD/AS, IP and port of the local host. This is mostly for convenience to avoid looking up this
  * information, but it also ensures that the return packet header contains the exact information
  * sent/expected by the client.
+ *
+ * <p>A ResponsePath is immutable and thus thread safe.
  */
 public class ResponsePath extends Path {
 
@@ -30,6 +32,7 @@ public class ResponsePath extends Path {
   private final long srcIsdAs;
   private final InetAddress srcAddress;
   private final int srcPort;
+  private final byte[] pathRaw;
 
   public static ResponsePath create(
       byte[] rawPath,
@@ -53,11 +56,12 @@ public class ResponsePath extends Path {
       InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
-    super(rawPath, dstIsdAs, dstIP, dstPort);
+    super(dstIsdAs, dstIP, dstPort);
     this.firstHopAddress = firstHopAddress;
     this.srcIsdAs = srcIsdAs;
     this.srcAddress = srcIP;
     this.srcPort = srcPort;
+    this.pathRaw = rawPath;
   }
 
   @Override
@@ -75,6 +79,11 @@ public class ResponsePath extends Path {
 
   public int getLocalPort() {
     return srcPort;
+  }
+
+  @Override
+  public byte[] getRawPath() {
+    return pathRaw;
   }
 
   @Override

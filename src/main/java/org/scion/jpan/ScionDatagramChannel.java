@@ -89,7 +89,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
     if (destination instanceof Path) {
-      return send(srcBuffer, (Path) destination);
+      return sendPath(srcBuffer, (Path) destination);
     }
     InetSocketAddress dst = (InetSocketAddress) destination;
     Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
@@ -113,16 +113,15 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
       // + 8 for UDP overlay header length
-      Path actualPath =
-          checkPathAndBuildHeader(
-              buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeader(
+          buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
       try {
         buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      return sendRaw(buffer, actualPath.getFirstHopAddress(), actualPath);
+      return sendRaw(buffer, path.getFirstHopAddress(), path);
     } finally {
       writeLock().unlock();
     }
@@ -167,15 +166,16 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     try {
       checkOpen();
       checkConnected(true);
+      Path path = getRemoteAddress();
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
       // + 8 for UDP overlay header length
-      checkPathAndBuildHeader(buffer, getRemoteAddress(), len + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeader(buffer, path, len + 8, InternalConstants.HdrTypes.UDP);
       buffer.put(src);
       buffer.flip();
 
-      int sent = sendRaw(buffer, getRemoteAddress().getFirstHopAddress(), getRemoteAddress());
+      int sent = sendRaw(buffer, path.getFirstHopAddress(), path);
       if (sent < buffer.limit() || buffer.remaining() > 0) {
         throw new ScionException("Failed to send all data.");
       }

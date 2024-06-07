@@ -33,6 +33,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -554,5 +555,22 @@ public class ScionService {
         throw new ScionRuntimeException(e);
       }
     }
+  }
+
+  /**
+   * @param path RequestPath that may need refreshing
+   * @param pathPolicy PathPolicy for selecting a new path when required
+   * @param expiryMargin Expiry margin, i.e. a path is considered "expired" if expiry is less than
+   *     expiryMargin seconds away.
+   * @return `true` if the path was updated, otherwise `false`.
+   */
+  synchronized boolean refreshPath(RequestPath path, PathPolicy pathPolicy, int expiryMargin) {
+    if (Instant.now().getEpochSecond() + expiryMargin <= path.getDetails().getExpiration()) {
+      return false;
+    }
+    // expired, get new path
+    RequestPath newPath = pathPolicy.filter(getPaths(path));
+    path.setDetails(newPath.getDetails());
+    return true;
   }
 }

@@ -23,27 +23,24 @@ import java.util.Arrays;
  * <p>This class is thread safe.
  *
  * <p>Design considerations:<br>
- * - Having Path subclass InetSocketAddress may feel a bit awkward, not least because
+ * - Having Path inherit InetSocketAddress may feel a bit awkward, not least because
  * getAddress()/getPort() are not immediately clear to refer to the remote host. However,
- * subclassing InetSocketAddress allows paths to be returned by DatagramChannel.receive(), which
+ * subclassing InetSocketAddress allows paths to be returned from DatagramChannel.receive(), which
  * would otherwise not be possible.<br>
- * - Having two sublasses of Path ensures that RequestPaths and ResponsePath are never mixed up.<br>
+ * - Having two subclasses of Path ensures that RequestPaths and ResponsePath are never mixed up.
+ * <br>
  * - The design also allows immutability, and thus thread safety.<br>
  * - Having metadata in a separate class makes the API cleaner.
  */
 public abstract class Path extends InetSocketAddress {
-  private final byte[] pathRaw;
   private final long dstIsdAs;
 
-  protected Path(byte[] rawPath, long dstIsdAs, InetAddress dstIP, int dstPort) {
+  protected Path(long dstIsdAs, InetAddress dstIP, int dstPort) {
     super(dstIP, dstPort);
-    this.pathRaw = rawPath;
     this.dstIsdAs = dstIsdAs;
   }
 
-  public byte[] getRawPath() {
-    return pathRaw;
-  }
+  public abstract byte[] getRawPath();
 
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
@@ -77,7 +74,7 @@ public abstract class Path extends InetSocketAddress {
         + ", address="
         + super.toString()
         + ", pathRaw="
-        + Arrays.toString(pathRaw)
+        + Arrays.toString(getRawPath())
         + '}';
   }
 }
