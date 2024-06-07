@@ -115,13 +115,15 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       // + 8 for UDP overlay header length
       checkPathAndBuildHeader(
           buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      int headerSize = buffer.position();
       try {
         buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      return sendRaw(buffer, path);
+      int size = sendRaw(buffer, path);
+      return size - headerSize;
     } finally {
       writeLock().unlock();
     }

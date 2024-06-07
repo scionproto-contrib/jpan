@@ -403,6 +403,17 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void send_bufferSize() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      int size0 = channel.send(ByteBuffer.allocate(0), ExamplePacket.PATH);
+      assertEquals(0, size0);
+
+      int size100 = channel.send(ByteBuffer.wrap(new byte[100]), ExamplePacket.PATH);
+      assertEquals(100, size100);
+    }
+  }
+
+  @Test
   void send_bufferTooLarge() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65440);

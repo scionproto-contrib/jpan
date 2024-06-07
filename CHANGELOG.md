@@ -23,10 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - **BREAKING CHANGE**: Access to path details such as metadata has been moved to 
     `Path.getDetails()`.
   - **BREAKING CHANGE**: ScionDatagramChannel.send(buffer, path) returns 'int'.
-
 TODO
 - Move expiryMargin to ScionService? 
-- return value of send()? Separate PR? -> test send() result
 
 TODO general
 - Why are these synchronized, they are only reading? isBlocking(), getPathPolicy(), ...
