@@ -400,17 +400,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.overrideExternalAddress = address;
   }
 
-  protected int sendRaw(ByteBuffer buffer, InetSocketAddress address, Path path)
+  protected int sendRaw(ByteBuffer buffer, Path path)
       throws IOException {
     if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
-      return channel.send(
-          buffer, new InetSocketAddress(address.getAddress(), Constants.DISPATCHER_PORT));
+      InetAddress remoteHostIP = path.getFirstHopAddress().getAddress();
+      return channel.send(buffer, new InetSocketAddress(remoteHostIP, Constants.DISPATCHER_PORT));
     }
-    return channel.send(buffer, address);
-  }
-
-  protected int sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {
-    return sendRaw(buffer, address, null);
+    return channel.send(buffer, path.getFirstHopAddress());
   }
 
   public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {

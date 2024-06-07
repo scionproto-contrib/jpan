@@ -229,7 +229,7 @@ public class ScmpChannel implements AutoCloseable {
             buffer, Scmp.Type.INFO_128, localPort, request.getSequenceNumber(), request.getData());
         buffer.flip();
         request.setSizeSent(buffer.remaining());
-        sendRaw(buffer, path.getFirstHopAddress());
+        sendRaw(buffer, path);
 
         int sizeReceived = receive(request);
         request.setSizeReceived(sizeReceived);
@@ -261,7 +261,7 @@ public class ScmpChannel implements AutoCloseable {
         int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
         buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
-        sendRaw(buffer, path.getFirstHopAddress());
+        sendRaw(buffer, path);
 
         receive(request);
         return request;
@@ -356,10 +356,10 @@ public class ScmpChannel implements AutoCloseable {
                 buffer, Scmp.Type.INFO_129, port, msg.getSequenceNumber(), msg.getData());
             buffer.flip();
             msg.setSizeSent(buffer.remaining());
-            sendRaw(buffer, path.getFirstHopAddress());
-            log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
+            sendRaw(buffer, path);
+            log.info("Responded to SCMP {} from {}", type, path.getAddress());
           } else {
-            log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
+            log.info("Dropped SCMP message with type {} from {}", type, path.getAddress());
           }
         }
       } finally {

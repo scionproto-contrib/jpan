@@ -121,7 +121,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      return sendRaw(buffer, path.getFirstHopAddress(), path);
+      return sendRaw(buffer, path);
     } finally {
       writeLock().unlock();
     }
@@ -175,7 +175,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       buffer.put(src);
       buffer.flip();
 
-      int sent = sendRaw(buffer, path.getFirstHopAddress(), path);
+      int sent = sendRaw(buffer, path);
       if (sent < buffer.limit() || buffer.remaining() > 0) {
         throw new ScionException("Failed to send all data.");
       }
