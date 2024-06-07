@@ -85,7 +85,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   public PathPolicy getPathPolicy() {
-    synchronized (stateLock) { // TODO why synchronized???
+    synchronized (stateLock) {
       return this.pathPolicy;
     }
   }
@@ -190,7 +190,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public void disconnect() throws IOException {
     synchronized (stateLock) {
-      channel.disconnect(); // TODO Why ? We shouldn´t do that...?
       connectionPath = null;
     }
   }

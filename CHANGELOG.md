@@ -24,12 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     `Path.getDetails()`.
   - **BREAKING CHANGE**: ScionDatagramChannel.send(buffer, path) returns 'int'.
 TODO
-- Move expiryMargin to ScionService? 
-
-TODO general
-- Why are these synchronized, they are only reading? isBlocking(), getPathPolicy(), ...
-  --> volatile?
-- Why disconnect() inside disconnect()?
+- Move expiryMargin to ScionService?
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
