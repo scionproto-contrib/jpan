@@ -179,8 +179,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   /**
    * Returns the remote address.
    *
+   * @return The remote address or 'null' if this channel is not connected.
    * @see DatagramChannel#getRemoteAddress()
-   * @return The remote address.
+   * @see #connect(SocketAddress)
+   * @see #connect(RequestPath)
    * @throws IOException If an I/O error occurs
    */
   public InetSocketAddress getRemoteAddress() throws IOException {
@@ -193,7 +195,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public void disconnect() throws IOException {
     synchronized (stateLock) {
-      channel.disconnect(); // TODO Why ? We shouldn´t do that...?
       connectionPath = null;
     }
   }
@@ -214,12 +215,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Connect to a destination host. Note: - A SCION channel will internally connect to the next
-   * border router (first hop) instead of the remote host.
+   * Connect to a destination host.
    *
-   * <p>NB: This method does internally no call {@link java.nio.channels.DatagramChannel}.connect(),
-   * instead it calls bind(). That means this method does NOT perform any additional security checks
-   * associated with connect(), only those associated with bind().
+   * <p>NB: A SCION channel will internally connect to the next border router (first hop) instead of
+   * the remote host.
+   *
+   * <p>NB: This method does internally not call {@link
+   * java.nio.channels.DatagramChannel}.connect(), instead it calls bind(). That means this method
+   * does NOT perform any additional security checks associated with connect(), only those
+   * associated with bind().
    *
    * @param addr Address of remote host.
    * @return This channel.
@@ -301,7 +305,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    *
    * @return the current Path or `null` if not path is connected.
    */
-  public Path getConnectionPath() {
+  public RequestPath getConnectionPath() {
     synchronized (stateLock) {
       return connectionPath;
     }
@@ -398,17 +402,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.overrideExternalAddress = address;
   }
 
-  protected int sendRaw(ByteBuffer buffer, InetSocketAddress address, Path path)
-      throws IOException {
-    if (cfgRemoteDispatcher && path != null && path.getRawPath().length == 0) {
-      return channel.send(
-          buffer, new InetSocketAddress(address.getAddress(), Constants.DISPATCHER_PORT));
+  protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
+    if (cfgRemoteDispatcher && path.getRawPath().length == 0) {
+      InetAddress remoteHostIP = path.getFirstHopAddress().getAddress();
+      return channel.send(buffer, new InetSocketAddress(remoteHostIP, Constants.DISPATCHER_PORT));
     }
-    return channel.send(buffer, address);
-  }
-
-  protected int sendRaw(ByteBuffer buffer, InetSocketAddress address) throws IOException {
-    return sendRaw(buffer, address, null);
+    return channel.send(buffer, path.getFirstHopAddress());
   }
 
   public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {

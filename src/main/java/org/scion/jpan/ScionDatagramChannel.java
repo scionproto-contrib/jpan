@@ -101,7 +101,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
-   * @param path Path to destination. If this is a Request path and it is expired then it will
+   * @param path Path to destination. If this is a RequestPath, and it is expired, then it will
    *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
    * @return either the path argument or a new path if the path was an expired RequestPath. Note
    *     that ResponsePaths are not checked for expiration.
@@ -123,7 +123,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      sendRaw(buffer, actualPath.getFirstHopAddress(), actualPath);
+      sendRaw(buffer, actualPath);
       return actualPath;
     } finally {
       writeLock().unlock();
@@ -169,15 +169,16 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     try {
       checkOpen();
       checkConnected(true);
+      Path path = getConnectionPath();
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
       // + 8 for UDP overlay header length
-      checkPathAndBuildHeader(buffer, getConnectionPath(), len + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeader(buffer, path, len + 8, InternalConstants.HdrTypes.UDP);
       buffer.put(src);
       buffer.flip();
 
-      int sent = sendRaw(buffer, getConnectionPath().getFirstHopAddress(), getConnectionPath());
+      int sent = sendRaw(buffer, path);
       if (sent < buffer.limit() || buffer.remaining() > 0) {
         throw new ScionException("Failed to send all data.");
       }

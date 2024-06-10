@@ -377,7 +377,7 @@ public class ScionService {
 
   /**
    * @param hostName hostName of the host to resolve
-   * @return A ScionAddress
+   * @return The ISD/AS code for a hostname
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public long getIsdAs(String hostName) throws ScionException {
