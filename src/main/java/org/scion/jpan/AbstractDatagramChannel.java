@@ -184,8 +184,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @see #connect(RequestPath)
    * @throws IOException If an I/O error occurs
    */
-  public RequestPath getRemoteAddress() throws IOException {
-    return connectionPath;
+  public InetSocketAddress getRemoteAddress() throws IOException {
+    return (InetSocketAddress) connectionPath;
   }
 
   public void disconnect() throws IOException {
@@ -231,7 +231,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         throw new IllegalArgumentException(
             "connect() requires an InetSocketAddress or a ScionSocketAddress.");
       }
-      return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
+      if (addr instanceof RequestPath) {
+        return connect(((RequestPath) addr));
+      }
+      return connect(getOrCreateService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy));
     }
   }
 
@@ -299,10 +302,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * #connect(RequestPath)} and may be refreshed when expired.
    *
    * @return the current Path or `null` if not path is connected.
-   * @deprecated Please use getRemoteAddress() instead
    */
-  @Deprecated
-  public Path getConnectionPath() {
+  public RequestPath getConnectionPath() {
     synchronized (stateLock) {
       return connectionPath;
     }
@@ -611,13 +612,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           srcIA,
           srcAddress.getAddress(),
           path.getIsdAs(),
-          path.getAddress().getAddress(),
+          path.getRemoteAddress().getAddress(),
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
 
       if (hdrType == InternalConstants.HdrTypes.UDP) {
-        int dstPort = path.getPort();
+        int dstPort = path.getRemotePort();
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
     }

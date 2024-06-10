@@ -25,16 +25,9 @@ import java.net.InetSocketAddress;
  *
  * <p>A ResponsePath is immutable and thus thread safe.
  */
-public class ResponsePath extends Path {
+public interface ResponsePath extends Path {
 
-  private final InetSocketAddress firstHopAddress;
-  // The ResponsePath gets source information from the incoming packet.
-  private final long srcIsdAs;
-  private final InetAddress srcAddress;
-  private final int srcPort;
-  private final byte[] pathRaw;
-
-  public static ResponsePath create(
+  static ResponsePath create(
       byte[] rawPath,
       long srcIsdAs,
       InetAddress srcIP,
@@ -43,61 +36,13 @@ public class ResponsePath extends Path {
       InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
-    return new ResponsePath(
+    return ResponsePathImpl.create(
         rawPath, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHopAddress);
   }
 
-  private ResponsePath(
-      byte[] rawPath,
-      long srcIsdAs,
-      InetAddress srcIP,
-      int srcPort,
-      long dstIsdAs,
-      InetAddress dstIP,
-      int dstPort,
-      InetSocketAddress firstHopAddress) {
-    super(dstIsdAs, dstIP, dstPort);
-    this.firstHopAddress = firstHopAddress;
-    this.srcIsdAs = srcIsdAs;
-    this.srcAddress = srcIP;
-    this.srcPort = srcPort;
-    this.pathRaw = rawPath;
-  }
+  long getLocalIsdAs();
 
-  @Override
-  public InetSocketAddress getFirstHopAddress() {
-    return firstHopAddress;
-  }
+  InetAddress getLocalAddress();
 
-  public long getLocalIsdAs() {
-    return srcIsdAs;
-  }
-
-  public InetAddress getLocalAddress() {
-    return srcAddress;
-  }
-
-  public int getLocalPort() {
-    return srcPort;
-  }
-
-  @Override
-  public byte[] getRawPath() {
-    return pathRaw;
-  }
-
-  @Override
-  public String toString() {
-    return "ResponsePath{"
-        + super.toString()
-        + ", firstHopAddress="
-        + firstHopAddress
-        + ", localIsdAs="
-        + srcIsdAs
-        + ", localAddress="
-        + srcAddress
-        + ", localPort="
-        + srcPort
-        + '}';
-  }
+  int getLocalPort();
 }

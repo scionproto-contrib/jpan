@@ -526,7 +526,7 @@ class DatagramChannelApiTest {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
             channel.write(sendBuf);
-            RequestPath newPath = channel.getRemoteAddress();
+            RequestPath newPath = channel.getConnectionPath();
             assertTrue(
                 newPath.getDetails().getExpiration() > expiredPath.getDetails().getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getDetails().getExpiration());

@@ -357,9 +357,9 @@ public class ScmpChannel implements AutoCloseable {
             buffer.flip();
             msg.setSizeSent(buffer.remaining());
             sendRaw(buffer, path);
-            log.info("Responded to SCMP {} from {}", type, path.getAddress());
+            log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
           } else {
-            log.info("Dropped SCMP message with type {} from {}", type, path.getAddress());
+            log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
           }
         }
       } finally {
@@ -409,7 +409,7 @@ public class ScmpChannel implements AutoCloseable {
     return channel.getLocalAddress();
   }
 
-  public RequestPath getRemoteAddress() throws IOException {
+  public InetSocketAddress getRemoteAddress() throws IOException {
     return channel.getRemoteAddress();
   }
 

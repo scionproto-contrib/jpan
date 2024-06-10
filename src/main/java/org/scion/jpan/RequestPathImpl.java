@@ -15,6 +15,9 @@
 package org.scion.jpan;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.proto.daemon.Daemon;
 
 /**
@@ -25,11 +28,34 @@ import org.scion.jpan.proto.daemon.Daemon;
  * <p>A RequestPath is immutable except for an atomic reference to PathDetails (PathDetails are
  * immutable). The reference may be updated, for example when a path expires.
  */
-public interface RequestPath extends Path {
+class RequestPathImpl extends PathImpl implements RequestPath {
 
-  static RequestPath create(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    return RequestPathImpl.create(path, dstIsdAs, dstIP, dstPort);
+  private final AtomicReference<PathDetails> details = new AtomicReference<>();
+
+  static RequestPathImpl create(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    return new RequestPathImpl(path, dstIsdAs, dstIP, dstPort);
   }
 
-  PathDetails getDetails();
+  private RequestPathImpl(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    super(dstIsdAs, dstIP, dstPort);
+    this.details.set(PathDetails.create(path, dstIP, dstPort));
+  }
+
+  @Override
+  public InetSocketAddress getFirstHopAddress() throws UnknownHostException {
+    return getDetails().getFirstHopAddress();
+  }
+
+  @Override
+  public byte[] getRawPath() {
+    return getDetails().getRawPath();
+  }
+
+  public PathDetails getDetails() {
+    return details.get();
+  }
+
+  void setDetails(PathDetails details) {
+    this.details.set(details);
+  }
 }

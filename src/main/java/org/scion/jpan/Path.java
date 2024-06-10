@@ -15,56 +15,29 @@
 package org.scion.jpan;
 
 import java.net.*;
-import java.util.Arrays;
 
 /**
  * A Path is an InetSocketAddress/ISD/AS of a destination host plus a path to that host.
  *
  * <p>This class is thread safe.
  */
-public abstract class Path extends InetSocketAddress {
-  private final long dstIsdAs;
+public interface Path {
 
-  protected Path(long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(dstIP, dstPort);
-    this.dstIsdAs = dstIsdAs;
-  }
+  byte[] getRawPath();
 
-  public abstract byte[] getRawPath();
+  InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
-  public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
+  int getRemotePort();
 
-  @Deprecated // Use getPort() instead
-  public int getRemotePort() {
-    return getPort();
-  }
+  InetAddress getRemoteAddress();
 
-  @Deprecated // Use getAddress() instead
-  public InetAddress getRemoteAddress() {
-    return getAddress();
-  }
-
-  @Deprecated // Use getIsdAs() instead
-  public long getRemoteIsdAs() {
-    return dstIsdAs;
-  }
+  long getRemoteIsdAs();
 
   /**
    * @return ISD/AS of the remote host.
    */
-  public long getIsdAs() {
-    return dstIsdAs;
-  }
+  long getIsdAs();
 
   @Override
-  public String toString() {
-    return "Path{"
-        + "ISD/AS="
-        + ScionUtil.toStringIA(dstIsdAs)
-        + ", address="
-        + super.toString()
-        + ", pathRaw="
-        + Arrays.toString(getRawPath())
-        + '}';
-  }
+  String toString();
 }

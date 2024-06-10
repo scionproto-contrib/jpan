@@ -290,13 +290,13 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
       Path path;
       if (channel.isConnected()) {
-        path = channel.getRemoteAddress();
+        path = channel.getConnectionPath();
       } else {
         InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
         synchronized (pathCache) {
           path = pathCache.get(addr);
           if (path == null) {
-            path = channel.getPathPolicy().filter(channel.getOrCreateService2().getPaths(addr));
+            path = channel.getOrCreateService().lookupAndGetPath(addr, channel.getPathPolicy());
           } else if (path instanceof RequestPath
               && ((RequestPath) path).getDetails().getExpiration()
                   > Instant.now().getEpochSecond()) {

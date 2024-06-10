@@ -27,6 +27,7 @@ TODO
 - Move expiryMargin to ScionService?
 - remove ScionAddress?
 - Remove getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) -< ISD + Scion address!!!
+- Remove use of getHostName() -> InetAddress!
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)

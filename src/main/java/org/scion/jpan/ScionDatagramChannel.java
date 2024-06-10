@@ -89,11 +89,11 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
     if (destination instanceof Path) {
-      return sendPath(srcBuffer, (Path) destination);
+      return send(srcBuffer, (Path) destination);
     }
     InetSocketAddress dst = (InetSocketAddress) destination;
-    Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
-    return sendPath(srcBuffer, path);
+    Path path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
+    return send(srcBuffer, path);
   }
 
   /**
@@ -108,7 +108,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public int sendPath(ByteBuffer srcBuffer, Path path) throws IOException {
+  public int send(ByteBuffer srcBuffer, Path path) throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
@@ -168,7 +168,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     try {
       checkOpen();
       checkConnected(true);
-      Path path = getRemoteAddress();
+      Path path = getConnectionPath();
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
