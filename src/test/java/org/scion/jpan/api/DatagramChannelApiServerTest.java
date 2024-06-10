@@ -104,9 +104,9 @@ class DatagramChannelApiServerTest {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open(null, mock)) {
       assertNull(channel.getService());
       ByteBuffer buffer = ByteBuffer.allocate(100);
-      Path path = channel.receive(buffer);
+      ScionResponseAddress responseAddress = channel.receive(buffer);
       assertNull(channel.getService());
-      assertEquals(addr, path.getFirstHopAddress());
+      assertEquals(addr, responseAddress.getPath().getFirstHopAddress());
     }
   }
 }

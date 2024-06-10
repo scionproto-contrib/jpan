@@ -57,7 +57,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     return super.isBlocking();
   }
 
-  public ResponsePath receive(ByteBuffer userBuffer) throws IOException {
+  public ScionResponseAddress receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
@@ -67,7 +67,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       }
       ScionHeaderParser.extractUserPayload(buffer, userBuffer);
       buffer.clear();
-      return receivePath;
+      return ScionResponseAddress.from(receivePath);
     } finally {
       readLock().unlock();
     }

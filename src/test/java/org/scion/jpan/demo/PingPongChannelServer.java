@@ -17,9 +17,7 @@ package org.scion.jpan.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.jpan.Path;
-import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionUtil;
+import org.scion.jpan.*;
 
 public class PingPongChannelServer {
 
@@ -54,7 +52,8 @@ public class PingPongChannelServer {
       channel.bind(SERVER_ADDRESS);
       ByteBuffer buffer = ByteBuffer.allocate(100);
       println("Waiting for packet ... ");
-      Path path = channel.receive(buffer);
+      ScionResponseAddress responseAddress = channel.receive(buffer);
+      ResponsePath path = responseAddress.getPath();
       String msg = extractMessage(buffer);
       String remoteAddress = path.getRemoteAddress() + ":" + path.getRemotePort();
       String borderRouterInterfaces = ScionUtil.toStringPath(path.getRawPath());

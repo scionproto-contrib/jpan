@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionResponseAddress;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongChannelHelper;
@@ -71,11 +72,11 @@ class DatagramChannelStreamTest {
   }
 
   private static class Pair {
-    Path path;
+    ScionResponseAddress responseAddress;
     String msg;
 
-    Pair(Path path, String msg) {
-      this.path = path;
+    Pair(ScionResponseAddress responseAddress, String msg) {
+      this.responseAddress = responseAddress;
       this.msg = msg;
     }
   }
@@ -88,10 +89,10 @@ class DatagramChannelStreamTest {
     ArrayList<Pair> received = new ArrayList<>();
     for (int i = 0; i < N_BULK; i++) {
       request.clear();
-      Path returnAddress = channel.receive(request);
+      ScionResponseAddress responseAddress = channel.receive(request);
       request.flip();
       String msg = Charset.defaultCharset().decode(request).toString();
-      received.add(new Pair(returnAddress, msg));
+      received.add(new Pair(responseAddress, msg));
       assertTrue(msg.startsWith(PingPongChannelHelper.MSG), msg);
       assertTrue(PingPongChannelHelper.MSG.length() + 3 >= msg.length());
     }
@@ -105,7 +106,7 @@ class DatagramChannelStreamTest {
       request.clear();
       request.put(p.msg.getBytes());
       request.flip();
-      channel.send(request, p.path);
+      channel.send(request, p.responseAddress);
     }
   }
 }

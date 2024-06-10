@@ -323,11 +323,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     synchronized (packet) {
       ByteBuffer receiveBuffer =
           ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
-      ResponsePath path = channel.receive(receiveBuffer);
-      if (path == null) {
+      ScionResponseAddress responseAddress = channel.receive(receiveBuffer);
+      if (responseAddress == null) {
         // timeout occurred
         throw new SocketTimeoutException();
       }
+      ResponsePath path = responseAddress.getPath();
       // TODO this is not ideal, a client may not be connected. Use getService()==null?
       if (!channel.isConnected()) {
         synchronized (pathCache) {

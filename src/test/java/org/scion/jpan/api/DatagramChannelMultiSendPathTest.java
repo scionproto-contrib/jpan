@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionResponseAddress;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
@@ -50,10 +51,12 @@ class DatagramChannelMultiSendPathTest {
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    Path address = channel.receive(response);
+    ScionResponseAddress address = channel.receive(response);
     assertNotNull(address);
-    assertEquals(serverAddress.getRemoteAddress(), address.getRemoteAddress());
-    assertEquals(serverAddress.getRemotePort(), address.getRemotePort());
+    assertEquals(serverAddress.getRemoteAddress(), address.getAddress());
+    assertEquals(serverAddress.getRemotePort(), address.getPort());
+    assertEquals(serverAddress.getRemoteAddress(), address.getPath().getRemoteAddress());
+    assertEquals(serverAddress.getRemotePort(), address.getPath().getRemotePort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
