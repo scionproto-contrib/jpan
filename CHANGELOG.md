@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#77](https://github.com/scionproto-contrib/jpan/pull/77)
 - Improved bootstrap logging [#83](https://github.com/scionproto-contrib/jpan/pull/83)
 - `DatagramChannel.send()` should return `int`.
-  [#85](https://github.com/scionproto-contrib/jpan/pull/85)
+  [#86](https://github.com/scionproto-contrib/jpan/pull/86)
 
 ## [0.1.1] - 2024-05-10
 
