@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - **BREAKING CHANGE**: ScionDatagramChannel.send(buffer, path) returns 'int'.
 TODO
 - Move expiryMargin to ScionService?
+- remove ScionAddress?
+- Remove getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) -< ISD + Scion address!!!
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)

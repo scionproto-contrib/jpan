@@ -107,11 +107,11 @@ public class PingPongHelperBase {
       }
       InetSocketAddress serverAddress = servers[0].getLocalAddress();
       MockDNS.install(MockNetwork.TINY_SRV_ISD_AS, serverAddress.getAddress());
-      RequestPath scionAddress = Scion.defaultService().getPaths(serverAddress).get(0);
+      RequestPath requestPath = Scion.defaultService().getPaths(serverAddress).get(0);
 
       Thread[] clients = new Thread[nClients];
       for (int i = 0; i < clients.length; i++) {
-        clients[i] = clientFactory.create(i, scionAddress, nRounds);
+        clients[i] = clientFactory.create(i, requestPath, nRounds);
         clients[i].setName("Client-thread-" + i);
         clients[i].start();
       }
