@@ -84,17 +84,16 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public void send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
+  public int send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
     if (destination instanceof ScionResponseAddress) {
-      send(srcBuffer, ((ScionResponseAddress) destination).getPath());
-      return;
+      return send(srcBuffer, ((ScionResponseAddress) destination).getPath());
     }
     InetSocketAddress dst = (InetSocketAddress) destination;
-    Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
-    send(srcBuffer, path);
+    Path path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
+    return send(srcBuffer, path);
   }
 
   /**
@@ -109,22 +108,22 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
+  public int send(ByteBuffer srcBuffer, Path path) throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
       // + 8 for UDP overlay header length
-      Path actualPath =
-          checkPathAndBuildHeader(
-              buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeader(
+          buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      int headerSize = buffer.position();
       try {
         buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      sendRaw(buffer, actualPath);
-      return actualPath;
+      int size = sendRaw(buffer, path);
+      return size - headerSize;
     } finally {
       writeLock().unlock();
     }

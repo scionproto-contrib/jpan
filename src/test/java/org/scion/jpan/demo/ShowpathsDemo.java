@@ -114,9 +114,9 @@ public class ShowpathsDemo {
               + "] Hops: "
               + ScionUtil.toStringPath(path)
               + " MTU: "
-              + path.getMtu()
+              + path.getDetails().getMtu()
               + " NextHop: "
-              + path.getInterface().getAddress()
+              + path.getDetails().getInterface().getAddress()
               + " LocalIP: "
               + localIP;
       println(sb);

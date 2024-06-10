@@ -132,14 +132,15 @@ public class ScionUtil {
    * @return ISD/AS codes and border outer interface IDs along the path.
    */
   public static String toStringPath(RequestPath path) {
-    if (path.getInterfacesList().isEmpty()) {
+    PathDetails details = path.getDetails();
+    if (details.getInterfacesList().isEmpty()) {
       return "[]";
     }
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    int nInterfcaces = path.getInterfacesList().size();
+    int nInterfcaces = details.getInterfacesList().size();
     for (int i = 0; i < nInterfcaces; i++) {
-      RequestPath.PathInterface pIf = path.getInterfacesList().get(i);
+      PathDetails.PathInterface pIf = details.getInterfacesList().get(i);
       if (i % 2 == 0) {
         sb.append(ScionUtil.toStringIA(pIf.getIsdAs())).append(" ");
         sb.append(pIf.getId()).append(">");
@@ -147,7 +148,7 @@ public class ScionUtil {
         sb.append(pIf.getId()).append(" ");
       }
     }
-    sb.append(ScionUtil.toStringIA(path.getInterfacesList().get(nInterfcaces - 1).getIsdAs()));
+    sb.append(ScionUtil.toStringIA(details.getInterfacesList().get(nInterfcaces - 1).getIsdAs()));
     sb.append("]");
     return sb.toString();
   }

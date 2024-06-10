@@ -33,6 +33,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -306,8 +307,8 @@ public class ScionService {
    * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
    */
+  @Deprecated // Please use lookup() instead
   public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
-    // Use getHostString() to avoid DNS reverse lookup.
     ScionAddress sa = getScionAddress(dstAddress.getHostString());
     return getPaths(sa.getIsdAs(), sa.getInetAddress(), dstAddress.getPort());
   }
@@ -320,7 +321,6 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
-    // TODO change method API name to make clear that this requires a SCION IP.
     return getPaths(dstIsdAs, dstScionAddress.getAddress(), dstScionAddress.getPort());
   }
 
@@ -338,19 +338,44 @@ public class ScionService {
    * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
-   * @param dstAddress Destination IP address
+   * @param dstAddress A SCION-enabled Destination IP address
    * @param dstPort Destination port
-   * @return All paths returned by the path service.
+   * @return All paths returned by the path service. Returns an empty list if no paths are found.
    */
   public List<RequestPath> getPaths(long dstIsdAs, InetAddress dstAddress, int dstPort) {
-    long srcIsdAs = getLocalIsdAs();
-    List<Daemon.Path> paths = getPathList(srcIsdAs, dstIsdAs);
-    if (paths.isEmpty()) {
-      return Collections.emptyList();
+    return getPaths(ScionAddress.create(dstIsdAs, dstAddress), dstPort);
+  }
+
+  /**
+   * Resolves the address to a SCION address, request paths, and selects a path using the policy.
+   *
+   * @param dstAddr Destination address
+   * @param policy path policy
+   * @return All paths returned by the path service.
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  public RequestPath lookupAndGetPath(InetSocketAddress dstAddr, PathPolicy policy)
+      throws ScionException {
+    if (policy == null) {
+      policy = PathPolicy.DEFAULT;
     }
+    return policy.filter(getPaths(lookupAddress(dstAddr.getHostString()), dstAddr.getPort()));
+  }
+
+  /**
+   * Request paths from the local ISD/AS to the destination.
+   *
+   * @param dstAddress Destination SCION address
+   * @return All paths returned by the path service.
+   */
+  public List<RequestPath> getPaths(ScionAddress dstAddress, int dstPort) {
+    long srcIsdAs = getLocalIsdAs();
+    List<Daemon.Path> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
     List<RequestPath> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
-      scionPaths.add(RequestPath.create(paths.get(i), dstIsdAs, dstAddress, dstPort));
+      scionPaths.add(
+          RequestPath.create(
+              paths.get(i), dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
     }
     return scionPaths;
   }
@@ -416,12 +441,19 @@ public class ScionService {
     throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
   }
 
+  @Deprecated // Please use lookupScionAddress() instead.
+  public ScionAddress getScionAddress(String hostName) throws ScionException {
+    return lookupAddress(hostName);
+  }
+
   /**
+   * Uses DNS and hostfiles to look up a SCION enabled IP address for a give host string.
+   *
    * @param hostName hostName of the host to resolve
    * @return A ScionAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
-  public ScionAddress getScionAddress(String hostName) throws ScionException {
+  private ScionAddress lookupAddress(String hostName) throws ScionException {
     ScionAddress scionAddress = scionAddressCache.get(hostName);
     if (scionAddress != null) {
       return scionAddress;
@@ -554,5 +586,22 @@ public class ScionService {
         throw new ScionRuntimeException(e);
       }
     }
+  }
+
+  /**
+   * @param path RequestPath that may need refreshing
+   * @param pathPolicy PathPolicy for selecting a new path when required
+   * @param expiryMargin Expiry margin, i.e. a path is considered "expired" if expiry is less than
+   *     expiryMargin seconds away.
+   * @return `true` if the path was updated, otherwise `false`.
+   */
+  boolean refreshPath(RequestPath path, PathPolicy pathPolicy, int expiryMargin) {
+    if (Instant.now().getEpochSecond() + expiryMargin <= path.getDetails().getExpiration()) {
+      return false;
+    }
+    // expired, get new path
+    RequestPath newPath = pathPolicy.filter(getPaths(path));
+    path.setDetails(newPath.getDetails());
+    return true;
   }
 }

@@ -149,8 +149,8 @@ public class ScmpEchoDemo {
     // ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
     sb.append("Using path:").append(nl);
     sb.append("  Hops: ").append(ScionUtil.toStringPath(path));
-    sb.append(" MTU: ").append(path.getMtu());
-    sb.append(" NextHop: ").append(path.getInterface().getAddress()).append(nl);
+    sb.append(" MTU: ").append(path.getDetails().getMtu());
+    sb.append(" NextHop: ").append(path.getDetails().getInterface().getAddress()).append(nl);
     println(sb.toString());
   }
 

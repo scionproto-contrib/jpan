@@ -25,13 +25,14 @@ import java.net.InetSocketAddress;
  *
  * <p>A ResponsePath is immutable and thus thread safe.
  */
-public class ResponsePath extends Path {
+public final class ResponsePath extends Path {
 
   private final InetSocketAddress firstHopAddress;
   // The ResponsePath gets source information from the incoming packet.
   private final long srcIsdAs;
   private final InetAddress srcAddress;
   private final int srcPort;
+  private final byte[] pathRaw;
 
   public static ResponsePath create(
       byte[] rawPath,
@@ -55,11 +56,12 @@ public class ResponsePath extends Path {
       InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
-    super(rawPath, dstIsdAs, dstIP, dstPort);
+    super(dstIsdAs, dstIP, dstPort);
     this.firstHopAddress = firstHopAddress;
     this.srcIsdAs = srcIsdAs;
     this.srcAddress = srcIP;
     this.srcPort = srcPort;
+    this.pathRaw = rawPath;
   }
 
   @Override
@@ -77,6 +79,11 @@ public class ResponsePath extends Path {
 
   public int getLocalPort() {
     return srcPort;
+  }
+
+  @Override
+  public byte[] getRawPath() {
+    return pathRaw;
   }
 
   @Override

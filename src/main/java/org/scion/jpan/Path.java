@@ -23,21 +23,18 @@ import java.util.Arrays;
  * <p>This class is thread safe.
  */
 public abstract class Path {
-  private final byte[] pathRaw;
+
   private final long dstIsdAs;
   private final InetAddress dstAddress;
   private final int dstPort;
 
-  protected Path(byte[] rawPath, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    this.pathRaw = rawPath;
+  protected Path(long dstIsdAs, InetAddress dstIP, int dstPort) {
     this.dstIsdAs = dstIsdAs;
     this.dstAddress = dstIP;
     this.dstPort = dstPort;
   }
 
-  public byte[] getRawPath() {
-    return pathRaw;
-  }
+  public abstract byte[] getRawPath();
 
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 

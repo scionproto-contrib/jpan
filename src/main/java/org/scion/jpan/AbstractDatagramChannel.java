@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -236,7 +235,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         throw new IllegalArgumentException(
             "connect() requires an InetSocketAddress or a ScionSocketAddress.");
       }
-      return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
+      return connect(getOrCreateService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy));
     }
   }
 
@@ -535,18 +534,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   /**
    * @param path path
    * @param payloadLength payload length
-   * @return argument path or a new path if the argument path was expired
    * @throws IOException in case of IOException.
    */
-  protected Path checkPathAndBuildHeader(
+  protected void checkPathAndBuildHeader(
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     synchronized (stateLock) {
       if (path instanceof RequestPath) {
-        path = ensureUpToDate((RequestPath) path);
+        RequestPath requestPath = (RequestPath) path;
+        ScionService svc = getOrCreateService();
+        if (svc.refreshPath(requestPath, getPathPolicy(), cfgExpirationSafetyMargin)
+            && isConnected()) {
+          updateConnection(requestPath, true);
+        }
       }
       buildHeader(buffer, path, payloadLength, hdrType);
-      return path;
     }
   }
 
@@ -619,20 +621,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         int dstPort = path.getRemotePort();
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
-    }
-  }
-
-  protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
-    synchronized (stateLock) {
-      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
-        return path;
-      }
-      // expired, get new path
-      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
-      if (isConnected()) {
-        updateConnection(newPath, true);
-      }
-      return newPath;
     }
   }
 

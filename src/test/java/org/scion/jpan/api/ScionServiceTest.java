@@ -125,8 +125,8 @@ public class ScionServiceTest {
       assertEquals(dstIA, path.getRemoteIsdAs());
       assertEquals(36, path.getRawPath().length);
 
-      assertEquals("127.0.0.10:31004", path.getInterface().getAddress());
-      assertEquals(2, path.getInterfacesList().size());
+      assertEquals("127.0.0.10:31004", path.getDetails().getInterface().getAddress());
+      assertEquals(2, path.getDetails().getInterfacesList().size());
       // assertEquals(1, viewer.getInternalHopsList().size());
       // assertEquals(0, viewer.getMtu());
       // assertEquals(0, viewer.getLinkTypeList().size());
