@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Rename `ScionSocketOptions`  starting with `SN_` to `SCION_`
 - SCMP API changes. [#71](https://github.com/scionproto-contrib/jpan/pull/71)
 - **BREAKING CHANGE**: `DatagramChannel.receive()` returns a subclass of `InetSocketAddress` 
-  [#69](https://github.com/scionproto-contrib/jpan/issue/69) 
+  [#86](https://github.com/scionproto-contrib/jpan/pull/86) 
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
