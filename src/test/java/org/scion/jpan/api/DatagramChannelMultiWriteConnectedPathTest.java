@@ -21,10 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Path;
-import org.scion.jpan.RequestPath;
-import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionService;
+import org.scion.jpan.*;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test read()/write() operations on DatagramChannel connected with a path. */
@@ -68,7 +65,7 @@ class DatagramChannelMultiWriteConnectedPathTest {
   private void server(ScionDatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
-    Path path = channel.receive(request);
+    ScionResponseAddress responseAddress = channel.receive(request);
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();
@@ -77,6 +74,6 @@ class DatagramChannelMultiWriteConnectedPathTest {
 
     // System.out.println("SERVER: --- USER - Sending packet ---------------------- " + i);
     request.flip();
-    channel.send(request, path);
+    channel.send(request, responseAddress);
   }
 }

@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionResponseAddress;
 
 public class PingPongChannelHelper extends PingPongHelperBase {
 
@@ -136,10 +137,10 @@ public class PingPongChannelHelper extends PingPongHelperBase {
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    Path address = channel.receive(response);
+    ScionResponseAddress address = channel.receive(response);
     assertNotNull(address);
-    assertEquals(serverAddress.getRemoteAddress(), address.getRemoteAddress());
-    assertEquals(serverAddress.getRemotePort(), address.getRemotePort());
+    assertEquals(serverAddress.getRemoteAddress(), address.getAddress());
+    assertEquals(serverAddress.getRemotePort(), address.getPort());
 
     response.flip();
     String pong = Charset.defaultCharset().decode(response).toString();
@@ -149,7 +150,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   public static void defaultServer(ScionDatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: Receiving ... (" + channel.getLocalAddress() + ")");
-    Path address = channel.receive(request);
+    ScionResponseAddress responseAddress = channel.receive(request);
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();
@@ -157,7 +158,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     assertTrue(MSG.length() + 3 >= msg.length());
 
     request.flip();
-    channel.send(request, address);
-    // System.out.println("SERVER: Sent: " + address);
+    channel.send(request, responseAddress);
+    // System.out.println("SERVER: Sent: " + responseAddress);
   }
 }
