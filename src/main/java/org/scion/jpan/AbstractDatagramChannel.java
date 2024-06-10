@@ -611,7 +611,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           rawPath.length,
           srcIA,
           srcAddress.getAddress(),
-          path.getIsdAs(),
+          path.getRemoteIsdAs(),
           path.getRemoteAddress().getAddress(),
           hdrType,
           cfgTrafficClass);

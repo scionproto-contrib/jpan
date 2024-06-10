@@ -33,11 +33,6 @@ public interface Path {
 
   long getRemoteIsdAs();
 
-  /**
-   * @return ISD/AS of the remote host.
-   */
-  long getIsdAs();
-
   @Override
   String toString();
 }
