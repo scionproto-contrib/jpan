@@ -543,7 +543,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       throws IOException {
     synchronized (stateLock) {
       if (path instanceof RequestPath) {
-        path = ensureUpToDate((RequestPath) path);
+        RequestPath requestPath = (RequestPath) path;
+        ScionService svc = getOrCreateService();
+        Path oldPath = path;
+        path = svc.refreshPath(requestPath, pathPolicy, cfgExpirationSafetyMargin);
+        if (oldPath != path && isConnected()) {
+          updateConnection(requestPath, true);
+        }
       }
       buildHeader(buffer, path, payloadLength, hdrType);
       return path;
@@ -619,20 +625,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         int dstPort = path.getRemotePort();
         ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
       }
-    }
-  }
-
-  protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
-    synchronized (stateLock) {
-      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
-        return path;
-      }
-      // expired, get new path
-      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
-      if (isConnected()) {
-        updateConnection(newPath, true);
-      }
-      return newPath;
     }
   }
 
