@@ -80,11 +80,13 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @param srcBuffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
    *     that the ISD/AS information can be retrieved.
+   * @return The number of bytes sent, see {@link java.nio.channels.DatagramChannel#send(ByteBuffer,
+   *     SocketAddress)}.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public void send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
+  public int send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
@@ -94,7 +96,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     }
     InetSocketAddress dst = (InetSocketAddress) destination;
     Path path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
-    send(srcBuffer, path);
+    return send(srcBuffer, path);
   }
 
   /**
@@ -103,13 +105,13 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @param srcBuffer Data to send
    * @param path Path to destination. If this is a RequestPath, and it is expired, then it will
    *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
-   * @return either the path argument or a new path if the path was an expired RequestPath. Note
-   *     that ResponsePaths are not checked for expiration.
+   * @return The number of bytes sent, see {@link java.nio.channels.DatagramChannel#send(ByteBuffer,
+   *     SocketAddress)}.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
+  public int send(ByteBuffer srcBuffer, Path path) throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
@@ -117,14 +119,15 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       Path actualPath =
           checkPathAndBuildHeader(
               buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      int headerSize = buffer.position();
       try {
         buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      sendRaw(buffer, actualPath);
-      return actualPath;
+      int size = sendRaw(buffer, actualPath);
+      return size - headerSize;
     } finally {
       writeLock().unlock();
     }
