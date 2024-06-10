@@ -159,6 +159,6 @@ public class PingPongChannelHelper extends PingPongHelperBase {
 
     request.flip();
     channel.send(request, responseAddress);
-    // System.out.println("SERVER: Sent: " + address);
+    // System.out.println("SERVER: Sent: " + responseAddress);
   }
 }
