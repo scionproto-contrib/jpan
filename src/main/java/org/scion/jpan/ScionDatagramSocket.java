@@ -535,7 +535,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * @see ScionDatagramChannel#getConnectionPath()
    */
   public RequestPath getConnectionPath() {
-    return (RequestPath) channel.getConnectionPath();
+    return channel.getConnectionPath();
   }
 
   /**

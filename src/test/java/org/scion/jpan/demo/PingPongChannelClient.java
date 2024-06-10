@@ -17,7 +17,6 @@ package org.scion.jpan.demo;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.testutil.MockDNS;
@@ -51,11 +50,7 @@ public class PingPongChannelClient {
       String msg = "Hello there!";
       ByteBuffer sendBuf = ByteBuffer.wrap(msg.getBytes());
       channel.write(sendBuf);
-      println(
-          "Sent via "
-              + ScionUtil.toStringPath((RequestPath) channel.getConnectionPath())
-              + ": "
-              + msg);
+      println("Sent via " + ScionUtil.toStringPath(channel.getConnectionPath()) + ": " + msg);
 
       println("Receiving ... (" + channel.getLocalAddress() + ")");
       ByteBuffer buffer = ByteBuffer.allocate(512);

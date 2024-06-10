@@ -55,15 +55,21 @@ public abstract class Path {
 
   @Override
   public String toString() {
-    return "Path{"
-        + "rmtIsdAs="
-        + ScionUtil.toStringIA(dstIsdAs)
-        + ", rmtAddress="
-        + dstAddress
-        + ", rmtPort="
-        + dstPort
-        + ", pathRaw="
-        + Arrays.toString(pathRaw)
-        + '}';
+    try {
+      return "Path{"
+          + "rmtIsdAs="
+          + ScionUtil.toStringIA(dstIsdAs)
+          + ", rmtAddress="
+          + dstAddress
+          + ", rmtPort="
+          + dstPort
+          + ", firstHop="
+          + getFirstHopAddress()
+          + ", pathRaw="
+          + Arrays.toString(getRawPath())
+          + '}';
+    } catch (UnknownHostException e) {
+      throw new ScionRuntimeException(e);
+    }
   }
 }
