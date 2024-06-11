@@ -91,8 +91,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
     if (destination instanceof ScionResponseAddress) {
-      send(srcBuffer, ((ScionResponseAddress) destination).getPath());
-      return;
+      return send(srcBuffer, ((ScionResponseAddress) destination).getPath());
     }
     InetSocketAddress dst = (InetSocketAddress) destination;
     Path path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
