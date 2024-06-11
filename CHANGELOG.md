@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - **BREAKING CHANGE**: `DatagramChannel.receive()` returns a subclass of `InetSocketAddress` 
   [#86](https://github.com/scionproto-contrib/jpan/pull/86) 
 - Internal cleanup. [#88](https://github.com/scionproto-contrib/jpan/pull/88)
+- Deprecated `getPaths(InetSocketAddress)` because it wasn't clear that it did a SCION lookup. 
+  [#89](https://github.com/scionproto-contrib/jpan/pull/89)
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)

@@ -93,7 +93,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       return;
     }
     InetSocketAddress dst = (InetSocketAddress) destination;
-    Path path = getPathPolicy().filter(getOrCreateService().getPaths(dst));
+    Path path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
     send(srcBuffer, path);
   }
 

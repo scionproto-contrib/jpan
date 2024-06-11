@@ -400,7 +400,7 @@ public class ScmpChannel implements AutoCloseable {
    * @see ScionDatagramChannel#getConnectionPath()
    */
   public RequestPath getConnectionPath() {
-    return (RequestPath) channel.getConnectionPath();
+    return channel.getConnectionPath();
   }
 
   public InetSocketAddress getLocalAddress() throws IOException {
