@@ -236,7 +236,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         throw new IllegalArgumentException(
             "connect() requires an InetSocketAddress or a ScionSocketAddress.");
       }
-      return connect(pathPolicy.filter(getOrCreateService().getPaths((InetSocketAddress) addr)));
+      return connect(getOrCreateService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy));
     }
   }
 
