@@ -36,8 +36,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed internal raw path parsing and IP parsing.
   [#77](https://github.com/scionproto-contrib/jpan/pull/77)
 - Improved bootstrap logging [#83](https://github.com/scionproto-contrib/jpan/pull/83)
-- `DatagramChannel.send()` should return `int`.
-  [#86](https://github.com/scionproto-contrib/jpan/pull/86)
+- **BREAKING CHANGE**: `DatagramChannel.send()` should return `int`.
+  This fix entails numerous changes to the Path/Address API.
+  [#87](https://github.com/scionproto-contrib/jpan/pull/87)
 
 ## [0.1.1] - 2024-05-10
 
