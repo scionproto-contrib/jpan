@@ -37,8 +37,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#77](https://github.com/scionproto-contrib/jpan/pull/77)
 - Improved bootstrap logging [#83](https://github.com/scionproto-contrib/jpan/pull/83)
 - **BREAKING CHANGE**: `DatagramChannel.send()` should return `int`.
-  This fix entails numerous changes to the Path/Address API.
   [#90](https://github.com/scionproto-contrib/jpan/pull/90)
+  This fix entails numerous changes to the Path/Address API:
+  - New `ScionSocketAddress` extends `InetSocketAddress` so it can be returned from `receive()`
+  - `ScionSocketAddress` has a mutable reference to a `Path` so that the `Path` can be updated if it expires or if something in the local AS changes (new local AS, new BR, ...)
+  - `RequestPath` & `ResponsePath` are made non-public because they complicate the API without adding much value.
+  - `Path` metadata is moved to a separate class `PathMetadata`.
+  - `PathPolicy` filters now return a `ScionSocketAddress` instead of a `Path`.
 
 ## [0.1.1] - 2024-05-10
 
