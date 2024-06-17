@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -496,6 +495,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
+  protected int getCfgExpirationSafetyMargin() {
+    return cfgExpirationSafetyMargin;
+  }
+
   private void checkLockedForRead() {
     if (!readLock().isLocked()) {
       throw new IllegalStateException("Access must be READ locked!");
@@ -530,24 +533,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       bufferReceive = ByteBuffer.allocateDirect(requiredSize);
     }
     return bufferReceive;
-  }
-
-  /**
-   * @param path path
-   * @param payloadLength payload length
-   * @return argument path or a new path if the argument path was expired
-   * @throws IOException in case of IOException.
-   */
-  protected Path checkPathAndBuildHeader(
-      ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
-      throws IOException {
-    synchronized (stateLock) {
-      if (path instanceof RequestPath) {
-        path = ensureUpToDate((RequestPath) path);
-      }
-      buildHeader(buffer, path, payloadLength, hdrType);
-      return path;
-    }
   }
 
   /**
@@ -622,23 +607,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected RequestPath ensureUpToDate(RequestPath path) throws IOException {
-    synchronized (stateLock) {
-      if (Instant.now().getEpochSecond() + cfgExpirationSafetyMargin <= path.getExpiration()) {
-        return path;
-      }
-      // expired, get new path
-      RequestPath newPath = pathPolicy.filter(getOrCreateService().getPaths(path));
-      if (isConnected()) {
-        updateConnection(newPath, true);
-      }
-      return newPath;
-    }
-  }
-
-  private void updateConnection(RequestPath newPath, boolean mustBeConnected) throws IOException {
+  protected void updateConnection(RequestPath newPath, boolean mustBeConnected) throws IOException {
     if (mustBeConnected && !isConnected()) {
-      throw new IllegalStateException();
+      return;
     }
     // update connected path
     connectionPath = newPath;
@@ -671,5 +642,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected ReentrantLock writeLock() {
     return writeLock;
+  }
+
+  protected Object stateLock() {
+    return stateLock;
   }
 }
