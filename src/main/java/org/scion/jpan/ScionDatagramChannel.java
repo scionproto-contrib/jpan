@@ -40,7 +40,8 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   }
 
   // Store on path per (non-Scion-)destination address
-  private final WeakHashMap<InetSocketAddress, Path> resolvedDestinations = new WeakHashMap<>();
+  private final WeakHashMap<InetSocketAddress, RequestPath> resolvedDestinations =
+      new WeakHashMap<>();
   // Store a refreshed paths for every path
   private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
 
@@ -112,11 +113,13 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     }
 
     InetSocketAddress dst = (InetSocketAddress) destination;
-
-    Path path = resolvedDestinations.get(dst);
-    if (path == null) {
-      path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
-      resolvedDestinations.put(dst, path);
+    RequestPath path;
+    synchronized (stateLock()) {
+      path = resolvedDestinations.get(dst);
+      if (path == null) {
+        path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
+        resolvedDestinations.put(dst, path);
+      }
     }
     return send(srcBuffer, path, RefreshPolicy.POLICY);
   }
@@ -125,8 +128,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
-   * @param path Path to destination. If this is a RequestPath, and it is expired, then it will
-   *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
+   * @param path Path to destination. Expiration is *not* verified.
    * @return The number of bytes sent, see {@link java.nio.channels.DatagramChannel#send(ByteBuffer,
    *     SocketAddress)}.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
@@ -199,7 +201,6 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
-      // TODO different refresh policies?
       checkPathAndBuildHeaderUDP(buffer, path, len, RefreshPolicy.POLICY);
       buffer.put(src);
       buffer.flip();
@@ -252,8 +253,11 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     // expired, get new path
     List<RequestPath> paths = getOrCreateService().getPaths(path);
     switch (refreshPolicy) {
-        // TODO, let this pass until it is ACTUALLY expired
       case OFF:
+        // let this pass until it is ACTUALLY expired
+        if (Instant.now().getEpochSecond() <= path.getExpiration()) {
+          return path;
+        }
         throw new ScionRuntimeException("Path is expired");
       case POLICY:
         return getPathPolicy().filter(getOrCreateService().getPaths(path));
@@ -286,6 +290,21 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       }
     }
     return null;
+  }
+
+  /**
+   * The channel maintains mappings from input address to output paths. Input addresses are given as
+   * input to {@link #send(ByteBuffer, SocketAddress)}. The channel tries to resolve the address
+   * via DNS TXT record to a SCION enabled address and stores the result in the mapping for future
+   * use.
+   *
+   * @param address A destination address
+   * @return The mapped path or the path itself if no mapping is available.
+   */
+  public RequestPath getMappedPath(InetSocketAddress address) {
+    synchronized (stateLock()) {
+      return resolvedDestinations.get(address);
+    }
   }
 
   /**
