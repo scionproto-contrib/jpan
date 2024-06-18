@@ -247,7 +247,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    */
   private RequestPath refreshPath(RequestPath path, RefreshPolicy refreshPolicy) {
     int expiryMargin = getCfgExpirationSafetyMargin();
-    if (Instant.now().getEpochSecond() + expiryMargin <= path.getExpiration()) {
+    if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
       return null;
     }
     // expired, get new path
@@ -269,9 +269,9 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   }
 
   private RequestPath findPathSameLinks(List<RequestPath> paths, RequestPath path) {
-    List<PathMetadata.PathInterface> reference = path.getInterfacesList();
+    List<PathMetadata.PathInterface> reference = path.getMetadata().getInterfacesList();
     for (RequestPath newPath : paths) {
-      List<PathMetadata.PathInterface> ifs = newPath.getInterfacesList();
+      List<PathMetadata.PathInterface> ifs = newPath.getMetadata().getInterfacesList();
       if (ifs.size() != reference.size()) {
         continue;
       }

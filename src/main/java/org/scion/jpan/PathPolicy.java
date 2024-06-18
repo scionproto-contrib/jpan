@@ -32,7 +32,7 @@ public interface PathPolicy {
   class MaxBandwith implements PathPolicy {
     public RequestPath filter(List<RequestPath> paths) {
       return paths.stream()
-          .max(Comparator.comparing(path -> Collections.min(path.getBandwidthList())))
+          .max(Comparator.comparing(path -> Collections.min(path.getMetadata().getBandwidthList())))
           .orElseThrow(NoSuchElementException::new);
     }
   }
@@ -45,7 +45,7 @@ public interface PathPolicy {
           .min(
               Comparator.comparing(
                   path ->
-                      path.getLatencyList().stream()
+                      path.getMetadata().getLatencyList().stream()
                           .mapToLong(l -> l > 0 ? l : Integer.MAX_VALUE)
                           .reduce(0, Long::sum)))
           .orElseThrow(NoSuchElementException::new);
@@ -55,7 +55,7 @@ public interface PathPolicy {
   class MinHopCount implements PathPolicy {
     public RequestPath filter(List<RequestPath> paths) {
       return paths.stream()
-          .min(Comparator.comparing(path -> path.getInternalHopsList().size()))
+          .min(Comparator.comparing(path -> path.getMetadata().getInternalHopsList().size()))
           .orElseThrow(NoSuchElementException::new);
     }
   }
@@ -76,7 +76,7 @@ public interface PathPolicy {
     }
 
     private boolean checkPath(RequestPath path) {
-      for (PathMetadata.PathInterface pif : path.getInterfacesList()) {
+      for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
         if (!allowedIsds.contains(isd)) {
           return false;

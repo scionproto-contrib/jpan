@@ -483,11 +483,12 @@ class DatagramChannelApiTest {
         (channel, expiringPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
-            long oldExpiration = expiringPath.getExpiration();
+            long oldExpiration = expiringPath.getMetadata().getExpiration();
             assertTrue(Instant.now().getEpochSecond() > oldExpiration);
             channel.send(sendBuf, expiringPath);
-            assertEquals(oldExpiration, expiringPath.getExpiration()); // Path is unmodifiable
-            long newExpiration = channel.getMappedPath(expiringPath).getExpiration();
+            // Path is unmodifiable
+            assertEquals(oldExpiration, expiringPath.getMetadata().getExpiration());
+            long newExpiration = channel.getMappedPath(expiringPath).getMetadata().getExpiration();
             assertTrue(newExpiration > oldExpiration);
             assertTrue(Instant.now().getEpochSecond() < newExpiration);
             assertNull(channel.getConnectionPath());
@@ -505,10 +506,10 @@ class DatagramChannelApiTest {
         (channel, expiringPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
-            long oldExpiration = expiringPath.getExpiration();
+            long oldExpiration = expiringPath.getMetadata().getExpiration();
             assertTrue(Instant.now().getEpochSecond() > oldExpiration);
             channel.send(sendBuf, expiringPath);
-            long newExpiration = channel.getMappedPath(expiringPath).getExpiration();
+            long newExpiration = channel.getMappedPath(expiringPath).getMetadata().getExpiration();
             assertTrue(newExpiration > oldExpiration);
             assertTrue(Instant.now().getEpochSecond() < newExpiration);
             assertEquals(expiringPath, channel.getConnectionPath());
@@ -528,8 +529,9 @@ class DatagramChannelApiTest {
           try {
             channel.write(sendBuf);
             RequestPath newPath = channel.getConnectionPath();
-            assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
-            assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
+            assertTrue(
+                newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
+            assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
@@ -570,7 +572,7 @@ class DatagramChannelApiTest {
             basePath.getRemoteAddress(),
             basePath.getRemotePort(),
             basePath.getFirstHopAddress());
-    assertTrue(Instant.now().getEpochSecond() > expiredPath.getExpiration());
+    assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
     return expiredPath;
   }
 
