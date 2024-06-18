@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Internal cleanup. [#88](https://github.com/scionproto-contrib/jpan/pull/88)
 - Deprecated `getPaths(InetSocketAddress)` because it wasn't clear that it did a SCION lookup. 
   [#89](https://github.com/scionproto-contrib/jpan/pull/89)
+- **BREAKING CHANGE**: ScionDatagramChannel.send(buffer, path) returns 'int'.
+  [#92](https://github.com/scionproto-contrib/jpan/pull/92)
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)

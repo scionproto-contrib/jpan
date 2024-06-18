@@ -403,6 +403,17 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void send_bufferSize() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      int size0 = channel.send(ByteBuffer.allocate(0), ExamplePacket.PATH);
+      assertEquals(0, size0);
+
+      int size100 = channel.send(ByteBuffer.wrap(new byte[100]), ExamplePacket.PATH);
+      assertEquals(100, size100);
+    }
+  }
+
+  @Test
   void send_bufferTooLarge() {
     RequestPath addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65440);
@@ -469,12 +480,16 @@ class DatagramChannelApiTest {
   void send_disconnected_expiredRequestPath() throws IOException {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
-        (channel, expiredPath) -> {
+        (channel, expiringPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
-            RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
-            assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
-            assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
+            long oldExpiration = expiringPath.getExpiration();
+            assertTrue(Instant.now().getEpochSecond() > oldExpiration);
+            channel.send(sendBuf, expiringPath);
+            assertEquals(oldExpiration, expiringPath.getExpiration()); // Path is unmodifiable
+            long newExpiration = channel.getMappedPath(expiringPath).getExpiration();
+            assertTrue(newExpiration > oldExpiration);
+            assertTrue(Instant.now().getEpochSecond() < newExpiration);
             assertNull(channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
@@ -487,13 +502,16 @@ class DatagramChannelApiTest {
   void send_connected_expiredRequestPath() throws IOException {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
-        (channel, expiredPath) -> {
+        (channel, expiringPath) -> {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
-            RequestPath newPath = (RequestPath) channel.send(sendBuf, expiredPath);
-            assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
-            assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
-            assertEquals(newPath, channel.getConnectionPath());
+            long oldExpiration = expiringPath.getExpiration();
+            assertTrue(Instant.now().getEpochSecond() > oldExpiration);
+            channel.send(sendBuf, expiringPath);
+            long newExpiration = channel.getMappedPath(expiringPath).getExpiration();
+            assertTrue(newExpiration > oldExpiration);
+            assertTrue(Instant.now().getEpochSecond() < newExpiration);
+            assertEquals(expiringPath, channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }

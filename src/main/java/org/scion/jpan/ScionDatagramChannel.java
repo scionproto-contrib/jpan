@@ -21,11 +21,29 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.NotYetConnectedException;
+import java.time.Instant;
+import java.util.List;
+import java.util.WeakHashMap;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
 
 public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
+
+  public enum RefreshPolicy {
+    /** No refresh. */
+    OFF,
+    /** Refresh with path along the same links. */
+    SAME_LINKS,
+    /** Refresh with path path following path policy. */
+    POLICY
+  }
+
+  // Store on path per (non-Scion-)destination address
+  private final WeakHashMap<InetSocketAddress, RequestPath> resolvedDestinations =
+      new WeakHashMap<>();
+  // Store a refreshed paths for every path
+  private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
 
   protected ScionDatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
       throws IOException {
@@ -80,51 +98,61 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @param srcBuffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
    *     that the ISD/AS information can be retrieved.
+   * @return The number of bytes sent, see {@link java.nio.channels.DatagramChannel#send(ByteBuffer,
+   *     SocketAddress)}.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public void send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
+  public int send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
     if (destination instanceof ScionResponseAddress) {
-      send(srcBuffer, ((ScionResponseAddress) destination).getPath());
-      return;
+      return send(srcBuffer, ((ScionResponseAddress) destination).getPath(), RefreshPolicy.OFF);
     }
+
     InetSocketAddress dst = (InetSocketAddress) destination;
-    Path path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
-    send(srcBuffer, path);
+    RequestPath path;
+    synchronized (stateLock()) {
+      path = resolvedDestinations.get(dst);
+      if (path == null) {
+        path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
+        resolvedDestinations.put(dst, path);
+      }
+    }
+    return send(srcBuffer, path, RefreshPolicy.POLICY);
   }
 
   /**
    * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
-   * @param path Path to destination. If this is a RequestPath, and it is expired, then it will
-   *     automatically be replaced with a new path. Expiration of ResponsePaths is not checked
-   * @return either the path argument or a new path if the path was an expired RequestPath. Note
-   *     that ResponsePaths are not checked for expiration.
+   * @param path Path to destination. Expiration is *not* verified.
+   * @return The number of bytes sent, see {@link java.nio.channels.DatagramChannel#send(ByteBuffer,
+   *     SocketAddress)}.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  public Path send(ByteBuffer srcBuffer, Path path) throws IOException {
+  public int send(ByteBuffer srcBuffer, Path path) throws IOException {
+    return send(srcBuffer, path, RefreshPolicy.SAME_LINKS);
+  }
+
+  private int send(ByteBuffer srcBuffer, Path path, RefreshPolicy refresh) throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
-      // + 8 for UDP overlay header length
-      Path actualPath =
-          checkPathAndBuildHeader(
-              buffer, path, srcBuffer.remaining() + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeaderUDP(buffer, path, srcBuffer.remaining(), refresh);
+      int headerSize = buffer.position();
       try {
         buffer.put(srcBuffer);
       } catch (BufferOverflowException e) {
         throw new IOException("Packet is larger than max send buffer size.");
       }
       buffer.flip();
-      sendRaw(buffer, actualPath);
-      return actualPath;
+      int size = sendRaw(buffer, path);
+      return size - headerSize;
     } finally {
       writeLock().unlock();
     }
@@ -173,8 +201,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
-      // + 8 for UDP overlay header length
-      checkPathAndBuildHeader(buffer, path, len + 8, InternalConstants.HdrTypes.UDP);
+      checkPathAndBuildHeaderUDP(buffer, path, len, RefreshPolicy.POLICY);
       buffer.put(src);
       buffer.flip();
 
@@ -187,6 +214,110 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       throw new IOException("Source buffer larger than MTU", e);
     } finally {
       writeLock().unlock();
+    }
+  }
+
+  /**
+   * @param path path
+   * @param payloadLength payload length
+   * @throws IOException in case of IOException.
+   */
+  private void checkPathAndBuildHeaderUDP(
+      ByteBuffer buffer, Path path, int payloadLength, RefreshPolicy rf) throws IOException {
+    synchronized (super.stateLock()) {
+      if (path instanceof RequestPath) {
+        RequestPath requestPath = (RequestPath) path;
+        RequestPath newPath = refreshPath(requestPath, rf);
+        if (newPath != null) {
+          refreshedPaths.put(path, newPath);
+          updateConnection(requestPath, true);
+        }
+      }
+      // + 8 for UDP overlay header length
+      buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP);
+    }
+  }
+
+  /**
+   * Checks whether the current path is expired and requests and assigns a new path if required.
+   *
+   * @param path RequestPath that may need refreshing
+   * @param refreshPolicy Path refresh policy
+   * @return a new Path if the path was updated, otherwise `null`.
+   */
+  private RequestPath refreshPath(RequestPath path, RefreshPolicy refreshPolicy) {
+    int expiryMargin = getCfgExpirationSafetyMargin();
+    if (Instant.now().getEpochSecond() + expiryMargin <= path.getExpiration()) {
+      return null;
+    }
+    // expired, get new path
+    List<RequestPath> paths = getOrCreateService().getPaths(path);
+    switch (refreshPolicy) {
+      case OFF:
+        // let this pass until it is ACTUALLY expired
+        if (Instant.now().getEpochSecond() <= path.getExpiration()) {
+          return path;
+        }
+        throw new ScionRuntimeException("Path is expired");
+      case POLICY:
+        return getPathPolicy().filter(getOrCreateService().getPaths(path));
+      case SAME_LINKS:
+        return findPathSameLinks(paths, path);
+      default:
+        throw new UnsupportedOperationException();
+    }
+  }
+
+  private RequestPath findPathSameLinks(List<RequestPath> paths, RequestPath path) {
+    List<RequestPath.PathInterface> reference = path.getInterfacesList();
+    for (RequestPath newPath : paths) {
+      List<RequestPath.PathInterface> ifs = newPath.getInterfacesList();
+      if (ifs.size() != reference.size()) {
+        continue;
+      }
+      boolean isSame = true;
+      for (int i = 0; i < ifs.size(); i++) {
+        // In theory we could compare only the first ISD/AS and then only Interface IDs....
+        RequestPath.PathInterface if1 = ifs.get(i);
+        RequestPath.PathInterface if2 = reference.get(i);
+        if (if1.getIsdAs() != if2.getIsdAs() || if1.getId() != if2.getId()) {
+          isSame = false;
+          break;
+        }
+      }
+      if (isSame) {
+        return newPath;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The channel maintains mappings from input address to output paths. Input addresses are given as
+   * input to {@link #send(ByteBuffer, SocketAddress)}. The channel tries to resolve the address via
+   * DNS TXT record to a SCION enabled address and stores the result in the mapping for future use.
+   *
+   * @param address A destination address
+   * @return The mapped path or the path itself if no mapping is available.
+   */
+  public RequestPath getMappedPath(InetSocketAddress address) {
+    synchronized (stateLock()) {
+      return resolvedDestinations.get(address);
+    }
+  }
+
+  /**
+   * The channel maintains mappings from input path to output paths. Input paths are given as input
+   * to {@link #send(ByteBuffer, Path)}. If the path is valid, it is also used as actual path for
+   * any packet sent to the destination. If the path has expired, the channel will try to find an
+   * identical, but more recent path and store it in the mapping.
+   *
+   * @param path A Path
+   * @return The mapped path or the path itself if no mapping is available.
+   */
+  public RequestPath getMappedPath(RequestPath path) {
+    synchronized (stateLock()) {
+      return refreshedPaths.getOrDefault(path, path);
     }
   }
 }
