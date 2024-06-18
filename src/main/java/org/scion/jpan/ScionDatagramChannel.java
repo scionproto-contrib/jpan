@@ -294,9 +294,8 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
   /**
    * The channel maintains mappings from input address to output paths. Input addresses are given as
-   * input to {@link #send(ByteBuffer, SocketAddress)}. The channel tries to resolve the address
-   * via DNS TXT record to a SCION enabled address and stores the result in the mapping for future
-   * use.
+   * input to {@link #send(ByteBuffer, SocketAddress)}. The channel tries to resolve the address via
+   * DNS TXT record to a SCION enabled address and stores the result in the mapping for future use.
    *
    * @param address A destination address
    * @return The mapped path or the path itself if no mapping is available.
