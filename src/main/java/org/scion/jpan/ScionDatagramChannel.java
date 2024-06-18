@@ -247,7 +247,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    */
   private RequestPath refreshPath(RequestPath path, RefreshPolicy refreshPolicy) {
     int expiryMargin = getCfgExpirationSafetyMargin();
-    if (Instant.now().getEpochSecond() + expiryMargin <= path.getExpiration()) {
+    if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
       return null;
     }
     // expired, get new path
@@ -255,7 +255,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     switch (refreshPolicy) {
       case OFF:
         // let this pass until it is ACTUALLY expired
-        if (Instant.now().getEpochSecond() <= path.getExpiration()) {
+        if (Instant.now().getEpochSecond() <= path.getMetadata().getExpiration()) {
           return path;
         }
         throw new ScionRuntimeException("Path is expired");
@@ -269,17 +269,17 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   }
 
   private RequestPath findPathSameLinks(List<RequestPath> paths, RequestPath path) {
-    List<RequestPath.PathInterface> reference = path.getInterfacesList();
+    List<PathMetadata.PathInterface> reference = path.getMetadata().getInterfacesList();
     for (RequestPath newPath : paths) {
-      List<RequestPath.PathInterface> ifs = newPath.getInterfacesList();
+      List<PathMetadata.PathInterface> ifs = newPath.getMetadata().getInterfacesList();
       if (ifs.size() != reference.size()) {
         continue;
       }
       boolean isSame = true;
       for (int i = 0; i < ifs.size(); i++) {
         // In theory we could compare only the first ISD/AS and then only Interface IDs....
-        RequestPath.PathInterface if1 = ifs.get(i);
-        RequestPath.PathInterface if2 = reference.get(i);
+        PathMetadata.PathInterface if1 = ifs.get(i);
+        PathMetadata.PathInterface if2 = reference.get(i);
         if (if1.getIsdAs() != if2.getIsdAs() || if1.getId() != if2.getId()) {
           isSame = false;
           break;

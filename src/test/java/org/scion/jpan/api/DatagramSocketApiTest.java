@@ -618,9 +618,9 @@ class DatagramSocketApiTest {
           try {
             socket.send(packet);
             RequestPath newPath = socket.getConnectionPath();
-            assertTrue(newPath.getExpiration() > expiredPath.getExpiration());
-            assertTrue(Instant.now().getEpochSecond() < newPath.getExpiration());
-            // assertNull(channel.getCurrentPath());
+            assertTrue(
+                newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
+            assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
@@ -637,7 +637,6 @@ class DatagramSocketApiTest {
           RequestPath expiredPath = createExpiredPath(basePath);
           sendMethod.accept(channel, expiredPath);
 
-          // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
           DatagramPacket packet = new DatagramPacket(new byte[100], 100);
           channel.receive(packet);
 
@@ -660,7 +659,7 @@ class DatagramSocketApiTest {
             basePath.getRemoteAddress(),
             basePath.getRemotePort(),
             basePath.getFirstHopAddress());
-    assertTrue(Instant.now().getEpochSecond() > expiredPath.getExpiration());
+    assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
     return expiredPath;
   }
 
