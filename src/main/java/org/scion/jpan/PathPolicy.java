@@ -76,7 +76,7 @@ public interface PathPolicy {
     }
 
     private boolean checkPath(RequestPath path) {
-      for (RequestPath.PathInterface pif : path.getInterfacesList()) {
+      for (PathMetadata.PathInterface pif : path.getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
         if (!allowedIsds.contains(isd)) {
           return false;
@@ -102,7 +102,7 @@ public interface PathPolicy {
     }
 
     private boolean checkPath(RequestPath path) {
-      for (RequestPath.PathInterface pif : path.getInterfacesList()) {
+      for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
         if (disallowedIsds.contains(isd)) {
           return false;
