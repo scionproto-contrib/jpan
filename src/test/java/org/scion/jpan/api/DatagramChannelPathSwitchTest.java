@@ -38,7 +38,7 @@ class DatagramChannelPathSwitchTest {
         private int count = 0;
 
         @Override
-        public RequestPath filter(List<RequestPath> paths) {
+        public Path filter(List<Path> paths) {
           return paths.get(count++ % 2);
         }
       };

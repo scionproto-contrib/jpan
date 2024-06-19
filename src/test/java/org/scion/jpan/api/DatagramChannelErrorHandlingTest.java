@@ -52,10 +52,10 @@ class DatagramChannelErrorHandlingTest {
             System.out.println("msg: " + message.getTypeCode());
             throw new IllegalArgumentException();
           });
-      List<RequestPath> paths = Scion.defaultService().getPaths(ExamplePacket.DST_IA, dstAddr);
+      List<Path> paths = Scion.defaultService().getPaths(ExamplePacket.DST_IA, dstAddr);
       assertEquals(2, paths.size());
-      RequestPath path0 = paths.get(0);
-      RequestPath path1 = paths.get(0);
+      Path path0 = paths.get(0);
+      Path path1 = paths.get(0);
       channel.connect(path0);
       channel.write(ByteBuffer.allocate(0));
       assertEquals(path0, channel.getConnectionPath());

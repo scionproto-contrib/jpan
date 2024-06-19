@@ -104,7 +104,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
-        connectionPath = pathPolicy.filter(getOrCreateService().getPaths(connectionPath));
+        connectionPath = (RequestPath) pathPolicy.filter(getOrCreateService().getPaths(connectionPath));
         updateConnection(connectionPath, true);
       }
     }
@@ -235,7 +235,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         throw new IllegalArgumentException(
             "connect() requires an InetSocketAddress or a ScionSocketAddress.");
       }
-      return connect(getOrCreateService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy));
+      Path path = getOrCreateService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy);
+      return connect((RequestPath) path);
     }
   }
 

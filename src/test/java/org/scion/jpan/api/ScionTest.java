@@ -90,7 +90,7 @@ public class ScionTest {
     System.setProperty(Constants.PROPERTY_DAEMON, "[::1]:" + DEFAULT_PORT);
     try {
       ScionService service = Scion.defaultService();
-      RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
@@ -109,7 +109,7 @@ public class ScionTest {
     try {
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
-      RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
@@ -135,7 +135,7 @@ public class ScionTest {
 
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
       ScionService service = Scion.defaultService();
-      RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
@@ -150,7 +150,7 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try {
       ScionService service = Scion.defaultService();
-      RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
@@ -166,7 +166,7 @@ public class ScionTest {
     try {
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
-      RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
@@ -295,7 +295,7 @@ public class ScionTest {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(MockTopologyServer.TOPO_HOST)) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
       InetAddress ip123 = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
-      List<RequestPath> paths = ss.getPaths(iaDst, ip123, 12345);
+      List<Path> paths = ss.getPaths(iaDst, ip123, 12345);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
@@ -315,7 +315,7 @@ public class ScionTest {
         Scion.newServiceWithBootstrapServer(ToStringUtil.toAddressPort(topoAddr))) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
       InetAddress ip123 = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
-      List<RequestPath> paths = ss.getPaths(iaDst, ip123, 12345);
+      List<Path> paths = ss.getPaths(iaDst, ip123, 12345);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
@@ -336,7 +336,7 @@ public class ScionTest {
       System.setProperty(
           Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-scionproto-0.11.json");
       ScionService service = Scion.defaultService();
-      RequestPath path = service.getPaths(dstIA, dstAddress).get(0);
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {

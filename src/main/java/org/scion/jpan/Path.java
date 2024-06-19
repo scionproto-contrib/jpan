@@ -53,6 +53,8 @@ public abstract class Path {
     return dstAddress;
   }
 
+  public abstract PathMetadata getMetadata();
+
   @Override
   public String toString() {
     try {

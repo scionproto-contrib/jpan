@@ -117,7 +117,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     synchronized (stateLock()) {
       path = resolvedDestinations.get(dst);
       if (path == null) {
-        path = getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
+        path = (RequestPath) getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
         resolvedDestinations.put(dst, path);
       }
     }
@@ -251,7 +251,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       return null;
     }
     // expired, get new path
-    List<RequestPath> paths = getOrCreateService().getPaths(path);
+    List<Path> paths = getOrCreateService().getPaths(path);
     switch (refreshPolicy) {
       case OFF:
         // let this pass until it is ACTUALLY expired
@@ -260,7 +260,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         }
         throw new ScionRuntimeException("Path is expired");
       case POLICY:
-        return getPathPolicy().filter(getOrCreateService().getPaths(path));
+        return (RequestPath) getPathPolicy().filter(getOrCreateService().getPaths(path));
       case SAME_LINKS:
         return findPathSameLinks(paths, path);
       default:
@@ -268,9 +268,9 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     }
   }
 
-  private RequestPath findPathSameLinks(List<RequestPath> paths, RequestPath path) {
+  private RequestPath findPathSameLinks(List<Path> paths, RequestPath path) {
     List<PathMetadata.PathInterface> reference = path.getMetadata().getInterfacesList();
-    for (RequestPath newPath : paths) {
+    for (Path newPath : paths) {
       List<PathMetadata.PathInterface> ifs = newPath.getMetadata().getInterfacesList();
       if (ifs.size() != reference.size()) {
         continue;
@@ -286,7 +286,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         }
       }
       if (isSame) {
-        return newPath;
+        return (RequestPath) newPath;
       }
     }
     return null;

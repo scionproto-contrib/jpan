@@ -24,13 +24,13 @@ public interface PathPolicy {
   PathPolicy DEFAULT = MIN_HOPS;
 
   class First implements PathPolicy {
-    public RequestPath filter(List<RequestPath> paths) {
+    public Path filter(List<Path> paths) {
       return paths.stream().findFirst().orElseThrow(NoSuchElementException::new);
     }
   }
 
   class MaxBandwith implements PathPolicy {
-    public RequestPath filter(List<RequestPath> paths) {
+    public Path filter(List<Path> paths) {
       return paths.stream()
           .max(Comparator.comparing(path -> Collections.min(path.getMetadata().getBandwidthList())))
           .orElseThrow(NoSuchElementException::new);
@@ -38,7 +38,7 @@ public interface PathPolicy {
   }
 
   class MinLatency implements PathPolicy {
-    public RequestPath filter(List<RequestPath> paths) {
+    public Path filter(List<Path> paths) {
       // A 0-value indicates that the AS did not announce a latency for this hop.
       // We use Integer.MAX_VALUE for comparison of these ASes.
       return paths.stream()
@@ -53,7 +53,7 @@ public interface PathPolicy {
   }
 
   class MinHopCount implements PathPolicy {
-    public RequestPath filter(List<RequestPath> paths) {
+    public Path filter(List<Path> paths) {
       return paths.stream()
           .min(Comparator.comparing(path -> path.getMetadata().getInternalHopsList().size()))
           .orElseThrow(NoSuchElementException::new);
@@ -68,14 +68,14 @@ public interface PathPolicy {
     }
 
     @Override
-    public RequestPath filter(List<RequestPath> paths) {
+    public Path filter(List<Path> paths) {
       return paths.stream()
           .filter(this::checkPath)
           .findAny()
           .orElseThrow(NoSuchElementException::new);
     }
 
-    private boolean checkPath(RequestPath path) {
+    private boolean checkPath(Path path) {
       for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
         if (!allowedIsds.contains(isd)) {
@@ -94,14 +94,14 @@ public interface PathPolicy {
     }
 
     @Override
-    public RequestPath filter(List<RequestPath> paths) {
+    public Path filter(List<Path> paths) {
       return paths.stream()
           .filter(this::checkPath)
           .findAny()
           .orElseThrow(NoSuchElementException::new);
     }
 
-    private boolean checkPath(RequestPath path) {
+    private boolean checkPath(Path path) {
       for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
         int isd = (int) (pif.getIsdAs() >>> 48);
         if (disallowedIsds.contains(isd)) {
@@ -117,5 +117,5 @@ public interface PathPolicy {
    * @return The "best" path according to the filter's policy.
    * @throws NoSuchElementException if no matching path could be found.
    */
-  RequestPath filter(List<RequestPath> paths);
+  Path filter(List<Path> paths);
 }
