@@ -354,8 +354,7 @@ public class ScionService {
    * @return All paths returned by the path service.
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
-  public Path lookupAndGetPath(InetSocketAddress dstAddr, PathPolicy policy)
-      throws ScionException {
+  public Path lookupAndGetPath(InetSocketAddress dstAddr, PathPolicy policy) throws ScionException {
     if (policy == null) {
       policy = PathPolicy.DEFAULT;
     }

@@ -104,7 +104,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
-        connectionPath = (RequestPath) pathPolicy.filter(getOrCreateService().getPaths(connectionPath));
+        connectionPath =
+            (RequestPath) pathPolicy.filter(getOrCreateService().getPaths(connectionPath));
         updateConnection(connectionPath, true);
       }
     }
@@ -181,7 +182,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @return The remote address or 'null' if this channel is not connected.
    * @see DatagramChannel#getRemoteAddress()
    * @see #connect(SocketAddress)
-   * @see #connect(RequestPath)
+   * @see #connect(Path)
    * @throws IOException If an I/O error occurs
    */
   public InetSocketAddress getRemoteAddress() throws IOException {
@@ -217,7 +218,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * Connect to a destination host.
    *
    * <p>NB: A SCION channel will internally connect to the next border router (first hop) instead of
-   * the remote host.
+   * the remote host. <br>
+   * If the address is an instance of {@link ScionSocketAddress} then connect will use the path
+   * associated with the address, see {@link #connect(Path)}.
    *
    * <p>NB: This method does internally not call {@link
    * java.nio.channels.DatagramChannel}.connect(), instead it calls bind(). That means this method
@@ -235,8 +238,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         throw new IllegalArgumentException(
             "connect() requires an InetSocketAddress or a ScionSocketAddress.");
       }
+      if (addr instanceof ScionSocketAddress) {
+        return connect(((ScionSocketAddress) addr).getPath());
+      }
       Path path = getOrCreateService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy);
-      return connect((RequestPath) path);
+      return connect(path);
     }
   }
 
@@ -262,7 +268,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @throws IOException for example when the first hop (border router) cannot be connected.
    */
   @SuppressWarnings("unchecked")
-  public C connect(RequestPath path) throws IOException {
+  public C connect(Path path) throws IOException {
+    if (!(path instanceof RequestPath)) {
+      throw new IllegalStateException("The path must be a request path.");
+    }
     // For reference: Java DatagramChannel behavior:
     // - fresh channel has getLocalAddress() == null
     // - connect() and send() cause internal bind()
@@ -294,18 +303,18 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       checkConnected(false);
       ensureBound();
-      updateConnection(path, false);
+      updateConnection((RequestPath) path, false);
       return (C) this;
     }
   }
 
   /**
-   * Get the currently connected path. The connected path is set during {@link
-   * #connect(RequestPath)} and may be refreshed when expired.
+   * Get the currently connected path. The connected path is set during {@link #connect(Path)} and
+   * may be refreshed when expired.
    *
    * @return the current Path or `null` if not path is connected.
    */
-  public RequestPath getConnectionPath() {
+  public Path getConnectionPath() {
     synchronized (stateLock) {
       return connectionPath;
     }

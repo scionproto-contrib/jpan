@@ -75,7 +75,7 @@ public class ScionServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
-      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
+      Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
@@ -91,7 +91,7 @@ public class ScionServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
-      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
+      Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
@@ -106,7 +106,7 @@ public class ScionServiceTest {
     MockDaemon.createAndStartDefault();
     try {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      RequestPath path;
+      Path path;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
@@ -144,7 +144,7 @@ public class ScionServiceTest {
     MockDaemon.createAndStartDefault();
     try {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      List<RequestPath> paths;
+      List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
@@ -159,7 +159,7 @@ public class ScionServiceTest {
       //    0: 2 561850441793808
       //    0: 1 561850441793810
       assertEquals(1, paths.size());
-      for (RequestPath path : paths) {
+      for (Path path : paths) {
         assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
         // assertEquals(srcIA, path.getSourceIsdAs());
         assertEquals(dstIA, path.getRemoteIsdAs());
@@ -178,7 +178,7 @@ public class ScionServiceTest {
     MockDaemon.createAndStartDefault();
     try {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      List<RequestPath> paths;
+      List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:110");
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
@@ -193,7 +193,7 @@ public class ScionServiceTest {
       //          raw: []
       //  raw: {}
       assertEquals(1, paths.size());
-      RequestPath path = paths.get(0);
+      Path path = paths.get(0);
       InetAddress addr = path.getRemoteAddress();
       InetSocketAddress sAddr = new InetSocketAddress(addr, path.getRemotePort());
       assertEquals(sAddr, path.getFirstHopAddress());
@@ -211,7 +211,7 @@ public class ScionServiceTest {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_110/topology.json")) {
       ScionService service = Scion.defaultService();
-      List<RequestPath> paths;
+      List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
 
       // Non-existing AS
@@ -236,7 +236,7 @@ public class ScionServiceTest {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_1111/topology.json")) {
       ScionService service = Scion.defaultService();
-      List<RequestPath> paths;
+      List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
 
       // Non-existing AS

@@ -106,7 +106,7 @@ public class SCMPTest {
     testEcho(this::getPathToLocalAS);
   }
 
-  private void testEcho(Supplier<RequestPath> path) throws IOException {
+  private void testEcho(Supplier<Path> path) throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
     try (ScmpChannel channel = Scmp.createChannel()) {
@@ -128,7 +128,7 @@ public class SCMPTest {
   @Test
   void echo_timeout() throws IOException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112();
+    Path path = getPathTo112();
     try (ScmpChannel channel = Scmp.createChannel()) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -155,7 +155,7 @@ public class SCMPTest {
   @Test
   void echo_IOException() throws IOException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112();
+    Path path = getPathTo112();
     try (ScmpChannel channel = Scmp.createChannel()) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -198,7 +198,7 @@ public class SCMPTest {
     testTraceroute(this::getPathToLocalAS, 0);
   }
 
-  private void testTraceroute(Supplier<RequestPath> path, int nHops) throws IOException {
+  private void testTraceroute(Supplier<Path> path, int nHops) throws IOException {
     MockNetwork.startTiny();
     try (ScmpChannel channel = Scmp.createChannel()) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
@@ -231,7 +231,7 @@ public class SCMPTest {
   @Test
   void traceroute_timeout() throws IOException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112();
+    Path path = getPathTo112();
     try (ScmpChannel channel = Scmp.createChannel()) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -262,7 +262,7 @@ public class SCMPTest {
   @Test
   void traceroute_IOException() throws IOException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112();
+    Path path = getPathTo112();
     try (ScmpChannel channel = Scmp.createChannel()) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -277,7 +277,7 @@ public class SCMPTest {
   @Test
   void traceroute_SCMP_error() throws IOException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112();
+    Path path = getPathTo112();
     try (ScmpChannel channel = Scmp.createChannel()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
@@ -292,7 +292,7 @@ public class SCMPTest {
     }
   }
 
-  private RequestPath getPathTo112() {
+  private Path getPathTo112() {
     try {
       InetAddress zero = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
       return getPathTo112(zero);
@@ -301,19 +301,19 @@ public class SCMPTest {
     }
   }
 
-  private RequestPath getPathTo112(InetAddress dstAddress) {
+  private Path getPathTo112(InetAddress dstAddress) {
     ScionService service = Scion.defaultService();
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     return service.getPaths(dstIA, dstAddress, Constants.SCMP_PORT).get(0);
   }
 
-  private RequestPath getPathToLocalAS() {
+  private Path getPathToLocalAS() {
     ScionService service = Scion.defaultService();
     long dstIA = service.getLocalIsdAs();
     try {
       InetAddress addr = InetAddress.getByName(MockNetwork.BORDER_ROUTER_HOST);
       int port = MockNetwork.BORDER_ROUTER_PORT1;
-      List<RequestPath> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
+      List<Path> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
       return paths.get(0);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
@@ -323,7 +323,7 @@ public class SCMPTest {
   @Test
   void setUpScmpResponder_echo() throws IOException, InterruptedException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112(InetAddress.getLoopbackAddress());
+    Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
       sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
@@ -355,7 +355,7 @@ public class SCMPTest {
   @Test
   void setUpScmpResponder_echo_blocked() throws IOException, InterruptedException {
     MockNetwork.startTiny();
-    RequestPath path = getPathTo112(InetAddress.getLoopbackAddress());
+    Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
       sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));

@@ -16,6 +16,7 @@ package org.scion.jpan.testutil;
 
 import java.net.InetSocketAddress;
 import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionUtil;
 
@@ -39,7 +40,7 @@ public class ExamplePacket {
     0, 63, 0, 1, 0, 0, -8, 2,
     -114, 25, 76, -122,
   };
-  public static final RequestPath PATH =
+  public static final Path PATH =
       PackageVisibilityHelper.createDummyPath(
           DST_IA, DST_HOST, 8080, PATH_RAW_TINY_110_112, FIRST_HOP);
 

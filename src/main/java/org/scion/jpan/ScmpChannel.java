@@ -85,7 +85,7 @@ public class ScmpChannel implements AutoCloseable {
    *     and the time is equal to the time-out duration.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Scmp.EchoMessage sendEchoRequest(RequestPath path, int sequenceNumber, ByteBuffer data)
+  public Scmp.EchoMessage sendEchoRequest(Path path, int sequenceNumber, ByteBuffer data)
       throws IOException {
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
     sendScmpRequest(() -> channel.sendEchoRequest(request), Scmp.TypeCode.TYPE_129);
@@ -116,7 +116,7 @@ public class ScmpChannel implements AutoCloseable {
    *     If a request times out, the traceroute is aborted.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public List<Scmp.TracerouteMessage> sendTracerouteRequest(RequestPath path) throws IOException {
+  public List<Scmp.TracerouteMessage> sendTracerouteRequest(Path path) throws IOException {
     List<Scmp.TracerouteMessage> requests = new ArrayList<>();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     for (int i = 0; i < nodes.size(); i++) {
@@ -399,7 +399,7 @@ public class ScmpChannel implements AutoCloseable {
    * @return the current Path
    * @see ScionDatagramChannel#getConnectionPath()
    */
-  public RequestPath getConnectionPath() {
+  public Path getConnectionPath() {
     return channel.getConnectionPath();
   }
 

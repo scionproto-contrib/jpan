@@ -128,11 +128,10 @@ public class ScionUtil {
   }
 
   /**
-   * @param path A RequestPath
+   * @param meta A PathMetadata
    * @return ISD/AS codes and border outer interface IDs along the path.
    */
-  public static String toStringPath(RequestPath path) {
-    PathMetadata meta = path.getMetadata();
+  public static String toStringPath(PathMetadata meta) {
     if (meta.getInterfacesList().isEmpty()) {
       return "[]";
     }

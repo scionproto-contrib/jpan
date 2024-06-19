@@ -104,8 +104,8 @@ public class ScmpEchoDemo {
   }
 
   private void runDemo(long dstIA, InetSocketAddress dstAddress) throws IOException {
-    List<RequestPath> paths = Scion.defaultService().getPaths(dstIA, dstAddress);
-    RequestPath path = paths.get(0);
+    List<Path> paths = Scion.defaultService().getPaths(dstIA, dstAddress);
+    Path path = paths.get(0);
     ByteBuffer data = ByteBuffer.allocate(0);
 
     println("Listening on port " + localPort + " ...");
@@ -141,14 +141,14 @@ public class ScmpEchoDemo {
     }
   }
 
-  private void printPath(RequestPath path) {
+  private void printPath(Path path) {
     String nl = System.lineSeparator();
     StringBuilder sb = new StringBuilder();
     //    sb.append("Actual local address:").append(nl);
     //    sb.append("
     // ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
     sb.append("Using path:").append(nl);
-    sb.append("  Hops: ").append(ScionUtil.toStringPath(path));
+    sb.append("  Hops: ").append(ScionUtil.toStringPath(path.getMetadata()));
     sb.append(" MTU: ").append(path.getMetadata().getMtu());
     sb.append(" NextHop: ").append(path.getMetadata().getInterface().getAddress()).append(nl);
     println(sb.toString());

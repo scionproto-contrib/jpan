@@ -300,7 +300,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @param address A destination address
    * @return The mapped path or the path itself if no mapping is available.
    */
-  public RequestPath getMappedPath(InetSocketAddress address) {
+  public Path getMappedPath(InetSocketAddress address) {
     synchronized (stateLock()) {
       return resolvedDestinations.get(address);
     }
@@ -315,9 +315,12 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @param path A Path
    * @return The mapped path or the path itself if no mapping is available.
    */
-  public RequestPath getMappedPath(RequestPath path) {
+  public Path getMappedPath(Path path) {
+    if (!(path instanceof RequestPath)) {
+      return null;
+    }
     synchronized (stateLock()) {
-      return refreshedPaths.getOrDefault(path, path);
+      return refreshedPaths.getOrDefault(path, (RequestPath) path);
     }
   }
 }

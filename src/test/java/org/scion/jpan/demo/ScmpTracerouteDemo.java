@@ -91,13 +91,13 @@ public class ScmpTracerouteDemo {
     // Dummy address. The traceroute will contact the control service IP instead.
     InetSocketAddress destinationAddress =
         new InetSocketAddress(Inet4Address.getByAddress(new byte[] {1, 2, 3, 4}), 12345);
-    List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
+    List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
       String src = ScionUtil.toStringIA(service.getLocalIsdAs());
       String dst = ScionUtil.toStringIA(destinationIA);
       throw new IOException("No path found from " + src + " to " + dst);
     }
-    RequestPath path = paths.get(0);
+    Path path = paths.get(0);
 
     println("Listening on port " + localPort + " ...");
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
@@ -122,13 +122,13 @@ public class ScmpTracerouteDemo {
     }
   }
 
-  private void printPath(RequestPath path) {
+  private void printPath(Path path) {
     String nl = System.lineSeparator();
     StringBuilder sb = new StringBuilder();
     // sb.append("Actual local address:").append(nl);
     // sb.append("  ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
     sb.append("Using path:").append(nl);
-    sb.append("  Hops: ").append(ScionUtil.toStringPath(path));
+    sb.append("  Hops: ").append(ScionUtil.toStringPath(path.getMetadata()));
     sb.append(" MTU: ").append(path.getMetadata().getMtu());
     sb.append(" NextHop: ").append(path.getMetadata().getInterface().getAddress()).append(nl);
     println(sb.toString());
