@@ -25,8 +25,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test receive()/send(InetAddress) operations on DatagramChannel. */

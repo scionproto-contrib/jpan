@@ -27,8 +27,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 

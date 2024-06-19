@@ -329,13 +329,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
         // timeout occurred
         throw new SocketTimeoutException();
       }
-      ResponsePath path = responseAddress.getPath();
+      Path path = responseAddress.getPath();
       // TODO this is not ideal, a client may not be connected. Use getService()==null?
       if (!channel.isConnected()) {
         synchronized (pathCache) {
           InetAddress ip = path.getRemoteAddress();
-          InetSocketAddress addr = new InetSocketAddress(ip, path.getRemotePort());
-          pathCache.put(addr, path);
+          pathCache.put(new InetSocketAddress(ip, path.getRemotePort()), path);
         }
       }
       receiveBuffer.flip();

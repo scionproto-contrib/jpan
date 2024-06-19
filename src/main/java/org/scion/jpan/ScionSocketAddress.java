@@ -14,22 +14,34 @@
 
 package org.scion.jpan;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class ScionSocketAddress extends InetSocketAddress {
 
-  private final ResponsePath responsePath;
+  private final Path path;
+  private final long isdAs;
 
-  public static ScionSocketAddress from(ResponsePath path) {
-    return new ScionSocketAddress(path);
+  public static ScionSocketAddress from(Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    return new ScionSocketAddress(path, dstIsdAs, dstIP, dstPort);
   }
 
-  private ScionSocketAddress(ResponsePath path) {
-    super(path.getRemoteAddress(), path.getRemotePort());
-    this.responsePath = path;
+  private ScionSocketAddress(Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    super(dstIP, dstPort);
+    this.path = path;
+    this.isdAs = dstIsdAs;
   }
 
-  public ResponsePath getPath() {
-    return responsePath;
+  public Path getPath() {
+    return path;
+  }
+
+  public long getIsdAs() {
+    return isdAs;
+  }
+
+  @Override
+  public String toString() {
+    return ScionUtil.toStringIA(isdAs) + "," + super.toString();
   }
 }

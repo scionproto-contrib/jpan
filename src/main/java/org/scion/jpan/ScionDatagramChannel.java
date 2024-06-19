@@ -85,7 +85,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       }
       ScionHeaderParser.extractUserPayload(buffer, userBuffer);
       buffer.clear();
-      return ScionSocketAddress.from(receivePath);
+      return receivePath.getRemoteSocketAddress();
     } finally {
       readLock().unlock();
     }

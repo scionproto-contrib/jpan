@@ -33,10 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.scion.jpan.PackageVisibilityHelper;
-import org.scion.jpan.ResponsePath;
-import org.scion.jpan.ScionUtil;
-import org.scion.jpan.Scmp;
+import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.HopField;
 import org.scion.jpan.demo.inspector.PathHeaderScion;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
@@ -366,8 +363,7 @@ class MockBorderRouter implements Runnable {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     // From here on we use linear reading using the buffer's position() mechanism
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-    ResponsePath path =
-        PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
+    Path path = PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
     Scmp.Type type = ScmpParser.extractType(buffer);
     Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
     ScmpParser.consume(buffer, scmpMsg);

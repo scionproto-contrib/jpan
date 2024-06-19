@@ -23,8 +23,8 @@ import java.nio.channels.Selector;
 import java.util.Iterator;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.ScionSocketAddress;
 
 /**
  * DatagramChannel with support for timeout.
@@ -100,7 +100,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
       }
       ScionHeaderParser.extractUserPayload(buffer, userBuffer);
       buffer.clear();
-      return ScionSocketAddress.from(receivePath);
+      return receivePath.getRemoteSocketAddress();
     } finally {
       readLock().unlock();
     }
