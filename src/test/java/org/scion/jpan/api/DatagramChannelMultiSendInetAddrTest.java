@@ -25,8 +25,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionResponseAddress;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test receive()/send(InetAddress) operations on DatagramChannel. */
@@ -57,7 +57,7 @@ class DatagramChannelMultiSendInetAddrTest {
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    ScionResponseAddress address = channel.receive(response);
+    ScionSocketAddress address = channel.receive(response);
     assertNotNull(address);
     assertEquals(serverAddress.getRemoteAddress(), address.getPath().getRemoteAddress());
     assertEquals(serverAddress.getRemotePort(), address.getPath().getRemotePort());

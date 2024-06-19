@@ -23,7 +23,7 @@ import java.nio.charset.Charset;
 import org.scion.jpan.Path;
 import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionResponseAddress;
+import org.scion.jpan.ScionSocketAddress;
 
 public class PingPongChannelHelper extends PingPongHelperBase {
 
@@ -137,7 +137,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    ScionResponseAddress address = channel.receive(response);
+    ScionSocketAddress address = channel.receive(response);
     assertNotNull(address);
     assertEquals(serverAddress.getRemoteAddress(), address.getAddress());
     assertEquals(serverAddress.getRemotePort(), address.getPort());
@@ -150,7 +150,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   public static void defaultServer(ScionDatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: Receiving ... (" + channel.getLocalAddress() + ")");
-    ScionResponseAddress responseAddress = channel.receive(request);
+    ScionSocketAddress responseAddress = channel.receive(request);
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();

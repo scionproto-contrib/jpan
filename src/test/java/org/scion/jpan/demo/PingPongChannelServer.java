@@ -52,8 +52,8 @@ public class PingPongChannelServer {
       channel.bind(SERVER_ADDRESS);
       ByteBuffer buffer = ByteBuffer.allocate(100);
       println("Waiting for packet ... ");
-      ScionResponseAddress responseAddress = channel.receive(buffer);
-      ResponsePath path = responseAddress.getPath();
+      ScionSocketAddress responseAddress = channel.receive(buffer);
+      Path path = responseAddress.getPath();
       String msg = extractMessage(buffer);
       String remoteAddress = path.getRemoteAddress() + ":" + path.getRemotePort();
       String borderRouterInterfaces = ScionUtil.toStringPath(path.getRawPath());

@@ -24,15 +24,11 @@ import java.util.Arrays;
  */
 public abstract class Path {
   private final byte[] pathRaw;
-  private final long dstIsdAs;
-  private final InetAddress dstAddress;
-  private final int dstPort;
+  private final ScionSocketAddress dstAddress;
 
   protected Path(byte[] rawPath, long dstIsdAs, InetAddress dstIP, int dstPort) {
     this.pathRaw = rawPath;
-    this.dstIsdAs = dstIsdAs;
-    this.dstAddress = dstIP;
-    this.dstPort = dstPort;
+    this.dstAddress = ScionSocketAddress.from(this, dstIsdAs, dstIP, dstPort);
   }
 
   public byte[] getRawPath() {
@@ -42,27 +38,27 @@ public abstract class Path {
   public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
 
   public int getRemotePort() {
-    return dstPort;
+    return dstAddress.getPort();
   }
 
   public InetAddress getRemoteAddress() {
-    return dstAddress;
+    return dstAddress.getAddress();
   }
 
   public long getRemoteIsdAs() {
-    return dstIsdAs;
+    return dstAddress.getIsdAs();
+  }
+
+  public ScionSocketAddress getRemoteSocketAddress() {
+    return dstAddress;
   }
 
   @Override
   public String toString() {
     try {
       return "Path{"
-          + "rmtIsdAs="
-          + ScionUtil.toStringIA(dstIsdAs)
-          + ", rmtAddress="
+          + "rmtAddress="
           + dstAddress
-          + ", rmtPort="
-          + dstPort
           + ", firstHop="
           + getFirstHopAddress()
           + ", pathRaw="
