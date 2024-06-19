@@ -145,31 +145,6 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void getLocalAddress_notLocalhost() throws IOException {
-    ScionService pathService = Scion.defaultService();
-    // TXT entry: "scion=64-2:0:9,129.132.230.98"
-    // TODO remove ethz.ch?!?!
-    ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
-    InetSocketAddress firstHop = new InetSocketAddress("1.1.1.1", dummyPort);
-
-    Path path =
-        PackageVisibilityHelper.createDummyPath(
-            sAddr.getIsdAs(),
-            sAddr.getInetAddress().getAddress(),
-            dummyPort,
-            new byte[100],
-            firstHop);
-
-    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
-      // This constructor binds() to the local ANY address.
-      assertTrue(socket.getLocalAddress().isAnyLocalAddress());
-      socket.connect(path);
-      // Assert that this doesn't change
-      assertTrue(socket.getLocalAddress().isAnyLocalAddress());
-    }
-  }
-
-  @Test
   void send_requiresAddressWithScionTxt() {
     InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);

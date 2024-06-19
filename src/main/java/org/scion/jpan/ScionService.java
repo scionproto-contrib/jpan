@@ -321,6 +321,9 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<Path> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
+    if (dstScionAddress instanceof ScionSocketAddress) {
+      return getPaths(((ScionSocketAddress) dstScionAddress).getPath());
+    }
     return getPaths(dstIsdAs, dstScionAddress.getAddress(), dstScionAddress.getPort());
   }
 
@@ -344,6 +347,22 @@ public class ScionService {
    */
   public List<Path> getPaths(long dstIsdAs, InetAddress dstAddress, int dstPort) {
     return getPaths(ScionAddress.create(dstIsdAs, dstAddress), dstPort);
+  }
+
+  /**
+   * Resolves the address to a SCION address, request paths, and selects a path using the policy.
+   *
+   * @param hostName Destination host name
+   * @param port Destination port
+   * @param policy path policy
+   * @return All paths returned by the path service.
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  public Path lookupAndGetPath(String hostName, int port, PathPolicy policy) throws ScionException {
+    if (policy == null) {
+      policy = PathPolicy.DEFAULT;
+    }
+    return policy.filter(getPaths(lookupAddress(hostName), port));
   }
 
   /**

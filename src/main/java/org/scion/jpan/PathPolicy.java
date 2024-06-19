@@ -17,6 +17,7 @@ package org.scion.jpan;
 import java.util.*;
 
 public interface PathPolicy {
+  String NO_PATH = "No path found to destination.";
   PathPolicy FIRST = new First();
   PathPolicy MAX_BANDWIDTH = new MaxBandwith();
   PathPolicy MIN_LATENCY = new MinLatency();
@@ -25,7 +26,7 @@ public interface PathPolicy {
 
   class First implements PathPolicy {
     public Path filter(List<Path> paths) {
-      return paths.stream().findFirst().orElseThrow(NoSuchElementException::new);
+      return paths.stream().findFirst().orElseThrow(() -> new NoSuchElementException(NO_PATH));
     }
   }
 
@@ -33,7 +34,7 @@ public interface PathPolicy {
     public Path filter(List<Path> paths) {
       return paths.stream()
           .max(Comparator.comparing(path -> Collections.min(path.getMetadata().getBandwidthList())))
-          .orElseThrow(NoSuchElementException::new);
+          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
     }
   }
 
@@ -48,7 +49,7 @@ public interface PathPolicy {
                       path.getMetadata().getLatencyList().stream()
                           .mapToLong(l -> l > 0 ? l : Integer.MAX_VALUE)
                           .reduce(0, Long::sum)))
-          .orElseThrow(NoSuchElementException::new);
+          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
     }
   }
 
@@ -56,7 +57,7 @@ public interface PathPolicy {
     public Path filter(List<Path> paths) {
       return paths.stream()
           .min(Comparator.comparing(path -> path.getMetadata().getInternalHopsList().size()))
-          .orElseThrow(NoSuchElementException::new);
+          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
     }
   }
 
@@ -72,7 +73,7 @@ public interface PathPolicy {
       return paths.stream()
           .filter(this::checkPath)
           .findAny()
-          .orElseThrow(NoSuchElementException::new);
+          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
     }
 
     private boolean checkPath(Path path) {
@@ -98,7 +99,7 @@ public interface PathPolicy {
       return paths.stream()
           .filter(this::checkPath)
           .findAny()
-          .orElseThrow(NoSuchElementException::new);
+          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
     }
 
     private boolean checkPath(Path path) {

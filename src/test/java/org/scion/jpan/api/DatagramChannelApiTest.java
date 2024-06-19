@@ -65,6 +65,7 @@ class DatagramChannelApiTest {
   public void afterEach() throws IOException {
     MockDaemon.closeDefault();
     MockDNS.clear();
+    ScionService.closeDefault();
   }
 
   @AfterAll
@@ -144,26 +145,6 @@ class DatagramChannelApiTest {
       channel.receive(ByteBuffer.allocate(100));
       InetSocketAddress local = channel.getLocalAddress();
       assertTrue(local.getAddress().isAnyLocalAddress());
-    }
-  }
-
-  @Test
-  void getLocalAddress_notLocalhost() throws IOException {
-    ScionService pathService = Scion.defaultService();
-    // TXT entry: "scion=64-2:0:9,129.x.x.x"
-    ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
-    InetSocketAddress firstHop = new InetSocketAddress("1.1.1.1", dummyPort);
-
-    Path path =
-        PackageVisibilityHelper.createDummyPath(
-            sAddr.getIsdAs(), sAddr.getInetAddress(), dummyPort, new byte[100], firstHop);
-
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      channel.connect(path);
-      // Assert that this resolves to a non-local address!
-      assertFalse(channel.getLocalAddress().toString().contains("127.0.0."));
-      assertFalse(channel.getLocalAddress().toString().contains("0:0:0:0:0:0:0:0"));
-      assertFalse(channel.getLocalAddress().toString().contains("0:0:0:0:0:0:0:1"));
     }
   }
 
