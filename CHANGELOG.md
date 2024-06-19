@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#92](https://github.com/scionproto-contrib/jpan/pull/92)
 - **BREAKING CHANGE**: Path metadata has been moved to `PathMetadata`.
   [#93](https://github.com/scionproto-contrib/jpan/pull/93)
+- **BREAKING CHANGE**: `receive()` returns `ScionSocketAddress`; `RequestAddress` and 
+  `RequestPath` are removed from from public API.
+  [#94](https://github.com/scionproto-contrib/jpan/pull/94)
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
