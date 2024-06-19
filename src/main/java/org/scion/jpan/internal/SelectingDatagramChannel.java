@@ -23,7 +23,7 @@ import java.nio.channels.Selector;
 import java.util.Iterator;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionResponseAddress;
+import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.ScionService;
 
 /**
@@ -90,7 +90,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   }
 
   @Override
-  public ScionResponseAddress receive(ByteBuffer userBuffer) throws IOException {
+  public ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
@@ -100,7 +100,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
       }
       ScionHeaderParser.extractUserPayload(buffer, userBuffer);
       buffer.clear();
-      return ScionResponseAddress.from(receivePath);
+      return ScionSocketAddress.from(receivePath);
     } finally {
       readLock().unlock();
     }

@@ -16,15 +16,15 @@ package org.scion.jpan;
 
 import java.net.InetSocketAddress;
 
-public class ScionResponseAddress extends InetSocketAddress {
+public class ScionSocketAddress extends InetSocketAddress {
 
   private final ResponsePath responsePath;
 
-  public static ScionResponseAddress from(ResponsePath path) {
-    return new ScionResponseAddress(path);
+  public static ScionSocketAddress from(ResponsePath path) {
+    return new ScionSocketAddress(path);
   }
 
-  private ScionResponseAddress(ResponsePath path) {
+  private ScionSocketAddress(ResponsePath path) {
     super(path.getRemoteAddress(), path.getRemotePort());
     this.responsePath = path;
   }

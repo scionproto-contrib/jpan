@@ -65,7 +65,7 @@ class DatagramChannelMultiWriteConnectedPathTest {
   private void server(ScionDatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
     // System.out.println("SERVER: --- USER - Waiting for packet --------------------- " + i);
-    ScionResponseAddress responseAddress = channel.receive(request);
+    ScionSocketAddress responseAddress = channel.receive(request);
 
     request.flip();
     String msg = Charset.defaultCharset().decode(request).toString();

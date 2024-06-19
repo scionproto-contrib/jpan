@@ -324,7 +324,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     synchronized (packet) {
       ByteBuffer receiveBuffer =
           ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
-      ScionResponseAddress responseAddress = channel.receive(receiveBuffer);
+      ScionSocketAddress responseAddress = channel.receive(receiveBuffer);
       if (responseAddress == null) {
         // timeout occurred
         throw new SocketTimeoutException();
