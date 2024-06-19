@@ -17,7 +17,6 @@ package org.scion.jpan.testutil;
 import java.net.InetSocketAddress;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
-import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionUtil;
 
 public class ExamplePacket {

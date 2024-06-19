@@ -627,8 +627,7 @@ class DatagramSocketApiTest {
         });
   }
 
-  private void testExpired(BiConsumer<ScionDatagramSocket, Path> sendMethod)
-      throws IOException {
+  private void testExpired(BiConsumer<ScionDatagramSocket, Path> sendMethod) throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
     PingPongSocketHelper.Client clientFn =

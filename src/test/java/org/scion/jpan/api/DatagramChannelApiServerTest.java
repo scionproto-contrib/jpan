@@ -72,7 +72,7 @@ class DatagramChannelApiServerTest {
 
   @Test
   void send_withoutService() throws IOException {
-    // check that send(ResponsePath) does not internally require a ScionService.
+    // check that send(Path) does not internally require a ScionService.
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getService());
       ResponsePath path =

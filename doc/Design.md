@@ -19,7 +19,7 @@ at least a topology server + control server.
 
 ## Server / Client
 
-Server functionality, such as `open()` and `receive()` -> `send(RequestPath)`, should _not_ require
+Server functionality, such as `open()` and `receive()` -> `send(Path)`, should _not_ require
 any access to a daemon or control service. The main reason is that it ensures efficiency
 by completely avoiding any type of interaction with daemon/CS.
 Interaction with daemon/CS should not be denied but it should not occur during default operations.
@@ -64,7 +64,7 @@ used or returned by `Scion.defaultService()`.
 
 ## Paths
 
-There are two types of paths (both inherit `Path`:
+There are two types of paths (both inherit `Path`, both are (will be) package private):
 
 - `RequestPath` are used to send initial request. They are retrieved from a path service and contain
   meta information.

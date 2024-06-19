@@ -26,8 +26,8 @@ import org.scion.jpan.proto.daemon.Daemon;
 
 /**
  * PathMetadata contains the raw path and meta information such as bandwidth, latency or geo
- * coordinates. PathMetadata is available from RequestPaths that are created/returned by the
- * ScionService when requesting a new path from the control service.
+ * coordinates. PathMetadata is available from Paths that are created/returned by the ScionService
+ * when requesting a new path from the control service.
  */
 public class PathMetadata {
 
