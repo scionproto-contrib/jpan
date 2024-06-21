@@ -89,6 +89,8 @@ public class MockNetwork {
 
     routers = Executors.newFixedThreadPool(2);
 
+    MockScmpHandler.start();
+
     List<MockBorderRouter> brList = new ArrayList<>();
     brList.add(
         new MockBorderRouter(0, BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4));
@@ -162,6 +164,9 @@ public class MockNetwork {
       }
       routers = null;
     }
+
+    MockScmpHandler.stop();
+
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
@@ -287,9 +292,9 @@ class MockBorderRouter implements Runnable {
               continue;
             }
 
-            if (MockNetwork.scmpErrorOnNextPacket.get() != null) {
-              sendScmp(
-                  MockNetwork.scmpErrorOnNextPacket.getAndSet(null), buffer, srcAddress, incoming);
+            Scmp.TypeCode errorCode = MockNetwork.scmpErrorOnNextPacket.getAndSet(null);
+            if (errorCode != null) {
+              sendScmp(errorCode, buffer, srcAddress, incoming);
               iter.remove();
               continue;
             }
