@@ -102,8 +102,13 @@ public class SCMPTest {
   }
 
   @Test
-  void echo_localAS() throws IOException {
-    testEcho(this::getPathToLocalAS);
+  void echo_localAS_BR() throws IOException {
+    testEcho(this::getPathToLocalAS_BR);
+  }
+
+  @Test
+  void echo_localAS_SVC() {
+    assertThrows(ScionException.class, () -> testEcho(this::getPathToLocalAS_SVC));
   }
 
   private void testEcho(Supplier<Path> path) throws IOException {
@@ -194,8 +199,13 @@ public class SCMPTest {
   }
 
   @Test
-  void traceroute_localAS() throws IOException {
-    testTraceroute(this::getPathToLocalAS, 0);
+  void traceroute_localAS_BR() throws IOException {
+    testTraceroute(this::getPathToLocalAS_BR, 0);
+  }
+
+  @Test
+  void traceroute_localAS_SVC() throws IOException {
+    testTraceroute(this::getPathToLocalAS_SVC, 0);
   }
 
   private void testTraceroute(Supplier<Path> path, int nHops) throws IOException {
@@ -307,12 +317,27 @@ public class SCMPTest {
     return service.getPaths(dstIA, dstAddress, Constants.SCMP_PORT).get(0);
   }
 
-  private Path getPathToLocalAS() {
+  private Path getPathToLocalAS_BR() {
     ScionService service = Scion.defaultService();
     long dstIA = service.getLocalIsdAs();
     try {
+      // Border router address
       InetAddress addr = InetAddress.getByName(MockNetwork.BORDER_ROUTER_HOST);
       int port = MockNetwork.BORDER_ROUTER_PORT1;
+      List<Path> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
+      return paths.get(0);
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Path getPathToLocalAS_SVC() {
+    ScionService service = Scion.defaultService();
+    long dstIA = service.getLocalIsdAs();
+    try {
+      // Service address
+      InetAddress addr = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
+      int port = Constants.SCMP_PORT;
       List<Path> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
       return paths.get(0);
     } catch (UnknownHostException e) {

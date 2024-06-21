@@ -206,5 +206,21 @@ public class MockDaemon implements AutoCloseable {
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
     }
+
+    @Override
+    public void interfaces(
+        Daemon.InterfacesRequest req, StreamObserver<Daemon.InterfacesResponse> responseObserver) {
+      callCount.incrementAndGet();
+      Daemon.InterfacesResponse.Builder replyBuilder = Daemon.InterfacesResponse.newBuilder();
+      int i = -1;
+      for (String br : borderRouters) {
+        Daemon.Interface.Builder ifBuilder = Daemon.Interface.newBuilder();
+        ifBuilder.setAddress(Daemon.Underlay.newBuilder().setAddress(br).build());
+        // Interface IDs are currently not supported
+        replyBuilder.putInterfaces(i--, ifBuilder.build());
+      }
+      responseObserver.onNext(replyBuilder.build());
+      responseObserver.onCompleted();
+    }
   }
 }

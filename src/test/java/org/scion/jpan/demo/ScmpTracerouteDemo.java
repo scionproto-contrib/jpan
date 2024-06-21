@@ -72,6 +72,8 @@ public class ScmpTracerouteDemo {
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia211);
+          demo.runDemo(DemoConstants.ia111);
+          demo.runDemo(DemoConstants.ia1111);
           break;
         }
       case PRODUCTION:

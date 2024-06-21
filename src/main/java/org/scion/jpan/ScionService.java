@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -603,6 +604,16 @@ public class ScionService {
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
+    }
+  }
+
+  List<String> getBorderRouterStrings() {
+    if (daemonStub != null) {
+      return getInterfaces().values().stream()
+          .map(i -> i.getAddress().getAddress())
+          .collect(Collectors.toList());
+    } else {
+      return bootstrapper.getBorderRouterAddresses();
     }
   }
 }

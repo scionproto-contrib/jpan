@@ -197,6 +197,14 @@ public class ScionBootstrapper {
     throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
   }
 
+  public List<String> getBorderRouterAddresses() {
+    List<String> result = new ArrayList<>();
+    for (BorderRouter br : borderRouters) {
+      result.add(br.internalAddress);
+    }
+    return result;
+  }
+
   public int getLocalMtu() {
     return this.localMtu;
   }
