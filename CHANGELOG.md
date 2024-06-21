@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#94](https://github.com/scionproto-contrib/jpan/pull/94)
 - **BREAKING CHANGE**: removed `RequestPath` and `ScionAddress` from public API.
   [#95](https://github.com/scionproto-contrib/jpan/pull/95)
+- Better error message for SCMP echo in local AS 
+  [#96](https://github.com/scionproto-contrib/jpan/issues/96)
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)

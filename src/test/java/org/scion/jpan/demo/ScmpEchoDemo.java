@@ -64,14 +64,13 @@ public class ScmpEchoDemo {
   private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException {
-    ScionService service = Scion.defaultService();
     switch (network) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(service.getPaths(DemoConstants.ia112, serviceIP).get(0));
+          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, serviceIP).get(0));
           DemoTopology.shutDown();
           break;
         }
@@ -87,15 +86,18 @@ public class ScmpEchoDemo {
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
 
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(service.getPaths(DemoConstants.ia211, serviceIP).get(0));
-          // demo.runDemo(service.getPaths(DemoConstants.ia111, serviceIP).get(0));
-          // demo.runDemo(service.getPaths(DemoConstants.ia1111, serviceIP).get(0));
+          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia211, serviceIP).get(0));
+          // Echo to local AS and on-path AS (111 is "on" the UP segment) is currently broken,
+          // see https://github.com/scionproto-contrib/jpan/issues/96
+          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia111, serviceIP).get(0));
+          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia1111, serviceIP).get(0));
           break;
         }
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
+          ScionService service = Scion.defaultService();
           demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
           demo.runDemo(service.getPaths(DemoConstants.iaOVGU, serviceIP).get(0));
           break;
@@ -159,11 +161,5 @@ public class ScmpEchoDemo {
     if (PRINT) {
       System.out.println(msg);
     }
-  }
-
-  private static InetSocketAddress toAddr(String addrString) throws UnknownHostException {
-    int posColon = addrString.indexOf(':');
-    InetAddress addr = InetAddress.getByName(addrString.substring(0, posColon));
-    return new InetSocketAddress(addr, Constants.SCMP_PORT);
   }
 }

@@ -219,6 +219,11 @@ public class ScmpChannel implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
+        if (path.getRawPath().length == 0
+            && path.getFirstHopAddress().getAddress().isAnyLocalAddress()) {
+          throw new ScionException(
+              "Cannot ping service address in local AS: " + path.getFirstHopAddress());
+        }
         super.channel().connect(path.getFirstHopAddress());
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
