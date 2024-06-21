@@ -62,7 +62,7 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.PRODUCTION;
+  private static final Network network = Network.SCION_PROTO;
 
   public static void main(String[] args) throws IOException {
     switch (network) {
@@ -71,7 +71,8 @@ public class ScmpEchoDemo {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(DemoConstants.ia112, serviceIP);
+          Path path = Scion.defaultService().getPaths(DemoConstants.ia112, serviceIP).get(0);
+          demo.runDemo(path);//DemoConstants.ia112, serviceIP);
           DemoTopology.shutDown();
           break;
         }
@@ -84,7 +85,8 @@ public class ScmpEchoDemo {
               "topologies/minimal/ASff00_0_1111/topology.json");
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(DemoConstants.ia211, serviceIP);
+          Path path = Scion.defaultService().getPaths(DemoConstants.ia1111, serviceIP).get(0);
+          demo.runDemo(path);//DemoConstants.ia211, serviceIP);
           // demo.runDemo(DemoConstants.ia111, toAddr(DemoConstants.daemon111_minimal));
           // demo.runDemo(DemoConstants.ia1111, toAddr(DemoConstants.daemon1111_minimal));
           break;
@@ -94,8 +96,8 @@ public class ScmpEchoDemo {
           // Local port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
           // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
-          InetAddress ethzIP = Scion.defaultService().getScionAddress("ethz.ch").getInetAddress();
-          demo.runDemo(DemoConstants.iaETH, new InetSocketAddress(ethzIP, Constants.SCMP_PORT));
+          Path path = Scion.defaultService().lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null);
+          demo.runDemo(path);//DemoConstants.iaETH, new InetSocketAddress(ethzIP, Constants.SCMP_PORT));
           // demo.runDemo(DemoConstants.iaGEANT, serviceIP);
           break;
         }
@@ -103,9 +105,7 @@ public class ScmpEchoDemo {
     Scion.closeDefault();
   }
 
-  private void runDemo(long dstIA, InetSocketAddress dstAddress) throws IOException {
-    List<Path> paths = Scion.defaultService().getPaths(dstIA, dstAddress);
-    Path path = paths.get(0);
+  private void runDemo(Path path) throws IOException {
     ByteBuffer data = ByteBuffer.allocate(0);
 
     println("Listening on port " + localPort + " ...");
@@ -120,12 +120,12 @@ public class ScmpEchoDemo {
       for (int i = 0; i < 10; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, i, data);
         if (i == 0) {
-          printHeader(dstIA, dstAddress, data, msg);
+          printHeader(path.getRemoteSocketAddress(), data, msg);
         }
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = msg.getSizeReceived() + " bytes from ";
         InetAddress addr = msg.getPath().getRemoteAddress();
-        echoMsgStr += ScionUtil.toStringIA(dstIA) + "," + addr.getHostAddress();
+        echoMsgStr += ScionUtil.toStringIA(path.getRemoteIsdAs()) + "," + addr.getHostAddress();
         echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
         if (msg.isTimedOut()) {
           echoMsgStr += " Timed out after";
@@ -154,11 +154,10 @@ public class ScmpEchoDemo {
     println(sb.toString());
   }
 
-  private void printHeader(
-      long dstIA, InetSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
+  private void printHeader(ScionSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
     String sb =
         "PING "
-            + ScionUtil.toStringIA(dstIA)
+            + ScionUtil.toStringIA(dstAddress.getIsdAs())
             + ","
             + dstAddress.getHostString()
             + ":"
