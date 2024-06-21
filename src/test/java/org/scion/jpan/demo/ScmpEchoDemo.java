@@ -17,7 +17,6 @@ package org.scion.jpan.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
 
@@ -72,7 +71,7 @@ public class ScmpEchoDemo {
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
           Path path = Scion.defaultService().getPaths(DemoConstants.ia112, serviceIP).get(0);
-          demo.runDemo(path);//DemoConstants.ia112, serviceIP);
+          demo.runDemo(path); // DemoConstants.ia112, serviceIP);
           DemoTopology.shutDown();
           break;
         }
@@ -86,7 +85,7 @@ public class ScmpEchoDemo {
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
           Path path = Scion.defaultService().getPaths(DemoConstants.ia1111, serviceIP).get(0);
-          demo.runDemo(path);//DemoConstants.ia211, serviceIP);
+          demo.runDemo(path); // DemoConstants.ia211, serviceIP);
           // demo.runDemo(DemoConstants.ia111, toAddr(DemoConstants.daemon111_minimal));
           // demo.runDemo(DemoConstants.ia1111, toAddr(DemoConstants.daemon1111_minimal));
           break;
@@ -97,7 +96,8 @@ public class ScmpEchoDemo {
           ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
           // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
           Path path = Scion.defaultService().lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null);
-          demo.runDemo(path);//DemoConstants.iaETH, new InetSocketAddress(ethzIP, Constants.SCMP_PORT));
+          demo.runDemo(
+              path); // DemoConstants.iaETH, new InetSocketAddress(ethzIP, Constants.SCMP_PORT));
           // demo.runDemo(DemoConstants.iaGEANT, serviceIP);
           break;
         }
