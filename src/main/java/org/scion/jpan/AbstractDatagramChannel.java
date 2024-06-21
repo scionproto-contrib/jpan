@@ -270,6 +270,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   @SuppressWarnings("unchecked")
   public C connect(Path path) throws IOException {
     if (!(path instanceof RequestPath)) {
+      // Technically we could probably allow this, but it feels like an abuse of the API,
       throw new IllegalStateException("The path must be a request path.");
     }
     // For reference: Java DatagramChannel behavior:

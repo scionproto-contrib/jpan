@@ -354,7 +354,7 @@ public class ScionService {
    *
    * @param hostName Destination host name
    * @param port Destination port
-   * @param policy path policy
+   * @param policy Path policy. 'null' means PathPolicy.DEFAULT.
    * @return All paths returned by the path service.
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
@@ -369,7 +369,7 @@ public class ScionService {
    * Resolves the address to a SCION address, request paths, and selects a path using the policy.
    *
    * @param dstAddr Destination address
-   * @param policy path policy
+   * @param policy Path policy. 'null' means PathPolicy.DEFAULT.
    * @return All paths returned by the path service.
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */

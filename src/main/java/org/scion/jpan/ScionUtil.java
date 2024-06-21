@@ -128,7 +128,7 @@ public class ScionUtil {
   }
 
   /**
-   * @param meta A PathMetadata
+   * @param meta PathMetadata
    * @return ISD/AS codes and border outer interface IDs along the path.
    */
   public static String toStringPath(PathMetadata meta) {

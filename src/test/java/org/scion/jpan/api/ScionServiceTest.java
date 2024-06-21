@@ -405,9 +405,9 @@ public class ScionServiceTest {
     // Use any topo file
     MockTopologyServer topo = MockTopologyServer.start(MockTopologyServer.TOPOFILE_TINY_110, true);
     try {
-      ScionService pathService = Scion.defaultService();
+      ScionService service = Scion.defaultService();
       Exception ex =
-          assertThrows(ScionException.class, () -> pathService.lookupAndGetPath(host, 123, null));
+          assertThrows(ScionException.class, () -> service.lookupAndGetPath(host, 123, null));
       assertTrue(ex.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);

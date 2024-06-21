@@ -65,7 +65,6 @@ class DatagramChannelApiTest {
   public void afterEach() throws IOException {
     MockDaemon.closeDefault();
     MockDNS.clear();
-    ScionService.closeDefault();
   }
 
   @AfterAll
