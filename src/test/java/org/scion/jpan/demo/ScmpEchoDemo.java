@@ -79,10 +79,13 @@ public class ScmpEchoDemo {
         // Same as:
         // scion ping 2-ff00:0:211,127.0.0.10 --sciond 127.0.0.43:30255
         {
+          // Bootstrap from topo file
           System.setProperty(
               Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
               "topologies/minimal/ASff00_0_1111/topology.json");
+          // Bootstrap from SCION daemon
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
+
           ScmpEchoDemo demo = new ScmpEchoDemo();
           demo.runDemo(service.getPaths(DemoConstants.ia211, serviceIP).get(0));
           // demo.runDemo(service.getPaths(DemoConstants.ia111, serviceIP).get(0));
@@ -140,19 +143,9 @@ public class ScmpEchoDemo {
 
   private void printPath(Path path) {
     String nl = System.lineSeparator();
-    //    sb.append("Actual local address:").append(nl);
-    //    sb.append("
-    // ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
-    String sb =
-        "Using path:"
-            + nl
-            + "  Hops: "
-            + ScionUtil.toStringPath(path.getMetadata())
-            + " MTU: "
-            + path.getMetadata().getMtu()
-            + " NextHop: "
-            + path.getMetadata().getInterface().getAddress()
-            + nl;
+    String sb = "Using path:" + nl + "  Hops: " + ScionUtil.toStringPath(path.getMetadata());
+    sb += " MTU: " + path.getMetadata().getMtu();
+    sb += " NextHop: " + path.getMetadata().getInterface().getAddress() + nl;
     println(sb);
   }
 
