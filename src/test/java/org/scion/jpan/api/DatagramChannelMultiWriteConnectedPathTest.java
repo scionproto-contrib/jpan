@@ -43,8 +43,7 @@ class DatagramChannelMultiWriteConnectedPathTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private void client(ScionDatagramChannel channel, RequestPath serverAddress, int id)
-      throws IOException {
+  private void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {
     String message = MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.disconnect();

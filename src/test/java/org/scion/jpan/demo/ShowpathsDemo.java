@@ -91,7 +91,7 @@ public class ShowpathsDemo {
     // dummy address
     InetSocketAddress destinationAddress =
         new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
-    List<RequestPath> paths = service.getPaths(destinationIA, destinationAddress);
+    List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
       String src = ScionUtil.toStringIA(service.getLocalIsdAs());
       String dst = ScionUtil.toStringIA(destinationIA);
@@ -102,19 +102,20 @@ public class ShowpathsDemo {
     println("Available paths to " + ScionUtil.toStringIA(destinationIA));
 
     int id = 0;
-    for (RequestPath path : paths) {
+    for (Path path : paths) {
       String localIP;
       try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
         channel.connect(path);
         localIP = channel.getLocalAddress().getAddress().getHostAddress();
       }
+      PathMetadata meta = path.getMetadata();
       String sb =
           "["
               + id++
               + "] Hops: "
-              + ScionUtil.toStringPath(path)
+              + ScionUtil.toStringPath(meta)
               + " MTU: "
-              + path.getMetadata().getMtu()
+              + meta.getMtu()
               + " NextHop: "
               + path.getFirstHopAddress().getAddress()
               + " LocalIP: "

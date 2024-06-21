@@ -67,6 +67,11 @@ public class ResponsePath extends Path {
     return firstHopAddress;
   }
 
+  @Override
+  public PathMetadata getMetadata() {
+    return null;
+  }
+
   public long getLocalIsdAs() {
     return srcIsdAs;
   }

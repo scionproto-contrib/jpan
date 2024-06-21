@@ -24,7 +24,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
-import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.MockNetwork;
@@ -38,7 +37,7 @@ class DatagramChannelPathSwitchTest {
         private int count = 0;
 
         @Override
-        public RequestPath filter(List<RequestPath> paths) {
+        public Path filter(List<Path> paths) {
           return paths.get(count++ % 2);
         }
       };

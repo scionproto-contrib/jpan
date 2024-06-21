@@ -165,13 +165,13 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   }
 
   /**
-   * Connect to a destination using a specific path. See {@link
-   * ScionDatagramChannel#connect(RequestPath)} for details.
+   * Connect to a destination using a specific path. See {@link ScionDatagramChannel#connect(Path)}
+   * for details.
    *
    * @param path path to destination
-   * @see ScionDatagramChannel#connect(RequestPath)
+   * @see ScionDatagramChannel#connect(Path)
    */
-  public synchronized void connect(RequestPath path) {
+  public synchronized void connect(Path path) {
     try {
       channel.connect(path);
     } catch (IOException e) {
@@ -528,13 +528,13 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   }
 
   /**
-   * Get the currently connected path. The connected path is set during {@link
-   * #connect(RequestPath)} and may be refreshed when expired.
+   * Get the currently connected path. The connected path is set during {@link #connect(Path)} and
+   * may be refreshed when expired.
    *
    * @return the current Path or `null` if not path is connected.
    * @see ScionDatagramChannel#getConnectionPath()
    */
-  public RequestPath getConnectionPath() {
+  public Path getConnectionPath() {
     return channel.getConnectionPath();
   }
 

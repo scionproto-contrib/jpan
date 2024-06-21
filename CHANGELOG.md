@@ -28,13 +28,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#92](https://github.com/scionproto-contrib/jpan/pull/92)
 - **BREAKING CHANGE**: Path metadata has been moved to `PathMetadata`.
   [#93](https://github.com/scionproto-contrib/jpan/pull/93)
-- **BREAKING CHANGE**: `receive()` returns `ScionSocketAddress`; `RequestAddress` and 
-  `RequestPath` are removed from from public API.
+- **BREAKING CHANGE**: `receive()` returns `ScionSocketAddress`; `ResponseAddress` and 
+  `ResponsePath` are removed from from public API.
   [#94](https://github.com/scionproto-contrib/jpan/pull/94)
+- **BREAKING CHANGE**: removed `RequestPath` and `ScionAddress` from public API.
+  [#95](https://github.com/scionproto-contrib/jpan/pull/95)
 
 ### Fixed
 - Fixed locking and resizing of buffers. [#68](https://github.com/scionproto-contrib/jpan/pull/68)
-- Fixed unhelpful error & log message when with topofile has wrong permissions.
+- Fixed unhelpful error & log message when with topo file has wrong permissions.
   [#74](https://github.com/scionproto-contrib/jpan/issues/74)
 - Topology file parser support for new "local" attribute.
   [#72](https://github.com/scionproto-contrib/jpan/issues/72)

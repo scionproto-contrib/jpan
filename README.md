@@ -29,7 +29,6 @@ The following artifact contains the complete SCION Java implementation:
 
 ### Planned features
 - API: `Selector` for `DatagramChannel`
-- API: `Path` extends `InetSocketAddress`
 - Autodetection of NAT external IP
 - Path creation with short-cuts, on-path and peering routes
 - Improve docs, demos and testing
@@ -74,11 +73,13 @@ The central classes of the API are:
 - `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
   `Channel` and `ByteChannel`. Scattering, gathering, multicast and selectors are currently not
   supported.
-- `Path`, `RequestPath`, `ResponsePath`: The notion of path is slightly different than in other 
-    parts of SCION. A `Path` contains a route to a destination ("raw path") plus the full 
-    destination, i.e. IP-address and port.
-  - `RequestPath` is a `Path` with meta information (bandwidth, geo info, etc).
-  - `ResponsePath` is a `Path` with source IA, IP & port.
+- `ScionSocketAddress` is an `InetSocketAddress` with the IP of a Scion enabled endhost.
+  A `ScionSocketAddress` also has the ISD/AS code of that endhost and a path to the that endhost. 
+- `Path` objects contain a route to a destination ("raw path") plus the full 
+    destination, i.e. SCION-enabled IP address and port. 
+  - If the path was created by the `ScionService` then it has `PathMetadata` with meta information 
+    (bandwidth, geo info, etc).
+  - A path returned by `receive()` (as part of a `ScionSocketAddress`) has no meta information.
 - `PathPolicy` is an interface with several example implementations for:
   first path returned by daemon (default), max bandwidth, min latency, min hops, ...
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
@@ -213,6 +214,12 @@ use something like:
 InetSocketAddress serverAddress = new InetSocketAddress("your-domain.org", 80);
 channel.connect(serverAddress);
 ```
+or
+```java
+InetSocketAddress serverAddress = new InetSocketAddress("your-domain.org", 80);
+Path path = Scion.getDefaultService().lookupAndGetPath(serverAddress, PathPolicy.DEFAULT);
+channel.send(buffer, path);
+```
 
 Alternatively, the ISD/AS can be specified explicitly in several ways.
 
@@ -278,7 +285,7 @@ API beyond the standard Java `DatagramScoket`:
 
 * `create(ScionService)` and `create(SocketAddress, ScionService)` for creating a `DatagramSocket`
   with a non-default `ScionService`.
-* `connect(RequestPath path)` for connecting to a remote host
+* `connect(Path path)` for connecting to a remote host
 * `getConnectionPath()` gets the connected path if the socket has been connected 
 * `getCachedPath(InetAddress address)` get the cached path for a given IP
 * `setPathCacheCapacity(int capacity)` and `getPathCacheCapacity()` for managing the cache size
@@ -292,11 +299,11 @@ API beyond the standard Java `DatagramScoket`:
   multiple packets to the same destination, one should use `path = send(buffer, path)` or `connect()` + `write()` in 
   order to avoid frequent path lookups.
 
-- **Using expired path (client).** When using `send(buffer, path)` with an expired `RequestPath`, the channel will 
+- **Using expired path (client).** When using `send(buffer, path)` with an expired `Path`, the channel will 
   transparently look up a new path. This works but causes a path lookup for every `send()`.
   Solution: always use the latest path returned by send, e.g. `path = send(buffer, path)`.
 
-- **Using expired path (server).** When using `send(buffer, path)` with an expired `ResponsePath`, the channel will
+- **Using expired path (server).** When using `send(buffer, path)` with an expired `Path`, the channel will
   simple send it anyway.
 
 ## Configuration

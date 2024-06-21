@@ -307,7 +307,7 @@ public class ScionService {
    * @throws IOException if an errors occurs while querying paths.
    */
   @Deprecated // Please use lookup() instead
-  public List<RequestPath> getPaths(InetSocketAddress dstAddress) throws IOException {
+  public List<Path> getPaths(InetSocketAddress dstAddress) throws IOException {
     // Use getHostString() to avoid DNS reverse lookup.
     ScionAddress sa = getScionAddress(dstAddress.getHostString());
     return getPaths(sa.getIsdAs(), sa.getInetAddress(), dstAddress.getPort());
@@ -320,7 +320,10 @@ public class ScionService {
    * @param dstScionAddress Destination IP address. Must belong to a SCION enabled end host.
    * @return All paths returned by the path service.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
+  public List<Path> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
+    if (dstScionAddress instanceof ScionSocketAddress) {
+      return getPaths(((ScionSocketAddress) dstScionAddress).getPath());
+    }
     return getPaths(dstIsdAs, dstScionAddress.getAddress(), dstScionAddress.getPort());
   }
 
@@ -330,7 +333,7 @@ public class ScionService {
    * @param path A path
    * @return All paths returned by the path service.
    */
-  public List<RequestPath> getPaths(RequestPath path) {
+  public List<Path> getPaths(Path path) {
     return getPaths(path.getRemoteIsdAs(), path.getRemoteAddress(), path.getRemotePort());
   }
 
@@ -342,20 +345,35 @@ public class ScionService {
    * @param dstPort Destination port
    * @return All paths returned by the path service. Returns an empty list if no paths are found.
    */
-  public List<RequestPath> getPaths(long dstIsdAs, InetAddress dstAddress, int dstPort) {
+  public List<Path> getPaths(long dstIsdAs, InetAddress dstAddress, int dstPort) {
     return getPaths(ScionAddress.create(dstIsdAs, dstAddress), dstPort);
   }
 
   /**
    * Resolves the address to a SCION address, request paths, and selects a path using the policy.
    *
-   * @param dstAddr Destination address
-   * @param policy path policy
+   * @param hostName Destination host name
+   * @param port Destination port
+   * @param policy Path policy. 'null' means PathPolicy.DEFAULT.
    * @return All paths returned by the path service.
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
-  public RequestPath lookupAndGetPath(InetSocketAddress dstAddr, PathPolicy policy)
-      throws ScionException {
+  public Path lookupAndGetPath(String hostName, int port, PathPolicy policy) throws ScionException {
+    if (policy == null) {
+      policy = PathPolicy.DEFAULT;
+    }
+    return policy.filter(getPaths(lookupAddress(hostName), port));
+  }
+
+  /**
+   * Resolves the address to a SCION address, request paths, and selects a path using the policy.
+   *
+   * @param dstAddr Destination address
+   * @param policy Path policy. 'null' means PathPolicy.DEFAULT.
+   * @return All paths returned by the path service.
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  public Path lookupAndGetPath(InetSocketAddress dstAddr, PathPolicy policy) throws ScionException {
     if (policy == null) {
       policy = PathPolicy.DEFAULT;
     }
@@ -368,10 +386,10 @@ public class ScionService {
    * @param dstAddress Destination SCION address
    * @return All paths returned by the path service.
    */
-  public List<RequestPath> getPaths(ScionAddress dstAddress, int dstPort) {
+  public List<Path> getPaths(ScionAddress dstAddress, int dstPort) {
     long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
-    List<RequestPath> scionPaths = new ArrayList<>(paths.size());
+    List<Path> scionPaths = new ArrayList<>(paths.size());
     for (int i = 0; i < paths.size(); i++) {
       scionPaths.add(
           RequestPath.create(

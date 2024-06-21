@@ -116,7 +116,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getLocalAddress_withSendRequestPath() throws IOException {
-    RequestPath path = PackageVisibilityHelper.createDummyPath();
+    Path path = PackageVisibilityHelper.createDummyPath();
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.send(ByteBuffer.allocate(100), path);
       InetSocketAddress local = channel.getLocalAddress();
@@ -144,26 +144,6 @@ class DatagramChannelApiTest {
       channel.receive(ByteBuffer.allocate(100));
       InetSocketAddress local = channel.getLocalAddress();
       assertTrue(local.getAddress().isAnyLocalAddress());
-    }
-  }
-
-  @Test
-  void getLocalAddress_notLocalhost() throws IOException {
-    ScionService pathService = Scion.defaultService();
-    // TXT entry: "scion=64-2:0:9,129.x.x.x"
-    ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
-    InetSocketAddress firstHop = new InetSocketAddress("1.1.1.1", dummyPort);
-
-    RequestPath path =
-        PackageVisibilityHelper.createDummyPath(
-            sAddr.getIsdAs(), sAddr.getInetAddress(), dummyPort, new byte[100], firstHop);
-
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      channel.connect(path);
-      // Assert that this resolves to a non-local address!
-      assertFalse(channel.getLocalAddress().toString().contains("127.0.0."));
-      assertFalse(channel.getLocalAddress().toString().contains("0:0:0:0:0:0:0:0"));
-      assertFalse(channel.getLocalAddress().toString().contains("0:0:0:0:0:0:0:1"));
     }
   }
 
@@ -322,7 +302,7 @@ class DatagramChannelApiTest {
 
   @Test
   void isConnected_Path() throws IOException {
-    RequestPath path = PackageVisibilityHelper.createDummyPath();
+    Path path = PackageVisibilityHelper.createDummyPath();
     InetAddress ip = path.getRemoteAddress();
     InetSocketAddress address = new InetSocketAddress(ip, path.getRemotePort());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
@@ -372,7 +352,7 @@ class DatagramChannelApiTest {
       assertNull(channel.getService());
 
       // trigger service initialization in channel
-      RequestPath path = PackageVisibilityHelper.createDummyPath();
+      Path path = PackageVisibilityHelper.createDummyPath();
       channel.send(ByteBuffer.allocate(0), path);
       assertNotEquals(service2, channel.getService());
       assertEquals(service1, channel.getService());
@@ -415,7 +395,7 @@ class DatagramChannelApiTest {
 
   @Test
   void send_bufferTooLarge() {
-    RequestPath addr = ExamplePacket.PATH;
+    Path addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(65440);
     buffer.limit(buffer.capacity());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
@@ -430,7 +410,7 @@ class DatagramChannelApiTest {
 
   @Test
   void write_bufferTooLarge() throws IOException {
-    RequestPath addr = ExamplePacket.PATH;
+    Path addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(100_000);
     buffer.limit(buffer.capacity());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
@@ -528,7 +508,7 @@ class DatagramChannelApiTest {
           ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
           try {
             channel.write(sendBuf);
-            RequestPath newPath = channel.getConnectionPath();
+            Path newPath = channel.getConnectionPath();
             assertTrue(
                 newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
@@ -539,15 +519,14 @@ class DatagramChannelApiTest {
         true);
   }
 
-  private void testExpired(
-      BiConsumer<ScionDatagramChannel, RequestPath> sendMethod, boolean connect)
+  private void testExpired(BiConsumer<ScionDatagramChannel, Path> sendMethod, boolean connect)
       throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
     PingPongChannelHelper.Client clientFn =
         (channel, basePath, id) -> {
           // Build a path that is already expired
-          RequestPath expiredPath = createExpiredPath(basePath);
+          Path expiredPath = createExpiredPath(basePath);
           sendMethod.accept(channel, expiredPath);
 
           ByteBuffer response = ByteBuffer.allocate(100);
@@ -561,11 +540,11 @@ class DatagramChannelApiTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private RequestPath createExpiredPath(Path basePath) throws UnknownHostException {
+  private Path createExpiredPath(Path basePath) throws UnknownHostException {
     long now = Instant.now().getEpochSecond();
     Daemon.Path.Builder builder =
         Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
-    RequestPath expiredPath =
+    Path expiredPath =
         PackageVisibilityHelper.createRequestPath110_112(
             builder,
             basePath.getRemoteIsdAs(),
@@ -578,7 +557,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getConnectionPath() throws IOException {
-    RequestPath addr = ExamplePacket.PATH;
+    Path addr = ExamplePacket.PATH;
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getConnectionPath());

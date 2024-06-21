@@ -22,7 +22,6 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.scion.jpan.Path;
-import org.scion.jpan.RequestPath;
 import org.scion.jpan.ScionDatagramSocket;
 
 public class PingPongSocketHelper extends PingPongHelperBase {
@@ -57,10 +56,10 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
   private class ClientEndpoint extends AbstractSocketEndpoint {
     private final Client client;
-    private final RequestPath remoteAddress;
+    private final Path remoteAddress;
     private final int nRounds;
 
-    ClientEndpoint(Client client, int id, RequestPath remoteAddress, int nRounds) {
+    ClientEndpoint(Client client, int id, Path remoteAddress, int nRounds) {
       super(id);
       this.client = client;
       this.remoteAddress = remoteAddress;
@@ -130,7 +129,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   }
 
   public interface Client {
-    void run(ScionDatagramSocket socket, RequestPath path, int id) throws IOException;
+    void run(ScionDatagramSocket socket, Path requestPath, int id) throws IOException;
   }
 
   public interface Server {

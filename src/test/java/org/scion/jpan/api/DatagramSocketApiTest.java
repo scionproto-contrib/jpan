@@ -145,31 +145,6 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void getLocalAddress_notLocalhost() throws IOException {
-    ScionService pathService = Scion.defaultService();
-    // TXT entry: "scion=64-2:0:9,129.132.230.98"
-    // TODO remove ethz.ch?!?!
-    ScionAddress sAddr = pathService.getScionAddress("ethz.ch");
-    InetSocketAddress firstHop = new InetSocketAddress("1.1.1.1", dummyPort);
-
-    RequestPath path =
-        PackageVisibilityHelper.createDummyPath(
-            sAddr.getIsdAs(),
-            sAddr.getInetAddress().getAddress(),
-            dummyPort,
-            new byte[100],
-            firstHop);
-
-    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
-      // This constructor binds() to the local ANY address.
-      assertTrue(socket.getLocalAddress().isAnyLocalAddress());
-      socket.connect(path);
-      // Assert that this doesn't change
-      assertTrue(socket.getLocalAddress().isAnyLocalAddress());
-    }
-  }
-
-  @Test
   void send_requiresAddressWithScionTxt() {
     InetSocketAddress addr = new InetSocketAddress("1.1.1.1", 30255);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);
@@ -307,7 +282,7 @@ class DatagramSocketApiTest {
 
   @Test
   void isConnected_Path() throws IOException {
-    RequestPath path = PackageVisibilityHelper.createDummyPath();
+    Path path = PackageVisibilityHelper.createDummyPath();
     InetAddress ip = path.getRemoteAddress();
     InetSocketAddress address = new InetSocketAddress(ip, path.getRemotePort());
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
@@ -617,7 +592,7 @@ class DatagramSocketApiTest {
               new DatagramPacket(msg.getBytes(), msg.length(), toAddress(expiredPath));
           try {
             socket.send(packet);
-            RequestPath newPath = socket.getConnectionPath();
+            Path newPath = socket.getConnectionPath();
             assertTrue(
                 newPath.getMetadata().getExpiration() > expiredPath.getMetadata().getExpiration());
             assertTrue(Instant.now().getEpochSecond() < newPath.getMetadata().getExpiration());
@@ -627,14 +602,13 @@ class DatagramSocketApiTest {
         });
   }
 
-  private void testExpired(BiConsumer<ScionDatagramSocket, RequestPath> sendMethod)
-      throws IOException {
+  private void testExpired(BiConsumer<ScionDatagramSocket, Path> sendMethod) throws IOException {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
     PingPongSocketHelper.Client clientFn =
         (channel, basePath, id) -> {
           // Build a path that is already expired
-          RequestPath expiredPath = createExpiredPath(basePath);
+          Path expiredPath = createExpiredPath(basePath);
           sendMethod.accept(channel, expiredPath);
 
           DatagramPacket packet = new DatagramPacket(new byte[100], 100);
@@ -648,11 +622,11 @@ class DatagramSocketApiTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private RequestPath createExpiredPath(Path basePath) throws UnknownHostException {
+  private Path createExpiredPath(Path basePath) throws UnknownHostException {
     long now = Instant.now().getEpochSecond();
     Timestamp timestamp = Timestamp.newBuilder().setSeconds(now - 10).build();
     Daemon.Path.Builder builder = Daemon.Path.newBuilder().setExpiration(timestamp);
-    RequestPath expiredPath =
+    Path expiredPath =
         PackageVisibilityHelper.createRequestPath110_112(
             builder,
             basePath.getRemoteIsdAs(),
@@ -669,7 +643,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getConnectionPath() throws IOException {
-    RequestPath path = ExamplePacket.PATH;
+    Path path = ExamplePacket.PATH;
     DatagramPacket packet = new DatagramPacket(new byte[50], 50, toAddress(path));
     try (ScionDatagramSocket channel = new ScionDatagramSocket()) {
       assertNull(channel.getConnectionPath());

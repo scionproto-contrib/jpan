@@ -19,10 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.*;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -44,6 +41,7 @@ public class ScionServiceTest {
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
   private static final String SCION_TXT_IPV6 = "\"scion=1-ff00:0:110,[::1]\"";
+  private static final int SCION_HOST_PORT = 12345;
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @AfterAll
@@ -75,7 +73,7 @@ public class ScionServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
-      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
+      Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
@@ -91,7 +89,7 @@ public class ScionServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
-      RequestPath path = client.getPaths(dstIA, dstAddress).get(0);
+      Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       // local AS + path
       assertEquals(2, MockDaemon.getAndResetCallCount());
@@ -106,7 +104,7 @@ public class ScionServiceTest {
     MockDaemon.createAndStartDefault();
     try {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      RequestPath path;
+      Path path;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
@@ -144,7 +142,7 @@ public class ScionServiceTest {
     MockDaemon.createAndStartDefault();
     try {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      List<RequestPath> paths;
+      List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
@@ -159,7 +157,7 @@ public class ScionServiceTest {
       //    0: 2 561850441793808
       //    0: 1 561850441793810
       assertEquals(1, paths.size());
-      for (RequestPath path : paths) {
+      for (Path path : paths) {
         assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
         // assertEquals(srcIA, path.getSourceIsdAs());
         assertEquals(dstIA, path.getRemoteIsdAs());
@@ -178,7 +176,7 @@ public class ScionServiceTest {
     MockDaemon.createAndStartDefault();
     try {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
-      List<RequestPath> paths;
+      List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:110");
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
@@ -193,7 +191,7 @@ public class ScionServiceTest {
       //          raw: []
       //  raw: {}
       assertEquals(1, paths.size());
-      RequestPath path = paths.get(0);
+      Path path = paths.get(0);
       InetAddress addr = path.getRemoteAddress();
       InetSocketAddress sAddr = new InetSocketAddress(addr, path.getRemotePort());
       assertEquals(sAddr, path.getFirstHopAddress());
@@ -211,7 +209,7 @@ public class ScionServiceTest {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_110/topology.json")) {
       ScionService service = Scion.defaultService();
-      List<RequestPath> paths;
+      List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
 
       // Non-existing AS
@@ -236,7 +234,7 @@ public class ScionServiceTest {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_1111/topology.json")) {
       ScionService service = Scion.defaultService();
-      List<RequestPath> paths;
+      List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
 
       // Non-existing AS
@@ -257,7 +255,7 @@ public class ScionServiceTest {
   }
 
   @Test
-  void getScionAddress_IPv4() throws IOException {
+  void getScionAddress_IPv4_byHostName() throws IOException {
     // Test that DNS injection via properties works
     System.setProperty(
         PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
@@ -265,11 +263,39 @@ public class ScionServiceTest {
     try {
       ScionService pathService = Scion.defaultService();
       // TXT entry: "scion=64-2:0:9,129.x.x.x"
-      ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
+      Path path = pathService.lookupAndGetPath(SCION_HOST, SCION_HOST_PORT, null);
+      assertNotNull(path);
+      ScionSocketAddress sAddr = path.getRemoteSocketAddress();
       assertNotNull(sAddr);
-      assertEquals(1, sAddr.getIsd());
       assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
-      assertEquals(SCION_HOST + "/127.0.0.1", sAddr.getInetAddress().toString());
+      assertEquals(SCION_HOST + "/127.0.0.1", sAddr.getAddress().toString());
+      assertEquals(SCION_HOST_PORT, sAddr.getPort());
+      assertEquals(SCION_HOST, sAddr.getHostName());
+    } finally {
+      System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
+      ScionService.closeDefault();
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void getScionAddress_IPv4_byAddress() throws IOException {
+    // Test that DNS injection via properties works
+    System.setProperty(
+        PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
+    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
+    try {
+      ScionService pathService = Scion.defaultService();
+      // TXT entry: "scion=64-2:0:9,129.x.x.x"
+      InetAddress ia = Inet4Address.getByAddress(SCION_HOST, new byte[] {127, 0, 0, 1});
+      InetSocketAddress isa = new InetSocketAddress(ia, SCION_HOST_PORT);
+      Path path = pathService.lookupAndGetPath(isa, null);
+      assertNotNull(path);
+      ScionSocketAddress sAddr = path.getRemoteSocketAddress();
+      assertNotNull(sAddr);
+      assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
+      assertEquals(SCION_HOST + "/127.0.0.1", sAddr.getAddress().toString());
+      assertEquals(SCION_HOST_PORT, sAddr.getPort());
       assertEquals(SCION_HOST, sAddr.getHostName());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
@@ -287,11 +313,13 @@ public class ScionServiceTest {
     try {
       ScionService pathService = Scion.defaultService();
       // TXT entry: "scion=64-2:0:9,129.x.x.x"
-      ScionAddress sAddr = pathService.getScionAddress(SCION_HOST);
+      Path path = pathService.lookupAndGetPath(SCION_HOST, SCION_HOST_PORT, null);
+      assertNotNull(path);
+      ScionSocketAddress sAddr = path.getRemoteSocketAddress();
       assertNotNull(sAddr);
-      assertEquals(1, sAddr.getIsd());
       assertEquals("1-ff00:0:110", ScionUtil.toStringIA(sAddr.getIsdAs()));
-      assertEquals(SCION_HOST + "/0:0:0:0:0:0:0:1", sAddr.getInetAddress().toString());
+      assertEquals(SCION_HOST + "/0:0:0:0:0:0:0:1", sAddr.getAddress().toString());
+      assertEquals(SCION_HOST_PORT, sAddr.getPort());
       assertEquals(SCION_HOST, sAddr.getHostName());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
@@ -301,7 +329,7 @@ public class ScionServiceTest {
   }
 
   @Test
-  void getScionAddress_Failure_BadTxtRecord() throws IOException {
+  void getScionAddress_Failure_BadTxtRecord() {
     // Test that DNS injection via properties works
     System.setProperty(
         PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, SCION_HOST + "=" + SCION_TXT);
@@ -377,8 +405,9 @@ public class ScionServiceTest {
     // Use any topo file
     MockTopologyServer topo = MockTopologyServer.start(MockTopologyServer.TOPOFILE_TINY_110, true);
     try {
-      ScionService pathService = Scion.defaultService();
-      Exception ex = assertThrows(ScionException.class, () -> pathService.getScionAddress(host));
+      ScionService service = Scion.defaultService();
+      Exception ex =
+          assertThrows(ScionException.class, () -> service.lookupAndGetPath(host, 123, null));
       assertTrue(ex.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);

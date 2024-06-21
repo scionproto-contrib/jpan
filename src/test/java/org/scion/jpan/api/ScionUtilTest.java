@@ -20,7 +20,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
-import org.scion.jpan.RequestPath;
+import org.scion.jpan.Path;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -102,13 +102,14 @@ class ScionUtilTest {
 
   @Test
   void toStringPath_requestPath() throws UnknownHostException {
-    RequestPath pathLocal = createRequestPathLocal();
-    assertEquals("[]", ScionUtil.toStringPath(pathLocal));
-    RequestPath pathRemote = createRequestPathRemote();
-    assertEquals("[1-ff00:0:110 2>1 1-ff00:0:112]", ScionUtil.toStringPath(pathRemote));
+    Path pathLocal = createRequestPathLocal();
+    assertEquals("[]", ScionUtil.toStringPath(pathLocal.getMetadata()));
+    Path pathRemote = createRequestPathRemote();
+    assertEquals(
+        "[1-ff00:0:110 2>1 1-ff00:0:112]", ScionUtil.toStringPath(pathRemote.getMetadata()));
   }
 
-  private RequestPath createRequestPathLocal() throws UnknownHostException {
+  private Path createRequestPathLocal() throws UnknownHostException {
     return PackageVisibilityHelper.createRequestPath110_110(
         Daemon.Path.newBuilder(),
         ExamplePacket.SRC_IA,
@@ -116,7 +117,7 @@ class ScionUtilTest {
         12345);
   }
 
-  private RequestPath createRequestPathRemote() throws UnknownHostException {
+  private Path createRequestPathRemote() throws UnknownHostException {
     return PackageVisibilityHelper.createRequestPath110_112(
         Daemon.Path.newBuilder(),
         ExamplePacket.DST_IA,
