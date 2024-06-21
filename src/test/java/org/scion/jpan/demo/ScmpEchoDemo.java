@@ -61,17 +61,17 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.SCION_PROTO;
+  private static final Network network = Network.PRODUCTION;
 
   public static void main(String[] args) throws IOException {
+    ScionService service = Scion.defaultService();
     switch (network) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          Path path = Scion.defaultService().getPaths(DemoConstants.ia112, serviceIP).get(0);
-          demo.runDemo(path); // DemoConstants.ia112, serviceIP);
+          demo.runDemo(service.getPaths(DemoConstants.ia112, serviceIP).get(0));
           DemoTopology.shutDown();
           break;
         }
@@ -84,21 +84,18 @@ public class ScmpEchoDemo {
               "topologies/minimal/ASff00_0_1111/topology.json");
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          Path path = Scion.defaultService().getPaths(DemoConstants.ia1111, serviceIP).get(0);
-          demo.runDemo(path); // DemoConstants.ia211, serviceIP);
-          // demo.runDemo(DemoConstants.ia111, toAddr(DemoConstants.daemon111_minimal));
-          // demo.runDemo(DemoConstants.ia1111, toAddr(DemoConstants.daemon1111_minimal));
+          demo.runDemo(service.getPaths(DemoConstants.ia211, serviceIP).get(0));
+          // demo.runDemo(service.getPaths(DemoConstants.ia111, serviceIP).get(0));
+          // demo.runDemo(service.getPaths(DemoConstants.ia1111, serviceIP).get(0));
           break;
         }
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
-          // demo.runDemo(DemoConstants.iaOVGU, serviceIP);
           Path path = Scion.defaultService().lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null);
-          demo.runDemo(
-              path); // DemoConstants.iaETH, new InetSocketAddress(ethzIP, Constants.SCMP_PORT));
-          // demo.runDemo(DemoConstants.iaGEANT, serviceIP);
+          // Path path = Scion.defaultService().getPaths(DemoConstants.iaOVGU, serviceIP).get(0);
+          demo.runDemo(path);
           break;
         }
     }
@@ -143,30 +140,26 @@ public class ScmpEchoDemo {
 
   private void printPath(Path path) {
     String nl = System.lineSeparator();
-    StringBuilder sb = new StringBuilder();
     //    sb.append("Actual local address:").append(nl);
     //    sb.append("
     // ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
-    sb.append("Using path:").append(nl);
-    sb.append("  Hops: ").append(ScionUtil.toStringPath(path.getMetadata()));
-    sb.append(" MTU: ").append(path.getMetadata().getMtu());
-    sb.append(" NextHop: ").append(path.getMetadata().getInterface().getAddress()).append(nl);
-    println(sb.toString());
+    String sb =
+        "Using path:"
+            + nl
+            + "  Hops: "
+            + ScionUtil.toStringPath(path.getMetadata())
+            + " MTU: "
+            + path.getMetadata().getMtu()
+            + " NextHop: "
+            + path.getMetadata().getInterface().getAddress()
+            + nl;
+    println(sb);
   }
 
   private void printHeader(ScionSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
-    String sb =
-        "PING "
-            + ScionUtil.toStringIA(dstAddress.getIsdAs())
-            + ","
-            + dstAddress.getHostString()
-            + ":"
-            + dstAddress.getPort()
-            + " pld="
-            + data.remaining()
-            + "B scion_pkt="
-            + msg.getSizeSent()
-            + "B";
+    String sb = "PING " + ScionUtil.toStringIA(dstAddress.getIsdAs()) + ",";
+    sb += dstAddress.getHostString() + ":" + dstAddress.getPort() + " pld=" + data.remaining();
+    sb += "B scion_pkt=" + msg.getSizeSent() + "B";
     println(sb);
   }
 

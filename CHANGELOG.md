@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - **BREAKING CHANGE**: `receive()` returns `ScionSocketAddress`; `ResponseAddress` and 
   `ResponsePath` are removed from from public API.
   [#94](https://github.com/scionproto-contrib/jpan/pull/94)
-- **BREAKING CHANGE**: `RequestPath` is removed from from public API.
+- **BREAKING CHANGE**: removed `RequestPath` and `ScionAddress` from public API.
   [#95](https://github.com/scionproto-contrib/jpan/pull/95)
 
 ### Fixed
