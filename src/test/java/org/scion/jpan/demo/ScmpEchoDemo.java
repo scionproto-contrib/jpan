@@ -96,9 +96,8 @@ public class ScmpEchoDemo {
         {
           // Local port must be 30041 for networks that expect a dispatcher
           ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
-          Path path = Scion.defaultService().lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null);
-          // Path path = Scion.defaultService().getPaths(DemoConstants.iaOVGU, serviceIP).get(0);
-          demo.runDemo(path);
+          demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
+          demo.runDemo(service.getPaths(DemoConstants.iaOVGU, serviceIP).get(0));
           break;
         }
     }
