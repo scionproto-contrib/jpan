@@ -75,8 +75,8 @@ The central classes of the API are:
   supported.
 - `ScionSocketAddress` is an `InetSocketAddress` with the IP of a Scion enabled endhost.
   A `ScionSocketAddress` also has the ISD/AS code of that endhost and a path to the that endhost. 
-- `Path` A `Path` contains a route to a destination ("raw path") plus the full 
-    destination, i.e. IP-address and port. 
+- `Path` objects contain a route to a destination ("raw path") plus the full 
+    destination, i.e. SCION-enabled IP address and port. 
   - If the path was created by the `ScionService` then it has `PathMetadata` with meta information 
     (bandwidth, geo info, etc).
   - A path returned by `receive()` (as part of a `ScionSocketAddress`) has no meta information.
