@@ -626,9 +626,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
    * @see ScionDatagramChannel#configureRemoteDispatcher(boolean)
-   * @deprecated To be remove once dispatchers have been removed
    */
-  @Deprecated
   public synchronized ScionDatagramSocket setRemoteDispatcher(boolean hasDispatcher) {
     channel.configureRemoteDispatcher(hasDispatcher);
     return this;
@@ -639,9 +637,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * ScionDatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
    *
    * @param overrideSourceAddress Override address
-   * @deprecated This will likely be removed in a future version
    */
-  @Deprecated
   public synchronized void setOverrideSourceAddress(InetSocketAddress overrideSourceAddress) {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }

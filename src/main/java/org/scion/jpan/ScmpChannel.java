@@ -48,12 +48,26 @@ public class ScmpChannel implements AutoCloseable {
     this.path = null;
   }
 
-  @Deprecated
+  /**
+   *
+   * @param path path
+   * @throws IOException Exception
+   * @deprecated Please use channel.send(path, ...) instead
+   */
+  @Deprecated // Please use channel.send(path, ...) instead
   ScmpChannel(RequestPath path) throws IOException {
     this(Scion.defaultService(), path, 12345);
   }
 
-  @Deprecated
+  /**
+   *
+   * @param service service
+   * @param path path
+   * @param port port
+   * @throws IOException error
+   * @deprecated Please use channel.send(path, ...) instead
+   */
+  @Deprecated // Please use channel.send(path, ...) instead
   ScmpChannel(ScionService service, RequestPath path, int port) throws IOException {
     this.channel = new InternalChannel(service, port);
     this.path = path;
@@ -436,13 +450,11 @@ public class ScmpChannel implements AutoCloseable {
   }
 
   /**
-   * Specify an source address override. See {@link
+   * Specify a source address override. See {@link
    * ScionDatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
    *
    * @param overrideSourceAddress Override address
-   * @deprecated This will likely be removed in a future version
    */
-  @Deprecated
   public void setOverrideSourceAddress(InetSocketAddress overrideSourceAddress) {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
