@@ -43,9 +43,21 @@ import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The mock network is a simplified version of the test network available in scionproto. The mock is
+ * primarily used to run the "tiny" network. Some simplifications:<br>
+ *
+ * <p>- The mock has only two "border routers". They act as border routers for _all_ ASes. There are
+ * two border routers to allow having multiple links between ASes.<br>
+ * - The mock border routers forward traffic directly to the target AS, even if there is no direct
+ * link in the topology.<br>
+ * - The IP on both sides of the BR (link), at least by default, the same.<br>
+ * - the border routers do only marginal verification on packets.<br>
+ */
 public class MockNetwork {
 
-  public static final String BORDER_ROUTER_HOST = "127.0.0.1";
+  public static final String BORDER_ROUTER_IPV4 = "127.0.0.1";
+  public static final String BORDER_ROUTER_IPv6 = "::1";
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
   public static final int TINY_SRV_PORT_1 = 22233;
@@ -75,26 +87,31 @@ public class MockNetwork {
   }
 
   public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
-    startTiny(localIPv4, remoteIPv4, Mode.DAEMON);
+    startTiny(
+        localIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
+        remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
+        Mode.DAEMON);
   }
 
   public static synchronized void startTiny(Mode mode) {
-    startTiny(true, true, mode);
+    startTiny(BORDER_ROUTER_IPV4, BORDER_ROUTER_IPV4, mode);
   }
 
-  private static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4, Mode mode) {
+  private static synchronized void startTiny(String localIP, String remoteIP, Mode mode) {
     if (routers != null) {
       throw new IllegalStateException();
     }
 
     routers = Executors.newFixedThreadPool(2);
 
+    MockScmpHandler.start();
+
     List<MockBorderRouter> brList = new ArrayList<>();
     brList.add(
-        new MockBorderRouter(0, BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4));
+        new MockBorderRouter(0, BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIP, remoteIP));
     brList.add(
         new MockBorderRouter(
-            1, BORDER_ROUTER_PORT1 + 10, BORDER_ROUTER_PORT2 + 10, localIPv4, remoteIPv4));
+            1, BORDER_ROUTER_PORT1 + 10, BORDER_ROUTER_PORT2 + 10, localIP, remoteIP));
 
     barrier = new CountDownLatch(brList.size());
     for (MockBorderRouter br : brList) {
@@ -111,7 +128,7 @@ public class MockNetwork {
 
     List<InetSocketAddress> brAddrList =
         brList.stream()
-            .map(mBR -> new InetSocketAddress(BORDER_ROUTER_HOST, mBR.getPort1()))
+            .map(mBR -> new InetSocketAddress(BORDER_ROUTER_IPV4, mBR.getPort1()))
             .collect(Collectors.toList());
     try {
       daemon = MockDaemon.createForBorderRouter(brAddrList).start();
@@ -162,6 +179,9 @@ public class MockNetwork {
       }
       routers = null;
     }
+
+    MockScmpHandler.stop();
+
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
@@ -234,23 +254,23 @@ class MockBorderRouter implements Runnable {
   private final String name;
   private final int port1;
   private final int port2;
-  private final boolean ipv4_1;
-  private final boolean ipv4_2;
+  private final String ip1;
+  private final String ip2;
 
-  MockBorderRouter(int id, int port1, int port2, boolean ipv4_1, boolean ipv4_2) {
+  MockBorderRouter(int id, int port1, int port2, String ip1, String ip2) {
     this.id = id;
     this.name = "BorderRouter-" + id;
     this.port1 = port1;
     this.port2 = port2;
-    this.ipv4_1 = ipv4_1;
-    this.ipv4_2 = ipv4_2;
+    this.ip1 = ip1;
+    this.ip2 = ip2;
   }
 
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress bind1 = new InetSocketAddress(ipv4_1 ? "localhost" : "::1", port1);
-    InetSocketAddress bind2 = new InetSocketAddress(ipv4_2 ? "localhost" : "::1", port2);
+    InetSocketAddress bind1 = new InetSocketAddress(ip1, port1);
+    InetSocketAddress bind2 = new InetSocketAddress(ip2, port2);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
         DatagramChannel chnRemote = DatagramChannel.open().bind(bind2);
         Selector selector = Selector.open()) {
@@ -260,7 +280,7 @@ class MockBorderRouter implements Runnable {
       chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
       MockNetwork.barrier.countDown();
-      logger.info(name + " started on ports " + bind1 + " <-> " + bind2);
+      logger.info("{} started on ports {} <-> {}", name, bind1, bind2);
 
       while (true) {
         if (selector.select() == 0) {
@@ -287,9 +307,9 @@ class MockBorderRouter implements Runnable {
               continue;
             }
 
-            if (MockNetwork.scmpErrorOnNextPacket.get() != null) {
-              sendScmp(
-                  MockNetwork.scmpErrorOnNextPacket.getAndSet(null), buffer, srcAddress, incoming);
+            Scmp.TypeCode errorCode = MockNetwork.scmpErrorOnNextPacket.getAndSet(null);
+            if (errorCode != null) {
+              sendScmp(errorCode, buffer, srcAddress, incoming);
               iter.remove();
               continue;
             }
@@ -299,11 +319,11 @@ class MockBorderRouter implements Runnable {
                 forwardPacket(buffer, srcAddress, outgoing);
                 break;
               case SCMP:
-                handleScmp(buffer, srcAddress, incoming, outgoing);
+                handleScmp(buffer, srcAddress, outgoing);
                 break;
               default:
                 logger.error(
-                    "HDR not supported: " + PackageVisibilityHelper.getNextHdr(buffer).code());
+                    "HDR not supported: {}", PackageVisibilityHelper.getNextHdr(buffer).code());
                 throw new UnsupportedOperationException();
             }
           }
@@ -321,13 +341,7 @@ class MockBorderRouter implements Runnable {
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     logger.info(
-        name
-            + " forwarding "
-            + buffer.remaining()
-            + " bytes from "
-            + srcAddress
-            + " to "
-            + dstAddress);
+        "{} forwarding {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dstAddress);
 
     outgoing.send(buffer, dstAddress);
     buffer.clear();
@@ -335,11 +349,7 @@ class MockBorderRouter implements Runnable {
     MockNetwork.nForwards.incrementAndGet(id);
   }
 
-  private void handleScmp(
-      ByteBuffer buffer,
-      SocketAddress srcAddress,
-      DatagramChannel incoming,
-      DatagramChannel outgoing)
+  private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     Scmp.Type type0 = ScmpParser.extractType(buffer);
@@ -351,6 +361,9 @@ class MockBorderRouter implements Runnable {
       return;
     }
 
+    // TODO If we have implemented proper IPs for border routers we should read the dst from
+    //   the packet and then decide whether to answer or not.
+    //   InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     // ignore SCMP requests unless we are instructed to answer them
     if (type0 == Scmp.Type.INFO_128 && MockNetwork.answerNextScmpEchos.get() == 0) {
       buffer.rewind();
@@ -359,38 +372,14 @@ class MockBorderRouter implements Runnable {
     }
     MockNetwork.answerNextScmpEchos.decrementAndGet();
 
+    // relay to ScmpHandler
     buffer.rewind();
-    InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
-    // From here on we use linear reading using the buffer's position() mechanism
-    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-    Path path = PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
-    Scmp.Type type = ScmpParser.extractType(buffer);
-    Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
-    ScmpParser.consume(buffer, scmpMsg);
-    logger.info(
-        " received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
 
-    if (scmpMsg instanceof Scmp.EchoMessage) {
-      // send back!
-      // This is very basic:
-      // - we always answer regardless of whether we are actually the destination.
-      // - We do not invert path / addresses
-      sendScmp(Scmp.TypeCode.TYPE_129, buffer, srcAddress, incoming);
-    } else if (scmpMsg instanceof Scmp.TracerouteMessage) {
-      answerTraceRoute(buffer, srcAddress, incoming);
-    } else {
-      // forward error
-      logger.info(
-          name
-              + " forwarding SCMP error "
-              + scmpMsg.getTypeCode().getText()
-              + " from "
-              + srcAddress
-              + " to "
-              + dstAddress);
-      outgoing.send(buffer, dstAddress);
-      buffer.clear();
-    }
+    InetAddress scmpIP = InetAddress.getLoopbackAddress();
+    InetSocketAddress dst = new InetSocketAddress(scmpIP, Constants.SCMP_PORT);
+    logger.info("{} relaying {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dst);
+    outgoing.send(buffer, dst);
+    buffer.clear();
   }
 
   private void sendScmp(

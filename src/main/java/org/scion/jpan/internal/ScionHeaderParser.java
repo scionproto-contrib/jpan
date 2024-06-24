@@ -64,6 +64,8 @@ public class ScionHeaderParser {
 
     int i1 = data.getInt(4);
     int i2 = data.getInt(8);
+    int nextHeader = ByteUtil.readInt(i1, 0, 8);
+    InternalConstants.HdrTypes hdrType = InternalConstants.HdrTypes.parse(nextHeader);
     int hdrLen = ByteUtil.readInt(i1, 8, 8);
     int hdrLenBytes = hdrLen * 4;
     int dl = ByteUtil.readInt(i2, 10, 2);
@@ -107,11 +109,22 @@ public class ScionHeaderParser {
       reversePathInPlace(ByteBuffer.wrap(path));
     }
 
-    // get remote port from UDP overlay
+    // get remote port from UDP or SCMP payload
     data.position(hdrLenBytes);
-    int srcPort = Short.toUnsignedInt(data.getShort());
-    int dstPort = Short.toUnsignedInt(data.getShort());
-    // TODO handle SCMP packets
+    int srcPort;
+    int dstPort;
+    if (hdrType == InternalConstants.HdrTypes.UDP) {
+      // get remote port from UDP overlay
+      srcPort = Short.toUnsignedInt(data.getShort());
+      dstPort = Short.toUnsignedInt(data.getShort());
+    } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+      data.position(hdrLenBytes + 4);
+      // ports will be swapped further down
+      dstPort = Short.toUnsignedInt(data.getShort());
+      srcPort = Constants.SCMP_PORT;
+    } else {
+      throw new UnsupportedOperationException();
+    }
 
     // rewind to original offset
     data.position(pos);

@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed internal raw path parsing and IP parsing.
   [#77](https://github.com/scionproto-contrib/jpan/pull/77)
 - Improved bootstrap logging [#83](https://github.com/scionproto-contrib/jpan/pull/83)
+- Fixed SCMP meta data reporting wrong remote port.
+  [#79](https://github.com/scionproto-contrib/jpan/issues/79)
 
 ## [0.1.1] - 2024-05-10
 

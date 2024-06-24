@@ -32,6 +32,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockScmpHandler;
 
 public class SCMPTest {
   private static final byte[] PING_ERROR_4_51_HK = {
@@ -104,27 +105,45 @@ public class SCMPTest {
   @Test
   void echo_localAS_BR() throws IOException {
     testEcho(this::getPathToLocalAS_BR);
+    assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
+    assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
+  }
+
+  @Test
+  void echo_localAS_BR_30041() throws IOException {
+    testEcho(this::getPathToLocalAS_BR_30041);
+    assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
+    assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   @Test
   void echo_localAS_SVC() {
-    assertThrows(ScionException.class, () -> testEcho(this::getPathToLocalAS_SVC));
+    // Sending to local service address makes no sense, hence the exception.
+    // SVC addresses are interpreted by border routers, so we would need to send to a border router
+    // first.
+    Exception e = assertThrows(ScionException.class, () -> testEcho(this::getPathToLocalAS_SVC));
+    assertTrue(e.getMessage().contains("Cannot ping service address in local AS:"), e.getMessage());
   }
 
-  private void testEcho(Supplier<Path> path) throws IOException {
+  private void testEcho(Supplier<Path> pathSupplier) throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
     try (ScmpChannel channel = Scmp.createChannel()) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
-      Scmp.EchoMessage result = channel.sendEchoRequest(path.get(), 42, ByteBuffer.wrap(data));
+      Path path = pathSupplier.get();
+      Scmp.EchoMessage result = channel.sendEchoRequest(path, 42, ByteBuffer.wrap(data));
       assertEquals(42, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
       assertArrayEquals(data, result.getData());
       assertFalse(result.isTimedOut());
+      Path returnPath = result.getPath();
+      assertEquals(path.getRemoteAddress(), returnPath.getRemoteAddress());
+      assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
+      assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -318,26 +337,25 @@ public class SCMPTest {
   }
 
   private Path getPathToLocalAS_BR() {
-    ScionService service = Scion.defaultService();
-    long dstIA = service.getLocalIsdAs();
-    try {
-      // Border router address
-      InetAddress addr = InetAddress.getByName(MockNetwork.BORDER_ROUTER_HOST);
-      int port = MockNetwork.BORDER_ROUTER_PORT1;
-      List<Path> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
-      return paths.get(0);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+    // Border router address
+    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, MockNetwork.BORDER_ROUTER_PORT1);
+  }
+
+  private Path getPathToLocalAS_BR_30041() {
+    // Border router address
+    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, Constants.SCMP_PORT);
   }
 
   private Path getPathToLocalAS_SVC() {
+    return getPathToLocalAS("0.0.0.0", Constants.SCMP_PORT);
+  }
+
+  private Path getPathToLocalAS(String addressStr, int port) {
     ScionService service = Scion.defaultService();
     long dstIA = service.getLocalIsdAs();
     try {
       // Service address
-      InetAddress addr = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
-      int port = Constants.SCMP_PORT;
+      InetAddress addr = InetAddress.getByName(addressStr);
       List<Path> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
       return paths.get(0);
     } catch (UnknownHostException e) {
@@ -348,6 +366,7 @@ public class SCMPTest {
   @Test
   void setUpScmpResponder_echo() throws IOException, InterruptedException {
     MockNetwork.startTiny();
+    MockScmpHandler.stop(); // Shut down SCMP handler
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
@@ -380,6 +399,7 @@ public class SCMPTest {
   @Test
   void setUpScmpResponder_echo_blocked() throws IOException, InterruptedException {
     MockNetwork.startTiny();
+    MockScmpHandler.stop(); // Shut down SCMP handler
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     try (ScmpChannel sender = Scmp.createChannel()) {
