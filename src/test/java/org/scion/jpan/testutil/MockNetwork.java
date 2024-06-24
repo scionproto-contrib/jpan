@@ -43,6 +43,16 @@ import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The mock network is a simplified version of the test network available in scionproto. The mock is
+ * primarily used to run the "tiny" network. Some simplifications:<br>
+ *
+ * <p>- The mock has only two "border routers". They act as border routers for _all_ ASes. There are
+ * two border routers to allow having multiple links between ASes.<br>
+ * - The mock border routers forward traffic directly to the target AS, even if there is no direct
+ * link in the topology.<br>
+ * - the border routers do only marginal verification on packets.<br>
+ */
 public class MockNetwork {
 
   public static final String BORDER_ROUTER_HOST = "127.0.0.1";
@@ -265,7 +275,7 @@ class MockBorderRouter implements Runnable {
       chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
       MockNetwork.barrier.countDown();
-      logger.info(name + " started on ports " + bind1 + " <-> " + bind2);
+      logger.info("{} started on ports {} <-> {}", name, bind1, bind2);
 
       while (true) {
         if (selector.select() == 0) {
@@ -308,7 +318,7 @@ class MockBorderRouter implements Runnable {
                 break;
               default:
                 logger.error(
-                    "HDR not supported: " + PackageVisibilityHelper.getNextHdr(buffer).code());
+                    "HDR not supported: {}", PackageVisibilityHelper.getNextHdr(buffer).code());
                 throw new UnsupportedOperationException();
             }
           }
@@ -326,13 +336,7 @@ class MockBorderRouter implements Runnable {
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     logger.info(
-        name
-            + " forwarding "
-            + buffer.remaining()
-            + " bytes from "
-            + srcAddress
-            + " to "
-            + dstAddress);
+        "{} forwarding {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dstAddress);
 
     outgoing.send(buffer, dstAddress);
     buffer.clear();
@@ -372,8 +376,8 @@ class MockBorderRouter implements Runnable {
     Scmp.Type type = ScmpParser.extractType(buffer);
     Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
     ScmpParser.consume(buffer, scmpMsg);
-    logger.info(
-        " received SCMP " + scmpMsg.getTypeCode().name() + " " + scmpMsg.getTypeCode().getText());
+    Scmp.TypeCode typeCode = scmpMsg.getTypeCode();
+    logger.info("{} received SCMP {} {}", name, typeCode.name(), typeCode.getText());
 
     if (scmpMsg instanceof Scmp.EchoMessage) {
       // send back!
@@ -386,13 +390,11 @@ class MockBorderRouter implements Runnable {
     } else {
       // forward error
       logger.info(
-          name
-              + " forwarding SCMP error "
-              + scmpMsg.getTypeCode().getText()
-              + " from "
-              + srcAddress
-              + " to "
-              + dstAddress);
+          "{} forwarding SCMP error {} from {} to {}",
+          name,
+          typeCode.getText(),
+          srcAddress,
+          dstAddress);
       outgoing.send(buffer, dstAddress);
       buffer.clear();
     }
