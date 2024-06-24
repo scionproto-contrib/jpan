@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - SCMP echo responder [#78](https://github.com/scionproto-contrib/jpan/pull/78)
 - Maven Java executor [#80](https://github.com/scionproto-contrib/jpan/pull/80)
 - Dev environment setup hints doc [#82](https://github.com/scionproto-contrib/jpan/pull/82)
+- Added SCION_GETTING_STARTED.md [#59](https://github.com/scionproto-contrib/jpan/pull/59)
 
 ### Changed
 - Some API changes: [#67](https://github.com/scionproto-contrib/jpan/pull/67)

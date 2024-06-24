@@ -5,9 +5,10 @@
 
 [![codecov](https://codecov.io/gh/scionproto-contrib/jpan/graph/badge.svg?token=3U8J50E4N5)](https://codecov.io/gh/scionproto-contrib/jpan)
 
-This library is 100% pure Java network stack for using [SCION](https://scion.org). It currently provides UDP and
-[SCMP](https://docs.scion.org/en/latest/protocols/scmp.html). More information about SCION 
-can be found [here](https://docs.scion.org). JPAN provides functionality similar to 
+This library is 100% pure Java network stack for using [SCION](https://scion.org). It currently provides 
+support for UDP and [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html). More information about SCION can be found 
+in [Getting Started](SCION_GETTING_STARTED.md) and more generally [here](https://docs.scion.org). 
+JPAN provides functionality similar to 
 [snet (Go)](https://pkg.go.dev/github.com/scionproto/scion/pkg/snet),
 [PAN (Go)](https://pkg.go.dev/github.com/netsec-ethz/scion-apps/pkg/pan) and 
 [scion-rs (Rust)](https://github.com/MystenLabs/scion-rs). 
