@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
 public class MockNetwork {
 
   public static final String BORDER_ROUTER_HOST = "127.0.0.1";
+  public static final String BORDER_ROUTER_HOST_IPv6 = "::1";
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
   public static final int TINY_SRV_PORT_1 = 22233;
@@ -85,14 +86,17 @@ public class MockNetwork {
   }
 
   public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
-    startTiny(localIPv4, remoteIPv4, Mode.DAEMON);
+    startTiny(
+        localIPv4 ? BORDER_ROUTER_HOST : BORDER_ROUTER_HOST_IPv6,
+        remoteIPv4 ? BORDER_ROUTER_HOST : BORDER_ROUTER_HOST_IPv6,
+        Mode.DAEMON);
   }
 
   public static synchronized void startTiny(Mode mode) {
-    startTiny(true, true, mode);
+    startTiny(BORDER_ROUTER_HOST, BORDER_ROUTER_HOST, mode);
   }
 
-  private static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4, Mode mode) {
+  private static synchronized void startTiny(String localIPv4, String remoteIPv4, Mode mode) {
     if (routers != null) {
       throw new IllegalStateException();
     }
@@ -249,10 +253,10 @@ class MockBorderRouter implements Runnable {
   private final String name;
   private final int port1;
   private final int port2;
-  private final boolean ipv4_1;
-  private final boolean ipv4_2;
+  private final String ipv4_1;
+  private final String ipv4_2;
 
-  MockBorderRouter(int id, int port1, int port2, boolean ipv4_1, boolean ipv4_2) {
+  MockBorderRouter(int id, int port1, int port2, String ipv4_1, String ipv4_2) {
     this.id = id;
     this.name = "BorderRouter-" + id;
     this.port1 = port1;
@@ -264,8 +268,8 @@ class MockBorderRouter implements Runnable {
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress bind1 = new InetSocketAddress(ipv4_1 ? "localhost" : "::1", port1);
-    InetSocketAddress bind2 = new InetSocketAddress(ipv4_2 ? "localhost" : "::1", port2);
+    InetSocketAddress bind1 = new InetSocketAddress(ipv4_1, port1);
+    InetSocketAddress bind2 = new InetSocketAddress(ipv4_2, port2);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
         DatagramChannel chnRemote = DatagramChannel.open().bind(bind2);
         Selector selector = Selector.open()) {
