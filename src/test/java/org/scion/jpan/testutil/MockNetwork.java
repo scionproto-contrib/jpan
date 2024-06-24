@@ -51,12 +51,13 @@ import org.slf4j.LoggerFactory;
  * two border routers to allow having multiple links between ASes.<br>
  * - The mock border routers forward traffic directly to the target AS, even if there is no direct
  * link in the topology.<br>
+ * - The IP on both sides of the BR (link), at least by default, the same.<br>
  * - the border routers do only marginal verification on packets.<br>
  */
 public class MockNetwork {
 
-  public static final String BORDER_ROUTER_HOST = "127.0.0.1";
-  public static final String BORDER_ROUTER_HOST_IPv6 = "::1";
+  public static final String BORDER_ROUTER_IPV4 = "127.0.0.1";
+  public static final String BORDER_ROUTER_IPv6 = "::1";
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
   public static final int TINY_SRV_PORT_1 = 22233;
@@ -87,16 +88,16 @@ public class MockNetwork {
 
   public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
     startTiny(
-        localIPv4 ? BORDER_ROUTER_HOST : BORDER_ROUTER_HOST_IPv6,
-        remoteIPv4 ? BORDER_ROUTER_HOST : BORDER_ROUTER_HOST_IPv6,
+        localIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
+        remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
         Mode.DAEMON);
   }
 
   public static synchronized void startTiny(Mode mode) {
-    startTiny(BORDER_ROUTER_HOST, BORDER_ROUTER_HOST, mode);
+    startTiny(BORDER_ROUTER_IPV4, BORDER_ROUTER_IPV4, mode);
   }
 
-  private static synchronized void startTiny(String localIPv4, String remoteIPv4, Mode mode) {
+  private static synchronized void startTiny(String localIP, String remoteIP, Mode mode) {
     if (routers != null) {
       throw new IllegalStateException();
     }
@@ -107,10 +108,10 @@ public class MockNetwork {
 
     List<MockBorderRouter> brList = new ArrayList<>();
     brList.add(
-        new MockBorderRouter(0, BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIPv4, remoteIPv4));
+        new MockBorderRouter(0, BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIP, remoteIP));
     brList.add(
         new MockBorderRouter(
-            1, BORDER_ROUTER_PORT1 + 10, BORDER_ROUTER_PORT2 + 10, localIPv4, remoteIPv4));
+            1, BORDER_ROUTER_PORT1 + 10, BORDER_ROUTER_PORT2 + 10, localIP, remoteIP));
 
     barrier = new CountDownLatch(brList.size());
     for (MockBorderRouter br : brList) {
@@ -127,7 +128,7 @@ public class MockNetwork {
 
     List<InetSocketAddress> brAddrList =
         brList.stream()
-            .map(mBR -> new InetSocketAddress(BORDER_ROUTER_HOST, mBR.getPort1()))
+            .map(mBR -> new InetSocketAddress(BORDER_ROUTER_IPV4, mBR.getPort1()))
             .collect(Collectors.toList());
     try {
       daemon = MockDaemon.createForBorderRouter(brAddrList).start();
@@ -253,23 +254,23 @@ class MockBorderRouter implements Runnable {
   private final String name;
   private final int port1;
   private final int port2;
-  private final String ipv4_1;
-  private final String ipv4_2;
+  private final String ip1;
+  private final String ip2;
 
-  MockBorderRouter(int id, int port1, int port2, String ipv4_1, String ipv4_2) {
+  MockBorderRouter(int id, int port1, int port2, String ip1, String ip2) {
     this.id = id;
     this.name = "BorderRouter-" + id;
     this.port1 = port1;
     this.port2 = port2;
-    this.ipv4_1 = ipv4_1;
-    this.ipv4_2 = ipv4_2;
+    this.ip1 = ip1;
+    this.ip2 = ip2;
   }
 
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress bind1 = new InetSocketAddress(ipv4_1, port1);
-    InetSocketAddress bind2 = new InetSocketAddress(ipv4_2, port2);
+    InetSocketAddress bind1 = new InetSocketAddress(ip1, port1);
+    InetSocketAddress bind2 = new InetSocketAddress(ip2, port2);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
         DatagramChannel chnRemote = DatagramChannel.open().bind(bind2);
         Selector selector = Selector.open()) {
