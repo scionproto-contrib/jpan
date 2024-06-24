@@ -391,9 +391,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    *
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
-   * @deprecated To be removed once dispatchers have been removed
    */
-  @Deprecated
   public void configureRemoteDispatcher(boolean hasDispatcher) {
     this.cfgRemoteDispatcher = hasDispatcher;
   }
@@ -403,11 +401,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * located behind a NAT. The specified source address should in this case be the external address
    * of the NAT.
    *
-   * @deprecated This is deprecated because it is considered a workaround and will likely be removed
-   *     in a future version.
    * @param address The external source address
    */
-  @Deprecated
   public void setOverrideSourceAddress(InetSocketAddress address) {
     this.overrideExternalAddress = address;
   }

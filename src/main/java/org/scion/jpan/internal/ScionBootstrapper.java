@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.scion.jpan.Scion;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
@@ -41,8 +40,6 @@ import org.slf4j.LoggerFactory;
  * The ScionBootstrapper tries to find the address of the control server.
  *
  * <p>It currently supports: - DNS lookup NAPTR with A/AAAA and TXT for port information.
- *
- * @see Scion.CloseableService
  */
 public class ScionBootstrapper {
 

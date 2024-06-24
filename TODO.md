@@ -7,9 +7,8 @@
 
 ## Plan
 
-### 0.2.0
+### 0.3.0
 - Fix: call CS only once for UP-Segments. Fix TODOs in ScionServiceTest
-- Implement PingResponder
 - Allow disabling local address resolution in DNS to local-IA. Resolving 127.0.0.x to
   localIA is fine for many purposes, but it can be confusing when testing a local
   mock-network (tiny, minimal, ...)
@@ -39,8 +38,6 @@
 - DISPATCHER migration:
   - Daemon supposedly provides information about dispatcher. Double check updated proto files
   - Parse topofiles with port range information -> indicates DISPATCHER presence
-- Add facility to send ECHO responses.
-- HostfileParser TODO
 - Consider SHIM support. SHIM is a compatibility component that supports
   old border-router software (requiring a fixed port on the client, unless
   the client is listening on this very port).  When SHIM is used, we cannot 
@@ -49,9 +46,6 @@
   first hop, OR extend SHIM to accept and forward packets to the correct BR.
 - AS switching: handle localIsdAs code per Interface or IP
 - Path expiry: request new path asynchronously when old path is close to expiry
-- DNS /etc/scion/hosts e.g.:
-  71-2:0:4a,[127.0.0.1]	www.netsys.ovgu.de netsys.ovgu.de
-  71-2:0:48,[127.0.0.1]	dfw.source.kernel.org
 - DNS with other options, see book p328ff, Section 13.2.3
 - UDP checksum validation + creation
 - SCMP checksum validation + creation
@@ -74,7 +68,6 @@
 
 #### Other
 - Truncate PROTO files?
-- MOVE Channel to ".channel"?
 - TEST concurrent path/as/DNS lookup
 - TEST concurrent use of single channel.
 - IMPORTANT: In non-blocking mode, the channel should probably block if it received a partial Scion-header?
@@ -82,8 +75,7 @@
   We could just buffer a partial header until it is complete...
 
 
-### 0.3.0
-- SCMP info handling: ping, traceroute, ...
+### 0.4.0
 - SCMP error _sending_ e.h. in case of corrupt packet
 - DatagramSocket
   - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
@@ -95,7 +87,7 @@
 - Reproducible build
 - RHINE?
 
-### 0.4.0
+### 0.5.0
 - Multipathing
 - EPIC, Hidden paths
 - SPAO end-to-end option -> Later, not used at the moment
@@ -105,7 +97,9 @@
   - QuickBuffers: https://github.com/HebiRobotics/QuickBuffers/tree/main/benchmarks
   - FlatBuffers
 
-
+###
+- Remove methods that are not required anymore:
+  - configureRemoteDispatcher() 
 
 ## Then
 
@@ -145,11 +139,6 @@
 - Test MTU exceed with proper network
 - Test SCMP handling, see Design.
 - Test general: Test that me make a minimum of gRPC calls, e.g. to get path from daemon 
-
-
-## Design
-- Where to place generated proto files? They are currently in `target` but could be in `scr/java`...
-
 
 ## Reconsider tooling
 - Documentation
