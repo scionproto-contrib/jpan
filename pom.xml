@@ -4,7 +4,7 @@
 
     <groupId>org.scion</groupId>
     <artifactId>jpan</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -63,7 +63,7 @@
         <connection>scm:git:git@github.com:scionproto-contrib/jpan.git</connection>
         <developerConnection>scm:git:git@github.com:scionproto-contrib/jpan.git
         </developerConnection>
-        <tag>v0.2.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
