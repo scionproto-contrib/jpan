@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+- nothing yet
+
+## [0.2.0] - 2024-06-24
+
 ### Added
 - SCMP echo responder [#78](https://github.com/scionproto-contrib/jpan/pull/78)
 - Maven Java executor [#80](https://github.com/scionproto-contrib/jpan/pull/80)
@@ -164,7 +168,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/scionproto-contrib/jpan/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/scionproto-contrib/jpan/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/scionproto-contrib/jpan/compare/v0.1.0-ALPHA...v0.1.0
 [0.1.0-ALPHA]: https://github.com/scionproto-contrib/jpan/compare/init_root_commit...v0.1.0-ALPHA

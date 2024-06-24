@@ -18,13 +18,13 @@ The following artifact contains the complete SCION Java implementation:
 <dependency>
     <groupId>org.scion</groupId>
     <artifactId>jpan</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
 ### Feature summary
 - 100% Java
-- UDP over SCION via `DatagramCHannel` or `DatagramSocket`
+- UDP over SCION via `DatagramChannel` or `DatagramSocket`
 - [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html) (ICMP for SCION)
 - Works stand-alone or with a local SCION daemon (without dispatcher, see below) 
 
