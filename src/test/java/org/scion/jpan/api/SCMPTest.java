@@ -105,8 +105,8 @@ public class SCMPTest {
   @Test
   void echo_localAS_BR() throws IOException {
     testEcho(this::getPathToLocalAS_BR);
-    // TODO    assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
-    // assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
+    assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
+    assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   @Test
@@ -118,9 +118,11 @@ public class SCMPTest {
 
   @Test
   void echo_localAS_SVC() {
-    assertThrows(ScionException.class, () -> testEcho(this::getPathToLocalAS_SVC));
-    // TODO   assertEquals(1, MockNetwork.getAndResetForwardCount()); // TODO ???
-    // assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
+    // Sending to local service address makes no sense, hence the exception.
+    // SVC addresses are interpreted by border routers, so we would need to send to a border router
+    // first.
+    Exception e = assertThrows(ScionException.class, () -> testEcho(this::getPathToLocalAS_SVC));
+    assertTrue(e.getMessage().contains("Cannot ping service address in local AS:"), e.getMessage());
   }
 
   private void testEcho(Supplier<Path> pathSupplier) throws IOException {
@@ -336,12 +338,12 @@ public class SCMPTest {
 
   private Path getPathToLocalAS_BR() {
     // Border router address
-    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_HOST, MockNetwork.BORDER_ROUTER_PORT1);
+    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, MockNetwork.BORDER_ROUTER_PORT1);
   }
 
   private Path getPathToLocalAS_BR_30041() {
     // Border router address
-    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_HOST, Constants.SCMP_PORT);
+    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, Constants.SCMP_PORT);
   }
 
   private Path getPathToLocalAS_SVC() {

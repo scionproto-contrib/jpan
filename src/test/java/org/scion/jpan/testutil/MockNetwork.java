@@ -319,7 +319,7 @@ class MockBorderRouter implements Runnable {
                 forwardPacket(buffer, srcAddress, outgoing);
                 break;
               case SCMP:
-                handleScmp(buffer, srcAddress, incoming, outgoing);
+                handleScmp(buffer, srcAddress, outgoing);
                 break;
               default:
                 logger.error(
@@ -349,11 +349,7 @@ class MockBorderRouter implements Runnable {
     MockNetwork.nForwards.incrementAndGet(id);
   }
 
-  private void handleScmp(
-      ByteBuffer buffer,
-      SocketAddress srcAddress,
-      DatagramChannel incoming,
-      DatagramChannel outgoing)
+  private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     Scmp.Type type0 = ScmpParser.extractType(buffer);
@@ -365,6 +361,9 @@ class MockBorderRouter implements Runnable {
       return;
     }
 
+    // TODO If we have implemented proper IPs for border routers we should read the dst from
+    //   the packet and then decide whether to answer or not.
+    //   InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     // ignore SCMP requests unless we are instructed to answer them
     if (type0 == Scmp.Type.INFO_128 && MockNetwork.answerNextScmpEchos.get() == 0) {
       buffer.rewind();
@@ -373,36 +372,14 @@ class MockBorderRouter implements Runnable {
     }
     MockNetwork.answerNextScmpEchos.decrementAndGet();
 
+    // relay to ScmpHandler
     buffer.rewind();
-    InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
-    // From here on we use linear reading using the buffer's position() mechanism
-    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-    Path path = PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
-    Scmp.Type type = ScmpParser.extractType(buffer);
-    Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
-    ScmpParser.consume(buffer, scmpMsg);
-    Scmp.TypeCode typeCode = scmpMsg.getTypeCode();
-    logger.info("{} received SCMP {} {}", name, typeCode.name(), typeCode.getText());
 
-    if (scmpMsg instanceof Scmp.EchoMessage) {
-      // send back!
-      // This is very basic:
-      // - we always answer regardless of whether we are actually the destination.
-      // - We do not invert path / addresses
-      sendScmp(Scmp.TypeCode.TYPE_129, buffer, srcAddress, incoming);
-    } else if (scmpMsg instanceof Scmp.TracerouteMessage) {
-      answerTraceRoute(buffer, srcAddress, incoming);
-    } else {
-      // forward error
-      logger.info(
-          "{} forwarding SCMP error {} from {} to {}",
-          name,
-          typeCode.getText(),
-          srcAddress,
-          dstAddress);
-      outgoing.send(buffer, dstAddress);
-      buffer.clear();
-    }
+    InetAddress scmpIP = InetAddress.getLoopbackAddress();
+    InetSocketAddress dst = new InetSocketAddress(scmpIP, Constants.SCMP_PORT);
+    logger.info("{} relaying {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dst);
+    outgoing.send(buffer, dst);
+    buffer.clear();
   }
 
   private void sendScmp(
