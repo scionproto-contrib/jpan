@@ -49,7 +49,6 @@ public class ScmpChannel implements AutoCloseable {
   }
 
   /**
-   *
    * @param path path
    * @throws IOException Exception
    * @deprecated Please use channel.send(path, ...) instead
@@ -60,7 +59,6 @@ public class ScmpChannel implements AutoCloseable {
   }
 
   /**
-   *
    * @param service service
    * @param path path
    * @param port port
