@@ -56,7 +56,7 @@ public class Segments {
 
   public static List<Daemon.Path> getPaths(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
-      ScionBootstrapper brLookup,
+      LocalTopology brLookup,
       long srcIsdAs,
       long dstIsdAs) {
     // Cases:
@@ -219,10 +219,7 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineSegments(
-      List<List<Seg.PathSegment>> segments,
-      long srcIsdAs,
-      long dstIsdAs,
-      ScionBootstrapper brLookup) {
+      List<List<Seg.PathSegment>> segments, long srcIsdAs, long dstIsdAs, LocalTopology brLookup) {
     if (segments.size() == 1) {
       return combineSegment(segments.get(0), brLookup);
     } else if (segments.size() == 2) {
@@ -233,7 +230,7 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineSegment(
-      List<Seg.PathSegment> segments, ScionBootstrapper brLookup) {
+      List<Seg.PathSegment> segments, LocalTopology brLookup) {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : segments) {
       paths.add(buildPath(brLookup, pathSegment));
@@ -256,7 +253,7 @@ public class Segments {
       List<Seg.PathSegment> segments1,
       long srcIsdAs,
       long dstIsdAs,
-      ScionBootstrapper brLookup) {
+      LocalTopology brLookup) {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
@@ -276,7 +273,7 @@ public class Segments {
       List<Seg.PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
-      ScionBootstrapper brLookup) {
+      LocalTopology brLookup) {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
     MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
@@ -298,7 +295,7 @@ public class Segments {
       List<Seg.PathSegment> segmentsUp,
       Seg.PathSegment segCore,
       List<Seg.PathSegment> segmentsDown,
-      ScionBootstrapper brLookup) {
+      LocalTopology brLookup) {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
         paths.add(buildPath(brLookup, segUp, segCore, segDown));
@@ -306,7 +303,7 @@ public class Segments {
     }
   }
 
-  private static Daemon.Path buildPath(ScionBootstrapper brLookup, Seg.PathSegment... segments) {
+  private static Daemon.Path buildPath(LocalTopology brLookup, Seg.PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 

@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.file.Paths;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.internal.LocalTopology;
 import org.scion.jpan.internal.ScionBootstrapper;
 
 class ScionBootstrapperTest {
@@ -33,9 +34,10 @@ class ScionBootstrapperTest {
   void testTiny110() {
     java.nio.file.Path topoFile = Paths.get("topologies/scionproto-tiny-110.json");
     ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
+    LocalTopology topo = sb.getTopology();
 
-    assertEquals(ScionUtil.parseIA("1-ff00:0:110"), sb.getLocalIsdAs());
-    assertEquals("127.0.0.11:31000", sb.getControlServerAddress());
-    assertTrue(sb.isLocalAsCore());
+    assertEquals(ScionUtil.parseIA("1-ff00:0:110"), topo.getLocalIsdAs());
+    assertEquals("127.0.0.11:31000", topo.getControlServerAddress());
+    assertTrue(topo.isLocalAsCore());
   }
 }
