@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - nothing yet
 
 ### Changed
-- Clean up TODO and deprecation information 
+- Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
+- Separate topo file parser [#103](https://github.com/scionproto-contrib/jpan/pull/103)
 
 ### Fixed
 - nothing yet
