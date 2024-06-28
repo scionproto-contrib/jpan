@@ -316,6 +316,7 @@ public class ScionService {
    *     hostName to SCION address.
    * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
+   * @deprecated Please use lookup() instead
    */
   @Deprecated // Please use lookup() instead
   public List<Path> getPaths(InetSocketAddress dstAddress) throws IOException {

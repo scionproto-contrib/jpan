@@ -170,7 +170,7 @@ public class MockScmpHandler implements Runnable {
       // This is very basic:
       // - we always answer regardless of whether we are actually the destination.
       // - We do not invert path / addresses
-      sendScmp(Scmp.TypeCode.TYPE_129, buffer, srcAddress, incoming);
+      sendEchoReply(buffer, srcAddress, incoming);
     } else if (scmpMsg instanceof Scmp.TracerouteMessage) {
       answerTraceRoute(buffer, srcAddress, incoming);
     } else {
@@ -185,15 +185,14 @@ public class MockScmpHandler implements Runnable {
     }
   }
 
-  private void sendScmp(
-      Scmp.TypeCode type, ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel channel)
+  private void sendEchoReply(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel channel)
       throws IOException {
     // send back!
     buffer.rewind();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
     spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
-    scmpHeader.setCode(type);
+    scmpHeader.setCode(Scmp.TypeCode.TYPE_129);
     ByteBuffer out = ByteBuffer.allocate(100);
     spi.writePacketSCMP(out);
     out.flip();
