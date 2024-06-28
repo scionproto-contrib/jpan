@@ -94,7 +94,7 @@ public class ShowpathsDemo {
     ScionService service = Scion.defaultService();
     // dummy address
     InetSocketAddress destinationAddress =
-        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
+        new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
       String src = ScionUtil.toStringIA(service.getLocalIsdAs());
