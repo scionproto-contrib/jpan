@@ -28,7 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.HopField;
 import org.scion.jpan.demo.inspector.PathHeaderScion;

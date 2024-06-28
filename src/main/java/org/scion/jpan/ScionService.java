@@ -234,7 +234,7 @@ public class ScionService {
       synchronized (ifDiscoveryChannel) {
         try {
           if (ifDiscoveryChannel[0] != null) {
-            ifDiscoveryChannel[0] .close();
+            ifDiscoveryChannel[0].close();
           }
           ifDiscoveryChannel[0] = null;
         } catch (IOException e) {
