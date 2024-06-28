@@ -14,9 +14,6 @@
 
 package org.scion.jpan.internal;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -26,13 +23,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

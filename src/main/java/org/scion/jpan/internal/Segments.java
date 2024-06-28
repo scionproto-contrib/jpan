@@ -219,10 +219,7 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineSegments(
-      List<List<Seg.PathSegment>> segments,
-      long srcIsdAs,
-      long dstIsdAs,
-      LocalTopology brLookup) {
+      List<List<Seg.PathSegment>> segments, long srcIsdAs, long dstIsdAs, LocalTopology brLookup) {
     if (segments.size() == 1) {
       return combineSegment(segments.get(0), brLookup);
     } else if (segments.size() == 2) {
