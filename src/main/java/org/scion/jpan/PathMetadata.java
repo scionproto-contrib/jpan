@@ -45,15 +45,7 @@ public class PathMetadata {
     this.pathRaw = path.getRaw().toByteArray();
     // path length 0 means "local AS"
     if (getRawPath().length == 0) {
-      // See issue https://github.com/scionproto-contrib/jpan/issues/96
-      //      if (dstIP.isAnyLocalAddress()) {
-      //        // This is an SCMP request
-      //        ScionService service = Scion.defaultService();
-      //        firstHop =
-      // ScionUtil.parseInetSocketAddress(service.getBorderRouterStrings().get(0));
-      //      } else {
       firstHop = new InetSocketAddress(dstIP, dstPort);
-      //      }
     } else {
       firstHop = getFirstHopAddress(path);
     }
