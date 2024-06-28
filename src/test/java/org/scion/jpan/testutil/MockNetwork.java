@@ -70,7 +70,7 @@ public class MockNetwork {
   static final AtomicInteger answerNextScmpEchos = new AtomicInteger();
   static CountDownLatch barrier = null;
   public static final int BORDER_ROUTER_PORT1 = 30555;
-  private static final int BORDER_ROUTER_PORT2 = 30556;
+  public static final int BORDER_ROUTER_PORT2 = 30556;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
@@ -104,7 +104,7 @@ public class MockNetwork {
 
     routers = Executors.newFixedThreadPool(2);
 
-    MockScmpHandler.start();
+    MockScmpHandler.start(remoteIP);
 
     List<MockBorderRouter> brList = new ArrayList<>();
     brList.add(
@@ -375,8 +375,7 @@ class MockBorderRouter implements Runnable {
     // relay to ScmpHandler
     buffer.rewind();
 
-    InetAddress scmpIP = InetAddress.getLoopbackAddress();
-    InetSocketAddress dst = new InetSocketAddress(scmpIP, Constants.SCMP_PORT);
+    InetSocketAddress dst = MockScmpHandler.getAddress();
     logger.info("{} relaying {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dst);
     outgoing.send(buffer, dst);
     buffer.clear();

@@ -27,6 +27,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.HopField;
 import org.scion.jpan.demo.inspector.PathHeaderScion;
@@ -44,18 +46,19 @@ public class MockScmpHandler implements Runnable {
   private static ExecutorService handler;
   private static final AtomicInteger nAnswerTotal = new AtomicInteger();
   private static CountDownLatch barrier = null;
+  private static final AtomicReference<InetSocketAddress> address = new AtomicReference<>();
 
   private final String name;
-  private final boolean ipv4;
+  private final String ip;
 
-  public static void start() {
+  public static void start(String ip) {
     if (handler != null) {
       throw new IllegalStateException();
     }
     barrier = new CountDownLatch(1);
     nAnswerTotal.set(0);
     handler = Executors.newSingleThreadExecutor();
-    handler.execute(new MockScmpHandler(true));
+    handler.execute(new MockScmpHandler(ip));
     try {
       barrier.await();
     } catch (InterruptedException e) {
@@ -80,24 +83,29 @@ public class MockScmpHandler implements Runnable {
     handler = null;
   }
 
+  public static InetSocketAddress getAddress() {
+    return address.get();
+  }
+
   public static int getAndResetAnswerTotal() {
     return nAnswerTotal.getAndSet(0);
   }
 
-  private MockScmpHandler(boolean ipv4) {
+  private MockScmpHandler(String ip) {
     this.name = "BorderRouterScmp";
-    this.ipv4 = ipv4;
+    this.ip = ip;
   }
 
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress bind = new InetSocketAddress(ipv4 ? "localhost" : "::1", Constants.SCMP_PORT);
+    InetSocketAddress bind = new InetSocketAddress(ip, Constants.SCMP_PORT);
     try (DatagramChannel chn = DatagramChannel.open().bind(bind);
         Selector selector = Selector.open()) {
       chn.configureBlocking(false);
       chn.register(selector, SelectionKey.OP_READ, chn);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
+      address.set((InetSocketAddress) chn.getLocalAddress());
       barrier.countDown();
       logger.info("{} started on {}", name, bind);
 
