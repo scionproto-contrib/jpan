@@ -36,22 +36,21 @@ import org.scion.jpan.testutil.MockNetwork;
  */
 public class ScmpEchoDemo {
 
-  private static final boolean PRINT = true;
+  public static boolean PRINT = true;
+  private static int REPEAT = 10;
+  private static Network NETWORK = Network.PRODUCTION;
   private final int localPort;
-  private static final InetSocketAddress dummyIP;
 
-  static {
-    try {
-      dummyIP = new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private enum Network {
+  public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
+  }
+
+  public static void init(boolean print, Network network, int repeat) {
+    PRINT = print;
+    NETWORK = network;
+    REPEAT = repeat;
   }
 
   public ScmpEchoDemo() {
@@ -62,10 +61,8 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.PRODUCTION;
-
   public static void main(String[] args) throws IOException {
-    switch (network) {
+    switch (NETWORK) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
@@ -124,7 +121,7 @@ public class ScmpEchoDemo {
 
     printPath(path);
     try (ScmpChannel scmpChannel = Scmp.createChannel(localPort)) {
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < REPEAT; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, i, data);
         if (i == 0) {
           printHeader(path.getRemoteSocketAddress(), data, msg);
@@ -140,7 +137,9 @@ public class ScmpEchoDemo {
         echoMsgStr += " time=" + millis + "ms";
         println(echoMsgStr);
         try {
-          Thread.sleep(1000);
+          if (i < REPEAT - 1) {
+            Thread.sleep(1000);
+          }
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
