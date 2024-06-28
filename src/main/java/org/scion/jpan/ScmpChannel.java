@@ -224,7 +224,7 @@ public class ScmpChannel implements AutoCloseable {
       super.channel().register(selector, SelectionKey.OP_READ);
 
       // listen on ANY interface: 0.0.0.0 / [::]
-      super.bind(new InetSocketAddress("[::]", port));
+      super.bind(new InetSocketAddress(port));
     }
 
     Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {

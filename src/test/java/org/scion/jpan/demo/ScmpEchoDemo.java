@@ -37,11 +37,11 @@ public class ScmpEchoDemo {
 
   private static final boolean PRINT = true;
   private final int localPort;
-  private static final InetSocketAddress serviceIP;
+  private static final InetSocketAddress dummyIP;
 
   static {
     try {
-      serviceIP = new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
+      dummyIP = new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
@@ -85,12 +85,17 @@ public class ScmpEchoDemo {
           // Bootstrap from SCION daemon
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
 
-          ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia211, serviceIP).get(0));
+          // Use a port from the dispatcher compatibility range
+          ScmpEchoDemo demo = new ScmpEchoDemo(32766);
+          // Control service address
+          InetSocketAddress cs211 = new InetSocketAddress("127.0.0.98", Constants.SCMP_PORT);
+          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia211, cs211).get(0));
           // Echo to local AS and on-path AS (111 is "on" the UP segment) is currently broken,
           // see https://github.com/scionproto-contrib/jpan/issues/96
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia111, serviceIP).get(0));
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia1111, serviceIP).get(0));
+          // InetSocketAddress cs111 = new InetSocketAddress("127.0.0.36", Constants.SCMP_PORT);
+          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia111, cs111).get(0));
+          // InetSocketAddress cs1111 = new InetSocketAddress("127.0.0.42", Constants.SCMP_PORT);
+          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia1111, cs1111).get(0));
           break;
         }
       case PRODUCTION:
@@ -99,7 +104,6 @@ public class ScmpEchoDemo {
           ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
           ScionService service = Scion.defaultService();
           demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
-          demo.runDemo(service.getPaths(DemoConstants.iaOVGU, serviceIP).get(0));
           break;
         }
     }

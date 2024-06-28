@@ -70,7 +70,8 @@ public class ScmpTracerouteDemo {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           //   "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          // Use a port from the dispatcher compatibility range
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(32766);
           demo.runDemo(DemoConstants.ia211);
           demo.runDemo(DemoConstants.ia111);
           demo.runDemo(DemoConstants.ia1111);

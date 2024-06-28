@@ -231,6 +231,16 @@ public class ScionService {
           LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
         }
       }
+      synchronized (ifDiscoveryChannel) {
+        try {
+          if (ifDiscoveryChannel[0] != null) {
+            ifDiscoveryChannel[0] .close();
+          }
+          ifDiscoveryChannel[0] = null;
+        } catch (IOException e) {
+          throw new ScionRuntimeException(e);
+        }
+      }
       if (shutdownHook != null) {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
       }
