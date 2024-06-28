@@ -14,10 +14,13 @@
 
 package org.scion.jpan.demo.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
@@ -44,24 +47,24 @@ public class PingPongChannelDemoTest {
   }
 
   @Test
-  void test() throws InterruptedException {
+  void test() throws InterruptedException, ExecutionException {
     AtomicInteger failures = new AtomicInteger();
+    ExecutorService exec = Executors.newFixedThreadPool(2);
     PingPongChannelServer.PRINT = false;
     PingPongChannelClient.PRINT = false;
     CountDownLatch barrier = new CountDownLatch(1);
-    Thread server =
-        new Thread(
-            () -> {
-              try {
-                barrier.countDown();
-                PingPongChannelServer.main(null);
-              } catch (Throwable e) {
-                failures.incrementAndGet();
-                e.printStackTrace();
-                throw new RuntimeException(e);
-              }
-            });
-    server.start();
+
+    exec.execute(
+        () -> {
+          try {
+            barrier.countDown();
+            PingPongChannelServer.main(null);
+          } catch (Throwable e) {
+            failures.incrementAndGet();
+            e.printStackTrace();
+            throw new RuntimeException(e);
+          }
+        });
     // Yes this is bad, the barrier is counted down before the server socket starts listening.
     // But it is the best we can easily do here.
     Thread.sleep(100);
@@ -71,27 +74,22 @@ public class PingPongChannelDemoTest {
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.
-    Thread client =
-        new Thread(
+    Future<Boolean> f =
+        exec.submit(
             () -> {
               try {
                 PingPongChannelClient.main(null);
+                return true;
               } catch (Throwable e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);
               }
             });
-    client.start();
 
-    server.join(1000);
-    client.join(1000);
-    // just in case
-    server.interrupt();
-    client.interrupt();
-    // join again to make sure the interrupt was handled
-    server.join(100);
-    client.join(100);
-
+    assertTrue(f.get());
+    exec.shutdown();
+    assertTrue(exec.awaitTermination(1000, TimeUnit.MILLISECONDS));
+    exec.shutdownNow();
     assertEquals(0, failures.get());
   }
 }

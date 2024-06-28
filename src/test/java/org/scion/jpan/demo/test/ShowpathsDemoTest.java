@@ -16,8 +16,10 @@ package org.scion.jpan.demo.test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
@@ -28,7 +30,7 @@ import org.scion.jpan.demo.DemoTopology;
 import org.scion.jpan.demo.ShowpathsDemo;
 import org.scion.jpan.testutil.MockDNS;
 
-public class ShowpathDemoTest {
+public class ShowpathsDemoTest {
 
   @BeforeAll
   public static void beforeAll() {
@@ -43,24 +45,27 @@ public class ShowpathDemoTest {
   }
 
   @Test
-  void test() throws InterruptedException {
+  void test() throws InterruptedException, ExecutionException {
     ExecutorService exec = Executors.newSingleThreadExecutor();
     AtomicInteger failures = new AtomicInteger();
     ShowpathsDemo.init(false, ShowpathsDemo.Network.JUNIT_MOCK);
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.
-    exec.execute(
-        () -> {
-          try {
-            ShowpathsDemo.main(null);
-            System.out.println("Done");
-          } catch (Throwable e) {
-            failures.incrementAndGet();
-            throw new RuntimeException(e);
-          }
-        });
+    Future<Boolean> result =
+        exec.submit(
+            () -> {
+              try {
+                ShowpathsDemo.main(null);
+                return true;
+              } catch (Throwable e) {
+                failures.incrementAndGet();
+                throw new RuntimeException(e);
+              }
+            });
 
+    // Wait for result
+    assertTrue(result.get());
     exec.shutdown();
     assertTrue(exec.awaitTermination(900, TimeUnit.MILLISECONDS));
     exec.shutdownNow();
