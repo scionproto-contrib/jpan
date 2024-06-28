@@ -35,13 +35,19 @@ import org.scion.jpan.testutil.MockDNS;
  */
 public class ShowpathsDemo {
 
-  public static final boolean PRINT = true;
+  public static boolean PRINT = true;
+  private static Network NETWORK = Network.PRODUCTION;
   private final int localPort;
 
-  private enum Network {
+  public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
+  }
+
+  public static void init(boolean print, ShowpathsDemo.Network network) {
+    PRINT = print;
+    NETWORK = network;
   }
 
   public ShowpathsDemo() {
@@ -52,10 +58,8 @@ public class ShowpathsDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.PRODUCTION;
-
   public static void main(String[] args) throws IOException {
-    switch (network) {
+    switch (NETWORK) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
@@ -90,7 +94,7 @@ public class ShowpathsDemo {
     ScionService service = Scion.defaultService();
     // dummy address
     InetSocketAddress destinationAddress =
-        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
+        new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
       String src = ScionUtil.toStringIA(service.getLocalIsdAs());

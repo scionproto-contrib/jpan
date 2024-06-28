@@ -34,8 +34,6 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.scion.jpan.*;
-import org.scion.jpan.demo.inspector.HopField;
-import org.scion.jpan.demo.inspector.PathHeaderScion;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.internal.ScionHeaderParser;
@@ -70,7 +68,7 @@ public class MockNetwork {
   static final AtomicInteger answerNextScmpEchos = new AtomicInteger();
   static CountDownLatch barrier = null;
   public static final int BORDER_ROUTER_PORT1 = 30555;
-  private static final int BORDER_ROUTER_PORT2 = 30556;
+  public static final int BORDER_ROUTER_PORT2 = 30556;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
@@ -104,7 +102,7 @@ public class MockNetwork {
 
     routers = Executors.newFixedThreadPool(2);
 
-    MockScmpHandler.start();
+    MockScmpHandler.start(remoteIP);
 
     List<MockBorderRouter> brList = new ArrayList<>();
     brList.add(
@@ -375,8 +373,7 @@ class MockBorderRouter implements Runnable {
     // relay to ScmpHandler
     buffer.rewind();
 
-    InetAddress scmpIP = InetAddress.getLoopbackAddress();
-    InetSocketAddress dst = new InetSocketAddress(scmpIP, Constants.SCMP_PORT);
+    InetSocketAddress dst = MockScmpHandler.getAddress();
     logger.info("{} relaying {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dst);
     outgoing.send(buffer, dst);
     buffer.clear();
@@ -395,33 +392,6 @@ class MockBorderRouter implements Runnable {
     spi.writePacketSCMP(out);
     out.flip();
     channel.send(out, srcAddress);
-    buffer.clear();
-  }
-
-  private void answerTraceRoute(
-      ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel incoming) throws IOException {
-    // This is very basic:
-    // - we always answer regardless of whether we are actually the destination.
-    buffer.rewind();
-    ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
-    spi.reversePath();
-    ScmpHeader scmpHeader = spi.getScmpHeader();
-    scmpHeader.setCode(Scmp.TypeCode.TYPE_131);
-    PathHeaderScion phs = spi.getPathHeaderScion();
-    for (int i = 0; i < phs.getHopCount(); i++) {
-      HopField hf = phs.getHopField(i);
-      // These answers are hardcoded to work specifically with ScmpTest.traceroute()
-      if (hf.hasEgressAlert()) {
-        scmpHeader.setTraceData(ScionUtil.parseIA("1-ff00:0:112"), 42);
-      }
-      if (hf.hasIngressAlert()) {
-        scmpHeader.setTraceData(ScionUtil.parseIA("1-ff00:0:110"), 42);
-      }
-    }
-    ByteBuffer out = ByteBuffer.allocate(100);
-    spi.writePacketSCMP(out);
-    out.flip();
-    incoming.send(out, srcAddress);
     buffer.clear();
   }
 

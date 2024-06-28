@@ -231,6 +231,16 @@ public class ScionService {
           LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
         }
       }
+      synchronized (ifDiscoveryChannel) {
+        try {
+          if (ifDiscoveryChannel[0] != null) {
+            ifDiscoveryChannel[0].close();
+          }
+          ifDiscoveryChannel[0] = null;
+        } catch (IOException e) {
+          throw new ScionRuntimeException(e);
+        }
+      }
       if (shutdownHook != null) {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
       }
@@ -306,6 +316,7 @@ public class ScionService {
    *     hostName to SCION address.
    * @return All paths returned by the path service.
    * @throws IOException if an errors occurs while querying paths.
+   * @deprecated Please use lookup() instead
    */
   @Deprecated // Please use lookup() instead
   public List<Path> getPaths(InetSocketAddress dstAddress) throws IOException {
@@ -386,7 +397,9 @@ public class ScionService {
    *
    * @param dstAddress Destination SCION address
    * @return All paths returned by the path service.
+   * @deprecated Do not use - will be removed (or made private) in 0.3.0
    */
+  @Deprecated
   public List<Path> getPaths(ScionAddress dstAddress, int dstPort) {
     long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());

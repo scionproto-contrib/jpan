@@ -80,6 +80,7 @@ public class ScmpChannel implements AutoCloseable {
    *     milliseconds that the reply took. If the request timed out, the result contains no message
    *     and the time is equal to the time-out duration.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
+   * @deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
    */
   @Deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
   public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
@@ -112,6 +113,7 @@ public class ScmpChannel implements AutoCloseable {
    *     timed out, the result contains no message and the time is equal to the time-out duration.
    *     If a request times out, the traceroute is aborted.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
+   * @deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
    */
   @Deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
   public List<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
@@ -224,18 +226,13 @@ public class ScmpChannel implements AutoCloseable {
       super.channel().register(selector, SelectionKey.OP_READ);
 
       // listen on ANY interface: 0.0.0.0 / [::]
-      super.bind(new InetSocketAddress("[::]", port));
+      super.bind(new InetSocketAddress(port));
     }
 
     Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        if (path.getRawPath().length == 0
-            && path.getFirstHopAddress().getAddress().isAnyLocalAddress()) {
-          throw new ScionException(
-              "Cannot ping service address in local AS: " + path.getFirstHopAddress());
-        }
         super.channel().connect(path.getFirstHopAddress());
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data

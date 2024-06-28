@@ -35,13 +35,19 @@ import org.scion.jpan.testutil.MockDNS;
  */
 public class ScmpTracerouteDemo {
 
-  public static final boolean PRINT = true;
+  public static boolean PRINT = true;
+  private static Network NETWORK = Network.PRODUCTION;
   private final int localPort;
 
-  private enum Network {
+  public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
+  }
+
+  public static void init(boolean print, ScmpTracerouteDemo.Network network) {
+    PRINT = print;
+    NETWORK = network;
   }
 
   public ScmpTracerouteDemo() {
@@ -52,10 +58,8 @@ public class ScmpTracerouteDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.PRODUCTION;
-
   public static void main(String[] args) throws IOException {
-    switch (network) {
+    switch (NETWORK) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
@@ -70,7 +74,8 @@ public class ScmpTracerouteDemo {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           //   "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          // Use a port from the dispatcher compatibility range
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(32766);
           demo.runDemo(DemoConstants.ia211);
           demo.runDemo(DemoConstants.ia111);
           demo.runDemo(DemoConstants.ia1111);

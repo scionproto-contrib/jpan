@@ -16,7 +16,6 @@ package org.scion.jpan.demo.test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,11 +27,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.demo.DemoTopology;
-import org.scion.jpan.demo.PingPongChannelClient;
-import org.scion.jpan.demo.PingPongChannelServer;
+import org.scion.jpan.demo.ScmpTracerouteDemo;
 import org.scion.jpan.testutil.MockDNS;
 
-public class PingPongChannelDemoTest {
+public class ScmpTracerouteDemoTest {
 
   @BeforeAll
   public static void beforeAll() {
@@ -48,37 +46,17 @@ public class PingPongChannelDemoTest {
 
   @Test
   void test() throws InterruptedException, ExecutionException {
+    ExecutorService exec = Executors.newSingleThreadExecutor();
     AtomicInteger failures = new AtomicInteger();
-    ExecutorService exec = Executors.newFixedThreadPool(2);
-    PingPongChannelServer.PRINT = false;
-    PingPongChannelClient.PRINT = false;
-    CountDownLatch barrier = new CountDownLatch(1);
-
-    exec.execute(
-        () -> {
-          try {
-            barrier.countDown();
-            PingPongChannelServer.main(null);
-          } catch (Throwable e) {
-            failures.incrementAndGet();
-            e.printStackTrace();
-            throw new RuntimeException(e);
-          }
-        });
-    // Yes this is bad, the barrier is counted down before the server socket starts listening.
-    // But it is the best we can easily do here.
-    Thread.sleep(100);
-    if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
-      fail();
-    }
+    ScmpTracerouteDemo.init(false, ScmpTracerouteDemo.Network.JUNIT_MOCK);
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.
-    Future<Boolean> f =
+    Future<Boolean> result =
         exec.submit(
             () -> {
               try {
-                PingPongChannelClient.main(null);
+                ScmpTracerouteDemo.main(null);
                 return true;
               } catch (Throwable e) {
                 failures.incrementAndGet();
@@ -86,10 +64,12 @@ public class PingPongChannelDemoTest {
               }
             });
 
-    assertTrue(f.get());
+    // Wait for result
+    assertTrue(result.get());
     exec.shutdown();
-    assertTrue(exec.awaitTermination(1000, TimeUnit.MILLISECONDS));
+    assertTrue(exec.awaitTermination(900, TimeUnit.MILLISECONDS));
     exec.shutdownNow();
+
     assertEquals(0, failures.get());
   }
 }

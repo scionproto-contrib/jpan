@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Separate topo file parser [#103](https://github.com/scionproto-contrib/jpan/pull/103)
 
 ### Fixed
-- nothing yet
+- Remove use of 0.0.0.0 and "::". [#103](https://github.com/scionproto-contrib/jpan/pull/103)
 
 ## [0.2.0] - 2024-06-24
 

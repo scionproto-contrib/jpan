@@ -19,6 +19,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.MockNetwork;
 
 /**
  * This demo mimics the "scion ping" command available in scionproto (<a
@@ -35,22 +36,21 @@ import org.scion.jpan.testutil.MockDNS;
  */
 public class ScmpEchoDemo {
 
-  private static final boolean PRINT = true;
+  public static boolean PRINT = true;
+  private static int REPEAT = 10;
+  private static Network NETWORK = Network.PRODUCTION;
   private final int localPort;
-  private static final InetSocketAddress serviceIP;
 
-  static {
-    try {
-      serviceIP = new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), 12345);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private enum Network {
+  public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
+  }
+
+  public static void init(boolean print, Network network, int repeat) {
+    PRINT = print;
+    NETWORK = network;
+    REPEAT = repeat;
   }
 
   public ScmpEchoDemo() {
@@ -61,16 +61,15 @@ public class ScmpEchoDemo {
     this.localPort = localPort;
   }
 
-  private static final Network network = Network.PRODUCTION;
-
   public static void main(String[] args) throws IOException {
-    switch (network) {
+    switch (NETWORK) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, serviceIP).get(0));
+          InetSocketAddress br211 = new InetSocketAddress("::1", MockNetwork.BORDER_ROUTER_PORT2);
+          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, br211).get(0));
           DemoTopology.shutDown();
           break;
         }
@@ -85,12 +84,17 @@ public class ScmpEchoDemo {
           // Bootstrap from SCION daemon
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
 
-          ScmpEchoDemo demo = new ScmpEchoDemo();
-          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia211, serviceIP).get(0));
+          // Use a port from the dispatcher compatibility range
+          ScmpEchoDemo demo = new ScmpEchoDemo(32766);
+          // Control service address
+          InetSocketAddress cs211 = new InetSocketAddress("127.0.0.98", Constants.SCMP_PORT);
+          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia211, cs211).get(0));
           // Echo to local AS and on-path AS (111 is "on" the UP segment) is currently broken,
           // see https://github.com/scionproto-contrib/jpan/issues/96
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia111, serviceIP).get(0));
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia1111, serviceIP).get(0));
+          // InetSocketAddress cs111 = new InetSocketAddress("127.0.0.36", Constants.SCMP_PORT);
+          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia111, cs111).get(0));
+          // InetSocketAddress cs1111 = new InetSocketAddress("127.0.0.42", Constants.SCMP_PORT);
+          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia1111, cs1111).get(0));
           break;
         }
       case PRODUCTION:
@@ -99,7 +103,6 @@ public class ScmpEchoDemo {
           ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
           ScionService service = Scion.defaultService();
           demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
-          demo.runDemo(service.getPaths(DemoConstants.iaOVGU, serviceIP).get(0));
           break;
         }
     }
@@ -118,7 +121,7 @@ public class ScmpEchoDemo {
 
     printPath(path);
     try (ScmpChannel scmpChannel = Scmp.createChannel(localPort)) {
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < REPEAT; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, i, data);
         if (i == 0) {
           printHeader(path.getRemoteSocketAddress(), data, msg);
@@ -134,7 +137,9 @@ public class ScmpEchoDemo {
         echoMsgStr += " time=" + millis + "ms";
         println(echoMsgStr);
         try {
-          Thread.sleep(1000);
+          if (i < REPEAT - 1) {
+            Thread.sleep(1000);
+          }
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
