@@ -226,20 +226,16 @@ public class ScionHeader {
     sb.append("  dstIsdAs=").append(ScionUtil.toStringIA(dstIsdAs));
     sb.append("  srcIsdAs=").append(ScionUtil.toStringIA(srcIsdAs));
     sb.append("  dstHost=").append(dt).append("/");
-    if (dl == 0) {
-      sb.append(ToStringUtil.toStringIPv4(dstHost));
-    } else if (dl == 3) {
-      sb.append(ToStringUtil.toStringIPv6(dstHost));
+    if (dl == 0 || dl == 3) {
+      sb.append(ToStringUtil.toStringIP(dstHost));
     } else {
-      sb.append("Format not recognized: ").append(ToStringUtil.toStringIPv6(dstHost));
+      sb.append("Format not recognized: ").append(ToStringUtil.toStringByte(dstHost));
     }
     sb.append("  srcHost=").append(st).append("/");
-    if (sl == 0) {
-      sb.append(ToStringUtil.toStringIPv4(srcHost));
-    } else if (sl == 3) {
-      sb.append(ToStringUtil.toStringIPv6(srcHost));
+    if (sl == 0 || sl == 3) {
+      sb.append(ToStringUtil.toStringIP(srcHost));
     } else {
-      sb.append("Format not recognized: ").append(ToStringUtil.toStringIPv6(srcHost));
+      sb.append("Format not recognized: ").append(ToStringUtil.toStringByte(srcHost));
     }
     return sb.toString();
   }
@@ -266,9 +262,9 @@ public class ScionHeader {
 
   public String getSrcHostString() {
     if (sl == 0 && (st == 0 || st == 1)) {
-      return ToStringUtil.toStringIPv4(srcHost);
+      return ToStringUtil.toStringIP(srcHost);
     } else if (sl == 3 && st == 0) {
-      return ToStringUtil.toStringIPv6(srcHost);
+      return ToStringUtil.toStringIP(srcHost);
     } else {
       throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
     }

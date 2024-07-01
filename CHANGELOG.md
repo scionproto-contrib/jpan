@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Remove use of 0.0.0.0 and "::". [#103](https://github.com/scionproto-contrib/jpan/pull/103)
 
+### Removed
+- Removed some useless IP printing functions. 
+  [#105](https://github.com/scionproto-contrib/jpan/pull/105)
+
 ## [0.2.0] - 2024-06-24
 
 ### Added
