@@ -29,9 +29,7 @@ import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongSocketHelper;
 
-/**
- * This test uses two threads that concurrently send() and receive() on the same socket.
- */
+/** This test uses two threads that concurrently send() and receive() on the same socket. */
 class DatagramSocketConcurrentPingPongTest {
 
   private static class Entry {
