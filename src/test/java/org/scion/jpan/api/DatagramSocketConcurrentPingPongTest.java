@@ -29,6 +29,7 @@ import org.scion.jpan.ScionService;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongSocketHelper;
 
+/** This test uses two threads that concurrently send() and receive() on the same socket. */
 class DatagramSocketConcurrentPingPongTest {
 
   private static class Entry {
@@ -54,9 +55,9 @@ class DatagramSocketConcurrentPingPongTest {
     PingPongSocketHelper.Server receiverFn = this::receiver;
     PingPongSocketHelper.Server senderFn = this::sender;
     PingPongSocketHelper.Client clientFn = this::client;
-    PingPongSocketHelper pph = new PingPongSocketHelper(2, 10, 10);
+    PingPongSocketHelper pph = new PingPongSocketHelper(2, 5, 100);
     pph.runPingPongSharedServerSocket(receiverFn, senderFn, clientFn, false);
-    assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
+    assertEquals(2 * 5 * 100, MockNetwork.getAndResetForwardCount());
   }
 
   private void client(ScionDatagramSocket socket, Path requestPath, int id) throws IOException {
@@ -89,11 +90,6 @@ class DatagramSocketConcurrentPingPongTest {
   }
 
   private void sender(ScionDatagramSocket socket) throws IOException {
-    try {
-      Thread.sleep(10);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
     // System.out.println("SERVER: --- sender - waiting ----- " + socket.getLocalSocketAddress());
     Entry e;
     try {
