@@ -27,23 +27,21 @@ import java.net.UnknownHostException;
 @Deprecated // This will be made package private in 0.3.0
 public class ScionAddress {
   private final long isdAs;
-  private final String hostName;
   private final InetAddress ipAddress;
 
-  private ScionAddress(long isdAs, String hostName, InetAddress ip) {
-    this.hostName = hostName;
+  private ScionAddress(long isdAs, InetAddress ip) {
     this.ipAddress = ip;
     this.isdAs = isdAs;
   }
 
   static ScionAddress create(long isdAs, InetAddress address) {
-    return new ScionAddress(isdAs, address.getHostName(), address);
+    return new ScionAddress(isdAs, address);
   }
 
   static ScionAddress create(long isdAs, String hostName, byte[] ipBytes) {
     try {
       InetAddress ip = InetAddress.getByAddress(hostName, ipBytes);
-      return new ScionAddress(isdAs, hostName, ip);
+      return new ScionAddress(isdAs, ip);
     } catch (UnknownHostException e) {
       // This should never happen because we always call getByName() with an IP address
       throw new ScionRuntimeException(e);
@@ -55,7 +53,7 @@ public class ScionAddress {
   }
 
   public String getHostName() {
-    return hostName;
+    return ipAddress.getHostName();
   }
 
   public InetAddress getInetAddress() {
