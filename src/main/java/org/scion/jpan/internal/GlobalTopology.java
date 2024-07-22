@@ -17,28 +17,18 @@ package org.scion.jpan.internal;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Parse a topology file into a local topology. */
 public class GlobalTopology {
 
-  private static final Logger LOG = LoggerFactory.getLogger(GlobalTopology.class.getName());
   private final Map<Integer, Isd> world = new HashMap<>();
 
   public static synchronized GlobalTopology create(ScionBootstrapper server) throws IOException {
@@ -71,27 +61,18 @@ public class GlobalTopology {
   }
 
   private void getTrcFiles(ScionBootstrapper server) throws IOException {
-    //LOG.info("Getting trc folder from bootstrap server: {}", topologyResource);
-    // TODO https????
-    String TRC_ENDPOINT = "trcs";
-    //URL url = new URL("http://" + topologyResource + "/" + BASE_URL + TRC_ENDPOINT);
     String filesString = server.fetchFile("trcs");
-    Map<Integer, String> files = parseTrcFiles(filesString);
+    parseTrcFiles(filesString);
 
-    for (String fileName : files.values()) {
-      //LOG.info("Getting trc file from bootstrap server: {} {}", topologyResource, fileName);
-      // TODO https????
-      //String TRC_ENDPOINT = "trcs";
-      //URL url2 = new URL("http://" + topologyResource + "/" + BASE_URL + TRC_ENDPOINT + "/" + fileName);
+    for (Isd isd : world.values()) {
+      String fileName = "isd" + isd.isd + "-b" + isd.baseNumber + "-s" + isd.serialNumber;
       String file = server.fetchFile("trcs/" + fileName);
-      parseTrcFile(file);
+      parseTrcFile(file, isd);
     }
   }
 
-  private static Map<Integer, String> parseTrcFiles(String trcFile) {
-    Map<Integer, String> files = new HashMap<>();
+  private void parseTrcFiles(String trcFile) {
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(trcFile);
-
     JsonArray entries = jsonTree.getAsJsonArray();
     for (int i = 0; i < entries.size(); i++) {
       JsonObject entry = entries.get(i).getAsJsonObject();
@@ -100,33 +81,44 @@ public class GlobalTopology {
         int base = cs.get("base_number").getAsInt();
         int isd = cs.get("isd").getAsInt();
         int serial = cs.get("serial_number").getAsInt();
-        System.out.println("entry: " + e.getKey() + "  " + base + " " + isd + " " + serial);
-        String file = "isd"+ isd + "-b" + base + "-s" + serial;
-        files.put(isd, file);
+        String file = "isd" + isd + "-b" + base + "-s" + serial;
+        world.put(isd, new Isd(isd, base, serial));
       }
     }
-    return files;
   }
 
-  private static Map<Integer, String> parseTrcFile(String trcFile) {
-    System.out.println("File: " + trcFile);
-    Map<Integer, String> files = new HashMap<>();
+  private static void parseTrcFile(String trcFile, Isd isd) {
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(trcFile);
+    if (jsonTree.isJsonObject()) {
+      JsonObject o = jsonTree.getAsJsonObject();
 
-    JsonArray entries = jsonTree.getAsJsonArray();
-    for (int i = 0; i < entries.size(); i++) {
-      JsonObject entry = entries.get(i).getAsJsonObject();
-      for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
-        JsonObject cs = e.getValue().getAsJsonObject();
-        int base = cs.get("base_number").getAsInt();
-        int isd = cs.get("isd").getAsInt();
-        int serial = cs.get("serial_number").getAsInt();
-        System.out.println("entry: " + e.getKey() + "  " + base + " " + isd + " " + serial);
-        String file = "isd"+ isd + "-b" + base + "-s" + serial;
-        files.put(isd, file);
+      JsonArray authoritativeAses = safeGet(o, "authoritative_ases").getAsJsonArray();
+      for (int i = 0; i < authoritativeAses.size(); i++) {
+        String isdCode = authoritativeAses.get(i).getAsString();
+        isd.authorativeASes.add(ScionUtil.parseIA(isdCode));
       }
+      JsonArray coreAses = safeGet(o, "core_ases").getAsJsonArray();
+      for (int i = 0; i < coreAses.size(); i++) {
+        String isdCode = coreAses.get(i).getAsString();
+        isd.coreASes.add(ScionUtil.parseIA(isdCode));
+      }
+
+      isd.description = safeGet(o, "description").getAsString();
+
+      JsonObject id = safeGet(o, "id").getAsJsonObject();
+      int base = id.get("base_number").getAsInt();
+      int isdCode = id.get("isd").getAsInt();
+      int serial = id.get("serial_number").getAsInt();
+      if (isd.isd != isdCode || isd.baseNumber != base || isd.serialNumber != serial) {
+        throw new IllegalStateException("ISD/Base/Serial mismatch in TRC file.");
+      }
+
+      JsonObject validity = safeGet(o, "validity").getAsJsonObject();
+      String afterStr = validity.get("not_after").getAsString();
+      String beforeStr = validity.get("not_before").getAsString();
+      isd.notAfter = Instant.parse(afterStr);
+      isd.notBefore = Instant.parse(beforeStr);
     }
-    return files;
   }
 
   @Override
@@ -143,8 +135,8 @@ public class GlobalTopology {
     int baseNumber;
     int isd;
     int serialNumber;
-    LocalDateTime notAfter;
-    LocalDateTime notBefore;
+    Instant notAfter;
+    Instant notBefore;
     final List<Long> authorativeASes = new ArrayList<>();
     final List<Long> coreASes = new ArrayList<>();
 
@@ -156,16 +148,25 @@ public class GlobalTopology {
 
     @Override
     public String toString() {
-      return "{" +
-              "description='" + description + '\'' +
-              ", baseNumber=" + baseNumber +
-              ", isd=" + isd +
-              ", serialNumber=" + serialNumber +
-              ", notAfter=" + notAfter +
-              ", notBefore=" + notBefore +
-              ", authorativeASes=" + authorativeASes +
-              ", coreASes=" + coreASes +
-              '}';
+      return "{"
+          + "description='"
+          + description
+          + '\''
+          + ", baseNumber="
+          + baseNumber
+          + ", isd="
+          + isd
+          + ", serialNumber="
+          + serialNumber
+          + ", notAfter="
+          + notAfter
+          + ", notBefore="
+          + notBefore
+          + ", authorativeASes="
+          + authorativeASes
+          + ", coreASes="
+          + coreASes
+          + '}';
     }
   }
 }

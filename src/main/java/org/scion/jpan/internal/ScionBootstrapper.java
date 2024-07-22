@@ -23,15 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
 import org.slf4j.Logger;
@@ -133,11 +125,11 @@ public class ScionBootstrapper {
       topo = LocalTopology.create(getTopologyFile());
     } catch (IOException e) {
       throw new ScionRuntimeException(
-              "Error while getting topology file from " + topologyResource + ": " + e.getMessage(), e);
+          "Error while getting topology file from " + topologyResource + ": " + e.getMessage(), e);
     }
     if (topo.getControlServices().isEmpty()) {
       throw new ScionRuntimeException(
-              "No control servers found in topology provided by " + topologyResource);
+          "No control servers found in topology provided by " + topologyResource);
     }
     return topo;
   }
@@ -147,7 +139,7 @@ public class ScionBootstrapper {
       return GlobalTopology.create(this);
     } catch (IOException e) {
       throw new ScionRuntimeException(
-              "Error while getting TRC files from " + topologyResource + ": " + e.getMessage(), e);
+          "Error while getting TRC files from " + topologyResource + ": " + e.getMessage(), e);
     }
   }
 
@@ -209,11 +201,11 @@ public class ScionBootstrapper {
       int responseCode = httpURLConnection.getResponseCode();
       if (responseCode != HttpURLConnection.HTTP_OK) { // success
         throw new ScionException(
-                "GET request failed (" + responseCode + ") on topology server: " + url);
+            "GET request failed (" + responseCode + ") on topology server: " + url);
       }
 
       try (BufferedReader in =
-                   new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()))) {
+          new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()))) {
         StringBuilder response = new StringBuilder();
         String inputLine;
         while ((inputLine = in.readLine()) != null) {
