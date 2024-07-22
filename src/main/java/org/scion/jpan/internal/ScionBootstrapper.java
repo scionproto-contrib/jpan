@@ -23,7 +23,15 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
 import org.slf4j.Logger;
@@ -42,15 +50,18 @@ public class ScionBootstrapper {
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
   private final String topologyResource;
   private final LocalTopology topology;
+  private final GlobalTopology world;
 
   protected ScionBootstrapper(String topologyServiceAddress) {
     this.topologyResource = topologyServiceAddress;
-    this.topology = init();
+    this.topology = initLocal();
+    this.world = initGlobal();
   }
 
   protected ScionBootstrapper(java.nio.file.Path file) {
     this.topologyResource = file.toString();
     this.topology = this.init(file);
+    this.world = initGlobal();
   }
 
   /**
@@ -116,19 +127,28 @@ public class ScionBootstrapper {
     }
   }
 
-  private LocalTopology init() {
+  private LocalTopology initLocal() {
     LocalTopology topo;
     try {
       topo = LocalTopology.create(getTopologyFile());
     } catch (IOException e) {
       throw new ScionRuntimeException(
-          "Error while getting topology file from " + topologyResource + ": " + e.getMessage(), e);
+              "Error while getting topology file from " + topologyResource + ": " + e.getMessage(), e);
     }
     if (topo.getControlServices().isEmpty()) {
       throw new ScionRuntimeException(
-          "No control servers found in topology provided by " + topologyResource);
+              "No control servers found in topology provided by " + topologyResource);
     }
     return topo;
+  }
+
+  private GlobalTopology initGlobal() {
+    try {
+      return GlobalTopology.create(this);
+    } catch (IOException e) {
+      throw new ScionRuntimeException(
+              "Error while getting TRC files from " + topologyResource + ": " + e.getMessage(), e);
+    }
   }
 
   private LocalTopology init(java.nio.file.Path file) {
@@ -170,5 +190,42 @@ public class ScionBootstrapper {
     // TODO https????
     URL url = new URL("http://" + topologyResource + "/" + BASE_URL + TOPOLOGY_ENDPOINT);
     return fetchTopologyFile(url);
+  }
+
+  public String fetchFile(String resource) throws IOException {
+    LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
+    // TODO https????
+    URL url = new URL("http://" + topologyResource + "/" + BASE_URL + resource);
+    return fetchFile(url);
+  }
+
+  private static String fetchFile(URL url) throws IOException {
+    HttpURLConnection httpURLConnection = null;
+    try {
+      httpURLConnection = (HttpURLConnection) url.openConnection();
+      httpURLConnection.setRequestMethod("GET");
+      httpURLConnection.setConnectTimeout((int) httpRequestTimeout.toMillis());
+
+      int responseCode = httpURLConnection.getResponseCode();
+      if (responseCode != HttpURLConnection.HTTP_OK) { // success
+        throw new ScionException(
+                "GET request failed (" + responseCode + ") on topology server: " + url);
+      }
+
+      try (BufferedReader in =
+                   new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()))) {
+        StringBuilder response = new StringBuilder();
+        String inputLine;
+        while ((inputLine = in.readLine()) != null) {
+          response.append(inputLine).append(System.lineSeparator());
+        }
+        response.toString();
+        return response.toString();
+      }
+    } finally {
+      if (httpURLConnection != null) {
+        httpURLConnection.disconnect();
+      }
+    }
   }
 }
