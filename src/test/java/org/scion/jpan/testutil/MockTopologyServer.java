@@ -222,7 +222,6 @@ public class MockTopologyServer implements Closeable {
         barrier.countDown();
         while (true) {
           SocketChannel ss = chnLocal.accept();
-          callCount.incrementAndGet();
           ss.read(buffer);
           SocketAddress srcAddress = ss.getRemoteAddress();
 
@@ -231,6 +230,7 @@ public class MockTopologyServer implements Closeable {
           String request = Charset.defaultCharset().decode(buffer).toString();
           if (request.contains("GET /topology HTTP/1.1")) {
             logger.info("Topology server serves file to " + srcAddress);
+            callCount.incrementAndGet();
             buffer.clear();
 
             String out =
@@ -242,6 +242,23 @@ public class MockTopologyServer implements Closeable {
                     + "\n"
                     + "\n"
                     + topologyFile
+                    + "\n";
+            buffer.put(out.getBytes());
+            buffer.flip();
+            ss.write(buffer);
+          } else if (request.contains("GET /trcs HTTP/1.1")) {
+            logger.info("Topology server serves file to " + srcAddress);
+            buffer.clear();
+
+            String out =
+                "HTTP/1.1 200 OK\n"
+                    + "Connection: close\n"
+                    + "Content-Type: text/plain\n"
+                    + "Content-Length:"
+                    + 3 // TODO length
+                    + "\n"
+                    + "\n"
+                    + "[\n]" // EMpty for now
                     + "\n";
             buffer.put(out.getBytes());
             buffer.flip();

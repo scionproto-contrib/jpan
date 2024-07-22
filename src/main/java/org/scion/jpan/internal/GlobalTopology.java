@@ -45,6 +45,11 @@ public class GlobalTopology {
     return e;
   }
 
+  @Deprecated // TODO do we need this? remove it?
+  public static GlobalTopology createEmpty() {
+    return new GlobalTopology();
+  }
+
   public boolean isCoreAs(long isdAs) {
     int isdCode = ScionUtil.extractIsd(isdAs);
     Isd isd = world.get(isdCode);

@@ -53,7 +53,7 @@ public class ScionBootstrapper {
   protected ScionBootstrapper(java.nio.file.Path file) {
     this.topologyResource = file.toString();
     this.topology = this.init(file);
-    this.world = initGlobal();
+    this.world = GlobalTopology.createEmpty();
   }
 
   /**
@@ -211,7 +211,6 @@ public class ScionBootstrapper {
         while ((inputLine = in.readLine()) != null) {
           response.append(inputLine).append(System.lineSeparator());
         }
-        response.toString();
         return response.toString();
       }
     } finally {
