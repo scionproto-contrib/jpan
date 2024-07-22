@@ -18,10 +18,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.AlreadyConnectedException;
-import java.nio.channels.ClosedChannelException;
+import java.nio.channels.*;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.NotYetConnectedException;
+import java.nio.channels.spi.AbstractSelectableChannel;
+import java.nio.channels.spi.SelectorProvider;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -30,7 +30,8 @@ import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
 
-abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
+abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>>
+    extends AbstractSelectableChannel implements Closeable {
 
   protected static final int DEFAULT_BUFFER_SIZE = 2000;
   private final java.nio.channels.DatagramChannel channel;
@@ -65,24 +66,38 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel) {
+    super(SelectorProvider.provider());
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
   }
 
-  protected void configureBlocking(boolean block) throws IOException {
-    synchronized (stateLock) {
-      channel.configureBlocking(block);
+//  @Override
+//  public SelectableChannel configureBlocking(boolean block) throws IOException {
+//    synchronized (stateLock) {
+//      super.configureBlocking()
+//      channel.configureBlocking(block);
+//    }
+//    return this;
+//  }
+//
+//  @Override
+//  public boolean isBlocking() {
+//    synchronized (stateLock) {
+//      return channel.isBlocking();
+//    }
+//  }
+    protected void implConfigureBlocking(boolean block) throws IOException {
+      synchronized (stateLock) {
+        channel.configureBlocking(block);
+      }
     }
-  }
 
-  // `protected` because it should not be visible in ScmpChannel API.
-  protected boolean isBlocking() {
-    synchronized (stateLock) {
-      return channel.isBlocking();
-    }
-  }
+//  @Override
+//  public Object blockingLock() {
+//    return stateLock;
+//  }
 
   public PathPolicy getPathPolicy() {
     synchronized (stateLock) {
@@ -199,14 +214,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  public boolean isOpen() {
-    synchronized (stateLock) {
-      return channel.isOpen();
-    }
-  }
-
   @Override
-  public void close() throws IOException {
+  protected void implCloseSelectableChannel() throws IOException {
     synchronized (stateLock) {
       channel.disconnect();
       channel.close();
@@ -653,4 +662,67 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected Object stateLock() {
     return stateLock;
   }
+
+  public static ScionDatagramChannel open(
+          ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
+    return new ScionDatagramChannel(service, channel);
+  }
+
+//  @Override
+//  public SelectorProvider provider() {
+//      return new SelectorProvider() {
+//      @Override
+//      public DatagramChannel openDatagramChannel() throws IOException {
+//        return null;
+//      }
+//
+//      @Override
+//      public DatagramChannel openDatagramChannel(ProtocolFamily family) throws IOException {
+//        throw new UnsupportedOperationException();
+//      }
+//
+//      @Override
+//      public Pipe openPipe() throws IOException {
+//        throw new UnsupportedOperationException();
+//      }
+//
+//      @Override
+//      public AbstractSelector openSelector() throws IOException {
+//        throw new UnsupportedOperationException();
+//      }
+//
+//      @Override
+//      public ServerSocketChannel openServerSocketChannel() throws IOException {
+//        throw new UnsupportedOperationException();
+//      }
+//
+//      @Override
+//      public SocketChannel openSocketChannel() throws IOException {
+//        throw new UnsupportedOperationException();
+//      }
+//    };
+//  }
+
+  @Override
+  public int validOps() {
+    return (SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+  }
+
+//  @Override
+//  public boolean isRegistered() {
+//    return super.isRegistered();
+//    // return channel().isRegistered();
+//  }
+//
+//  @Override
+//  public SelectionKey keyFor(Selector sel) {
+//    return super.keyFor(sel);
+//    // return channel().keyFor(sel);
+//  }
+//
+//  @Override
+//  public SelectionKey register(Selector sel, int ops, Object att) throws ClosedChannelException {
+//    return super.register(sel, ops, att);
+//    // return channel().register(sel, ops, att);
+//  }
 }
