@@ -17,6 +17,7 @@ package org.scion.jpan.internal;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class GlobalTopology {
   }
 
   private void parseTrcFiles(String trcFile) {
-    JsonElement jsonTree = com.google.gson.JsonParser.parseString(trcFile);
+    JsonElement jsonTree = JsonParser.parseString(trcFile);
     JsonArray entries = jsonTree.getAsJsonArray();
     for (int i = 0; i < entries.size(); i++) {
       JsonObject entry = entries.get(i).getAsJsonObject();
@@ -86,14 +87,13 @@ public class GlobalTopology {
         int base = cs.get("base_number").getAsInt();
         int isd = cs.get("isd").getAsInt();
         int serial = cs.get("serial_number").getAsInt();
-        String file = "isd" + isd + "-b" + base + "-s" + serial;
         world.put(isd, new Isd(isd, base, serial));
       }
     }
   }
 
   private static void parseTrcFile(String trcFile, Isd isd) {
-    JsonElement jsonTree = com.google.gson.JsonParser.parseString(trcFile);
+    JsonElement jsonTree = JsonParser.parseString(trcFile);
     if (jsonTree.isJsonObject()) {
       JsonObject o = jsonTree.getAsJsonObject();
 

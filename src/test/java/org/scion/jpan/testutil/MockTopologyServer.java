@@ -14,8 +14,10 @@
 
 package org.scion.jpan.testutil;
 
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonWriter;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -49,7 +51,7 @@ public class MockTopologyServer implements Closeable {
   public static final String TOPOFILE_TINY_110 = "topologies/scionproto-tiny-110.json";
   public static final String TOPOFILE_TINY_111 = "topologies/scionproto-tiny-111.json";
   private static final Logger logger = LoggerFactory.getLogger(MockTopologyServer.class.getName());
-  private final ExecutorService server;
+  private final ExecutorService executor;
   private final AtomicInteger callCount = new AtomicInteger();
   private final CountDownLatch barrier = new CountDownLatch(1);
   private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
@@ -57,11 +59,12 @@ public class MockTopologyServer implements Closeable {
   private long localIsdAs;
   private final List<BorderRouter> borderRouters = new ArrayList<>();
 
-  private MockTopologyServer(Path topoFile, boolean installNaptr) {
+  private MockTopologyServer(Path topoFile, Path configPath, boolean installNaptr) {
     getAndResetCallCount();
-    server = Executors.newSingleThreadExecutor();
-    TopologyServerImpl serverInstance = new TopologyServerImpl(readTopologyFile(topoFile));
-    server.submit(serverInstance);
+    Path topoResource = toResourcePath(topoFile);
+    Path configResource = toResourcePath(configPath);
+    executor = Executors.newSingleThreadExecutor();
+    executor.submit(new TopologyServerImpl(readTopologyFile(topoResource), configResource));
 
     try {
       // Wait for sever socket address to be ready
@@ -76,27 +79,31 @@ public class MockTopologyServer implements Closeable {
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, TOPO_HOST);
     }
 
-    logger.info("Server started, listening on " + serverSocket);
+    logger.info("Server started, listening on {}", serverSocket);
   }
 
   public static MockTopologyServer start() {
-    return new MockTopologyServer(Paths.get(TOPOFILE_TINY_111), false);
+    return new MockTopologyServer(Paths.get(TOPOFILE_TINY_111), null, false);
   }
 
   public static MockTopologyServer start(String topoFile) {
-    return new MockTopologyServer(Paths.get(topoFile), false);
+    return new MockTopologyServer(Paths.get(topoFile), null, false);
   }
 
   public static MockTopologyServer start(String topoFile, boolean installNaptr) {
-    return new MockTopologyServer(Paths.get(topoFile), installNaptr);
+    return new MockTopologyServer(Paths.get(topoFile), null, installNaptr);
+  }
+
+  public static MockTopologyServer start(String topoFile, String trcPath) {
+    return new MockTopologyServer(Paths.get(topoFile), Paths.get(trcPath), false);
   }
 
   @Override
   public void close() {
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     try {
-      server.shutdownNow();
-      if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
+      executor.shutdownNow();
+      if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
         logger.error("Topology server did not terminate");
       }
       logger.info("Topology server shut down");
@@ -129,20 +136,23 @@ public class MockTopologyServer implements Closeable {
     return callCount.getAndSet(0);
   }
 
-  private String readTopologyFile(java.nio.file.Path file) {
+  private Path toResourcePath(Path file) {
+    if (file == null) {
+      return null;
+    }
     try {
-      if (!Files.exists(file)) {
-        // fallback, try resource folder
-        ClassLoader classLoader = getClass().getClassLoader();
-        URL resource = classLoader.getResource(file.toString());
-        if (resource != null) {
-          file = Paths.get(resource.toURI());
-        }
+      ClassLoader classLoader = getClass().getClassLoader();
+      URL resource = classLoader.getResource(file.toString());
+      if (resource != null) {
+        return Paths.get(resource.toURI());
       }
+      throw new IllegalArgumentException("Resource not found: " + file);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
     }
+  }
 
+  private String readTopologyFile(java.nio.file.Path file) {
     StringBuilder contentBuilder = new StringBuilder();
     try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
       stream.forEach(s -> contentBuilder.append(s).append("\n"));
@@ -189,6 +199,36 @@ public class MockTopologyServer implements Closeable {
     }
   }
 
+  private String readTrcFiles(Path resource) {
+    if (resource == null) {
+      return "[\n]";
+    }
+    File file = new File(resource.toFile(), "trcs");
+
+    try {
+      StringWriter sw = new StringWriter();
+      JsonWriter jw = new GsonBuilder().setPrettyPrinting().create().newJsonWriter(sw);
+      jw.beginArray();
+      for (String s : file.list()) {
+        if (!s.endsWith(".trc")) {
+          continue;
+        }
+        int isd = Integer.parseInt(s.substring(3, s.indexOf("-B")));
+        int base = Integer.parseInt(s.substring(s.indexOf("-B") + 2, s.indexOf("-S")));
+        int sn = Integer.parseInt(s.substring(s.indexOf("-S") + 2, s.indexOf(".")));
+        jw.beginObject().name("id").beginObject();
+        jw.name("base_number").value(base);
+        jw.name("isd").value(isd);
+        jw.name("serial_number").value(sn);
+        jw.endObject().endObject();
+      }
+      jw.endArray();
+      return sw.toString();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private static JsonElement safeGet(JsonObject o, String name) {
     JsonElement e = o.get(name);
     if (e == null) {
@@ -203,9 +243,13 @@ public class MockTopologyServer implements Closeable {
 
   private class TopologyServerImpl implements Runnable {
     private final String topologyFile;
+    private final String trcsFilesJson;
+    private final Path serverPath;
 
-    TopologyServerImpl(String topologyFile) {
+    TopologyServerImpl(String topologyFile, Path serverPath) {
       this.topologyFile = topologyFile;
+      this.trcsFilesJson = readTrcFiles(serverPath);
+      this.serverPath = serverPath;
     }
 
     @Override
@@ -218,7 +262,7 @@ public class MockTopologyServer implements Closeable {
         chnLocal.configureBlocking(true);
         ByteBuffer buffer = ByteBuffer.allocate(66000);
         serverSocket.set((InetSocketAddress) chnLocal.getLocalAddress());
-        logger.info("Topology server started on port " + chnLocal.getLocalAddress());
+        logger.info("Topology server started on port {}", chnLocal.getLocalAddress());
         barrier.countDown();
         while (true) {
           SocketChannel ss = chnLocal.accept();
@@ -227,44 +271,35 @@ public class MockTopologyServer implements Closeable {
 
           buffer.flip();
 
+          // Expected:
+          //   "GET /topology HTTP/1.1"
+          //   "GET /trcs HTTP/1.1"
           String request = Charset.defaultCharset().decode(buffer).toString();
-          if (request.contains("GET /topology HTTP/1.1")) {
-            logger.info("Topology server serves file to " + srcAddress);
+          String resource = request.substring(request.indexOf(" ") + 1, request.indexOf(" HTTP"));
+          if ("/topology".equals(resource)) {
+            logger.info("Bootstrap server serves file to {}", srcAddress);
             callCount.incrementAndGet();
             buffer.clear();
-
-            String out =
-                "HTTP/1.1 200 OK\n"
-                    + "Connection: close\n"
-                    + "Content-Type: text/plain\n"
-                    + "Content-Length:"
-                    + topologyFile.length()
-                    + "\n"
-                    + "\n"
-                    + topologyFile
-                    + "\n";
-            buffer.put(out.getBytes());
+            buffer.put(createMessage(topologyFile).getBytes());
             buffer.flip();
             ss.write(buffer);
-          } else if (request.contains("GET /trcs HTTP/1.1")) {
-            logger.info("Topology server serves file to " + srcAddress);
+          } else if ("/trcs".equals(resource)) {
+            logger.info("Bootstrap server serves file to {}", srcAddress);
             buffer.clear();
-
-            String out =
-                "HTTP/1.1 200 OK\n"
-                    + "Connection: close\n"
-                    + "Content-Type: text/plain\n"
-                    + "Content-Length:"
-                    + 3 // TODO length
-                    + "\n"
-                    + "\n"
-                    + "[\n]" // EMpty for now
-                    + "\n";
-            buffer.put(out.getBytes());
+            buffer.put(createMessage(trcsFilesJson).getBytes());
+            buffer.flip();
+            ss.write(buffer);
+          } else if (resource.startsWith("/trcs/")) {
+            String fileName = resource.substring(1) + ".json";
+            Path file = new File(serverPath.toFile(), fileName).toPath();
+            logger.info("Bootstrap server serves file to {}: {}", srcAddress, file);
+            buffer.clear();
+            String data = new String(Files.readAllBytes(file));
+            buffer.put(createMessage(data).getBytes());
             buffer.flip();
             ss.write(buffer);
           } else {
-            logger.warn("Illegal request: " + request);
+            logger.warn("Illegal request: {}", request);
           }
           buffer.clear();
         }
@@ -277,6 +312,18 @@ public class MockTopologyServer implements Closeable {
       } finally {
         logger.info("Shutting down topology server");
       }
+    }
+
+    private String createMessage(String content) {
+      return "HTTP/1.1 200 OK\n"
+          + "Connection: close\n"
+          + "Content-Type: text/plain\n"
+          + "Content-Length:"
+          + content.length()
+          + "\n"
+          + "\n"
+          + content
+          + "\n";
     }
   }
 
