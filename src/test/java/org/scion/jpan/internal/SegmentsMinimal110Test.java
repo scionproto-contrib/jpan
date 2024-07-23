@@ -30,8 +30,8 @@ import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
+import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockControlServer;
-import org.scion.jpan.testutil.MockTopologyServer;
 
 /**
  * Test cases: <br>
@@ -47,13 +47,11 @@ import org.scion.jpan.testutil.MockTopologyServer;
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
 public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
-  private static MockTopologyServer topoServer;
+  private static MockBootstrapServer topoServer;
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer =
-        MockTopologyServer.start(
-            "topologies/minimal/ASff00_0_110/topology.json", "topologies/minimal/");
+    topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_110/topology.json");
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());

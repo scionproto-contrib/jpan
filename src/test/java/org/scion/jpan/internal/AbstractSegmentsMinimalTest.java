@@ -42,6 +42,7 @@ import org.scion.jpan.testutil.MockControlServer;
  */
 public abstract class AbstractSegmentsMinimalTest {
   protected static final String AS_HOST = "my-as-host.org";
+  protected static final String CFG_MINIMAL = "topologies/minimal/";
   protected static final long ZERO = ScionUtil.parseIA("0-0:0:0");
 
   /** ISD 1 - core AS */

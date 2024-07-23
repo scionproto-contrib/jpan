@@ -23,7 +23,7 @@ import org.scion.jpan.internal.AbstractSegmentsMinimalTest;
 public class MockNetwork2 implements AutoCloseable {
   public static final String AS_HOST =
       "my-as-host-test.org"; // TODO remove from AbstractSegmentsMinimalTest
-  private final MockTopologyServer topoServer;
+  private final MockBootstrapServer topoServer;
   private final MockControlServer controlServer;
 
   static class MinimalInitializer extends AbstractSegmentsMinimalTest {
@@ -41,7 +41,7 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   private MockNetwork2(String topoFileOfLocalAS) {
-    topoServer = MockTopologyServer.start(topoFileOfLocalAS);
+    topoServer = MockBootstrapServer.start(topoFileOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
@@ -70,7 +70,7 @@ public class MockNetwork2 implements AutoCloseable {
     ScionService.closeDefault();
   }
 
-  public MockTopologyServer getTopoServer() {
+  public MockBootstrapServer getTopoServer() {
     return topoServer;
   }
 

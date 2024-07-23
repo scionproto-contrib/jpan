@@ -31,8 +31,8 @@ import org.scion.jpan.ScionService;
 import org.scion.jpan.demo.util.ToStringUtil;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
+import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockControlServer;
-import org.scion.jpan.testutil.MockTopologyServer;
 
 /**
  * Test cases: (with references to book p105 Fig. 5.8)<br>
@@ -50,11 +50,11 @@ import org.scion.jpan.testutil.MockTopologyServer;
 public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
 
   private static String firstHop;
-  private static MockTopologyServer topoServer;
+  private static MockBootstrapServer topoServer;
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer = MockTopologyServer.start("topologies/minimal/ASff00_0_1111/topology.json");
+    topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_1111/topology.json");
     InetSocketAddress topoAddr = topoServer.getAddress();
     firstHop = topoServer.getBorderRouterAddressByIA(AS_111);
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());

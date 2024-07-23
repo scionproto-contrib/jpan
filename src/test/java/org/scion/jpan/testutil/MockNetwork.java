@@ -72,7 +72,7 @@ public class MockNetwork {
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
-  private static MockTopologyServer topoServer;
+  private static MockBootstrapServer topoServer;
   private static MockControlServer controlServer;
 
   /**
@@ -138,7 +138,7 @@ public class MockNetwork {
 
     if (mode == Mode.NAPTR || mode == Mode.BOOTSTRAP) {
       topoServer =
-          MockTopologyServer.start(MockTopologyServer.TOPOFILE_TINY_110, mode == Mode.NAPTR);
+          MockBootstrapServer.start(MockBootstrapServer.TOPOFILE_TINY_110, mode == Mode.NAPTR);
       controlServer = MockControlServer.start(topoServer.getControlServerPort());
     }
 
@@ -226,7 +226,7 @@ public class MockNetwork {
     return nForwards.get(routerId);
   }
 
-  public static MockTopologyServer getTopoServer() {
+  public static MockBootstrapServer getTopoServer() {
     return topoServer;
   }
 

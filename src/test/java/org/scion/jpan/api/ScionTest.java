@@ -35,9 +35,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.util.ToStringUtil;
+import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockTopologyServer;
 
 public class ScionTest {
 
@@ -125,7 +125,7 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
       String host;
-      MockTopologyServer mts = MockNetwork.getTopoServer();
+      MockBootstrapServer mts = MockNetwork.getTopoServer();
       if (mts.getAddress().getAddress() instanceof Inet6Address) {
         host = "[" + mts.getAddress().getAddress().getHostAddress() + "]";
       } else {
@@ -292,7 +292,7 @@ public class ScionTest {
   void newServiceWithDNS() throws IOException {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
-    try (Scion.CloseableService ss = Scion.newServiceWithDNS(MockTopologyServer.TOPO_HOST)) {
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(MockBootstrapServer.TOPO_HOST)) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
       InetAddress ip123 = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
       List<Path> paths = ss.getPaths(iaDst, ip123, 12345);

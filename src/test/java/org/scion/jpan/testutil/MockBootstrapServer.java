@@ -45,12 +45,12 @@ import org.scion.jpan.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MockTopologyServer implements Closeable {
+public class MockBootstrapServer implements Closeable {
 
   public static final String TOPO_HOST = "my-topo-host.org";
   public static final String TOPOFILE_TINY_110 = "topologies/scionproto-tiny-110.json";
   public static final String TOPOFILE_TINY_111 = "topologies/scionproto-tiny-111.json";
-  private static final Logger logger = LoggerFactory.getLogger(MockTopologyServer.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(MockBootstrapServer.class.getName());
   private final ExecutorService executor;
   private final AtomicInteger callCount = new AtomicInteger();
   private final CountDownLatch barrier = new CountDownLatch(1);
@@ -59,7 +59,7 @@ public class MockTopologyServer implements Closeable {
   private long localIsdAs;
   private final List<BorderRouter> borderRouters = new ArrayList<>();
 
-  private MockTopologyServer(Path topoFile, Path configPath, boolean installNaptr) {
+  private MockBootstrapServer(Path topoFile, Path configPath, boolean installNaptr) {
     getAndResetCallCount();
     Path topoResource = toResourcePath(topoFile);
     Path configResource = toResourcePath(configPath);
@@ -82,20 +82,20 @@ public class MockTopologyServer implements Closeable {
     logger.info("Server started, listening on {}", serverSocket);
   }
 
-  public static MockTopologyServer start() {
-    return new MockTopologyServer(Paths.get(TOPOFILE_TINY_111), null, false);
+  public static MockBootstrapServer start() {
+    return new MockBootstrapServer(Paths.get(TOPOFILE_TINY_111), null, false);
   }
 
-  public static MockTopologyServer start(String topoFile) {
-    return new MockTopologyServer(Paths.get(topoFile), null, false);
+  public static MockBootstrapServer start(String topoFile) {
+    return new MockBootstrapServer(Paths.get(topoFile), null, false);
   }
 
-  public static MockTopologyServer start(String topoFile, boolean installNaptr) {
-    return new MockTopologyServer(Paths.get(topoFile), null, installNaptr);
+  public static MockBootstrapServer start(String topoFile, boolean installNaptr) {
+    return new MockBootstrapServer(Paths.get(topoFile), null, installNaptr);
   }
 
-  public static MockTopologyServer start(String topoFile, String trcPath) {
-    return new MockTopologyServer(Paths.get(topoFile), Paths.get(trcPath), false);
+  public static MockBootstrapServer start(String cfgPath, String topoFile) {
+    return new MockBootstrapServer(Paths.get(cfgPath + topoFile), Paths.get(cfgPath), false);
   }
 
   @Override
