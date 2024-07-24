@@ -34,7 +34,7 @@ class ScionBootstrapperTest {
   void testTiny110() {
     java.nio.file.Path topoFile = Paths.get("topologies/scionproto-tiny-110.json");
     ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
-    LocalTopology topo = sb.getTopology();
+    LocalTopology topo = sb.getLocalTopology();
 
     assertEquals(ScionUtil.parseIA("1-ff00:0:110"), topo.getLocalIsdAs());
     assertEquals("127.0.0.11:31000", topo.getControlServerAddress());

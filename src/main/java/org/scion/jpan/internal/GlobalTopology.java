@@ -18,12 +18,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 
@@ -31,11 +27,27 @@ import org.scion.jpan.ScionUtil;
 public class GlobalTopology {
 
   private final Map<Integer, Isd> world = new HashMap<>();
+  /**
+   * The topology is "empty" if it wasn't initialized with TRC file (or TRC metadata). THis can
+   * happen when it is initialized from a local topology file without bootstrap server.
+   */
+  private final boolean isEmpty;
 
-  public static synchronized GlobalTopology create(ScionBootstrapper server) throws IOException {
-    GlobalTopology topo = new GlobalTopology();
-    topo.getTrcFiles(server);
-    return topo;
+  public GlobalTopology(ScionBootstrapper server) {
+    if (server == null) {
+      this.isEmpty = true;
+    } else {
+      this.isEmpty = false;
+      getTrcFiles(server);
+    }
+  }
+
+  public static synchronized GlobalTopology create(ScionBootstrapper server) {
+    return new GlobalTopology(server);
+  }
+
+  public static GlobalTopology createEmpty() {
+    return new GlobalTopology(null);
   }
 
   private static JsonElement safeGet(JsonObject o, String name) {
@@ -46,12 +58,10 @@ public class GlobalTopology {
     return e;
   }
 
-  @Deprecated // TODO do we need this? remove it?
-  public static GlobalTopology createEmpty() {
-    return new GlobalTopology();
-  }
-
-  public boolean isCoreAs(long isdAs) {
+  public Optional<Boolean> isCoreAs(long isdAs) {
+    if (isEmpty) {
+      return Optional.empty();
+    }
     int isdCode = ScionUtil.extractIsd(isdAs);
     Isd isd = world.get(isdCode);
     if (isd == null) {
@@ -60,13 +70,13 @@ public class GlobalTopology {
 
     for (Long core : isd.coreASes) {
       if (core == isdAs) {
-        return true;
+        return Optional.of(true);
       }
     }
-    return false;
+    return Optional.of(false);
   }
 
-  private void getTrcFiles(ScionBootstrapper server) throws IOException {
+  private void getTrcFiles(ScionBootstrapper server) {
     String filesString = server.fetchFile("trcs");
     parseTrcFiles(filesString);
 

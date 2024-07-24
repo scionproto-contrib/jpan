@@ -56,6 +56,120 @@ public class Segments {
 
   public static List<Daemon.Path> getPaths(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
+      ScionBootstrapper bootstrapper,
+      long srcIsdAs,
+      long dstIsdAs) {
+    LocalTopology localTopology = bootstrapper.getLocalTopology();
+    GlobalTopology world = bootstrapper.getGlobalTopology();
+
+    // Cases:
+    // A: src==dst
+    // B: srcISD==dstISD; dst==core
+    // C: srcISD==dstISD; src==core
+    // D: srcISD==dstISD; src==core, dst==core
+    // E: srcISD==dstISD;
+    // F: srcISD!=dstISD; dst==core
+    // G: srcISD!=dstISD; src==core
+    // H: srcISD!=dstISD;
+    long srcWildcard = toWildcard(srcIsdAs);
+    long dstWildcard = toWildcard(dstIsdAs);
+    int srcISD = ScionUtil.extractIsd(srcIsdAs);
+    int dstISD = ScionUtil.extractIsd(dstIsdAs);
+
+    if (srcIsdAs == dstIsdAs) {
+      // case A: same AS, return empty path
+      Daemon.Path.Builder path = Daemon.Path.newBuilder();
+      path.setMtu(localTopology.getLocalMtu());
+      path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
+      return Collections.singletonList(path.build());
+    }
+
+    // TODO in future we can find out whether an AS is CORE by parsing the TRC files:
+    //      https://docs.anapaya.net/en/latest/resources/isd-as-assignments/#as-assignments
+    //     ./bazel-bin/scion-pki/cmd/scion-pki/scion-pki_/scion-pki trc inspect
+    //         ../../Downloads/ISD64.bundle
+
+    List<Seg.PathSegment> segmentsUp = null;
+    //    List<Seg.PathSegment> segmentsCore = null;
+    //    List<Seg.PathSegment> segmentsDown = null;
+
+    long from = srcIsdAs;
+    long to = dstIsdAs;
+    List<List<Seg.PathSegment>> segments = new ArrayList<>();
+    // First, if necessary, try to get UP segments
+    if (!localTopology.isLocalAsCore()) {
+      // get UP segments
+      // TODO find out if dstIsAs is core and directly ask for it.
+      segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
+      boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
+      if (containsIsdAs[1]) {
+        // case B: DST is core
+        return combineSegment(segmentsUp, localTopology);
+      }
+      if (segmentsUp.isEmpty()) {
+        return Collections.emptyList();
+      }
+      segments.add(segmentsUp);
+      from = srcWildcard;
+    }
+
+    Optional<Boolean> isRemoteCore = world.isCoreAs(dstIsdAs);
+
+    // Remote AS in local ISD?
+    if (srcISD == dstISD) {
+      // cases C, D, E
+      // TODO this is an expensive way to find out whether DST is CORE
+      List<Seg.PathSegment> segmentsCoreOrDown = getSegments(segmentStub, from, dstIsdAs);
+      if (!segmentsCoreOrDown.isEmpty()) {
+        // Okay, we found a direct route from src(Wildcard) to DST
+        segments.add(segmentsCoreOrDown);
+        List<Daemon.Path> paths = combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+        if (!paths.isEmpty()) {
+          return paths;
+        }
+        // okay, we need CORE!
+        // TODO this is horrible.
+        segments.remove(segments.size() - 1);
+        List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
+        segments.add(segmentsCore);
+        segments.add(segmentsCoreOrDown);
+        return combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+      }
+      // Try again with wildcard (DST is neither core nor a child of FROM)
+      List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
+      boolean[] coreHasIA = containsIsdAs(segmentsCore, from, dstIsdAs);
+      segments.add(segmentsCore);
+      if (coreHasIA[1]) {
+        // case D: DST is core
+        // TODO why is this ever used? See e.g. Test F0 111->120
+        return combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+      } else {
+        from = dstWildcard;
+        // case C: DST is not core
+        // We have to query down segments because SRC may not have a segment connected to DST
+        List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, from, dstIsdAs);
+        segments.add(segmentsDown);
+        return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+      }
+    }
+    // remaining cases: F, G, H
+    List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
+    if (segmentsCore.isEmpty()) {
+      return Collections.emptyList();
+    }
+    boolean[] localCores = Segments.containsIsdAs(segmentsCore, 0, dstIsdAs);
+    segments.add(segmentsCore);
+    if (localCores[1]) {
+      return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+    }
+
+    List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstWildcard, dstIsdAs);
+    segments.add(segmentsDown);
+    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+  }
+
+  public static List<Daemon.Path> getPaths2(
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       LocalTopology brLookup,
       long srcIsdAs,
       long dstIsdAs) {

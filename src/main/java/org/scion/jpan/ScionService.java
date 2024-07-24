@@ -69,7 +69,7 @@ public class ScionService {
   private static final String ERR_INVALID_TXT_LOG2 = ERR_INVALID_TXT + "{} {}";
   private static ScionService defaultService = null;
 
-  private final LocalTopology localTopology;
+  private final ScionBootstrapper bootstrapper;
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
 
@@ -94,22 +94,22 @@ public class ScionService {
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
-      localTopology = null;
+      bootstrapper = null;
     } else {
       LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
-        localTopology = ScionBootstrapper.createViaDns(addressOrHost).getTopology();
+        bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
       } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
-        localTopology = ScionBootstrapper.createViaBootstrapServerIP(addressOrHost).getTopology();
+        bootstrapper = ScionBootstrapper.createViaBootstrapServerIP(addressOrHost);
       } else if (mode == Mode.BOOTSTRAP_TOPO_FILE) {
         java.nio.file.Path file = Paths.get(addressOrHost);
-        localTopology = ScionBootstrapper.createViaTopoFile(file).getTopology();
+        bootstrapper = ScionBootstrapper.createViaTopoFile(file);
       } else {
         throw new UnsupportedOperationException();
       }
-      String csHost = localTopology.getControlServerAddress();
+      String csHost = bootstrapper.getLocalTopology().getControlServerAddress();
       LOG.info("Bootstrapping with control service: {}", csHost);
-      localIsdAs.set(localTopology.getLocalIsdAs());
+      localIsdAs.set(bootstrapper.getLocalTopology().getLocalIsdAs());
       // TODO InsecureChannelCredentials: Implement authentication!
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
@@ -596,7 +596,7 @@ public class ScionService {
 
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
-    return Segments.getPaths(segmentStub, localTopology, srcIsdAs, dstIsdAs);
+    return Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
   }
 
   /**
@@ -626,7 +626,7 @@ public class ScionService {
           .map(i -> i.getAddress().getAddress())
           .collect(Collectors.toList());
     } else {
-      return localTopology.getBorderRouterAddresses();
+      return bootstrapper.getLocalTopology().getBorderRouterAddresses();
     }
   }
 }

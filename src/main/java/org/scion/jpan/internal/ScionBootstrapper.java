@@ -74,8 +74,12 @@ public class ScionBootstrapper {
     return new ScionBootstrapper(file);
   }
 
-  public LocalTopology getTopology() {
+  public LocalTopology getLocalTopology() {
     return topology;
+  }
+
+  public GlobalTopology getGlobalTopology() {
+    return world;
   }
 
   private static String bootstrapViaDNS(String hostName) {
@@ -135,12 +139,7 @@ public class ScionBootstrapper {
   }
 
   private GlobalTopology initGlobal() {
-    try {
-      return GlobalTopology.create(this);
-    } catch (IOException e) {
-      throw new ScionRuntimeException(
-          "Error while getting TRC files from " + topologyResource + ": " + e.getMessage(), e);
-    }
+    return GlobalTopology.create(this);
   }
 
   private LocalTopology init(java.nio.file.Path file) {
@@ -177,18 +176,28 @@ public class ScionBootstrapper {
     throw new UnsupportedOperationException();
   }
 
+  // TODO merge this with fetchFile()!!
+  // TODO merge this with fetchFile()!!
+  // TODO merge this with fetchFile()!!
+  // TODO merge this with fetchFile()!!
+  // TODO merge this with fetchFile()!!
+  // TODO merge this with fetchFile()!!
+  // TODO merge this with fetchFile()!!
   private String getTopologyFile() throws IOException {
     LOG.info("Getting topology from bootstrap server: {}", topologyResource);
-    // TODO https????
     URL url = new URL("http://" + topologyResource + "/" + BASE_URL + TOPOLOGY_ENDPOINT);
     return fetchTopologyFile(url);
   }
 
-  public String fetchFile(String resource) throws IOException {
-    LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
-    // TODO https????
-    URL url = new URL("http://" + topologyResource + "/" + BASE_URL + resource);
-    return fetchFile(url);
+  public String fetchFile(String resource) {
+    try {
+      LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
+      URL url = new URL("http://" + topologyResource + "/" + BASE_URL + resource);
+      return fetchFile(url);
+    } catch (IOException e) {
+      throw new ScionRuntimeException(
+          "While fetching resource " + resource + " from " + topologyResource);
+    }
   }
 
   private static String fetchFile(URL url) throws IOException {
