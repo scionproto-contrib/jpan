@@ -15,8 +15,6 @@
 package org.scion.jpan.testutil;
 
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonWriter;
 import java.io.*;
 import java.net.*;
@@ -25,23 +23,16 @@ import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
 import org.scion.jpan.Constants;
-import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,16 +47,14 @@ public class MockBootstrapServer implements Closeable {
   private final AtomicInteger callCount = new AtomicInteger();
   private final CountDownLatch barrier = new CountDownLatch(1);
   private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
-  private String controlServer;
-  private long localIsdAs;
-  private final List<BorderRouter> borderRouters = new ArrayList<>();
+  private final AsInfo asInfo;
 
   private MockBootstrapServer(Path topoFile, Path configPath, boolean installNaptr) {
     getAndResetCallCount();
-    Path topoResource = toResourcePath(topoFile);
-    Path configResource = toResourcePath(configPath);
+    Path configResource = JsonFileParser.toResourcePath(configPath);
+    asInfo = JsonFileParser.parseTopologyFile(topoFile);
     executor = Executors.newSingleThreadExecutor();
-    executor.submit(new TopologyServerImpl(readTopologyFile(topoResource), configResource));
+    executor.submit(new TopologyServerImpl(JsonFileParser.readFile(topoFile), configResource));
 
     try {
       // Wait for sever socket address to be ready
@@ -87,10 +76,6 @@ public class MockBootstrapServer implements Closeable {
     return new MockBootstrapServer(Paths.get(TOPOFILE_TINY_111), null, false);
   }
 
-  public static MockBootstrapServer start(String topoFile) {
-    return new MockBootstrapServer(Paths.get(topoFile), null, false);
-  }
-
   public static MockBootstrapServer start(String topoFile, boolean installNaptr) {
     if (!TOPOFILE_TINY_110.equals(topoFile)) {
       throw new UnsupportedOperationException("Add config dir");
@@ -98,6 +83,13 @@ public class MockBootstrapServer implements Closeable {
     return new MockBootstrapServer(Paths.get(topoFile), Paths.get(CONFIG_DIR_TINY), installNaptr);
   }
 
+  /**
+   * Start a new bootstrap server.
+   *
+   * @param cfgPath path to topology folder
+   * @param topoFile sub-path to topology file
+   * @return server instance
+   */
   public static MockBootstrapServer start(String cfgPath, String topoFile) {
     return new MockBootstrapServer(Paths.get(cfgPath + topoFile), Paths.get(cfgPath), false);
   }
@@ -122,85 +114,15 @@ public class MockBootstrapServer implements Closeable {
   }
 
   public int getControlServerPort() {
-    return Integer.parseInt(controlServer.substring(controlServer.indexOf(':') + 1));
+    return asInfo.getControlServerPort();
   }
 
   public String getBorderRouterAddressByIA(long remoteIsdAs) {
-    for (BorderRouter br : borderRouters) {
-      for (BorderRouterInterface brif : br.interfaces) {
-        if (brif.isdAs == remoteIsdAs) {
-          return br.internalAddress;
-        }
-      }
-    }
-    throw new ScionRuntimeException("No router found for IsdAs " + remoteIsdAs);
+    return asInfo.getBorderRouterAddressByIA(remoteIsdAs);
   }
 
   public int getAndResetCallCount() {
     return callCount.getAndSet(0);
-  }
-
-  private Path toResourcePath(Path file) {
-    if (file == null) {
-      return null;
-    }
-    try {
-      ClassLoader classLoader = getClass().getClassLoader();
-      URL resource = classLoader.getResource(file.toString());
-      if (resource != null) {
-        return Paths.get(resource.toURI());
-      }
-      throw new IllegalArgumentException("Resource not found: " + file);
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private String readTopologyFile(java.nio.file.Path file) {
-    StringBuilder contentBuilder = new StringBuilder();
-    try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
-      stream.forEach(s -> contentBuilder.append(s).append("\n"));
-    } catch (IOException e) {
-      throw new ScionRuntimeException(
-          "Error reading topology file found at: " + file.toAbsolutePath());
-    }
-    parseTopologyFile(contentBuilder.toString());
-    return contentBuilder.toString();
-  }
-
-  private void parseTopologyFile(String topologyFile) {
-    JsonElement jsonTree = com.google.gson.JsonParser.parseString(topologyFile);
-    if (jsonTree.isJsonObject()) {
-      JsonObject o = jsonTree.getAsJsonObject();
-      localIsdAs = ScionUtil.parseIA(safeGet(o, "isd_as").getAsString());
-      // localMtu = safeGet(o, "mtu").getAsInt();
-      JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
-        JsonObject br = e.getValue().getAsJsonObject();
-        String addr = safeGet(br, "internal_addr").getAsString();
-        JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
-        List<BorderRouterInterface> interfaces = new ArrayList<>();
-        for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
-          JsonObject ife = ifEntry.getValue().getAsJsonObject();
-          // TODO bandwidth, mtu, ... etc
-          JsonObject underlay = ife.getAsJsonObject("underlay");
-          interfaces.add(
-              new BorderRouterInterface(
-                  ifEntry.getKey(),
-                  ife.get("isd_as").getAsString(),
-                  underlay.get("public").getAsString(),
-                  underlay.get("remote").getAsString()));
-        }
-        borderRouters.add(new BorderRouter(e.getKey(), addr, interfaces));
-      }
-      JsonObject css = safeGet(o, "control_service").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> e : css.entrySet()) {
-        JsonObject cs = e.getValue().getAsJsonObject();
-        controlServer = cs.get("addr").getAsString();
-        // controlServices.add(
-        //     new ScionBootstrapper.ServiceNode(e.getKey(), cs.get("addr").getAsString()));
-      }
-    }
   }
 
   private String readTrcFiles(Path resource) {
@@ -233,16 +155,8 @@ public class MockBootstrapServer implements Closeable {
     }
   }
 
-  private static JsonElement safeGet(JsonObject o, String name) {
-    JsonElement e = o.get(name);
-    if (e == null) {
-      throw new ScionRuntimeException("Entry not found in topology file: " + name);
-    }
-    return e;
-  }
-
   public long getLocalIsdAs() {
-    return localIsdAs;
+    return asInfo.getIsdAs();
   }
 
   private class TopologyServerImpl implements Runnable {
@@ -328,32 +242,6 @@ public class MockBootstrapServer implements Closeable {
           + "\n"
           + content
           + "\n";
-    }
-  }
-
-  private static class BorderRouter {
-    private final String name;
-    private final String internalAddress;
-    private final List<BorderRouterInterface> interfaces;
-
-    public BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
-      this.name = name;
-      this.internalAddress = addr;
-      this.interfaces = interfaces;
-    }
-  }
-
-  private static class BorderRouterInterface {
-    final int id;
-    final long isdAs;
-    final String publicUnderlay;
-    final String remoteUnderlay;
-
-    public BorderRouterInterface(String id, String isdAs, String publicU, String remoteU) {
-      this.id = Integer.parseInt(id);
-      this.isdAs = ScionUtil.parseIA(isdAs);
-      this.publicUnderlay = publicU;
-      this.remoteUnderlay = remoteU;
     }
   }
 }

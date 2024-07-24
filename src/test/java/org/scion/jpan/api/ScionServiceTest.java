@@ -207,7 +207,8 @@ public class ScionServiceTest {
   @Test
   void getPaths_noPathFound_fromCore() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_110/topology.json")) {
+    try (MockNetwork2 nw =
+        MockNetwork2.start("topologies/minimal/", "ASff00_0_110/topology.json")) {
       ScionService service = Scion.defaultService();
       List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
@@ -232,7 +233,8 @@ public class ScionServiceTest {
   @Test
   void getPaths_noPathFound_fromLeaf() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_1111/topology.json")) {
+    try (MockNetwork2 nw =
+        MockNetwork2.start("topologies/minimal/", "ASff00_0_1111/topology.json")) {
       ScionService service = Scion.defaultService();
       List<Path> paths;
       nw.getControlServer().getAndResetCallCount();

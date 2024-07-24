@@ -36,17 +36,17 @@ public class MockNetwork2 implements AutoCloseable {
     }
   }
 
-  public static MockNetwork2 start(String topoFileOfLocalAS) {
-    return new MockNetwork2(topoFileOfLocalAS);
+  public static MockNetwork2 start(String configDir, String topoFileOfLocalAS) {
+    return new MockNetwork2(configDir, topoFileOfLocalAS);
   }
 
-  private MockNetwork2(String topoFileOfLocalAS) {
-    topoServer = MockBootstrapServer.start(topoFileOfLocalAS);
+  private MockNetwork2(String configDir, String topoFileOfLocalAS) {
+    topoServer = MockBootstrapServer.start(configDir, topoFileOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
-    if (topoFileOfLocalAS.startsWith("topologies/minimal/")) {
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, configDir + topoFileOfLocalAS);
+    if (configDir.startsWith("topologies/minimal")) {
       MinimalInitializer data = new MinimalInitializer();
       data.init(controlServer);
       data.addResponses();

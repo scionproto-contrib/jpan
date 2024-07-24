@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -128,10 +129,12 @@ public class MockNetwork {
         brList.stream()
             .map(mBR -> new InetSocketAddress(BORDER_ROUTER_IPV4, mBR.getPort1()))
             .collect(Collectors.toList());
-    try {
-      daemon = MockDaemon.createForBorderRouter(brAddrList).start();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    if (mode == Mode.DAEMON) {
+      try {
+        daemon = MockDaemon.createForBorderRouter(brAddrList).start();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
@@ -140,6 +143,10 @@ public class MockNetwork {
       topoServer =
           MockBootstrapServer.start(MockBootstrapServer.TOPOFILE_TINY_110, mode == Mode.NAPTR);
       controlServer = MockControlServer.start(topoServer.getControlServerPort());
+    } else if (mode == Mode.AS_ONLY) {
+      AsInfo asInfo =
+          JsonFileParser.parseTopologyFile(Paths.get(MockBootstrapServer.TOPOFILE_TINY_110));
+      controlServer = MockControlServer.start(asInfo.getControlServerPort());
     }
 
     dropNextPackets.getAndSet(0);
@@ -235,12 +242,17 @@ public class MockNetwork {
   }
 
   public enum Mode {
-    /** Start daemon */
+    /** Start daemon (and no bootstrap server). */
     DAEMON,
-    /** Install bootstrap server with DNS NAPTR record */
+    /** Install bootstrap server with DNS NAPTR record. */
     NAPTR,
-    /** Install bootstrap server */
-    BOOTSTRAP
+    /** Install bootstrap server (without DNS). */
+    BOOTSTRAP,
+    /**
+     * Install neither daemon nor BOOTSTRAP server (and no DNS). This is not an official scenario
+     * but a desirable feature. There is only a topofile, but no TRC (meta) files.
+     */
+    AS_ONLY
   }
 }
 

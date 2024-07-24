@@ -162,7 +162,7 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     try {
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
@@ -309,8 +309,8 @@ public class ScionTest {
   @Test
   void newServiceWithBootstrapServer() throws IOException {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     InetSocketAddress topoAddr = MockNetwork.getTopoServer().getAddress();
-    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try (Scion.CloseableService ss =
         Scion.newServiceWithBootstrapServer(ToStringUtil.toAddressPort(topoAddr))) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
@@ -320,7 +320,23 @@ public class ScionTest {
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
       assertEquals(1, MockNetwork.getControlServer().getAndResetCallCount());
-      assertNotEquals(Scion.defaultService(), ss);
+      // No DNS, no daemon, no ENV variables -> fail.
+      assertThrows(ScionRuntimeException.class, Scion::defaultService);
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void newServiceWithTopofile() throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    String topofile = "topologies/scionproto-tiny/topology-110.json";
+    try (Scion.CloseableService service = Scion.newServiceWithTopologyFile(topofile)) {
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
       MockNetwork.stopTiny();
     }
