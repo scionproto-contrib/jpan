@@ -328,7 +328,7 @@ public class ScionTest {
   }
 
   @Test
-  void newServiceWithTopofile() throws IOException {
+  void newServiceWithTopoFile() throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
