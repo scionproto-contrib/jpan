@@ -54,8 +54,20 @@ public class Segments {
 
   private Segments() {}
 
+  /**
+   * Lookup segments, construct paths, and return paths.
+   * <p>
+   * Implementation notes. The sequence diagrams Gid. 43. and 4.4 in the book (edition 2022) suggest
+   * that to always request UP, CORE and DOWN, even if paths without CORE are possible.
+   *
+   * @param service Segment lookup service
+   * @param bootstrapper Bootstrapper
+   * @param srcIsdAs source ISD/AS
+   * @param dstIsdAs destination ISD/AS
+   * @return list of available paths (unordered)
+   */
   public static List<Daemon.Path> getPaths(
-      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub service,
       ScionBootstrapper bootstrapper,
       long srcIsdAs,
       long dstIsdAs) {
@@ -90,8 +102,8 @@ public class Segments {
     //         ../../Downloads/ISD64.bundle
 
     List<Seg.PathSegment> segmentsUp = null;
-    //    List<Seg.PathSegment> segmentsCore = null;
-    //    List<Seg.PathSegment> segmentsDown = null;
+    List<Seg.PathSegment> segmentsCore = null;
+    List<Seg.PathSegment> segmentsDown = null;
 
     long from = srcIsdAs;
     long to = dstIsdAs;
@@ -100,10 +112,10 @@ public class Segments {
     if (!localTopology.isLocalAsCore()) {
       // get UP segments
       // TODO find out if dstIsAs is core and directly ask for it.
-      segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
+      segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
       boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
       if (containsIsdAs[1]) {
-        // case B: DST is core
+        // case B: DST is core (or on-path)
         return combineSegment(segmentsUp, localTopology);
       }
       if (segmentsUp.isEmpty()) {
@@ -113,57 +125,26 @@ public class Segments {
       from = srcWildcard;
     }
 
-    Optional<Boolean> isRemoteCore = world.isCoreAs(dstIsdAs);
-
-    // Remote AS in local ISD?
-    if (srcISD == dstISD) {
-      // cases C, D, E
-      // TODO this is an expensive way to find out whether DST is CORE
-      List<Seg.PathSegment> segmentsCoreOrDown = getSegments(segmentStub, from, dstIsdAs);
-      if (!segmentsCoreOrDown.isEmpty()) {
-        // Okay, we found a direct route from src(Wildcard) to DST
-        segments.add(segmentsCoreOrDown);
-        List<Daemon.Path> paths = combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
-        if (!paths.isEmpty()) {
-          return paths;
-        }
-        // okay, we need CORE!
-        // TODO this is horrible.
-        segments.remove(segments.size() - 1);
-        List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
-        segments.add(segmentsCore);
-        segments.add(segmentsCoreOrDown);
-        return combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
-      }
-      // Try again with wildcard (DST is neither core nor a child of FROM)
-      List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
-      boolean[] coreHasIA = containsIsdAs(segmentsCore, from, dstIsdAs);
-      segments.add(segmentsCore);
-      if (coreHasIA[1]) {
-        // case D: DST is core
-        // TODO why is this ever used? See e.g. Test F0 111->120
-        return combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
-      } else {
-        from = dstWildcard;
-        // case C: DST is not core
-        // We have to query down segments because SRC may not have a segment connected to DST
-        List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, from, dstIsdAs);
-        segments.add(segmentsDown);
-        return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
-      }
-    }
-    // remaining cases: F, G, H
-    List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
-    if (segmentsCore.isEmpty()) {
-      return Collections.emptyList();
-    }
-    boolean[] localCores = Segments.containsIsdAs(segmentsCore, 0, dstIsdAs);
+    // TODO skip this if core has only one AS
+    // Next, we look for core segments.
+    // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable leaf)
+    // we still should look at core segments because they may offer additional paths.
+    // TODO:
+    //   Shortcutting doesn't work with core path.
+    segmentsCore = getSegments(service, srcWildcard, dstWildcard);
     segments.add(segmentsCore);
-    if (localCores[1]) {
-      return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+    boolean[] containsIsdAs = containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
+    if (containsIsdAs[1]) {
+      // dst is CORE
+      return combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
     }
 
-    List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstWildcard, dstIsdAs);
+    // TODO we need to first generate all paths combinations (with 2 or 3 segments?!?!?!!!)
+    //   -> Store "unpacked"
+    //   -> Then check whether we can do shortcuts/onpath/etc
+    throw new UnsupportedOperationException();
+
+    segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
     segments.add(segmentsDown);
     return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
   }
