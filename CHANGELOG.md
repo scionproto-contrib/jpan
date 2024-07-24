@@ -8,9 +8,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### TODO for 0.3.0
+- Demo that connects to Francois' website
+- Support topofile port range
+- `ResponsePath` is now package private (not public anymore)
+- remove ScionAddress?
+- Remove getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) <- ISD + Scion address!!!
+- ScionDatagramChannel
+  - GatheringByteChannel, ScatteringByteChannel
+  - Selector support
+  - Inherit DatagramChannel 
+- AS switching?
+
+### TODO post 0.3.0
+- Upgrade all JUnit topo files to post 0.11 with new format (including port range)
+- ...
+
 ### Added
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
-  - TODO merge this with fetchFile()!!
+  - **TODO** merge getTopologyFile() this with fetchFile()!!
 
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
