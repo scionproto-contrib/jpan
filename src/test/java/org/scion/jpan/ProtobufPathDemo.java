@@ -116,7 +116,7 @@ public class ProtobufPathDemo {
     String addr111 = "127.0.0.18:31006";
     // ScionService csSercice = Scion.newServiceWithBootstrapServerIP(addr111);
     ScionService csSercice =
-        Scion.newServiceWithTopologyFile("topologies/scionproto-tiny-120.json");
+        Scion.newServiceWithTopologyFile("topologies/scionproto-tiny/topology-120.json");
     List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(csSercice, srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {

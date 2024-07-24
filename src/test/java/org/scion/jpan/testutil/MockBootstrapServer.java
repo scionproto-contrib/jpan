@@ -48,8 +48,9 @@ import org.slf4j.LoggerFactory;
 public class MockBootstrapServer implements Closeable {
 
   public static final String TOPO_HOST = "my-topo-host.org";
-  public static final String TOPOFILE_TINY_110 = "topologies/scionproto-tiny-110.json";
-  public static final String TOPOFILE_TINY_111 = "topologies/scionproto-tiny-111.json";
+  public static final String CONFIG_DIR_TINY = "topologies/scionproto-tiny/";
+  public static final String TOPOFILE_TINY_110 = CONFIG_DIR_TINY + "topology-110.json";
+  public static final String TOPOFILE_TINY_111 = CONFIG_DIR_TINY + "topology-111.json";
   private static final Logger logger = LoggerFactory.getLogger(MockBootstrapServer.class.getName());
   private final ExecutorService executor;
   private final AtomicInteger callCount = new AtomicInteger();
@@ -91,7 +92,10 @@ public class MockBootstrapServer implements Closeable {
   }
 
   public static MockBootstrapServer start(String topoFile, boolean installNaptr) {
-    return new MockBootstrapServer(Paths.get(topoFile), null, installNaptr);
+    if (!TOPOFILE_TINY_110.equals(topoFile)) {
+      throw new UnsupportedOperationException("Add config dir");
+    }
+    return new MockBootstrapServer(Paths.get(topoFile), Paths.get(CONFIG_DIR_TINY), installNaptr);
   }
 
   public static MockBootstrapServer start(String cfgPath, String topoFile) {
@@ -210,12 +214,12 @@ public class MockBootstrapServer implements Closeable {
       JsonWriter jw = new GsonBuilder().setPrettyPrinting().create().newJsonWriter(sw);
       jw.beginArray();
       for (String s : file.list()) {
-        if (!s.endsWith(".trc")) {
+        if (!s.endsWith(".json")) {
           continue;
         }
-        int isd = Integer.parseInt(s.substring(3, s.indexOf("-B")));
-        int base = Integer.parseInt(s.substring(s.indexOf("-B") + 2, s.indexOf("-S")));
-        int sn = Integer.parseInt(s.substring(s.indexOf("-S") + 2, s.indexOf(".")));
+        int isd = Integer.parseInt(s.substring(3, s.indexOf("-b")));
+        int base = Integer.parseInt(s.substring(s.indexOf("-b") + 2, s.indexOf("-s")));
+        int sn = Integer.parseInt(s.substring(s.indexOf("-s") + 2, s.indexOf(".")));
         jw.beginObject().name("id").beginObject();
         jw.name("base_number").value(base);
         jw.name("isd").value(isd);
