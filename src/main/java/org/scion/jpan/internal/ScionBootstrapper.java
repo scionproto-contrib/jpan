@@ -128,7 +128,7 @@ public class ScionBootstrapper {
     }
     LocalTopology topo = LocalTopology.create(contentBuilder.toString());
     if (topo.getControlServices().isEmpty()) {
-      throw new ScionRuntimeException("No control service found in topology filet: " + file);
+      throw new ScionRuntimeException("No control service found in topology file: " + file);
     }
     return topo;
   }
