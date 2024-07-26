@@ -94,43 +94,8 @@ public class ScionBootstrapper {
     }
   }
 
-  private static String fetchTopologyFile(URL url) throws IOException {
-    HttpURLConnection httpURLConnection = null;
-    try {
-      httpURLConnection = (HttpURLConnection) url.openConnection();
-      httpURLConnection.setRequestMethod("GET");
-      httpURLConnection.setConnectTimeout((int) httpRequestTimeout.toMillis());
-
-      int responseCode = httpURLConnection.getResponseCode();
-      if (responseCode != HttpURLConnection.HTTP_OK) { // success
-        throw new ScionException(
-            "GET request failed (" + responseCode + ") on topology server: " + url);
-      }
-
-      try (BufferedReader in =
-          new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()))) {
-        StringBuilder response = new StringBuilder();
-        String inputLine;
-        while ((inputLine = in.readLine()) != null) {
-          response.append(inputLine).append(System.lineSeparator());
-        }
-        return response.toString();
-      }
-    } finally {
-      if (httpURLConnection != null) {
-        httpURLConnection.disconnect();
-      }
-    }
-  }
-
   private LocalTopology initLocal() {
-    LocalTopology topo;
-    try {
-      topo = LocalTopology.create(getTopologyFile());
-    } catch (IOException e) {
-      throw new ScionRuntimeException(
-          "Error while getting topology file from " + topologyResource + ": " + e.getMessage(), e);
-    }
+    LocalTopology topo = LocalTopology.create(fetchFile(TOPOLOGY_ENDPOINT));
     if (topo.getControlServices().isEmpty()) {
       throw new ScionRuntimeException(
           "No control servers found in topology provided by " + topologyResource);
@@ -176,19 +141,6 @@ public class ScionBootstrapper {
     throw new UnsupportedOperationException();
   }
 
-  // TODO merge this with fetchFile()!!
-  // TODO merge this with fetchFile()!!
-  // TODO merge this with fetchFile()!!
-  // TODO merge this with fetchFile()!!
-  // TODO merge this with fetchFile()!!
-  // TODO merge this with fetchFile()!!
-  // TODO merge this with fetchFile()!!
-  private String getTopologyFile() throws IOException {
-    LOG.info("Getting topology from bootstrap server: {}", topologyResource);
-    URL url = new URL("http://" + topologyResource + "/" + BASE_URL + TOPOLOGY_ENDPOINT);
-    return fetchTopologyFile(url);
-  }
-
   public String fetchFile(String resource) {
     try {
       LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
@@ -196,7 +148,7 @@ public class ScionBootstrapper {
       return fetchFile(url);
     } catch (IOException e) {
       throw new ScionRuntimeException(
-          "While fetching resource " + resource + " from " + topologyResource);
+          "While fetching resource '" + resource + "' from " + topologyResource);
     }
   }
 

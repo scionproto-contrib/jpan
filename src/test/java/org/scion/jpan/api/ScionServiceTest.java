@@ -361,7 +361,7 @@ public class ScionServiceTest {
       DNSUtil.clear();
       DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
-      assertTrue(t.getMessage().startsWith("Error while getting topology file"));
+      assertTrue(t.getMessage().startsWith("While fetching resource 'topology'"));
 
       // Invalid NAPTR key
       DNSUtil.clear();
