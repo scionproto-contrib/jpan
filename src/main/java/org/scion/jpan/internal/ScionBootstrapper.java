@@ -37,22 +37,21 @@ import org.slf4j.LoggerFactory;
 public class ScionBootstrapper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
-  private static final String BASE_URL = "";
   private static final String TOPOLOGY_ENDPOINT = "topology";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
   private final String topologyResource;
-  private final LocalTopology topology;
+  private final LocalTopology localAS;
   private final GlobalTopology world;
 
   protected ScionBootstrapper(String topologyServiceAddress) {
     this.topologyResource = topologyServiceAddress;
-    this.topology = initLocal();
+    this.localAS = initLocal();
     this.world = initGlobal();
   }
 
   protected ScionBootstrapper(java.nio.file.Path file) {
     this.topologyResource = file.toString();
-    this.topology = this.init(file);
+    this.localAS = this.init(file);
     this.world = GlobalTopology.createEmpty();
   }
 
@@ -75,7 +74,7 @@ public class ScionBootstrapper {
   }
 
   public LocalTopology getLocalTopology() {
-    return topology;
+    return localAS;
   }
 
   public GlobalTopology getGlobalTopology() {
@@ -144,7 +143,7 @@ public class ScionBootstrapper {
   public String fetchFile(String resource) {
     try {
       LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
-      URL url = new URL("http://" + topologyResource + "/" + BASE_URL + resource);
+      URL url = new URL("http://" + topologyResource + "/" + resource);
       return fetchFile(url);
     } catch (IOException e) {
       throw new ScionRuntimeException(
