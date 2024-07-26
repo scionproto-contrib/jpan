@@ -112,8 +112,6 @@ public class Segments {
     List<Seg.PathSegment> segmentsCore = null;
     List<Seg.PathSegment> segmentsDown = null;
 
-    long from = srcIsdAs;
-    long to = dstIsdAs;
     List<List<Seg.PathSegment>> segments = new ArrayList<>();
     // First, if necessary, try to get UP segments
     if (!localAS.isLocalAsCore()) {
@@ -129,7 +127,6 @@ public class Segments {
         return Collections.emptyList();
       }
       segments.add(segmentsUp);
-      from = srcWildcard;
     }
 
     // TODO skip this if core has only one AS
@@ -144,7 +141,7 @@ public class Segments {
       boolean[] containsIsdAs = containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
       if (containsIsdAs[1]) {
         // dst is CORE
-        return combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
+        return combineSegments(segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
       }
     }
 
@@ -155,7 +152,8 @@ public class Segments {
 
     segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
     segments.add(segmentsDown);
-    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
+    return Segments.combineSegments(
+        segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
   }
 
   public static List<Daemon.Path> getPaths2(
@@ -325,6 +323,67 @@ public class Segments {
     return pathSegments;
   }
 
+  private static List<Daemon.Path> combineSegments(
+      List<Seg.PathSegment> segmentsUp,
+      List<Seg.PathSegment> segmentsCore,
+      List<Seg.PathSegment> segmentsDown,
+      long srcIsdAs,
+      long dstIsdAs,
+      LocalTopology localAS) {
+    int code = segmentsUp != null ? 4 : 0;
+    code |= segmentsCore != null ? 2 : 0;
+    code |= segmentsDown != null ? 1 : 0;
+    final List<Daemon.Path> paths = new ArrayList<>();
+    switch (code) {
+      case 7:
+        {
+          paths.addAll(
+              combineThreeSegments(
+                  segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS));
+          if (ScionUtil.extractIsd(srcIsdAs) == ScionUtil.extractIsd(dstIsdAs)) {
+            paths.addAll(combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS));
+          }
+          break;
+        }
+      case 6:
+        {
+          paths.addAll(combineTwoSegments(segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS));
+          paths.addAll(combineSegment(segmentsUp, localAS));
+          break;
+        }
+      case 5:
+        {
+          paths.addAll(combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS));
+          break;
+        }
+      case 4:
+        {
+          paths.addAll(combineSegment(segmentsUp, localAS));
+          break;
+        }
+      case 3:
+        {
+          paths.addAll(combineTwoSegments(segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS));
+          paths.addAll(combineSegment(segmentsDown, localAS));
+          break;
+        }
+      case 2:
+        {
+          paths.addAll(combineSegment(segmentsCore, localAS));
+          break;
+        }
+      case 1:
+        {
+          paths.addAll(combineSegment(segmentsDown, localAS));
+          break;
+        }
+      default:
+        throw new UnsupportedOperationException();
+    }
+    return paths;
+  }
+
+  @Deprecated
   private static List<Daemon.Path> combineSegments(
       List<List<Seg.PathSegment>> segments, long srcIsdAs, long dstIsdAs, LocalTopology localAS) {
     if (segments.size() == 1) {

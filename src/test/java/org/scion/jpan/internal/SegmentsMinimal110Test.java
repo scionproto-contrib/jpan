@@ -113,7 +113,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
   }
 
   @Test

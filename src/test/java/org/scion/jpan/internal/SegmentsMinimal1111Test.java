@@ -195,7 +195,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
       assertEquals(4, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
   }
 
   @Test
@@ -373,6 +373,6 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
       assertEquals(8, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
   }
 }
