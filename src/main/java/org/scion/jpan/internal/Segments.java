@@ -137,18 +137,13 @@ public class Segments {
     if (!segmentsCore.isEmpty()) {
       segments.add(segmentsCore);
       // TODO For CORE we should probably ensure that dstIsdAs is at the END of a segment, not
-      // somewhere in the middle
+      //  somewhere in the middle
       boolean[] containsIsdAs = containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
       if (containsIsdAs[1]) {
         // dst is CORE
         return combineSegments(segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
       }
     }
-
-    // TODO we need to first generate all paths combinations (with 2 or 3 segments?!?!?!!!)
-    //   -> Store "unpacked"
-    //   -> Then check whether we can do shortcuts/onpath/etc
-    // throw new UnsupportedOperationException();
 
     segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
     segments.add(segmentsDown);

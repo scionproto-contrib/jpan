@@ -225,9 +225,6 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
       System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
       System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
 
-      checkMetaHeader(ByteBuffer.wrap(raw), 2, 0, 0);
-
-      //      Daemon.Path path = paths.get(0);
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
       checkInfo(rawBB, 18215, 0);
