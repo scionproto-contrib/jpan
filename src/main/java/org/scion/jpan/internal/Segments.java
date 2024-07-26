@@ -54,11 +54,110 @@ public class Segments {
 
   private Segments() {}
 
+  //  /**
+  //   * Lookup segments, construct paths, and return paths.
+  //   * <p>
+  //   * Implementation notes. The sequence diagrams Gid. 43. and 4.4 in the book (edition 2022)
+  // suggest
+  //   * that to always request UP, CORE and DOWN, even if paths without CORE are possible.
+  //   *
+  //   * @param service Segment lookup service
+  //   * @param bootstrapper Bootstrapper
+  //   * @param srcIsdAs source ISD/AS
+  //   * @param dstIsdAs destination ISD/AS
+  //   * @return list of available paths (unordered)
+  //   */
+  //  public static List<Daemon.Path> getPaths(
+  //      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub service,
+  //      ScionBootstrapper bootstrapper,
+  //      long srcIsdAs,
+  //      long dstIsdAs) {
+  //    LocalTopology localTopology = bootstrapper.getLocalTopology();
+  //    GlobalTopology world = bootstrapper.getGlobalTopology();
+  //
+  //    // Cases:
+  //    // A: src==dst
+  //    // B: srcISD==dstISD; dst==core
+  //    // C: srcISD==dstISD; src==core
+  //    // D: srcISD==dstISD; src==core, dst==core
+  //    // E: srcISD==dstISD;
+  //    // F: srcISD!=dstISD; dst==core
+  //    // G: srcISD!=dstISD; src==core
+  //    // H: srcISD!=dstISD;
+  //    long srcWildcard = toWildcard(srcIsdAs);
+  //    long dstWildcard = toWildcard(dstIsdAs);
+  //    int srcISD = ScionUtil.extractIsd(srcIsdAs);
+  //    int dstISD = ScionUtil.extractIsd(dstIsdAs);
+  //
+  //    if (srcIsdAs == dstIsdAs) {
+  //      // case A: same AS, return empty path
+  //      Daemon.Path.Builder path = Daemon.Path.newBuilder();
+  //      path.setMtu(localTopology.getLocalMtu());
+  //
+  // path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
+  //      return Collections.singletonList(path.build());
+  //    }
+  //
+  //    // TODO in future we can find out whether an AS is CORE by parsing the TRC files:
+  //    //      https://docs.anapaya.net/en/latest/resources/isd-as-assignments/#as-assignments
+  //    //     ./bazel-bin/scion-pki/cmd/scion-pki/scion-pki_/scion-pki trc inspect
+  //    //         ../../Downloads/ISD64.bundle
+  //
+  //    List<Seg.PathSegment> segmentsUp = null;
+  //    List<Seg.PathSegment> segmentsCore = null;
+  //    List<Seg.PathSegment> segmentsDown = null;
+  //
+  //    long from = srcIsdAs;
+  //    long to = dstIsdAs;
+  //    List<List<Seg.PathSegment>> segments = new ArrayList<>();
+  //    // First, if necessary, try to get UP segments
+  //    if (!localTopology.isLocalAsCore()) {
+  //      // get UP segments
+  //      // TODO find out if dstIsAs is core and directly ask for it.
+  //      segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
+  //      boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
+  //      if (containsIsdAs[1]) {
+  //        // case B: DST is core (or on-path)
+  //        return combineSegment(segmentsUp, localTopology);
+  //      }
+  //      if (segmentsUp.isEmpty()) {
+  //        return Collections.emptyList();
+  //      }
+  //      segments.add(segmentsUp);
+  //      from = srcWildcard;
+  //    }
+  //
+  //    // TODO skip this if core has only one AS
+  //    // Next, we look for core segments.
+  //    // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable
+  // leaf)
+  //    // we still should look at core segments because they may offer additional paths.
+  //    // TODO:
+  //    //   Shortcutting doesn't work with core path.
+  //    segmentsCore = getSegments(service, srcWildcard, dstWildcard);
+  //    segments.add(segmentsCore);
+  //    boolean[] containsIsdAs = containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
+  //    if (containsIsdAs[1]) {
+  //      // dst is CORE
+  //      return combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+  //    }
+  //
+  //    // TODO we need to first generate all paths combinations (with 2 or 3 segments?!?!?!!!)
+  //    //   -> Store "unpacked"
+  //    //   -> Then check whether we can do shortcuts/onpath/etc
+  //    throw new UnsupportedOperationException();
+  //
+  //    segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
+  //    segments.add(segmentsDown);
+  //    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
+  //  }
+
   public static List<Daemon.Path> getPaths(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
-      LocalTopology brLookup,
+      ScionBootstrapper bootstrapper,
       long srcIsdAs,
       long dstIsdAs) {
+    LocalTopology localAS = bootstrapper.getLocalTopology();
     // Cases:
     // A: src==dst
     // B: srcISD==dstISD; dst==core
@@ -76,7 +175,7 @@ public class Segments {
     if (srcIsdAs == dstIsdAs) {
       // case A: same AS, return empty path
       Daemon.Path.Builder path = Daemon.Path.newBuilder();
-      path.setMtu(brLookup.getLocalMtu());
+      path.setMtu(localAS.getLocalMtu());
       path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
       return Collections.singletonList(path.build());
     }
@@ -90,14 +189,14 @@ public class Segments {
     long to = dstIsdAs;
     List<List<Seg.PathSegment>> segments = new ArrayList<>();
     // First, if necessary, try to get UP segments
-    if (!brLookup.isLocalAsCore()) {
+    if (!localAS.isLocalAsCore()) {
       // get UP segments
       // TODO find out if dstIsAs is core and directly ask for it.
       List<Seg.PathSegment> segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
       boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
       if (containsIsdAs[1]) {
         // case B: DST is core
-        return combineSegment(segmentsUp, brLookup);
+        return combineSegment(segmentsUp, localAS);
       }
       if (segmentsUp.isEmpty()) {
         return Collections.emptyList();
@@ -114,7 +213,7 @@ public class Segments {
       if (!segmentsCoreOrDown.isEmpty()) {
         // Okay, we found a direct route from src(Wildcard) to DST
         segments.add(segmentsCoreOrDown);
-        List<Daemon.Path> paths = combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
+        List<Daemon.Path> paths = combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
         if (!paths.isEmpty()) {
           return paths;
         }
@@ -124,7 +223,7 @@ public class Segments {
         List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
         segments.add(segmentsCore);
         segments.add(segmentsCoreOrDown);
-        return combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
+        return combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
       }
       // Try again with wildcard (DST is neither core nor a child of FROM)
       List<Seg.PathSegment> segmentsCore = getSegments(segmentStub, from, dstWildcard);
@@ -133,14 +232,14 @@ public class Segments {
       if (coreHasIA[1]) {
         // case D: DST is core
         // TODO why is this ever used? See e.g. Test F0 111->120
-        return combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
+        return combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
       } else {
         from = dstWildcard;
         // case C: DST is not core
         // We have to query down segments because SRC may not have a segment connected to DST
         List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, from, dstIsdAs);
         segments.add(segmentsDown);
-        return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
+        return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
       }
     }
     // remaining cases: F, G, H
@@ -151,12 +250,12 @@ public class Segments {
     boolean[] localCores = Segments.containsIsdAs(segmentsCore, 0, dstIsdAs);
     segments.add(segmentsCore);
     if (localCores[1]) {
-      return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
+      return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
     }
 
     List<Seg.PathSegment> segmentsDown = getSegments(segmentStub, dstWildcard, dstIsdAs);
     segments.add(segmentsDown);
-    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, brLookup);
+    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
   }
 
   private static List<Seg.PathSegment> getSegments(
@@ -219,21 +318,21 @@ public class Segments {
   }
 
   private static List<Daemon.Path> combineSegments(
-      List<List<Seg.PathSegment>> segments, long srcIsdAs, long dstIsdAs, LocalTopology brLookup) {
+      List<List<Seg.PathSegment>> segments, long srcIsdAs, long dstIsdAs, LocalTopology localAS) {
     if (segments.size() == 1) {
-      return combineSegment(segments.get(0), brLookup);
+      return combineSegment(segments.get(0), localAS);
     } else if (segments.size() == 2) {
-      return combineTwoSegments(segments.get(0), segments.get(1), srcIsdAs, dstIsdAs, brLookup);
+      return combineTwoSegments(segments.get(0), segments.get(1), srcIsdAs, dstIsdAs, localAS);
     }
     return combineThreeSegments(
-        segments.get(0), segments.get(1), segments.get(2), srcIsdAs, dstIsdAs, brLookup);
+        segments.get(0), segments.get(1), segments.get(2), srcIsdAs, dstIsdAs, localAS);
   }
 
   private static List<Daemon.Path> combineSegment(
-      List<Seg.PathSegment> segments, LocalTopology brLookup) {
+      List<Seg.PathSegment> segments, LocalTopology localAS) {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : segments) {
-      paths.add(buildPath(brLookup, pathSegment));
+      paths.add(buildPath(localAS, pathSegment));
     }
     return paths;
   }
@@ -245,7 +344,7 @@ public class Segments {
    * @param segments1 Core or Down segments
    * @param srcIsdAs src ISD/AS
    * @param dstIsdAs src ISD/AS
-   * @param brLookup border router lookup resource
+   * @param localAS border router lookup resource
    * @return Paths
    */
   private static List<Daemon.Path> combineTwoSegments(
@@ -253,7 +352,7 @@ public class Segments {
       List<Seg.PathSegment> segments1,
       long srcIsdAs,
       long dstIsdAs,
-      LocalTopology brLookup) {
+      LocalTopology localAS) {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
@@ -261,7 +360,7 @@ public class Segments {
     for (Seg.PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
       for (Seg.PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
-        paths.add(buildPath(brLookup, pathSegment0, pathSegment1));
+        paths.add(buildPath(localAS, pathSegment0, pathSegment1));
       }
     }
     return paths;
@@ -273,7 +372,7 @@ public class Segments {
       List<Seg.PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
-      LocalTopology brLookup) {
+      LocalTopology localAS) {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
     MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
@@ -282,9 +381,9 @@ public class Segments {
     for (Seg.PathSegment pathSeg : segmentsCore) {
       long[] endIAs = getEndingIAs(pathSeg);
       if (upSegments.contains(endIAs[0]) && downSegments.contains(endIAs[1])) {
-        buildPath(paths, upSegments.get(endIAs[0]), pathSeg, downSegments.get(endIAs[1]), brLookup);
+        buildPath(paths, upSegments.get(endIAs[0]), pathSeg, downSegments.get(endIAs[1]), localAS);
       } else if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
-        buildPath(paths, upSegments.get(endIAs[1]), pathSeg, downSegments.get(endIAs[0]), brLookup);
+        buildPath(paths, upSegments.get(endIAs[1]), pathSeg, downSegments.get(endIAs[0]), localAS);
       }
     }
     return paths;
@@ -295,15 +394,15 @@ public class Segments {
       List<Seg.PathSegment> segmentsUp,
       Seg.PathSegment segCore,
       List<Seg.PathSegment> segmentsDown,
-      LocalTopology brLookup) {
+      LocalTopology localAS) {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
-        paths.add(buildPath(brLookup, segUp, segCore, segDown));
+        paths.add(buildPath(localAS, segUp, segCore, segDown));
       }
     }
   }
 
-  private static Daemon.Path buildPath(LocalTopology brLookup, Seg.PathSegment... segments) {
+  private static Daemon.Path buildPath(LocalTopology localAS, Seg.PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -322,7 +421,7 @@ public class Segments {
 
     // info fields
     boolean[] reversed = new boolean[segments.length];
-    long startIA = brLookup.getLocalIsdAs();
+    long startIA = localAS.getLocalIsdAs();
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < infos.length; i++) {
       reversed[i] = isReversed(segments[i], startIA, endingIA);
@@ -331,7 +430,7 @@ public class Segments {
     }
 
     // hop fields
-    path.setMtu(brLookup.getLocalMtu());
+    path.setMtu(localAS.getLocalMtu());
     for (int i = 0; i < segments.length; i++) {
       // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
       writeHopFields(path, raw, 6 + i * 8, segments[i], reversed[i], infos[i]);
@@ -346,7 +445,7 @@ public class Segments {
     //    path.setInternalHops();
     //    path.setNotes();
     // First hop
-    String firstHop = brLookup.getBorderRouterAddress((int) path.getInterfaces(0).getId());
+    String firstHop = localAS.getBorderRouterAddress((int) path.getInterfaces(0).getId());
     Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);

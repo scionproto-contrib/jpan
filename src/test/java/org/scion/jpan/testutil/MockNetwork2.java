@@ -23,7 +23,7 @@ import org.scion.jpan.internal.AbstractSegmentsMinimalTest;
 public class MockNetwork2 implements AutoCloseable {
   public static final String AS_HOST =
       "my-as-host-test.org"; // TODO remove from AbstractSegmentsMinimalTest
-  private final MockTopologyServer topoServer;
+  private final MockBootstrapServer topoServer;
   private final MockControlServer controlServer;
 
   static class MinimalInitializer extends AbstractSegmentsMinimalTest {
@@ -36,17 +36,17 @@ public class MockNetwork2 implements AutoCloseable {
     }
   }
 
-  public static MockNetwork2 start(String topoFileOfLocalAS) {
-    return new MockNetwork2(topoFileOfLocalAS);
+  public static MockNetwork2 start(String configDir, String topoFileOfLocalAS) {
+    return new MockNetwork2(configDir, topoFileOfLocalAS);
   }
 
-  private MockNetwork2(String topoFileOfLocalAS) {
-    topoServer = MockTopologyServer.start(topoFileOfLocalAS);
+  private MockNetwork2(String configDir, String topoFileOfLocalAS) {
+    topoServer = MockBootstrapServer.start(configDir, topoFileOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
-    if (topoFileOfLocalAS.startsWith("topologies/minimal/")) {
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, configDir + topoFileOfLocalAS);
+    if (configDir.startsWith("topologies/minimal")) {
       MinimalInitializer data = new MinimalInitializer();
       data.init(controlServer);
       data.addResponses();
@@ -70,7 +70,7 @@ public class MockNetwork2 implements AutoCloseable {
     ScionService.closeDefault();
   }
 
-  public MockTopologyServer getTopoServer() {
+  public MockBootstrapServer getTopoServer() {
     return topoServer;
   }
 

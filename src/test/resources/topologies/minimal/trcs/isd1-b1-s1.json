@@ -1,0 +1,20 @@
+{
+    "authoritative_ases": [
+        "1-ff00:0:110",
+        "1-ff00:0:120"
+    ],
+    "core_ases": [
+        "1-ff00:0:110",
+        "1-ff00:0:120"
+    ],
+    "description": "Minimal ISD 1",
+    "id": {
+        "base_number": 1,
+        "isd": 1,
+        "serial_number": 1
+    },
+    "validity": {
+        "not_after": "2124-02-20T11:45:11Z",
+        "not_before": "2023-02-20T11:45:11Z"
+    }
+}

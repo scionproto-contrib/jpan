@@ -35,15 +35,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.util.ToStringUtil;
+import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockTopologyServer;
 
 public class ScionTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
-  private static final String TOPO_FILE = "topologies/scionproto-tiny-110.json";
+  private static final String TOPO_FILE = "topologies/scionproto-tiny/topology-110.json";
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @BeforeAll
@@ -125,7 +125,7 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
       String host;
-      MockTopologyServer mts = MockNetwork.getTopoServer();
+      MockBootstrapServer mts = MockNetwork.getTopoServer();
       if (mts.getAddress().getAddress() instanceof Inet6Address) {
         host = "[" + mts.getAddress().getAddress().getHostAddress() + "]";
       } else {
@@ -162,7 +162,7 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     try {
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
@@ -292,7 +292,7 @@ public class ScionTest {
   void newServiceWithDNS() throws IOException {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
     MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
-    try (Scion.CloseableService ss = Scion.newServiceWithDNS(MockTopologyServer.TOPO_HOST)) {
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(MockBootstrapServer.TOPO_HOST)) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
       InetAddress ip123 = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
       List<Path> paths = ss.getPaths(iaDst, ip123, 12345);
@@ -309,8 +309,8 @@ public class ScionTest {
   @Test
   void newServiceWithBootstrapServer() throws IOException {
     long iaDst = ScionUtil.parseIA("1-ff00:0:112");
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     InetSocketAddress topoAddr = MockNetwork.getTopoServer().getAddress();
-    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try (Scion.CloseableService ss =
         Scion.newServiceWithBootstrapServer(ToStringUtil.toAddressPort(topoAddr))) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
@@ -320,7 +320,23 @@ public class ScionTest {
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
       assertEquals(1, MockNetwork.getControlServer().getAndResetCallCount());
-      assertNotEquals(Scion.defaultService(), ss);
+      // No DNS, no daemon, no ENV variables -> fail.
+      assertThrows(ScionRuntimeException.class, Scion::defaultService);
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void newServiceWithTopoFile() throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    String topofile = "topologies/scionproto-tiny/topology-110.json";
+    try (Scion.CloseableService service = Scion.newServiceWithTopologyFile(topofile)) {
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
     } finally {
       MockNetwork.stopTiny();
     }
@@ -334,7 +350,8 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
       System.setProperty(
-          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-scionproto-0.11.json");
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+          "topologies/scionproto-tiny/topology-scionproto-0.11.json");
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);

@@ -29,10 +29,10 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.DNSHelper;
 import org.scion.jpan.testutil.DNSUtil;
+import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
-import org.scion.jpan.testutil.MockTopologyServer;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
 
@@ -207,7 +207,8 @@ public class ScionServiceTest {
   @Test
   void getPaths_noPathFound_fromCore() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_110/topology.json")) {
+    try (MockNetwork2 nw =
+        MockNetwork2.start("topologies/minimal/", "ASff00_0_110/topology.json")) {
       ScionService service = Scion.defaultService();
       List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
@@ -232,7 +233,8 @@ public class ScionServiceTest {
   @Test
   void getPaths_noPathFound_fromLeaf() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/ASff00_0_1111/topology.json")) {
+    try (MockNetwork2 nw =
+        MockNetwork2.start("topologies/minimal/", "ASff00_0_1111/topology.json")) {
       ScionService service = Scion.defaultService();
       List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
@@ -341,29 +343,29 @@ public class ScionServiceTest {
     try {
       Throwable t;
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "yyyy=12345", KEY_X_TCP);
+      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "yyyy=12345", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=1x2345", KEY_X_TCP);
+      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=1x2345", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=100000", KEY_X_TCP);
+      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=100000", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
       // Valid entry, but invalid port
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=10000", KEY_X_TCP);
+      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
-      assertTrue(t.getMessage().startsWith("Error while getting topology file"));
+      assertTrue(t.getMessage().startsWith("While fetching resource 'topology'"));
 
       // Invalid NAPTR key
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockTopologyServer.TOPO_HOST, ip, KEY_X + "=10000", "x-wrong:tcp");
+      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", "x-wrong:tcp");
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("No valid DNS NAPTR entry found"));
     } finally {
@@ -403,7 +405,8 @@ public class ScionServiceTest {
     String host = "127.0.0.55";
     System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);
     // Use any topo file
-    MockTopologyServer topo = MockTopologyServer.start(MockTopologyServer.TOPOFILE_TINY_110, true);
+    MockBootstrapServer topo =
+        MockBootstrapServer.start(MockBootstrapServer.TOPOFILE_TINY_110, true);
     try {
       ScionService service = Scion.defaultService();
       Exception ex =
@@ -524,7 +527,7 @@ public class ScionServiceTest {
   void testDomainSearchResolver() throws IOException {
     MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try {
-      String searchHost = MockTopologyServer.TOPO_HOST;
+      String searchHost = MockBootstrapServer.TOPO_HOST;
       // Change to use custom search domain
       Lookup.setDefaultSearchPath(Name.fromString(searchHost));
       // Lookup topology server
