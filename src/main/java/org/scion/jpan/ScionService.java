@@ -596,7 +596,13 @@ public class ScionService {
 
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
-    return Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
+    List<Daemon.Path> list = Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
+    LOG.info(
+        "Path found between {} and {}: {}",
+        ScionUtil.toStringIA(srcIsdAs),
+        ScionUtil.toStringIA(dstIsdAs),
+        list.size());
+    return list;
   }
 
   /**
