@@ -54,105 +54,111 @@ public class Segments {
 
   private Segments() {}
 
-  //  /**
-  //   * Lookup segments, construct paths, and return paths.
-  //   * <p>
-  //   * Implementation notes. The sequence diagrams Gid. 43. and 4.4 in the book (edition 2022)
-  // suggest
-  //   * that to always request UP, CORE and DOWN, even if paths without CORE are possible.
-  //   *
-  //   * @param service Segment lookup service
-  //   * @param bootstrapper Bootstrapper
-  //   * @param srcIsdAs source ISD/AS
-  //   * @param dstIsdAs destination ISD/AS
-  //   * @return list of available paths (unordered)
-  //   */
-  //  public static List<Daemon.Path> getPaths(
-  //      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub service,
-  //      ScionBootstrapper bootstrapper,
-  //      long srcIsdAs,
-  //      long dstIsdAs) {
-  //    LocalTopology localTopology = bootstrapper.getLocalTopology();
-  //    GlobalTopology world = bootstrapper.getGlobalTopology();
-  //
-  //    // Cases:
-  //    // A: src==dst
-  //    // B: srcISD==dstISD; dst==core
-  //    // C: srcISD==dstISD; src==core
-  //    // D: srcISD==dstISD; src==core, dst==core
-  //    // E: srcISD==dstISD;
-  //    // F: srcISD!=dstISD; dst==core
-  //    // G: srcISD!=dstISD; src==core
-  //    // H: srcISD!=dstISD;
-  //    long srcWildcard = toWildcard(srcIsdAs);
-  //    long dstWildcard = toWildcard(dstIsdAs);
-  //    int srcISD = ScionUtil.extractIsd(srcIsdAs);
-  //    int dstISD = ScionUtil.extractIsd(dstIsdAs);
-  //
-  //    if (srcIsdAs == dstIsdAs) {
-  //      // case A: same AS, return empty path
-  //      Daemon.Path.Builder path = Daemon.Path.newBuilder();
-  //      path.setMtu(localTopology.getLocalMtu());
-  //
-  // path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
-  //      return Collections.singletonList(path.build());
-  //    }
-  //
-  //    // TODO in future we can find out whether an AS is CORE by parsing the TRC files:
-  //    //      https://docs.anapaya.net/en/latest/resources/isd-as-assignments/#as-assignments
-  //    //     ./bazel-bin/scion-pki/cmd/scion-pki/scion-pki_/scion-pki trc inspect
-  //    //         ../../Downloads/ISD64.bundle
-  //
-  //    List<Seg.PathSegment> segmentsUp = null;
-  //    List<Seg.PathSegment> segmentsCore = null;
-  //    List<Seg.PathSegment> segmentsDown = null;
-  //
-  //    long from = srcIsdAs;
-  //    long to = dstIsdAs;
-  //    List<List<Seg.PathSegment>> segments = new ArrayList<>();
-  //    // First, if necessary, try to get UP segments
-  //    if (!localTopology.isLocalAsCore()) {
-  //      // get UP segments
-  //      // TODO find out if dstIsAs is core and directly ask for it.
-  //      segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
-  //      boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
-  //      if (containsIsdAs[1]) {
-  //        // case B: DST is core (or on-path)
-  //        return combineSegment(segmentsUp, localTopology);
-  //      }
-  //      if (segmentsUp.isEmpty()) {
-  //        return Collections.emptyList();
-  //      }
-  //      segments.add(segmentsUp);
-  //      from = srcWildcard;
-  //    }
-  //
-  //    // TODO skip this if core has only one AS
-  //    // Next, we look for core segments.
-  //    // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable
-  // leaf)
-  //    // we still should look at core segments because they may offer additional paths.
-  //    // TODO:
-  //    //   Shortcutting doesn't work with core path.
-  //    segmentsCore = getSegments(service, srcWildcard, dstWildcard);
-  //    segments.add(segmentsCore);
-  //    boolean[] containsIsdAs = containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
-  //    if (containsIsdAs[1]) {
-  //      // dst is CORE
-  //      return combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
-  //    }
-  //
-  //    // TODO we need to first generate all paths combinations (with 2 or 3 segments?!?!?!!!)
-  //    //   -> Store "unpacked"
-  //    //   -> Then check whether we can do shortcuts/onpath/etc
-  //    throw new UnsupportedOperationException();
-  //
-  //    segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
-  //    segments.add(segmentsDown);
-  //    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localTopology);
-  //  }
-
+  /**
+   * Lookup segments, construct paths, and return paths.
+   *
+   * <p>Implementation notes. The sequence diagrams Fig. 43. and 4.4 in the book (edition 2022)
+   * seems to suggest to always request UP, CORE and DOWN, even if paths without CORE are possible.
+   * The reference implementation (scionproto) optimizes this a bit by not requesting CORE iff there
+   * is only one CORE. Scionproto also uses prior knowledge of whether AS are CORE or not to
+   * determine which segments to request.
+   *
+   * <p>Here, we do things a bit differently because we may not have prior knowledge whether the
+   * destination is CORE or not.
+   *
+   * @param service Segment lookup service
+   * @param bootstrapper Bootstrapper
+   * @param srcIsdAs source ISD/AS
+   * @param dstIsdAs destination ISD/AS
+   * @return list of available paths (unordered)
+   */
   public static List<Daemon.Path> getPaths(
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub service,
+      ScionBootstrapper bootstrapper,
+      long srcIsdAs,
+      long dstIsdAs) {
+    LocalTopology localAS = bootstrapper.getLocalTopology();
+    GlobalTopology world = bootstrapper.getGlobalTopology();
+
+    // Cases:
+    // A: src==dst
+    // B: srcISD==dstISD; dst==core
+    // C: srcISD==dstISD; src==core
+    // D: srcISD==dstISD; src==core, dst==core
+    // E: srcISD==dstISD;
+    // F: srcISD!=dstISD; dst==core
+    // G: srcISD!=dstISD; src==core
+    // H: srcISD!=dstISD;
+    long srcWildcard = ScionUtil.toWildcard(srcIsdAs);
+    long dstWildcard = ScionUtil.toWildcard(dstIsdAs);
+    int srcISD = ScionUtil.extractIsd(srcIsdAs);
+    int dstISD = ScionUtil.extractIsd(dstIsdAs);
+
+    if (srcIsdAs == dstIsdAs) {
+      // case A: same AS, return empty path
+      Daemon.Path.Builder path = Daemon.Path.newBuilder();
+      path.setMtu(localAS.getLocalMtu());
+
+      path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
+      return Collections.singletonList(path.build());
+    }
+
+    // TODO in future we can find out whether an AS is CORE by parsing the TRC files:
+    //      https://docs.anapaya.net/en/latest/resources/isd-as-assignments/#as-assignments
+    //     ./bazel-bin/scion-pki/cmd/scion-pki/scion-pki_/scion-pki trc inspect
+    //         ../../Downloads/ISD64.bundle
+
+    List<Seg.PathSegment> segmentsUp = null;
+    List<Seg.PathSegment> segmentsCore = null;
+    List<Seg.PathSegment> segmentsDown = null;
+
+    long from = srcIsdAs;
+    long to = dstIsdAs;
+    List<List<Seg.PathSegment>> segments = new ArrayList<>();
+    // First, if necessary, try to get UP segments
+    if (!localAS.isLocalAsCore()) {
+      // get UP segments
+      // TODO find out if dstIsAs is core and directly ask for it.
+      segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
+      boolean[] containsIsdAs = containsIsdAs(segmentsUp, srcIsdAs, dstIsdAs);
+      if (containsIsdAs[1]) {
+        // case B: DST is core (or on-path)
+        return combineSegment(segmentsUp, localAS);
+      }
+      if (segmentsUp.isEmpty()) {
+        return Collections.emptyList();
+      }
+      segments.add(segmentsUp);
+      from = srcWildcard;
+    }
+
+    // TODO skip this if core has only one AS
+    // Next, we look for core segments.
+    // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable leaf)
+    // we still should look at core segments because they may offer additional paths.
+    segmentsCore = getSegments(service, srcWildcard, dstWildcard);
+    if (!segmentsCore.isEmpty()) {
+      segments.add(segmentsCore);
+      // TODO For CORE we should probably ensure that dstIsdAs is at the END of a segment, not
+      // somewhere in the middle
+      boolean[] containsIsdAs = containsIsdAs(segmentsCore, srcIsdAs, dstIsdAs);
+      if (containsIsdAs[1]) {
+        // dst is CORE
+        return combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
+      }
+    }
+
+    // TODO we need to first generate all paths combinations (with 2 or 3 segments?!?!?!!!)
+    //   -> Store "unpacked"
+    //   -> Then check whether we can do shortcuts/onpath/etc
+    // throw new UnsupportedOperationException();
+
+    segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
+    segments.add(segmentsDown);
+    return Segments.combineSegments(segments, srcIsdAs, dstIsdAs, localAS);
+  }
+
+  public static List<Daemon.Path> getPaths2(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       ScionBootstrapper bootstrapper,
       long srcIsdAs,
@@ -167,8 +173,8 @@ public class Segments {
     // F: srcISD!=dstISD; dst==core
     // G: srcISD!=dstISD; src==core
     // H: srcISD!=dstISD;
-    long srcWildcard = toWildcard(srcIsdAs);
-    long dstWildcard = toWildcard(dstIsdAs);
+    long srcWildcard = ScionUtil.toWildcard(srcIsdAs);
+    long dstWildcard = ScionUtil.toWildcard(dstIsdAs);
     int srcISD = ScionUtil.extractIsd(srcIsdAs);
     int dstISD = ScionUtil.extractIsd(dstIsdAs);
 
@@ -361,6 +367,13 @@ public class Segments {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
+      System.out.println(
+          "src/dst/mid="
+              + ScionUtil.toStringIA(srcIsdAs)
+              + " "
+              + ScionUtil.toStringIA(dstIsdAs)
+              + " "
+              + ScionUtil.toStringIA(middleIsdAs));
       for (Seg.PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
         paths.add(buildPath(localAS, pathSegment0, pathSegment1));
       }
@@ -629,6 +642,11 @@ public class Segments {
     Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
+    System.out.println(
+        "isReversed:: "
+            + ScionUtil.toStringIA(body0.getIsdAs())
+            + " "
+            + ScionUtil.toStringIA(bodyN.getIsdAs()));
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
       return false;
@@ -879,9 +897,5 @@ public class Segments {
       found[1] |= (iaFirst == dstIsdAs) || (iaLast == dstIsdAs);
     }
     return found;
-  }
-
-  private static long toWildcard(long isdAs) {
-    return (isdAs >>> 48) << 48;
   }
 }

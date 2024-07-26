@@ -46,10 +46,6 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
   }
 
-  private static long toWildcard(long ia) {
-    return (ia >>> 48) << 48;
-  }
-
   public ProtobufSegmentDemo(String csAddress) {
     channel = Grpc.newChannelBuilder(csAddress, InsecureChannelCredentials.create()).build();
     segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
