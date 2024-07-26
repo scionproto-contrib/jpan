@@ -340,7 +340,7 @@ public class Segments {
       List<Seg.PathSegment> segments, LocalTopology localAS) {
     List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment : segments) {
-      paths.add(buildPath(localAS, pathSegment));
+      buildPath(paths, localAS, pathSegment);
     }
     return paths;
   }
@@ -375,7 +375,7 @@ public class Segments {
               + " "
               + ScionUtil.toStringIA(middleIsdAs));
       for (Seg.PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
-        paths.add(buildPath(localAS, pathSegment0, pathSegment1));
+        buildPath(paths, localAS, pathSegment0, pathSegment1);
       }
     }
 
@@ -561,12 +561,13 @@ public class Segments {
       LocalTopology localAS) {
     for (Seg.PathSegment segUp : segmentsUp) {
       for (Seg.PathSegment segDown : segmentsDown) {
-        paths.add(buildPath(localAS, segUp, segCore, segDown));
+        buildPath(paths, localAS, segUp, segCore, segDown);
       }
     }
   }
 
-  private static Daemon.Path buildPath(LocalTopology localAS, Seg.PathSegment... segments) {
+  private static void buildPath(
+      List<Daemon.Path> paths, LocalTopology localAS, Seg.PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -576,7 +577,11 @@ public class Segments {
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       infos[i] = getInfo(segments[i]);
-      reversed[i] = isReversed(segments[i], startIA, endingIA);
+      Optional<Boolean> isReversed = isReversed(segments[i], startIA, endingIA);
+      if (!isReversed.isPresent()) {
+        return;
+      }
+      reversed[i] = isReversed.get();
       startIA = endingIA.get();
     }
 
@@ -634,10 +639,10 @@ public class Segments {
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
 
-    return path.build();
+    paths.add(path.build());
   }
 
-  private static boolean isReversed(
+  private static Optional<Boolean> isReversed(
       Seg.PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
     Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
@@ -646,16 +651,21 @@ public class Segments {
         "isReversed:: "
             + ScionUtil.toStringIA(body0.getIsdAs())
             + " "
-            + ScionUtil.toStringIA(bodyN.getIsdAs()));
+            + ScionUtil.toStringIA(bodyN.getIsdAs())
+            + " start="
+            + ScionUtil.toStringIA(startIA)
+            + " end="
+            + ScionUtil.toStringIA(endIA.get()));
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
-      return false;
+      return Optional.of(false);
     } else if (bodyN.getIsdAs() == startIA) {
       endIA.set(body0.getIsdAs());
-      return true;
+      return Optional.of(true);
     }
     // TODO support short-cut and on-path IAs
-    throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
+    // throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
+    return Optional.empty();
   }
 
   private static long calcExpTime(long baseTime, int deltaTime) {
