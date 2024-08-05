@@ -511,40 +511,52 @@ public class Segments {
     //    }
 
     // Search for on-path and shortcuts.
-    if (detectOnPath(segments, ranges)) {
-      System.out.println(
-          "Found on-path: " + Arrays.toString(ranges[0]) + "/" + Arrays.toString(ranges[1]));
+    //    if (detectOnPath(segments, ranges)) {
+    //      System.out.println(
+    //          "Found on-path: " + Arrays.toString(ranges[0]) + "/" + Arrays.toString(ranges[1]));
+    //      LOG.info("Found on-path AS.");
+    //      segments = new Seg.PathSegment[]{segments[0], segments[segments.length - 1]};
+    //      infos = new Seg.SegmentInformation[]{infos[0], infos[infos.length - 1]};
+    //      ranges = new int[][]{ranges[0], ranges[ranges.length - 1]};
+    if (detectOnPathUp(segments, ranges)) {
+      segments = new Seg.PathSegment[] {segments[0]};
+      infos = new Seg.SegmentInformation[] {infos[0]};
+      ranges = new int[][] {ranges[0]};
+      System.out.println("Found on-path UP: " + Arrays.toString(ranges[0]));
+      LOG.info("Found on-path AS.");
+    } else if (detectOnPathDown(segments, ranges)) {
+      segments = new Seg.PathSegment[] {segments[segments.length - 1]};
+      infos = new Seg.SegmentInformation[] {infos[infos.length - 1]};
+      ranges = new int[][] {ranges[ranges.length - 1]};
+      System.out.println("Found on-path DOWN: " + Arrays.toString(ranges[0]));
       LOG.info("Found on-path AS.");
     } else if (detectShortcut(segments, ranges)) {
       System.out.println(
           "Found shortcut: " + Arrays.toString(ranges[0]) + "/" + Arrays.toString(ranges[1]));
       LOG.info("Found shortcut at hop {}:", ranges[0][1]);
+      segments = new Seg.PathSegment[] {segments[0], segments[segments.length - 1]};
+      infos = new Seg.SegmentInformation[] {infos[0], infos[infos.length - 1]};
+      ranges = new int[][] {ranges[0], ranges[ranges.length - 1]};
     }
 
     // path meta header
     int pathMetaHeader = 0;
     for (int i = 0; i < segments.length; i++) {
-      if (ranges[i][0] != ranges[i][1]) { // skip in case of shortcut/on-path
-        int hopCount = Math.abs(ranges[i][1] - ranges[i][0]);
-        pathMetaHeader |= hopCount << (6 * (2 - i));
-      }
+      int hopCount = Math.abs(ranges[i][1] - ranges[i][0]);
+      pathMetaHeader |= hopCount << (6 * (2 - i));
     }
     raw.putInt(pathMetaHeader);
 
     // info fields
     for (int i = 0; i < infos.length; i++) {
-      if (ranges[i][0] != ranges[i][1]) { // skip in case of shortcut/on-path
-        writeInfoField(raw, infos[i], ranges[i][2]);
-      }
+      writeInfoField(raw, infos[i], ranges[i][2]);
     }
 
     // hop fields
     path.setMtu(localAS.getLocalMtu());
     for (int i = 0; i < segments.length; i++) {
-      if (ranges[i][0] != ranges[i][1]) { // skip in case of shortcut/on-path
-        // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
-        writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i], infos[i]);
-      }
+      // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
+      writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i], infos[i]);
     }
 
     raw.flip();
@@ -570,9 +582,9 @@ public class Segments {
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
     System.out.println(
-        "isReversed:: "
+        "isReversed:: 0="
             + ScionUtil.toStringIA(body0.getIsdAs())
-            + " "
+            + " N="
             + ScionUtil.toStringIA(bodyN.getIsdAs())
             + " start="
             + ScionUtil.toStringIA(startIA)
@@ -722,10 +734,10 @@ public class Segments {
       Seg.ASEntrySignedBody body = getBody(asEntry.getSigned());
       if (body.getIsdAs() == dstIA) {
         ranges[idUp][1] = pos + ranges[idUp][2];
-        if (ranges.length > 2) {
-          ranges[1][0] = ranges[1][1] = 0;
-        }
-        ranges[idDown][0] = ranges[idDown][1] = 0; // idDown may be == 1
+        //        if (ranges.length > 2) {
+        //          ranges[1][0] = ranges[1][1] = 0;
+        //        }
+        //        ranges[idDown][0] = ranges[idDown][1] = 0; // idDown may be == 1
         System.out.println("DOP: Seg: Creating on-path up! " + pos);
         return true;
       }
@@ -735,16 +747,74 @@ public class Segments {
       Seg.ASEntry asEntry = segments[idDown].getAsEntriesList().get(pos);
       Seg.ASEntrySignedBody body = getBody(asEntry.getSigned());
       if (body.getIsdAs() == srcIA) {
-        ranges[idUp][0] = ranges[idUp][1] = 0;
-        if (ranges.length > 2) {
-          ranges[1][0] = ranges[1][1] = 0;
-        }
+        //        ranges[idUp][0] = ranges[idUp][1] = 0;
+        //        if (ranges.length > 2) {
+        //          ranges[1][0] = ranges[1][1] = 0;
+        //        }
         ranges[idDown][0] = pos;
         System.out.println("DOP: Seg: Creating on-path down! " + pos);
         return true;
       }
     }
     System.out.println("DOP: Seg: No shortcut! ");
+    return false;
+  }
+
+  private static boolean detectOnPathUp(Seg.PathSegment[] segments, int[][] ranges) {
+    // On-Path: "in the case where the source’s up-segment contains the destination AS,
+    // the up-segment of the source is sufficient to construct a forwarding path. The ISD core is
+    // again not part of the final path. If delivery is not permitted to the destination AS on the
+    // up-segment (as specified in the hop field), a down-segment needs to be combined with the
+    // up-segment, resulting in the AS-shortcut case discussed above"
+    if (segments.length < 2) {
+      return false;
+    }
+    int idUp = 0; // TODO avoid if this is core...
+    int idDown = segments.length - 1; // TODO avoid if this is core...
+
+    long srcIA = getBody(segments[idUp].getAsEntriesList().get(ranges[idUp][0])).getIsdAs();
+    int lastDown = ranges[idDown][1] - ranges[idDown][2];
+    long dstIA = getBody(segments[idDown].getAsEntriesList().get(lastDown)).getIsdAs();
+    System.out.println("on-path dstID: " + ScionUtil.toStringIA(dstIA));
+
+    int[] iterUp = ranges[idUp];
+    for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
+      Seg.ASEntry asEntry = segments[idUp].getAsEntriesList().get(pos);
+      Seg.ASEntrySignedBody body = getBody(asEntry.getSigned());
+      if (body.getIsdAs() == dstIA) {
+        ranges[idUp][1] = pos + ranges[idUp][2];
+        System.out.println("DOP: Seg: Creating on-path up! " + pos);
+        return true;
+      }
+    }
+    System.out.println("DOP: Seg: No UP shortcut! ");
+    return false;
+  }
+
+  private static boolean detectOnPathDown(Seg.PathSegment[] segments, int[][] ranges) {
+    // On-Path: "in the case where the source’s up-segment contains the destination AS,
+    // the up-segment of the source is sufficient to construct a forwarding path. The ISD core is
+    // again not part of the final path. If delivery is not permitted to the destination AS on the
+    // up-segment (as specified in the hop field), a down-segment needs to be combined with the
+    // up-segment, resulting in the AS-shortcut case discussed above"
+    if (segments.length < 2) {
+      return false;
+    }
+    int idUp = 0; // TODO avoid if this is core...
+    int idDown = segments.length - 1; // TODO avoid if this is core...
+    long srcIA = getBody(segments[idUp].getAsEntriesList().get(ranges[idUp][0])).getIsdAs();
+
+    int[] iterDown = ranges[idDown];
+    for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
+      Seg.ASEntry asEntry = segments[idDown].getAsEntriesList().get(pos);
+      Seg.ASEntrySignedBody body = getBody(asEntry.getSigned());
+      if (body.getIsdAs() == srcIA) {
+        ranges[idDown][0] = pos;
+        System.out.println("DOP: Seg: Creating on-path down! " + pos);
+        return true;
+      }
+    }
+    System.out.println("DOP: Seg: No shortcut down! ");
     return false;
   }
 
