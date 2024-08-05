@@ -329,6 +329,7 @@ public class Segments {
     code |= segmentsCore != null ? 2 : 0;
     code |= segmentsDown != null ? 1 : 0;
     final List<Daemon.Path> paths = new ArrayList<>();
+    // TODO replace with if-else...?
     switch (code) {
       case 7:
         {
@@ -433,53 +434,54 @@ public class Segments {
       }
     }
 
-    if (ScionUtil.extractIsd(srcIsdAs) == ScionUtil.extractIsd(dstIsdAs)) {
-      System.out.println("Seg: same ISD! " + ScionUtil.toStringIA(srcIsdAs));
-      // Same ISD? Search for shortcuts.
-      int pos = 0;
-      for (Daemon.Path path : paths) {
-        byte[] before = path.getRaw().toByteArray();
-        int segs = path.getRaw().asReadOnlyByteBuffer().getInt();
-        System.out.println(
-            "Segs: "
-                + ((segs >> 12) & 0x3F)
-                + " - "
-                + ((segs >> 6) & 0x3F)
-                + " - "
-                + (segs & 0x3F));
-        System.out.println("Path1: " + ToStringUtil.path(before));
-        System.out.println("Path2: " + ToStringUtil.pathLong(before));
-        HashMap<Long, Integer> map = new HashMap<>();
-        int posUp = -1;
-        int posDown = -1;
-        for (int i = 0; i < path.getInterfacesCount(); i++) {
-          long isdAs = path.getInterfacesList().get(i).getIsdAs();
-          System.out.println("   Checking:  " + ScionUtil.toStringIA(isdAs) + " -> " + i);
-          //          if (map.containsKey(isdAs)) {
-          //            System.out.println("   Found....:  " + map.get(isdAs) + " -> " +
-          // (map.get(isdAs) - i));
-          //          }
-          if (map.containsKey(isdAs) && i - map.get(isdAs) > 1) {
-            System.out.println("   Found!!!!!:  " + ScionUtil.toStringIA(isdAs) + " -> " + i);
-            posUp = map.get(isdAs);
-            posDown = i;
-            System.out.println("                " + posUp + " -> " + posDown);
-          } else {
-            //            System.out.println("   Adding:" + ScionUtil.toStringIA(isdAs) + " -> " +
-            // i);
-            map.putIfAbsent(isdAs, i);
-          }
-          // keep going, we want to find the LAST/LOWEST AS that occurs twice.
-        }
-        if (posUp >= 0) {
-          System.out.println("Seg: Creating shortcut! " + posUp);
-          paths.set(pos, createShortCut(path, posUp, posDown, localAS));
-        } else {
-          System.out.println("Seg: No shortcut! " + posUp);
-        }
-        pos++;
-      }
-    }
+    //    if (ScionUtil.extractIsd(srcIsdAs) == ScionUtil.extractIsd(dstIsdAs)) {
+    //      System.out.println("Seg: same ISD! " + ScionUtil.toStringIA(srcIsdAs));
+    //      // Same ISD? Search for shortcuts.
+    //      int pos = 0;
+    //      for (Daemon.Path path : paths) {
+    //        byte[] before = path.getRaw().toByteArray();
+    //        int segs = path.getRaw().asReadOnlyByteBuffer().getInt();
+    //        System.out.println(
+    //            "Segs: "
+    //                + ((segs >> 12) & 0x3F)
+    //                + " - "
+    //                + ((segs >> 6) & 0x3F)
+    //                + " - "
+    //                + (segs & 0x3F));
+    //        System.out.println("Path1: " + ToStringUtil.path(before));
+    //        System.out.println("Path2: " + ToStringUtil.pathLong(before));
+    //        HashMap<Long, Integer> map = new HashMap<>();
+    //        int posUp = -1;
+    //        int posDown = -1;
+    //        for (int i = 0; i < path.getInterfacesCount(); i++) {
+    //          long isdAs = path.getInterfacesList().get(i).getIsdAs();
+    //          System.out.println("   Checking:  " + ScionUtil.toStringIA(isdAs) + " -> " + i);
+    //          //          if (map.containsKey(isdAs)) {
+    //          //            System.out.println("   Found....:  " + map.get(isdAs) + " -> " +
+    //          // (map.get(isdAs) - i));
+    //          //          }
+    //          if (map.containsKey(isdAs) && i - map.get(isdAs) > 1) {
+    //            System.out.println("   Found!!!!!:  " + ScionUtil.toStringIA(isdAs) + " -> " + i);
+    //            posUp = map.get(isdAs);
+    //            posDown = i;
+    //            System.out.println("                " + posUp + " -> " + posDown);
+    //          } else {
+    //            //            System.out.println("   Adding:" + ScionUtil.toStringIA(isdAs) + " ->
+    // " +
+    //            // i);
+    //            map.putIfAbsent(isdAs, i);
+    //          }
+    //          // keep going, we want to find the LAST/LOWEST AS that occurs twice.
+    //        }
+    //        if (posUp >= 0) {
+    //          System.out.println("Seg: Creating shortcut! " + posUp);
+    //          paths.set(pos, createShortCut(path, posUp, posDown, localAS));
+    //        } else {
+    //          System.out.println("Seg: No shortcut! " + posUp);
+    //        }
+    //        pos++;
+    //      }
+    //    }
 
     return paths;
   }
@@ -626,57 +628,70 @@ public class Segments {
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
     Seg.SegmentInformation[] infos = new Seg.SegmentInformation[segments.length];
-    boolean[] reversed = new boolean[segments.length];
+    int[][] iterators = new int[segments.length][]; // start;end;increment
     long startIA = localAS.getLocalIsdAs();
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       infos[i] = getInfo(segments[i]);
       Optional<Boolean> isReversed = isReversed(segments[i], startIA, endingIA);
       if (!isReversed.isPresent()) {
+        // TODO why??? Remove??!!!!
         return;
       }
-      reversed[i] = isReversed.get();
+      if (isReversed.get()) {
+        iterators[i] = new int[] {segments[i].getAsEntriesCount() - 1, -1, -1};
+      } else {
+        iterators[i] = new int[] {0, segments[i].getAsEntriesCount(), +1};
+      }
       startIA = endingIA.get();
     }
 
-    int[][] segmentRanges = new int[segments.length][2];
-    for (int i = 0; i < segments.length; i++) {
-      segmentRanges[i][1] = segments[i].getAsEntriesCount();
-    }
-
-    // TODO for on-path: avoid 2nd request -> single segment only...
-    //    unless the DST is a child of SRC, then we can detect it only on the DOWN path
+    //    // TODO remove
+    //    System.out.println("Segments: ");
+    //    for (Seg.PathSegment seg : segments) {
+    //      System.out.println("  Segments: ");
+    //      for (Seg.ASEntry ase : seg.getAsEntriesList()) {
+    //        Seg.ASEntrySignedBody b = getBody(ase);
+    //        System.out.print("    " + ScionUtil.toStringIA(b.getIsdAs()) + " " +
+    // b.getHopEntry().getHopField().getIngress());
+    //        System.out.print(">" + b.getHopEntry().getHopField().getEgress() + " " +
+    // ScionUtil.toStringIA(b.getNextIsdAs()));
+    //      }
+    //      System.out.println();
+    //    }
 
     // Same ISD? search for on-path and shortcuts.
     if (ScionUtil.extractIsd(localAS.getLocalIsdAs()) == ScionUtil.extractIsd(endingIA.get())) {
-      int[] shortcut = detectShortcut(segments, reversed);
-      if (shortcut != null) {
-        System.out.println("Found shortcut: " + Arrays.toString(shortcut));
-        LOG.info("Found shortcut between hop {} and hop {}.", shortcut[0], shortcut[1]);
+      if (detectShortcut(segments, iterators)) {
+        System.out.println(
+            "Found shortcut: "
+                + Arrays.toString(iterators[0])
+                + "/"
+                + Arrays.toString(iterators[1]));
+        // TODO ?        LOG.info("Found shortcut between hop {} and hop {}.", shortcut[0],
+        // shortcut[1]);
         // We know we have exactly two segments.
-        segmentRanges[0][1] = shortcut[0] + 1; // segmentRanges uses "exclusive" counting
-        segmentRanges[1][0] = shortcut[1];
       }
     }
 
     // path meta header
     int pathMetaHeader = 0;
     for (int i = 0; i < segments.length; i++) {
-      int hopCount = segmentRanges[i][1] - segmentRanges[i][0]; // segments[i].getAsEntriesCount();
+      int hopCount = Math.abs(iterators[i][1] - iterators[i][0]);
       pathMetaHeader |= hopCount << (6 * (2 - i));
     }
     raw.putInt(pathMetaHeader);
 
     // info fields
     for (int i = 0; i < infos.length; i++) {
-      writeInfoField(raw, infos[i], reversed[i]);
+      writeInfoField(raw, infos[i], iterators[i][2]);
     }
 
     // hop fields
     path.setMtu(localAS.getLocalMtu());
     for (int i = 0; i < segments.length; i++) {
       // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
-      writeHopFields(path, raw, 6 + i * 8, segments[i], segmentRanges[i], reversed[i], infos[i]);
+      writeHopFields(path, raw, 6 + i * 8, segments[i], iterators[i], infos[i]);
     }
 
     raw.flip();
@@ -726,9 +741,9 @@ public class Segments {
     return baseTime + (long) (1 + deltaTime) * 24 * 60 * 60 / 256;
   }
 
-  private static void writeInfoField(
-      ByteBuffer raw, Seg.SegmentInformation info, boolean reversed) {
-    int inf0 = ((reversed ? 0 : 1) << 24) | info.getSegmentId();
+  private static void writeInfoField(ByteBuffer raw, Seg.SegmentInformation info, int direction) {
+    // construction direction flag
+    int inf0 = ((direction == -1 ? 0 : 1) << 24) | info.getSegmentId();
     raw.putInt(inf0);
     raw.putInt(ByteUtil.toInt(info.getTimestamp()));
   }
@@ -738,13 +753,11 @@ public class Segments {
       ByteBuffer raw,
       int bytePosSegID,
       Seg.PathSegment pathSegment,
-      int[] segmentRange,
-      boolean reversed,
+      int[] range,
       Seg.SegmentInformation info) {
     int minExpiry = Integer.MAX_VALUE;
-    int nTotalHops = pathSegment.getAsEntriesCount();
-    for (int i = segmentRange[0]; i < segmentRange[1]; i++) {
-      int pos = reversed ? (nTotalHops - i - 1) : i;
+    for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
+      boolean reversed = range[2] == -1;
       Seg.ASEntrySignedBody body = getBody(pathSegment.getAsEntriesList().get(pos));
       Seg.HopField hopField = body.getHopEntry().getHopField();
 
@@ -756,22 +769,23 @@ public class Segments {
       for (int j = 0; j < 6; j++) {
         raw.put(mac.byteAt(j));
       }
-      if (reversed && i > 0) {
+      if (reversed && total > 0) {
         raw.put(bytePosSegID, ByteUtil.toByte(raw.get(bytePosSegID) ^ mac.byteAt(0)));
         raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
       minExpiry = Math.min(minExpiry, hopField.getExpTime());
-      System.out.println("MTU: " + i + " " + path.getMtu() + " " + body.getMtu());
+      System.out.println("MTU: " + pos + " " + path.getMtu() + " " + body.getMtu());
       path.setMtu(Math.min(path.getMtu(), body.getMtu()));
 
-      boolean addInterfaces = (reversed && pos > 0) || (!reversed && pos < nTotalHops - 1);
+      // Do this for all except last.
+      boolean addInterfaces = pos + range[2] != range[1];
       if (addInterfaces) {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
         path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
-        int pos2 = reversed ? pos - 1 : pos + 1;
+        int pos2 = pos + range[2];
         Seg.ASEntrySignedBody body2 = getBody(pathSegment.getAsEntriesList().get(pos2));
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
@@ -882,6 +896,57 @@ public class Segments {
       System.out.println("DS: Seg: No shortcut! " + posUp);
     }
     return null;
+  }
+
+  private static boolean detectShortcut(Seg.PathSegment[] segments, int[][] iterators) {
+    if (segments.length != 2) {
+      return false;
+    }
+    //      System.out.println("DS: Seg: same ISD! " + ScionUtil.toStringIA(srcIsdAs));
+    //      System.out.print("DS: Segment IDss: ");
+    //      for (Seg.PathSegment seg : segments) {
+    //        System.out.print(getInfo(seg).getSegmentId() + ", ");
+    //      }
+    //      System.out.println();
+    HashMap<Long, Integer> map = new HashMap<>();
+    int posUp = -1;
+    int posDown = -1;
+    int iTotal = 0;
+    for (int s = 0; s < segments.length; s++) {
+      Seg.PathSegment seg = segments[s];
+      final int n = seg.getAsEntriesCount();
+      int[] iterator = iterators[s];
+      for (int pos = iterator[0]; pos != iterator[1]; pos += iterator[2], iTotal++) {
+        Seg.ASEntry asEntry = seg.getAsEntriesList().get(pos);
+        Seg.ASEntrySignedBody body = getBody(asEntry.getSigned());
+        long isdAs = body.getIsdAs();
+        System.out.println("   DS: Checking:  " + ScionUtil.toStringIA(isdAs) + " -> " + iTotal);
+        // if (map.containsKey(isdAs)) {
+        //   System.out.println(
+        //       "   Found....:  " + map.get(isdAs) + " -> " + (map.get(isdAs) - iTotal));
+        // }
+        if (map.containsKey(isdAs) && iTotal - map.get(isdAs) > 1) {
+          // System.out.println(
+          //     "   DS: Found!!!!!:  " + ScionUtil.toStringIA(isdAs) + " -> " + iTotal);
+          posUp = map.get(isdAs);
+          posDown = pos;
+          System.out.println("                " + posUp + " -> " + posDown);
+        } else {
+          // System.out.println("   Adding:" + ScionUtil.toStringIA(isdAs) + " -> " + iTotal);
+          map.putIfAbsent(isdAs, iTotal);
+        }
+        // keep going, we want to find the LAST/LOWEST AS that occurs twice.
+      }
+    }
+    if (posUp >= 0) {
+      System.out.println("DS: Seg: Creating shortcut! " + posUp);
+      iterators[0][1] = posUp + iterators[0][2]; // the range maximum is _exclusive_.
+      iterators[1][0] = posDown;
+      return true;
+    } else {
+      System.out.println("DS: Seg: No shortcut! " + posUp);
+    }
+    return false;
   }
 
   private static MultiMap<Long, Seg.PathSegment> createSegmentsMap(
