@@ -294,7 +294,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
     //  PathSeg: size=9
     //  SegInfo:  ts=2024-01-10T15:58:22Z  id=10619
-    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1472
+    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1460
     //      HopEntry: true mtu=0
     //        HopField: exp=63 ingress=0 egress=2
     //    AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:1111  mtu=1472
@@ -305,7 +305,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //        HopField: exp=63 ingress=123 egress=0
 
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 2));
-    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_111, 1472, he00);
+    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_111, 1460, he00);
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 111, 1111));
     Seg.ASEntry ase01 = buildASEntry(AS_111, AS_1111, 1472, he01);
     Seg.HopEntry he02 = buildHopEntry(1472, buildHopField(63, 123, 0));
@@ -323,7 +323,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
     //    PathSeg: size=10
     //      SegInfo:  ts=2024-01-10T17:11:53Z  id=25161
-    //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1472
+    //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1460
     //        HopEntry: true mtu=0
     //          HopField: exp=63 ingress=0 egress=2
     //      AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:1112  mtu=1472
@@ -334,7 +334,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //          HopField: exp=63 ingress=234 egress=0
 
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 2));
-    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_111, 1472, he00);
+    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_111, 1460, he00);
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 111, 1112));
     Seg.ASEntry ase01 = buildASEntry(AS_111, AS_1112, 1472, he01);
     Seg.HopEntry he02 = buildHopEntry(1472, buildHopField(63, 234, 0));
@@ -352,7 +352,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //  SEG: key=SEGMENT_TYPE_DOWN -> n=1
     //    PathSeg: size=9
     //      SegInfo:  ts=2024-01-10T17:17:43Z  id=2700
-    //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:112  mtu=1472
+    //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:112  mtu=1460
     //        HopEntry: true mtu=0
     //          HopField: exp=63 ingress=0 egress=3
     //      AS Body: IA=1-ff00:0:112 nextIA=1-ff00:0:1121  mtu=1450
@@ -363,7 +363,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //          HopField: exp=63 ingress=345 egress=0
 
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 3));
-    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_112, 1472, he00);
+    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_112, 1460, he00);
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 453, 1121));
     Seg.ASEntry ase01 = buildASEntry(AS_112, AS_1121, 1450, he01);
     Seg.HopEntry he02 = buildHopEntry(1472, buildHopField(63, 345, 0));
@@ -384,7 +384,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //    SegInfo:  ts=2024-01-05T15:02:17Z  id=5701
     //      AS: signed=93   signature size=71
     //      AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-05T15:02:17.455400479Z
-    //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:112  mtu=1472
+    //      AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:112  mtu=1460
     //        HopEntry: true mtu=0
     //          HopField: exp=63 ingress=0 egress=3
     //      AS: signed=90   signature size=71
@@ -393,7 +393,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //        HopEntry: true mtu=1472
     //          HopField: exp=63 ingress=453 egress=0
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 3));
-    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_112, 1472, he00);
+    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_112, 1460, he00);
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 453, 0));
     Seg.ASEntry ase01 = buildASEntry(AS_112, ZERO, 1450, he01);
     Seg.PathSegment path0 = buildPath(5701, ase00, ase01);
@@ -414,14 +414,14 @@ public abstract class AbstractSegmentsMinimalTest {
     //        HopField: exp=63 ingress=0 egress=10
     //    AS: signed=89   signature size=70
     //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:48:17.672710479Z
-    //    AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
+    //    AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1460
     //      HopEntry: true mtu=1472
     //        HopField: exp=63 ingress=1 egress=0
 
     Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 10));
     Seg.ASEntry ase00 = buildASEntry(AS_120, AS_110, 1472, he00);
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 1, 0));
-    Seg.ASEntry ase01 = buildASEntry(AS_110, ZERO, 1472, he01);
+    Seg.ASEntry ase01 = buildASEntry(AS_110, ZERO, 1460, he01);
     Seg.PathSegment path0 = buildPath(26755, ase00, ase01);
 
     controlServer.addResponse(
@@ -503,7 +503,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //        HopField: exp=63 ingress=210 egress=10
     //    AS: signed=88   signature size=70
     //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2024-01-10T12:59:51.171109823Z
-    //    AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1472
+    //    AS Body: IA=1-ff00:0:110 nextIA=0-0:0:0  mtu=1460
     //      HopEntry: true mtu=1472
     //        HopField: exp=63 ingress=1 egress=0
 
@@ -512,7 +512,7 @@ public abstract class AbstractSegmentsMinimalTest {
     Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 210, 10));
     Seg.ASEntry ase01 = buildASEntry(AS_120, AS_110, 1472, he01);
     Seg.HopEntry he02 = buildHopEntry(1472, buildHopField(63, 1, 0));
-    Seg.ASEntry ase02 = buildASEntry(AS_110, ZERO, 1472, he02);
+    Seg.ASEntry ase02 = buildASEntry(AS_110, ZERO, 1460, he02);
     Seg.PathSegment path0 = buildPath(15767, ase00, ase01, ase02);
 
     controlServer.addResponse(

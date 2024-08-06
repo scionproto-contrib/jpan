@@ -5,6 +5,7 @@ ASes:
     voting: true
     authoritative: true
     issuing: true
+    mtu: 1460
   "1-ff00:0:120":
     core: true
     voting: true

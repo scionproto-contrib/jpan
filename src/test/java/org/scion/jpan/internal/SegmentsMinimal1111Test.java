@@ -134,7 +134,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1460, path.getMtu());
       assertEquals(firstHop, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");

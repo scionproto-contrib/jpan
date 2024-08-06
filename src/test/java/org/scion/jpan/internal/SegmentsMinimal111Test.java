@@ -257,7 +257,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1460, path.getMtu());
       assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
@@ -310,7 +310,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1460, path.getMtu());
       String FIRST_HOP = topoServer.getBorderRouterAddressByIA(AS_110);
       assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");

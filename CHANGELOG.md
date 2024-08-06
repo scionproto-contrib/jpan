@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.3.0
+- BUG: System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.1");
+  leads to exception about missing TRC (instead of complaining about missing ":30255")
 - Demo that connects to Francois' website
 - Support topofile port range
 - `ResponsePath` is now package private (not public anymore)
@@ -30,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   New option `SCION_RESOLVER_MINIMIZE_REQUESTS`
   [#104](https://github.com/scionproto-contrib/jpan/pull/104)
 TODO:
+- Fix or report as BUG: link-MTU is not considered (or is it?) -> test!
 - Fix output: ScionUtil.toStringPath(path.getRawPath());
   results in [494>103 ] i.o. [494>103]
 - Check that duplicate paths are eliminated, e.g. with "default"
