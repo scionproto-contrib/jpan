@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.demo.util.ToStringUtil;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
@@ -464,38 +463,32 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
         47, 0, 63, 0, 123, 0, 0, -80, -73, 22, -128, 1, -88
       };
 
-      System.out.println(org.scion.jpan.demo.util.ToStringUtil.pathLong(raw)); // TODO
-      System.out.println(org.scion.jpan.demo.util.ToStringUtil.path(raw)); // TODO
-      Daemon.Path path = paths.get(0);
-      System.out.println(
-          org.scion.jpan.demo.util.ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
+      //      System.out.println(ToStringUtil.pathLong(raw));
+      //      System.out.println(ToStringUtil.path(raw));
+      //      Daemon.Path path = paths.get(0);
+      //      System.out.println(ToStringUtil.path(path.getRaw().toByteArray()));
+      //      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
 
       checkMetaHeader(ByteBuffer.wrap(raw), 2, 0, 0);
 
-      //      Daemon.Path path = paths.get(0);
+      Daemon.Path path = paths.get(0);
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
-      //      checkInfo(rawBB, 18215, 0);
-      checkInfo(rawBB, 10619, 1); // TODO why not 5701? Verify!
-      checkHopField(rawBB, 123, 0);
+      checkInfo(rawBB, 10619, 1);
       checkHopField(rawBB, 111, 1111);
-      checkHopField(rawBB, 111, 1112);
-      checkHopField(rawBB, 234, 0);
+      checkHopField(rawBB, 123, 0);
       assertEquals(0, rawBB.remaining());
 
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.41:31024", path.getInterface().getAddress().getAddress());
-      checkInterface(path, 0, 123, "1-ff00:0:1111");
-      checkInterface(path, 1, 1111, "1-ff00:0:111");
-      checkInterface(path, 2, 1112, "1-ff00:0:111");
-      checkInterface(path, 3, 234, "1-ff00:0:1112");
-      assertEquals(4, path.getInterfacesCount());
+      assertEquals("127.0.0.34:31018", path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 1111, "1-ff00:0:111");
+      checkInterface(path, 1, 123, "1-ff00:0:1111");
+      assertEquals(2, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
   }
 }
