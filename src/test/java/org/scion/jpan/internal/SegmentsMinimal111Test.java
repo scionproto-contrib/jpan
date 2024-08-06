@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
@@ -73,6 +74,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
+    System.clearProperty(Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS);
   }
 
   @Test
@@ -96,6 +98,16 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseB_SameIsd_Up() throws IOException {
+    caseB_SameIsd_Up(false);
+  }
+
+  @Test
+  void caseB_SameIsd_Up_MinimizeRequests() throws IOException {
+    caseB_SameIsd_Up(true);
+  }
+
+  private void caseB_SameIsd_Up(boolean minimize) throws IOException {
+    System.setProperty(Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS, Boolean.toString(minimize));
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_110);
@@ -136,7 +148,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
     }
 
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(minimize ? 1 : 2, controlServer.getAndResetCallCount());
   }
 
   @Test
