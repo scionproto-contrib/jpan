@@ -177,7 +177,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 2, 0);
       checkInfo(rawBB, 18215, 0);
-      checkInfo(rawBB, 25161, 1);
+      checkInfo(rawBB, 10002, 1);
       checkHopField(rawBB, 123, 0);
       checkHopField(rawBB, 111, 1111);
       checkHopField(rawBB, 111, 1112);
@@ -298,7 +298,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 3, 3, 0);
       checkInfo(rawBB, 10619, 0);
-      checkInfo(rawBB, 2700, 1);
+      checkInfo(rawBB, 10003, 1);
       checkHopField(rawBB, 123, 0);
       checkHopField(rawBB, 111, 1111);
       checkHopField(rawBB, 0, 2);

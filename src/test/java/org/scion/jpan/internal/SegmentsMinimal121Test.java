@@ -170,7 +170,7 @@ public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
       checkMetaHeader(rawBB, 2, 2, 2);
       checkInfo(rawBB, 18215, 0);
       checkInfo(rawBB, 15767, 0);
-      checkInfo(rawBB, 15299, 1);
+      checkInfo(rawBB, 10450, 1);
       checkHopField(rawBB, 104, 0);
       checkHopField(rawBB, 0, 21);
       checkHopField(rawBB, 210, 0);

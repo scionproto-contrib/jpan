@@ -140,7 +140,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1460, path.getMtu());
       assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
@@ -186,7 +186,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 2, 0);
       checkInfo(rawBB, 18215, 0);
-      checkInfo(rawBB, 5701, 1);
+      checkInfo(rawBB, 10003, 1);
       checkHopField(rawBB, 111, 0);
       checkHopField(rawBB, 0, 2);
       checkHopField(rawBB, 0, 3);
@@ -245,7 +245,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkMetaHeader(rawBB, 2, 2, 2);
       checkInfo(rawBB, 18215, 0);
       checkInfo(rawBB, 26755, 0);
-      checkInfo(rawBB, 12345, 1);
+      checkInfo(rawBB, 10021, 1);
       checkHopField(rawBB, 111, 0);
       checkHopField(rawBB, 0, 2);
       checkHopField(rawBB, 1, 0);
@@ -426,7 +426,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkMetaHeader(rawBB, 2, 3, 2);
       checkInfo(rawBB, 18215, 0);
       checkInfo(rawBB, 15767, 0);
-      checkInfo(rawBB, 15299, 1);
+      checkInfo(rawBB, 10450, 1);
       checkHopField(rawBB, 111, 0);
       checkHopField(rawBB, 0, 2);
       checkHopField(rawBB, 1, 0);
@@ -486,7 +486,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       Daemon.Path path = paths.get(0);
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
-      checkInfo(rawBB, 10619, 1);
+      checkInfo(rawBB, 10002, 1);
       checkHopField(rawBB, 111, 1111);
       checkHopField(rawBB, 123, 0);
       assertEquals(0, rawBB.remaining());

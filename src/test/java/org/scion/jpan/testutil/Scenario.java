@@ -159,20 +159,23 @@ public class Scenario {
       for (BorderRouter br : core.getBorderRouters()) {
         for (BorderRouterInterface brIf : br.getInterfaces()) {
           LocalTopology nextAs = topologies.get(brIf.getIsdAs());
+          // Choose some "random" segment ID
+          int segmentId = 10000 + brIf.getId();
           if (nextAs.isCoreAs()) {
-            buildSegment(core, brIf, BorderRouterInterface.CORE);
+            buildSegment(core, brIf, BorderRouterInterface.CORE, segmentId);
           } else {
-            buildSegment(core, brIf, BorderRouterInterface.CHILD);
+            buildSegment(core, brIf, BorderRouterInterface.CHILD, segmentId);
           }
         }
       }
     }
   }
 
-  private void buildSegment(LocalTopology parent, BorderRouterInterface parentIf, String linkType) {
+  private void buildSegment(
+      LocalTopology parent, BorderRouterInterface parentIf, String linkType, int segmentId) {
     long now = Instant.now().getEpochSecond();
     Seg.SegmentInformation info =
-        Seg.SegmentInformation.newBuilder().setSegmentId(12345).setTimestamp(now).build();
+        Seg.SegmentInformation.newBuilder().setSegmentId(segmentId).setTimestamp(now).build();
     Seg.PathSegment.Builder builder =
         Seg.PathSegment.newBuilder().setSegmentInfo(info.toByteString());
     buildChild(builder, linkType, parent.getIsdAs(), parent, 0, parentIf);
