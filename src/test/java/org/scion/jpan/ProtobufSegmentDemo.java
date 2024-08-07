@@ -92,28 +92,27 @@ public class ProtobufSegmentDemo {
 
   public static void print(Seg.PathSegment pathSegment) throws InvalidProtocolBufferException {
     System.out.println("  PathSeg: size=" + pathSegment.getSegmentInfo().size());
-    Seg.SegmentInformation segInf =
-            Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
+    Seg.SegmentInformation segInf = Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
     System.out.println(
-            "    SegInfo:  ts="
-                    + Instant.ofEpochSecond(segInf.getTimestamp())
-                    + "  id="
-                    + segInf.getSegmentId());
+        "    SegInfo:  ts="
+            + Instant.ofEpochSecond(segInf.getTimestamp())
+            + "  id="
+            + segInf.getSegmentId());
     for (Seg.ASEntry asEntry : pathSegment.getAsEntriesList()) {
       if (asEntry.hasSigned()) {
         Signed.SignedMessage sm = asEntry.getSigned();
         System.out.println(
-                "    AS: signed="
-                        + sm.getHeaderAndBody().size()
-                        + "   signature size="
-                        + sm.getSignature().size());
+            "    AS: signed="
+                + sm.getHeaderAndBody().size()
+                + "   signature size="
+                + sm.getSignature().size());
         // System.out.println(
         //     "    Header/Body=" + Arrays.toString(sm.getHeaderAndBody().toByteArray()));
         // System.out.println(
         //     "    Signature  =" + Arrays.toString(sm.getSignature().toByteArray()));
 
         Signed.HeaderAndBodyInternal habi =
-                Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
+            Signed.HeaderAndBodyInternal.parseFrom(sm.getHeaderAndBody());
         //              System.out.println(
         //                  "      habi: " + habi.getHeader().size() + " " +
         // habi.getBody().size());
@@ -121,58 +120,57 @@ public class ProtobufSegmentDemo {
         // TODO body for signature verification?!?
         Timestamp ts = header.getTimestamp();
         System.out.println(
-                "    AS header: "
-                        + header.getSignatureAlgorithm()
-                        + "  time="
-                        + Instant.ofEpochSecond(ts.getSeconds(), ts.getNanos())
-                        + "  meta="
-                        + header.getMetadata().size()
-                        + "  data="
-                        + header.getAssociatedDataLength());
+            "    AS header: "
+                + header.getSignatureAlgorithm()
+                + "  time="
+                + Instant.ofEpochSecond(ts.getSeconds(), ts.getNanos())
+                + "  meta="
+                + header.getMetadata().size()
+                + "  data="
+                + header.getAssociatedDataLength());
 
         Seg.ASEntrySignedBody body = Seg.ASEntrySignedBody.parseFrom(habi.getBody());
         System.out.println(
-                "    AS Body: IA="
-                        + ScionUtil.toStringIA(body.getIsdAs())
-                        + " nextIA="
-                        + ScionUtil.toStringIA(body.getNextIsdAs())
-                        //                      + " nPeers="
-                        //                      + body.getPeerEntriesCount()
-                        + "  mtu="
-                        + body.getMtu());
+            "    AS Body: IA="
+                + ScionUtil.toStringIA(body.getIsdAs())
+                + " nextIA="
+                + ScionUtil.toStringIA(body.getNextIsdAs())
+                //                      + " nPeers="
+                //                      + body.getPeerEntriesCount()
+                + "  mtu="
+                + body.getMtu());
         Seg.HopEntry he = body.getHopEntry();
-        System.out.println(
-                "      HopEntry: " + he.hasHopField() + " mtu=" + he.getIngressMtu());
+        System.out.println("      HopEntry: " + he.hasHopField() + " mtu=" + he.getIngressMtu());
 
         if (he.hasHopField()) {
           Seg.HopField hf = he.getHopField();
           System.out.println(
-                  "        HopField: exp="
-                          + hf.getExpTime()
-                          + " ingress="
-                          + hf.getIngress()
-                          + " egress="
-                          + hf.getEgress());
+              "        HopField: exp="
+                  + hf.getExpTime()
+                  + " ingress="
+                  + hf.getIngress()
+                  + " egress="
+                  + hf.getEgress());
         }
         if (body.hasExtensions()) {
           SegExtensions.PathSegmentExtensions pse = body.getExtensions();
           if (pse.hasStaticInfo()) {
             SegExtensions.StaticInfoExtension sie = pse.getStaticInfo();
             System.out.println(
-                    "    Static: latencies="
-                            + sie.getLatency().getIntraCount()
-                            + "/"
-                            + sie.getLatency().getInterCount()
-                            + "  bandwidth="
-                            + sie.getBandwidth().getIntraCount()
-                            + "/"
-                            + sie.getBandwidth().getInterCount()
-                            + "  geo="
-                            + sie.getGeoCount()
-                            + "  interfaces="
-                            + sie.getLinkTypeCount()
-                            + "  note="
-                            + sie.getNote());
+                "    Static: latencies="
+                    + sie.getLatency().getIntraCount()
+                    + "/"
+                    + sie.getLatency().getInterCount()
+                    + "  bandwidth="
+                    + sie.getBandwidth().getIntraCount()
+                    + "/"
+                    + sie.getBandwidth().getInterCount()
+                    + "  geo="
+                    + sie.getGeoCount()
+                    + "  interfaces="
+                    + sie.getLinkTypeCount()
+                    + "  note="
+                    + sie.getNote());
           }
         }
       }
