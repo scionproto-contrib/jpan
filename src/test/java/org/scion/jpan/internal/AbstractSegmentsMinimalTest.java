@@ -71,10 +71,10 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static void checkInfo(ByteBuffer rawBB, int segmentId, int flags) {
     assertEquals(flags, rawBB.get()); // Info0 flags
     assertEquals(0, rawBB.get()); // Info0 etc
-    // TODO fix -> XOR SegID!
     if (flags != 0) {
       assertEquals(segmentId, ByteUtil.toUnsigned(rawBB.getShort())); // Info0 SegID
     } else {
+      // TODO fix -> XOR SegID! -> assert!
       rawBB.getShort();
     }
     assertNotEquals(0, rawBB.getInt()); // Info0 timestamp
