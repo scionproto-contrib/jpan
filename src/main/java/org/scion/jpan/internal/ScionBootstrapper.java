@@ -94,12 +94,7 @@ public class ScionBootstrapper {
   }
 
   private LocalTopology initLocal() {
-    LocalTopology topo = LocalTopology.create(fetchFile(TOPOLOGY_ENDPOINT));
-    if (topo.getControlServices().isEmpty()) {
-      throw new ScionRuntimeException(
-          "No control servers found in topology provided by " + topologyResource);
-    }
-    return topo;
+    return LocalTopology.create(fetchFile(TOPOLOGY_ENDPOINT));
   }
 
   private GlobalTopology initGlobal() {

@@ -90,7 +90,7 @@ public class Segments {
     if (srcIsdAs == dstIsdAs) {
       // case A: same AS, return empty path
       Daemon.Path.Builder path = Daemon.Path.newBuilder();
-      path.setMtu(localAS.getLocalMtu());
+      path.setMtu(localAS.getMtu());
 
       path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
       return Collections.singletonList(path.build());
@@ -98,7 +98,7 @@ public class Segments {
 
     // First, if necessary, try to get UP segments
     List<Seg.PathSegment> segmentsUp = null;
-    if (!localAS.isLocalAsCore()) {
+    if (!localAS.isCoreAs()) {
       // get UP segments
       segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
       if (segmentsUp.isEmpty()) {
@@ -341,7 +341,7 @@ public class Segments {
 
     Seg.SegmentInformation[] infos = new Seg.SegmentInformation[segments.length];
     int[][] ranges = new int[segments.length][]; // [start (inclusive), end (exclusive), increment]
-    long startIA = localAS.getLocalIsdAs();
+    long startIA = localAS.getIsdAs();
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       infos[i] = getInfo(segments[i]);
@@ -364,7 +364,7 @@ public class Segments {
       infos = new Seg.SegmentInformation[] {infos[0]};
       ranges = new int[][] {ranges[0]};
       LOG.debug("Found on-path AS on UP segment.");
-    } else if (detectOnPathDown(segments, localAS.getLocalIsdAs(), ranges)) {
+    } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
       segments = new Seg.PathSegment[] {segments[segments.length - 1]};
       infos = new Seg.SegmentInformation[] {infos[infos.length - 1]};
       ranges = new int[][] {ranges[ranges.length - 1]};
@@ -391,7 +391,7 @@ public class Segments {
     }
 
     // hop fields
-    path.setMtu(localAS.getLocalMtu());
+    path.setMtu(localAS.getMtu());
     for (int i = 0; i < segments.length; i++) {
       // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
       writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i], infos[i]);
@@ -453,7 +453,8 @@ public class Segments {
     for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
       boolean reversed = range[2] == -1;
       Seg.ASEntrySignedBody body = getBody(pathSegment.getAsEntriesList().get(pos));
-      Seg.HopField hopField = body.getHopEntry().getHopField();
+      Seg.HopEntry hopEntry = body.getHopEntry();
+      Seg.HopField hopField = hopEntry.getHopField();
 
       raw.put((byte) 0);
       raw.put(ByteUtil.toByte(hopField.getExpTime()));
@@ -468,8 +469,10 @@ public class Segments {
         raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
       minExpiry = Math.min(minExpiry, hopField.getExpTime());
-      System.out.println("MTU: " + pos + " " + path.getMtu() + " " + body.getMtu());
       path.setMtu(Math.min(path.getMtu(), body.getMtu()));
+      if (hopEntry.getIngressMtu() > 0) {
+        path.setMtu(Math.min(path.getMtu(), hopEntry.getIngressMtu()));
+      }
 
       // Do this for all except last.
       boolean addInterfaces = pos + range[2] != range[1];

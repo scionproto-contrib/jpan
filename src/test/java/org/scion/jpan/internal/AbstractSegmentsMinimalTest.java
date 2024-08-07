@@ -27,6 +27,7 @@ import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.Scenario;
 
 /**
  * Test cases: <br>
@@ -44,6 +45,7 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static final String AS_HOST = "my-as-host.org";
   protected static final String CFG_MINIMAL = "topologies/minimal/";
   protected static final long ZERO = ScionUtil.parseIA("0-0:0:0");
+  protected static final Scenario scenario = Scenario.readFrom(CFG_MINIMAL);
 
   /** ISD 1 - core AS */
   protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
@@ -195,9 +197,6 @@ public abstract class AbstractSegmentsMinimalTest {
         Seg.SegmentInformation.newBuilder().setSegmentId(id).setTimestamp(now).build();
     Seg.PathSegment.Builder builder =
         Seg.PathSegment.newBuilder().setSegmentInfo(info.toByteString());
-    //    for (Seg.ASEntry entry : entries) {
-    //      builder.addAsEntries(entry);
-    //    }
     builder.addAllAsEntries(Arrays.asList(entries));
     return builder.build();
   }
@@ -443,12 +442,7 @@ public abstract class AbstractSegmentsMinimalTest {
     //    AS Body: IA=1-ff00:0:121 nextIA=0-0:0:0  mtu=1472
     //      HopEntry: true mtu=1472
     //        HopField: exp=63 ingress=104 egress=0
-
-    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 21));
-    Seg.ASEntry ase00 = buildASEntry(AS_120, AS_121, 1472, he00);
-    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 104, 0));
-    Seg.ASEntry ase01 = buildASEntry(AS_121, ZERO, 1472, he01);
-    Seg.PathSegment path0 = buildPath(48280, ase00, ase01);
+    Seg.PathSegment path0 = scenario.getSegments(AS_121, AS_120).get(0);
 
     controlServer.addResponse(
         AS_120, true, AS_121, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_DOWN, path0));
@@ -473,17 +467,19 @@ public abstract class AbstractSegmentsMinimalTest {
     //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
     //      HopEntry: true mtu=1472
     //      HopField: exp=63 ingress=210 egress=0
-
-    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 105));
-    Seg.ASEntry ase00 = buildASEntry(AS_210, AS_120, 1280, he00);
-    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 210, 0));
-    Seg.ASEntry ase01 = buildASEntry(AS_120, ZERO, 1472, he01);
-    Seg.PathSegment path0 = buildPath(18204, ase00, ase01);
+    Seg.PathSegment path0 = scenario.getSegments(AS_120, AS_210).get(0);
+    Seg.PathSegment path1 = scenario.getSegments(AS_210, AS_120).get(0);
+    //
+    //    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 105));
+    //    Seg.ASEntry ase00 = buildASEntry(AS_210, AS_120, 1280, he00);
+    //    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 210, 0));
+    //    Seg.ASEntry ase01 = buildASEntry(AS_120, ZERO, 1472, he01);
+    //    Seg.PathSegment path0 = buildPath(18204, ase00, ase01);
 
     controlServer.addResponse(
         AS_120, true, AS_210, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path0));
     controlServer.addResponse(
-        AS_210, true, AS_120, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path0));
+        AS_210, true, AS_120, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path1));
   }
 
   private void addResponse110_210() {

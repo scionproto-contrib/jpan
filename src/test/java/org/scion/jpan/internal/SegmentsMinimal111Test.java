@@ -245,7 +245,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkMetaHeader(rawBB, 2, 2, 2);
       checkInfo(rawBB, 18215, 0);
       checkInfo(rawBB, 26755, 0);
-      checkInfo(rawBB, 48280, 1);
+      checkInfo(rawBB, 12345, 1);
       checkHopField(rawBB, 111, 0);
       checkHopField(rawBB, 0, 2);
       checkHopField(rawBB, 1, 0);
@@ -257,7 +257,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1460, path.getMtu());
+      assertEquals(1350, path.getMtu());
       assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
