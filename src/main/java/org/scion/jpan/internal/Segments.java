@@ -84,6 +84,17 @@ public class Segments {
       long dstIsdAs,
       boolean minimizeLookups) {
     LocalTopology localAS = bootstrapper.getLocalTopology();
+    List<Daemon.Path> path = getPaths(service, localAS, srcIsdAs, dstIsdAs, minimizeLookups);
+    path.sort(Comparator.comparingInt(Daemon.Path::getInterfacesCount));
+    return path;
+  }
+
+  private static List<Daemon.Path> getPaths(
+      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub service,
+      LocalTopology localAS,
+      long srcIsdAs,
+      long dstIsdAs,
+      boolean minimizeLookups) {
     long srcWildcard = ScionUtil.toWildcard(srcIsdAs);
     long dstWildcard = ScionUtil.toWildcard(dstIsdAs);
 
@@ -106,7 +117,9 @@ public class Segments {
       }
       if (minimizeLookups && containsIsdAs(segmentsUp, dstIsdAs)) {
         // DST is core or on-path
-        return combineSegment(segmentsUp, localAS, dstIsdAs);
+        MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
+        combineSegment(paths, segmentsUp, localAS, dstIsdAs);
+        return paths.values();
       }
     }
 
@@ -196,64 +209,64 @@ public class Segments {
     int code = segmentsUp != null ? 4 : 0;
     code |= segmentsCore != null ? 2 : 0;
     code |= segmentsDown != null ? 1 : 0;
-    final List<Daemon.Path> paths = new ArrayList<>();
+    final MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
     // TODO replace with if-else...?
     switch (code) {
       case 7:
         {
-          paths.addAll(
-              combineThreeSegments(
-                  segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS));
+          combineThreeSegments(
+              paths, segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
           if (ScionUtil.extractIsd(srcIsdAs) == ScionUtil.extractIsd(dstIsdAs)) {
-            paths.addAll(combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS));
+            combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
           }
           break;
         }
       case 6:
         {
-          paths.addAll(combineTwoSegments(segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS));
-          paths.addAll(combineSegment(segmentsUp, localAS, dstIsdAs));
+          combineTwoSegments(paths, segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS);
+          combineSegment(paths, segmentsUp, localAS, dstIsdAs);
           break;
         }
       case 5:
         {
-          paths.addAll(combineTwoSegments(segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS));
+          combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
           break;
         }
       case 4:
         {
-          paths.addAll(combineSegment(segmentsUp, localAS, dstIsdAs));
+          combineSegment(paths, segmentsUp, localAS, dstIsdAs);
           break;
         }
       case 3:
         {
-          paths.addAll(combineTwoSegments(segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS));
-          paths.addAll(combineSegment(segmentsDown, localAS, dstIsdAs));
+          combineTwoSegments(paths, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+          combineSegment(paths, segmentsDown, localAS, dstIsdAs);
           break;
         }
       case 2:
         {
-          paths.addAll(combineSegment(segmentsCore, localAS, dstIsdAs));
+          combineSegment(paths, segmentsCore, localAS, dstIsdAs);
           break;
         }
       case 1:
         {
-          paths.addAll(combineSegment(segmentsDown, localAS, dstIsdAs));
+          combineSegment(paths, segmentsDown, localAS, dstIsdAs);
           break;
         }
       default:
         throw new UnsupportedOperationException();
     }
-    return paths;
+    return paths.values();
   }
 
-  private static List<Daemon.Path> combineSegment(
-      List<Seg.PathSegment> segments, LocalTopology localAS, long dstIsdAs) {
-    List<Daemon.Path> paths = new ArrayList<>();
+  private static void combineSegment(
+      MultiMap<Integer, Daemon.Path> paths,
+      List<Seg.PathSegment> segments,
+      LocalTopology localAS,
+      long dstIsdAs) {
     for (Seg.PathSegment pathSegment : segments) {
       buildPath(paths, localAS, dstIsdAs, pathSegment);
     }
-    return paths;
   }
 
   /**
@@ -264,9 +277,9 @@ public class Segments {
    * @param srcIsdAs src ISD/AS
    * @param dstIsdAs src ISD/AS
    * @param localAS border router lookup resource
-   * @return Paths
    */
-  private static List<Daemon.Path> combineTwoSegments(
+  private static void combineTwoSegments(
+      MultiMap<Integer, Daemon.Path> paths,
       List<Seg.PathSegment> segments0,
       List<Seg.PathSegment> segments1,
       long srcIsdAs,
@@ -275,17 +288,16 @@ public class Segments {
     // Map IsdAs to pathSegment
     MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
-    List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
       for (Seg.PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
         buildPath(paths, localAS, dstIsdAs, pathSegment0, pathSegment1);
       }
     }
-    return paths;
   }
 
-  private static List<Daemon.Path> combineThreeSegments(
+  private static void combineThreeSegments(
+      MultiMap<Integer, Daemon.Path> paths,
       List<Seg.PathSegment> segmentsUp,
       List<Seg.PathSegment> segmentsCore,
       List<Seg.PathSegment> segmentsDown,
@@ -296,7 +308,6 @@ public class Segments {
     MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
     MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
 
-    List<Daemon.Path> paths = new ArrayList<>();
     for (Seg.PathSegment pathSeg : segmentsCore) {
       long[] endIAs = getEndingIAs(pathSeg);
       if (upSegments.contains(endIAs[0]) && downSegments.contains(endIAs[1])) {
@@ -317,11 +328,10 @@ public class Segments {
             dstIsdAs);
       }
     }
-    return paths;
   }
 
   private static void buildPath(
-      List<Daemon.Path> paths,
+      MultiMap<Integer, Daemon.Path> paths,
       List<Seg.PathSegment> segmentsUp,
       Seg.PathSegment segCore,
       List<Seg.PathSegment> segmentsDown,
@@ -335,7 +345,10 @@ public class Segments {
   }
 
   private static void buildPath(
-      List<Daemon.Path> paths, LocalTopology localAS, long dstIsdAs, Seg.PathSegment... segments) {
+      MultiMap<Integer, Daemon.Path> paths,
+      LocalTopology localAS,
+      long dstIsdAs,
+      Seg.PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -411,7 +424,33 @@ public class Segments {
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
 
-    paths.add(path.build());
+    checkDuplicatePaths(paths, path);
+  }
+
+  private static void checkDuplicatePaths(
+      MultiMap<Integer, Daemon.Path> paths, Daemon.Path.Builder path) {
+    ByteString raw = path.getRaw();
+    // Add, path to list, but avoid duplicates
+    int hash = Arrays.hashCode(raw.toByteArray());
+    if (paths.contains(hash)) {
+      for (Daemon.Path otherPath : paths.get(hash)) {
+        ByteString otherRaw = otherPath.getRaw();
+        boolean equals = true;
+        for (int i = 0; i < otherRaw.size(); i++) {
+          if (otherRaw.byteAt(i) != raw.byteAt(i)) {
+            equals = false;
+            break;
+          }
+        }
+        if (equals) {
+          // duplicate!
+          return;
+        }
+      }
+    }
+
+    // Add new path!
+    paths.put(hash, path.build());
   }
 
   private static Optional<Boolean> isReversed(

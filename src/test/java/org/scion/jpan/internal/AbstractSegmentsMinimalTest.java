@@ -28,7 +28,7 @@ import org.scion.jpan.testutil.Scenario;
 public abstract class AbstractSegmentsMinimalTest {
   protected static final String AS_HOST = "my-as-host.org";
   protected static final String CFG_MINIMAL = "topologies/minimal/";
-  protected static final Scenario scenario = Scenario.readFrom(CFG_MINIMAL);
+  protected static final String CFG_DEFAULT = "topologies/scionproto-default/";
 
   /** ISD 1 - core AS */
   protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
@@ -61,6 +61,15 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
 
   protected static MockControlServer controlServer;
+  protected final Scenario scenario;
+
+  protected AbstractSegmentsMinimalTest() {
+    this(CFG_MINIMAL);
+  }
+
+  protected AbstractSegmentsMinimalTest(String cfg) {
+    scenario = Scenario.readFrom(cfg);
+  }
 
   protected static void checkMetaHeader(
       ByteBuffer rawBB, int hopCount0, int hopCount1, int hopCount2) {
@@ -158,6 +167,35 @@ public abstract class AbstractSegmentsMinimalTest {
     addResponse120_121();
     addResponse110_210();
     addResponse210_211();
+  }
+
+  protected void addResponsesScionprotoDefault() {
+    long AS_130 = ScionUtil.parseIA("1-ff00:0:130");
+
+    addUpDown(AS_111, AS_130);
+    addUpDown(AS_111, AS_120);
+
+    addUpDown(AS_112, AS_130);
+    addUpDown(AS_112, AS_120);
+
+    addCore(AS_130, AS_120);
+    addCore(AS_120, AS_130);
+  }
+
+  private void addCore(long local, long origin) {
+    for (Seg.PathSegment path : scenario.getSegments(local, origin)) {
+      controlServer.addResponse(
+          local, true, origin, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_CORE, path));
+    }
+  }
+
+  private void addUpDown(long leaf, long core) {
+    for (Seg.PathSegment path : scenario.getSegments(leaf, core)) {
+      controlServer.addResponse(
+          leaf, false, core, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path));
+      controlServer.addResponse(
+          core, true, leaf, false, buildResponse(Seg.SegmentType.SEGMENT_TYPE_DOWN, path));
+    }
   }
 
   private void addResponse110_111() {

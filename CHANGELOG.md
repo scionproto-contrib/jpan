@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BUG: System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.1");
   leads to exception about missing TRC (instead of complaining about missing ":30255")
 - Demo that connects to Francois' website
+- Fix @Disabled tests
 - Support topofile port range
 - `ResponsePath` is now package private (not public anymore)
 - remove ScionAddress?
@@ -28,11 +29,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
-- Support shortcut and on-path detection during path construction. 
-  New option `SCION_RESOLVER_MINIMIZE_REQUESTS`
+- Support shortcut and on-path detection during path construction. Also:
+  - New option `SCION_RESOLVER_MINIMIZE_REQUESTS`
+  - Fixed MTU calculations for link level MTU
+  - Path lists are ordered by hop count
+  - Path lists contain no duplicates
   [#104](https://github.com/scionproto-contrib/jpan/pull/104)
 TODO:
-- Fix or report as BUG: link-MTU is not considered (or is it?) -> test!
 - Fix output: ScionUtil.toStringPath(path.getRawPath());
   results in [494>103 ] i.o. [494>103]
 - Check that duplicate paths are eliminated, e.g. with "default"
