@@ -203,5 +203,13 @@ public class ScionUtil {
     }
   }
 
+  public static boolean isWildcard(long isdAs) {
+    return isdAs == toWildcard(isdAs);
+  }
+
+  public static long toWildcard(long isdAs) {
+    return (isdAs >>> 48) << 48;
+  }
+
   private ScionUtil() {}
 }

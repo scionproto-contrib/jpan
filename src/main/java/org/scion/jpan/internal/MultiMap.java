@@ -39,4 +39,12 @@ public class MultiMap<K, V> {
   public void clear() {
     map.clear();
   }
+
+  public List<V> values() {
+    ArrayList<V> values = new ArrayList<>(map.size());
+    for (Map.Entry<K, ArrayList<V>> e : map.entrySet()) {
+      values.addAll(e.getValue());
+    }
+    return values;
+  }
 }

@@ -330,12 +330,12 @@ attempt to get network information in the following order until it succeeds:
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
 
-| Option                              | Java property                    | Environment variable          | Default value   |
-|-------------------------------------|----------------------------------|-------------------------------|-----------------|
-| Daemon port                         | `org.scion.daemon.port`          | `SCION_DAEMON`                | localhost:30255 | 
-| Bootstrap topology file path        | `org.scion.bootstrap.topoFile`   | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
-| Bootstrap server host               | `org.scion.bootstrap.host`       | `SCION_BOOTSTRAP_HOST`        |                 |
-| Bootstrap DNS NAPTR entry host name | `org.scion.bootstrap.naptr.name` | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
+| Option                              | Java property                       | Environment variable          | Default value   |
+|-------------------------------------|-------------------------------------|-------------------------------|-----------------|
+| Daemon port                         | `org.scion.daemon.port`             | `SCION_DAEMON`                | localhost:30255 | 
+| Bootstrap topology file path        | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
+| Bootstrap server host               | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`        |                 |
+| Bootstrap DNS NAPTR entry host name | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
 | Bootstrap DNS NAPTR entry host name | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            | 
 
 ### DNS
@@ -345,10 +345,18 @@ is configurable, see next section.
 
 ### Other Options
 
-| Option                                                                                                               | Java property           | Environment variable | Default value      |
-|----------------------------------------------------------------------------------------------------------------------|-------------------------|----------------------|--------------------|
-| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin` | `SCION_PATH_EXPIRY_MARGIN`  | 10                 |
-| Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles` | `SCION_HOSTS_FILES`  | `/etc/scion/hosts` |
+| Option                                                                                                               | Java property                         | Environment variable                 | Default value      |
+|----------------------------------------------------------------------------------------------------------------------|---------------------------------------|--------------------------------------|--------------------|
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`          | `SCION_PATH_EXPIRY_MARGIN`           | 10                 |
+| Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles`                | `SCION_HOSTS_FILES`                  | `/etc/scion/hosts` |
+| Minimize segment requests to local AS at the cost of reduced range of path available.                                | `org.scion.resolver.minimizeRequests` | `SCION_RESOLVER_MINIMIZE_REQUESTS`   | `false`            |
+
+`SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that request CORE segments only of other 
+path can be constructed. This may reduce response time when requesting new paths. It is very likely,
+but not guaranteed, that the shortest path (fewest hops) will be available. 
+If this property is not set (= default), CORE segments are always requested, resulting in additional
+path options. While these additional path options almost always result in longer paths, they may have 
+other advantages.  
 
 ## FAQ / Troubleshooting
 

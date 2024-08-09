@@ -9,7 +9,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.3.0
+- BUG: System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.1");
+  leads to exception about missing TRC (instead of complaining about missing ":30255")
+  -> DOes this work with an IPv6 address (separaeting the port?)
+  -> Think about making the port optional, it is standardized to 30255 anyway
+  -> Move port to separate environment variable???? 
+- Make ResponsePath/RequestPath classes private. Make at least create() private... 
 - Demo that connects to Francois' website
+- Fix @Disabled tests
 - Support topofile port range
 - `ResponsePath` is now package private (not public anymore)
 - remove ScionAddress?
@@ -26,6 +33,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
+- Support shortcut and on-path detection during path construction. Also:
+  - New option `SCION_RESOLVER_MINIMIZE_REQUESTS`
+  - Fixed MTU calculations for link level MTU
+  - Path lists are ordered by hop count
+  - Path lists contain no duplicates
+  [#104](https://github.com/scionproto-contrib/jpan/pull/104)
+TODO:
+- Fix output: ScionUtil.toStringPath(path.getRawPath());
+  results in [494>103 ] i.o. [494>103]
+- Check that duplicate paths are eliminated, e.g. with "default"
+  Path found: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120]
+  Path found: [1-ff00:0:112 494>103 1-ff00:0:111 105>112 1-ff00:0:130]
+becomes
+  Path found: [494>103 ]
+  Path found: [494>103 ]
+should be
+  Path found: [494>103 ]
+
 
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
