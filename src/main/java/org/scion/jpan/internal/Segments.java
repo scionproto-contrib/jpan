@@ -22,6 +22,8 @@ import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
@@ -115,11 +117,14 @@ public class Segments {
       if (segmentsUp.isEmpty()) {
         return Collections.emptyList();
       }
-      if (minimizeLookups && containsIsdAs(segmentsUp, dstIsdAs)) {
-        // DST is core or on-path
-        MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
-        combineSegment(paths, segmentsUp, localAS, dstIsdAs);
-        return paths.values();
+      if (minimizeLookups) {
+        List<Seg.PathSegment> directUp = filterForIsdAs(segmentsUp, dstIsdAs);
+        if (!directUp.isEmpty()) {
+          // DST is core or on-path
+          MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
+          combineSegment(paths, directUp, localAS, dstIsdAs);
+          return paths.values();
+      }
       }
     }
 
@@ -224,7 +229,7 @@ public class Segments {
       case 6:
         {
           combineTwoSegments(paths, segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS);
-          combineSegment(paths, segmentsUp, localAS, dstIsdAs);
+          combineSegment(paths, filterForIsdAs(segmentsUp, dstIsdAs), localAS, dstIsdAs);
           break;
         }
       case 5:
@@ -240,7 +245,7 @@ public class Segments {
       case 3:
         {
           combineTwoSegments(paths, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
-          combineSegment(paths, segmentsDown, localAS, dstIsdAs);
+          combineSegment(paths, filterForIsdAs(segmentsDown, srcIsdAs), localAS, dstIsdAs);
           break;
         }
       case 2:
@@ -671,18 +676,18 @@ public class Segments {
     }
   }
 
-  private static boolean containsIsdAs(List<Seg.PathSegment> segments, long dstIsdAs) {
-    for (Seg.PathSegment seg : segments) {
-      for (Seg.ASEntry asEntry : seg.getAsEntriesList()) {
-        long ia = getBody(asEntry).getIsdAs();
-        if ((ia == dstIsdAs)) {
-          return true;
-        }
-      }
-    }
-    return false;
+  private static List<Seg.PathSegment> filterForIsdAs(
+      List<Seg.PathSegment> segments, final long isdAs) {
+    // Return all segments that go through the given ISD/AS
+    return segments.stream()
+        .filter(
+            pathSegment ->
+                pathSegment.getAsEntriesList().stream()
+                    .anyMatch(asEntry -> getBody(asEntry).getIsdAs() == isdAs))
+        .collect(Collectors.toList());
   }
 
+  // TODO -> filter
   private static boolean endsWithIsdAs(List<Seg.PathSegment> segments, long dstIsdAs) {
     for (Seg.PathSegment seg : segments) {
       Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
