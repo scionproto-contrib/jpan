@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.3.0
 - BUG: System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.1");
   leads to exception about missing TRC (instead of complaining about missing ":30255")
+  -> DOes this work with an IPv6 address (separaeting the port?)
+  -> Think about making the port optional, it is standardized to 30255 anyway
+  -> Move port to separate environment variable???? 
+- Make ResponsePath/RequestPath classes private. Make at least create() private... 
 - Demo that connects to Francois' website
 - Fix @Disabled tests
 - Support topofile port range
