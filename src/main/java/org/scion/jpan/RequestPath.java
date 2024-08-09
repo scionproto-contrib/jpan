@@ -33,9 +33,19 @@ public class RequestPath extends Path {
     return new RequestPath(path, dstIsdAs, dstIP, dstPort);
   }
 
+  @Override
+  public Path copy(InetAddress dstIP, int dstPort) {
+    return new RequestPath(metadata, getRemoteIsdAs(), dstIP, dstPort);
+  }
+
   private RequestPath(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
     super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
     this.metadata = PathMetadata.create(path, dstIP, dstPort);
+  }
+
+  private RequestPath(PathMetadata metadata, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    super(metadata.getRawPath(), dstIsdAs, dstIP, dstPort);
+    this.metadata = metadata;
   }
 
   @Override

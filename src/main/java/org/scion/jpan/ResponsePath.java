@@ -63,6 +63,19 @@ public class ResponsePath extends Path {
   }
 
   @Override
+  public Path copy(InetAddress dstIP, int dstPort) {
+    return new ResponsePath(
+        getRawPath(),
+        srcIsdAs,
+        srcAddress,
+        srcPort,
+        getRemoteIsdAs(),
+        dstIP,
+        dstPort,
+        firstHopAddress);
+  }
+
+  @Override
   public InetSocketAddress getFirstHopAddress() {
     return firstHopAddress;
   }

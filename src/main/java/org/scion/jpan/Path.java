@@ -31,6 +31,14 @@ public abstract class Path {
     this.dstAddress = ScionSocketAddress.from(this, dstIsdAs, dstIP, dstPort);
   }
 
+  /**
+   * Create a copy of the Path with a new destination IP and port.
+   * @param dstIP new destination IP
+   * @param dstPort new destination port
+   * @return new path
+   */
+  public abstract Path copy(InetAddress dstIP, int dstPort);
+
   public byte[] getRawPath() {
     return pathRaw;
   }
