@@ -77,7 +77,7 @@ public class MockControlServer implements AutoCloseable {
             .addService(controlServer)
             .build()
             .start();
-    logger.info("Server started, listening on " + address);
+    logger.info("Server started, listening on {}", address);
 
     Runtime.getRuntime()
         .addShutdownHook(
@@ -131,7 +131,7 @@ public class MockControlServer implements AutoCloseable {
         Seg.SegmentsRequest req, StreamObserver<Seg.SegmentsResponse> responseObserver) {
       String srcIsdAsStr = ScionUtil.toStringIA(req.getSrcIsdAs());
       String dstIsdAsStr = ScionUtil.toStringIA(req.getDstIsdAs());
-      logger.info("Segment request: " + srcIsdAsStr + " -> " + dstIsdAsStr);
+      logger.info("Segment request: {} -> {}", srcIsdAsStr, dstIsdAsStr);
       callCount.incrementAndGet();
 
       if (responses.isEmpty()) {
@@ -200,6 +200,13 @@ public class MockControlServer implements AutoCloseable {
 
   private static Seg.SegmentsResponse defaultResponse(long srcIA, long dstIA) {
     Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
+    if (srcIA == dstIA) {
+      // Single core AS, no paths are available
+      return replyBuilder.build();
+    }
+    // Wildcards are only used for CORE AS, and there is only one core AS in "tiny": 1-ff00:0:110
+    srcIA = ScionUtil.isWildcard(srcIA) ? ScionUtil.parseIA("1-ff00:0:110") : srcIA;
+    dstIA = ScionUtil.isWildcard(dstIA) ? ScionUtil.parseIA("1-ff00:0:110") : dstIA;
 
     ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
     Seg.HopField hop0 = Seg.HopField.newBuilder().setMac(mac0).setIngress(3).setEgress(2).build();

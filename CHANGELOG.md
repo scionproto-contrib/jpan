@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
 - Added `copy(...)` method for paths. [#111](https://github.com/scionproto-contrib/jpan/pull/111)
+- Added Scenario builder for unit tests. [#112](https://github.com/scionproto-contrib/jpan/pull/112)
 
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 

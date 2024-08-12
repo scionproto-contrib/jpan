@@ -175,7 +175,7 @@ public class Segments {
     if (srcIsdAs == dstIsdAs) {
       // case A: same AS, return empty path
       Daemon.Path.Builder path = Daemon.Path.newBuilder();
-      path.setMtu(localAS.getLocalMtu());
+      path.setMtu(localAS.getMtu());
       path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
       return Collections.singletonList(path.build());
     }
@@ -189,7 +189,7 @@ public class Segments {
     long to = dstIsdAs;
     List<List<Seg.PathSegment>> segments = new ArrayList<>();
     // First, if necessary, try to get UP segments
-    if (!localAS.isLocalAsCore()) {
+    if (!localAS.isCoreAs()) {
       // get UP segments
       // TODO find out if dstIsAs is core and directly ask for it.
       List<Seg.PathSegment> segmentsUp = getSegments(segmentStub, srcIsdAs, srcWildcard);
@@ -421,7 +421,7 @@ public class Segments {
 
     // info fields
     boolean[] reversed = new boolean[segments.length];
-    long startIA = localAS.getLocalIsdAs();
+    long startIA = localAS.getIsdAs();
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < infos.length; i++) {
       reversed[i] = isReversed(segments[i], startIA, endingIA);
@@ -430,7 +430,7 @@ public class Segments {
     }
 
     // hop fields
-    path.setMtu(localAS.getLocalMtu());
+    path.setMtu(localAS.getMtu());
     for (int i = 0; i < segments.length; i++) {
       // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
       writeHopFields(path, raw, 6 + i * 8, segments[i], reversed[i], infos[i]);

@@ -54,7 +54,11 @@ class DatagramChannelPathSwitchTest {
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph = new PingPongChannelHelper(1, 2, 10);
     pph.runPingPong(serverFn, clientFn, false);
-    assertEquals(2 * 10, MockNetwork.getForwardCount(0));
+    // TODO: This sometimes reports 22 i.o. 20.
+    assertEquals(
+        2 * 10,
+        MockNetwork.getForwardCount(0),
+        "Actual: " + MockNetwork.getForwardCount(0) + "/" + MockNetwork.getForwardCount(1));
     assertEquals(2 * 10, MockNetwork.getForwardCount(1));
     assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
   }

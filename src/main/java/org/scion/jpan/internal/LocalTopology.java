@@ -18,6 +18,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.scion.jpan.ScionRuntimeException;
@@ -51,11 +52,11 @@ public class LocalTopology {
     return controlServices.get(0).ipString;
   }
 
-  public boolean isLocalAsCore() {
+  public boolean isCoreAs() {
     return isCoreAs;
   }
 
-  public long getLocalIsdAs() {
+  public long getIsdAs() {
     return ScionUtil.parseIA(localIsdAs);
   }
 
@@ -78,7 +79,7 @@ public class LocalTopology {
     return result;
   }
 
-  public int getLocalMtu() {
+  public int getMtu() {
     return this.localMtu;
   }
 
@@ -101,9 +102,12 @@ public class LocalTopology {
           JsonElement local =
               underlay.has(("local")) ? underlay.get(("local")) : underlay.get(("public"));
           JsonElement remote = underlay.get(("remote"));
+          long isdAs = ScionUtil.parseIA(ife.get("isd_as").getAsString());
+          int mtu = ife.get("mtu").getAsInt();
+          String linkTo = ife.get("link_to").getAsString();
           interfaces.add(
               new BorderRouterInterface(
-                  ifEntry.getKey(), local.getAsString(), remote.getAsString()));
+                  ifEntry.getKey(), local.getAsString(), remote.getAsString(), isdAs, mtu, linkTo));
         }
         borderRouters.add(new BorderRouter(e.getKey(), addr, interfaces));
       }
@@ -142,34 +146,76 @@ public class LocalTopology {
   }
 
   public List<ServiceNode> getControlServices() {
-    return controlServices;
+    return Collections.unmodifiableList(controlServices);
   }
 
-  private static class BorderRouter {
+  public List<BorderRouter> getBorderRouters() {
+    return Collections.unmodifiableList(borderRouters);
+  }
+
+  public static class BorderRouter {
     private final String name;
     private final String internalAddress;
     private final List<BorderRouterInterface> interfaces;
 
-    public BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
+    BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
       this.name = name;
       this.internalAddress = addr;
       this.interfaces = interfaces;
     }
-  }
 
-  private static class BorderRouterInterface {
-    final int id;
-    final String publicUnderlay;
-    final String remoteUnderlay;
-
-    public BorderRouterInterface(String id, String publicU, String remoteU) {
-      this.id = Integer.parseInt(id);
-      this.publicUnderlay = publicU;
-      this.remoteUnderlay = remoteU;
+    public Iterable<BorderRouterInterface> getInterfaces() {
+      return interfaces;
     }
   }
 
-  static class ServiceNode {
+  public static class BorderRouterInterface {
+    public static final String PARENT = "parent";
+    public static final String CHILD = "child";
+    public static final String CORE = "core";
+    final int id;
+    final String publicUnderlay;
+    final String remoteUnderlay;
+    final long isdAs;
+    final int mtu;
+    final String linkTo;
+
+    BorderRouterInterface(
+        String id, String publicU, String remoteU, long isdAs, int mtu, String linkTo) {
+      this.id = Integer.parseInt(id);
+      this.publicUnderlay = publicU;
+      this.remoteUnderlay = remoteU;
+      this.isdAs = isdAs;
+      this.mtu = mtu;
+      this.linkTo = linkTo;
+    }
+
+    public long getIsdAs() {
+      return isdAs;
+    }
+
+    public int getMtu() {
+      return mtu;
+    }
+
+    public int getId() {
+      return id;
+    }
+
+    public String getLinkTo() {
+      return linkTo;
+    }
+
+    public String getRemoteUnderlay() {
+      return remoteUnderlay;
+    }
+
+    public String getPublicUnderlay() {
+      return publicUnderlay;
+    }
+  }
+
+  public static class ServiceNode {
     final String name;
     final String ipString;
 
