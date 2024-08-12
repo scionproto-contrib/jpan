@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix @Disabled tests
 - Support topofile port range
 - `ResponsePath` is now package private (not public anymore)
+- Create handling for SCMP errors 6 & 7 (interface down, connectivity down). Subclasses?
 - remove ScionAddress?
 - Remove getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) <- ISD + Scion address!!!
 - ScionDatagramChannel
