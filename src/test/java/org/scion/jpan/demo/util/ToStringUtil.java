@@ -104,7 +104,7 @@ public class ToStringUtil {
         } else {
           sb.append(hfE.getIngress()).append(">").append(hfI.getEgress());
         }
-        if (i < ph.getHopCount() - 1) {
+        if (i < ph.getHopCount() - 2) {
           sb.append(" ");
         }
       }

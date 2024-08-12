@@ -27,16 +27,19 @@ public final class Constants {
 
   /** Address of bootstrap server (http), e.g. 192.168.42.42 */
   public static final String PROPERTY_BOOTSTRAP_HOST = "org.scion.bootstrap.host";
+
   /** Address of bootstrap server (http), e.g. 192.168.42.42 */
   public static final String ENV_BOOTSTRAP_HOST = "SCION_BOOTSTRAP_HOST";
 
   /** Host name of DNS entry with NAPTR record for bootstrap service. */
   public static final String PROPERTY_BOOTSTRAP_NAPTR_NAME = "org.scion.bootstrap.naptr.name";
+
   /** Host name of DNS entry with NAPTR record for bootstrap service. */
   public static final String ENV_BOOTSTRAP_NAPTR_NAME = "SCION_BOOTSTRAP_NAPTR_NAME";
 
   /** path/file name for topology file. */
   public static final String PROPERTY_BOOTSTRAP_TOPO_FILE = "org.scion.bootstrap.topoFile";
+
   /** path/file name for topology file. */
   public static final String ENV_BOOTSTRAP_TOPO_FILE = "SCION_BOOTSTRAP_TOPO_FILE";
 
@@ -62,12 +65,12 @@ public final class Constants {
   public static final int DEFAULT_PATH_EXPIRY_MARGIN = 10;
 
   /**
-   * Disable usage of OS search domains for DNS lookup, e.g from /etc/resolv.conf. This needs to be
+   * Disable usage of OS search domains for DNS lookup, e.g. from /etc/resolv.conf. This needs to be
    * disabled for JUnit testing.
    */
-  public static final String PROPERTY_USE_OS_SEARCH_DOMAINS = "SCION_USE_OS_SEARCH_DOMAINS";
+  public static final String PROPERTY_USE_OS_SEARCH_DOMAINS = "org.scion.test.useOsSearchDomains";
 
-  public static final String ENV_USE_OS_SEARCH_DOMAINS = "org.scion.test.useOsSearchDomains";
+  public static final String ENV_USE_OS_SEARCH_DOMAINS = "SCION_USE_OS_SEARCH_DOMAINS";
   public static final boolean DEFAULT_USE_OS_SEARCH_DOMAINS = true;
 
   /**

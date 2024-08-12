@@ -36,8 +36,8 @@ class ScionBootstrapperTest {
     ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
     LocalTopology topo = sb.getLocalTopology();
 
-    assertEquals(ScionUtil.parseIA("1-ff00:0:110"), topo.getLocalIsdAs());
+    assertEquals(ScionUtil.parseIA("1-ff00:0:110"), topo.getIsdAs());
     assertEquals("127.0.0.11:31000", topo.getControlServerAddress());
-    assertTrue(topo.isLocalAsCore());
+    assertTrue(topo.isCoreAs());
   }
 }

@@ -109,7 +109,7 @@ public class ScionService {
       }
       String csHost = bootstrapper.getLocalTopology().getControlServerAddress();
       LOG.info("Bootstrapping with control service: {}", csHost);
-      localIsdAs.set(bootstrapper.getLocalTopology().getLocalIsdAs());
+      localIsdAs.set(bootstrapper.getLocalTopology().getIsdAs());
       // TODO InsecureChannelCredentials: Implement authentication!
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;

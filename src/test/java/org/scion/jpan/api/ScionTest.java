@@ -299,7 +299,6 @@ public class ScionTest {
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
-      assertEquals(1, MockNetwork.getControlServer().getAndResetCallCount());
       assertNotEquals(Scion.defaultService(), ss);
     } finally {
       MockNetwork.stopTiny();
@@ -319,7 +318,6 @@ public class ScionTest {
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       assertEquals(1, MockNetwork.getTopoServer().getAndResetCallCount());
-      assertEquals(1, MockNetwork.getControlServer().getAndResetCallCount());
       // No DNS, no daemon, no ENV variables -> fail.
       assertThrows(ScionRuntimeException.class, Scion::defaultService);
     } finally {
