@@ -108,7 +108,7 @@ public class Segments {
     }
 
     // First, if necessary, try to get UP segments
-    List<Seg.PathSegment> segmentsUp = null;
+    List<PathSegment> segmentsUp = null;
     if (!localAS.isCoreAs()) {
       // get UP segments
       segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
@@ -116,7 +116,7 @@ public class Segments {
         return Collections.emptyList();
       }
       if (minimizeLookups) {
-        List<Seg.PathSegment> directUp = filterForIsdAs(segmentsUp, dstIsdAs);
+        List<PathSegment> directUp = filterForIsdAs(segmentsUp, dstIsdAs);
         if (!directUp.isEmpty()) {
           // DST is core or on-path
           MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
@@ -130,7 +130,7 @@ public class Segments {
     // Next, we look for core segments.
     // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable leaf)
     // we still should look at core segments because they may offer additional paths.
-    List<Seg.PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
+    List<PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
     if (segmentsUp == null) {
       // SRC is core, we can disregard all CORE segments that don't start with SRC
       segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);
@@ -141,11 +141,11 @@ public class Segments {
       return combineSegments(segmentsUp, segmentsCore, null, srcIsdAs, dstIsdAs, localAS);
     }
 
-    List<Seg.PathSegment> segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
+    List<PathSegment> segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
     return combineSegments(segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
   }
 
-  private static List<Seg.PathSegment> getSegments(
+  private static List<PathSegment> getSegments(
       SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
       long srcIsdAs,
       long dstIsdAs) {
@@ -161,10 +161,7 @@ public class Segments {
       long t0 = System.nanoTime();
       Seg.SegmentsResponse response = segmentStub.segments(request);
       long t1 = System.nanoTime();
-      LOG.info(
-          "CS request took {} ms. Segments found: {}",
-          (t1 - t0) / 1_000_000,
-          response.getSegmentsMap().size());
+      LOG.info("Segment request took {} ms.", (t1 - t0) / 1_000_000);
       if (response.getSegmentsMap().size() > 1) {
         throw new UnsupportedOperationException();
       }
@@ -194,21 +191,23 @@ public class Segments {
     }
   }
 
-  private static List<Seg.PathSegment> getPathSegments(Seg.SegmentsResponse response) {
-    List<Seg.PathSegment> pathSegments = new ArrayList<>();
+  private static List<PathSegment> getPathSegments(Seg.SegmentsResponse response) {
+    List<PathSegment> pathSegments = new ArrayList<>();
     for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> seg :
         response.getSegmentsMap().entrySet()) {
-      pathSegments.addAll(seg.getValue().getSegmentsList());
-      String key = Seg.SegmentType.forNumber(seg.getKey()).name();
-      LOG.info("Segments found of type {}: {}", key, pathSegments.size());
+      SegmentType type = SegmentType.from(Seg.SegmentType.forNumber(seg.getKey()));
+      seg.getValue()
+          .getSegmentsList()
+          .forEach(path -> pathSegments.add(new PathSegment(path, type)));
+      LOG.info("Segments found of type: {}", type.name());
     }
     return pathSegments;
   }
 
   private static List<Daemon.Path> combineSegments(
-      List<Seg.PathSegment> segmentsUp,
-      List<Seg.PathSegment> segmentsCore,
-      List<Seg.PathSegment> segmentsDown,
+      List<PathSegment> segmentsUp,
+      List<PathSegment> segmentsCore,
+      List<PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
       LocalTopology localAS) {
@@ -219,46 +218,32 @@ public class Segments {
     // TODO replace with if-else...?
     switch (code) {
       case 7:
-        {
-          combineThreeSegments(
-              paths, segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
-          if (ScionUtil.extractIsd(srcIsdAs) == ScionUtil.extractIsd(dstIsdAs)) {
-            combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
-          }
-          break;
-        }
-      case 6:
-        {
-          combineTwoSegments(paths, segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS);
-          combineSegment(paths, filterForIsdAs(segmentsUp, dstIsdAs), localAS, dstIsdAs);
-          break;
-        }
-      case 5:
-        {
+        combineThreeSegments(
+            paths, segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+        if (ScionUtil.extractIsd(srcIsdAs) == ScionUtil.extractIsd(dstIsdAs)) {
           combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
-          break;
         }
+        break;
+      case 6:
+        combineTwoSegments(paths, segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS);
+        combineSegment(paths, filterForIsdAs(segmentsUp, dstIsdAs), localAS, dstIsdAs);
+        break;
+      case 5:
+        combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+        break;
       case 4:
-        {
-          combineSegment(paths, segmentsUp, localAS, dstIsdAs);
-          break;
-        }
+        combineSegment(paths, segmentsUp, localAS, dstIsdAs);
+        break;
       case 3:
-        {
-          combineTwoSegments(paths, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
-          combineSegment(paths, filterForIsdAs(segmentsDown, srcIsdAs), localAS, dstIsdAs);
-          break;
-        }
+        combineTwoSegments(paths, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+        combineSegment(paths, filterForIsdAs(segmentsDown, srcIsdAs), localAS, dstIsdAs);
+        break;
       case 2:
-        {
-          combineSegment(paths, segmentsCore, localAS, dstIsdAs);
-          break;
-        }
+        combineSegment(paths, segmentsCore, localAS, dstIsdAs);
+        break;
       case 1:
-        {
-          combineSegment(paths, segmentsDown, localAS, dstIsdAs);
-          break;
-        }
+        combineSegment(paths, segmentsDown, localAS, dstIsdAs);
+        break;
       default:
         throw new UnsupportedOperationException();
     }
@@ -267,10 +252,10 @@ public class Segments {
 
   private static void combineSegment(
       MultiMap<Integer, Daemon.Path> paths,
-      List<Seg.PathSegment> segments,
+      List<PathSegment> segments,
       LocalTopology localAS,
       long dstIsdAs) {
-    for (Seg.PathSegment pathSegment : segments) {
+    for (PathSegment pathSegment : segments) {
       buildPath(paths, localAS, dstIsdAs, pathSegment);
     }
   }
@@ -286,17 +271,17 @@ public class Segments {
    */
   private static void combineTwoSegments(
       MultiMap<Integer, Daemon.Path> paths,
-      List<Seg.PathSegment> segments0,
-      List<Seg.PathSegment> segments1,
+      List<PathSegment> segments0,
+      List<PathSegment> segments1,
       long srcIsdAs,
       long dstIsdAs,
       LocalTopology localAS) {
     // Map IsdAs to pathSegment
-    MultiMap<Long, Seg.PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
+    MultiMap<Long, PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
-    for (Seg.PathSegment pathSegment0 : segments0) {
+    for (PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
-      for (Seg.PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
+      for (PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
         buildPath(paths, localAS, dstIsdAs, pathSegment0, pathSegment1);
       }
     }
@@ -304,17 +289,17 @@ public class Segments {
 
   private static void combineThreeSegments(
       MultiMap<Integer, Daemon.Path> paths,
-      List<Seg.PathSegment> segmentsUp,
-      List<Seg.PathSegment> segmentsCore,
-      List<Seg.PathSegment> segmentsDown,
+      List<PathSegment> segmentsUp,
+      List<PathSegment> segmentsCore,
+      List<PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
       LocalTopology localAS) {
     // Map IsdAs to pathSegment
-    MultiMap<Long, Seg.PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
-    MultiMap<Long, Seg.PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
+    MultiMap<Long, PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
+    MultiMap<Long, PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
 
-    for (Seg.PathSegment pathSeg : segmentsCore) {
+    for (PathSegment pathSeg : segmentsCore) {
       long[] endIAs = getEndingIAs(pathSeg);
       if (upSegments.contains(endIAs[0]) && downSegments.contains(endIAs[1])) {
         buildPath(
@@ -338,13 +323,13 @@ public class Segments {
 
   private static void buildPath(
       MultiMap<Integer, Daemon.Path> paths,
-      List<Seg.PathSegment> segmentsUp,
-      Seg.PathSegment segCore,
-      List<Seg.PathSegment> segmentsDown,
+      List<PathSegment> segmentsUp,
+      PathSegment segCore,
+      List<PathSegment> segmentsDown,
       LocalTopology localAS,
       long dstIA) {
-    for (Seg.PathSegment segUp : segmentsUp) {
-      for (Seg.PathSegment segDown : segmentsDown) {
+    for (PathSegment segUp : segmentsUp) {
+      for (PathSegment segDown : segmentsDown) {
         buildPath(paths, localAS, dstIA, segUp, segCore, segDown);
       }
     }
@@ -354,7 +339,7 @@ public class Segments {
       MultiMap<Integer, Daemon.Path> paths,
       LocalTopology localAS,
       long dstIsdAs,
-      Seg.PathSegment... segments) {
+      PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -370,18 +355,18 @@ public class Segments {
 
     // Search for on-path and shortcuts.
     if (detectOnPathUp(segments, dstIsdAs, ranges)) {
-      segments = new Seg.PathSegment[] {segments[0]};
+      segments = new PathSegment[] {segments[0]};
       infos = new Seg.SegmentInformation[] {infos[0]};
       ranges = new int[][] {ranges[0]};
       LOG.debug("Found on-path AS on UP segment.");
     } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
-      segments = new Seg.PathSegment[] {segments[segments.length - 1]};
+      segments = new PathSegment[] {segments[segments.length - 1]};
       infos = new Seg.SegmentInformation[] {infos[infos.length - 1]};
       ranges = new int[][] {ranges[ranges.length - 1]};
       LOG.debug("Found on-path AS on DOWN segment.");
     } else if (detectShortcut(segments, ranges)) {
       // The following is a no-op if there is no CORE segment
-      segments = new Seg.PathSegment[] {segments[0], segments[segments.length - 1]};
+      segments = new PathSegment[] {segments[0], segments[segments.length - 1]};
       infos = new Seg.SegmentInformation[] {infos[0], infos[infos.length - 1]};
       ranges = new int[][] {ranges[0], ranges[ranges.length - 1]};
       LOG.debug("Found shortcut at hop {}:", ranges[0][1]);
@@ -451,10 +436,9 @@ public class Segments {
   }
 
   private static int[] createRange(
-      Seg.PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
-    Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
-    Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
-    Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
+      PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
+    Seg.ASEntrySignedBody body0 = pathSegment.getAsEntriesList().get(0);
+    Seg.ASEntrySignedBody bodyN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
       return new int[] {0, pathSegment.getAsEntriesCount(), +1};
@@ -480,13 +464,13 @@ public class Segments {
       Daemon.Path.Builder path,
       ByteBuffer raw,
       int bytePosSegID,
-      Seg.PathSegment pathSegment,
+      PathSegment pathSegment,
       int[] range,
       Seg.SegmentInformation info) {
     int minExpiry = Integer.MAX_VALUE;
     for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
       boolean reversed = range[2] == -1;
-      Seg.ASEntrySignedBody body = getBody(pathSegment.getAsEntriesList().get(pos));
+      Seg.ASEntrySignedBody body = pathSegment.getAsEntriesList().get(pos);
       Seg.HopEntry hopEntry = body.getHopEntry();
       Seg.HopField hopField = hopEntry.getHopField();
 
@@ -517,7 +501,7 @@ public class Segments {
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
         int pos2 = pos + range[2];
-        Seg.ASEntrySignedBody body2 = getBody(pathSegment.getAsEntriesList().get(pos2));
+        Seg.ASEntrySignedBody body2 = pathSegment.getAsEntriesList().get(pos2);
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
@@ -531,7 +515,7 @@ public class Segments {
     }
   }
 
-  private static boolean detectShortcut(Seg.PathSegment[] segments, int[][] iterators) {
+  private static boolean detectShortcut(PathSegment[] segments, int[][] iterators) {
     // Shortcut: the up-segment and down-segment intersect at a non-core AS. In this case, a shorter
     // forwarding path can be created by removing the extraneous part of the path.
     // Also: "the up- and down-segments intersect at a non-core AS. This is the case of a shortcut
@@ -547,16 +531,14 @@ public class Segments {
     int posUp = -1;
     int[] iterUp = iterators[idUp];
     for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
-      Seg.ASEntry asEntry = segments[idUp].getAsEntriesList().get(pos);
-      Seg.ASEntrySignedBody body = getBody(asEntry);
+      Seg.ASEntrySignedBody body = segments[idUp].getAsEntriesList().get(pos);
       map.putIfAbsent(body.getIsdAs(), pos);
     }
 
     int posDown = -1;
     int[] iterDown = iterators[idDown];
     for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
-      Seg.ASEntry asEntry = segments[idDown].getAsEntriesList().get(pos);
-      Seg.ASEntrySignedBody body = getBody(asEntry);
+      Seg.ASEntrySignedBody body = segments[idDown].getAsEntriesList().get(pos);
       long isdAs = body.getIsdAs();
       if (map.containsKey(isdAs)) {
         posUp = map.get(isdAs);
@@ -572,15 +554,14 @@ public class Segments {
     return false;
   }
 
-  private static boolean detectOnPathUp(Seg.PathSegment[] segments, long dstIsdAs, int[][] ranges) {
+  private static boolean detectOnPathUp(PathSegment[] segments, long dstIsdAs, int[][] ranges) {
     // On-Path (SCION Book 2022, p 106): "In the case where the source’s up-segment contains the
     // destination AS, or the destination's down-segment contains the source AS, a single segment is
     // sufficient to construct the forwarding path. Again, no core AS is on the final path."
     int idUp = 0; // TODO avoid if this is core...
     int[] iterUp = ranges[idUp];
     for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
-      Seg.ASEntry asEntry = segments[idUp].getAsEntriesList().get(pos);
-      Seg.ASEntrySignedBody body = getBody(asEntry);
+      Seg.ASEntrySignedBody body = segments[idUp].getAsEntriesList().get(pos);
       if (body.getIsdAs() == dstIsdAs) {
         ranges[idUp][1] = pos + ranges[idUp][2];
         return true;
@@ -589,7 +570,7 @@ public class Segments {
     return false;
   }
 
-  private static boolean detectOnPathDown(Seg.PathSegment[] segments, long srcIA, int[][] ranges) {
+  private static boolean detectOnPathDown(PathSegment[] segments, long srcIA, int[][] ranges) {
     // On-Path (SCION Book 2022, p 106): "In the case where the source’s up-segment contains the
     // destination AS, or the destination's down-segment contains the source AS, a single segment is
     // sufficient to construct the forwarding path. Again, no core AS is on the final path."
@@ -600,8 +581,7 @@ public class Segments {
 
     int[] iterDown = ranges[idDown];
     for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
-      Seg.ASEntry asEntry = segments[idDown].getAsEntriesList().get(pos);
-      Seg.ASEntrySignedBody body = getBody(asEntry);
+      Seg.ASEntrySignedBody body = segments[idDown].getAsEntriesList().get(pos);
       if (body.getIsdAs() == srcIA) {
         ranges[idDown][0] = pos;
         return true;
@@ -610,10 +590,10 @@ public class Segments {
     return false;
   }
 
-  private static MultiMap<Long, Seg.PathSegment> createSegmentsMap(
-      List<Seg.PathSegment> pathSegments, long knownIsdAs) {
-    MultiMap<Long, Seg.PathSegment> map = new MultiMap<>();
-    for (Seg.PathSegment pathSeg : pathSegments) {
+  private static MultiMap<Long, PathSegment> createSegmentsMap(
+      List<PathSegment> pathSegments, long knownIsdAs) {
+    MultiMap<Long, PathSegment> map = new MultiMap<>();
+    for (PathSegment pathSeg : pathSegments) {
       long unknownIsdAs = getOtherIsdAs(knownIsdAs, pathSeg);
       if (unknownIsdAs != -1) {
         map.put(unknownIsdAs, pathSeg);
@@ -622,7 +602,7 @@ public class Segments {
     return map;
   }
 
-  private static long getOtherIsdAs(long isdAs, Seg.PathSegment seg) {
+  private static long getOtherIsdAs(long isdAs, PathSegment seg) {
     long[] endings = getEndingIAs(seg);
     if (endings[0] == isdAs) {
       return endings[1];
@@ -636,11 +616,9 @@ public class Segments {
    * @param seg path segment
    * @return first and last ISD/AS of the path segment
    */
-  static long[] getEndingIAs(Seg.PathSegment seg) {
-    Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
-    Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
-    Seg.ASEntrySignedBody bodyFirst = getBody(asEntryFirst);
-    Seg.ASEntrySignedBody bodyLast = getBody(asEntryLast);
+  static long[] getEndingIAs(PathSegment seg) {
+    Seg.ASEntrySignedBody bodyFirst = seg.getAsEntries(0);
+    Seg.ASEntrySignedBody bodyLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
     return new long[] {bodyFirst.getIsdAs(), bodyLast.getIsdAs()};
   }
 
@@ -658,7 +636,7 @@ public class Segments {
     }
   }
 
-  private static Seg.SegmentInformation getInfo(Seg.PathSegment pathSegment) {
+  private static Seg.SegmentInformation getInfo(PathSegment pathSegment) {
     try {
       return Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
     } catch (InvalidProtocolBufferException e) {
@@ -666,40 +644,86 @@ public class Segments {
     }
   }
 
-  private static List<Seg.PathSegment> filterForIsdAs(
-      List<Seg.PathSegment> segments, final long isdAs) {
+  private static List<PathSegment> filterForIsdAs(List<PathSegment> segments, final long isdAs) {
     // Return all segments that go through the given ISD/AS
     return segments.stream()
         .filter(
             pathSegment ->
                 pathSegment.getAsEntriesList().stream()
-                    .anyMatch(asEntry -> getBody(asEntry).getIsdAs() == isdAs))
+                    .anyMatch(asEntry -> asEntry.getIsdAs() == isdAs))
         .collect(Collectors.toList());
   }
 
-  private static List<Seg.PathSegment> filterForEndIsdAs(
-      List<Seg.PathSegment> segments, final long isdAs) {
+  private static List<PathSegment> filterForEndIsdAs(List<PathSegment> segments, final long isdAs) {
     // Return all segments that end with the given ISD/AS
     return segments.stream()
         .filter(
             pathSegment ->
-                getBody(pathSegment.getAsEntries(0)).getIsdAs() == isdAs
-                    || getBody(pathSegment.getAsEntries(pathSegment.getAsEntriesCount() - 1))
-                            .getIsdAs()
+                pathSegment.getAsEntries(0).getIsdAs() == isdAs
+                    || pathSegment.getAsEntries(pathSegment.getAsEntriesCount() - 1).getIsdAs()
                         == isdAs)
         .collect(Collectors.toList());
   }
 
-  private static boolean endsWithIsdAs(List<Seg.PathSegment> segments, long dstIsdAs) {
-    for (Seg.PathSegment seg : segments) {
-      Seg.ASEntry asEntryFirst = seg.getAsEntries(0);
-      Seg.ASEntry asEntryLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
-      long iaFirst = getBody(asEntryFirst).getIsdAs();
-      long iaLast = getBody(asEntryLast).getIsdAs();
+  private static boolean endsWithIsdAs(List<PathSegment> segments, long dstIsdAs) {
+    for (PathSegment seg : segments) {
+      long iaFirst = seg.getAsEntries(0).getIsdAs();
+      long iaLast = seg.getAsEntries(seg.getAsEntriesCount() - 1).getIsdAs();
       if ((iaFirst == dstIsdAs) || (iaLast == dstIsdAs)) {
         return true;
       }
     }
     return false;
+  }
+
+  private enum SegmentType {
+    UP,
+    CORE,
+    DOWN;
+
+    public static SegmentType from(Seg.SegmentType segmentType) {
+      switch (segmentType) {
+        case SEGMENT_TYPE_UP:
+          return UP;
+        case SEGMENT_TYPE_DOWN:
+          return DOWN;
+        case SEGMENT_TYPE_CORE:
+          return CORE;
+        default:
+          throw new IllegalArgumentException("type=" + segmentType);
+      }
+    }
+  }
+
+  private static class PathSegment {
+    final Seg.PathSegment segment;
+    final List<Seg.ASEntrySignedBody> bodies;
+    final SegmentType type; //
+
+    PathSegment(Seg.PathSegment segment, SegmentType type) {
+      this.segment = segment;
+      this.bodies =
+          Collections.unmodifiableList(
+              segment.getAsEntriesList().stream()
+                  .map(Segments::getBody)
+                  .collect(Collectors.toList()));
+      this.type = type;
+    }
+
+    public List<Seg.ASEntrySignedBody> getAsEntriesList() {
+      return bodies;
+    }
+
+    public Seg.ASEntrySignedBody getAsEntries(int i) {
+      return bodies.get(i);
+    }
+
+    public int getAsEntriesCount() {
+      return bodies.size();
+    }
+
+    public ByteString getSegmentInfo() {
+      return segment.getSegmentInfo();
+    }
   }
 }
