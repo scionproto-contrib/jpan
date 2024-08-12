@@ -131,6 +131,10 @@ public class Segments {
     // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable leaf)
     // we still should look at core segments because they may offer additional paths.
     List<Seg.PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
+    if (segmentsUp == null) {
+      // SRC is core, we can disregard all CORE segments that don't start with SRC
+      segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);
+    }
     // For CORE we ensure that dstIsdAs is at the END of a segment, not somewhere in the middle
     if (endsWithIsdAs(segmentsCore, dstIsdAs)) {
       // dst is CORE
@@ -162,7 +166,6 @@ public class Segments {
           (t1 - t0) / 1_000_000,
           response.getSegmentsMap().size());
       if (response.getSegmentsMap().size() > 1) {
-        // TODO fix! We need to be able to handle more than one segment collection (?)
         throw new UnsupportedOperationException();
       }
       return getPathSegments(response);
@@ -361,12 +364,8 @@ public class Segments {
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       infos[i] = getInfo(segments[i]);
-      Optional<Boolean> isReversed = isReversed(segments[i], startIA, endingIA);
-      if (!isReversed.isPresent()) {
-        // TODO why??? Remove??!!!!
-        return;
-      }
-      if (isReversed.get()) {
+      boolean isReversed = isReversed(segments[i], startIA, endingIA);
+      if (isReversed) {
         ranges[i] = new int[] {segments[i].getAsEntriesCount() - 1, -1, -1};
       } else {
         ranges[i] = new int[] {0, segments[i].getAsEntriesCount(), +1};
@@ -456,21 +455,19 @@ public class Segments {
     paths.put(hash, path.build());
   }
 
-  private static Optional<Boolean> isReversed(
+  private static boolean isReversed(
       Seg.PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
     Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
-      return Optional.of(false);
+      return false;
     } else if (bodyN.getIsdAs() == startIA) {
       endIA.set(body0.getIsdAs());
-      return Optional.of(true);
+      return true;
     }
-    // TODO support short-cut and on-path IAs
-    // throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
-    return Optional.empty();
+    throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
   }
 
   private static long calcExpTime(long baseTime, int deltaTime) {
@@ -682,6 +679,19 @@ public class Segments {
             pathSegment ->
                 pathSegment.getAsEntriesList().stream()
                     .anyMatch(asEntry -> getBody(asEntry).getIsdAs() == isdAs))
+        .collect(Collectors.toList());
+  }
+
+  private static List<Seg.PathSegment> filterForEndIsdAs(
+      List<Seg.PathSegment> segments, final long isdAs) {
+    // Return all segments that end with the given ISD/AS
+    return segments.stream()
+        .filter(
+            pathSegment ->
+                getBody(pathSegment.getAsEntries(0)).getIsdAs() == isdAs
+                    || getBody(pathSegment.getAsEntries(pathSegment.getAsEntriesCount() - 1))
+                            .getIsdAs()
+                        == isdAs)
         .collect(Collectors.toList());
   }
 
