@@ -364,12 +364,7 @@ public class Segments {
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       infos[i] = getInfo(segments[i]);
-      boolean isReversed = isReversed(segments[i], startIA, endingIA);
-      if (isReversed) {
-        ranges[i] = new int[] {segments[i].getAsEntriesCount() - 1, -1, -1};
-      } else {
-        ranges[i] = new int[] {0, segments[i].getAsEntriesCount(), +1};
-      }
+      ranges[i] = createRange(segments[i], startIA, endingIA);
       startIA = endingIA.get();
     }
 
@@ -455,17 +450,17 @@ public class Segments {
     paths.put(hash, path.build());
   }
 
-  private static boolean isReversed(
+  private static int[] createRange(
       Seg.PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
     Seg.ASEntrySignedBody body0 = getBody(pathSegment.getAsEntriesList().get(0));
     Seg.ASEntry asEntryN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     Seg.ASEntrySignedBody bodyN = getBody(asEntryN);
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
-      return false;
+      return new int[] {0, pathSegment.getAsEntriesCount(), +1};
     } else if (bodyN.getIsdAs() == startIA) {
       endIA.set(body0.getIsdAs());
-      return true;
+      return new int[] {pathSegment.getAsEntriesCount() - 1, -1, -1};
     }
     throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
   }
