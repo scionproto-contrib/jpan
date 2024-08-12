@@ -35,12 +35,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
 - Added `copy(...)` method for paths. [#111](https://github.com/scionproto-contrib/jpan/pull/111)
 - Added Scenario builder for unit tests. [#112](https://github.com/scionproto-contrib/jpan/pull/112)
-- Support shortcut and on-path detection during path construction. Also:
+- Path construction fixes: [#104](https://github.com/scionproto-contrib/jpan/pull/104)
+  - Support shortcut and on-path detection during path construction
   - New option `SCION_RESOLVER_MINIMIZE_REQUESTS`
   - Fixed MTU calculations for link level MTU
   - Path lists are ordered by hop count
   - Path lists contain no duplicates
-  [#104](https://github.com/scionproto-contrib/jpan/pull/104)
 
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
