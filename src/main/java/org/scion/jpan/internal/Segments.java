@@ -435,10 +435,10 @@ public class Segments {
     paths.put(hash, path.build());
   }
 
-  private static int[] createRange(
-      PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
+  private static int[] createRange(PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
     Seg.ASEntrySignedBody body0 = pathSegment.getAsEntriesList().get(0);
-    Seg.ASEntrySignedBody bodyN = pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
+    Seg.ASEntrySignedBody bodyN =
+        pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
       return new int[] {0, pathSegment.getAsEntriesCount(), +1};
@@ -524,8 +524,12 @@ public class Segments {
     if (segments.length < 2) {
       return false;
     }
-    int idUp = 0; // TODO avoid if this is core...
-    int idDown = segments.length - 1; // TODO avoid if this is core...
+    int idUp = 0;
+    int idDown = segments.length - 1;
+    // skip if this starts or ends with a CORE segment
+    if (segments[idUp].isCore() || segments[idDown].isCore()) {
+      return false;
+    }
     HashMap<Long, Integer> map = new HashMap<>();
 
     int posUp = -1;
@@ -558,7 +562,11 @@ public class Segments {
     // On-Path (SCION Book 2022, p 106): "In the case where the source’s up-segment contains the
     // destination AS, or the destination's down-segment contains the source AS, a single segment is
     // sufficient to construct the forwarding path. Again, no core AS is on the final path."
-    int idUp = 0; // TODO avoid if this is core...
+    int idUp = 0;
+    // skip if this starts with a CORE segment
+    if (segments[idUp].isCore()) {
+      return false;
+    }
     int[] iterUp = ranges[idUp];
     for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
       Seg.ASEntrySignedBody body = segments[idUp].getAsEntriesList().get(pos);
@@ -574,10 +582,11 @@ public class Segments {
     // On-Path (SCION Book 2022, p 106): "In the case where the source’s up-segment contains the
     // destination AS, or the destination's down-segment contains the source AS, a single segment is
     // sufficient to construct the forwarding path. Again, no core AS is on the final path."
-    if (segments.length < 2) {
+    int idDown = segments.length - 1;
+    // skip if this ends with a CORE segment
+    if (segments.length < 2 || segments[idDown].isCore()) {
       return false;
     }
-    int idDown = segments.length - 1; // TODO avoid if this is core...
 
     int[] iterDown = ranges[idDown];
     for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
@@ -724,6 +733,10 @@ public class Segments {
 
     public ByteString getSegmentInfo() {
       return segment.getSegmentInfo();
+    }
+
+    public boolean isCore() {
+      return type == SegmentType.CORE;
     }
   }
 }
