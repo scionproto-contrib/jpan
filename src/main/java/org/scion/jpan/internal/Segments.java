@@ -436,6 +436,7 @@ public class Segments {
   }
 
   private static int[] createRange(PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
+    // TODO we could probably derive the direction from being UP, CORE or DOWN...!
     Seg.ASEntrySignedBody body0 = pathSegment.getAsEntriesList().get(0);
     Seg.ASEntrySignedBody bodyN =
         pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);

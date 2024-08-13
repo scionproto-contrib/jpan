@@ -114,7 +114,16 @@ public class MockBootstrapServer implements Closeable {
   }
 
   public int getControlServerPort() {
-    return asInfo.getControlServerPort();
+      return asInfo.getControlServerPort();
+  }
+
+  public InetSocketAddress getControlServerAddress() {
+    try {
+      InetAddress addr = InetAddress.getByName(asInfo.getControlServerIP());
+      return new InetSocketAddress(addr, asInfo.getControlServerPort());
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public String getBorderRouterAddressByIA(long remoteIsdAs) {
