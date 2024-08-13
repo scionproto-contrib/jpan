@@ -42,7 +42,7 @@ public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
     topoServer = MockBootstrapServer.start(CFG_DEFAULT, "ASff00_0_131/topology.json");
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(topoServer.getControlServerAddress());
+    controlServer = MockControlServer.start(topoServer.getControlServerPort());
   }
 
   @AfterEach
@@ -81,16 +81,7 @@ public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
         }
       }
 
-      // scionproto reports only 6 paths. The difference is that JPAN considers path different
-      // even if their hops are identical, as long their expiry date or SegmentId differs.
-      // For example, there are two paths that look like this:
-      // [494>103]
-      // However, they are not identical for JPAN:
-      // - segID=9858, timestamp=1723449803
-      // - segID=9751, timestamp=1723449803
-
-      // assertEquals(6, paths.size());
-      assertEquals(7, paths.size());
+      assertEquals(1, paths.size());
     }
   }
 }

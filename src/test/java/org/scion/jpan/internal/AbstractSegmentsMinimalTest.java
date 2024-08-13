@@ -171,12 +171,17 @@ public abstract class AbstractSegmentsMinimalTest {
 
   protected void addResponsesScionprotoDefault() {
     long AS_130 = ScionUtil.parseIA("1-ff00:0:130");
+    long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
+    long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
 
     addUpDown(AS_111, AS_130);
     addUpDown(AS_111, AS_120);
 
     addUpDown(AS_112, AS_130);
     addUpDown(AS_112, AS_120);
+
+    addUpDown(AS_131, AS_130);
+    addUpDown(AS_133, AS_130);
 
     addCore(AS_130, AS_120);
     addCore(AS_120, AS_130);

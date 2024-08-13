@@ -383,6 +383,7 @@ public class Segments {
     // info fields
     for (int i = 0; i < infos.length; i++) {
       writeInfoField(raw, infos[i], ranges[i][2]);
+      calcBetaCorrection(raw, 6 * i + 8, segments[i], ranges[i]);
     }
 
     // hop fields
@@ -407,6 +408,28 @@ public class Segments {
     path.setInterface(interfaceAddr);
 
     checkDuplicatePaths(paths, path);
+  }
+
+  private static void calcBetaCorrection(ByteBuffer raw, int bytePosSegID, PathSegment segment, int[] range) {
+    // When we create a shortcut or on-path, we need to remove the MACs from the segID / beta.
+    byte[] fix = new byte[2];
+
+    // collect all macs
+    for (Seg.ASEntrySignedBody body : segment.bodies) {
+      ByteString mac = body.getHopEntry().getHopField().getMac();
+      fix[0] ^= mac.byteAt(0);
+      fix[1] ^= mac.byteAt(1);
+    }
+
+    // undo the macs we actually need:
+    for (int pos = range[0]; pos != range[1]; pos += range[2]) {
+      ByteString mac = segment.getAsEntriesList().get(pos).getHopEntry().getHopField().getMac();
+      fix[0] ^= mac.byteAt(0);
+      fix[1] ^= mac.byteAt(1);
+    }
+
+    raw.put(bytePosSegID, ByteUtil.toByte(raw.get(bytePosSegID) ^ fix[0]));
+    raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ fix[1]));
   }
 
   private static void checkDuplicatePaths(
