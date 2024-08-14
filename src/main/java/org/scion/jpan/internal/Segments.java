@@ -383,7 +383,7 @@ public class Segments {
     // info fields
     for (int i = 0; i < infos.length; i++) {
       writeInfoField(raw, infos[i], ranges[i][2]);
-      calcBetaCorrection(raw, 6 * i + 8, segments[i], ranges[i]);
+      calcBetaCorrection(raw, 6 + i * 8, segments[i], ranges[i]);
     }
 
     // hop fields

@@ -486,7 +486,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       Daemon.Path path = paths.get(0);
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
-      checkInfo(rawBB, 10002, 1);
+      checkInfo(rawBB, 9744, 1);
       checkHopField(rawBB, 111, 1111);
       checkHopField(rawBB, 123, 0);
       assertEquals(0, rawBB.remaining());
