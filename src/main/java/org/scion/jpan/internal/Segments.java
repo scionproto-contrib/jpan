@@ -410,7 +410,8 @@ public class Segments {
     checkDuplicatePaths(paths, path);
   }
 
-  private static void calcBetaCorrection(ByteBuffer raw, int bytePosSegID, PathSegment segment, int[] range) {
+  private static void calcBetaCorrection(
+      ByteBuffer raw, int bytePosSegID, PathSegment segment, int[] range) {
     // When we create a shortcut or on-path, we need to remove the MACs from the segID / beta.
     byte[] fix = new byte[2];
 
@@ -691,8 +692,7 @@ public class Segments {
         .filter(
             pathSegment ->
                 pathSegment.getAsEntriesFirst().getIsdAs() == isdAs
-                    || pathSegment.getAsEntriesLast().getIsdAs()
-                        == isdAs)
+                    || pathSegment.getAsEntriesLast().getIsdAs() == isdAs)
         .collect(Collectors.toList());
   }
 
