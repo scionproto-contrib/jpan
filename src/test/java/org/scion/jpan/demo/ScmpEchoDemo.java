@@ -97,10 +97,10 @@ public class ScmpEchoDemo {
           // Use a port from the dispatcher compatibility range
           ScmpEchoDemo demo = new ScmpEchoDemo(32766);
           // Ping the dispatcher/shim. It listens on the same IP as the control service.
-          InetSocketAddress ip = scenario.getControlServer(dstIsdAs);
+          InetAddress ip = scenario.getControlServer(dstIsdAs).getAddress();
 
           // Get paths
-          List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip);
+          List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
           demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
           // Echo to local AS and on-path AS (111 is "on" the UP segment) is currently broken,
           // see https://github.com/scionproto-contrib/jpan/issues/96
