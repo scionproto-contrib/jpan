@@ -234,7 +234,11 @@ public class MockControlServer implements AutoCloseable {
         Seg.PathSegment.newBuilder().addAsEntries(asEntry0).addAsEntries(asEntry1).build();
     Seg.SegmentsResponse.Segments segments =
         Seg.SegmentsResponse.Segments.newBuilder().addSegments(pathSegment).build();
-    replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_CORE_VALUE, segments);
+    if (srcIA == ScionUtil.parseIA("1-ff00:0:110")) {
+      replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_DOWN_VALUE, segments);
+    } else if (dstIA == ScionUtil.parseIA("1-ff00:0:110")) {
+      replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_UP_VALUE, segments);
+    }
     return replyBuilder.build();
   }
 }

@@ -459,10 +459,8 @@ public class Segments {
   }
 
   private static int[] createRange(PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
-    // TODO we could probably derive the direction from being UP, CORE or DOWN...!
-    Seg.ASEntrySignedBody body0 = pathSegment.getAsEntriesList().get(0);
-    Seg.ASEntrySignedBody bodyN =
-        pathSegment.getAsEntriesList().get(pathSegment.getAsEntriesCount() - 1);
+    Seg.ASEntrySignedBody body0 = pathSegment.getAsEntriesFirst();
+    Seg.ASEntrySignedBody bodyN = pathSegment.getAsEntriesLast();
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
       return new int[] {0, pathSegment.getAsEntriesCount(), +1};
@@ -494,7 +492,7 @@ public class Segments {
     int minExpiry = Integer.MAX_VALUE;
     for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
       boolean reversed = range[2] == -1;
-      Seg.ASEntrySignedBody body = pathSegment.getAsEntriesList().get(pos);
+      Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
       Seg.HopEntry hopEntry = body.getHopEntry();
       Seg.HopField hopField = hopEntry.getHopField();
 
@@ -525,7 +523,7 @@ public class Segments {
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
         int pos2 = pos + range[2];
-        Seg.ASEntrySignedBody body2 = pathSegment.getAsEntriesList().get(pos2);
+        Seg.ASEntrySignedBody body2 = pathSegment.getAsEntries(pos2);
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
@@ -559,14 +557,14 @@ public class Segments {
     int posUp = -1;
     int[] iterUp = iterators[idUp];
     for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
-      Seg.ASEntrySignedBody body = segments[idUp].getAsEntriesList().get(pos);
+      Seg.ASEntrySignedBody body = segments[idUp].getAsEntries(pos);
       map.putIfAbsent(body.getIsdAs(), pos);
     }
 
     int posDown = -1;
     int[] iterDown = iterators[idDown];
     for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
-      Seg.ASEntrySignedBody body = segments[idDown].getAsEntriesList().get(pos);
+      Seg.ASEntrySignedBody body = segments[idDown].getAsEntries(pos);
       long isdAs = body.getIsdAs();
       if (map.containsKey(isdAs)) {
         posUp = map.get(isdAs);
@@ -593,7 +591,7 @@ public class Segments {
     }
     int[] iterUp = ranges[idUp];
     for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
-      Seg.ASEntrySignedBody body = segments[idUp].getAsEntriesList().get(pos);
+      Seg.ASEntrySignedBody body = segments[idUp].getAsEntries(pos);
       if (body.getIsdAs() == dstIsdAs) {
         ranges[idUp][1] = pos + ranges[idUp][2];
         return true;
@@ -614,7 +612,7 @@ public class Segments {
 
     int[] iterDown = ranges[idDown];
     for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
-      Seg.ASEntrySignedBody body = segments[idDown].getAsEntriesList().get(pos);
+      Seg.ASEntrySignedBody body = segments[idDown].getAsEntries(pos);
       if (body.getIsdAs() == srcIA) {
         ranges[idDown][0] = pos;
         return true;
@@ -650,8 +648,8 @@ public class Segments {
    * @return first and last ISD/AS of the path segment
    */
   static long[] getEndingIAs(PathSegment seg) {
-    Seg.ASEntrySignedBody bodyFirst = seg.getAsEntries(0);
-    Seg.ASEntrySignedBody bodyLast = seg.getAsEntries(seg.getAsEntriesCount() - 1);
+    Seg.ASEntrySignedBody bodyFirst = seg.getAsEntriesFirst();
+    Seg.ASEntrySignedBody bodyLast = seg.getAsEntriesLast();
     return new long[] {bodyFirst.getIsdAs(), bodyLast.getIsdAs()};
   }
 
@@ -692,16 +690,16 @@ public class Segments {
     return segments.stream()
         .filter(
             pathSegment ->
-                pathSegment.getAsEntries(0).getIsdAs() == isdAs
-                    || pathSegment.getAsEntries(pathSegment.getAsEntriesCount() - 1).getIsdAs()
+                pathSegment.getAsEntriesFirst().getIsdAs() == isdAs
+                    || pathSegment.getAsEntriesLast().getIsdAs()
                         == isdAs)
         .collect(Collectors.toList());
   }
 
   private static boolean endsWithIsdAs(List<PathSegment> segments, long dstIsdAs) {
     for (PathSegment seg : segments) {
-      long iaFirst = seg.getAsEntries(0).getIsdAs();
-      long iaLast = seg.getAsEntries(seg.getAsEntriesCount() - 1).getIsdAs();
+      long iaFirst = seg.getAsEntriesFirst().getIsdAs();
+      long iaLast = seg.getAsEntriesLast().getIsdAs();
       if ((iaFirst == dstIsdAs) || (iaLast == dstIsdAs)) {
         return true;
       }
@@ -741,6 +739,14 @@ public class Segments {
                   .map(Segments::getBody)
                   .collect(Collectors.toList()));
       this.type = type;
+    }
+
+    public Seg.ASEntrySignedBody getAsEntriesFirst() {
+      return bodies.get(0);
+    }
+
+    public Seg.ASEntrySignedBody getAsEntriesLast() {
+      return bodies.get(bodies.size() - 1);
     }
 
     public List<Seg.ASEntrySignedBody> getAsEntriesList() {

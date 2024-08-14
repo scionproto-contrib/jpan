@@ -114,7 +114,7 @@ public class MockBootstrapServer implements Closeable {
   }
 
   public int getControlServerPort() {
-      return asInfo.getControlServerPort();
+    return asInfo.getControlServerPort();
   }
 
   public InetSocketAddress getControlServerAddress() {
