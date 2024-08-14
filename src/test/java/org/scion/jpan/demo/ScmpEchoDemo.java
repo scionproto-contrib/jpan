@@ -17,9 +17,11 @@ package org.scion.jpan.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.Scenario;
 
 /**
  * This demo mimics the "scion ping" command available in scionproto (<a
