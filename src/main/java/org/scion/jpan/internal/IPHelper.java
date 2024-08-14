@@ -70,6 +70,7 @@ public class IPHelper {
 
   /**
    * Checks if the address string contains a port. If not, it appends the default port.
+   *
    * @param address Address string with or without port
    * @param port default port
    * @return address with port.

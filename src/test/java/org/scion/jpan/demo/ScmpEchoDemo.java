@@ -102,12 +102,6 @@ public class ScmpEchoDemo {
           // Get paths
           List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
           demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
-          // Echo to local AS and on-path AS (111 is "on" the UP segment) is currently broken,
-          // see https://github.com/scionproto-contrib/jpan/issues/96
-          // InetSocketAddress cs111 = new InetSocketAddress("127.0.0.36", Constants.SCMP_PORT);
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia111, cs111).get(0));
-          // InetSocketAddress cs1111 = new InetSocketAddress("127.0.0.42", Constants.SCMP_PORT);
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia1111, cs1111).get(0));
           break;
         }
       case PRODUCTION:
