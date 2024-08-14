@@ -67,10 +67,10 @@ public final class Constants {
 
   /** Enable minimization of segment requests during path construction. */
   public static final String PROPERTY_RESOLVER_MINIMIZE_REQUESTS =
-      "SCION_RESOLVER_MINIMIZE_REQUESTS";
+      "EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS";
 
   /** Enable minimization of segment requests during path construction. */
-  public static final String ENV_RESOLVER_MINIMIZE_REQUESTS = "org.scion.resolver.minimizeRequests";
+  public static final String ENV_RESOLVER_MINIMIZE_REQUESTS = "org.scion.resolver.experimentalMinimizeRequests";
 
   public static final boolean DEFAULT_RESOLVER_MINIMIZE_REQUESTS = false;
 

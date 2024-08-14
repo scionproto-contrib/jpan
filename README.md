@@ -349,9 +349,9 @@ is configurable, see next section.
 |----------------------------------------------------------------------------------------------------------------------|---------------------------------------|--------------------------------------|--------------------|
 | Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`          | `SCION_PATH_EXPIRY_MARGIN`           | 10                 |
 | Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles`                | `SCION_HOSTS_FILES`                  | `/etc/scion/hosts` |
-| Minimize segment requests to local AS at the cost of reduced range of path available.                                | `org.scion.resolver.minimizeRequests` | `SCION_RESOLVER_MINIMIZE_REQUESTS`   | `false`            |
+| Minimize segment requests to local AS at the cost of reduced range of path available.                                | `org.scion.resolver.experimentalMinimizeRequests` | `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS`   | `false`            |
 
-`SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that request CORE segments only of other 
+`EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that request CORE segments only of other 
 path can be constructed. This may reduce response time when requesting new paths. It is very likely,
 but not guaranteed, that the shortest path (fewest hops) will be available. 
 If this property is not set (= default), CORE segments are always requested, resulting in additional
