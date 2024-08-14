@@ -215,7 +215,6 @@ public class Segments {
     code |= segmentsCore != null ? 2 : 0;
     code |= segmentsDown != null ? 1 : 0;
     final MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
-    // TODO replace with if-else...?
     switch (code) {
       case 7:
         combineThreeSegments(
