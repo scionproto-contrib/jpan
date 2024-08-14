@@ -101,6 +101,27 @@ public class ScionTest {
   }
 
   @Test
+  void defaultService_daemon_error_address() throws IOException {
+    MockDaemon.createAndStartDefault();
+    System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.234:123");
+    try {
+      Exception e = assertThrows(Exception.class, Scion::defaultService);
+      boolean okay = false;
+      while (e != null) {
+        if (e.getMessage().contains("127.0.0.234")) {
+          okay = true;
+          break;
+        }
+        e = (Exception) e.getCause();
+      }
+      assertTrue(okay);
+    } finally {
+      Scion.closeDefault();
+      MockDaemon.closeDefault();
+    }
+  }
+
+  @Test
   void defaultService_topoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);

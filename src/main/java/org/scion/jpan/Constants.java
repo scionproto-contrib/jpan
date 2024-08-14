@@ -24,7 +24,8 @@ public final class Constants {
 
   public static final String PROPERTY_DAEMON = "org.scion.daemon";
   public static final String ENV_DAEMON = "SCION_DAEMON";
-  public static final String DEFAULT_DAEMON = "localhost:30255";
+  public static final int DEFAULT_DAEMON_PORT = 30255;
+  public static final String DEFAULT_DAEMON = "localhost:" + DEFAULT_DAEMON_PORT;
 
   /** Address of bootstrap server (http), e.g. 192.168.42.42 */
   public static final String PROPERTY_BOOTSTRAP_HOST = "org.scion.bootstrap.host";

@@ -67,4 +67,39 @@ public class IPHelper {
     byte[] bytes = toByteArray(s);
     return InetAddress.getByAddress(bytes);
   }
+
+  /**
+   * Checks if the address string contains a port. If not, it appends the default port.
+   *
+   * @param address Address string with or without port
+   * @param port default port
+   * @return address with port.
+   */
+  public static String ensurePortOrDefault(String address, int port) {
+    // IPv4? ('.')
+    if (address.indexOf('.') >= 0) {
+      if (address.indexOf(':') < 0) {
+        return address + ":" + port;
+      }
+      return address;
+    }
+    // IPv6? (multiple ':')
+    if (address.indexOf(':') != address.lastIndexOf(':')) {
+      if (address.endsWith("]")) {
+        return address + ":" + port;
+      }
+      if (address.contains("]")) {
+        return address;
+      }
+      return "[" + address + "]:" + port;
+    }
+    // something else (localhost, or port-only)
+    if (address.contains(":")) {
+      return address;
+    }
+    if (address.matches("\\d+")) {
+      return "localhost:" + address;
+    }
+    return address + ':' + port;
+  }
 }

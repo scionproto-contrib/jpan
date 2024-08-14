@@ -15,6 +15,7 @@
 package org.scion.jpan;
 
 import static org.scion.jpan.Constants.DEFAULT_DAEMON;
+import static org.scion.jpan.Constants.DEFAULT_DAEMON_PORT;
 import static org.scion.jpan.Constants.DEFAULT_USE_OS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.ENV_BOOTSTRAP_HOST;
 import static org.scion.jpan.Constants.ENV_BOOTSTRAP_NAPTR_NAME;
@@ -96,6 +97,7 @@ public class ScionService {
             Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
             Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     if (mode == Mode.DAEMON) {
+      addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
       LOG.info("Bootstrapping with daemon: target={}", addressOrHost);
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
@@ -176,7 +178,9 @@ public class ScionService {
         return defaultService;
       } catch (ScionRuntimeException e) {
         LOG.info(e.getMessage());
-        // Ignore!
+        if (ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON) != null) {
+          throw e;
+        }
       }
 
       // try normal network

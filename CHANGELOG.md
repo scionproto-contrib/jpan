@@ -9,11 +9,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.3.0
-- BUG: System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.1");
-  leads to exception about missing TRC (instead of complaining about missing ":30255")
-  -> DOes this work with an IPv6 address (separaeting the port?)
-  -> Think about making the port optional, it is standardized to 30255 anyway
-  -> Move port to separate environment variable???? 
 - Make ResponsePath/RequestPath classes private. Make at least create() private... 
 - Demo that connects to Francois' website
 - Fix @Disabled tests
@@ -53,6 +48,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Remove use of 0.0.0.0 and "::". [#103](https://github.com/scionproto-contrib/jpan/pull/103)
 - Remove use of getHostName() in ScionAddress. [#106](https://github.com/scionproto-contrib/jpan/pull/106)
 - SocketConcurrency test takes too long. [#108](https://github.com/scionproto-contrib/jpan/issues/108)
+- Fixed useless error message when providing incorrect daemon address.
+  Also: made port optional (default = 30255) [#114](https://github.com/scionproto-contrib/jpan/pull/114)
 
 ### Removed
 - Removed some useless IP printing functions. 

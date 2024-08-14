@@ -40,7 +40,7 @@ public class ScmpEchoDemo {
 
   public static boolean PRINT = true;
   private static int REPEAT = 10;
-  private static Network NETWORK = Network.PRODUCTION;
+  private static Network NETWORK = Network.SCION_PROTO;
   private final int localPort;
 
   public enum Network {
@@ -84,7 +84,7 @@ public class ScmpEchoDemo {
           long srcIsdAs = ScionUtil.parseIA("2-ff00:0:212");
           long dstIsdAs = ScionUtil.parseIA("2-ff00:0:222");
 
-          if (true) {
+          if (!true) {
             // Alternative #1: Bootstrap from topo file
             System.setProperty(
                 Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
@@ -97,17 +97,11 @@ public class ScmpEchoDemo {
           // Use a port from the dispatcher compatibility range
           ScmpEchoDemo demo = new ScmpEchoDemo(32766);
           // Ping the dispatcher/shim. It listens on the same IP as the control service.
-          InetSocketAddress ip = scenario.getControlServer(dstIsdAs);
+          InetAddress ip = scenario.getControlServer(dstIsdAs).getAddress();
 
           // Get paths
-          List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip);
+          List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
           demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
-          // Echo to local AS and on-path AS (111 is "on" the UP segment) is currently broken,
-          // see https://github.com/scionproto-contrib/jpan/issues/96
-          // InetSocketAddress cs111 = new InetSocketAddress("127.0.0.36", Constants.SCMP_PORT);
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia111, cs111).get(0));
-          // InetSocketAddress cs1111 = new InetSocketAddress("127.0.0.42", Constants.SCMP_PORT);
-          // demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia1111, cs1111).get(0));
           break;
         }
       case PRODUCTION:

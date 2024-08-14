@@ -332,7 +332,7 @@ while the other options are skipped if no property or environment variable is de
 
 | Option                              | Java property                       | Environment variable          | Default value   |
 |-------------------------------------|-------------------------------------|-------------------------------|-----------------|
-| Daemon port                         | `org.scion.daemon.port`             | `SCION_DAEMON`                | localhost:30255 | 
+| Daemon port, IP, or IP:port         | `org.scion.daemon`                  | `SCION_DAEMON`                | localhost:30255 | 
 | Bootstrap topology file path        | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
 | Bootstrap server host               | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`        |                 |
 | Bootstrap DNS NAPTR entry host name | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
