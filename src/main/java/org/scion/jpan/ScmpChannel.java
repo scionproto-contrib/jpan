@@ -155,7 +155,7 @@ public class ScmpChannel implements AutoCloseable {
     } else if (result.isTimedOut()) {
       result.setNanoSeconds(timeOutMs * 1_000_000L);
     } else {
-      throw new IOException("SCMP error: " + result.getTypeCode().getText());
+      throw new IOException("SCMP error: " + result.getTypeCode());
     }
   }
 

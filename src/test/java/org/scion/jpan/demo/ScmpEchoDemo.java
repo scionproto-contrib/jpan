@@ -17,9 +17,11 @@ package org.scion.jpan.demo;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.Scenario;
 
 /**
  * This demo mimics the "scion ping" command available in scionproto (<a
@@ -77,18 +79,29 @@ public class ScmpEchoDemo {
         // Same as:
         // scion ping 2-ff00:0:211,127.0.0.10 --sciond 127.0.0.43:30255
         {
-          // Bootstrap from topo file
-          System.setProperty(
-              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-              "topologies/minimal/ASff00_0_1111/topology.json");
-          // Bootstrap from SCION daemon
-          // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
+          // Use scenario builder to get access to relevant IP addresses
+          Scenario scenario = Scenario.readFrom("topologies/scionproto-default");
+          long srcIsdAs = ScionUtil.parseIA("2-ff00:0:212");
+          long dstIsdAs = ScionUtil.parseIA("2-ff00:0:222");
+
+          if (true) {
+            // Alternative #1: Bootstrap from topo file
+            System.setProperty(
+                Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+                "topologies/scionproto-default/ASff00_0_212/topology.json");
+          } else {
+            // Alternative #2: Bootstrap from SCION daemon
+            System.setProperty(Constants.PROPERTY_DAEMON, scenario.getDaemon(srcIsdAs));
+          }
 
           // Use a port from the dispatcher compatibility range
           ScmpEchoDemo demo = new ScmpEchoDemo(32766);
-          // Control service address
-          InetSocketAddress cs211 = new InetSocketAddress("127.0.0.98", Constants.SCMP_PORT);
-          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia211, cs211).get(0));
+          // Ping the dispatcher/shim. It listens on the same IP as the control service.
+          InetSocketAddress ip = scenario.getControlServer(dstIsdAs);
+
+          // Get paths
+          List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip);
+          demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
           // Echo to local AS and on-path AS (111 is "on" the UP segment) is currently broken,
           // see https://github.com/scionproto-contrib/jpan/issues/96
           // InetSocketAddress cs111 = new InetSocketAddress("127.0.0.36", Constants.SCMP_PORT);

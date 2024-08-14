@@ -5,6 +5,7 @@ ASes:
     voting: true
     authoritative: true
     issuing: true
+    mtu: 1460
   "1-ff00:0:120":
     core: true
     voting: true
@@ -36,7 +37,7 @@ links:
   - {a: "1-ff00:0:110#2",     b: "1-ff00:0:111#111",   linkAtoB: CHILD}
   - {a: "1-ff00:0:110#3",     b: "1-ff00:0:112#453",   linkAtoB: CHILD}
   - {a: "1-ff00:0:120-B#210", b: "2-ff00:0:210-A#105", linkAtoB: CORE}
-  - {a: "1-ff00:0:120-A#21",  b: "1-ff00:0:121#104",   linkAtoB: CHILD}
+  - {a: "1-ff00:0:120-A#21",  b: "1-ff00:0:121#104",   linkAtoB: CHILD, mtu: 1350}
   - {a: "2-ff00:0:210-B#450", b: "2-ff00:0:211#503",   linkAtoB: CHILD}
   - {a: "1-ff00:0:111#1111",  b: "1-ff00:0:1111#123",  linkAtoB: CHILD}
   - {a: "1-ff00:0:111#1112",  b: "1-ff00:0:1112#234",  linkAtoB: CHILD}

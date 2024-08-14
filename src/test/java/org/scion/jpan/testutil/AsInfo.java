@@ -36,8 +36,12 @@ public class AsInfo {
     controlServer = addr;
   }
 
+  public String getControlServerIP() {
+    return controlServer.substring(0, controlServer.lastIndexOf(':'));
+  }
+
   public int getControlServerPort() {
-    return Integer.parseInt(controlServer.substring(controlServer.indexOf(':') + 1));
+    return Integer.parseInt(controlServer.substring(controlServer.lastIndexOf(':') + 1));
   }
 
   public String getBorderRouterAddressByIA(long remoteIsdAs) {

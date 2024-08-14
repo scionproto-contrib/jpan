@@ -93,8 +93,9 @@ public class Scenario {
   public InetSocketAddress getControlServer(long isdAs) {
     LocalTopology topo = topologies.get(isdAs);
     String addr = topo.getControlServerAddress();
-    String ip = addr.substring(0, addr.indexOf(':'));
-    String port = addr.substring(addr.indexOf(':') + 1);
+    int separate = addr.lastIndexOf(':');
+    String ip = addr.substring(0, separate);
+    String port = addr.substring(separate + 1);
     return new InetSocketAddress(ip, Integer.parseInt(port));
   }
 

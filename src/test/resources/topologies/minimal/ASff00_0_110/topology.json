@@ -3,7 +3,7 @@
     "core"
   ],
   "isd_as": "1-ff00:0:110",
-  "mtu": 1472,
+  "mtu": 1460,
   "test_dispatcher": true,
   "endhost_start_port": 1024,
   "endhost_end_port": 65535,

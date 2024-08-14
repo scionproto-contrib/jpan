@@ -54,7 +54,7 @@ public class PathMetadata {
   private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
     try {
       String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
-      int splitIndex = underlayAddressString.indexOf(':');
+      int splitIndex = underlayAddressString.lastIndexOf(':');
       InetAddress ip = IPHelper.toInetAddress(underlayAddressString.substring(0, splitIndex));
       int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
       return new InetSocketAddress(ip, port);

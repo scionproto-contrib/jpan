@@ -93,8 +93,8 @@ public class Scmp {
     TYPE_1_CODE_5(1, 5, "Source address failed ingress/egress policy"),
     TYPE_1_CODE_6(1, 6, "Reject route to destination"),
 
-    TYPE_2(2, 0, ""),
-    TYPE_3(3, 0, ""),
+    TYPE_2(2, 0, "Packet Too Big"),
+    TYPE_3(3, 0, "(not assigned)"),
 
     // Type 4 codes
     TYPE_4_CODE_0(4, 0, "Erroneous header field"),
@@ -120,8 +120,11 @@ public class Scmp {
     TYPE_4_CODE_65(4, 65, "Unknown hop-by-hop option"),
     TYPE_4_CODE_66(4, 66, "Unknown end-to-end option"),
 
-    TYPE_5(5, 0, ""),
-    TYPE_6(6, 0, ""),
+    TYPE_5(5, 0, "External Interface Down"),
+    TYPE_6(6, 0, "Internal Connectivity Down"),
+    TYPE_100(100, 0, "Private Experimentation"),
+    TYPE_101(101, 0, "Private Experimentation"),
+    TYPE_127(127, 0, "Reserved for expansion of SCMP error messages"),
 
     TYPE_128(128, 0, "Echo Request"),
     TYPE_129(129, 0, "Echo Reply"),

@@ -16,6 +16,7 @@ package org.scion.jpan;
 
 public final class Constants {
   public static final int SCMP_PORT = 30041;
+
   /**
    * @deprecated Dispatcher support will be removed soon.
    */
@@ -63,6 +64,16 @@ public final class Constants {
 
   /** Time (in seconds) before expiration at which a paths is automatically renewed. */
   public static final int DEFAULT_PATH_EXPIRY_MARGIN = 10;
+
+  /** Enable minimization of segment requests during path construction. */
+  public static final String PROPERTY_RESOLVER_MINIMIZE_REQUESTS =
+      "EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS";
+
+  /** Enable minimization of segment requests during path construction. */
+  public static final String ENV_RESOLVER_MINIMIZE_REQUESTS =
+      "org.scion.resolver.experimentalMinimizeRequests";
+
+  public static final boolean DEFAULT_RESOLVER_MINIMIZE_REQUESTS = false;
 
   /**
    * Disable usage of OS search domains for DNS lookup, e.g. from /etc/resolv.conf. This needs to be

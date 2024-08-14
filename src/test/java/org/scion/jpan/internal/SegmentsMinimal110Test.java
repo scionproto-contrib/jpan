@@ -80,7 +80,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_110);
       Daemon.Path path = paths.get(0);
       assertEquals(0, path.getRaw().size());
-      assertEquals(1472, path.getMtu());
+      assertEquals(1460, path.getMtu());
       assertEquals(0, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
@@ -113,7 +113,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
   }
 
   @Test
@@ -185,7 +185,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1350, path.getMtu());
       String firstHop = topoServer.getBorderRouterAddressByIA(AS_120);
       assertEquals(firstHop, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 1, "1-ff00:0:110");
@@ -195,7 +195,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       assertEquals(4, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(3, controlServer.getAndResetCallCount());
+    assertEquals(2, controlServer.getAndResetCallCount());
   }
 
   @Test

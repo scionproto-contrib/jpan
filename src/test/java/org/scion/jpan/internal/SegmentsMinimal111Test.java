@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
@@ -73,6 +74,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
+    System.clearProperty(Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS);
   }
 
   @Test
@@ -96,6 +98,16 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseB_SameIsd_Up() throws IOException {
+    caseB_SameIsd_Up(false);
+  }
+
+  @Test
+  void caseB_SameIsd_Up_MinimizeRequests() throws IOException {
+    caseB_SameIsd_Up(true);
+  }
+
+  private void caseB_SameIsd_Up(boolean minimize) throws IOException {
+    System.setProperty(Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS, Boolean.toString(minimize));
     addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_110);
@@ -128,7 +140,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1460, path.getMtu());
       assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
@@ -136,7 +148,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
     }
 
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(minimize ? 1 : 2, controlServer.getAndResetCallCount());
   }
 
   @Test
@@ -193,7 +205,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       assertEquals(4, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
   }
 
   @Test
@@ -245,7 +257,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1350, path.getMtu());
       assertEquals(firstFop110, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
@@ -298,7 +310,7 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
 
-      assertEquals(1472, path.getMtu());
+      assertEquals(1460, path.getMtu());
       String FIRST_HOP = topoServer.getBorderRouterAddressByIA(AS_110);
       assertEquals(FIRST_HOP, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
@@ -438,6 +450,55 @@ public class SegmentsMinimal111Test extends AbstractSegmentsMinimalTest {
       checkInterface(path, 6, 450, "2-ff00:0:210");
       checkInterface(path, 7, 503, "2-ff00:0:211");
       assertEquals(8, path.getInterfacesCount());
+    }
+    assertEquals(1, topoServer.getAndResetCallCount());
+    assertEquals(3, controlServer.getAndResetCallCount());
+  }
+
+  @Test
+  void caseE_SameIsd_UpDown_OneCoreAS_OnPathDown() throws IOException {
+    addResponses();
+    try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
+      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_1111);
+      //  Available paths to 1-ff00:0:1112
+      //  2 Hops:
+      //  [0] Hops: [1-ff00:0:111 1111>123 1-ff00:0:1111]
+      //  MTU: 1472 NextHop: 127.0.0.34:31018 Status: alive LocalIP: 127.0.0.1
+
+      //  Path:  exp=1721069420 / 2024-07-15T18:50:20Z  mtu=1472
+      //  Path: first hop = 127.0.0.34:31018
+      //  pathIf: 0: 1111 561850441793809  1-ff00:0:111
+      //  pathIf: 1: 123 561850441797905  1-ff00:0:1111
+      //  linkType: 0 LINK_TYPE_UNSPECIFIED
+      byte[] raw = {
+        0, 0, 32, 0, 1, 0, 26, -1, 102, -107, 27, 12, 0, 63, 0, 111, 4, 87, 104, -24, 51, -110, 87,
+        47, 0, 63, 0, 123, 0, 0, -80, -73, 22, -128, 1, -88
+      };
+
+      //      System.out.println(ToStringUtil.pathLong(raw));
+      //      System.out.println(ToStringUtil.path(raw));
+      //      Daemon.Path path = paths.get(0);
+      //      System.out.println(ToStringUtil.path(path.getRaw().toByteArray()));
+      //      System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray()));
+
+      checkMetaHeader(ByteBuffer.wrap(raw), 2, 0, 0);
+
+      Daemon.Path path = paths.get(0);
+      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      checkMetaHeader(rawBB, 2, 0, 0);
+      checkInfo(rawBB, 9744, 1);
+      checkHopField(rawBB, 111, 1111);
+      checkHopField(rawBB, 123, 0);
+      assertEquals(0, rawBB.remaining());
+
+      // compare with recorded byte[]
+      checkRaw(raw, path.getRaw().toByteArray());
+
+      assertEquals(1472, path.getMtu());
+      assertEquals("127.0.0.34:31018", path.getInterface().getAddress().getAddress());
+      checkInterface(path, 0, 1111, "1-ff00:0:111");
+      checkInterface(path, 1, 123, "1-ff00:0:1111");
+      assertEquals(2, path.getInterfacesCount());
     }
     assertEquals(1, topoServer.getAndResetCallCount());
     assertEquals(3, controlServer.getAndResetCallCount());

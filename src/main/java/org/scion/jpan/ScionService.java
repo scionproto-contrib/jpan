@@ -73,6 +73,7 @@ public class ScionService {
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
 
+  private final boolean minimizeRequests;
   private final ManagedChannel channel;
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
@@ -89,6 +90,11 @@ public class ScionService {
   }
 
   protected ScionService(String addressOrHost, Mode mode) {
+    minimizeRequests =
+        ScionUtil.getPropertyOrEnv(
+            Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS,
+            Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
+            Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     if (mode == Mode.DAEMON) {
       LOG.info("Bootstrapping with daemon: target={}", addressOrHost);
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
@@ -596,7 +602,16 @@ public class ScionService {
 
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
-    return Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs);
+    List<Daemon.Path> list =
+        Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs, minimizeRequests);
+    if (LOG.isInfoEnabled()) {
+      LOG.info(
+          "Path found between {} and {}: {}",
+          ScionUtil.toStringIA(srcIsdAs),
+          ScionUtil.toStringIA(dstIsdAs),
+          list.size());
+    }
+    return list;
   }
 
   /**

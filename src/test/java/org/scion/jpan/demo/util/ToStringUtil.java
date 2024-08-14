@@ -80,6 +80,9 @@ public class ToStringUtil {
   }
 
   public static String path(byte[] raw) {
+    if (raw.length == 0) {
+      return "[]";
+    }
     PathHeaderScion ph = new PathHeaderScion();
     ph.read(ByteBuffer.wrap(raw));
     StringBuilder sb = new StringBuilder();
@@ -115,6 +118,9 @@ public class ToStringUtil {
   }
 
   public static String pathLong(byte[] raw) {
+    if (raw.length == 0) {
+      return "[]";
+    }
     PathHeaderScion ph = new PathHeaderScion();
     ph.read(ByteBuffer.wrap(raw));
     return ph.toString();
