@@ -81,4 +81,19 @@ class IPHelperTest {
     byte[] ipv6 = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
     assertArrayEquals(ipv6, IPHelper.toInetAddress("::1").getAddress());
   }
+
+  @Test
+  void ensurePortOrDefault() {
+    assertEquals("127.0.0.1:12345", IPHelper.ensurePortOrDefault("127.0.0.1", 12345));
+    assertEquals("127.0.0.1:333", IPHelper.ensurePortOrDefault("127.0.0.1:333", 12345));
+
+    assertEquals("[::1]:12345", IPHelper.ensurePortOrDefault("::1", 12345));
+    assertEquals("[::1]:12345", IPHelper.ensurePortOrDefault("[::1]", 12345));
+    assertEquals("[::1]:333", IPHelper.ensurePortOrDefault("[::1]:333", 12345));
+
+    assertEquals("localhost:12345", IPHelper.ensurePortOrDefault("localhost", 12345));
+    assertEquals("localhost:333", IPHelper.ensurePortOrDefault("localhost:333", 12345));
+
+    assertEquals("localhost:333", IPHelper.ensurePortOrDefault("333", 12345));
+  }
 }

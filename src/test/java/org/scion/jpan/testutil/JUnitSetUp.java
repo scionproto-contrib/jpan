@@ -52,12 +52,6 @@ public class JUnitSetUp
         throw new IllegalStateException("JUnit tests cannot run while port 31000 is in use.");
       }
 
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
-      System.clearProperty(Constants.PROPERTY_DAEMON);
-      System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
-      System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
       context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put("SCION JUnit global", this);
     }
   }
@@ -70,7 +64,14 @@ public class JUnitSetUp
   @Override
   public void beforeEach(ExtensionContext context) {
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, "....invalid-dummy-filename");
+
     Scion.closeDefault();
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
+    System.clearProperty(Constants.PROPERTY_DAEMON);
+    System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
+    System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
     if (failed) {
       System.exit(1);
     }

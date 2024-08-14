@@ -40,7 +40,7 @@ public class ScmpEchoDemo {
 
   public static boolean PRINT = true;
   private static int REPEAT = 10;
-  private static Network NETWORK = Network.PRODUCTION;
+  private static Network NETWORK = Network.SCION_PROTO;
   private final int localPort;
 
   public enum Network {
@@ -84,7 +84,7 @@ public class ScmpEchoDemo {
           long srcIsdAs = ScionUtil.parseIA("2-ff00:0:212");
           long dstIsdAs = ScionUtil.parseIA("2-ff00:0:222");
 
-          if (true) {
+          if (!true) {
             // Alternative #1: Bootstrap from topo file
             System.setProperty(
                 Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
