@@ -53,6 +53,7 @@ class PathDeduplicator {
                     // TODO We should also nullify MAC and exp-date (not only time stamp)
                     //    Better yet, we should just compare metadata!
                     //    This would also create less objects. No need to nullify anything!
+                    //   We should only compare hopCount and ingress/egress IDs!!
                     if (true) throw new UnsupportedOperationException();
 
                     return;
