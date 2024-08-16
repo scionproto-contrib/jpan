@@ -2,6 +2,12 @@
 
 ## Release environment
 
+0) Run integration test
+   - Checkout SCION proto and Start scionproto topology:
+     - `./scion.sh topology -c topology/default.topo`
+     - `./scion.sh run`
+  - Run `ScmpDemoDefault` in `org.scion.jpan.demo`
+
 1) Prepare the environment
     - Make sure to have a valid signing key
     - Make sure to have `~/.m2/settings.xml` configured properly
