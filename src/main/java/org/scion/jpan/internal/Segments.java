@@ -284,6 +284,17 @@ public class Segments {
         buildPath(paths, localAS, dstIsdAs, pathSegment0, pathSegment1);
       }
     }
+
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+    // TODO
+//    for (Peering peering: detectPeerings(segments0, segments1)) {
+//      buildPeeringPath(paths, peering, srcIsdAs, dstIsdAs, localAS);
+//    }
   }
 
   private static void combineThreeSegments(
@@ -399,6 +410,76 @@ public class Segments {
     path.setInterface(interfaceAddr);
 
     paths.checkDuplicatePaths(path);
+  }
+
+  private static void buildPeeringPath(MultiMap<Integer, Daemon.Path> paths, Peering peering, long srcIsdAs,
+                                       long dstIsdAs,
+                                       LocalTopology localAS) {
+    PathSegment[] segments = new PathSegment[]{peering.segmentUp, peering.segmentDown};
+
+    Daemon.Path.Builder path = Daemon.Path.newBuilder();
+    ByteBuffer raw = ByteBuffer.allocate(1000);
+
+    int[][] ranges = new int[segments.length][]; // [start (inclusive), end (exclusive), increment]
+    long startIA = localAS.getIsdAs();
+    final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
+    for (int i = 0; i < segments.length; i++) {
+      ranges[i] = createRange(segments[i], startIA, endingIA);
+      startIA = endingIA.get();
+    }
+
+//    // Search for on-path and shortcuts.
+//    if (detectOnPathUp(segments, dstIsdAs, ranges)) {
+//      segments = new PathSegment[] {segments[0]};
+//      ranges = new int[][] {ranges[0]};
+//      LOG.debug("Found on-path AS on UP segment.");
+//    } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
+//      segments = new PathSegment[] {segments[segments.length - 1]};
+//      ranges = new int[][] {ranges[ranges.length - 1]};
+//      LOG.debug("Found on-path AS on DOWN segment.");
+//    } else if (detectShortcut(segments, ranges)) {
+//      // The following is a no-op if there is no CORE segment
+//      segments = new PathSegment[] {segments[0], segments[segments.length - 1]};
+//      ranges = new int[][] {ranges[0], ranges[ranges.length - 1]};
+//      LOG.debug("Found shortcut at hop {}:", ranges[0][1]);
+//    }
+
+    // path meta header
+    int pathMetaHeader = 0;
+    for (int i = 0; i < segments.length; i++) {
+      int hopCount = Math.abs(ranges[i][1] - ranges[i][0]);
+      pathMetaHeader |= hopCount << (6 * (2 - i));
+    }
+    raw.putInt(pathMetaHeader);
+
+    // info fields
+    for (int i = 0; i < segments.length; i++) {
+      writeInfoField(raw, segments[i].info, ranges[i][2]);
+      calcBetaCorrection(raw, 6 + i * 8, segments[i], ranges[i]);
+    }
+
+    // hop fields
+    path.setMtu(localAS.getMtu());
+    for (int i = 0; i < segments.length; i++) {
+      // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
+      writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i]);
+    }
+
+    raw.flip();
+    path.setRaw(ByteString.copyFrom(raw));
+
+    // TODO where do we get these?
+    //    segUp.getSegmentInfo();
+    //    path.setLatency();
+    //    path.setInternalHops();
+    //    path.setNotes();
+    // First hop
+    String firstHop = localAS.getBorderRouterAddress((int) path.getInterfaces(0).getId());
+    Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
+    Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
+    path.setInterface(interfaceAddr);
+
+    checkDuplicatePaths(paths, path);
   }
 
   private static void calcBetaCorrection(
@@ -580,6 +661,22 @@ public class Segments {
     return false;
   }
 
+  private static List<Peering> detectPeerings(List<PathSegment> segments0, List<PathSegment> segments1) {
+    List<Peering> peerings = new ArrayList<>();
+    for (PathSegment seg0 : segments0) {
+      Map<Long, PeeringLink> peers0 = seg0.peers;
+      for (PathSegment seg1 : segments1) {
+        for (PeeringLink pe1 : seg1.peers.values()) {
+          PeeringLink pe0 = peers0.get(pe1.body.getIsdAs());
+          if (pe0 != null) {
+            peerings.add(new Peering(seg0, seg1, pe0, pe1));
+          }
+        }
+      }
+    }
+    return peerings;
+  }
+
   private static MultiMap<Long, PathSegment> createSegmentsMap(
       List<PathSegment> pathSegments, long knownIsdAs) {
     MultiMap<Long, PathSegment> map = new MultiMap<>();
@@ -689,6 +786,7 @@ public class Segments {
     final List<Seg.ASEntrySignedBody> bodies;
     final Seg.SegmentInformation info;
     final SegmentType type; //
+    final Map<Long, PeeringLink> peers = new HashMap<>();
 
     PathSegment(Seg.PathSegment segment, SegmentType type) {
       this.segment = segment;
@@ -699,6 +797,12 @@ public class Segments {
                   .collect(Collectors.toList()));
       this.info = getInfo(segment);
       this.type = type;
+      for (int i = 0; i < bodies.size(); i++) {
+        Seg.ASEntrySignedBody body = bodies.get(i);
+        for (Seg.PeerEntry pe : body.getPeerEntriesList()) {
+          peers.put(pe.getPeerIsdAs(), new PeeringLink(body, pe, i));
+        }
+      }
     }
 
     public Seg.ASEntrySignedBody getAsEntriesFirst() {
@@ -728,5 +832,31 @@ public class Segments {
     public boolean isCore() {
       return type == SegmentType.CORE;
     }
+  }
+
+  private static class Peering {
+    final PathSegment segmentUp;
+    final PathSegment segmentDown;
+    final PeeringLink linkUp;
+    final PeeringLink linkDown;
+
+      private Peering(PathSegment segmentUp, PathSegment segmentDown, PeeringLink linkUp, PeeringLink linkDown) {
+          this.segmentUp = segmentUp;
+          this.segmentDown = segmentDown;
+          this.linkUp = linkUp;
+          this.linkDown = linkDown;
+      }
+  }
+
+  private static class PeeringLink {
+    final Seg.ASEntrySignedBody body;
+    final Seg.PeerEntry peerEntry;
+    final int pos; // position in segment
+
+      private PeeringLink(Seg.ASEntrySignedBody body, Seg.PeerEntry peerEntry, int pos) {
+          this.body = body;
+          this.peerEntry = peerEntry;
+          this.pos = pos;
+      }
   }
 }

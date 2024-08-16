@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.3.0
 - Make ResponsePath/RequestPath classes private. Make at least create() private... 
 - Demo that connects to Francois' website
+  https://scion-architecture.net/archive/echoscion/
+  https://echoscion.ddns.net/#action
 - Fix @Disabled tests
 - Support topofile port range
 - `ResponsePath` is now package private (not public anymore)
