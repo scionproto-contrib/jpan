@@ -55,11 +55,11 @@ public class ScmpEchoDemo {
     REPEAT = repeat;
   }
 
-  public ScmpEchoDemo() {
+  private ScmpEchoDemo() {
     this(12345);
   }
 
-  public ScmpEchoDemo(int localPort) {
+  private ScmpEchoDemo(int localPort) {
     this.localPort = localPort;
   }
 

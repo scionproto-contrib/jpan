@@ -342,12 +342,10 @@ public class Segments {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
-    Seg.SegmentInformation[] infos = new Seg.SegmentInformation[segments.length];
     int[][] ranges = new int[segments.length][]; // [start (inclusive), end (exclusive), increment]
     long startIA = localAS.getIsdAs();
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
-      infos[i] = getInfo(segments[i]);
       ranges[i] = createRange(segments[i], startIA, endingIA);
       startIA = endingIA.get();
     }
@@ -355,18 +353,15 @@ public class Segments {
     // Search for on-path and shortcuts.
     if (detectOnPathUp(segments, dstIsdAs, ranges)) {
       segments = new PathSegment[] {segments[0]};
-      infos = new Seg.SegmentInformation[] {infos[0]};
       ranges = new int[][] {ranges[0]};
       LOG.debug("Found on-path AS on UP segment.");
     } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
       segments = new PathSegment[] {segments[segments.length - 1]};
-      infos = new Seg.SegmentInformation[] {infos[infos.length - 1]};
       ranges = new int[][] {ranges[ranges.length - 1]};
       LOG.debug("Found on-path AS on DOWN segment.");
     } else if (detectShortcut(segments, ranges)) {
       // The following is a no-op if there is no CORE segment
       segments = new PathSegment[] {segments[0], segments[segments.length - 1]};
-      infos = new Seg.SegmentInformation[] {infos[0], infos[infos.length - 1]};
       ranges = new int[][] {ranges[0], ranges[ranges.length - 1]};
       LOG.debug("Found shortcut at hop {}:", ranges[0][1]);
     }
@@ -380,8 +375,8 @@ public class Segments {
     raw.putInt(pathMetaHeader);
 
     // info fields
-    for (int i = 0; i < infos.length; i++) {
-      writeInfoField(raw, infos[i], ranges[i][2]);
+    for (int i = 0; i < segments.length; i++) {
+      writeInfoField(raw, segments[i].info, ranges[i][2]);
       calcBetaCorrection(raw, 6 + i * 8, segments[i], ranges[i]);
     }
 
@@ -389,7 +384,7 @@ public class Segments {
     path.setMtu(localAS.getMtu());
     for (int i = 0; i < segments.length; i++) {
       // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
-      writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i], infos[i]);
+      writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i]);
     }
 
     raw.flip();
@@ -414,15 +409,9 @@ public class Segments {
     // When we create a shortcut or on-path, we need to remove the MACs from the segID / beta.
     byte[] fix = new byte[2];
 
-    // collect all macs
-    for (Seg.ASEntrySignedBody body : segment.bodies) {
-      ByteString mac = body.getHopEntry().getHopField().getMac();
-      fix[0] ^= mac.byteAt(0);
-      fix[1] ^= mac.byteAt(1);
-    }
-
-    // undo the macs we actually need:
-    for (int pos = range[0]; pos != range[1]; pos += range[2]) {
+    // We remove all MACs from start of the segment to start of the range that is actually used.
+    int startRange = range[2] == +1 ? range[0] : range[1] + 1;
+    for (int pos = 0; pos < startRange; pos++) {
       ByteString mac = segment.getAsEntriesList().get(pos).getHopEntry().getHopField().getMac();
       fix[0] ^= mac.byteAt(0);
       fix[1] ^= mac.byteAt(1);
@@ -487,8 +476,7 @@ public class Segments {
       ByteBuffer raw,
       int bytePosSegID,
       PathSegment pathSegment,
-      int[] range,
-      Seg.SegmentInformation info) {
+      int[] range) {
     int minExpiry = Integer.MAX_VALUE;
     for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
       boolean reversed = range[2] == -1;
@@ -531,7 +519,7 @@ public class Segments {
     }
 
     // expiration
-    long time = calcExpTime(info.getTimestamp(), minExpiry);
+    long time = calcExpTime(pathSegment.info.getTimestamp(), minExpiry);
     if (time < path.getExpiration().getSeconds()) {
       path.setExpiration(Timestamp.newBuilder().setSeconds(minExpiry).build());
     }
@@ -667,7 +655,7 @@ public class Segments {
     }
   }
 
-  private static Seg.SegmentInformation getInfo(PathSegment pathSegment) {
+  private static Seg.SegmentInformation getInfo(Seg.PathSegment pathSegment) {
     try {
       return Seg.SegmentInformation.parseFrom(pathSegment.getSegmentInfo());
     } catch (InvalidProtocolBufferException e) {
@@ -728,6 +716,7 @@ public class Segments {
   private static class PathSegment {
     final Seg.PathSegment segment;
     final List<Seg.ASEntrySignedBody> bodies;
+    final Seg.SegmentInformation info;
     final SegmentType type; //
 
     PathSegment(Seg.PathSegment segment, SegmentType type) {
@@ -737,6 +726,7 @@ public class Segments {
               segment.getAsEntriesList().stream()
                   .map(Segments::getBody)
                   .collect(Collectors.toList()));
+      this.info = getInfo(segment);
       this.type = type;
     }
 
