@@ -214,7 +214,7 @@ public class Segments {
     int code = segmentsUp != null ? 4 : 0;
     code |= segmentsCore != null ? 2 : 0;
     code |= segmentsDown != null ? 1 : 0;
-    final MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
+    PathDeduplicator paths = new PathDeduplicator();
     switch (code) {
       case 7:
         combineThreeSegments(
@@ -246,11 +246,11 @@ public class Segments {
       default:
         throw new UnsupportedOperationException();
     }
-    return paths.values();
+    return paths.getPaths();
   }
 
   private static void combineSegment(
-      MultiMap<Integer, Daemon.Path> paths,
+          PathDeduplicator paths,
       List<PathSegment> segments,
       LocalTopology localAS,
       long dstIsdAs) {
@@ -269,7 +269,7 @@ public class Segments {
    * @param localAS border router lookup resource
    */
   private static void combineTwoSegments(
-      MultiMap<Integer, Daemon.Path> paths,
+          PathDeduplicator paths,
       List<PathSegment> segments0,
       List<PathSegment> segments1,
       long srcIsdAs,
@@ -287,7 +287,7 @@ public class Segments {
   }
 
   private static void combineThreeSegments(
-      MultiMap<Integer, Daemon.Path> paths,
+          PathDeduplicator paths,
       List<PathSegment> segmentsUp,
       List<PathSegment> segmentsCore,
       List<PathSegment> segmentsDown,
@@ -321,7 +321,7 @@ public class Segments {
   }
 
   private static void buildPath(
-      MultiMap<Integer, Daemon.Path> paths,
+          PathDeduplicator paths,
       List<PathSegment> segmentsUp,
       PathSegment segCore,
       List<PathSegment> segmentsDown,
@@ -335,7 +335,7 @@ public class Segments {
   }
 
   private static void buildPath(
-      MultiMap<Integer, Daemon.Path> paths,
+      PathDeduplicator paths,
       LocalTopology localAS,
       long dstIsdAs,
       PathSegment... segments) {
@@ -401,7 +401,7 @@ public class Segments {
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
 
-    checkDuplicatePaths(paths, path);
+    paths.checkDuplicatePaths(path);
   }
 
   private static void calcBetaCorrection(
@@ -419,32 +419,6 @@ public class Segments {
 
     raw.put(bytePosSegID, ByteUtil.toByte(raw.get(bytePosSegID) ^ fix[0]));
     raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ fix[1]));
-  }
-
-  private static void checkDuplicatePaths(
-      MultiMap<Integer, Daemon.Path> paths, Daemon.Path.Builder path) {
-    ByteString raw = path.getRaw();
-    // Add, path to list, but avoid duplicates
-    int hash = Arrays.hashCode(raw.toByteArray());
-    if (paths.contains(hash)) {
-      for (Daemon.Path otherPath : paths.get(hash)) {
-        ByteString otherRaw = otherPath.getRaw();
-        boolean equals = true;
-        for (int i = 0; i < otherRaw.size(); i++) {
-          if (otherRaw.byteAt(i) != raw.byteAt(i)) {
-            equals = false;
-            break;
-          }
-        }
-        if (equals) {
-          // duplicate!
-          return;
-        }
-      }
-    }
-
-    // Add new path!
-    paths.put(hash, path.build());
   }
 
   private static int[] createRange(PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
