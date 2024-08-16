@@ -292,9 +292,9 @@ public class Segments {
     // TODO
     // TODO
     // TODO
-//    for (Peering peering: detectPeerings(segments0, segments1)) {
-//      buildPeeringPath(paths, peering, srcIsdAs, dstIsdAs, localAS);
-//    }
+    //    for (Peering peering: detectPeerings(segments0, segments1)) {
+    //      buildPeeringPath(paths, peering, srcIsdAs, dstIsdAs, localAS);
+    //    }
   }
 
   private static void combineThreeSegments(
@@ -412,10 +412,13 @@ public class Segments {
     paths.checkDuplicatePaths(path);
   }
 
-  private static void buildPeeringPath(MultiMap<Integer, Daemon.Path> paths, Peering peering, long srcIsdAs,
-                                       long dstIsdAs,
-                                       LocalTopology localAS) {
-    PathSegment[] segments = new PathSegment[]{peering.segmentUp, peering.segmentDown};
+  private static void buildPeeringPath(
+      MultiMap<Integer, Daemon.Path> paths,
+      Peering peering,
+      long srcIsdAs,
+      long dstIsdAs,
+      LocalTopology localAS) {
+    PathSegment[] segments = new PathSegment[] {peering.segmentUp, peering.segmentDown};
 
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
@@ -428,21 +431,21 @@ public class Segments {
       startIA = endingIA.get();
     }
 
-//    // Search for on-path and shortcuts.
-//    if (detectOnPathUp(segments, dstIsdAs, ranges)) {
-//      segments = new PathSegment[] {segments[0]};
-//      ranges = new int[][] {ranges[0]};
-//      LOG.debug("Found on-path AS on UP segment.");
-//    } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
-//      segments = new PathSegment[] {segments[segments.length - 1]};
-//      ranges = new int[][] {ranges[ranges.length - 1]};
-//      LOG.debug("Found on-path AS on DOWN segment.");
-//    } else if (detectShortcut(segments, ranges)) {
-//      // The following is a no-op if there is no CORE segment
-//      segments = new PathSegment[] {segments[0], segments[segments.length - 1]};
-//      ranges = new int[][] {ranges[0], ranges[ranges.length - 1]};
-//      LOG.debug("Found shortcut at hop {}:", ranges[0][1]);
-//    }
+    //    // Search for on-path and shortcuts.
+    //    if (detectOnPathUp(segments, dstIsdAs, ranges)) {
+    //      segments = new PathSegment[] {segments[0]};
+    //      ranges = new int[][] {ranges[0]};
+    //      LOG.debug("Found on-path AS on UP segment.");
+    //    } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
+    //      segments = new PathSegment[] {segments[segments.length - 1]};
+    //      ranges = new int[][] {ranges[ranges.length - 1]};
+    //      LOG.debug("Found on-path AS on DOWN segment.");
+    //    } else if (detectShortcut(segments, ranges)) {
+    //      // The following is a no-op if there is no CORE segment
+    //      segments = new PathSegment[] {segments[0], segments[segments.length - 1]};
+    //      ranges = new int[][] {ranges[0], ranges[ranges.length - 1]};
+    //      LOG.debug("Found shortcut at hop {}:", ranges[0][1]);
+    //    }
 
     // path meta header
     int pathMetaHeader = 0;
@@ -661,7 +664,8 @@ public class Segments {
     return false;
   }
 
-  private static List<Peering> detectPeerings(List<PathSegment> segments0, List<PathSegment> segments1) {
+  private static List<Peering> detectPeerings(
+      List<PathSegment> segments0, List<PathSegment> segments1) {
     List<Peering> peerings = new ArrayList<>();
     for (PathSegment seg0 : segments0) {
       Map<Long, PeeringLink> peers0 = seg0.peers;
@@ -840,12 +844,13 @@ public class Segments {
     final PeeringLink linkUp;
     final PeeringLink linkDown;
 
-      private Peering(PathSegment segmentUp, PathSegment segmentDown, PeeringLink linkUp, PeeringLink linkDown) {
-          this.segmentUp = segmentUp;
-          this.segmentDown = segmentDown;
-          this.linkUp = linkUp;
-          this.linkDown = linkDown;
-      }
+    private Peering(
+        PathSegment segmentUp, PathSegment segmentDown, PeeringLink linkUp, PeeringLink linkDown) {
+      this.segmentUp = segmentUp;
+      this.segmentDown = segmentDown;
+      this.linkUp = linkUp;
+      this.linkDown = linkDown;
+    }
   }
 
   private static class PeeringLink {
@@ -853,10 +858,10 @@ public class Segments {
     final Seg.PeerEntry peerEntry;
     final int pos; // position in segment
 
-      private PeeringLink(Seg.ASEntrySignedBody body, Seg.PeerEntry peerEntry, int pos) {
-          this.body = body;
-          this.peerEntry = peerEntry;
-          this.pos = pos;
-      }
+    private PeeringLink(Seg.ASEntrySignedBody body, Seg.PeerEntry peerEntry, int pos) {
+      this.body = body;
+      this.peerEntry = peerEntry;
+      this.pos = pos;
+    }
   }
 }
