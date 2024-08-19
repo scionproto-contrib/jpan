@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `ResponsePath` is now package private (not public anymore)
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
+- Improve SCMP to only accept responses with correct ID. -> Allows pinging in parallel.
+  Currently this requires using different local ports. 
 - remove ScionAddress?
 - Remove getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) <- ISD + Scion address!!!
 - ScionDatagramChannel
@@ -40,7 +42,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Fixed some issues with IPv6 ASes
   - New option `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS`
 - "Integration" test for scionproto "default". 
-  [#116](https://github.com/scionproto-contrib/jpan/pull/116)
+  [#114](https://github.com/scionproto-contrib/jpan/pull/114)
+- Improved path duplication filtering.
+  [#117](https://github.com/scionproto-contrib/jpan/pull/117)
 
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
