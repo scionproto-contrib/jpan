@@ -119,9 +119,9 @@ public class Segments {
         List<PathSegment> directUp = filterForIsdAs(segmentsUp, dstIsdAs);
         if (!directUp.isEmpty()) {
           // DST is core or on-path
-          MultiMap<Integer, Daemon.Path> paths = new MultiMap<>();
+          PathDuplicationFilter paths = new PathDuplicationFilter();
           combineSegment(paths, directUp, localAS, dstIsdAs);
-          return paths.values();
+          return paths.getPaths();
         }
       }
     }
@@ -214,7 +214,7 @@ public class Segments {
     int code = segmentsUp != null ? 4 : 0;
     code |= segmentsCore != null ? 2 : 0;
     code |= segmentsDown != null ? 1 : 0;
-    PathDeduplicator paths = new PathDeduplicator();
+    PathDuplicationFilter paths = new PathDuplicationFilter();
     switch (code) {
       case 7:
         combineThreeSegments(
@@ -250,7 +250,7 @@ public class Segments {
   }
 
   private static void combineSegment(
-          PathDeduplicator paths,
+      PathDuplicationFilter paths,
       List<PathSegment> segments,
       LocalTopology localAS,
       long dstIsdAs) {
@@ -269,7 +269,7 @@ public class Segments {
    * @param localAS border router lookup resource
    */
   private static void combineTwoSegments(
-          PathDeduplicator paths,
+      PathDuplicationFilter paths,
       List<PathSegment> segments0,
       List<PathSegment> segments1,
       long srcIsdAs,
@@ -287,7 +287,7 @@ public class Segments {
   }
 
   private static void combineThreeSegments(
-          PathDeduplicator paths,
+      PathDuplicationFilter paths,
       List<PathSegment> segmentsUp,
       List<PathSegment> segmentsCore,
       List<PathSegment> segmentsDown,
@@ -321,7 +321,7 @@ public class Segments {
   }
 
   private static void buildPath(
-          PathDeduplicator paths,
+      PathDuplicationFilter paths,
       List<PathSegment> segmentsUp,
       PathSegment segCore,
       List<PathSegment> segmentsDown,
@@ -335,10 +335,7 @@ public class Segments {
   }
 
   private static void buildPath(
-      PathDeduplicator paths,
-      LocalTopology localAS,
-      long dstIsdAs,
-      PathSegment... segments) {
+      PathDuplicationFilter paths, LocalTopology localAS, long dstIsdAs, PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 

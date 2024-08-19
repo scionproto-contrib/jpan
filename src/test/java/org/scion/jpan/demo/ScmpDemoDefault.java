@@ -115,7 +115,7 @@ public class ScmpDemoDefault {
       for (int i = 0; i < REPEAT; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, i, data);
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
-        String echoMsgStr = msg.getSizeReceived() + " bytes from ";
+        String echoMsgStr = "  " + msg.getSizeReceived() + " bytes from ";
         InetAddress addr = msg.getPath().getRemoteAddress();
         echoMsgStr += ScionUtil.toStringIA(path.getRemoteIsdAs()) + "," + addr.getHostAddress();
         echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
