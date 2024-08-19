@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix @Disabled tests
 - Support topofile port range
 - `ResponsePath` is now package private (not public anymore)
-- Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
+- SCMP: Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
-- Improve SCMP to only accept responses with correct ID. -> Allows pinging in parallel.
+- SCMP: Improve SCMP to only accept responses with correct ID. -> Allows pinging in parallel.
   Currently this requires using different local ports. 
+- SCMP: Messages should contain request path AND response path!
 - remove ScionAddress?
 - Remove getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) <- ISD + Scion address!!!
 - ScionDatagramChannel
