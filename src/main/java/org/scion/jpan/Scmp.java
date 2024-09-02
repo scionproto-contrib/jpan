@@ -221,19 +221,30 @@ public class Scmp {
   }
 
   public abstract static class TimedMessage extends Message {
-    private long nanoSeconds;
+    private long sendNanoSeconds;
+    private long receiveNanoSeconds;
     private boolean timedOut = false;
 
     private TimedMessage(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
     }
 
+    public void setSendNanoSeconds(long l) {
+      this.sendNanoSeconds = l;
+    }
+
+    public void setReceiveNanoSeconds(long l) {
+      this.receiveNanoSeconds = l;
+    }
+
+    @Deprecated
     public void setNanoSeconds(long nanoSeconds) {
-      this.nanoSeconds = nanoSeconds;
+      this.sendNanoSeconds = 0;
+      this.receiveNanoSeconds = nanoSeconds;
     }
 
     public long getNanoSeconds() {
-      return nanoSeconds;
+      return receiveNanoSeconds - sendNanoSeconds;
     }
 
     public void setTimedOut() {
