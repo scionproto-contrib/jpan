@@ -428,4 +428,35 @@ public class Scmp {
       throws IOException {
     return new ScmpChannel(service, listeningPort);
   }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @return New SCMP channel
+   */
+  public static ScmpChannel2 createAsyncChannel() throws IOException {
+    return new ScmpChannel2();
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  public static ScmpChannel2 createAsyncChannel(int listeningPort) throws IOException {
+    return new ScmpChannel2(Scion.defaultService(), listeningPort);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param service the ScionService instance
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   */
+  public static ScmpChannel2 createAsyncChannel(ScionService service, int listeningPort)
+          throws IOException {
+    return new ScmpChannel2(service, listeningPort);
+  }
 }

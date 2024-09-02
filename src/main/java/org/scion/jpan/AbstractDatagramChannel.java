@@ -353,7 +353,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected InternalConstants.HdrTypes receiveExtensionHeader(
+  protected static InternalConstants.HdrTypes receiveExtensionHeader(
       ByteBuffer buffer, InternalConstants.HdrTypes hdrType) {
     if (hdrType == InternalConstants.HdrTypes.END_TO_END
         || hdrType == InternalConstants.HdrTypes.HOP_BY_HOP) {
