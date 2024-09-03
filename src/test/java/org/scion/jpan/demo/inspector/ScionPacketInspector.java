@@ -153,6 +153,10 @@ public class ScionPacketInspector {
     return payload;
   }
 
+  public void setPayLoad(byte[] payload) {
+    this.payload = payload;
+  }
+
   public void reversePath() {
     scionHeader.reverse();
     pathHeaderScion.reverse();
@@ -200,12 +204,13 @@ public class ScionPacketInspector {
     } else if (errors.contains(type)) {
       scionHeader.write(
           newData,
-          8,
+          8 + payload.length,
           pathHeaderScion.length(),
           Constants.PathTypes.SCION,
           InternalConstants.HdrTypes.SCMP);
       pathHeaderScion.write(newData);
       scmpHeader.writeError(newData);
+      newData.put(payload);
     } else {
       throw new UnsupportedOperationException();
     }

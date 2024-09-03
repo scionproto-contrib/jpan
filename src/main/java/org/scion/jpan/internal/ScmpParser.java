@@ -14,6 +14,7 @@
 
 package org.scion.jpan.internal;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 import org.scion.jpan.ResponsePath;
@@ -132,7 +133,6 @@ public class ScmpParser {
         echo.setData(new byte[data.remaining()]);
         data.get(echo.getData());
         return echo;
-        //break;
       case INFO_130:
       case INFO_131:
         long isdAs = data.getLong();
@@ -141,10 +141,43 @@ public class ScmpParser {
         trace.setMessageArgs(sc, short1, short2);
         trace.setTracerouteArgs(isdAs, ifID);
         return trace;
-        //break;
       default:
-        throw new UnsupportedOperationException("type=" + st);
-        //break;
+        if (!sc.isError()) {
+          // INFO 200, 201, 255, ...
+          return new Scmp.Message(sc, short1, short2, path);
+        }
+        Scmp.ErrorMessage error = Scmp.ErrorMessage.createEmpty(sc, path);
+        error.setCause(consumeErrorPayload(data, path));
+        return error;
+    }
+  }
+
+  private static Scmp.Message consumeErrorPayload(ByteBuffer buffer, ResponsePath path) {
+    // TODO rethink this, there are two issues:
+    //   1) We only attach SCMP messages but ignore other types (plain data packets). This needs to be fixed
+    //   2) We do this whole effort in order to extract the sequenceID. We only need it to be able to throw an
+    //      exception during sendTraceRoute(). This feels like overkill.
+    //      We should probably just throw an Exception in sendXXX() if _any_ SCMP error comes in or if a timeout
+    //      occurs. Parsing the payload is really overkill and feels almost like an attack vector...
+    //
+    try {
+      int start = buffer.position();
+      InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+      // From here on we use linear reading using the buffer's position() mechanism
+      buffer.position(start + ScionHeaderParser.extractHeaderLength(buffer));
+      // Check for extension headers.
+      // This should be mostly unnecessary, however we sometimes saw SCMP error headers
+      // wrapped in extensions headers.
+      // TODO hdrType = receiveExtensionHeader(buffer, hdrType);
+
+      if (hdrType != InternalConstants.HdrTypes.SCMP) {
+        return null; // not an SCMP message TODO we should still attach it...
+      }
+
+      return consume(buffer, path);
+    } catch (BufferUnderflowException e) {
+      // This may happen because the Error payload may not represent a complete packet.
+      return null;
     }
   }
 }

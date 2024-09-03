@@ -256,6 +256,26 @@ public class Scmp {
     }
   }
 
+  public static class ErrorMessage extends Message {
+    private Message cause;
+
+    private ErrorMessage(TypeCode typeCode, Path path) {
+      super(typeCode, 0, 0, path);
+    }
+
+    public static ErrorMessage createEmpty(TypeCode typeCode, Path path) {
+      return new ErrorMessage(typeCode, path);
+    }
+
+    public Message getCause() {
+      return cause;
+    }
+
+    public void setCause(Message cause) {
+      this.cause = cause;
+    }
+  }
+
   public static class EchoMessage extends TimedMessage {
     private byte[] data;
     private int sizeSent;

@@ -395,12 +395,16 @@ class MockBorderRouter implements Runnable {
       Scmp.TypeCode type, ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel channel)
       throws IOException {
     // send back!
+    byte[] payload = new byte[buffer.remaining()];
+    buffer.get(payload);
+
     buffer.rewind();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
     spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
     scmpHeader.setCode(type);
-    ByteBuffer out = ByteBuffer.allocate(100);
+    spi.setPayLoad(payload);
+    ByteBuffer out = ByteBuffer.allocate(1232); // 1232 limit, see spec
     spi.writePacketSCMP(out);
     out.flip();
     channel.send(out, srcAddress);
