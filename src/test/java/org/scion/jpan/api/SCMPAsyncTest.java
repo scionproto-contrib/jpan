@@ -120,7 +120,9 @@ public class SCMPAsyncTest {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
     try (ScmpChannel2 channel = Scmp.createAsyncChannel()) {
-      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+      channel.setScmpErrorListener(scmpMessage ->
+              fail(scmpMessage.getTypeCode().getText())
+      );
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
@@ -253,9 +255,9 @@ public class SCMPAsyncTest {
       assertEquals(1000, channel.getTimeOut());
       channel.setTimeOut(100);
       assertEquals(100, channel.getTimeOut());
-      MockNetwork.dropNextPackets(1);
+      MockNetwork.dropNextPackets(2);
       Collection<Scmp.TracerouteMessage> results1 = channel.sendTracerouteRequest(path);
-      assertEquals(1, results1.size());
+      assertEquals(2, results1.size());
       for (Scmp.TracerouteMessage result : results1) {
         assertTrue(result.isTimedOut());
         assertEquals(Scmp.TypeCode.TYPE_130, result.getTypeCode());
@@ -364,9 +366,9 @@ public class SCMPAsyncTest {
 
       // send request
       for (int i = 0; i < 10; i++) {
-        Scmp.EchoMessage msg = sender.sendEchoRequest(path, 1, ByteBuffer.allocate(0));
+        Scmp.EchoMessage msg = sender.sendEchoRequest(path, i, ByteBuffer.allocate(0));
         assertNotNull(msg);
-        assertFalse(msg.isTimedOut());
+        assertFalse(msg.isTimedOut(), "i=" + i);
         assertEquals(Scmp.TypeCode.TYPE_129, msg.getTypeCode());
       }
 

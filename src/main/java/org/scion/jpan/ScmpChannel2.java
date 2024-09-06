@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathHeaderParser;
 import org.scion.jpan.internal.ScionHeaderParser;
@@ -71,16 +72,15 @@ public class ScmpChannel2 implements AutoCloseable {
    */
   public Scmp.EchoMessage sendEchoRequest(Path path, int sequenceNumber, ByteBuffer data)
       throws IOException {
-    int sequenceId = sequenceIDs.getAndIncrement();
-    primaryEchoListener.init(sequenceId);
+    primaryEchoListener.init(sequenceNumber);
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
     channel.sendEchoRequest(request);
-    requests.put(sequenceId, request);
+    requests.put(sequenceNumber, request);
 
     Scmp.EchoMessage result = primaryEchoListener.get();
-//    for (Scmp.TracerouteMessage msg : result) {
-//      // TODO
-//    }
+    //    for (Scmp.TracerouteMessage msg : result) {
+    //      // TODO
+    //    }
     return result;
   }
 
@@ -107,7 +107,7 @@ public class ScmpChannel2 implements AutoCloseable {
     }
     List<Scmp.TracerouteMessage> result = primaryTraceListener.get();
     for (Scmp.TracerouteMessage msg : result) {
-    // TODO
+      // TODO
     }
     return result;
   }
@@ -131,20 +131,6 @@ public class ScmpChannel2 implements AutoCloseable {
       channel.sendTracerouteRequest(request, node);
     }
     return requestIDs;
-  }
-
-  private void sendScmpRequest(IOCallable<Scmp.TimedMessage> sender, Scmp.TypeCode expectedTypeCode)
-      throws IOException {
-    long sendNanos = System.nanoTime();
-    Scmp.TimedMessage result = sender.call();
-    long nanos = System.nanoTime() - sendNanos;
-    if (result.getTypeCode() == expectedTypeCode) {
-      result.setNanoSeconds(nanos);
-    } else if (result.isTimedOut()) {
-      result.setNanoSeconds(timeOutMs * 1_000_000L);
-    } else {
-      throw new IOException("SCMP error: " + result.getTypeCode());
-    }
   }
 
   public void setTimeOut(int milliSeconds) {
@@ -218,7 +204,7 @@ public class ScmpChannel2 implements AutoCloseable {
       super.bind(new InetSocketAddress(port));
     }
 
-    Scmp.TimedMessage sendEchoRequest(Scmp.EchoMessage request) throws IOException {
+    void sendEchoRequest(Scmp.EchoMessage request) throws IOException {
       writeLock().lock();
       try {
         Path path = request.getPath();
@@ -232,11 +218,10 @@ public class ScmpChannel2 implements AutoCloseable {
             buffer, Scmp.Type.INFO_128, localPort, request.getSequenceNumber(), request.getData());
         buffer.flip();
         request.setSizeSent(buffer.remaining());
-        sendRaw(buffer, path);
 
-        int sizeReceived = receive(request);
-        request.setSizeReceived(sizeReceived);
-        return request;
+        request.setSendNanoSeconds(System.nanoTime());
+        sendRaw(buffer, path);
+        timer.schedule(new TimeOutTask(request.getSequenceNumber()), timeOutMs);
       } finally {
         writeLock().unlock();
         if (super.channel().isConnected()) {
@@ -245,8 +230,8 @@ public class ScmpChannel2 implements AutoCloseable {
       }
     }
 
-    Scmp.TimedMessage sendTracerouteRequest(
-        Scmp.TracerouteMessage request, PathHeaderParser.Node node) throws IOException {
+    void sendTracerouteRequest(Scmp.TracerouteMessage request, PathHeaderParser.Node node)
+        throws IOException {
       writeLock().lock();
       try {
         Path path = request.getPath();
@@ -267,31 +252,11 @@ public class ScmpChannel2 implements AutoCloseable {
         request.setSendNanoSeconds(System.nanoTime());
         sendRaw(buffer, path);
         timer.schedule(new TimeOutTask(request.getSequenceNumber()), timeOutMs);
-
-        return request;
       } finally {
         writeLock().unlock();
         if (super.channel().isConnected()) {
           super.channel().disconnect();
         }
-      }
-    }
-
-    private int receive(Scmp.TimedMessage request) throws IOException {
-      readLock().lock();
-      try {
-        ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
-        ResponsePath receivePath = receiveWithTimeout(buffer);
-        if (receivePath != null) {
-          ScmpParser.consume(buffer, request);
-          request.setPath(receivePath);
-          checkListeners(request);
-        } else {
-          request.setTimedOut();
-        }
-        return buffer.position();
-      } finally {
-        readLock().unlock();
       }
     }
 
@@ -330,23 +295,19 @@ public class ScmpChannel2 implements AutoCloseable {
     }
 
     private void receiveAsync() throws IOException {
-      while (true) {
-        // TODO while(selector.select() != 0) { ...
-        if (selector.select() == 0) {
-          return;
-        }
+      while (selector.isOpen() && selector.select() > 0) {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         if (iter.hasNext()) {
           SelectionKey key = iter.next();
           iter.remove();
-          if (key.isReadable()) {
+          if (key.isValid() && key.isReadable()) {
             readIncomingScmp(key);
           }
         }
       }
     }
 
-    private void readIncomingScmp(SelectionKey key) {
+    private void readIncomingScmp(SelectionKey key) throws IOException {
       readLock().lock();
       try {
         DatagramChannel incoming = (DatagramChannel) key.channel();
@@ -370,7 +331,8 @@ public class ScmpChannel2 implements AutoCloseable {
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
-        e.printStackTrace();
+        primaryEchoListener.handleException(e);
+        primaryTraceListener.handleException(e);
       } catch (IOException e) {
         throw new RuntimeException(e);
       } finally {
@@ -380,6 +342,7 @@ public class ScmpChannel2 implements AutoCloseable {
     }
 
     private void handleIncomingScmp(ByteBuffer buffer, InetSocketAddress srcAddress) {
+      long currentNanos = System.nanoTime();
       ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
       int sn = -1;
@@ -397,13 +360,16 @@ public class ScmpChannel2 implements AutoCloseable {
         Scmp.TimedMessage request = requests.remove(sn);
         if (request != null) {
           if (msg instanceof Scmp.TracerouteMessage) {
-            // msg.setRequest(Scmp.TimedMessage (request)); // TODO
+            ((Scmp.TimedMessage) msg).setRequest(request);
+            ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
             primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
           } else if (msg instanceof Scmp.EchoMessage) {
-            // msg.setRequest(Scmp.TimedMessage (request)); // TODO
+            ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
+            ((Scmp.TimedMessage) msg).setRequest(request);
+            ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
             primaryEchoListener.handle((Scmp.EchoMessage) msg);
           } else if (msg instanceof Scmp.ErrorMessage) {
-              // msg.setRequest(Scmp.TimedMessage (request)); // TODO
+            // msg.setRequest(Scmp.TimedMessage (request)); // TODO
             primaryEchoListener.handleError((Scmp.ErrorMessage) msg);
             primaryTraceListener.handleError((Scmp.ErrorMessage) msg);
           } else {
@@ -479,8 +445,12 @@ public class ScmpChannel2 implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
-      super.close();
+      //      System.out.println("PRE CLOSE: " + selector + "  " +
+      // Thread.currentThread().getName());
       selector.close();
+      super.close();
+      //      System.out.println("POST CLOSE: " + selector + "  " +
+      // Thread.currentThread().getName());
     }
   }
 
@@ -532,8 +502,6 @@ public class ScmpChannel2 implements AutoCloseable {
   }
 
   private void handleReceive() {
-    // TODO receive and call callbacks
-    System.out.println("Receive callback!! ");
     try {
       channel.receiveAsync();
     } catch (IOException e) {
@@ -551,10 +519,8 @@ public class ScmpChannel2 implements AutoCloseable {
     @Override
     public void run() {
       Scmp.TimedMessage msg = requests.remove(sequenceID);
-      System.out.println("Timeout callback!! " + sequenceID + "  -> " + msg);
       if (msg != null) {
-        msg.setReceiveNanoSeconds(System.currentTimeMillis());
-        msg.setTimedOut();
+        msg.setTimedOut(timeOutMs * 1_000_000L);
         // TODO trigger callback
         if (msg instanceof Scmp.TracerouteMessage) {
           primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
@@ -569,19 +535,88 @@ public class ScmpChannel2 implements AutoCloseable {
     }
   }
 
-  private static class PrimaryEchoHandler {
-    // TODO remove Atomic
-    final AtomicReference<Scmp.EchoMessage> response = new AtomicReference<>();
-    volatile Scmp.ErrorMessage error = null;
-    int seqNumber;
+  private abstract static class PrimaryScmpHandler<T> {
+    private Scmp.ErrorMessage error = null;
+    private Throwable exception = null;
+    private int seqNumber;
+    private boolean isActive = false;
 
     void init(int seqNumber) {
       synchronized (this) {
-        if (response.get() != null) {
+        if (isActive) {
           throw new IllegalStateException();
         }
         this.seqNumber = seqNumber;
         this.error = null;
+        this.isActive = true;
+      }
+    }
+
+    void handleError(Scmp.ErrorMessage msg) {
+      synchronized (this) {
+        if (isActive) {
+          error = msg;
+          this.notifyAll();
+        }
+      }
+    }
+
+    void handleException(Throwable t) {
+      synchronized (this) {
+        if (isActive) {
+          exception = t;
+          this.notifyAll();
+        }
+      }
+    }
+
+    protected T waitForResult(Supplier<T> checkResult) throws IOException {
+      while (true) {
+        synchronized (this) {
+          try {
+            if (error != null) {
+              String txt = error.getTypeCode().getText();
+              error = null;
+              reset();
+              isActive = false;
+              throw new IOException(txt);
+            }
+            if (exception != null) {
+              reset();
+              isActive = false;
+              throw new IOException(exception);
+            }
+            T result = checkResult.get();
+            if (result != null) {
+              isActive = false;
+              return result;
+            }
+            this.wait();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted: {}", Thread.currentThread().getName());
+            throw new RuntimeException(e);
+          }
+        }
+      }
+    }
+
+    abstract T reset();
+
+    protected void assertActive() {
+      if (!isActive) {
+        throw new IllegalStateException();
+      }
+    }
+  }
+
+  private static class PrimaryEchoHandler extends PrimaryScmpHandler<Scmp.EchoMessage> {
+    Scmp.EchoMessage response = null;
+
+    void init(int seqNumber) {
+      synchronized (this) {
+        response = null;
+        super.init(seqNumber);
       }
     }
 
@@ -589,60 +624,33 @@ public class ScmpChannel2 implements AutoCloseable {
       // TODO verify seqID
       // TODO sort?
       synchronized (this) {
-        // TODO this is not very elegant, we should accept input only when the Handler is "active"
-        response.set(msg);
-        this.notifyAll();
-      }
-    }
-
-    void handleError(Scmp.ErrorMessage msg) {
-      synchronized (this) {
-        // TODO this is not very elegant, we should accept input only when the Handler is "active"
-        error = msg;
+        assertActive();
+        response = msg;
         this.notifyAll();
       }
     }
 
     Scmp.EchoMessage get() throws IOException {
-      while (true) {
-        synchronized (this) {
-          try {
-            if (error != null) {
-              String txt = error.getTypeCode().getText();
-              error = null;
-              response.set(null);
-              throw new IOException(txt);
-            }
-            if (response.get() != null) {
-              return response.getAndSet(null);
-            }
-            this.wait();
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted: {}", Thread.currentThread().getName());
-            throw new RuntimeException(e);
-          }
-        }
-      }
+      return super.waitForResult(() -> response != null ? reset() : null);
+    }
+
+    @Override
+    Scmp.EchoMessage reset() {
+      Scmp.EchoMessage msg = response;
+      response = null;
+      return msg;
     }
   }
 
-  private static class PrimaryTraceHandler {
-    // TODO remove Atomic
-    final AtomicReference<ArrayList<Scmp.TracerouteMessage>> responses = new AtomicReference<>();
-    volatile Scmp.ErrorMessage error = null;
-    int seqNumberStart;
+  private static class PrimaryTraceHandler extends PrimaryScmpHandler<List<Scmp.TracerouteMessage>> {
+    ArrayList<Scmp.TracerouteMessage> responses = null;
     int count;
 
     void init(int seqNumberStart, int count) {
       synchronized (this) {
-        if (responses.get() != null) {
-          throw new IllegalStateException();
-        }
-        responses.set(new ArrayList<>(count));
-        this.seqNumberStart = seqNumberStart;
+        responses = new ArrayList<>(count);
+        super.init(seqNumberStart);
         this.count = count;
-        this.error = null;
       }
     }
 
@@ -650,46 +658,25 @@ public class ScmpChannel2 implements AutoCloseable {
       // TODO verify seqID
       // TODO sort?
       synchronized (this) {
-        if (responses.get() != null) {
-          responses.get().add(msg);
-          if (responses.get().size() >= count) {
+        assertActive();
+        if (responses != null) {
+          responses.add(msg);
+          if (responses.size() >= count) {
             this.notifyAll();
           }
         }
       }
     }
 
-    void handleError(Scmp.ErrorMessage msg) {
-      synchronized (this) {
-        error = msg;
-        this.notifyAll();
-      }
+    List<Scmp.TracerouteMessage> get() throws IOException {
+      return super.waitForResult(() -> responses.size() >= count ? reset() : null);
     }
 
-    List<Scmp.TracerouteMessage> get() throws IOException {
-      while (true) {
-        synchronized (this) {
-          if (responses.get() == null) {
-            throw new IllegalStateException();
-          }
-          try {
-            if (error != null) {
-              String txt = error.getTypeCode().getText();
-              error = null;
-              responses.set(null);
-              throw new IOException(txt);
-            }
-            if (responses.get().size() >= count) {
-              return responses.getAndSet(null);
-            }
-            this.wait();
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted: {}", Thread.currentThread().getName());
-            throw new RuntimeException(e);
-          }
-        }
-      }
+    @Override
+    List<Scmp.TracerouteMessage> reset() {
+      List<Scmp.TracerouteMessage> result = responses;
+      responses = null;
+      return result;
     }
   }
 }

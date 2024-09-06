@@ -224,6 +224,8 @@ public class Scmp {
     private long sendNanoSeconds;
     private long receiveNanoSeconds;
     private boolean timedOut = false;
+    // If (this) is a response then "request" may contain the original request
+    private TimedMessage request;
 
     private TimedMessage(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
@@ -251,8 +253,18 @@ public class Scmp {
       this.timedOut = true;
     }
 
+    public void setTimedOut(long timeOutNS) {
+      this.timedOut = true;
+      this.receiveNanoSeconds = this.sendNanoSeconds + timeOutNS;
+    }
+
     public boolean isTimedOut() {
       return timedOut;
+    }
+
+    public void setRequest(TimedMessage request) {
+      this.request = request;
+      this.sendNanoSeconds = request.sendNanoSeconds;
     }
   }
 
