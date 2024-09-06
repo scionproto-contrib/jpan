@@ -22,9 +22,9 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -642,7 +642,8 @@ public class ScmpChannel2 implements AutoCloseable {
     }
   }
 
-  private static class PrimaryTraceHandler extends PrimaryScmpHandler<List<Scmp.TracerouteMessage>> {
+  private static class PrimaryTraceHandler
+      extends PrimaryScmpHandler<List<Scmp.TracerouteMessage>> {
     ArrayList<Scmp.TracerouteMessage> responses = null;
     int count;
 

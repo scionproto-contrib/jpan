@@ -16,7 +16,6 @@ package org.scion.jpan.internal;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.Scmp;
 
@@ -154,10 +153,13 @@ public class ScmpParser {
 
   private static Scmp.Message consumeErrorPayload(ByteBuffer buffer, ResponsePath path) {
     // TODO rethink this, there are two issues:
-    //   1) We only attach SCMP messages but ignore other types (plain data packets). This needs to be fixed
-    //   2) We do this whole effort in order to extract the sequenceID. We only need it to be able to throw an
+    //   1) We only attach SCMP messages but ignore other types (plain data packets). This needs to
+    //      be fixed
+    //   2) We do this whole effort in order to extract the sequenceID. We only need it to be able
+    //      to throw an
     //      exception during sendTraceRoute(). This feels like overkill.
-    //      We should probably just throw an Exception in sendXXX() if _any_ SCMP error comes in or if a timeout
+    //      We should probably just throw an Exception in sendXXX() if _any_ SCMP error comes in or
+    //      if a timeout
     //      occurs. Parsing the payload is really overkill and feels almost like an attack vector...
     //
     try {

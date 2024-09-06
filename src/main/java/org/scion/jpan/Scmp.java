@@ -488,7 +488,7 @@ public class Scmp {
    * @return New SCMP channel
    */
   public static ScmpChannel2 createAsyncChannel(ScionService service, int listeningPort)
-          throws IOException {
+      throws IOException {
     return new ScmpChannel2(service, listeningPort);
   }
 }
