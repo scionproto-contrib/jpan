@@ -314,7 +314,6 @@ public class SCMPAsyncTest {
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       Throwable t = assertThrows(IOException.class, () -> channel.sendTracerouteRequest(path));
-      Thread.sleep(50);
       assertTrue(listenerWasTriggered.get());
       assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {

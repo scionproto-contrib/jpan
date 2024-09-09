@@ -39,7 +39,7 @@ public class ScmpChannel2 implements AutoCloseable {
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
-  private final ConcurrentHashMap<Integer, TimeOutTask> requests = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, TimeOutTask> timers = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
   private Thread receiver;
   private final PrimaryEchoHandler primaryEchoListener = new PrimaryEchoHandler();
@@ -87,13 +87,8 @@ public class ScmpChannel2 implements AutoCloseable {
     primaryEchoListener.init(sequenceNumber);
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
     channel.sendEchoRequest(request);
-
     try {
-      Scmp.EchoMessage result = primaryEchoListener.get();
-      //    for (Scmp.TracerouteMessage msg : result) {
-      //      // TODO
-      //    }
-      return result;
+      return primaryEchoListener.get();
     } finally {
       cleanUpRequests();
     }
@@ -115,8 +110,7 @@ public class ScmpChannel2 implements AutoCloseable {
     //   COnsidering "asyncXYZ" we cannot abort everything.
     //    - Well we _can_   abort everything in non-async context!
     //   In case of async, we simply time out. If someone is interested in the error, they can get
-    // it via the error
-    //   callback.
+    //   it via the error callback.
 
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     primaryTraceListener.init(sequenceIDs.get(), nodes.size());
@@ -129,9 +123,7 @@ public class ScmpChannel2 implements AutoCloseable {
     }
     try {
       List<Scmp.TracerouteMessage> result = primaryTraceListener.get();
-      for (Scmp.TracerouteMessage msg : result) {
-        // TODO
-      }
+      result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));
       return result;
     } finally {
       cleanUpRequests();
@@ -139,10 +131,10 @@ public class ScmpChannel2 implements AutoCloseable {
   }
 
   private void cleanUpRequests() {
-    for (TimeOutTask task : requests.values()) {
+    for (TimeOutTask task : timers.values()) {
       task.cancel();
     }
-    requests.clear();
+    timers.clear();
   }
 
   /**
@@ -294,7 +286,7 @@ public class ScmpChannel2 implements AutoCloseable {
       sendRaw(buffer, path);
       TimeOutTask timerTask = new TimeOutTask(request);
       timer.schedule(timerTask, timeOutMs);
-      requests.put(request.getSequenceNumber(), timerTask);
+      timers.put(request.getSequenceNumber(), timerTask);
     }
 
     private ResponsePath receiveLoop(ByteBuffer buffer) throws IOException {
@@ -384,7 +376,6 @@ public class ScmpChannel2 implements AutoCloseable {
       long currentNanos = System.nanoTime();
       ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
-      int sn = -1;
       if (msg.getTypeCode().isError()) {
         // TODO remove this and clean up ScmpParser.consume()
         //        Scmp.ErrorMessage error = (Scmp.ErrorMessage) msg;
@@ -394,28 +385,26 @@ public class ScmpChannel2 implements AutoCloseable {
         // msg.setRequest(Scmp.TimedMessage (request)); // TODO
         primaryEchoListener.handleError((Scmp.ErrorMessage) msg);
         primaryTraceListener.handleError((Scmp.ErrorMessage) msg);
-      } else {
-        sn = msg.getSequenceNumber();
+        checkListeners(msg);
+        return;
       }
 
-      if (sn >= 0) {
-        TimeOutTask task = requests.remove(sn);
-        if (task != null) {
-          task.cancel();
-          Scmp.TimedMessage request = task.request;
-          if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-            ((Scmp.TimedMessage) msg).setRequest(request);
-            ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
-            primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
-          } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-            ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
-            ((Scmp.TimedMessage) msg).setRequest(request);
-            ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
-            primaryEchoListener.handle((Scmp.EchoMessage) msg);
-          } else {
-            // Wrong type, -> ignore
-            return;
-          }
+      TimeOutTask task = timers.remove(msg.getSequenceNumber());
+      if (task != null) {
+        task.cancel(); // Cancel timeout timer
+        Scmp.TimedMessage request = task.request;
+        if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+          ((Scmp.TimedMessage) msg).setRequest(request);
+          ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
+          primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
+        } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+          ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
+          ((Scmp.TimedMessage) msg).setRequest(request);
+          ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
+          primaryEchoListener.handle((Scmp.EchoMessage) msg);
+        } else {
+          // Wrong type, -> ignore
+          return;
         }
       }
 
@@ -540,7 +529,7 @@ public class ScmpChannel2 implements AutoCloseable {
   private void handleReceive() {
     try {
       channel.receiveAsync();
-    } catch (IOException e) {
+    } catch (Exception e) {
       log.error("While receiving SCMP message: {}", e.getMessage());
     }
   }
@@ -555,11 +544,10 @@ public class ScmpChannel2 implements AutoCloseable {
     /** This is executed when the task times out, i.e. if we didn't get a ping withing timeOutMs. */
     @Override
     public void run() {
-      TimeOutTask timerTask = requests.remove(request.getSequenceNumber());
+      TimeOutTask timerTask = timers.remove(request.getSequenceNumber());
       if (timerTask != null) {
         Scmp.TimedMessage msg = timerTask.request;
         msg.setTimedOut(timeOutMs * 1_000_000L);
-        // TODO trigger callback
         if (msg instanceof Scmp.TracerouteMessage) {
           primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
         } else if (msg instanceof Scmp.EchoMessage) {
