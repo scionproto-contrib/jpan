@@ -290,18 +290,14 @@ public class ScmpChannel2 implements AutoCloseable {
     }
 
     private ResponsePath receiveLoop(ByteBuffer buffer) throws IOException {
-      while (true) {
-        buffer.clear();
-        if (selector.select() == 0) {
-          return null;
-        }
-
+      while (selector.select() > 0) {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         if (iter.hasNext()) {
           SelectionKey key = iter.next();
           iter.remove();
           if (key.isReadable()) {
             DatagramChannel incoming = (DatagramChannel) key.channel();
+            buffer.clear();
             InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
             buffer.flip();
             if (validate(buffer)) {
@@ -321,6 +317,7 @@ public class ScmpChannel2 implements AutoCloseable {
           }
         }
       }
+      return null;
     }
 
     private void receiveAsync() throws IOException {
@@ -365,9 +362,8 @@ public class ScmpChannel2 implements AutoCloseable {
       } catch (IOException e) {
         primaryEchoListener.handleException(e);
         primaryTraceListener.handleException(e);
-        throw new RuntimeException(e);
+        throw e;
       } finally {
-        // TODO remove lock!?!?!
         readLock().unlock();
       }
     }
@@ -377,12 +373,6 @@ public class ScmpChannel2 implements AutoCloseable {
       ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
       if (msg.getTypeCode().isError()) {
-        // TODO remove this and clean up ScmpParser.consume()
-        //        Scmp.ErrorMessage error = (Scmp.ErrorMessage) msg;
-        //        if (error.getCause() != null) {
-        //          sn = error.getCause().getSequenceNumber();
-        //        }
-        // msg.setRequest(Scmp.TimedMessage (request)); // TODO
         primaryEchoListener.handleError((Scmp.ErrorMessage) msg);
         primaryTraceListener.handleError((Scmp.ErrorMessage) msg);
         checkListeners(msg);
@@ -407,7 +397,6 @@ public class ScmpChannel2 implements AutoCloseable {
           return;
         }
       }
-
       checkListeners(msg);
     }
 
@@ -529,7 +518,7 @@ public class ScmpChannel2 implements AutoCloseable {
   private void handleReceive() {
     try {
       channel.receiveAsync();
-    } catch (Exception e) {
+    } catch (IOException e) {
       log.error("While receiving SCMP message: {}", e.getMessage());
     }
   }
@@ -643,8 +632,6 @@ public class ScmpChannel2 implements AutoCloseable {
     }
 
     void handle(Scmp.EchoMessage msg) {
-      // TODO verify seqID
-      // TODO sort?
       synchronized (this) {
         assertActive();
         response = msg;
@@ -678,8 +665,6 @@ public class ScmpChannel2 implements AutoCloseable {
     }
 
     void handle(Scmp.TracerouteMessage msg) {
-      // TODO verify seqID
-      // TODO sort?
       synchronized (this) {
         assertActive();
         if (responses != null) {

@@ -269,7 +269,7 @@ public class Scmp {
   }
 
   public static class ErrorMessage extends Message {
-    private Message cause;
+    private byte[] cause;
 
     private ErrorMessage(TypeCode typeCode, Path path) {
       super(typeCode, 0, 0, path);
@@ -279,11 +279,11 @@ public class Scmp {
       return new ErrorMessage(typeCode, path);
     }
 
-    public Message getCause() {
+    public byte[] getCause() {
       return cause;
     }
 
-    public void setCause(Message cause) {
+    public void setCause(byte[] cause) {
       this.cause = cause;
     }
   }
