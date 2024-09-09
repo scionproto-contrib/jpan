@@ -41,7 +41,7 @@ public class ScmpChannel2 implements AutoCloseable {
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
   private final ConcurrentHashMap<Integer, TimeOutTask> requests = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
-  private final Thread receiver;
+  private Thread receiver;
   private final PrimaryEchoHandler primaryEchoListener = new PrimaryEchoHandler();
   private final PrimaryTraceHandler primaryTraceListener = new PrimaryTraceHandler();
 
@@ -51,9 +51,24 @@ public class ScmpChannel2 implements AutoCloseable {
 
   ScmpChannel2(ScionService service, int port) throws IOException {
     this.channel = new InternalChannel(service, port);
+    startReceiver();
+  }
+
+  private void startReceiver() {
     this.receiver = new Thread(this::handleReceive, "ScmpChannel-receiver");
     this.receiver.setDaemon(true);
     this.receiver.start();
+  }
+
+  private void stopReceiver() {
+    if (receiver != null) {
+      this.receiver.interrupt();
+      try {
+        this.receiver.join(100);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
   }
 
   /**
@@ -73,11 +88,15 @@ public class ScmpChannel2 implements AutoCloseable {
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
     channel.sendEchoRequest(request);
 
-    Scmp.EchoMessage result = primaryEchoListener.get();
-    //    for (Scmp.TracerouteMessage msg : result) {
-    //      // TODO
-    //    }
-    return result;
+    try {
+      Scmp.EchoMessage result = primaryEchoListener.get();
+      //    for (Scmp.TracerouteMessage msg : result) {
+      //      // TODO
+      //    }
+      return result;
+    } finally {
+      cleanUpRequests();
+    }
   }
 
   /**
@@ -91,6 +110,14 @@ public class ScmpChannel2 implements AutoCloseable {
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public List<Scmp.TracerouteMessage> sendTracerouteRequest(Path path) throws IOException {
+    /// TODO clarify behaviour:
+    //   It is "difficult" (but possible) to associate incoming SCMP errors with previous requests.
+    //   COnsidering "asyncXYZ" we cannot abort everything.
+    //    - Well we _can_   abort everything in non-async context!
+    //   In case of async, we simply time out. If someone is interested in the error, they can get
+    // it via the error
+    //   callback.
+
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     primaryTraceListener.init(sequenceIDs.get(), nodes.size());
 
@@ -100,11 +127,22 @@ public class ScmpChannel2 implements AutoCloseable {
       PathHeaderParser.Node node = nodes.get(i);
       channel.sendTracerouteRequest(request, node);
     }
-    List<Scmp.TracerouteMessage> result = primaryTraceListener.get();
-    for (Scmp.TracerouteMessage msg : result) {
-      // TODO
+    try {
+      List<Scmp.TracerouteMessage> result = primaryTraceListener.get();
+      for (Scmp.TracerouteMessage msg : result) {
+        // TODO
+      }
+      return result;
+    } finally {
+      cleanUpRequests();
     }
-    return result;
+  }
+
+  private void cleanUpRequests() {
+    for (TimeOutTask task : requests.values()) {
+      task.cancel();
+    }
+    requests.clear();
   }
 
   /**
@@ -137,7 +175,8 @@ public class ScmpChannel2 implements AutoCloseable {
   @Override
   public void close() throws IOException {
     channel.close();
-    receiver.interrupt();
+    timer.cancel();
+    stopReceiver();
   }
 
   public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
@@ -173,12 +212,12 @@ public class ScmpChannel2 implements AutoCloseable {
    * @throws IOException If an IO exception occurs.
    */
   public void setUpScmpEchoResponder() throws IOException {
-    this.channel.sendEchoResponses();
-  }
-
-  @FunctionalInterface
-  private interface IOCallable<V> {
-    V call() throws IOException;
+    stopReceiver();
+    try {
+      this.channel.sendEchoResponses();
+    } finally {
+      startReceiver();
+    }
   }
 
   private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
@@ -258,10 +297,10 @@ public class ScmpChannel2 implements AutoCloseable {
       requests.put(request.getSequenceNumber(), timerTask);
     }
 
-    private ResponsePath receiveWithTimeout(ByteBuffer buffer) throws IOException {
+    private ResponsePath receiveLoop(ByteBuffer buffer) throws IOException {
       while (true) {
         buffer.clear();
-        if (selector.select(timeOutMs) == 0) {
+        if (selector.select() == 0) {
           return null;
         }
 
@@ -332,6 +371,8 @@ public class ScmpChannel2 implements AutoCloseable {
         primaryEchoListener.handleException(e);
         primaryTraceListener.handleException(e);
       } catch (IOException e) {
+        primaryEchoListener.handleException(e);
+        primaryTraceListener.handleException(e);
         throw new RuntimeException(e);
       } finally {
         // TODO remove lock!?!?!
@@ -345,33 +386,32 @@ public class ScmpChannel2 implements AutoCloseable {
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
       int sn = -1;
       if (msg.getTypeCode().isError()) {
-        Scmp.ErrorMessage error = (Scmp.ErrorMessage) msg;
-        if (error.getCause() != null) {
-          sn = error.getCause().getSequenceNumber();
-        }
+        // TODO remove this and clean up ScmpParser.consume()
+        //        Scmp.ErrorMessage error = (Scmp.ErrorMessage) msg;
+        //        if (error.getCause() != null) {
+        //          sn = error.getCause().getSequenceNumber();
+        //        }
+        // msg.setRequest(Scmp.TimedMessage (request)); // TODO
+        primaryEchoListener.handleError((Scmp.ErrorMessage) msg);
+        primaryTraceListener.handleError((Scmp.ErrorMessage) msg);
       } else {
         sn = msg.getSequenceNumber();
       }
 
       if (sn >= 0) {
-        // TODO traceListeners.remove();
         TimeOutTask task = requests.remove(sn);
         if (task != null) {
           task.cancel();
           Scmp.TimedMessage request = task.request;
-          if (msg instanceof Scmp.TracerouteMessage) {
+          if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
             ((Scmp.TimedMessage) msg).setRequest(request);
             ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
             primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
-          } else if (msg instanceof Scmp.EchoMessage) {
+          } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
             ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
             ((Scmp.TimedMessage) msg).setRequest(request);
             ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
             primaryEchoListener.handle((Scmp.EchoMessage) msg);
-          } else if (msg instanceof Scmp.ErrorMessage) {
-            // msg.setRequest(Scmp.TimedMessage (request)); // TODO
-            primaryEchoListener.handleError((Scmp.ErrorMessage) msg);
-            primaryTraceListener.handleError((Scmp.ErrorMessage) msg);
           } else {
             // Wrong type, -> ignore
             return;
@@ -390,7 +430,7 @@ public class ScmpChannel2 implements AutoCloseable {
       try {
         while (true) {
           ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
-          ResponsePath path = receiveWithTimeout(buffer);
+          ResponsePath path = receiveLoop(buffer);
           if (path == null) {
             return; // interrupted
           }
@@ -445,12 +485,8 @@ public class ScmpChannel2 implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
-      //      System.out.println("PRE CLOSE: " + selector + "  " +
-      // Thread.currentThread().getName());
       selector.close();
       super.close();
-      //      System.out.println("POST CLOSE: " + selector + "  " +
-      // Thread.currentThread().getName());
     }
   }
 
@@ -522,7 +558,6 @@ public class ScmpChannel2 implements AutoCloseable {
       TimeOutTask timerTask = requests.remove(request.getSequenceNumber());
       if (timerTask != null) {
         Scmp.TimedMessage msg = timerTask.request;
-        ;
         msg.setTimedOut(timeOutMs * 1_000_000L);
         // TODO trigger callback
         if (msg instanceof Scmp.TracerouteMessage) {
