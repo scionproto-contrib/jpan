@@ -152,6 +152,7 @@ public class MockNetwork {
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
+    getAndResetForwardCount();
   }
 
   public static synchronized void stopTiny() {

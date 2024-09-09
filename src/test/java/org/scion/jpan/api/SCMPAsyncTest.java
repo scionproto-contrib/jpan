@@ -120,9 +120,7 @@ public class SCMPAsyncTest {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
     try (ScmpChannel2 channel = Scmp.createAsyncChannel()) {
-      channel.setScmpErrorListener(scmpMessage ->
-              fail(scmpMessage.getTypeCode().getText())
-      );
+      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();

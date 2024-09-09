@@ -23,7 +23,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -40,10 +39,8 @@ public class ScmpChannel2 implements AutoCloseable {
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
-  private final ConcurrentHashMap<Integer, Scmp.TimedMessage> requests = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, TimeOutTask> requests = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
-  private final List<Consumer<Scmp.TracerouteMessage>> traceListeners =
-      new CopyOnWriteArrayList<>();
   private final Thread receiver;
   private final PrimaryEchoHandler primaryEchoListener = new PrimaryEchoHandler();
   private final PrimaryTraceHandler primaryTraceListener = new PrimaryTraceHandler();
@@ -75,7 +72,6 @@ public class ScmpChannel2 implements AutoCloseable {
     primaryEchoListener.init(sequenceNumber);
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
     channel.sendEchoRequest(request);
-    requests.put(sequenceNumber, request);
 
     Scmp.EchoMessage result = primaryEchoListener.get();
     //    for (Scmp.TracerouteMessage msg : result) {
@@ -103,7 +99,6 @@ public class ScmpChannel2 implements AutoCloseable {
       Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(sequenceId, path);
       PathHeaderParser.Node node = nodes.get(i);
       channel.sendTracerouteRequest(request, node);
-      requests.put(sequenceId, request);
     }
     List<Scmp.TracerouteMessage> result = primaryTraceListener.get();
     for (Scmp.TracerouteMessage msg : result) {
@@ -126,9 +121,7 @@ public class ScmpChannel2 implements AutoCloseable {
       int sequenceId = sequenceIDs.getAndIncrement();
       Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(sequenceId, path);
       requestIDs.add(sequenceId);
-      PathHeaderParser.Node node = nodes.get(i);
-      requests.put(sequenceId, request);
-      channel.sendTracerouteRequest(request, node);
+      channel.sendTracerouteRequest(request, nodes.get(i));
     }
     return requestIDs;
   }
@@ -219,9 +212,7 @@ public class ScmpChannel2 implements AutoCloseable {
         buffer.flip();
         request.setSizeSent(buffer.remaining());
 
-        request.setSendNanoSeconds(System.nanoTime());
-        sendRaw(buffer, path);
-        timer.schedule(new TimeOutTask(request.getSequenceNumber()), timeOutMs);
+        sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
         if (super.channel().isConnected()) {
@@ -249,15 +240,22 @@ public class ScmpChannel2 implements AutoCloseable {
         int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
         buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
-        request.setSendNanoSeconds(System.nanoTime());
-        sendRaw(buffer, path);
-        timer.schedule(new TimeOutTask(request.getSequenceNumber()), timeOutMs);
+        sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
         if (super.channel().isConnected()) {
           super.channel().disconnect();
         }
       }
+    }
+
+    private void sendRequest(Scmp.TimedMessage request, ByteBuffer buffer, Path path)
+        throws IOException {
+      request.setSendNanoSeconds(System.nanoTime());
+      sendRaw(buffer, path);
+      TimeOutTask timerTask = new TimeOutTask(request);
+      timer.schedule(timerTask, timeOutMs);
+      requests.put(request.getSequenceNumber(), timerTask);
     }
 
     private ResponsePath receiveWithTimeout(ByteBuffer buffer) throws IOException {
@@ -357,8 +355,10 @@ public class ScmpChannel2 implements AutoCloseable {
 
       if (sn >= 0) {
         // TODO traceListeners.remove();
-        Scmp.TimedMessage request = requests.remove(sn);
-        if (request != null) {
+        TimeOutTask task = requests.remove(sn);
+        if (task != null) {
+          task.cancel();
+          Scmp.TimedMessage request = task.request;
           if (msg instanceof Scmp.TracerouteMessage) {
             ((Scmp.TimedMessage) msg).setRequest(request);
             ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
@@ -510,26 +510,25 @@ public class ScmpChannel2 implements AutoCloseable {
   }
 
   private class TimeOutTask extends TimerTask {
-    private final int sequenceID;
+    private final Scmp.TimedMessage request;
 
-    TimeOutTask(int sequenceID) {
-      this.sequenceID = sequenceID;
+    TimeOutTask(Scmp.TimedMessage request) {
+      this.request = request;
     }
 
+    /** This is executed when the task times out, i.e. if we didn't get a ping withing timeOutMs. */
     @Override
     public void run() {
-      Scmp.TimedMessage msg = requests.remove(sequenceID);
-      if (msg != null) {
+      TimeOutTask timerTask = requests.remove(request.getSequenceNumber());
+      if (timerTask != null) {
+        Scmp.TimedMessage msg = timerTask.request;
+        ;
         msg.setTimedOut(timeOutMs * 1_000_000L);
         // TODO trigger callback
         if (msg instanceof Scmp.TracerouteMessage) {
           primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
         } else if (msg instanceof Scmp.EchoMessage) {
           primaryEchoListener.handle((Scmp.EchoMessage) msg);
-        }
-        // TODO remove trace listeners???? Add EchoListeners??
-        for (Consumer<Scmp.TracerouteMessage> l : traceListeners) {
-          l.accept((Scmp.TracerouteMessage) msg);
         }
       }
     }
