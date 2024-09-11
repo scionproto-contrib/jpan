@@ -465,7 +465,9 @@ public class Scmp {
    * Create a channel for sending SCMP requests.
    *
    * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
    */
+  @Deprecated
   public static ScmpChannel2 createAsyncChannel() throws IOException {
     return new ScmpChannel2();
   }
@@ -475,7 +477,9 @@ public class Scmp {
    *
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
    */
+  @Deprecated
   public static ScmpChannel2 createAsyncChannel(int listeningPort) throws IOException {
     return new ScmpChannel2(Scion.defaultService(), listeningPort);
   }
@@ -486,9 +490,98 @@ public class Scmp {
    * @param service the ScionService instance
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
    */
+  @Deprecated
   public static ScmpChannel2 createAsyncChannel(ScionService service, int listeningPort)
       throws IOException {
     return new ScmpChannel2(service, listeningPort);
+  }
+
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
+   */
+  @Deprecated
+  public static ScmpChannel3 createAsyncChannel3() throws IOException {
+    return new ScmpChannel3();
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
+   */
+  @Deprecated
+  public static ScmpChannel3 createAsyncChannel3(int listeningPort) throws IOException {
+    return new ScmpChannel3(Scion.defaultService(), listeningPort);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param service the ScionService instance
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
+   */
+  @Deprecated
+  public static ScmpChannel3 createAsyncChannel3(ScionService service, int listeningPort)
+          throws IOException {
+    return new ScmpChannel3(service, listeningPort);
+  }
+
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
+   */
+  @Deprecated
+  public static ScmpSender createSender(ScmpSender.ScmpResponseHandler handler) throws IOException {
+    // TODO fix this: 12345 is bad.
+    return new ScmpSender(Scion.defaultService(), 12345, handler);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
+   */
+  @Deprecated
+  public static ScmpSender createSender(ScmpSender.ScmpResponseHandler handler, int listeningPort) throws IOException {
+    return new ScmpSender(Scion.defaultService(), listeningPort, handler);
+  }
+
+  /**
+   * Create a channel for sending SCMP requests.
+   *
+   * @param service the ScionService instance
+   * @param listeningPort Local port to listen for SCMP requests.
+   * @return New SCMP channel
+   * @deprecated Experimental, subject to change.
+   */
+  @Deprecated
+  public static ScmpSender createSender(ScmpSender.ScmpResponseHandler handler, ScionService service, int listeningPort)
+          throws IOException {
+    return new ScmpSender(service, listeningPort, handler);
+  }
+
+  /**
+   * Create a SCMP responder. It will listen on 30041 for SCMP echo requests and send a response back.
+   *
+   * @return New SCMP responder
+   * @deprecated Experimental, subject to change.
+   */
+  public static ScmpResponder createResponder() throws IOException {
+    return new ScmpResponder(Scion.defaultService(), Constants.SCMP_PORT);
   }
 }
