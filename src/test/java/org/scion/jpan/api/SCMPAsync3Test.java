@@ -170,7 +170,7 @@ public class SCMPAsync3Test {
 
       // try again
       MockNetwork.answerNextScmpEchos(1);
-      Scmp.EchoMessage result2 = channel.sendEchoRequest(path,  ByteBuffer.allocate(0));
+      Scmp.EchoMessage result2 = channel.sendEchoRequest(path, ByteBuffer.allocate(0));
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
       assertTrue(result2.getNanoSeconds() > 0);
@@ -190,8 +190,7 @@ public class SCMPAsync3Test {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       // Exception because network is down.
-      assertThrows(
-          IOException.class, () -> channel.sendEchoRequest(path, ByteBuffer.allocate(0)));
+      assertThrows(IOException.class, () -> channel.sendEchoRequest(path, ByteBuffer.allocate(0)));
     } finally {
       MockNetwork.stopTiny();
     }

@@ -18,19 +18,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
-import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathHeaderParser;
-import org.scion.jpan.internal.ScionHeaderParser;
-import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,29 +36,45 @@ public class ScmpChannel3 implements AutoCloseable {
   }
 
   ScmpChannel3(ScionService service, int port) throws IOException {
-    this.sender = Scmp.createSender(new ScmpSender.ScmpResponseHandler() {
-      @Override
-      public void onResponse(Scmp.TimedMessage msg) {
-        if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-          primaryEchoListener.handle((Scmp.EchoMessage) msg);
-        } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-          primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
-        } else {
-          throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-        }
-      }
+    this.sender =
+        Scmp.createSender(
+            new ScmpSender.ScmpResponseHandler() {
+              @Override
+              public void onResponse(Scmp.TimedMessage msg) {
+                if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+                  primaryEchoListener.handle((Scmp.EchoMessage) msg);
+                } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+                  primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
+                } else {
+                  throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+                }
+              }
 
-      @Override
-      public void onTimeout(Scmp.TimedMessage msg) {
-        if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-          primaryEchoListener.handle((Scmp.EchoMessage) msg);
-        } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-          primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
-        } else {
-          throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-        }
-      }
-    }, service, port);
+              @Override
+              public void onTimeout(Scmp.TimedMessage msg) {
+                if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+                  primaryEchoListener.handle((Scmp.EchoMessage) msg);
+                } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+                  primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
+                } else {
+                  throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+                }
+              }
+
+              @Override
+              public void onError(Scmp.ErrorMessage msg) {
+                primaryEchoListener.handleError(msg);
+                primaryTraceListener.handleError(msg);
+              }
+
+              @Override
+              public void onException(Throwable t) {
+                primaryEchoListener.handleException(t);
+                primaryTraceListener.handleException(t);
+              }
+            },
+            service,
+            port);
   }
 
   /**
@@ -80,8 +87,7 @@ public class ScmpChannel3 implements AutoCloseable {
    *     and the time is equal to the time-out duration.
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public Scmp.EchoMessage sendEchoRequest(Path path, ByteBuffer data)
-      throws IOException {
+  public Scmp.EchoMessage sendEchoRequest(Path path, ByteBuffer data) throws IOException {
     primaryEchoListener.init();
     sender.asyncEchoRequest(path, data);
     try {

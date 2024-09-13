@@ -498,7 +498,6 @@ public class Scmp {
     return new ScmpChannel2(service, listeningPort);
   }
 
-
   /**
    * Create a channel for sending SCMP requests.
    *
@@ -532,10 +531,9 @@ public class Scmp {
    */
   @Deprecated
   public static ScmpChannel3 createAsyncChannel3(ScionService service, int listeningPort)
-          throws IOException {
+      throws IOException {
     return new ScmpChannel3(service, listeningPort);
   }
-
 
   /**
    * Create a channel for sending SCMP requests.
@@ -557,7 +555,8 @@ public class Scmp {
    * @deprecated Experimental, subject to change.
    */
   @Deprecated
-  public static ScmpSender createSender(ScmpSender.ScmpResponseHandler handler, int listeningPort) throws IOException {
+  public static ScmpSender createSender(ScmpSender.ScmpResponseHandler handler, int listeningPort)
+      throws IOException {
     return new ScmpSender(Scion.defaultService(), listeningPort, handler);
   }
 
@@ -570,13 +569,15 @@ public class Scmp {
    * @deprecated Experimental, subject to change.
    */
   @Deprecated
-  public static ScmpSender createSender(ScmpSender.ScmpResponseHandler handler, ScionService service, int listeningPort)
-          throws IOException {
+  public static ScmpSender createSender(
+      ScmpSender.ScmpResponseHandler handler, ScionService service, int listeningPort)
+      throws IOException {
     return new ScmpSender(service, listeningPort, handler);
   }
 
   /**
-   * Create a SCMP responder. It will listen on 30041 for SCMP echo requests and send a response back.
+   * Create a SCMP responder. It will listen on 30041 for SCMP echo requests and send a response
+   * back.
    *
    * @return New SCMP responder
    * @deprecated Experimental, subject to change.
