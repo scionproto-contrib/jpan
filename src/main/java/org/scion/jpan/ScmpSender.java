@@ -121,11 +121,14 @@ public class ScmpSender implements AutoCloseable {
    * for the _last_ AS, i.e. the final destination AS.
    *
    * @param path The path to use.
-   * @return The sequence ID.
+   * @return The sequence ID or -1 if the path is empty.
    * @throws IOException if an IO error occurs.
    */
   public int asyncTracerouteLast(Path path) throws IOException {
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
+    if (nodes.isEmpty()) {
+      return -1;
+    }
     int sequenceId = sequenceIDs.getAndIncrement();
     Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(sequenceId, path);
     channel.sendTracerouteRequest(request, nodes.get(nodes.size() - 1));
