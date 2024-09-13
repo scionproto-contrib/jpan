@@ -320,13 +320,11 @@ public class ScmpChannel2 implements AutoCloseable {
         task.cancel(); // Cancel timeout timer
         Scmp.TimedMessage request = task.request;
         if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-          ((Scmp.TimedMessage) msg).setRequest(request);
-          ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
+          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
         } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
           ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
-          ((Scmp.TimedMessage) msg).setRequest(request);
-          ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
+          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           primaryEchoListener.handle((Scmp.EchoMessage) msg);
         } else {
           // Wrong type, -> ignore

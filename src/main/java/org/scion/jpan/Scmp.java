@@ -231,8 +231,16 @@ public class Scmp {
       super(typeCode, identifier, sequenceNumber, path);
     }
 
+    public long getSendNanoSeconds() {
+      return this.sendNanoSeconds;
+    }
+
     public void setSendNanoSeconds(long l) {
       this.sendNanoSeconds = l;
+    }
+
+    public long getReceiveNanoSeconds() {
+      return this.receiveNanoSeconds;
     }
 
     public void setReceiveNanoSeconds(long l) {
@@ -262,9 +270,14 @@ public class Scmp {
       return timedOut;
     }
 
-    public void setRequest(TimedMessage request) {
+    public void assignRequest(TimedMessage request, long receivedNanoSeconds) {
       this.request = request;
       this.sendNanoSeconds = request.sendNanoSeconds;
+      this.receiveNanoSeconds = receivedNanoSeconds;
+    }
+
+    public TimedMessage getRequest() {
+      return request;
     }
   }
 

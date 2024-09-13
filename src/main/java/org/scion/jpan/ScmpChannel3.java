@@ -89,7 +89,7 @@ public class ScmpChannel3 implements AutoCloseable {
    */
   public Scmp.EchoMessage sendEchoRequest(Path path, ByteBuffer data) throws IOException {
     primaryEchoListener.init();
-    sender.asyncEchoRequest(path, data);
+    sender.asyncEcho(path, data);
     try {
       return primaryEchoListener.get();
     } finally {
@@ -117,7 +117,7 @@ public class ScmpChannel3 implements AutoCloseable {
 
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     primaryTraceListener.init(nodes.size());
-    sender.asyncTracerouteRequest(path);
+    sender.asyncTraceroute(path);
     try {
       List<Scmp.TracerouteMessage> result = primaryTraceListener.get();
       result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));

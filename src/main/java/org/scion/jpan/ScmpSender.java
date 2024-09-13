@@ -59,7 +59,7 @@ public class ScmpSender implements AutoCloseable {
   }
 
   private void startReceiver() {
-    this.receiver = new Thread(this::handleReceive, "ScmpChannel-receiver");
+    this.receiver = new Thread(this::handleReceive, "ScmpSender-receiver");
     this.receiver.setDaemon(true);
     this.receiver.start();
   }
@@ -83,14 +83,14 @@ public class ScmpSender implements AutoCloseable {
   }
 
   /**
-   * Sends a SCMP echo request to the connected destination.
+   * Sends a SCMP echo request along the specified path.
    *
    * @param path The path to use.
    * @param payload user data that is sent with the request
    * @return The sequence ID.
-   * @throws IOException if an IO error occurs or if an SCMP error is received.
+   * @throws IOException if an IO error occurs.
    */
-  public int asyncEchoRequest(Path path, ByteBuffer payload) throws IOException {
+  public int asyncEcho(Path path, ByteBuffer payload) throws IOException {
     int sequenceId = sequenceIDs.getAndIncrement();
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceId, path, payload);
     channel.sendEchoRequest(request);
@@ -98,13 +98,13 @@ public class ScmpSender implements AutoCloseable {
   }
 
   /**
-   * Sends a SCMP traceroute request to the connected destination.
+   * Sends a SCMP traceroute request along the specified path.
    *
    * @param path The path to use.
    * @return A list of sequence IDs.
-   * @throws IOException if an IO error occurs or if an SCMP error is received.
+   * @throws IOException if an IO error occurs.
    */
-  public List<Integer> asyncTracerouteRequest(Path path) throws IOException {
+  public List<Integer> asyncTraceroute(Path path) throws IOException {
     List<Integer> requestIDs = new ArrayList<>();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     for (int i = 0; i < nodes.size(); i++) {
@@ -114,6 +114,22 @@ public class ScmpSender implements AutoCloseable {
       channel.sendTracerouteRequest(request, nodes.get(i));
     }
     return requestIDs;
+  }
+
+  /**
+   * Sends a SCMP traceroute request along the specified path. A measurement will only be returned
+   * for the _last_ AS, i.e. the final destination AS.
+   *
+   * @param path The path to use.
+   * @return The sequence ID.
+   * @throws IOException if an IO error occurs.
+   */
+  public int asyncTracerouteLast(Path path) throws IOException {
+    List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
+    int sequenceId = sequenceIDs.getAndIncrement();
+    Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(sequenceId, path);
+    channel.sendTracerouteRequest(request, nodes.get(nodes.size() - 1));
+    return sequenceId;
   }
 
   public void setTimeOut(int milliSeconds) {
@@ -276,16 +292,14 @@ public class ScmpSender implements AutoCloseable {
         task.cancel(); // Cancel timeout timer
         Scmp.TimedMessage request = task.request;
         if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-          ((Scmp.TimedMessage) msg).setRequest(request);
-          ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
+          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
           ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
-          ((Scmp.TimedMessage) msg).setRequest(request);
-          ((Scmp.TimedMessage) msg).setReceiveNanoSeconds(currentNanos);
+          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else {
-          // Wrong type, -> ignore
+          // Wrong type -> ignore
           return;
         }
       }
