@@ -10,7 +10,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <scion.dnsjava.version>3.5.3</scion.dnsjava.version>
+        <scion.dnsjava.version>3.6.1</scion.dnsjava.version>
         <scion.google-java-format.version>1.22.0</scion.google-java-format.version>
         <scion.io-grpc.version>1.63.0</scion.io-grpc.version>
         <scion.junit.version>5.10.1</scion.junit.version>

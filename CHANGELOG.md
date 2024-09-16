@@ -45,6 +45,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#114](https://github.com/scionproto-contrib/jpan/pull/114)
 - Improved path duplication filtering.
   [#117](https://github.com/scionproto-contrib/jpan/pull/117)
+- Added environment variable / property for DNS search domain.
+  [#119](https://github.com/scionproto-contrib/jpan/pull/119)
 
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 

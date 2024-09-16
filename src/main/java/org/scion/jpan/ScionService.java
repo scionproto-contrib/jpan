@@ -21,11 +21,13 @@ import static org.scion.jpan.Constants.ENV_BOOTSTRAP_HOST;
 import static org.scion.jpan.Constants.ENV_BOOTSTRAP_NAPTR_NAME;
 import static org.scion.jpan.Constants.ENV_BOOTSTRAP_TOPO_FILE;
 import static org.scion.jpan.Constants.ENV_DAEMON;
+import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.ENV_USE_OS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_HOST;
 import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME;
 import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_TOPO_FILE;
 import static org.scion.jpan.Constants.PROPERTY_DAEMON;
+import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_USE_OS_SEARCH_DOMAINS;
 
 import io.grpc.*;
@@ -184,10 +186,13 @@ public class ScionService {
       }
 
       // try normal network
+      String searchDomain =
+          ScionUtil.getPropertyOrEnv(PROPERTY_DNS_SEARCH_DOMAINS, ENV_DNS_SEARCH_DOMAINS);
       if (ScionUtil.getPropertyOrEnv(
-          PROPERTY_USE_OS_SEARCH_DOMAINS,
-          ENV_USE_OS_SEARCH_DOMAINS,
-          DEFAULT_USE_OS_SEARCH_DOMAINS)) {
+              PROPERTY_USE_OS_SEARCH_DOMAINS,
+              ENV_USE_OS_SEARCH_DOMAINS,
+              DEFAULT_USE_OS_SEARCH_DOMAINS)
+          || searchDomain != null) {
         String dnsResolver = DNSHelper.searchForDiscoveryService();
         if (dnsResolver != null) {
           defaultService = new ScionService(dnsResolver, Mode.BOOTSTRAP_SERVER_IP);

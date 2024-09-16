@@ -14,22 +14,18 @@
 
 package org.scion.jpan.internal;
 
+import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
+import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.function.Function;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xbill.DNS.AAAARecord;
-import org.xbill.DNS.ARecord;
-import org.xbill.DNS.Lookup;
-import org.xbill.DNS.NAPTRRecord;
-import org.xbill.DNS.Name;
-import org.xbill.DNS.Record;
-import org.xbill.DNS.TXTRecord;
-import org.xbill.DNS.TextParseException;
-import org.xbill.DNS.Type;
+import org.xbill.DNS.*;
 
 public class DNSHelper {
 
@@ -104,6 +100,23 @@ public class DNSHelper {
   }
 
   public static String searchForDiscoveryService() {
+    String searchDomains =
+        ScionUtil.getPropertyOrEnv(PROPERTY_DNS_SEARCH_DOMAINS, ENV_DNS_SEARCH_DOMAINS);
+    if (searchDomains != null) {
+      for (String domain : searchDomains.split(";")) {
+        LOG.debug(
+            "Checking discovery service domain from environment variable/property: {}", domain);
+        try {
+          String a = getScionDiscoveryAddress(Name.fromString(domain));
+          if (a != null) {
+            return a;
+          }
+        } catch (TextParseException e) {
+          throw new ScionRuntimeException(e);
+        }
+      }
+    }
+
     List<Name> domains = Lookup.getDefaultSearchPath();
     if (domains.isEmpty()) {
       LOG.warn("No DNS search domain found. Please check your /etc/resolv.conf or similar.");

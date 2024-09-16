@@ -85,6 +85,11 @@ public final class Constants {
   public static final String ENV_USE_OS_SEARCH_DOMAINS = "SCION_USE_OS_SEARCH_DOMAINS";
   public static final boolean DEFAULT_USE_OS_SEARCH_DOMAINS = true;
 
+  /** Provide list of DNS search domains. */
+  public static final String PROPERTY_DNS_SEARCH_DOMAINS = "org.scion.dnsSearchDomains";
+
+  public static final String ENV_DNS_SEARCH_DOMAINS = "SCION_DNS_SEARCH_DOMAINS";
+
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
    * entries: server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
