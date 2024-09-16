@@ -540,4 +540,24 @@ public class ScionServiceTest {
       MockNetwork.stopTiny();
     }
   }
+
+  @Test
+  void testDomainSearchResolver_PROPERTY() throws IOException {
+    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
+    try {
+      // Change to use custom search domain
+      System.setProperty(
+          Constants.PROPERTY_DNS_SEARCH_DOMAINS, MockBootstrapServer.TOPO_HOST + ".");
+      Lookup.setDefaultSearchPath("x.y.z."); // Invalid main path
+      // Lookup topology server
+      String address = MockNetwork.getTopoServer().getAddress().toString();
+      assertEquals(address.substring(1), DNSHelper.searchForDiscoveryService());
+      ScionService service = Scion.defaultService();
+      assertEquals(MockNetwork.getTopoServer().getLocalIsdAs(), service.getLocalIsdAs());
+    } finally {
+      Lookup.setDefaultSearchPath(Collections.emptyList());
+      MockNetwork.stopTiny();
+      System.clearProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS);
+    }
+  }
 }

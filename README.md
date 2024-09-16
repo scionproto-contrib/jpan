@@ -330,13 +330,15 @@ attempt to get network information in the following order until it succeeds:
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
 
-| Option                              | Java property                       | Environment variable          | Default value   |
-|-------------------------------------|-------------------------------------|-------------------------------|-----------------|
-| Daemon port, IP, or IP:port         | `org.scion.daemon`                  | `SCION_DAEMON`                | localhost:30255 | 
-| Bootstrap topology file path        | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
-| Bootstrap server host               | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`        |                 |
-| Bootstrap DNS NAPTR entry host name | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
-| Bootstrap DNS NAPTR entry host name | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            | 
+| Option                                       | Java property                                       | Environment variable           | Default value   |
+|----------------------------------------------|-----------------------------------------------------|--------------------------------|-----------------|
+| Daemon port, IP, or IP:port                  | `org.scion.daemon`                                  | `SCION_DAEMON`                 | localhost:30255 | 
+| Bootstrap topology file path                 | `org.scion.bootstrap.topoFile`                      | `SCION_BOOTSTRAP_TOPO_FILE`    |                 | 
+| Bootstrap server host                        | `org.scion.bootstrap.host`                          | `SCION_BOOTSTRAP_HOST`         |                 |
+| Bootstrap DNS NAPTR entry host name          | `org.scion.bootstrap.naptr.name`                    | `SCION_BOOTSTRAP_NAPTR_NAME`   |                 | 
+| List of DNS search domains                   | `org.scion.dnsSearchDomains` | `SCION_DNS_SEARCH_DOMAINS`    |                 |
+| Use OS search domains, e.g. /etc/resolv.conf | `org.scion.test.useOsSearchDomains`    | `SCION_USE_OS_SEARCH_DOMAINS`  | true            |
+
 
 ### DNS
 JPAN will check the OS default DNS server to resolve SCION addresses.
@@ -376,6 +378,13 @@ Then enable the logger by placing a [`simplelogger.properties`](src/test/resourc
 file into you resources folder, or enable logging programmatically with 
 `System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO");` 
 before using *any* JPAN code. 
+
+### No DNS search domain found. Please check your /etc/resolv.conf or similar. / No DNS record found for bootstrap server.
+
+You may have to set the DNS search domain explicitly to a server with SCION NAPTR records. For example (works only if you are inside ETH):  
+```java
+System.setProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS, "ethz.ch.");
+```
 
 ### Local testbed (scionproto) does not contain any path
 

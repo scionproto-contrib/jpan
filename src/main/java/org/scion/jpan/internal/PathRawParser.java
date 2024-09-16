@@ -133,9 +133,10 @@ public class PathRawParser {
   }
 
   public int getSegmentCount() {
-    int nSegmentCount = 1;
-    nSegmentCount += segLen[1] > 0 ? 1 : 0;
-    nSegmentCount += segLen[2] > 0 ? 1 : 0;
+    int nSegmentCount = 0;
+    for (int i = 0; i < segLen.length; i++) {
+      nSegmentCount += segLen[i] > 0 ? 1 : 0;
+    }
     return nSegmentCount;
   }
 
