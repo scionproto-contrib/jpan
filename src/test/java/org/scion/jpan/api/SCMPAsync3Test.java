@@ -133,7 +133,7 @@ public class SCMPAsync3Test {
   private void testEcho(Supplier<Path> pathSupplier) throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
@@ -158,7 +158,7 @@ public class SCMPAsync3Test {
   void echo_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(100);
@@ -185,7 +185,7 @@ public class SCMPAsync3Test {
   void echo_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
@@ -199,7 +199,7 @@ public class SCMPAsync3Test {
   @Test
   void echo_SCMP_error() throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -228,7 +228,7 @@ public class SCMPAsync3Test {
 
   private void testTraceroute(Supplier<Path> path, int nHops) throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest(path.get());
@@ -260,7 +260,7 @@ public class SCMPAsync3Test {
   void traceroute_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(1000, channel.getTimeOut());
@@ -291,7 +291,7 @@ public class SCMPAsync3Test {
   void traceroute_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
@@ -303,10 +303,10 @@ public class SCMPAsync3Test {
   }
 
   @Test
-  void traceroute_SCMP_error() throws IOException, InterruptedException {
+  void traceroute_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel3 channel = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -365,7 +365,7 @@ public class SCMPAsync3Test {
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     Thread responder = null;
-    try (ScmpChannel3 sender = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender sender = Scmp.newBlockingSenderBuilder().build()) {
       sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
@@ -392,7 +392,7 @@ public class SCMPAsync3Test {
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     Thread responder = null;
-    try (ScmpChannel3 sender = Scmp.createAsyncChannel3()) {
+    try (ScmpBlockingSender sender = Scmp.newBlockingSenderBuilder().build()) {
       sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
@@ -433,7 +433,7 @@ public class SCMPAsync3Test {
   }
 
   private void scmpResponder(CountDownLatch barrier, Predicate<Scmp.EchoMessage> predicate) {
-    try (ScmpResponder responder = Scmp.createResponder()) {
+    try (ScmpResponder responder = Scmp.newResponderBuilder().build()) {
       responder.setScmpErrorListener(
           scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       responder.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);

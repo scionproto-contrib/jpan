@@ -34,12 +34,12 @@ public class ScmpResponder implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpResponder.class);
   private final InternalChannel channel;
 
-  ScmpResponder() throws IOException {
-    this(Scion.defaultService(), 12345);
+  private ScmpResponder(ScionService service, int port) throws IOException {
+    this.channel = new InternalChannel(service, port);
   }
 
-  ScmpResponder(ScionService service, int port) throws IOException {
-    this.channel = new InternalChannel(service, port);
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
   @Override
@@ -54,13 +54,12 @@ public class ScmpResponder implements AutoCloseable {
   /**
    * Install a listener for echo messages. The listener is called for every incoming echo request
    * message. A response will be sent iff the listener returns 'true'. Any time spent in the
-   * listener counts towards the RTT of the echo request.
+   * listener counts towards the RTT of the echo request. TODO is this all still true?
    *
    * <p>The listener will only be called for messages received during `setUpScmpEchoResponder()`.
    *
    * @param listener THe listener function
    * @return Any previously installed listener or 'null' if none was installed.
-   * @see #startScmpEchoResponder()
    */
   public Predicate<Scmp.EchoMessage> setScmpEchoListener(Predicate<Scmp.EchoMessage> listener) {
     return channel.setScmpEchoListener(listener);
@@ -85,7 +84,7 @@ public class ScmpResponder implements AutoCloseable {
     this.channel.sendEchoResponses();
   }
 
-  private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
+  private static class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
     private final Selector selector;
     private Predicate<Scmp.EchoMessage> echoListener;
 
@@ -199,5 +198,29 @@ public class ScmpResponder implements AutoCloseable {
 
   public InetSocketAddress getLocalAddress() throws IOException {
     return channel.getLocalAddress();
+  }
+
+  public static class Builder {
+    private ScionService service;
+    private int port = Constants.SCMP_PORT;
+
+    public Builder setLocalPort(int localPort) {
+      this.port = localPort;
+      return this;
+    }
+
+    public Builder setService(ScionService service) {
+      this.service = service;
+      return this;
+    }
+
+    public ScmpResponder build() {
+      ScionService service2 = service == null ? ScionService.defaultService() : service;
+      try {
+        return new ScmpResponder(service2, port);
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      }
+    }
   }
 }

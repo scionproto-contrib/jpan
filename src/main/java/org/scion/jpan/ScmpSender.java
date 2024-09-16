@@ -42,6 +42,10 @@ public class ScmpSender implements AutoCloseable {
   private Thread receiver;
   private final ScmpResponseHandler handler;
 
+  public static Builder newBuilder(ScmpResponseHandler handler) {
+    return new Builder(handler);
+  }
+
   public interface ScmpResponseHandler {
     void onResponse(Scmp.TimedMessage msg);
 
@@ -52,7 +56,8 @@ public class ScmpSender implements AutoCloseable {
     default void onException(Throwable t) {}
   }
 
-  ScmpSender(ScionService service, int port, ScmpResponseHandler handler) throws IOException {
+  private ScmpSender(ScionService service, int port, ScmpResponseHandler handler)
+      throws IOException {
     this.channel = new InternalChannel(service, port);
     this.handler = handler;
     startReceiver();
@@ -353,6 +358,35 @@ public class ScmpSender implements AutoCloseable {
         Scmp.TimedMessage msg = timerTask.request;
         msg.setTimedOut(timeOutMs * 1_000_000L);
         handler.onTimeout(msg);
+      }
+    }
+  }
+
+  public static class Builder {
+    private ScionService service;
+    private int port = 12345; // TODO Constants.SCMP_PORT;
+    private ScmpResponseHandler handler;
+
+    private Builder(ScmpResponseHandler handler) {
+      this.handler = handler;
+    }
+
+    public Builder setLocalPort(int localPort) {
+      this.port = localPort;
+      return this;
+    }
+
+    public Builder setService(ScionService service) {
+      this.service = service;
+      return this;
+    }
+
+    public ScmpSender build() {
+      ScionService service2 = service == null ? ScionService.defaultService() : service;
+      try {
+        return new ScmpSender(service2, port, handler);
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
       }
     }
   }

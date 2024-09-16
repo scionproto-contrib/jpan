@@ -25,56 +25,54 @@ import org.scion.jpan.internal.PathHeaderParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ScmpChannel3 implements AutoCloseable {
-  private static final Logger log = LoggerFactory.getLogger(ScmpChannel3.class);
+public class ScmpBlockingSender implements AutoCloseable {
+  private static final Logger log = LoggerFactory.getLogger(ScmpBlockingSender.class);
   private final ScmpSender sender;
   private final PrimaryEchoHandler primaryEchoListener = new PrimaryEchoHandler();
   private final PrimaryTraceHandler primaryTraceListener = new PrimaryTraceHandler();
 
-  ScmpChannel3() throws IOException {
-    this(Scion.defaultService(), 12345); // TODO 30041 ??? Or auto-assign?
+  private ScmpBlockingSender(ScionService service, int port) {
+    ScmpSender.ScmpResponseHandler handler =
+        new ScmpSender.ScmpResponseHandler() {
+          @Override
+          public void onResponse(Scmp.TimedMessage msg) {
+            if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+              primaryEchoListener.handle((Scmp.EchoMessage) msg);
+            } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+              primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
+            } else {
+              throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+            }
+          }
+
+          @Override
+          public void onTimeout(Scmp.TimedMessage msg) {
+            if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+              primaryEchoListener.handle((Scmp.EchoMessage) msg);
+            } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+              primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
+            } else {
+              throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+            }
+          }
+
+          @Override
+          public void onError(Scmp.ErrorMessage msg) {
+            primaryEchoListener.handleError(msg);
+            primaryTraceListener.handleError(msg);
+          }
+
+          @Override
+          public void onException(Throwable t) {
+            primaryEchoListener.handleException(t);
+            primaryTraceListener.handleException(t);
+          }
+        };
+    this.sender = ScmpSender.newBuilder(handler).setService(service).setLocalPort(port).build();
   }
 
-  ScmpChannel3(ScionService service, int port) throws IOException {
-    this.sender =
-        Scmp.createSender(
-            new ScmpSender.ScmpResponseHandler() {
-              @Override
-              public void onResponse(Scmp.TimedMessage msg) {
-                if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-                  primaryEchoListener.handle((Scmp.EchoMessage) msg);
-                } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-                  primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
-                } else {
-                  throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-                }
-              }
-
-              @Override
-              public void onTimeout(Scmp.TimedMessage msg) {
-                if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
-                  primaryEchoListener.handle((Scmp.EchoMessage) msg);
-                } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
-                  primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
-                } else {
-                  throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-                }
-              }
-
-              @Override
-              public void onError(Scmp.ErrorMessage msg) {
-                primaryEchoListener.handleError(msg);
-                primaryTraceListener.handleError(msg);
-              }
-
-              @Override
-              public void onException(Throwable t) {
-                primaryEchoListener.handleException(t);
-                primaryTraceListener.handleException(t);
-              }
-            },
-            service,
-            port);
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
   /**
@@ -220,7 +218,7 @@ public class ScmpChannel3 implements AutoCloseable {
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Interrupted: {}", Thread.currentThread().getName());
-            throw new RuntimeException(e);
+            throw new ScionRuntimeException(e);
           }
         }
       }
@@ -238,6 +236,7 @@ public class ScmpChannel3 implements AutoCloseable {
   private static class PrimaryEchoHandler extends PrimaryScmpHandler<Scmp.EchoMessage> {
     Scmp.EchoMessage response = null;
 
+    @Override
     void init() {
       synchronized (this) {
         response = null;
@@ -299,6 +298,26 @@ public class ScmpChannel3 implements AutoCloseable {
       List<Scmp.TracerouteMessage> result = responses;
       responses = null;
       return result;
+    }
+  }
+
+  public static class Builder {
+    private ScionService service;
+    private int port = 12345; // TODO Constants.SCMP_PORT;
+
+    public Builder setLocalPort(int localPort) {
+      this.port = localPort;
+      return this;
+    }
+
+    public Builder setService(ScionService service) {
+      this.service = service;
+      return this;
+    }
+
+    public ScmpBlockingSender build() {
+      ScionService service2 = service == null ? ScionService.defaultService() : service;
+      return new ScmpBlockingSender(service2, port);
     }
   }
 }
