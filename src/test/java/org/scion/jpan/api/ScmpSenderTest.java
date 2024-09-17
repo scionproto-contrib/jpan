@@ -172,6 +172,7 @@ public class ScmpSenderTest {
       assertEquals(seqId1, result1.getSequenceNumber());
 
       // try again
+      handler.echoHandler.reset();
       MockNetwork.answerNextScmpEchos(1);
       int seqId2 = channel.asyncEcho(path, ByteBuffer.allocate(0));
       Scmp.EchoMessage result2 = handler.echoHandler.get();
@@ -193,9 +194,6 @@ public class ScmpSenderTest {
     try (ScmpSender channel = Scmp.newSenderBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
-      // Exception because network is down.
-      //      assertThrows(IOException.class, () -> channel.sendEchoRequest(path,
-      // ByteBuffer.allocate(0)));
       channel.asyncEcho(path, ByteBuffer.allocate(0));
       assertThrows(IOException.class, () -> handler.echoHandler.get());
     } finally {
@@ -208,17 +206,13 @@ public class ScmpSenderTest {
     MockNetwork.startTiny();
     ResponseHandler handler = new ResponseHandler();
     try (ScmpSender channel = Scmp.newSenderBuilder(handler).build()) {
-      AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       channel.asyncEcho(getPathTo112(), ByteBuffer.allocate(0));
       Throwable t = assertThrows(IOException.class, () -> handler.echoHandler.get());
-      Thread.sleep(100);
       assertNotNull(handler.echoHandler.error);
       assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     } finally {
       MockNetwork.stopTiny();
     }
@@ -477,12 +471,9 @@ public class ScmpSenderTest {
         synchronized (this) {
           try {
             if (error != null) {
-              String txt = error.getTypeCode().getText();
-              reset();
-              throw new IOException(txt);
+              throw new IOException(error.getTypeCode().getText());
             }
             if (exception != null) {
-              reset();
               throw new IOException(exception);
             }
             T result = checkResult.get();
@@ -498,7 +489,10 @@ public class ScmpSenderTest {
       }
     }
 
-    abstract T reset();
+    void reset() {
+      error = null;
+      exception = null;
+    }
   }
 
   private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
@@ -512,14 +506,13 @@ public class ScmpSenderTest {
     }
 
     Scmp.EchoMessage get() throws IOException {
-      return super.waitForResult(() -> response != null ? reset() : null);
+      return super.waitForResult(() -> response);
     }
 
     @Override
-    Scmp.EchoMessage reset() {
-      Scmp.EchoMessage msg = response;
+    void reset() {
+      super.reset();
       response = null;
-      return msg;
     }
   }
 
@@ -541,13 +534,13 @@ public class ScmpSenderTest {
     }
 
     List<Scmp.TracerouteMessage> get() throws IOException {
-      return super.waitForResult(() -> responses.size() >= count ? reset() : null);
+      return super.waitForResult(() -> responses.size() >= count ? responses : null);
     }
 
     @Override
-    List<Scmp.TracerouteMessage> reset() {
-      List<Scmp.TracerouteMessage> result = responses;
-      return result;
+    void reset() {
+      super.reset();
+      responses.clear();
     }
   }
 
