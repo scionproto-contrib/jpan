@@ -33,6 +33,11 @@ import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @deprecated Please use ScmpBlockingSender (e.g. via Scmp.newBlockingSenderBuilder()) instead. To
+ *     be removed in 0.4.0
+ */
+@Deprecated
 public class ScmpChannel implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpChannel.class);
   private int timeOutMs = 1000;

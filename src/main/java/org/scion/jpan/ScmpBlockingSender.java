@@ -28,8 +28,9 @@ import org.slf4j.LoggerFactory;
 public class ScmpBlockingSender implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpBlockingSender.class);
   private final ScmpSender sender;
-  private final PrimaryEchoHandler primaryEchoListener = new PrimaryEchoHandler();
-  private final PrimaryTraceHandler primaryTraceListener = new PrimaryTraceHandler();
+  private final EchoHandler echoHandler = new EchoHandler();
+  private final TraceHandler traceHandler = new TraceHandler();
+  private Consumer<Scmp.ErrorMessage> errorListener = null;
 
   private ScmpBlockingSender(ScionService service, int port) {
     ScmpSender.ScmpResponseHandler handler =
@@ -37,9 +38,9 @@ public class ScmpBlockingSender implements AutoCloseable {
           @Override
           public void onResponse(Scmp.TimedMessage msg) {
             if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-              primaryEchoListener.handle((Scmp.EchoMessage) msg);
+              echoHandler.handle((Scmp.EchoMessage) msg);
             } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-              primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
+              traceHandler.handle((Scmp.TracerouteMessage) msg);
             } else {
               throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
             }
@@ -48,9 +49,9 @@ public class ScmpBlockingSender implements AutoCloseable {
           @Override
           public void onTimeout(Scmp.TimedMessage msg) {
             if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
-              primaryEchoListener.handle((Scmp.EchoMessage) msg);
+              echoHandler.handle((Scmp.EchoMessage) msg);
             } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
-              primaryTraceListener.handle((Scmp.TracerouteMessage) msg);
+              traceHandler.handle((Scmp.TracerouteMessage) msg);
             } else {
               throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
             }
@@ -58,14 +59,17 @@ public class ScmpBlockingSender implements AutoCloseable {
 
           @Override
           public void onError(Scmp.ErrorMessage msg) {
-            primaryEchoListener.handleError(msg);
-            primaryTraceListener.handleError(msg);
+            echoHandler.handleError(msg);
+            traceHandler.handleError(msg);
+            if (errorListener != null) {
+              errorListener.accept(msg);
+            }
           }
 
           @Override
           public void onException(Throwable t) {
-            primaryEchoListener.handleException(t);
-            primaryTraceListener.handleException(t);
+            echoHandler.handleException(t);
+            traceHandler.handleException(t);
           }
         };
     this.sender = ScmpSender.newBuilder(handler).setService(service).setLocalPort(port).build();
@@ -86,10 +90,10 @@ public class ScmpBlockingSender implements AutoCloseable {
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public Scmp.EchoMessage sendEchoRequest(Path path, ByteBuffer data) throws IOException {
-    primaryEchoListener.init();
+    echoHandler.init();
     sender.asyncEcho(path, data);
     try {
-      return primaryEchoListener.get();
+      return echoHandler.get();
     } finally {
       sender.abortAll();
     }
@@ -106,18 +110,11 @@ public class ScmpBlockingSender implements AutoCloseable {
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public List<Scmp.TracerouteMessage> sendTracerouteRequest(Path path) throws IOException {
-    /// TODO clarify behaviour:
-    //   It is "difficult" (but possible) to associate incoming SCMP errors with previous requests.
-    //   COnsidering "asyncXYZ" we cannot abort everything.
-    //    - Well we _can_   abort everything in non-async context!
-    //   In case of async, we simply time out. If someone is interested in the error, they can get
-    //   it via the error callback.
-
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
-    primaryTraceListener.init(nodes.size());
+    traceHandler.init(nodes.size());
     sender.asyncTraceroute(path);
     try {
-      List<Scmp.TracerouteMessage> result = primaryTraceListener.get();
+      List<Scmp.TracerouteMessage> result = traceHandler.get();
       result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));
       return result;
     } finally {
@@ -138,10 +135,20 @@ public class ScmpBlockingSender implements AutoCloseable {
     sender.close();
   }
 
-  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
-    return sender.setScmpErrorListener(listener);
+  public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
+    Consumer<Scmp.ErrorMessage> previous = this.errorListener;
+    this.errorListener = listener;
+    return previous;
   }
 
+  /**
+   * This is currently only useful for {@link ScionSocketOptions#SCION_API_THROW_PARSER_FAILURE}.
+   *
+   * @param option option
+   * @param t value
+   * @param <T> option type
+   * @throws IOException in case of IO error
+   */
   public <T> void setOption(SocketOption<T> option, T t) throws IOException {
     sender.setOption(option, t);
   }
@@ -160,7 +167,7 @@ public class ScmpBlockingSender implements AutoCloseable {
     sender.setOverrideSourceAddress(overrideSourceAddress);
   }
 
-  private abstract static class PrimaryScmpHandler<T> {
+  private abstract static class ScmpHandler<T> {
     private Scmp.ErrorMessage error = null;
     private Throwable exception = null;
     private boolean isActive = false;
@@ -233,7 +240,7 @@ public class ScmpBlockingSender implements AutoCloseable {
     }
   }
 
-  private static class PrimaryEchoHandler extends PrimaryScmpHandler<Scmp.EchoMessage> {
+  private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
     Scmp.EchoMessage response = null;
 
     @Override
@@ -264,8 +271,7 @@ public class ScmpBlockingSender implements AutoCloseable {
     }
   }
 
-  private static class PrimaryTraceHandler
-      extends PrimaryScmpHandler<List<Scmp.TracerouteMessage>> {
+  private static class TraceHandler extends ScmpHandler<List<Scmp.TracerouteMessage>> {
     ArrayList<Scmp.TracerouteMessage> responses = null;
     int count;
 

@@ -24,7 +24,6 @@ import java.nio.channels.Selector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathHeaderParser;
 import org.scion.jpan.internal.ScionHeaderParser;
@@ -90,6 +89,9 @@ public class ScmpSender implements AutoCloseable {
   /**
    * Sends a SCMP echo request along the specified path.
    *
+   * <p>After {@link #asyncEcho(Path, ByteBuffer)} you may eventually want to call {@link
+   * #abortAll()} to abort potentially remaining timeout timers from outstanding responses.
+   *
    * @param path The path to use.
    * @param payload user data that is sent with the request
    * @return The sequence ID.
@@ -104,6 +106,9 @@ public class ScmpSender implements AutoCloseable {
 
   /**
    * Sends a SCMP traceroute request along the specified path.
+   *
+   * <p>After {@link #asyncTraceroute(Path)} you may eventually want to call {@link #abortAll()} to
+   * abort potentially remaining timeout timers from outstanding responses.
    *
    * @param path The path to use.
    * @return A list of sequence IDs.
@@ -124,6 +129,9 @@ public class ScmpSender implements AutoCloseable {
   /**
    * Sends a SCMP traceroute request along the specified path. A measurement will only be returned
    * for the _last_ AS, i.e. the final destination AS.
+   *
+   * <p>After {@link #asyncTracerouteLast(Path)} you may eventually want to call {@link #abortAll()}
+   * to abort potentially remaining timeout timers from outstanding responses.
    *
    * @param path The path to use.
    * @return The sequence ID or -1 if the path is empty.
@@ -155,10 +163,14 @@ public class ScmpSender implements AutoCloseable {
     stopReceiver();
   }
 
-  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
-    return channel.setScmpErrorListener(listener);
-  }
-
+  /**
+   * This is currently only useful for {@link ScionSocketOptions#SCION_API_THROW_PARSER_FAILURE}.
+   *
+   * @param option option
+   * @param t value
+   * @param <T> option type
+   * @throws IOException in case of IO error
+   */
   public <T> void setOption(SocketOption<T> option, T t) throws IOException {
     channel.setOption(option, t);
   }

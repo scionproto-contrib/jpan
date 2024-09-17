@@ -412,7 +412,7 @@ public class Scmp {
    * @param path Path to destination
    * @return New SCMP channel
    */
-  @Deprecated // Please remove "path" argument
+  @Deprecated // Please remove "path" argument. To be removed in 0.3.0
   public static ScmpChannel createChannel(RequestPath path) throws IOException {
     return new ScmpChannel(path);
   }
@@ -424,7 +424,7 @@ public class Scmp {
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
    */
-  @Deprecated // Please remove "path" argument
+  @Deprecated // Please remove "path" argument. To be removed in 0.3.0
   public static ScmpChannel createChannel(RequestPath path, int listeningPort) throws IOException {
     return new ScmpChannel(Scion.defaultService(), path, listeningPort);
   }
@@ -437,7 +437,7 @@ public class Scmp {
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
    */
-  @Deprecated // Please remove "path" argument
+  @Deprecated // Please remove "path" argument. To be removed in 0.3.0
   public static ScmpChannel createChannel(ScionService service, RequestPath path, int listeningPort)
       throws IOException {
     return new ScmpChannel(service, path, listeningPort);
@@ -447,7 +447,9 @@ public class Scmp {
    * Create a channel for sending SCMP requests.
    *
    * @return New SCMP channel
+   * @deprecated Please use Scmp.newBlockingSenderBuilder() instead. To be removed in 0.4.0
    */
+  @Deprecated
   public static ScmpChannel createChannel() throws IOException {
     return new ScmpChannel();
   }
@@ -457,7 +459,9 @@ public class Scmp {
    *
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
+   * @deprecated Please use Scmp.newBlockingSenderBuilder() instead. To be removed in 0.4.0
    */
+  @Deprecated
   public static ScmpChannel createChannel(int listeningPort) throws IOException {
     return new ScmpChannel(Scion.defaultService(), listeningPort);
   }
@@ -468,7 +472,9 @@ public class Scmp {
    * @param service the ScionService instance
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
+   * @deprecated Please use Scmp.newBlockingSenderBuilder() instead. To be removed in 0.4.0
    */
+  @Deprecated
   public static ScmpChannel createChannel(ScionService service, int listeningPort)
       throws IOException {
     return new ScmpChannel(service, listeningPort);
