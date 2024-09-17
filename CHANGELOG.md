@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 TODO 
   - Changed default for sender to 30041!?!?!
   - TODO adapt examples
+  - CLean up(primary)handler -> simplify
+  - TraceTests in test
+  - Rename to ScmpSender and ScmpSenderAsync
 
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
