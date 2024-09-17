@@ -134,13 +134,13 @@ public class ScmpSenderTest {
   private void testEcho(Supplier<Path> pathSupplier) throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
-    ResponseHandler handler = new ResponseHandler();
+    EchoHandler handler = new EchoHandler();
     try (ScmpSender channel = Scmp.newSenderBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
       int seqId = channel.asyncEcho(path, ByteBuffer.wrap(data));
-      Scmp.EchoMessage result = handler.echoHandler.get();
+      Scmp.EchoMessage result = handler.get();
       assertEquals(seqId, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);
@@ -160,22 +160,22 @@ public class ScmpSenderTest {
   void echo_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    ResponseHandler handler = new ResponseHandler();
+    EchoHandler handler = new EchoHandler();
     try (ScmpSender channel = Scmp.newSenderBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(100);
       MockNetwork.dropNextPackets(1);
       int seqId1 = channel.asyncEcho(path, ByteBuffer.allocate(0));
-      Scmp.EchoMessage result1 = handler.echoHandler.get();
+      Scmp.EchoMessage result1 = handler.get();
       assertTrue(result1.isTimedOut());
       assertEquals(100 * 1_000_000, result1.getNanoSeconds());
       assertEquals(seqId1, result1.getSequenceNumber());
 
       // try again
-      handler.echoHandler.reset();
+      handler.reset();
       MockNetwork.answerNextScmpEchos(1);
       int seqId2 = channel.asyncEcho(path, ByteBuffer.allocate(0));
-      Scmp.EchoMessage result2 = handler.echoHandler.get();
+      Scmp.EchoMessage result2 = handler.get();
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
       assertTrue(result2.getNanoSeconds() > 0);
@@ -190,12 +190,12 @@ public class ScmpSenderTest {
   void echo_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    ResponseHandler handler = new ResponseHandler();
+    EchoHandler handler = new EchoHandler();
     try (ScmpSender channel = Scmp.newSenderBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       channel.asyncEcho(path, ByteBuffer.allocate(0));
-      assertThrows(IOException.class, () -> handler.echoHandler.get());
+      assertThrows(IOException.class, handler::get);
     } finally {
       MockNetwork.stopTiny();
     }
@@ -204,14 +204,14 @@ public class ScmpSenderTest {
   @Test
   void echo_SCMP_error() throws IOException {
     MockNetwork.startTiny();
-    ResponseHandler handler = new ResponseHandler();
+    EchoHandler handler = new EchoHandler();
     try (ScmpSender channel = Scmp.newSenderBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       channel.asyncEcho(getPathTo112(), ByteBuffer.allocate(0));
-      Throwable t = assertThrows(IOException.class, () -> handler.echoHandler.get());
-      assertNotNull(handler.echoHandler.error);
+      Throwable t = assertThrows(IOException.class, handler::get);
+      assertEquals(Scmp.TypeCode.TYPE_1_CODE_0, handler.error.getTypeCode());
       assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
@@ -448,7 +448,7 @@ public class ScmpSenderTest {
     }
   }
 
-  private abstract static class ScmpHandler<T> {
+  private abstract static class ScmpHandler<T> implements ScmpSender.ScmpResponseHandler {
     volatile Scmp.ErrorMessage error = null;
     volatile Throwable exception = null;
 
@@ -493,6 +493,16 @@ public class ScmpSenderTest {
       error = null;
       exception = null;
     }
+
+    @Override
+    public void onError(Scmp.ErrorMessage msg) {
+      handleError(msg);
+    }
+
+    @Override
+    public void onException(Throwable t) {
+      handleException(t);
+    }
   }
 
   private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
@@ -513,6 +523,24 @@ public class ScmpSenderTest {
     void reset() {
       super.reset();
       response = null;
+    }
+
+    @Override
+    public void onResponse(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+        handle((Scmp.EchoMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onTimeout(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+        handle((Scmp.EchoMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
     }
   }
 
@@ -541,6 +569,24 @@ public class ScmpSenderTest {
     void reset() {
       super.reset();
       responses.clear();
+    }
+
+    @Override
+    public void onResponse(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+        handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onTimeout(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+        handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
     }
   }
 
