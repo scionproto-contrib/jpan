@@ -18,149 +18,128 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.scion.jpan.internal.InternalConstants;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.scion.jpan.internal.PathHeaderParser;
-import org.scion.jpan.internal.ScionHeaderParser;
-import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ScmpSender implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpSender.class);
-  private int timeOutMs = 1000;
-  private final InternalChannel channel;
-  private final AtomicInteger sequenceIDs = new AtomicInteger(0);
-  private final ConcurrentHashMap<Integer, TimeOutTask> timers = new ConcurrentHashMap<>();
-  private final Timer timer = new Timer(true);
-  private Thread receiver;
-  private final ScmpResponseHandler handler;
+  private final ScmpSenderAsync sender;
+  private final EchoHandler echoHandler = new EchoHandler();
+  private final TraceHandler traceHandler = new TraceHandler();
+  private Consumer<Scmp.ErrorMessage> errorListener = null;
 
-  public static Builder newBuilder(ScmpResponseHandler handler) {
-    return new Builder(handler);
+  private ScmpSender(ScionService service, int port) {
+    ScmpSenderAsync.ScmpResponseHandler handler =
+        new ScmpSenderAsync.ScmpResponseHandler() {
+          @Override
+          public void onResponse(Scmp.TimedMessage msg) {
+            if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+              echoHandler.handle((Scmp.EchoMessage) msg);
+            } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+              traceHandler.handle((Scmp.TracerouteMessage) msg);
+            } else {
+              throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+            }
+          }
+
+          @Override
+          public void onTimeout(Scmp.TimedMessage msg) {
+            if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+              echoHandler.handle((Scmp.EchoMessage) msg);
+            } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+              traceHandler.handle((Scmp.TracerouteMessage) msg);
+            } else {
+              throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+            }
+          }
+
+          @Override
+          public void onError(Scmp.ErrorMessage msg) {
+            echoHandler.handleError(msg);
+            traceHandler.handleError(msg);
+            if (errorListener != null) {
+              errorListener.accept(msg);
+            }
+          }
+
+          @Override
+          public void onException(Throwable t) {
+            echoHandler.handleException(t);
+            traceHandler.handleException(t);
+          }
+        };
+    this.sender =
+        ScmpSenderAsync.newBuilder(handler).setService(service).setLocalPort(port).build();
   }
 
-  public interface ScmpResponseHandler {
-    void onResponse(Scmp.TimedMessage msg);
-
-    void onTimeout(Scmp.TimedMessage msg);
-
-    default void onError(Scmp.ErrorMessage msg) {}
-
-    default void onException(Throwable t) {}
-  }
-
-  private ScmpSender(ScionService service, int port, ScmpResponseHandler handler)
-      throws IOException {
-    this.channel = new InternalChannel(service, port);
-    this.handler = handler;
-    startReceiver();
-  }
-
-  private void startReceiver() {
-    this.receiver = new Thread(this::handleReceive, "ScmpSender-receiver");
-    this.receiver.setDaemon(true);
-    this.receiver.start();
-  }
-
-  private void stopReceiver() {
-    if (receiver != null) {
-      this.receiver.interrupt();
-      try {
-        this.receiver.join(100);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
-    }
-  }
-
-  public void abortAll() {
-    for (TimeOutTask task : timers.values()) {
-      task.cancel();
-    }
-    timers.clear();
-  }
-
-  /**
-   * Sends a SCMP echo request along the specified path.
-   *
-   * <p>After {@link #asyncEcho(Path, ByteBuffer)} you may eventually want to call {@link
-   * #abortAll()} to abort potentially remaining timeout timers from outstanding responses.
-   *
-   * @param path The path to use.
-   * @param payload user data that is sent with the request
-   * @return The sequence ID.
-   * @throws IOException if an IO error occurs.
-   */
-  public int asyncEcho(Path path, ByteBuffer payload) throws IOException {
-    int sequenceId = sequenceIDs.getAndIncrement();
-    Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceId, path, payload);
-    channel.sendEchoRequest(request);
-    return sequenceId;
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
   /**
-   * Sends a SCMP traceroute request along the specified path.
-   *
-   * <p>After {@link #asyncTraceroute(Path)} you may eventually want to call {@link #abortAll()} to
-   * abort potentially remaining timeout timers from outstanding responses.
+   * Sends a SCMP echo request to the connected destination.
    *
    * @param path The path to use.
-   * @return A list of sequence IDs.
-   * @throws IOException if an IO error occurs.
+   * @param data user data that is sent with the request
+   * @return A SCMP result. If a reply is received, the result contains the reply and the time in
+   *     milliseconds that the reply took. If the request timed out, the result contains no message
+   *     and the time is equal to the time-out duration.
+   * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
-  public List<Integer> asyncTraceroute(Path path) throws IOException {
-    List<Integer> requestIDs = new ArrayList<>();
+  public Scmp.EchoMessage sendEchoRequest(Path path, ByteBuffer data) throws IOException {
+    echoHandler.init();
+    sender.asyncEcho(path, data);
+    try {
+      return echoHandler.get();
+    } finally {
+      sender.abortAll();
+    }
+  }
+
+  /**
+   * Sends a SCMP traceroute request to the connected destination.
+   *
+   * @param path The path to use.
+   * @return A list of SCMP results, one for each hop on the route. For every reply received, the
+   *     result contains the reply and the time in milliseconds that the reply took. If the request
+   *     timed out, the result contains no message and the time is equal to the time-out duration.
+   *     If a request times out, the traceroute is aborted.
+   * @throws IOException if an IO error occurs or if an SCMP error is received.
+   */
+  public List<Scmp.TracerouteMessage> sendTracerouteRequest(Path path) throws IOException {
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
-    for (int i = 0; i < nodes.size(); i++) {
-      int sequenceId = sequenceIDs.getAndIncrement();
-      Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(sequenceId, path);
-      requestIDs.add(sequenceId);
-      channel.sendTracerouteRequest(request, nodes.get(i));
+    traceHandler.init(nodes.size());
+    sender.asyncTraceroute(path);
+    try {
+      List<Scmp.TracerouteMessage> result = traceHandler.get();
+      result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));
+      return result;
+    } finally {
+      sender.abortAll();
     }
-    return requestIDs;
-  }
-
-  /**
-   * Sends a SCMP traceroute request along the specified path. A measurement will only be returned
-   * for the _last_ AS, i.e. the final destination AS.
-   *
-   * <p>After {@link #asyncTracerouteLast(Path)} you may eventually want to call {@link #abortAll()}
-   * to abort potentially remaining timeout timers from outstanding responses.
-   *
-   * @param path The path to use.
-   * @return The sequence ID or -1 if the path is empty.
-   * @throws IOException if an IO error occurs.
-   */
-  public int asyncTracerouteLast(Path path) throws IOException {
-    List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
-    if (nodes.isEmpty()) {
-      return -1;
-    }
-    int sequenceId = sequenceIDs.getAndIncrement();
-    Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(sequenceId, path);
-    channel.sendTracerouteRequest(request, nodes.get(nodes.size() - 1));
-    return sequenceId;
   }
 
   public void setTimeOut(int milliSeconds) {
-    this.timeOutMs = milliSeconds;
+    sender.setTimeOut(milliSeconds);
   }
 
   public int getTimeOut() {
-    return this.timeOutMs;
+    return sender.getTimeOut();
   }
 
   @Override
   public void close() throws IOException {
-    channel.close();
-    timer.cancel();
-    stopReceiver();
+    sender.close();
+  }
+
+  public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
+    Consumer<Scmp.ErrorMessage> previous = this.errorListener;
+    this.errorListener = listener;
+    return previous;
   }
 
   /**
@@ -172,169 +151,11 @@ public class ScmpSender implements AutoCloseable {
    * @throws IOException in case of IO error
    */
   public <T> void setOption(SocketOption<T> option, T t) throws IOException {
-    channel.setOption(option, t);
-  }
-
-  private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
-    private final Selector selector;
-
-    protected InternalChannel(ScionService service, int port) throws IOException {
-      super(service);
-
-      // selector
-      this.selector = Selector.open();
-      super.channel().configureBlocking(false);
-      super.channel().register(selector, SelectionKey.OP_READ);
-
-      // listen on ANY interface: 0.0.0.0 / [::]
-      super.bind(new InetSocketAddress(port));
-    }
-
-    void sendEchoRequest(Scmp.EchoMessage request) throws IOException {
-      writeLock().lock();
-      try {
-        Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
-        ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
-        // EchoHeader = 8 + data
-        int len = 8 + request.getData().length;
-        buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-        int localPort = super.getLocalAddress().getPort();
-        ScmpParser.buildScmpPing(
-            buffer, Scmp.Type.INFO_128, localPort, request.getSequenceNumber(), request.getData());
-        buffer.flip();
-        request.setSizeSent(buffer.remaining());
-
-        sendRequest(request, buffer, path);
-      } finally {
-        writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
-        }
-      }
-    }
-
-    void sendTracerouteRequest(Scmp.TracerouteMessage request, PathHeaderParser.Node node)
-        throws IOException {
-      writeLock().lock();
-      try {
-        Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
-        ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
-        // TracerouteHeader = 24
-        int len = 24;
-        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
-        int interfaceNumber = request.getSequenceNumber();
-        int localPort = super.getLocalAddress().getPort();
-        ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, localPort, interfaceNumber);
-        buffer.flip();
-
-        // Set flags for border routers to return SCMP packet
-        int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
-        buffer.put(posPath + node.posHopFlags, node.hopFlags);
-
-        sendRequest(request, buffer, path);
-      } finally {
-        writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
-        }
-      }
-    }
-
-    private void sendRequest(Scmp.TimedMessage request, ByteBuffer buffer, Path path)
-        throws IOException {
-      request.setSendNanoSeconds(System.nanoTime());
-      sendRaw(buffer, path);
-      TimeOutTask timerTask = new TimeOutTask(request);
-      timer.schedule(timerTask, timeOutMs);
-      timers.put(request.getSequenceNumber(), timerTask);
-    }
-
-    private void receiveAsync() throws IOException {
-      while (selector.isOpen() && selector.select() > 0) {
-        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-        if (iter.hasNext()) {
-          SelectionKey key = iter.next();
-          iter.remove();
-          if (key.isValid() && key.isReadable()) {
-            readIncomingScmp(key);
-          }
-        }
-      }
-    }
-
-    private void readIncomingScmp(SelectionKey key) throws IOException {
-      readLock().lock();
-      try {
-        DatagramChannel incoming = (DatagramChannel) key.channel();
-        ByteBuffer buffer = super.getBufferReceive(DEFAULT_BUFFER_SIZE);
-        buffer.clear();
-        InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
-        buffer.flip();
-        if (validate(buffer)) {
-          InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-          // From here on we use linear reading using the buffer's position() mechanism
-          buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-          // Check for extension headers.
-          // This should be mostly unnecessary, however we sometimes saw SCMP error headers
-          // wrapped in extensions headers.
-          hdrType = receiveExtensionHeader(buffer, hdrType);
-
-          if (hdrType != InternalConstants.HdrTypes.SCMP) {
-            return; // drop
-          }
-          handleIncomingScmp(buffer, srcAddress);
-        }
-      } catch (ScionException e) {
-        // Validation problem -> ignore
-        handler.onException(e);
-      } catch (IOException e) {
-        handler.onException(e);
-        throw e;
-      } finally {
-        readLock().unlock();
-      }
-    }
-
-    private void handleIncomingScmp(ByteBuffer buffer, InetSocketAddress srcAddress) {
-      long currentNanos = System.nanoTime();
-      ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-      Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
-      if (msg.getTypeCode().isError()) {
-        handler.onError((Scmp.ErrorMessage) msg);
-        checkListeners(msg);
-        return;
-      }
-
-      TimeOutTask task = timers.remove(msg.getSequenceNumber());
-      if (task != null) {
-        task.cancel(); // Cancel timeout timer
-        Scmp.TimedMessage request = task.request;
-        if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
-          handler.onResponse((Scmp.TimedMessage) msg);
-        } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-          ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
-          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
-          handler.onResponse((Scmp.TimedMessage) msg);
-        } else {
-          // Wrong type -> ignore
-          return;
-        }
-      }
-      checkListeners(msg);
-    }
-
-    @Override
-    public void close() throws IOException {
-      selector.close();
-      super.close();
-    }
+    sender.setOption(option, t);
   }
 
   public InetSocketAddress getLocalAddress() throws IOException {
-    return channel.getLocalAddress();
+    return sender.getLocalAddress();
   }
 
   /**
@@ -344,44 +165,152 @@ public class ScmpSender implements AutoCloseable {
    * @param overrideSourceAddress Override address
    */
   public void setOverrideSourceAddress(InetSocketAddress overrideSourceAddress) {
-    channel.setOverrideSourceAddress(overrideSourceAddress);
+    sender.setOverrideSourceAddress(overrideSourceAddress);
   }
 
-  private void handleReceive() {
-    try {
-      channel.receiveAsync();
-    } catch (IOException e) {
-      log.error("While receiving SCMP message: {}", e.getMessage());
-    }
-  }
+  private abstract static class ScmpHandler<T> {
+    private Scmp.ErrorMessage error = null;
+    private Throwable exception = null;
+    private boolean isActive = false;
 
-  private class TimeOutTask extends TimerTask {
-    private final Scmp.TimedMessage request;
-
-    TimeOutTask(Scmp.TimedMessage request) {
-      this.request = request;
-    }
-
-    /** This is executed when the task times out, i.e. if we didn't get a ping withing timeOutMs. */
-    @Override
-    public void run() {
-      TimeOutTask timerTask = timers.remove(request.getSequenceNumber());
-      if (timerTask != null) {
-        Scmp.TimedMessage msg = timerTask.request;
-        msg.setTimedOut(timeOutMs * 1_000_000L);
-        handler.onTimeout(msg);
+    void init() {
+      synchronized (this) {
+        if (isActive) {
+          throw new IllegalStateException();
+        }
+        this.error = null;
+        this.isActive = true;
       }
+    }
+
+    void handleError(Scmp.ErrorMessage msg) {
+      synchronized (this) {
+        if (isActive) {
+          error = msg;
+          this.notifyAll();
+        }
+      }
+    }
+
+    void handleException(Throwable t) {
+      synchronized (this) {
+        if (isActive) {
+          exception = t;
+          this.notifyAll();
+        }
+      }
+    }
+
+    protected T waitForResult(Supplier<T> checkResult) throws IOException {
+      while (true) {
+        synchronized (this) {
+          try {
+            if (error != null) {
+              String txt = error.getTypeCode().getText();
+              error = null;
+              reset();
+              isActive = false;
+              throw new IOException(txt);
+            }
+            if (exception != null) {
+              reset();
+              isActive = false;
+              throw new IOException(exception);
+            }
+            T result = checkResult.get();
+            if (result != null) {
+              isActive = false;
+              return result;
+            }
+            this.wait();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted: {}", Thread.currentThread().getName());
+            throw new ScionRuntimeException(e);
+          }
+        }
+      }
+    }
+
+    abstract T reset();
+
+    protected void assertActive() {
+      if (!isActive) {
+        throw new IllegalStateException();
+      }
+    }
+  }
+
+  private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
+    Scmp.EchoMessage response = null;
+
+    @Override
+    void init() {
+      synchronized (this) {
+        response = null;
+        super.init();
+      }
+    }
+
+    void handle(Scmp.EchoMessage msg) {
+      synchronized (this) {
+        assertActive();
+        response = msg;
+        this.notifyAll();
+      }
+    }
+
+    Scmp.EchoMessage get() throws IOException {
+      return super.waitForResult(() -> response != null ? reset() : null);
+    }
+
+    @Override
+    Scmp.EchoMessage reset() {
+      Scmp.EchoMessage msg = response;
+      response = null;
+      return msg;
+    }
+  }
+
+  private static class TraceHandler extends ScmpHandler<List<Scmp.TracerouteMessage>> {
+    ArrayList<Scmp.TracerouteMessage> responses = null;
+    int count;
+
+    void init(int count) {
+      synchronized (this) {
+        responses = new ArrayList<>(count);
+        super.init();
+        this.count = count;
+      }
+    }
+
+    void handle(Scmp.TracerouteMessage msg) {
+      synchronized (this) {
+        assertActive();
+        if (responses != null) {
+          responses.add(msg);
+          if (responses.size() >= count) {
+            this.notifyAll();
+          }
+        }
+      }
+    }
+
+    List<Scmp.TracerouteMessage> get() throws IOException {
+      return super.waitForResult(() -> responses.size() >= count ? reset() : null);
+    }
+
+    @Override
+    List<Scmp.TracerouteMessage> reset() {
+      List<Scmp.TracerouteMessage> result = responses;
+      responses = null;
+      return result;
     }
   }
 
   public static class Builder {
     private ScionService service;
     private int port = 12345; // TODO Constants.SCMP_PORT;
-    private ScmpResponseHandler handler;
-
-    private Builder(ScmpResponseHandler handler) {
-      this.handler = handler;
-    }
 
     public Builder setLocalPort(int localPort) {
       this.port = localPort;
@@ -395,11 +324,7 @@ public class ScmpSender implements AutoCloseable {
 
     public ScmpSender build() {
       ScionService service2 = service == null ? ScionService.defaultService() : service;
-      try {
-        return new ScmpSender(service2, port, handler);
-      } catch (IOException e) {
-        throw new ScionRuntimeException(e);
-      }
+      return new ScmpSender(service2, port);
     }
   }
 }

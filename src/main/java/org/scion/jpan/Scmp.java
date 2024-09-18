@@ -481,28 +481,29 @@ public class Scmp {
   }
 
   /**
-   * Create a channel for sending (blocking) SCMP requests.
+   * Create a sender for SCMP requests.
    *
-   * @return New SCMP channel
+   * @return New SCMP sender builder
    */
-  public static ScmpBlockingSender.Builder newBlockingSenderBuilder() {
-    return ScmpBlockingSender.newBuilder();
+  public static ScmpSender.Builder newSenderBuilder() {
+    return ScmpSender.newBuilder();
   }
 
   /**
-   * Create a channel for sending non-blocking SCMP requests.
+   * Create an asynchronous non-blocking sender for SCMP requests.
    *
-   * @return New SCMP channel
+   * @return New SCMP sender builder
    */
-  public static ScmpSender.Builder newSenderBuilder(ScmpSender.ScmpResponseHandler handler) {
-    return ScmpSender.newBuilder(handler);
+  public static ScmpSenderAsync.Builder newSenderAsyncBuilder(
+      ScmpSenderAsync.ScmpResponseHandler handler) {
+    return ScmpSenderAsync.newBuilder(handler);
   }
 
   /**
    * Create a SCMP responder. It will listen on 30041 for SCMP echo requests and send a response
    * back.
    *
-   * @return New SCMP responder
+   * @return New SCMP responder builder
    */
   public static ScmpResponder.Builder newResponderBuilder() {
     return ScmpResponder.newBuilder();

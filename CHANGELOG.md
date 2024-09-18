@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.3.0
+- Breaking change: setScmpErrorListener(ErrorMessage)
 - Make ResponsePath/RequestPath classes private. Make at least create() private... 
 - Demo that connects to Francois' website
 - Fix @Disabled tests
@@ -58,8 +59,7 @@ TODO
   - TODO adapt examples
   - CLean up(primary)handler -> simplify
   - TraceTests in test
-  - Rename to ScmpSender and ScmpSenderAsync
-
+  
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
 - Separate topo file parser [#103](https://github.com/scionproto-contrib/jpan/pull/103)

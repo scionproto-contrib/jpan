@@ -415,6 +415,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return channel.send(buffer, path.getFirstHopAddress());
   }
 
+  /**
+   * The listener will be called for every SCMP error message that is received.
+   *
+   * @param listener A consumer for error messages. Use 'null' to deregister the listener.
+   * @return The previous registered listener, may be 'null'.
+   */
   public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
     synchronized (stateLock) {
       Consumer<Scmp.Message> old = errorListener;

@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -36,7 +37,7 @@ import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
-public class ScmpSenderBlockingTest {
+public class ScmpSenderAsyncTest {
   private static final byte[] PING_ERROR_4_51_HK = {
     0, 0, 0, 1, -54, 35, 0, -80,
     1, 0, 0, 0, 0, 64, 0, 2,
@@ -133,13 +134,14 @@ public class ScmpSenderBlockingTest {
   private void testEcho(Supplier<Path> pathSupplier) throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
-      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
-      Scmp.EchoMessage result = channel.sendEchoRequest(path, ByteBuffer.wrap(data));
-      assertEquals(0, result.getSequenceNumber());
+      int seqId = channel.asyncEcho(path, ByteBuffer.wrap(data));
+      Scmp.EchoMessage result = handler.get();
+      assertEquals(seqId, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
@@ -158,24 +160,27 @@ public class ScmpSenderBlockingTest {
   void echo_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
-      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(100);
       MockNetwork.dropNextPackets(1);
-      Scmp.EchoMessage result1 = channel.sendEchoRequest(path, ByteBuffer.allocate(0));
+      int seqId1 = channel.asyncEcho(path, ByteBuffer.allocate(0));
+      Scmp.EchoMessage result1 = handler.get();
       assertTrue(result1.isTimedOut());
       assertEquals(100 * 1_000_000, result1.getNanoSeconds());
-      assertEquals(0, result1.getSequenceNumber());
+      assertEquals(seqId1, result1.getSequenceNumber());
 
       // try again
+      handler.reset();
       MockNetwork.answerNextScmpEchos(1);
-      Scmp.EchoMessage result2 = channel.sendEchoRequest(path, ByteBuffer.allocate(0));
+      int seqId2 = channel.asyncEcho(path, ByteBuffer.allocate(0));
+      Scmp.EchoMessage result2 = handler.get();
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
       assertTrue(result2.getNanoSeconds() > 0);
       assertTrue(result2.getNanoSeconds() < 10_000_000); // 10 ms
-      assertEquals(1, result2.getSequenceNumber());
+      assertEquals(seqId2, result2.getSequenceNumber());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -185,12 +190,12 @@ public class ScmpSenderBlockingTest {
   void echo_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
-      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
-      // Exception because network is down.
-      assertThrows(IOException.class, () -> channel.sendEchoRequest(path, ByteBuffer.allocate(0)));
+      channel.asyncEcho(path, ByteBuffer.allocate(0));
+      assertThrows(IOException.class, handler::get);
     } finally {
       MockNetwork.stopTiny();
     }
@@ -199,17 +204,14 @@ public class ScmpSenderBlockingTest {
   @Test
   void echo_SCMP_error() throws IOException {
     MockNetwork.startTiny();
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
-      AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
-      channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
-      Throwable t =
-          assertThrows(
-              IOException.class,
-              () -> channel.sendEchoRequest(getPathTo112(), ByteBuffer.allocate(0)));
-      assertTrue(listenerWasTriggered.get());
+      channel.asyncEcho(getPathTo112(), ByteBuffer.allocate(0));
+      Throwable t = assertThrows(IOException.class, handler::get);
+      assertEquals(Scmp.TypeCode.TYPE_1_CODE_0, handler.error.getTypeCode());
       assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
@@ -228,7 +230,7 @@ public class ScmpSenderBlockingTest {
 
   private void testTraceroute(Supplier<Path> path, int nHops) throws IOException {
     MockNetwork.startTiny();
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest(path.get());
@@ -260,7 +262,7 @@ public class ScmpSenderBlockingTest {
   void traceroute_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(1000, channel.getTimeOut());
@@ -291,7 +293,7 @@ public class ScmpSenderBlockingTest {
   void traceroute_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
@@ -306,7 +308,7 @@ public class ScmpSenderBlockingTest {
   void traceroute_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpBlockingSender channel = Scmp.newBlockingSenderBuilder().build()) {
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -365,7 +367,7 @@ public class ScmpSenderBlockingTest {
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     Thread responder = null;
-    try (ScmpBlockingSender sender = Scmp.newBlockingSenderBuilder().build()) {
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
       sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
@@ -392,7 +394,7 @@ public class ScmpSenderBlockingTest {
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     Thread responder = null;
-    try (ScmpBlockingSender sender = Scmp.newBlockingSenderBuilder().build()) {
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
       sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
@@ -443,6 +445,205 @@ public class ScmpSenderBlockingTest {
     } catch (IOException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
+    }
+  }
+
+  private abstract static class ScmpHandler<T> implements ScmpSenderAsync.ScmpResponseHandler {
+    volatile Scmp.ErrorMessage error = null;
+    volatile Throwable exception = null;
+
+    void handleError(Scmp.ErrorMessage msg) {
+      synchronized (this) {
+        error = msg;
+        this.notifyAll();
+      }
+    }
+
+    void handleException(Throwable t) {
+      synchronized (this) {
+        exception = t;
+        this.notifyAll();
+      }
+    }
+
+    protected T waitForResult(Supplier<T> checkResult) throws IOException {
+      while (true) {
+        synchronized (this) {
+          try {
+            if (error != null) {
+              throw new IOException(error.getTypeCode().getText());
+            }
+            if (exception != null) {
+              throw new IOException(exception);
+            }
+            T result = checkResult.get();
+            if (result != null) {
+              return result;
+            }
+            this.wait();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ScionRuntimeException(e);
+          }
+        }
+      }
+    }
+
+    void reset() {
+      error = null;
+      exception = null;
+    }
+
+    @Override
+    public void onError(Scmp.ErrorMessage msg) {
+      handleError(msg);
+    }
+
+    @Override
+    public void onException(Throwable t) {
+      handleException(t);
+    }
+  }
+
+  private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
+    Scmp.EchoMessage response = null;
+
+    void handle(Scmp.EchoMessage msg) {
+      synchronized (this) {
+        response = msg;
+        this.notifyAll();
+      }
+    }
+
+    Scmp.EchoMessage get() throws IOException {
+      return super.waitForResult(() -> response);
+    }
+
+    @Override
+    void reset() {
+      super.reset();
+      response = null;
+    }
+
+    @Override
+    public void onResponse(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+        handle((Scmp.EchoMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onTimeout(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+        handle((Scmp.EchoMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+  }
+
+  private static class TraceHandler extends ScmpHandler<List<Scmp.TracerouteMessage>> {
+    private final ArrayList<Scmp.TracerouteMessage> responses = new ArrayList<>();
+    private final int count;
+
+    TraceHandler(int count) {
+      this.count = count;
+    }
+
+    void handle(Scmp.TracerouteMessage msg) {
+      synchronized (this) {
+        responses.add(msg);
+        if (responses.size() >= count) {
+          this.notifyAll();
+        }
+      }
+    }
+
+    List<Scmp.TracerouteMessage> get() throws IOException {
+      return super.waitForResult(() -> responses.size() >= count ? responses : null);
+    }
+
+    @Override
+    void reset() {
+      super.reset();
+      responses.clear();
+    }
+
+    @Override
+    public void onResponse(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+        handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onTimeout(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+        handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+  }
+
+  private static class ResponseHandler implements ScmpSenderAsync.ScmpResponseHandler {
+    private final EchoHandler echoHandler;
+    private final TraceHandler traceHandler;
+
+    ResponseHandler() {
+      echoHandler = new EchoHandler();
+      traceHandler = null;
+    }
+
+    ResponseHandler(int count) {
+      echoHandler = null;
+      traceHandler = new TraceHandler(count);
+    }
+
+    @Override
+    public void onResponse(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+        echoHandler.handle((Scmp.EchoMessage) msg);
+      } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+        traceHandler.handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onTimeout(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+        echoHandler.handle((Scmp.EchoMessage) msg);
+      } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+        traceHandler.handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onError(Scmp.ErrorMessage msg) {
+      if (echoHandler != null) {
+        echoHandler.handleError(msg);
+      }
+      if (traceHandler != null) {
+        traceHandler.handleError(msg);
+      }
+    }
+
+    @Override
+    public void onException(Throwable t) {
+      if (echoHandler != null) {
+        echoHandler.handleException(t);
+      }
+      if (traceHandler != null) {
+        traceHandler.handleException(t);
+      }
     }
   }
 }
