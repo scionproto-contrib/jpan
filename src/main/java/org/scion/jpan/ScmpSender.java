@@ -59,11 +59,11 @@ public class ScmpSender implements AutoCloseable {
 
           @Override
           public void onError(Scmp.ErrorMessage msg) {
-            echoHandler.handleError(msg);
-            traceHandler.handleError(msg);
             if (errorListener != null) {
               errorListener.accept(msg);
             }
+            echoHandler.handleError(msg);
+            traceHandler.handleError(msg);
           }
 
           @Override
