@@ -351,7 +351,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     try {
       channel.receiveAsync();
     } catch (IOException e) {
-      log.error("While receiving SCMP message: {}", e.getMessage());
+      log.error("While receiving SCMP message: {}", e.getMessage(), e);
     }
   }
 
