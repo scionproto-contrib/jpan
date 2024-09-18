@@ -28,11 +28,8 @@ import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathHeaderParser;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ScmpSenderAsync implements AutoCloseable {
-  private static final Logger log = LoggerFactory.getLogger(ScmpSenderAsync.class);
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
@@ -289,9 +286,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       } catch (ScionException e) {
         // Validation problem -> ignore
         handler.onException(e);
-      } catch (IOException e) {
-        handler.onException(e);
-        throw e;
       } finally {
         readLock().unlock();
       }
@@ -352,7 +346,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       channel.receiveAsync();
     } catch (IOException e) {
       handler.onException(e);
-      log.error("While receiving SCMP message: {}", e.getMessage(), e);
     }
   }
 
