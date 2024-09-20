@@ -28,14 +28,12 @@ import org.slf4j.LoggerFactory;
 public class ScmpSender implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpSender.class);
   private final ScmpSenderAsync sender;
-  private final EchoHandler echoHandler = new EchoHandler();
-  private final TraceHandler traceHandler = new TraceHandler();
+  private final UnifyingResponseHandler responseHandler = new UnifyingResponseHandler();
   private Consumer<Scmp.ErrorMessage> errorListener = null;
 
   private ScmpSender(ScionService service, int port) {
-    ScmpSenderAsync.ResponseHandler handler = new UnifyingResponseHandler();
     this.sender =
-        ScmpSenderAsync.newBuilder(handler).setService(service).setLocalPort(port).build();
+        ScmpSenderAsync.newBuilder(responseHandler).setService(service).setLocalPort(port).build();
   }
 
   public static Builder newBuilder() {
@@ -53,10 +51,10 @@ public class ScmpSender implements AutoCloseable {
    * @throws IOException if an IO error occurs or if an SCMP error is received.
    */
   public Scmp.EchoMessage sendEchoRequest(Path path, ByteBuffer data) throws IOException {
-    echoHandler.init();
+    responseHandler.startEcho();
     sender.sendEcho(path, data);
     try {
-      return echoHandler.get();
+      return responseHandler.getEcho();
     } finally {
       sender.abortAll();
     }
@@ -74,10 +72,10 @@ public class ScmpSender implements AutoCloseable {
    */
   public List<Scmp.TracerouteMessage> sendTracerouteRequest(Path path) throws IOException {
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
-    traceHandler.init(nodes.size());
+    responseHandler.startTrace();
     sender.sendTraceroute(path);
     try {
-      List<Scmp.TracerouteMessage> result = traceHandler.get();
+      List<Scmp.TracerouteMessage> result = responseHandler.getTraceroute(nodes.size());
       result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));
       return result;
     } finally {
@@ -140,7 +138,6 @@ public class ScmpSender implements AutoCloseable {
         if (isActive) {
           throw new IllegalStateException();
         }
-        this.error = null;
         this.isActive = true;
       }
     }
@@ -164,41 +161,30 @@ public class ScmpSender implements AutoCloseable {
     }
 
     protected T waitForResult(Supplier<T> checkResult) throws IOException {
-      while (true) {
-        synchronized (this) {
-          try {
+      try {
+        while (true) {
+          synchronized (this) {
             if (error != null) {
-              String txt = error.getTypeCode().getText();
-              error = null;
-              reset();
-              isActive = false;
-              throw new IOException(txt);
+              throw new IOException(error.getTypeCode().getText());
             }
             if (exception != null) {
-              reset();
-              isActive = false;
               throw new IOException(exception);
             }
             T result = checkResult.get();
             if (result != null) {
-              isActive = false;
               return result;
             }
             this.wait();
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted: {}", Thread.currentThread().getName());
-            throw new ScionRuntimeException(e);
           }
         }
-      }
-    }
-
-    abstract T reset();
-
-    protected void assertActive() {
-      if (!isActive) {
-        throw new IllegalStateException();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.error("Interrupted: {}", Thread.currentThread().getName());
+        throw new ScionRuntimeException(e);
+      } finally {
+        error = null;
+        exception = null;
+        isActive = false;
       }
     }
   }
@@ -206,76 +192,60 @@ public class ScmpSender implements AutoCloseable {
   private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
     Scmp.EchoMessage response = null;
 
-    @Override
-    void init() {
-      synchronized (this) {
-        response = null;
-        super.init();
-      }
-    }
-
     void handle(Scmp.EchoMessage msg) {
       synchronized (this) {
-        assertActive();
         response = msg;
         this.notifyAll();
       }
     }
 
     Scmp.EchoMessage get() throws IOException {
-      return super.waitForResult(() -> response != null ? reset() : null);
-    }
-
-    @Override
-    Scmp.EchoMessage reset() {
-      Scmp.EchoMessage msg = response;
-      response = null;
-      return msg;
+      try {
+        return super.waitForResult(() -> response != null ? response : null);
+      } finally {
+        response = null;
+      }
     }
   }
 
   private static class TraceHandler extends ScmpHandler<List<Scmp.TracerouteMessage>> {
-    ArrayList<Scmp.TracerouteMessage> responses = null;
-    int count;
-
-    void init(int count) {
-      synchronized (this) {
-        responses = new ArrayList<>(count);
-        super.init();
-        this.count = count;
-      }
-    }
+    ArrayList<Scmp.TracerouteMessage> responses = new ArrayList<>();
 
     void handle(Scmp.TracerouteMessage msg) {
       synchronized (this) {
-        assertActive();
         if (responses != null) {
           responses.add(msg);
-          if (responses.size() >= count) {
-            this.notifyAll();
-          }
+          this.notifyAll();
         }
       }
     }
 
-    List<Scmp.TracerouteMessage> get() throws IOException {
-      return super.waitForResult(() -> responses.size() >= count ? reset() : null);
-    }
-
-    @Override
-    List<Scmp.TracerouteMessage> reset() {
-      List<Scmp.TracerouteMessage> result = responses;
-      responses = null;
-      return result;
+    List<Scmp.TracerouteMessage> get(int count) throws IOException {
+      try {
+        return super.waitForResult(() -> responses.size() >= count ? responses : null);
+      } finally {
+        responses = new ArrayList<>();
+      }
     }
   }
 
   private class UnifyingResponseHandler implements ScmpSenderAsync.ResponseHandler {
+    private final EchoHandler echoHandler = new EchoHandler();
+    private final TraceHandler traceHandler = new TraceHandler();
+
+    void startEcho() {
+      echoHandler.init();
+    }
+
+    void startTrace() {
+      traceHandler.init();
+    }
+
     @Override
     public void onResponse(Scmp.TimedMessage msg) {
-      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+      if (msg instanceof Scmp.EchoMessage) {
         echoHandler.handle((Scmp.EchoMessage) msg);
-      } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+      } else if (msg instanceof Scmp.TracerouteMessage) {
         traceHandler.handle((Scmp.TracerouteMessage) msg);
       } else {
         throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
@@ -284,9 +254,9 @@ public class ScmpSender implements AutoCloseable {
 
     @Override
     public void onTimeout(Scmp.TimedMessage msg) {
-      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+      if (msg instanceof Scmp.EchoMessage) {
         echoHandler.handle((Scmp.EchoMessage) msg);
-      } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+      } else if (msg instanceof Scmp.TracerouteMessage) {
         traceHandler.handle((Scmp.TracerouteMessage) msg);
       } else {
         throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
@@ -306,6 +276,14 @@ public class ScmpSender implements AutoCloseable {
     public void onException(Throwable t) {
       echoHandler.handleException(t);
       traceHandler.handleException(t);
+    }
+
+    Scmp.EchoMessage getEcho() throws IOException {
+      return echoHandler.get();
+    }
+
+    List<Scmp.TracerouteMessage> getTraceroute(int count) throws IOException {
+      return traceHandler.get(count);
     }
   }
 
