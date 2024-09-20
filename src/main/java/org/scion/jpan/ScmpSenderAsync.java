@@ -225,7 +225,13 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
+        if (PRINT) {
+          System.err.println("--- sendTracerouteRequest():connecting..."); // TODO
+        }
         super.channel().connect(path.getFirstHopAddress());
+        if (PRINT) {
+          System.err.println("--- sendTracerouteRequest():connected!"); // TODO
+        }
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
         int len = 24;
