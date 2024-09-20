@@ -97,7 +97,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void echo_error_invalidMAC() throws IOException {
+  void parse_error_invalidMAC() throws IOException {
     ScionPacketInspector spi = ScionPacketInspector.readPacket(ByteBuffer.wrap(PING_ERROR_4_51_HK));
     assertEquals(Scmp.TypeCode.TYPE_4_CODE_51, spi.getScmpHeader().getCode());
 
@@ -326,6 +326,112 @@ public class ScmpSenderAsyncTest {
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       List<Integer> ids = channel.sendTraceroute(path);
       Throwable t = assertThrows(IOException.class, () -> handler.get(ids.size()));
+      assertEquals(1, handler.errorCounter.getAndSet(0));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void tracerouteLast() throws IOException {
+    testTracerouteLast(this::getPathTo112, true);
+  }
+
+  @Test
+  void tracerouteLast_localAS_BR() throws IOException {
+    testTracerouteLast(this::getPathToLocalAS_BR, false);
+  }
+
+  private void testTracerouteLast(Supplier<Path> pathSupplier, boolean success) throws IOException {
+    MockNetwork.startTiny();
+    MockNetwork.answerNextScmpEchos(1);
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      Path path = pathSupplier.get();
+      int seqId = channel.sendTracerouteLast(path);
+      if (seqId >= 0) {
+        List<Scmp.TracerouteMessage> results = handler.get(1);
+        assertEquals(1, results.size());
+        Scmp.TracerouteMessage result = results.get(0);
+        assertEquals(seqId, result.getSequenceNumber());
+        assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode());
+        assertTrue(result.getNanoSeconds() > 0);
+        assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
+        assertFalse(result.isTimedOut());
+        Path returnPath = result.getPath();
+        assertEquals(path.getRemoteAddress(), returnPath.getRemoteAddress());
+        assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
+        assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
+        assertTrue(success);
+      } else {
+        assertFalse(success);
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void tracerouteLast_timeout() throws IOException {
+    MockNetwork.startTiny();
+    Path path = getPathTo112();
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      channel.setTimeOut(100);
+      MockNetwork.dropNextPackets(1);
+      int seqId1 = channel.sendTracerouteLast(path);
+      List<Scmp.TracerouteMessage> results1 = handler.get(1);
+      assertEquals(1, results1.size());
+      Scmp.TracerouteMessage result1 = results1.get(0);
+      assertTrue(result1.isTimedOut());
+      assertEquals(100 * 1_000_000, result1.getNanoSeconds());
+      assertEquals(seqId1, result1.getSequenceNumber());
+
+      // try again
+      MockNetwork.answerNextScmpEchos(1);
+      int seqId2 = channel.sendTracerouteLast(path);
+      List<Scmp.TracerouteMessage> results2 = handler.get(1);
+      assertEquals(1, results2.size());
+      Scmp.TracerouteMessage result2 = results2.get(0);
+      assertEquals(Scmp.TypeCode.TYPE_131, result2.getTypeCode());
+      assertFalse(result2.isTimedOut());
+      assertTrue(result2.getNanoSeconds() > 0);
+      assertTrue(result2.getNanoSeconds() < 10_000_000); // 10 ms
+      assertEquals(seqId2, result2.getSequenceNumber());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void tracerouteLast_IOException() throws IOException {
+    MockNetwork.startTiny();
+    Path path = getPathTo112();
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      MockNetwork.stopTiny();
+      channel.sendTracerouteLast(path);
+      assertThrows(IOException.class, () -> handler.get(1));
+      assertEquals(1, handler.exceptionCounter.getAndSet(0));
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void tracerouteLast_SCMP_error() throws IOException {
+    MockNetwork.startTiny();
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      // Router will return SCMP error
+      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
+      channel.sendTracerouteLast(getPathTo112());
+      Throwable t = assertThrows(IOException.class, () -> handler.get(1));
       assertEquals(1, handler.errorCounter.getAndSet(0));
       assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {

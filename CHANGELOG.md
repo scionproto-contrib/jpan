@@ -59,6 +59,7 @@ TODO
   - TODO adapt examples
   - CLean up(primary)handler -> simplify
   - Test asyncTrLast()
+  - Default handler?
   
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
