@@ -199,7 +199,7 @@ public class MockNetwork {
 
   private static void waitForPortToBeFree(int port) {
     while (true) {
-      InetSocketAddress i = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
+      InetSocketAddress i = new InetSocketAddress(BORDER_ROUTER_IPV4, port);
       try (DatagramChannel dc = DatagramChannel.open()) {
         dc.connect(i);
         dc.write(ByteBuffer.allocate(1));

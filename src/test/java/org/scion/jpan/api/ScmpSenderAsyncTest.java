@@ -447,19 +447,19 @@ public class ScmpSenderAsyncTest {
   }
 
   private void waitForPortToBeFree(Path path) {
-    while (true) {
-      try (DatagramChannel dc = DatagramChannel.open()) {
-        dc.connect(path.getFirstHopAddress());
-        dc.write(ByteBuffer.allocate(1));
-        dc.receive(ByteBuffer.allocate(1));
-        Thread.sleep(10);
-      } catch (IOException e) {
-        // Nice!
-        return;
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
+    //    while (true) {
+    //      try (DatagramChannel dc = DatagramChannel.open()) {
+    //        dc.connect(path.getFirstHopAddress());
+    //        dc.write(ByteBuffer.allocate(1));
+    //        dc.receive(ByteBuffer.allocate(1));
+    //        Thread.sleep(10);
+    //      } catch (IOException e) {
+    //        // Nice!
+    //        return;
+    //      } catch (InterruptedException e) {
+    //        throw new RuntimeException(e);
+    //      }
+    //    }
   }
 
   @Test
