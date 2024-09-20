@@ -110,6 +110,17 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
+  void getHandler() throws IOException {
+    MockNetwork.startTiny();
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      assertEquals(handler, channel.getHandler());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
   void echo() throws IOException {
     testEcho(this::getPathTo112);
   }

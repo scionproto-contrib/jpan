@@ -58,7 +58,6 @@ TODO
   - Changed default for sender to 30041!?!?!
   - TODO adapt examples
   - CLean up(primary)handler -> simplify
-  - Test asyncTrLast()
   - Default handler?
   
 ### Changed
