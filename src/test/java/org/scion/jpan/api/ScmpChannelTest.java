@@ -225,7 +225,7 @@ public class ScmpChannelTest {
         assertEquals(n++, result.getSequenceNumber());
         assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode());
         assertTrue(result.getNanoSeconds() > 0);
-        assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+        assertTrue(result.getNanoSeconds() < 10_000_000, "was=" + result.getNanoSeconds()); // 10 ms
         assertFalse(result.isTimedOut());
         if (n == 1) {
           assertEquals(ScionUtil.parseIA("1-ff00:0:112"), result.getIsdAs());
