@@ -33,45 +33,7 @@ public class ScmpSender implements AutoCloseable {
   private Consumer<Scmp.ErrorMessage> errorListener = null;
 
   private ScmpSender(ScionService service, int port) {
-    ScmpSenderAsync.ResponseHandler handler =
-        new ScmpSenderAsync.ResponseHandler() {
-          @Override
-          public void onResponse(Scmp.TimedMessage msg) {
-            if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-              echoHandler.handle((Scmp.EchoMessage) msg);
-            } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-              traceHandler.handle((Scmp.TracerouteMessage) msg);
-            } else {
-              throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-            }
-          }
-
-          @Override
-          public void onTimeout(Scmp.TimedMessage msg) {
-            if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
-              echoHandler.handle((Scmp.EchoMessage) msg);
-            } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
-              traceHandler.handle((Scmp.TracerouteMessage) msg);
-            } else {
-              throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-            }
-          }
-
-          @Override
-          public void onError(Scmp.ErrorMessage msg) {
-            if (errorListener != null) {
-              errorListener.accept(msg);
-            }
-            echoHandler.handleError(msg);
-            traceHandler.handleError(msg);
-          }
-
-          @Override
-          public void onException(Throwable t) {
-            echoHandler.handleException(t);
-            traceHandler.handleException(t);
-          }
-        };
+    ScmpSenderAsync.ResponseHandler handler = new UnifyingResponseHandler();
     this.sender =
         ScmpSenderAsync.newBuilder(handler).setService(service).setLocalPort(port).build();
   }
@@ -305,6 +267,45 @@ public class ScmpSender implements AutoCloseable {
       List<Scmp.TracerouteMessage> result = responses;
       responses = null;
       return result;
+    }
+  }
+
+  private class UnifyingResponseHandler implements ScmpSenderAsync.ResponseHandler {
+    @Override
+    public void onResponse(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+        echoHandler.handle((Scmp.EchoMessage) msg);
+      } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+        traceHandler.handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onTimeout(Scmp.TimedMessage msg) {
+      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
+        echoHandler.handle((Scmp.EchoMessage) msg);
+      } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
+        traceHandler.handle((Scmp.TracerouteMessage) msg);
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public void onError(Scmp.ErrorMessage msg) {
+      if (errorListener != null) {
+        errorListener.accept(msg);
+      }
+      echoHandler.handleError(msg);
+      traceHandler.handleError(msg);
+    }
+
+    @Override
+    public void onException(Throwable t) {
+      echoHandler.handleException(t);
+      traceHandler.handleException(t);
     }
   }
 

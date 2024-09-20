@@ -51,19 +51,19 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void echo() throws IOException {
+  void sendEcho() throws IOException {
     testEcho(this::getPathTo112);
   }
 
   @Test
-  void echo_localAS_BR() throws IOException {
+  void sendEcho_localAS_BR() throws IOException {
     testEcho(this::getPathToLocalAS_BR);
     assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   @Test
-  void echo_localAS_BR_30041() throws IOException {
+  void sendEcho_localAS_BR_30041() throws IOException {
     testEcho(this::getPathToLocalAS_BR_30041);
     assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
@@ -94,7 +94,7 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void echo_timeout() throws IOException {
+  void sendEcho_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
@@ -121,7 +121,7 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void echo_IOException() throws IOException {
+  void sendEcho_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
@@ -136,7 +136,7 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void echo_SCMP_error() throws IOException {
+  void sendEcho_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
@@ -156,12 +156,12 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void traceroute() throws IOException {
+  void sendTraceroute() throws IOException {
     testTraceroute(this::getPathTo112, 2);
   }
 
   @Test
-  void traceroute_localAS_BR() throws IOException {
+  void sendTraceroute_localAS_BR() throws IOException {
     testTraceroute(this::getPathToLocalAS_BR, 0);
   }
 
@@ -196,7 +196,7 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void traceroute_timeout() throws IOException {
+  void sendTraceroute_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
@@ -227,7 +227,7 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void traceroute_IOException() throws IOException {
+  void sendTraceroute_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
@@ -242,7 +242,7 @@ public class ScmpSenderTest {
   }
 
   @Test
-  void traceroute_SCMP_error() throws IOException {
+  void sendTraceroute_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     try (ScmpSender channel = Scmp.newSenderBuilder().build()) {

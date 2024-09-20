@@ -121,19 +121,19 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void echo() throws IOException {
+  void sendEcho() throws IOException {
     testEcho(this::getPathTo112);
   }
 
   @Test
-  void echo_localAS_BR() throws IOException {
+  void sendEcho_localAS_BR() throws IOException {
     testEcho(this::getPathToLocalAS_BR);
     assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   @Test
-  void echo_localAS_BR_30041() throws IOException {
+  void sendEcho_localAS_BR_30041() throws IOException {
     testEcho(this::getPathToLocalAS_BR_30041);
     assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
@@ -165,7 +165,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void echo_timeout() throws IOException {
+  void sendEcho_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     EchoHandler handler = new EchoHandler();
@@ -194,7 +194,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void echo_IOException() throws IOException {
+  void sendEcho_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     EchoHandler handler = new EchoHandler();
@@ -210,7 +210,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void echo_SCMP_error() throws IOException {
+  void sendEcho_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
@@ -227,12 +227,12 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void traceroute() throws IOException {
+  void sendTraceroute() throws IOException {
     testTraceroute(this::getPathTo112, 2);
   }
 
   @Test
-  void traceroute_localAS_BR() throws IOException {
+  void sendTraceroute_localAS_BR() throws IOException {
     testTraceroute(this::getPathToLocalAS_BR, 0);
   }
 
@@ -267,7 +267,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void traceroute_timeout() throws IOException {
+  void sendTraceroute_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
@@ -300,7 +300,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void traceroute_IOException() throws IOException {
+  void sendTraceroute_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
@@ -327,7 +327,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void traceroute_SCMP_error() throws IOException {
+  void sendTraceroute_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
@@ -345,12 +345,12 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void tracerouteLast() throws IOException {
+  void sendTracerouteLast() throws IOException {
     testTracerouteLast(this::getPathTo112, true);
   }
 
   @Test
-  void tracerouteLast_localAS_BR() throws IOException {
+  void sendTracerouteLast_localAS_BR() throws IOException {
     testTracerouteLast(this::getPathToLocalAS_BR, false);
   }
 
@@ -385,7 +385,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void tracerouteLast_timeout() throws IOException {
+  void sendTracerouteLast_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
@@ -418,7 +418,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void tracerouteLast_IOException() throws IOException {
+  void sendTracerouteLast_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
@@ -434,7 +434,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void tracerouteLast_SCMP_error() throws IOException {
+  void sendTracerouteLast_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
