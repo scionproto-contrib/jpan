@@ -200,7 +200,13 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
+        if (PRINT > 0) {
+          System.err.println(PRINT + "--- sendEchoRequest():connecting..."); // TODO
+        }
         super.channel().connect(path.getFirstHopAddress());
+        if (PRINT > 0) {
+          System.err.println(PRINT + "--- sendEchoRequest():connected!"); // TODO
+        }
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
@@ -361,7 +367,13 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   private void handleReceive() {
     try {
+      if (PRINT > 0) {
+        System.err.println(PRINT + "--- handleReceive() - start"); // TODO remove
+      }
       channel.receiveAsync();
+      if (PRINT > 0) {
+        System.err.println(PRINT + "--- handleReceive() - end"); // TODO remove
+      }
     } catch (IOException e) {
       if (PRINT > 0) {
         System.err.println(PRINT + "--- handleReceive() - " + e); // TODO remove
