@@ -129,7 +129,11 @@ public class ScmpSenderTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       // Exception because network is down.
-      assertThrows(IOException.class, () -> channel.sendEchoRequest(path, ByteBuffer.allocate(0)));
+      Throwable t =
+          assertThrows(
+              IOException.class, () -> channel.sendEchoRequest(path, ByteBuffer.allocate(0)));
+      System.err.println("SYNC EC:  " + t.getMessage()); // TODO
+      t.printStackTrace(); // TODO
     } finally {
       MockNetwork.stopTiny();
     }
@@ -235,7 +239,9 @@ public class ScmpSenderTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       // IOException because network is down
-      assertThrows(IOException.class, () -> channel.sendTracerouteRequest(path));
+      Throwable t = assertThrows(IOException.class, () -> channel.sendTracerouteRequest(path));
+      System.err.println("SYNC TR:  " + t.getMessage()); // TODO
+      t.printStackTrace(); // TODO
     } finally {
       MockNetwork.stopTiny();
     }
