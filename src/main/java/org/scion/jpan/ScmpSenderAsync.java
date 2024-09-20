@@ -38,6 +38,8 @@ public class ScmpSenderAsync implements AutoCloseable {
   private Thread receiver;
   private final ResponseHandler handler;
 
+  public static boolean PRINT = false;
+
   public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
   }
@@ -292,6 +294,9 @@ public class ScmpSenderAsync implements AutoCloseable {
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
+        if (PRINT) {
+          System.err.println("--- readIncomingScmp() - " + e); // TODO remove
+        }
         handler.onException(e);
       } finally {
         readLock().unlock();
@@ -352,6 +357,9 @@ public class ScmpSenderAsync implements AutoCloseable {
     try {
       channel.receiveAsync();
     } catch (IOException e) {
+      if (PRINT) {
+        System.err.println("--- handleReceive() - " + e); // TODO remove
+      }
       handler.onException(e);
     }
   }
