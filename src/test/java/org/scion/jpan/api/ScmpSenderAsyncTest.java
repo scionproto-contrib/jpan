@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.ScionHeaderParser;
+import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
@@ -199,9 +200,10 @@ public class ScmpSenderAsyncTest {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     EchoHandler handler = new EchoHandler();
-    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+    try (ScmpSenderAsync channel = errorChannel(handler)) {
+      //    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.stopTiny();
+      //    MockNetwork.stopTiny();
       //      Thread.sleep(100); // TODO
       waitForPortToBeFree(path); // TODO
       channel.sendEcho(path, ByteBuffer.allocate(0));
@@ -310,9 +312,10 @@ public class ScmpSenderAsyncTest {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
-    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+    try (ScmpSenderAsync channel = errorChannel(handler)) {
+      //      try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.stopTiny();
+      //    MockNetwork.stopTiny();
       // IOException because network is down
       // We use a separate method and disable ths exceptionCounter because this test is a bit
       // unstable, it sometimes
@@ -433,9 +436,13 @@ public class ScmpSenderAsyncTest {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
-    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+    //    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    //    errorChannel.setSendCallback((byteBuffer,socketAddress) -> { return 0;});
+    //    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    try (ScmpSenderAsync channel = errorChannel(handler)) {
+      // Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).setSelector(selector).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.stopTiny();
+      //     MockNetwork.stopTiny();
       //      Thread.sleep(100); // TODO
       waitForPortToBeFree(path); // TODO
       channel.sendTracerouteLast(path);
@@ -444,6 +451,19 @@ public class ScmpSenderAsyncTest {
     } finally {
       MockNetwork.stopTiny();
     }
+  }
+
+  private ScmpSenderAsync errorChannel(ScmpHandler<?> handler) throws IOException {
+    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    errorChannel.setSendCallback(
+        (byteBuffer, socketAddress) -> {
+          return 0;
+        });
+    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    return Scmp.newSenderAsyncBuilder(handler)
+        .setDatagramChannel(errorChannel)
+        .setSelector(selector)
+        .build();
   }
 
   private void waitForPortToBeFree(Path path) {

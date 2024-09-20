@@ -54,9 +54,14 @@ public class ScmpSenderAsync implements AutoCloseable {
     default void onException(Throwable t) {}
   }
 
-  private ScmpSenderAsync(ScionService service, int port, ResponseHandler handler)
+  private ScmpSenderAsync(
+      ScionService service,
+      int port,
+      ResponseHandler handler,
+      java.nio.channels.DatagramChannel channel,
+      Selector selector)
       throws IOException {
-    this.channel = new InternalChannel(service, port);
+    this.channel = new InternalChannel(service, port, channel, selector);
     this.handler = handler;
     startReceiver();
   }
@@ -184,11 +189,16 @@ public class ScmpSenderAsync implements AutoCloseable {
   private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
     private final Selector selector;
 
-    protected InternalChannel(ScionService service, int port) throws IOException {
-      super(service);
+    protected InternalChannel(
+        ScionService service,
+        int port,
+        java.nio.channels.DatagramChannel channel,
+        Selector selector)
+        throws IOException {
+      super(service, channel);
 
       // selector
-      this.selector = Selector.open();
+      this.selector = selector;
       super.channel().configureBlocking(false);
       super.channel().register(selector, SelectionKey.OP_READ);
 
@@ -405,6 +415,8 @@ public class ScmpSenderAsync implements AutoCloseable {
     private ScionService service;
     private int port = 53135; // TODO Constants.SCMP_PORT;
     private final ResponseHandler handler;
+    private java.nio.channels.DatagramChannel channel = null;
+    private Selector selector = null;
 
     private Builder(ResponseHandler handler) {
       this.handler = handler;
@@ -420,10 +432,22 @@ public class ScmpSenderAsync implements AutoCloseable {
       return this;
     }
 
+    public Builder setDatagramChannel(java.nio.channels.DatagramChannel channel) {
+      this.channel = channel;
+      return this;
+    }
+
+    public Builder setSelector(Selector selector) {
+      this.selector = selector;
+      return this;
+    }
+
     public ScmpSenderAsync build() {
-      ScionService service2 = service == null ? ScionService.defaultService() : service;
+      service = service == null ? ScionService.defaultService() : service;
       try {
-        return new ScmpSenderAsync(service2, port, handler);
+        channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
+        selector = selector == null ? Selector.open() : selector;
+        return new ScmpSenderAsync(service, port, handler, channel, selector);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }

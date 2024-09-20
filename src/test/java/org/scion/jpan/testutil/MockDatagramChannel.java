@@ -17,8 +17,17 @@ package org.scion.jpan.testutil;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.MembershipKey;
+import java.nio.channels.Pipe;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.channels.spi.AbstractSelectableChannel;
+import java.nio.channels.spi.AbstractSelector;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.BiFunction;
@@ -226,5 +235,92 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
           byteBuffer.put(packets.pop());
           return addresses.pop();
         });
+  }
+
+  public static class MockSelector extends AbstractSelector {
+
+    public static MockSelector open() {
+      return new MockSelector(new MockSelectorProvider());
+    }
+
+    /**
+     * Initializes a new instance of this class.
+     *
+     * @param provider The provider that created this selector
+     */
+    protected MockSelector(SelectorProvider provider) {
+      super(provider);
+    }
+
+    @Override
+    protected void implCloseSelector() throws IOException {}
+
+    @Override
+    protected SelectionKey register(AbstractSelectableChannel ch, int ops, Object att) {
+      return null;
+    }
+
+    @Override
+    public Set<SelectionKey> keys() {
+      return new HashSet<>();
+    }
+
+    @Override
+    public Set<SelectionKey> selectedKeys() {
+      return new HashSet<>();
+    }
+
+    @Override
+    public int selectNow() throws IOException {
+      return 0;
+    }
+
+    @Override
+    public int select(long timeout) throws IOException {
+      return 0;
+    }
+
+    @Override
+    public int select() throws IOException {
+      throw new IOException();
+    }
+
+    @Override
+    public Selector wakeup() {
+      return null;
+    }
+  }
+
+  public static class MockSelectorProvider extends SelectorProvider {
+
+    @Override
+    public DatagramChannel openDatagramChannel() throws IOException {
+      return null;
+    }
+
+    @Override
+    public DatagramChannel openDatagramChannel(ProtocolFamily family) throws IOException {
+      return null;
+    }
+
+    @Override
+    public Pipe openPipe() throws IOException {
+      return null;
+    }
+
+    @Override
+    public AbstractSelector openSelector() throws IOException {
+      return null;
+    }
+
+    @Override
+    public ServerSocketChannel openServerSocketChannel() throws IOException {
+      return null;
+    }
+
+    @Override
+    public SocketChannel openSocketChannel() throws IOException {
+      return null;
+    }
   }
 }
