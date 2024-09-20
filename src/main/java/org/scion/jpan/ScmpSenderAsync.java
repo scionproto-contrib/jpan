@@ -38,7 +38,7 @@ public class ScmpSenderAsync implements AutoCloseable {
   private Thread receiver;
   private final ResponseHandler handler;
 
-  public static boolean PRINT = false;
+  public static int PRINT = 0;
 
   public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
@@ -225,12 +225,12 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        if (PRINT) {
-          System.err.println("--- sendTracerouteRequest():connecting..."); // TODO
+        if (PRINT > 0) {
+          System.err.println(PRINT + "--- sendTracerouteRequest():connecting..."); // TODO
         }
         super.channel().connect(path.getFirstHopAddress());
-        if (PRINT) {
-          System.err.println("--- sendTracerouteRequest():connected!"); // TODO
+        if (PRINT > 0) {
+          System.err.println(PRINT + "--- sendTracerouteRequest():connected!"); // TODO
         }
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
@@ -300,8 +300,8 @@ public class ScmpSenderAsync implements AutoCloseable {
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
-        if (PRINT) {
-          System.err.println("--- readIncomingScmp() - " + e); // TODO remove
+        if (PRINT > 0) {
+          System.err.println(PRINT + "--- readIncomingScmp() - " + e); // TODO remove
         }
         handler.onException(e);
       } finally {
@@ -363,8 +363,8 @@ public class ScmpSenderAsync implements AutoCloseable {
     try {
       channel.receiveAsync();
     } catch (IOException e) {
-      if (PRINT) {
-        System.err.println("--- handleReceive() - " + e); // TODO remove
+      if (PRINT > 0) {
+        System.err.println(PRINT + "--- handleReceive() - " + e); // TODO remove
       }
       handler.onException(e);
     }

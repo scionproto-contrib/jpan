@@ -203,11 +203,11 @@ public class ScmpSenderAsyncTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       channel.sendEcho(path, ByteBuffer.allocate(0));
-      ScmpSenderAsync.PRINT = true; // TODO
+      ScmpSenderAsync.PRINT = 11; // TODO
       assertThrows(IOException.class, handler::get);
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
     } finally {
-      ScmpSenderAsync.PRINT = false; // TODO
+      ScmpSenderAsync.PRINT = 0; // TODO
       MockNetwork.stopTiny();
     }
   }
@@ -317,11 +317,11 @@ public class ScmpSenderAsyncTest {
       // fails during asyncTraceroute() and sometimes during get(). THis appears to be unrelated to
       // timing, I suspect
       // a Windows issue.
-      ScmpSenderAsync.PRINT = true; // TODO
+      ScmpSenderAsync.PRINT = 12; // TODO
       assertThrows(IOException.class, () -> sendAndGet(channel, handler, path));
       // assertEquals(1, handler.exceptionCounter.getAndSet(0));
     } finally {
-      ScmpSenderAsync.PRINT = false; // TODO
+      ScmpSenderAsync.PRINT = 0; // TODO
       MockNetwork.stopTiny();
     }
   }
@@ -508,8 +508,9 @@ public class ScmpSenderAsyncTest {
     }
 
     synchronized void handleException(Throwable t) {
-      if (ScmpSenderAsync.PRINT) {
-        System.err.println("--- test.handleException() - " + t); // TODO remove
+      if (ScmpSenderAsync.PRINT > 0) {
+        System.err.println(
+            ScmpSenderAsync.PRINT + "--- test.handleException() - " + t); // TODO remove
       }
       exception = t;
       exceptionCounter.incrementAndGet();
@@ -520,15 +521,19 @@ public class ScmpSenderAsyncTest {
       try {
         while (true) {
           synchronized (this) {
-            if (ScmpSenderAsync.PRINT) {
-              System.err.println("--- test.waitForResult() - ... "); // TODO remove
+            if (ScmpSenderAsync.PRINT > 0) {
+              System.err.println(
+                  ScmpSenderAsync.PRINT + "--- test.waitForResult() - ... "); // TODO remove
             }
             if (error != null) {
               throw new IOException(error.getTypeCode().getText());
             }
             if (exception != null) {
-              if (ScmpSenderAsync.PRINT) {
-                System.err.println("--- test.waitForResult() - " + exception); // TODO remove
+              if (ScmpSenderAsync.PRINT > 0) {
+                System.err.println(
+                    ScmpSenderAsync.PRINT
+                        + "--- test.waitForResult() - "
+                        + exception); // TODO remove
               }
               throw new IOException(exception);
             }
