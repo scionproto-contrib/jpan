@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -202,8 +203,9 @@ public class ScmpSenderAsyncTest {
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
+      //      Thread.sleep(100); // TODO
+      waitForPortToBeFree(path); // TODO
       channel.sendEcho(path, ByteBuffer.allocate(0));
-      Thread.sleep(100);
       ScmpSenderAsync.PRINT = 11; // TODO
       assertThrows(IOException.class, handler::get);
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
@@ -318,7 +320,8 @@ public class ScmpSenderAsyncTest {
       // fails during asyncTraceroute() and sometimes during get(). THis appears to be unrelated to
       // timing, I suspect
       // a Windows issue.
-      Thread.sleep(100);
+      //      Thread.sleep(100); // TODO
+      waitForPortToBeFree(path); // TODO
       ScmpSenderAsync.PRINT = 12; // TODO
       assertThrows(IOException.class, () -> sendAndGet(channel, handler, path));
       // assertEquals(1, handler.exceptionCounter.getAndSet(0));
@@ -434,12 +437,29 @@ public class ScmpSenderAsyncTest {
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
-      Thread.sleep(100);
+      //      Thread.sleep(100); // TODO
+      waitForPortToBeFree(path); // TODO
       channel.sendTracerouteLast(path);
       assertThrows(IOException.class, () -> handler.get(1));
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
     } finally {
       MockNetwork.stopTiny();
+    }
+  }
+
+  private void waitForPortToBeFree(Path path) {
+    while (true) {
+      try (DatagramChannel dc = DatagramChannel.open()) {
+        dc.connect(path.getFirstHopAddress());
+        dc.write(ByteBuffer.allocate(1));
+        dc.receive(ByteBuffer.allocate(1));
+        Thread.sleep(10);
+      } catch (IOException e) {
+        // Nice!
+        return;
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
