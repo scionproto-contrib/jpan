@@ -195,7 +195,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendEcho_IOException() throws IOException {
+  void sendEcho_IOException() throws IOException, InterruptedException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     EchoHandler handler = new EchoHandler();
@@ -203,6 +203,7 @@ public class ScmpSenderAsyncTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
       channel.sendEcho(path, ByteBuffer.allocate(0));
+      Thread.sleep(100);
       ScmpSenderAsync.PRINT = 11; // TODO
       assertThrows(IOException.class, handler::get);
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
@@ -304,7 +305,7 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendTraceroute_IOException() throws IOException {
+  void sendTraceroute_IOException() throws IOException, InterruptedException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
@@ -317,6 +318,7 @@ public class ScmpSenderAsyncTest {
       // fails during asyncTraceroute() and sometimes during get(). THis appears to be unrelated to
       // timing, I suspect
       // a Windows issue.
+      Thread.sleep(100);
       ScmpSenderAsync.PRINT = 12; // TODO
       assertThrows(IOException.class, () -> sendAndGet(channel, handler, path));
       // assertEquals(1, handler.exceptionCounter.getAndSet(0));
@@ -425,13 +427,14 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendTracerouteLast_IOException() throws IOException {
+  void sendTracerouteLast_IOException() throws IOException, InterruptedException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       MockNetwork.stopTiny();
+      Thread.sleep(100);
       channel.sendTracerouteLast(path);
       assertThrows(IOException.class, () -> handler.get(1));
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
