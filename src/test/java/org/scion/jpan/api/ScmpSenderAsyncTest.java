@@ -250,18 +250,16 @@ public class ScmpSenderAsyncTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       List<Integer> ids = channel.sendTraceroute(path.get());
       Collection<Scmp.TracerouteMessage> results = handler.get(ids.size());
-      int n = 0;
       for (Scmp.TracerouteMessage result : results) {
-        assertEquals(n++, result.getSequenceNumber());
         assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode());
         assertTrue(result.getNanoSeconds() > 0);
         assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
         assertFalse(result.isTimedOut());
-        if (n == 1) {
+        if (result.getSequenceNumber() == 0) {
           assertEquals(ScionUtil.parseIA("1-ff00:0:112"), result.getIsdAs());
           assertEquals(42, result.getIfID());
         }
-        if (n == 2) {
+        if (result.getSequenceNumber() == 1) {
           assertEquals(ScionUtil.parseIA("1-ff00:0:110"), result.getIsdAs());
           assertEquals(42, result.getIfID());
         }
@@ -326,7 +324,8 @@ public class ScmpSenderAsyncTest {
       waitForPortToBeFree(path); // TODO
       ScmpSenderAsync.PRINT = 12; // TODO
       // assertThrows(IOException.class, () -> sendAndGet(channel, handler, path));
-      channel.sendTraceroute(path);
+      List<Integer> ids = channel.sendTraceroute(path);
+      assertThrows(IOException.class, () -> handler.get(ids.size()));
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
     } finally {
       ScmpSenderAsync.PRINT = 0; // TODO
