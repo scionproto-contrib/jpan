@@ -215,19 +215,11 @@ public class ScmpSender implements AutoCloseable {
     }
 
     Scmp.EchoMessage getEcho() throws IOException {
-      try {
-        return waitForResult(() -> response);
-      } finally {
-        response = null;
-      }
+      return waitForResult(() -> response);
     }
 
     List<Scmp.TracerouteMessage> getTraceroute(int count) throws IOException {
-      try {
-        return waitForResult(() -> responses.size() >= count ? responses : null);
-      } finally {
-        responses = new ArrayList<>();
-      }
+      return waitForResult(() -> responses.size() >= count ? responses : null);
     }
   }
 
