@@ -188,9 +188,30 @@ public class MockNetwork {
 
     MockScmpHandler.stop();
 
+    waitForPortToBeFree(BORDER_ROUTER_PORT1);
+    waitForPortToBeFree(BORDER_ROUTER_PORT2);
+    waitForPortToBeFree(Constants.SCMP_PORT);
+
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
+  }
+
+  private static void waitForPortToBeFree(int port) {
+    while (true) {
+      InetSocketAddress i = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
+      try (DatagramChannel dc = DatagramChannel.open()) {
+        dc.connect(i);
+        dc.write(ByteBuffer.allocate(1));
+        dc.receive(ByteBuffer.allocate(1));
+        Thread.sleep(10);
+      } catch (IOException e) {
+        // Nice!
+        return;
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {
