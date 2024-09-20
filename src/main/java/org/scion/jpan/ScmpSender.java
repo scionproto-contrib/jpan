@@ -128,39 +128,18 @@ public class ScmpSender implements AutoCloseable {
     sender.setOverrideSourceAddress(overrideSourceAddress);
   }
 
-  private abstract static class ScmpHandler<T> {
+  private class UnifyingResponseHandler implements ScmpSenderAsync.ResponseHandler {
     private Scmp.ErrorMessage error = null;
     private Throwable exception = null;
-    private boolean isActive = false;
+    private Scmp.EchoMessage response = null;
+    private ArrayList<Scmp.TracerouteMessage> responses = null;
 
-    void init() {
-      synchronized (this) {
-        if (isActive) {
-          throw new IllegalStateException();
-        }
-        this.isActive = true;
-      }
+    private void start() {
+      error = null;
+      exception = null;
     }
 
-    void handleError(Scmp.ErrorMessage msg) {
-      synchronized (this) {
-        if (isActive) {
-          error = msg;
-          this.notifyAll();
-        }
-      }
-    }
-
-    void handleException(Throwable t) {
-      synchronized (this) {
-        if (isActive) {
-          exception = t;
-          this.notifyAll();
-        }
-      }
-    }
-
-    protected T waitForResult(Supplier<T> checkResult) throws IOException {
+    private <T> T waitForResult(Supplier<T> checkResult) throws IOException {
       try {
         while (true) {
           synchronized (this) {
@@ -181,109 +160,74 @@ public class ScmpSender implements AutoCloseable {
         Thread.currentThread().interrupt();
         log.error("Interrupted: {}", Thread.currentThread().getName());
         throw new ScionRuntimeException(e);
-      } finally {
-        error = null;
-        exception = null;
-        isActive = false;
       }
     }
-  }
 
-  private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
-    Scmp.EchoMessage response = null;
+    synchronized void startEcho() {
+      start();
+      response = null;
+    }
 
-    void handle(Scmp.EchoMessage msg) {
-      synchronized (this) {
-        response = msg;
+    synchronized void startTrace() {
+      start();
+      responses = new ArrayList<>();
+    }
+
+    @Override
+    public synchronized void onResponse(Scmp.TimedMessage msg) {
+      if (msg instanceof Scmp.EchoMessage) {
+        response = (Scmp.EchoMessage) msg;
         this.notifyAll();
+      } else if (msg instanceof Scmp.TracerouteMessage) {
+        responses.add((Scmp.TracerouteMessage) msg);
+        this.notifyAll();
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
       }
     }
 
-    Scmp.EchoMessage get() throws IOException {
+    @Override
+    public synchronized void onTimeout(Scmp.TimedMessage msg) {
+      if (msg instanceof Scmp.EchoMessage) {
+        response = (Scmp.EchoMessage) msg;
+        this.notifyAll();
+      } else if (msg instanceof Scmp.TracerouteMessage) {
+        responses.add((Scmp.TracerouteMessage) msg);
+        this.notifyAll();
+      } else {
+        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
+      }
+    }
+
+    @Override
+    public synchronized void onError(Scmp.ErrorMessage msg) {
+      if (errorListener != null) {
+        errorListener.accept(msg);
+      }
+      error = msg;
+      this.notifyAll();
+    }
+
+    @Override
+    public synchronized void onException(Throwable t) {
+      exception = t;
+      this.notifyAll();
+    }
+
+    Scmp.EchoMessage getEcho() throws IOException {
       try {
-        return super.waitForResult(() -> response != null ? response : null);
+        return waitForResult(() -> response);
       } finally {
         response = null;
       }
     }
-  }
 
-  private static class TraceHandler extends ScmpHandler<List<Scmp.TracerouteMessage>> {
-    ArrayList<Scmp.TracerouteMessage> responses = new ArrayList<>();
-
-    void handle(Scmp.TracerouteMessage msg) {
-      synchronized (this) {
-        if (responses != null) {
-          responses.add(msg);
-          this.notifyAll();
-        }
-      }
-    }
-
-    List<Scmp.TracerouteMessage> get(int count) throws IOException {
+    List<Scmp.TracerouteMessage> getTraceroute(int count) throws IOException {
       try {
-        return super.waitForResult(() -> responses.size() >= count ? responses : null);
+        return waitForResult(() -> responses.size() >= count ? responses : null);
       } finally {
         responses = new ArrayList<>();
       }
-    }
-  }
-
-  private class UnifyingResponseHandler implements ScmpSenderAsync.ResponseHandler {
-    private final EchoHandler echoHandler = new EchoHandler();
-    private final TraceHandler traceHandler = new TraceHandler();
-
-    void startEcho() {
-      echoHandler.init();
-    }
-
-    void startTrace() {
-      traceHandler.init();
-    }
-
-    @Override
-    public void onResponse(Scmp.TimedMessage msg) {
-      if (msg instanceof Scmp.EchoMessage) {
-        echoHandler.handle((Scmp.EchoMessage) msg);
-      } else if (msg instanceof Scmp.TracerouteMessage) {
-        traceHandler.handle((Scmp.TracerouteMessage) msg);
-      } else {
-        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-      }
-    }
-
-    @Override
-    public void onTimeout(Scmp.TimedMessage msg) {
-      if (msg instanceof Scmp.EchoMessage) {
-        echoHandler.handle((Scmp.EchoMessage) msg);
-      } else if (msg instanceof Scmp.TracerouteMessage) {
-        traceHandler.handle((Scmp.TracerouteMessage) msg);
-      } else {
-        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-      }
-    }
-
-    @Override
-    public void onError(Scmp.ErrorMessage msg) {
-      if (errorListener != null) {
-        errorListener.accept(msg);
-      }
-      echoHandler.handleError(msg);
-      traceHandler.handleError(msg);
-    }
-
-    @Override
-    public void onException(Throwable t) {
-      echoHandler.handleException(t);
-      traceHandler.handleException(t);
-    }
-
-    Scmp.EchoMessage getEcho() throws IOException {
-      return echoHandler.get();
-    }
-
-    List<Scmp.TracerouteMessage> getTraceroute(int count) throws IOException {
-      return traceHandler.get(count);
     }
   }
 
