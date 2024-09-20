@@ -28,6 +28,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
@@ -124,10 +125,10 @@ public class ScmpSenderTest {
   void sendEcho_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+    try (ScmpSender channel = exceptionSender()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.stopTiny();
+      // TODO MockNetwork.stopTiny();
       // Exception because network is down.
       ScmpSenderAsync.PRINT = 21;
       Throwable t =
@@ -236,10 +237,10 @@ public class ScmpSenderTest {
   void sendTraceroute_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+    try (ScmpSender channel = exceptionSender()) {
       channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.stopTiny();
+      // TODO  MockNetwork.stopTiny();
       // IOException because network is down
       Throwable t = assertThrows(IOException.class, () -> channel.sendTracerouteRequest(path));
       System.err.println("SYNC TR:  " + t.getMessage()); // TODO
@@ -303,5 +304,17 @@ public class ScmpSenderTest {
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private ScmpSender exceptionSender() throws IOException {
+    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    errorChannel.setSendCallback(
+        (byteBuffer, socketAddress) -> {
+          return 0;
+        });
+    errorChannel.setThrowOnConnect(true);
+    // This selector throws an Exception when activated.
+    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();
   }
 }
