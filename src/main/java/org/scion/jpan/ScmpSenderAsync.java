@@ -36,13 +36,13 @@ public class ScmpSenderAsync implements AutoCloseable {
   private final ConcurrentHashMap<Integer, TimeOutTask> timers = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
   private Thread receiver;
-  private final ScmpResponseHandler handler;
+  private final ResponseHandler handler;
 
-  public static Builder newBuilder(ScmpResponseHandler handler) {
+  public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
   }
 
-  public interface ScmpResponseHandler {
+  public interface ResponseHandler {
     void onResponse(Scmp.TimedMessage msg);
 
     void onTimeout(Scmp.TimedMessage msg);
@@ -52,7 +52,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     default void onException(Throwable t) {}
   }
 
-  private ScmpSenderAsync(ScionService service, int port, ScmpResponseHandler handler)
+  private ScmpSenderAsync(ScionService service, int port, ResponseHandler handler)
       throws IOException {
     this.channel = new InternalChannel(service, port);
     this.handler = handler;
@@ -84,17 +84,24 @@ public class ScmpSenderAsync implements AutoCloseable {
   }
 
   /**
+   * @return The assigned response handler.
+   */
+  public ResponseHandler getHandler() {
+    return handler;
+  }
+
+  /**
    * Sends a SCMP echo request along the specified path.
    *
-   * <p>After {@link #asyncEcho(Path, ByteBuffer)} you may eventually want to call {@link
-   * #abortAll()} to abort potentially remaining timeout timers from outstanding responses.
+   * <p>After calling this method you may want to call {@link #abortAll()} to abort potentially
+   * remaining timeout timers from outstanding responses.
    *
    * @param path The path to use.
    * @param payload user data that is sent with the request
    * @return The sequence ID.
    * @throws IOException if an IO error occurs.
    */
-  public int asyncEcho(Path path, ByteBuffer payload) throws IOException {
+  public int sendEcho(Path path, ByteBuffer payload) throws IOException {
     int sequenceId = sequenceIDs.getAndIncrement();
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceId, path, payload);
     channel.sendEchoRequest(request);
@@ -104,21 +111,21 @@ public class ScmpSenderAsync implements AutoCloseable {
   /**
    * Sends a SCMP traceroute request along the specified path.
    *
-   * <p>After {@link #asyncTraceroute(Path)} you may eventually want to call {@link #abortAll()} to
-   * abort potentially remaining timeout timers from outstanding responses.
+   * <p>After calling this method you may want to call {@link #abortAll()} to abort potentially
+   * remaining timeout timers from outstanding responses.
    *
    * @param path The path to use.
    * @return A list of sequence IDs.
    * @throws IOException if an IO error occurs.
    */
-  public List<Integer> asyncTraceroute(Path path) throws IOException {
+  public List<Integer> sendTraceroute(Path path) throws IOException {
     List<Integer> requestIDs = new ArrayList<>();
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
-    for (int i = 0; i < nodes.size(); i++) {
+    for (PathHeaderParser.Node node : nodes) {
       int sequenceId = sequenceIDs.getAndIncrement();
       Scmp.TracerouteMessage request = Scmp.TracerouteMessage.createRequest(sequenceId, path);
       requestIDs.add(sequenceId);
-      channel.sendTracerouteRequest(request, nodes.get(i));
+      channel.sendTracerouteRequest(request, node);
     }
     return requestIDs;
   }
@@ -127,14 +134,14 @@ public class ScmpSenderAsync implements AutoCloseable {
    * Sends a SCMP traceroute request along the specified path. A measurement will only be returned
    * for the _last_ AS, i.e. the final destination AS.
    *
-   * <p>After {@link #asyncTracerouteLast(Path)} you may eventually want to call {@link #abortAll()}
-   * to abort potentially remaining timeout timers from outstanding responses.
+   * <p>After calling this method you may want to call {@link #abortAll()} to abort potentially
+   * remaining timeout timers from outstanding responses.
    *
    * @param path The path to use.
    * @return The sequence ID or -1 if the path is empty.
    * @throws IOException if an IO error occurs.
    */
-  public int asyncTracerouteLast(Path path) throws IOException {
+  public int sendTracerouteLast(Path path) throws IOException {
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     if (nodes.isEmpty()) {
       return -1;
@@ -371,9 +378,9 @@ public class ScmpSenderAsync implements AutoCloseable {
   public static class Builder {
     private ScionService service;
     private int port = 12345; // TODO Constants.SCMP_PORT;
-    private ScmpResponseHandler handler;
+    private final ResponseHandler handler;
 
-    private Builder(ScmpResponseHandler handler) {
+    private Builder(ResponseHandler handler) {
       this.handler = handler;
     }
 

@@ -33,8 +33,8 @@ public class ScmpSender implements AutoCloseable {
   private Consumer<Scmp.ErrorMessage> errorListener = null;
 
   private ScmpSender(ScionService service, int port) {
-    ScmpSenderAsync.ScmpResponseHandler handler =
-        new ScmpSenderAsync.ScmpResponseHandler() {
+    ScmpSenderAsync.ResponseHandler handler =
+        new ScmpSenderAsync.ResponseHandler() {
           @Override
           public void onResponse(Scmp.TimedMessage msg) {
             if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
@@ -92,7 +92,7 @@ public class ScmpSender implements AutoCloseable {
    */
   public Scmp.EchoMessage sendEchoRequest(Path path, ByteBuffer data) throws IOException {
     echoHandler.init();
-    sender.asyncEcho(path, data);
+    sender.sendEcho(path, data);
     try {
       return echoHandler.get();
     } finally {
@@ -113,7 +113,7 @@ public class ScmpSender implements AutoCloseable {
   public List<Scmp.TracerouteMessage> sendTracerouteRequest(Path path) throws IOException {
     List<PathHeaderParser.Node> nodes = PathHeaderParser.getTraceNodes(path.getRawPath());
     traceHandler.init(nodes.size());
-    sender.asyncTraceroute(path);
+    sender.sendTraceroute(path);
     try {
       List<Scmp.TracerouteMessage> result = traceHandler.get();
       result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));

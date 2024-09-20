@@ -495,7 +495,7 @@ public class Scmp {
    * @return New SCMP sender builder
    */
   public static ScmpSenderAsync.Builder newSenderAsyncBuilder(
-      ScmpSenderAsync.ScmpResponseHandler handler) {
+      ScmpSenderAsync.ResponseHandler handler) {
     return ScmpSenderAsync.newBuilder(handler);
   }
 
