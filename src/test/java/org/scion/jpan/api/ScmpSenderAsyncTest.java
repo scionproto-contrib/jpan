@@ -180,6 +180,7 @@ public class ScmpSenderAsyncTest {
       assertEquals(seqId1, result1.getSequenceNumber());
 
       // try again
+      handler.reset();
       MockNetwork.answerNextScmpEchos(1);
       int seqId2 = channel.sendEcho(path, ByteBuffer.allocate(0));
       Scmp.EchoMessage result2 = handler.get();
@@ -287,6 +288,7 @@ public class ScmpSenderAsyncTest {
       }
 
       // retry
+      handler.reset();
       List<Integer> ids2 = channel.sendTraceroute(path);
       Collection<Scmp.TracerouteMessage> results2 = handler.get(ids2.size());
       assertEquals(2, results2.size());
@@ -402,6 +404,7 @@ public class ScmpSenderAsyncTest {
       assertEquals(seqId1, result1.getSequenceNumber());
 
       // try again
+      handler.reset();
       MockNetwork.answerNextScmpEchos(1);
       int seqId2 = channel.sendTracerouteLast(path);
       List<Scmp.TracerouteMessage> results2 = handler.get(1);
@@ -494,20 +497,16 @@ public class ScmpSenderAsyncTest {
     volatile Scmp.ErrorMessage error = null;
     volatile Throwable exception = null;
 
-    void handleError(Scmp.ErrorMessage msg) {
-      synchronized (this) {
-        error = msg;
-        errorCounter.incrementAndGet();
-        this.notifyAll();
-      }
+    synchronized void handleError(Scmp.ErrorMessage msg) {
+      error = msg;
+      errorCounter.incrementAndGet();
+      this.notifyAll();
     }
 
-    void handleException(Throwable t) {
-      synchronized (this) {
-        exception = t;
-        exceptionCounter.incrementAndGet();
-        this.notifyAll();
-      }
+    synchronized void handleException(Throwable t) {
+      exception = t;
+      exceptionCounter.incrementAndGet();
+      this.notifyAll();
     }
 
     protected T waitForResult(Supplier<T> checkResult) throws IOException {
@@ -530,10 +529,12 @@ public class ScmpSenderAsyncTest {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new ScionRuntimeException(e);
-      } finally {
-        error = null;
-        exception = null;
       }
+    }
+
+    protected synchronized void reset() {
+      error = null;
+      exception = null;
     }
 
     @Override
@@ -550,48 +551,38 @@ public class ScmpSenderAsyncTest {
   private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
     Scmp.EchoMessage response = null;
 
-    void handle(Scmp.EchoMessage msg) {
-      synchronized (this) {
-        response = msg;
-        this.notifyAll();
-      }
+    synchronized void handle(Scmp.EchoMessage msg) {
+      response = msg;
+      this.notifyAll();
     }
 
     Scmp.EchoMessage get() throws IOException {
-      try {
-        return super.waitForResult(() -> response);
-      } finally {
-        response = null;
-      }
+      return super.waitForResult(() -> response);
+    }
+
+    @Override
+    public synchronized void reset() {
+      super.reset();
+      response = null;
     }
 
     @Override
     public void onResponse(Scmp.TimedMessage msg) {
-      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-        handle((Scmp.EchoMessage) msg);
-      } else {
-        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-      }
+      handle((Scmp.EchoMessage) msg);
     }
 
     @Override
     public void onTimeout(Scmp.TimedMessage msg) {
-      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_128) {
-        handle((Scmp.EchoMessage) msg);
-      } else {
-        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-      }
+      handle((Scmp.EchoMessage) msg);
     }
   }
 
   private static class TraceHandler extends ScmpHandler<List<Scmp.TracerouteMessage>> {
     private ArrayList<Scmp.TracerouteMessage> responses = new ArrayList<>();
 
-    void handle(Scmp.TracerouteMessage msg) {
-      synchronized (this) {
-        responses.add(msg);
-        this.notifyAll();
-      }
+    synchronized void handle(Scmp.TracerouteMessage msg) {
+      responses.add(msg);
+      this.notifyAll();
     }
 
     /**
@@ -600,29 +591,23 @@ public class ScmpSenderAsyncTest {
      * @throws IOException in case of a problem
      */
     List<Scmp.TracerouteMessage> get(int count) throws IOException {
-      try {
-        return super.waitForResult(() -> responses.size() >= count ? responses : null);
-      } finally {
-        responses = new ArrayList<>();
-      }
+      return super.waitForResult(() -> responses.size() >= count ? responses : null);
+    }
+
+    @Override
+    public synchronized void reset() {
+      super.reset();
+      responses = new ArrayList<>();
     }
 
     @Override
     public void onResponse(Scmp.TimedMessage msg) {
-      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-        handle((Scmp.TracerouteMessage) msg);
-      } else {
-        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-      }
+      handle((Scmp.TracerouteMessage) msg);
     }
 
     @Override
     public void onTimeout(Scmp.TimedMessage msg) {
-      if (msg.getTypeCode() == Scmp.TypeCode.TYPE_130) {
-        handle((Scmp.TracerouteMessage) msg);
-      } else {
-        throw new IllegalArgumentException("Received: " + msg.getTypeCode().getText());
-      }
+      handle((Scmp.TracerouteMessage) msg);
     }
   }
 }

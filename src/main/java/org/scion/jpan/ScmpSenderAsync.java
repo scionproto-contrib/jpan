@@ -377,7 +377,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   public static class Builder {
     private ScionService service;
-    private int port = 54321; // TODO Constants.SCMP_PORT;
+    private int port = 53135; // TODO Constants.SCMP_PORT;
     private final ResponseHandler handler;
 
     private Builder(ResponseHandler handler) {
