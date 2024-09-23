@@ -48,6 +48,7 @@ public class ScmpTracerouteDemoTest {
   void test() throws InterruptedException, ExecutionException {
     ExecutorService exec = Executors.newSingleThreadExecutor();
     AtomicInteger failures = new AtomicInteger();
+    assertEquals(ScmpTracerouteDemo.Network.PRODUCTION, ScmpTracerouteDemo.NETWORK);
     ScmpTracerouteDemo.init(false, ScmpTracerouteDemo.Network.JUNIT_MOCK);
 
     // Yes, there is a race condition because client may send a packet before

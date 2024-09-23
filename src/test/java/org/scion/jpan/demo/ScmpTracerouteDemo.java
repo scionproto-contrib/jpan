@@ -36,7 +36,7 @@ import org.scion.jpan.testutil.MockDNS;
 public class ScmpTracerouteDemo {
 
   public static boolean PRINT = true;
-  private static Network NETWORK = Network.PRODUCTION;
+  public static Network NETWORK = Network.PRODUCTION;
   private final int localPort;
 
   public enum Network {
@@ -119,7 +119,7 @@ public class ScmpTracerouteDemo {
 
     printPath(path);
 
-    try (ScmpChannel scmpChannel = Scmp.createChannel(localPort)) {
+    try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
       List<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest(path);
       for (Scmp.TracerouteMessage msg : results) {
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);

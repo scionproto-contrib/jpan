@@ -48,6 +48,7 @@ public class ScmpEchoDemoTest {
   void test() throws InterruptedException, ExecutionException {
     ExecutorService exec = Executors.newSingleThreadExecutor();
     AtomicInteger failures = new AtomicInteger();
+    assertEquals(ScmpEchoDemo.Network.PRODUCTION, ScmpEchoDemo.NETWORK);
     ScmpEchoDemo.init(false, ScmpEchoDemo.Network.JUNIT_MOCK, 1);
 
     // Yes, there is a race condition because client may send a packet before
