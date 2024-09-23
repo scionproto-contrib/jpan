@@ -105,8 +105,9 @@ public class MockScmpHandler implements Runnable {
       chn.register(selector, SelectionKey.OP_READ, chn);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
       address.set((InetSocketAddress) chn.getLocalAddress());
-      barrier.countDown();
       logger.info("{} started on {}", name, bind);
+      selector.selectNow(); // Ensure that everything has started properly
+      barrier.countDown();
 
       while (true) {
         if (selector.select() == 0) {
