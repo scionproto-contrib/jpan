@@ -63,6 +63,16 @@ public class MockScmpHandler implements Runnable {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+
+    //    while (true) {
+    //      try (DatagramChannel c = DatagramChannel.open()) {
+    //        InetSocketAddress handlerAddress = new InetSocketAddress(ip, Constants.SCMP_PORT);
+    //        c.connect(handlerAddress);
+    //      } catch (IOException e) {
+    //          throw new RuntimeException(e);
+    //      }
+    //    }
+    System.err.println("ScmpHandler-start done");
   }
 
   public static void stop() {
@@ -80,6 +90,7 @@ public class MockScmpHandler implements Runnable {
       Thread.currentThread().interrupt();
     }
     handler = null;
+    System.err.println("ScmpHandler-stop done");
   }
 
   public static InetSocketAddress getAddress() {
@@ -98,23 +109,26 @@ public class MockScmpHandler implements Runnable {
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress bind = new InetSocketAddress(ip, Constants.SCMP_PORT);
-    try (DatagramChannel chn = DatagramChannel.open().bind(bind);
+    InetSocketAddress localAddress = new InetSocketAddress(ip, Constants.SCMP_PORT);
+    try (DatagramChannel chn = DatagramChannel.open().bind(localAddress);
         Selector selector = Selector.open()) {
       chn.configureBlocking(false);
       chn.register(selector, SelectionKey.OP_READ, chn);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
       address.set((InetSocketAddress) chn.getLocalAddress());
-      logger.info("{} started on {}", name, bind);
-      selector.selectNow(); // Ensure that everything has started properly
+      logger.info("{} started on {}", name, localAddress);
+      System.err.println("ScmpHandler-run() 1");
       barrier.countDown();
 
       while (true) {
+        System.err.println("ScmpHandler-run() 2");
         if (selector.select() == 0) {
           // This must be an interrupt
+          System.err.println("ScmpHandler-run() 4");
           selector.close();
           return;
         }
+        System.err.println("ScmpHandler-run() 3");
 
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {

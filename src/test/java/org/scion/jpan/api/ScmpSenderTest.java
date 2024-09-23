@@ -80,7 +80,9 @@ public class ScmpSenderTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
+      System.err.println("sendEcho() before"); // TODO
       Scmp.EchoMessage result = channel.sendEchoRequest(path, ByteBuffer.wrap(data));
+      System.err.println("sendEcho() received"); // TODO
       assertEquals(0, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);

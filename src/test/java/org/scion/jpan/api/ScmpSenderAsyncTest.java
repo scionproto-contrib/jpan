@@ -148,8 +148,11 @@ public class ScmpSenderAsyncTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
+      System.err.println("sendEcho() before"); // TODO
       int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
+      System.err.println("sendEcho() sent"); // TODO
       Scmp.EchoMessage result = handler.get();
+      System.err.println("sendEcho() got"); // TODO
       assertEquals(seqId, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
       assertTrue(result.getNanoSeconds() > 0);
