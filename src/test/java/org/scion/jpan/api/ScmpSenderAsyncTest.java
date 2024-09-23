@@ -196,22 +196,17 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendEcho_IOException() throws IOException, InterruptedException {
+  void sendEcho_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = exceptionSender(handler)) {
-      //    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      //    MockNetwork.stopTiny();
-      //      Thread.sleep(100); // TODO
-      waitForPortToBeFree(path); // TODO
       channel.sendEcho(path, ByteBuffer.allocate(0));
-      ScmpSenderAsync.PRINT = 11; // TODO
+      // IOException thrown by MockChannel
       assertThrows(IOException.class, handler::get);
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
     } finally {
-      ScmpSenderAsync.PRINT = 0; // TODO
       MockNetwork.stopTiny();
     }
   }
@@ -306,37 +301,19 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendTraceroute_IOException() throws IOException, InterruptedException {
+  void sendTraceroute_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = exceptionSender(handler)) {
-      //      try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      //    MockNetwork.stopTiny();
-      // IOException because network is down
-      // We use a separate method and disable ths exceptionCounter because this test is a bit
-      // unstable, it sometimes
-      // fails during asyncTraceroute() and sometimes during get(). THis appears to be unrelated to
-      // timing, I suspect
-      // a Windows issue.
-      //      Thread.sleep(100); // TODO
-      waitForPortToBeFree(path); // TODO
-      ScmpSenderAsync.PRINT = 12; // TODO
-      // assertThrows(IOException.class, () -> sendAndGet(channel, handler, path));
       List<Integer> ids = channel.sendTraceroute(path);
+      // IOException thrown by MockChannel
       assertThrows(IOException.class, () -> handler.get(ids.size()));
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
     } finally {
-      ScmpSenderAsync.PRINT = 0; // TODO
       MockNetwork.stopTiny();
     }
-  }
-
-  private void sendAndGet(ScmpSenderAsync channel, TraceHandler handler, Path path)
-      throws IOException {
-    List<Integer> ids = channel.sendTraceroute(path);
-    handler.get(ids.size());
   }
 
   @Test
@@ -432,41 +409,19 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendTracerouteLast_IOException() throws IOException, InterruptedException {
+  void sendTracerouteLast_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
-    //    MockDatagramChannel errorChannel = MockDatagramChannel.open();
-    //    errorChannel.setSendCallback((byteBuffer,socketAddress) -> { return 0;});
-    //    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
     try (ScmpSenderAsync channel = exceptionSender(handler)) {
-      // Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).setSelector(selector).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      //     MockNetwork.stopTiny();
-      //      Thread.sleep(100); // TODO
-      waitForPortToBeFree(path); // TODO
       channel.sendTracerouteLast(path);
+      // IOException thrown by MockChannel
       assertThrows(IOException.class, () -> handler.get(1));
       assertEquals(1, handler.exceptionCounter.getAndSet(0));
     } finally {
       MockNetwork.stopTiny();
     }
-  }
-
-  private void waitForPortToBeFree(Path path) {
-    //    while (true) {
-    //      try (DatagramChannel dc = DatagramChannel.open()) {
-    //        dc.connect(path.getFirstHopAddress());
-    //        dc.write(ByteBuffer.allocate(1));
-    //        dc.receive(ByteBuffer.allocate(1));
-    //        Thread.sleep(10);
-    //      } catch (IOException e) {
-    //        // Nice!
-    //        return;
-    //      } catch (InterruptedException e) {
-    //        throw new RuntimeException(e);
-    //      }
-    //    }
   }
 
   @Test
@@ -551,10 +506,6 @@ public class ScmpSenderAsyncTest {
     }
 
     synchronized void handleException(Throwable t) {
-      if (ScmpSenderAsync.PRINT > 0) {
-        System.err.println(
-            ScmpSenderAsync.PRINT + "--- test.handleException() - " + t); // TODO remove
-      }
       exception = t;
       exceptionCounter.incrementAndGet();
       this.notifyAll();
@@ -564,20 +515,10 @@ public class ScmpSenderAsyncTest {
       try {
         while (true) {
           synchronized (this) {
-            if (ScmpSenderAsync.PRINT > 0) {
-              System.err.println(
-                  ScmpSenderAsync.PRINT + "--- test.waitForResult() - ... "); // TODO remove
-            }
             if (error != null) {
               throw new IOException(error.getTypeCode().getText());
             }
             if (exception != null) {
-              if (ScmpSenderAsync.PRINT > 0) {
-                System.err.println(
-                    ScmpSenderAsync.PRINT
-                        + "--- test.waitForResult() - "
-                        + exception); // TODO remove
-              }
               throw new IOException(exception);
             }
             T result = checkResult.get();

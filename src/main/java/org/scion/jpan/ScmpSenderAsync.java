@@ -285,6 +285,9 @@ public class ScmpSenderAsync implements AutoCloseable {
         if (iter.hasNext()) {
           SelectionKey key = iter.next();
           iter.remove();
+          if (!selector.isOpen()) {
+            throw new IOException("dfdfsdf");
+          }
           if (key.isValid() && key.isReadable()) {
             readIncomingScmp(key);
           }
