@@ -246,8 +246,8 @@ public class ScmpSenderAsyncTest {
       Collection<Scmp.TracerouteMessage> results = handler.get(ids.size());
       for (Scmp.TracerouteMessage result : results) {
         assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode());
+        assertTrue(result.getNanoSeconds() > 0);
         long ms = result.getNanoSeconds() / 1_000_000;
-        assertTrue(ms > 0);
         assertTrue(ms < 20, "ms=" + ms); // 10 ms
         assertFalse(result.isTimedOut());
         if (result.getSequenceNumber() == 0) {
