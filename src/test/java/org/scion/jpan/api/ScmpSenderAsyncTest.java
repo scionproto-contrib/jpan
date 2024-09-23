@@ -151,7 +151,7 @@ public class ScmpSenderAsyncTest {
       int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
       Scmp.EchoMessage result = handler.get();
       assertEquals(seqId, result.getSequenceNumber());
-      assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
+      assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
       assertArrayEquals(data, result.getData());
