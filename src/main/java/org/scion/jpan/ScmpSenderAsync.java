@@ -287,10 +287,10 @@ public class ScmpSenderAsync implements AutoCloseable {
     private void sendRequest(Scmp.TimedMessage request, ByteBuffer buffer, Path path)
         throws IOException {
       request.setSendNanoSeconds(System.nanoTime());
-      sendRaw(buffer, path);
       TimeOutTask timerTask = new TimeOutTask(request);
       timer.schedule(timerTask, timeOutMs);
       timers.put(request.getSequenceNumber(), timerTask);
+      sendRaw(buffer, path);
     }
 
     private void receiveAsync() throws IOException {
