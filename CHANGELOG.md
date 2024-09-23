@@ -54,9 +54,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - non-blocking send
   - Deprecated old ScmpChannel
   - New ScmpSender and ScmpReceiver with builders. 
-
-TODO 
-  - Changed default for sender to 30041!?!?!
   
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 

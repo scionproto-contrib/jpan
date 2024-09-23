@@ -53,8 +53,8 @@ public class ScmpResponder implements AutoCloseable {
 
   /**
    * Install a listener for echo messages. The listener is called for every incoming echo request
-   * message. A response will be sent iff the listener returns 'true'. Any time spent in the
-   * listener counts towards the RTT of the echo request. TODO is this all still true?
+   * message. A response will be sent iff the listener returns 'true'. That means that any time
+   * spent in the listener counts towards the RTT of the echo request.
    *
    * <p>The listener will only be called for messages received during `setUpScmpEchoResponder()`.
    *

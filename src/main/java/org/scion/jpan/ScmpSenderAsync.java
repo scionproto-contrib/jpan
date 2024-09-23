@@ -211,8 +211,12 @@ public class ScmpSenderAsync implements AutoCloseable {
       super.channel().configureBlocking(false);
       super.channel().register(selector, SelectionKey.OP_READ);
 
-      // listen on ANY interface: 0.0.0.0 / [::]
-      super.bind(new InetSocketAddress(port));
+      if (port == 0) {
+        super.bind(null);
+      } else {
+        // listen on ANY interface: 0.0.0.0 / [::]
+        super.bind(new InetSocketAddress(port));
+      }
     }
 
     void sendEchoRequest(Scmp.EchoMessage request) throws IOException {
@@ -400,7 +404,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   public static class Builder {
     private ScionService service;
-    private int port = 53135; // TODO Constants.SCMP_PORT;
+    private int port = 0;
     private final ResponseHandler handler;
     private java.nio.channels.DatagramChannel channel = null;
     private Selector selector = null;

@@ -235,7 +235,7 @@ public class ScmpSender implements AutoCloseable {
 
   public static class Builder {
     private ScionService service;
-    private int port = 12345; // TODO Constants.SCMP_PORT;
+    private int port = 0;
     private java.nio.channels.DatagramChannel channel = null;
     private Selector selector = null;
 
