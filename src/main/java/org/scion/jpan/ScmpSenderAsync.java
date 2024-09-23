@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -41,8 +40,6 @@ public class ScmpSenderAsync implements AutoCloseable {
   private Thread receiver;
   private final CountDownLatch receiverBarrier = new CountDownLatch(1);
   private final ResponseHandler handler;
-
-  public static int PRINT = 0;
 
   public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
@@ -71,7 +68,6 @@ public class ScmpSenderAsync implements AutoCloseable {
   }
 
   private void startReceiver() {
-    System.err.println("ScmpSenderAsync-receiver-start starting " + Instant.now()); // TODO
     this.receiver = new Thread(this::handleReceive, "ScmpSender-receiver");
     this.receiver.setDaemon(true);
     this.receiver.start();
@@ -83,7 +79,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
-    System.err.println("ScmpSenderAsync-receiver-start done " + Instant.now()); // TODO
   }
 
   private void stopReceiver() {
@@ -224,13 +219,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        if (PRINT > 0) {
-          System.err.println(PRINT + "--- sendEchoRequest():connecting..."); // TODO
-        }
         super.channel().connect(path.getFirstHopAddress());
-        if (PRINT > 0) {
-          System.err.println(PRINT + "--- sendEchoRequest():connected!"); // TODO
-        }
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
@@ -255,13 +244,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        if (PRINT > 0) {
-          System.err.println(PRINT + "--- sendTracerouteRequest():connecting..."); // TODO
-        }
         super.channel().connect(path.getFirstHopAddress());
-        if (PRINT > 0) {
-          System.err.println(PRINT + "--- sendTracerouteRequest():connected!"); // TODO
-        }
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
         int len = 24;
@@ -290,22 +273,18 @@ public class ScmpSenderAsync implements AutoCloseable {
       TimeOutTask timerTask = new TimeOutTask(request);
       timer.schedule(timerTask, timeOutMs);
       timers.put(request.getSequenceNumber(), timerTask);
+      // Send packet _after_ registering timers!
       sendRaw(buffer, path);
     }
 
     private void receiveAsync() throws IOException {
       while (selector.isOpen() && selector.select() > 0) {
-        System.err.println("receiveAsync() waiting ... " + Instant.now()); // TODO
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-        System.err.println("receiveAsync() got 1 " + Instant.now()); // TODO
         if (iter.hasNext()) {
-          System.err.println("receiveAsync() got 2 " + Instant.now()); // TODO
           SelectionKey key = iter.next();
           iter.remove();
           if (key.isValid() && key.isReadable()) {
-            System.err.println("receiveAsync() got 3 " + Instant.now()); // TODO
             readIncomingScmp(key);
-            System.err.println("receiveAsync() got 4 " + Instant.now()); // TODO
           }
         }
       }
@@ -335,9 +314,6 @@ public class ScmpSenderAsync implements AutoCloseable {
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
-        if (PRINT > 0) {
-          System.err.println(PRINT + "--- readIncomingScmp() - " + e); // TODO remove
-        }
         handler.onException(e);
       } finally {
         readLock().unlock();
@@ -348,9 +324,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       long currentNanos = System.nanoTime();
       ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
-      System.err.println("handleIncomingScmp() 1 " + Instant.now()); // TODO
       if (msg.getTypeCode().isError()) {
-        System.err.println("handleIncomingScmp() 1 error  " + Instant.now()); // TODO
         handler.onError((Scmp.ErrorMessage) msg);
         checkListeners(msg);
         return;
@@ -358,21 +332,16 @@ public class ScmpSenderAsync implements AutoCloseable {
 
       TimeOutTask task = timers.remove(msg.getSequenceNumber());
       if (task != null) {
-        System.err.println("handleIncomingScmp() 2 " + Instant.now()); // TODO
         task.cancel(); // Cancel timeout timer
         Scmp.TimedMessage request = task.request;
         if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-          System.err.println("handleIncomingScmp() 131 " + Instant.now()); // TODO
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-          System.err.println("handleIncomingScmp() 141 " + Instant.now()); // TODO
           ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else {
-          System.err.println(
-              "handleIncomingScmp() ? " + msg.getTypeCode() + " " + Instant.now()); // TODO
           // Wrong type -> ignore
           return;
         }
@@ -403,19 +372,9 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   private void handleReceive() {
     try {
-      if (PRINT > 0) {
-        System.err.println(PRINT + "--- handleReceive() - start"); // TODO remove
-      }
       receiverBarrier.countDown();
-      System.err.println("ScmpSenderAsync-handleReceive-start done " + Instant.now()); // TODO
       channel.receiveAsync();
-      if (PRINT > 0) {
-        System.err.println(PRINT + "--- handleReceive() - end"); // TODO remove
-      }
     } catch (IOException e) {
-      if (PRINT > 0) {
-        System.err.println(PRINT + "--- handleReceive() - " + e); // TODO remove
-      }
       handler.onException(e);
     }
   }

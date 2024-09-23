@@ -188,9 +188,9 @@ public class MockNetwork {
 
     MockScmpHandler.stop();
 
-    waitForPortToBeFree(BORDER_ROUTER_PORT1);
-    waitForPortToBeFree(BORDER_ROUTER_PORT2);
-    waitForPortToBeFree(Constants.SCMP_PORT);
+    //    waitForPortToBeFree(BORDER_ROUTER_PORT1);
+    //    waitForPortToBeFree(BORDER_ROUTER_PORT2);
+    //    waitForPortToBeFree(Constants.SCMP_PORT);
 
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
