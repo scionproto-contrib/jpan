@@ -28,6 +28,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.demo.inspector.ScionPacketInspector;
+import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
@@ -138,7 +140,7 @@ public class ScmpSenderTest {
   @Test
   void sendEcho_SCMP_error() throws IOException {
     MockNetwork.startTiny();
-    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+    try (ScmpSender channel = errorSender()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -148,8 +150,8 @@ public class ScmpSenderTest {
           assertThrows(
               IOException.class,
               () -> channel.sendEchoRequest(getPathTo112(), ByteBuffer.allocate(0)));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()), t.getMessage());
       assertTrue(listenerWasTriggered.get());
-      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
@@ -244,15 +246,15 @@ public class ScmpSenderTest {
   void sendTraceroute_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+    try (ScmpSender channel = errorSender()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       Throwable t = assertThrows(IOException.class, () -> channel.sendTracerouteRequest(path));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()), t.getMessage());
       assertTrue(listenerWasTriggered.get());
-      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
@@ -303,6 +305,47 @@ public class ScmpSenderTest {
           return 0;
         });
     errorChannel.setThrowOnConnect(true);
+    // This selector throws an Exception when activated.
+    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    selector.setConnectCallback(
+        () -> {
+          throw new IOException();
+        });
+    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();
+  }
+
+  private ScmpSender errorSender() throws IOException {
+    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    ConcurrentLinkedQueue<ScionPacketInspector> spis = new ConcurrentLinkedQueue<>();
+    ConcurrentLinkedQueue<SocketAddress> socketAddresses = new ConcurrentLinkedQueue<>();
+
+    errorChannel.setSendCallback(
+        (buffer, mySocketAddress) -> {
+          socketAddresses.add(mySocketAddress);
+          byte[] payload = new byte[buffer.remaining()];
+          buffer.get(payload);
+          buffer.rewind();
+          ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+          spis.add(spi);
+          spi.reversePath();
+          ScmpHeader scmpHeader = spi.getScmpHeader();
+          scmpHeader.setCode(Scmp.TypeCode.TYPE_1_CODE_0);
+          spi.setPayLoad(payload);
+          return payload.length;
+        });
+    errorChannel.setReceiveCallback(
+        (buffer) -> {
+          while (spis.isEmpty() || socketAddresses.isEmpty()) {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+            }
+          }
+          ScionPacketInspector spi = spis.remove();
+          spi.writePacketSCMP(buffer);
+          return socketAddresses.remove();
+        });
     // This selector throws an Exception when activated.
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
     return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();

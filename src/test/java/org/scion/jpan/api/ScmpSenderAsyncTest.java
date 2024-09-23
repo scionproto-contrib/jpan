@@ -215,14 +215,13 @@ public class ScmpSenderAsyncTest {
   void sendEcho_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     EchoHandler handler = new EchoHandler();
-    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+    try (ScmpSenderAsync channel = errorSender(handler)) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      // Router will return SCMP error
-      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
+      // MockChannel will return SCMP error
       channel.sendEcho(getPathTo112(), ByteBuffer.allocate(0));
       Throwable t = assertThrows(IOException.class, handler::get);
       assertEquals(1, handler.errorCounter.getAndSet(0));
-      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_4_CODE_51.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
@@ -247,8 +246,9 @@ public class ScmpSenderAsyncTest {
       Collection<Scmp.TracerouteMessage> results = handler.get(ids.size());
       for (Scmp.TracerouteMessage result : results) {
         assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode());
-        assertTrue(result.getNanoSeconds() > 0);
-        assertTrue(result.getNanoSeconds() < 10_000_000); // 10 ms
+        long ms = result.getNanoSeconds() / 1_000_000;
+        assertTrue(ms > 0);
+        assertTrue(ms < 20, "ms=" + ms); // 10 ms
         assertFalse(result.isTimedOut());
         if (result.getSequenceNumber() == 0) {
           assertEquals(ScionUtil.parseIA("1-ff00:0:112"), result.getIsdAs());
@@ -321,13 +321,12 @@ public class ScmpSenderAsyncTest {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
-    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+    try (ScmpSenderAsync channel = errorSender(handler)) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      // Router will return SCMP error
-      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
+      // MockChannel will return SCMP error
       List<Integer> ids = channel.sendTraceroute(path);
       Throwable t = assertThrows(IOException.class, () -> handler.get(ids.size()));
-      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_4_CODE_51.getText()), t.getMessage());
       assertEquals(1, handler.errorCounter.getAndSet(0));
     } finally {
       MockNetwork.stopTiny();
@@ -428,14 +427,13 @@ public class ScmpSenderAsyncTest {
   void sendTracerouteLast_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     TraceHandler handler = new TraceHandler();
-    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+    try (ScmpSenderAsync channel = errorSender(handler)) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      // Router will return SCMP error
-      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
+      // MockChannel will return SCMP error
       channel.sendTracerouteLast(getPathTo112());
       Throwable t = assertThrows(IOException.class, () -> handler.get(1));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_4_CODE_51.getText()));
       assertEquals(1, handler.errorCounter.getAndSet(0));
-      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
@@ -484,6 +482,29 @@ public class ScmpSenderAsyncTest {
     errorChannel.setSendCallback(
         (byteBuffer, socketAddress) -> {
           return 0;
+        });
+    // This selector throws an Exception when activated.
+    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    selector.setConnectCallback(
+        () -> {
+          throw new IOException();
+        });
+    return Scmp.newSenderAsyncBuilder(handler)
+        .setDatagramChannel(errorChannel)
+        .setSelector(selector)
+        .build();
+  }
+
+  private ScmpSenderAsync errorSender(ScmpHandler<?> handler) throws IOException {
+    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    errorChannel.setSendCallback(
+        (byteBuffer, socketAddress) -> {
+          return 0;
+        });
+    errorChannel.setReceiveCallback(
+        buffer -> {
+          buffer.put(PING_ERROR_4_51_HK);
+          return new InetSocketAddress(MockNetwork.BORDER_ROUTER_IPV4, 30041);
         });
     // This selector throws an Exception when activated.
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
