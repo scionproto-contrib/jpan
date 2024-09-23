@@ -295,15 +295,17 @@ public class ScmpSenderAsync implements AutoCloseable {
 
     private void receiveAsync() throws IOException {
       while (selector.isOpen() && selector.select() > 0) {
+        System.err.println("receiveAsync() waiting ... " + Instant.now()); // TODO
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+        System.err.println("receiveAsync() got 1" + Instant.now()); // TODO
         if (iter.hasNext()) {
+          System.err.println("receiveAsync() got 2" + Instant.now()); // TODO
           SelectionKey key = iter.next();
           iter.remove();
-          if (!selector.isOpen()) {
-            throw new IOException("dfdfsdf");
-          }
           if (key.isValid() && key.isReadable()) {
+            System.err.println("receiveAsync() got 3" + Instant.now()); // TODO
             readIncomingScmp(key);
+            System.err.println("receiveAsync() got 4" + Instant.now()); // TODO
           }
         }
       }
