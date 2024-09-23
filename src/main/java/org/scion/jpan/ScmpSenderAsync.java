@@ -23,6 +23,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathHeaderParser;
@@ -36,6 +38,7 @@ public class ScmpSenderAsync implements AutoCloseable {
   private final ConcurrentHashMap<Integer, TimeOutTask> timers = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
   private Thread receiver;
+  private final CountDownLatch receiverBarrier = new CountDownLatch(1);
   private final ResponseHandler handler;
 
   public static int PRINT = 0;
@@ -70,6 +73,14 @@ public class ScmpSenderAsync implements AutoCloseable {
     this.receiver = new Thread(this::handleReceive, "ScmpSender-receiver");
     this.receiver.setDaemon(true);
     this.receiver.start();
+    try {
+      if (!this.receiverBarrier.await(1, TimeUnit.SECONDS)) {
+        throw new IllegalStateException("Could not start receiver thread.");
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ScionRuntimeException(e);
+    }
   }
 
   private void stopReceiver() {
@@ -383,6 +394,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       if (PRINT > 0) {
         System.err.println(PRINT + "--- handleReceive() - start"); // TODO remove
       }
+      receiverBarrier.countDown();
       channel.receiveAsync();
       if (PRINT > 0) {
         System.err.println(PRINT + "--- handleReceive() - end"); // TODO remove
