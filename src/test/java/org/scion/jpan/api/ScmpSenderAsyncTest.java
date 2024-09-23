@@ -327,8 +327,8 @@ public class ScmpSenderAsyncTest {
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       List<Integer> ids = channel.sendTraceroute(path);
       Throwable t = assertThrows(IOException.class, () -> handler.get(ids.size()));
-      assertEquals(1, handler.errorCounter.getAndSet(0));
       assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
+      assertEquals(1, handler.errorCounter.getAndSet(0));
     } finally {
       MockNetwork.stopTiny();
     }
