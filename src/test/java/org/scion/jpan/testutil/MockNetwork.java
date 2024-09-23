@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 public class MockNetwork {
 
   public static final String BORDER_ROUTER_IPV4 = "127.0.0.1";
-  public static final String BORDER_ROUTER_IPv6 = "::1";
+  public static final String BORDER_ROUTER_IPV6 = "::1";
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
   public static final int TINY_SRV_PORT_1 = 22233;
@@ -87,8 +87,8 @@ public class MockNetwork {
 
   public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
     startTiny(
-        localIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
-        remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
+        localIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPV6,
+        remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPV6,
         Mode.DAEMON);
   }
 
@@ -188,30 +188,9 @@ public class MockNetwork {
 
     MockScmpHandler.stop();
 
-    //    waitForPortToBeFree(BORDER_ROUTER_PORT1);
-    //    waitForPortToBeFree(BORDER_ROUTER_PORT2);
-    //    waitForPortToBeFree(Constants.SCMP_PORT);
-
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
-  }
-
-  private static void waitForPortToBeFree(int port) {
-    while (true) {
-      InetSocketAddress i = new InetSocketAddress(BORDER_ROUTER_IPV4, port);
-      try (DatagramChannel dc = DatagramChannel.open()) {
-        dc.connect(i);
-        dc.write(ByteBuffer.allocate(1));
-        dc.receive(ByteBuffer.allocate(1));
-        Thread.sleep(10);
-      } catch (IOException e) {
-        // Nice!
-        return;
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {
