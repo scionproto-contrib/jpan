@@ -248,7 +248,9 @@ public class ScmpSenderAsyncTest {
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      System.err.println("testTraceroute() before " + Instant.now()); // TODO
       List<Integer> ids = channel.sendTraceroute(path.get());
+      System.err.println("testTraceroute() got " + Instant.now()); // TODO
       Collection<Scmp.TracerouteMessage> results = handler.get(ids.size());
       for (Scmp.TracerouteMessage result : results) {
         assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode(), "T/O=" + result.isTimedOut());
@@ -267,7 +269,9 @@ public class ScmpSenderAsyncTest {
       }
 
       assertEquals(nHops, results.size());
+      System.err.println("testTraceroute() success " + Instant.now()); // TODO
     } finally {
+      System.err.println("testTraceroute() finished " + Instant.now()); // TODO
       MockNetwork.stopTiny();
     }
   }
@@ -356,9 +360,11 @@ public class ScmpSenderAsyncTest {
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       Path path = pathSupplier.get();
+      System.err.println("testTracerouteLast() before " + Instant.now()); // TODO
       int seqId = channel.sendTracerouteLast(path);
       if (seqId >= 0) {
         List<Scmp.TracerouteMessage> results = handler.get(1);
+        System.err.println("testTracerouteLast() got " + Instant.now()); // TODO
         assertEquals(1, results.size());
         Scmp.TracerouteMessage result = results.get(0);
         assertEquals(seqId, result.getSequenceNumber());
@@ -372,9 +378,12 @@ public class ScmpSenderAsyncTest {
         assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
         assertTrue(success);
       } else {
+        System.err.println("testTracerouteLast() got-0 " + Instant.now()); // TODO
         assertFalse(success);
       }
+      System.err.println("testTracerouteLast() success " + Instant.now()); // TODO
     } finally {
+      System.err.println("testTracerouteLast() finished " + Instant.now()); // TODO
       MockNetwork.stopTiny();
     }
   }

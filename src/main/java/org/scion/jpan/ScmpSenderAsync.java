@@ -297,15 +297,15 @@ public class ScmpSenderAsync implements AutoCloseable {
       while (selector.isOpen() && selector.select() > 0) {
         System.err.println("receiveAsync() waiting ... " + Instant.now()); // TODO
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-        System.err.println("receiveAsync() got 1" + Instant.now()); // TODO
+        System.err.println("receiveAsync() got 1 " + Instant.now()); // TODO
         if (iter.hasNext()) {
-          System.err.println("receiveAsync() got 2" + Instant.now()); // TODO
+          System.err.println("receiveAsync() got 2 " + Instant.now()); // TODO
           SelectionKey key = iter.next();
           iter.remove();
           if (key.isValid() && key.isReadable()) {
-            System.err.println("receiveAsync() got 3" + Instant.now()); // TODO
+            System.err.println("receiveAsync() got 3 " + Instant.now()); // TODO
             readIncomingScmp(key);
-            System.err.println("receiveAsync() got 4" + Instant.now()); // TODO
+            System.err.println("receiveAsync() got 4 " + Instant.now()); // TODO
           }
         }
       }
@@ -348,7 +348,9 @@ public class ScmpSenderAsync implements AutoCloseable {
       long currentNanos = System.nanoTime();
       ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
+      System.err.println("handleIncomingScmp() 1 " + Instant.now()); // TODO
       if (msg.getTypeCode().isError()) {
+        System.err.println("handleIncomingScmp() 1 error  " + Instant.now()); // TODO
         handler.onError((Scmp.ErrorMessage) msg);
         checkListeners(msg);
         return;
@@ -356,16 +358,21 @@ public class ScmpSenderAsync implements AutoCloseable {
 
       TimeOutTask task = timers.remove(msg.getSequenceNumber());
       if (task != null) {
+        System.err.println("handleIncomingScmp() 2 " + Instant.now()); // TODO
         task.cancel(); // Cancel timeout timer
         Scmp.TimedMessage request = task.request;
         if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+          System.err.println("handleIncomingScmp() 131 " + Instant.now()); // TODO
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+          System.err.println("handleIncomingScmp() 141 " + Instant.now()); // TODO
           ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else {
+          System.err.println(
+              "handleIncomingScmp() ? " + msg.getTypeCode() + " " + Instant.now()); // TODO
           // Wrong type -> ignore
           return;
         }
