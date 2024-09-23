@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.time.Instant;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -54,6 +55,7 @@ public class MockScmpHandler implements Runnable {
     if (handler != null) {
       throw new IllegalStateException();
     }
+    System.err.println("ScmpHandler-start starting " + Instant.now());
     barrier = new CountDownLatch(1);
     nAnswerTotal.set(0);
     handler = Executors.newSingleThreadExecutor();
@@ -72,7 +74,7 @@ public class MockScmpHandler implements Runnable {
     //          throw new RuntimeException(e);
     //      }
     //    }
-    System.err.println("ScmpHandler-start done");
+    System.err.println("ScmpHandler-start done " + Instant.now());
   }
 
   public static void stop() {
@@ -117,18 +119,18 @@ public class MockScmpHandler implements Runnable {
       ByteBuffer buffer = ByteBuffer.allocate(66000);
       address.set((InetSocketAddress) chn.getLocalAddress());
       logger.info("{} started on {}", name, localAddress);
-      System.err.println("ScmpHandler-run() 1");
+      System.err.println("ScmpHandler-run() 1 " + Instant.now());
       barrier.countDown();
 
       while (true) {
-        System.err.println("ScmpHandler-run() 2");
+        System.err.println("ScmpHandler-run() 2 " + Instant.now());
         if (selector.select() == 0) {
           // This must be an interrupt
-          System.err.println("ScmpHandler-run() 4");
+          System.err.println("ScmpHandler-run() 4 " + Instant.now());
           selector.close();
           return;
         }
-        System.err.println("ScmpHandler-run() 3");
+        System.err.println("ScmpHandler-run() 3 " + Instant.now());
 
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {

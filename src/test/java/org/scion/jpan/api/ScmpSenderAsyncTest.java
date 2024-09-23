@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -148,13 +149,14 @@ public class ScmpSenderAsyncTest {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
-      System.err.println("sendEcho() before"); // TODO
+      System.err.println("sendEcho() before " + Instant.now()); // TODO
       int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
-      System.err.println("sendEcho() sent"); // TODO
+      System.err.println("sendEcho() sent " + Instant.now()); // TODO
       Scmp.EchoMessage result = handler.get();
-      System.err.println("sendEcho() got"); // TODO
+      System.err.println("sendEcho() got " + Instant.now()); // TODO
       assertEquals(seqId, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
+      System.err.println("sendEcho() success " + Instant.now()); // TODO
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
       assertArrayEquals(data, result.getData());
@@ -164,6 +166,7 @@ public class ScmpSenderAsyncTest {
       assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
       assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
     } finally {
+      System.err.println("sendEcho() finished" + Instant.now()); // TODO
       MockNetwork.stopTiny();
     }
   }

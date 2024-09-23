@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -70,6 +71,7 @@ public class ScmpSenderAsync implements AutoCloseable {
   }
 
   private void startReceiver() {
+    System.err.println("ScmpSenderAsync-receiver-start starting " + Instant.now()); // TODO
     this.receiver = new Thread(this::handleReceive, "ScmpSender-receiver");
     this.receiver.setDaemon(true);
     this.receiver.start();
@@ -81,6 +83,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
+    System.err.println("ScmpSenderAsync-receiver-start done " + Instant.now()); // TODO
   }
 
   private void stopReceiver() {
@@ -395,6 +398,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         System.err.println(PRINT + "--- handleReceive() - start"); // TODO remove
       }
       receiverBarrier.countDown();
+      System.err.println("ScmpSenderAsync-handleReceive-start done " + Instant.now()); // TODO
       channel.receiveAsync();
       if (PRINT > 0) {
         System.err.println(PRINT + "--- handleReceive() - end"); // TODO remove
