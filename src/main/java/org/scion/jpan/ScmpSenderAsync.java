@@ -41,6 +41,8 @@ public class ScmpSenderAsync implements AutoCloseable {
   private final CountDownLatch receiverBarrier = new CountDownLatch(1);
   private final ResponseHandler handler;
 
+  public static boolean CHECK = false;
+
   public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
   }
@@ -305,20 +307,39 @@ public class ScmpSenderAsync implements AutoCloseable {
         ByteBuffer buffer = super.getBufferReceive(DEFAULT_BUFFER_SIZE);
         buffer.clear();
         InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
+//        System.err.println("readIncoming(): " + buffer.position() + "      " + srcAddress); // TODO
+        while (srcAddress == null) {
+          srcAddress = (InetSocketAddress) incoming.receive(buffer);
+        }
+//        System.err.println("readIncoming() 2: " + buffer.remaining() + "      " + srcAddress); // TODO
         buffer.flip();
-        if (validate(buffer)) {
-          InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-          // From here on we use linear reading using the buffer's position() mechanism
-          buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-          // Check for extension headers.
-          // This should be mostly unnecessary, however we sometimes saw SCMP error headers
-          // wrapped in extensions headers.
-          hdrType = receiveExtensionHeader(buffer, hdrType);
+        if (buffer.remaining() == 0) {
+          return; // Wait for data
+        }
+        boolean MULTI = buffer.remaining() > 85;
+        while (buffer.hasRemaining()) {
+          int pos1 = buffer.position();
+          if (MULTI) System.err.println("readIncoming() 3: " + buffer.position() + "      " + srcAddress); // TODO
+          if (validate(buffer)) {
+            InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+            ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+            int packetLength = ScionHeaderParser.extractPacketLength(buffer);
+            // From here on we use linear reading using the buffer's position() mechanism
+            buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+            // Check for extension headers.
+            // This should be mostly unnecessary, however we sometimes saw SCMP error headers
+            // wrapped in extensions headers.
+            hdrType = receiveExtensionHeader(buffer, hdrType);
 
-          if (hdrType != InternalConstants.HdrTypes.SCMP) {
-            return; // drop
+            if (hdrType != InternalConstants.HdrTypes.SCMP) {
+              return; // drop
+            }
+            handleIncomingScmp(buffer, receivePath, packetLength);
+            int pos2 = buffer.position();
+            if (CHECK && pos2 - pos1 > 85 ) {
+              throw new IllegalStateException();
+            }
           }
-          handleIncomingScmp(buffer, srcAddress);
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
@@ -328,10 +349,10 @@ public class ScmpSenderAsync implements AutoCloseable {
       }
     }
 
-    private void handleIncomingScmp(ByteBuffer buffer, InetSocketAddress srcAddress) {
+    private void handleIncomingScmp(ByteBuffer buffer, ResponsePath receivePath, int packetLength) {
       long currentNanos = System.nanoTime();
-      ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-      Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
+      int bufferStart = buffer.position();
+      Scmp.Message msg = ScmpParser.consume(buffer, receivePath, packetLength);
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
         checkListeners(msg);
@@ -346,7 +367,7 @@ public class ScmpSenderAsync implements AutoCloseable {
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-          ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
+          ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position() - bufferStart);
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else {

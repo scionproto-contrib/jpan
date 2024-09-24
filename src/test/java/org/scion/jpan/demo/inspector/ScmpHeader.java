@@ -128,4 +128,8 @@ public class ScmpHeader {
     this.traceIsdAs = isdAs;
     this.traceIfID = ifID;
   }
+
+  public int getSequenceId() {
+    return short2;
+  }
 }

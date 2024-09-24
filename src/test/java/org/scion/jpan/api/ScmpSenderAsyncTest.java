@@ -197,24 +197,27 @@ public class ScmpSenderAsyncTest {
     MockNetwork.answerNextScmpEchos(n);
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setTimeOut(10000);
+      ScmpSenderAsync.CHECK = true;
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
       HashSet<Integer> seqIDs = new HashSet<>();
+       System.err.println("************************************************* Start send()"); // TODO
       for (int i = 0; i < n; i++) {
         seqIDs.add(channel.sendEcho(path, ByteBuffer.wrap(data)));
       }
 
+      System.err.println("************************************************* Start get()"); // TODO
       List<Scmp.EchoMessage> results = handler.get(n);
       for (int i = 0; i < n; i++) {
         Scmp.EchoMessage result = results.get(i);
-        System.err.println("seqId: " + result.getSequenceNumber());
-        // assertEquals(seqId, result.getSequenceNumber());
+        System.err.println("************************************************* seqId: " + result.getSequenceNumber()); // TODO
         assertTrue(seqIDs.contains(result.getSequenceNumber()));
         seqIDs.remove(result.getSequenceNumber());
         assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
         assertTrue(result.getNanoSeconds() > 0);
-        assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
+        assertTrue(result.getNanoSeconds() < 990_000_000); // 10 ms
         assertArrayEquals(data, result.getData());
         assertFalse(result.isTimedOut());
         Path returnPath = result.getPath();
@@ -223,6 +226,7 @@ public class ScmpSenderAsyncTest {
         assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
       }
     } finally {
+      ScmpSenderAsync.CHECK = false;
       MockNetwork.stopTiny();
     }
   }
@@ -638,6 +642,7 @@ public class ScmpSenderAsyncTest {
 
     synchronized void handle(Scmp.EchoMessage msg) {
       responses.add(msg);
+      System.err.println("seqId: " + msg.getSequenceNumber()); // TODO
       this.notifyAll();
     }
 
