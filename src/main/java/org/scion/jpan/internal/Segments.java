@@ -199,7 +199,7 @@ public class Segments {
       seg.getValue()
           .getSegmentsList()
           .forEach(path -> pathSegments.add(new PathSegment(path, type)));
-      LOG.info("Segments found of type: {}", type.name());
+      LOG.info("Segments found of type {}: {}", type.name(), seg.getValue().getSegmentsCount());
     }
     return pathSegments;
   }
