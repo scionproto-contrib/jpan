@@ -49,11 +49,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added environment variable / property for DNS search domain.
   [#118](https://github.com/scionproto-contrib/jpan/pull/118)
 - New SCMP API: [#119](https://github.com/scionproto-contrib/jpan/pull/119) 
-  - Use builder pattern everywhere
-  - separate Sender/Responder classes + blocking-sender
-  - non-blocking send
-  - Deprecated old ScmpChannel
-  - New ScmpSender and ScmpReceiver with builders. 
+  - separate ScmpSender/ScmpResponder
+  - non-blocking ScmpSenderAsync
+  - deprecated old ScmpChannel
   
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
