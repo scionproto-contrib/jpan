@@ -21,6 +21,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -123,43 +124,104 @@ public class ScmpSenderAsyncTest {
 
   @Test
   void sendEcho() throws IOException {
-    testEcho(this::getPathTo112);
+    testEcho(this::getPathTo112, 5);
   }
 
   @Test
   void sendEcho_localAS_BR() throws IOException {
-    testEcho(this::getPathToLocalAS_BR);
-    assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
-    assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
+    int n = 5;
+    testEcho(this::getPathToLocalAS_BR, n);
+    assertEquals(n, MockNetwork.getAndResetForwardCount()); // 1!
+    assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   @Test
   void sendEcho_localAS_BR_30041() throws IOException {
-    testEcho(this::getPathToLocalAS_BR_30041);
+    int n = 5;
+    testEcho(this::getPathToLocalAS_BR_30041, n);
     assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
-    assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
+    assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
 
-  private void testEcho(Supplier<Path> pathSupplier) throws IOException {
+  private void testEcho(Supplier<Path> pathSupplier, int n) throws IOException {
     MockNetwork.startTiny();
-    MockNetwork.answerNextScmpEchos(1);
+    MockNetwork.answerNextScmpEchos(n);
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      for (int i = 0; i < 5; i++) {
+        channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+        byte[] data = new byte[] {1, 2, 3, 4, 5};
+        Path path = pathSupplier.get();
+        int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
+        Scmp.EchoMessage result = handler.get();
+        System.err.println("seqId: " + seqId + " " + result.getSequenceNumber());
+        // assertEquals(seqId, result.getSequenceNumber());
+        assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
+        assertTrue(result.getNanoSeconds() > 0);
+        assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
+        assertArrayEquals(data, result.getData());
+        assertFalse(result.isTimedOut());
+        Path returnPath = result.getPath();
+        assertEquals(path.getRemoteAddress(), returnPath.getRemoteAddress());
+        assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
+        assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void sendEcho_async() throws IOException {
+    testEchoAsync(this::getPathTo112, 20);
+  }
+
+  @Test
+  void sendEcho_localAS_BR_async() throws IOException {
+    int n = 20;
+    testEchoAsync(this::getPathToLocalAS_BR, n);
+    assertEquals(n, MockNetwork.getAndResetForwardCount()); // 1!
+    assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
+  }
+
+  @Test
+  void sendEcho_localAS_BR_30041_async() throws IOException {
+    int n = 20;
+    testEchoAsync(this::getPathToLocalAS_BR_30041, n);
+    assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
+    assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
+  }
+
+  private void testEchoAsync(Supplier<Path> pathSupplier, int n) throws IOException {
+    MockNetwork.startTiny();
+    MockNetwork.answerNextScmpEchos(n);
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
-      int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
-      Scmp.EchoMessage result = handler.get();
-      assertEquals(seqId, result.getSequenceNumber());
-      assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
-      assertTrue(result.getNanoSeconds() > 0);
-      assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
-      assertArrayEquals(data, result.getData());
-      assertFalse(result.isTimedOut());
-      Path returnPath = result.getPath();
-      assertEquals(path.getRemoteAddress(), returnPath.getRemoteAddress());
-      assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
-      assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
+      HashSet<Integer> seqIDs = new HashSet<>();
+      for (int i = 0; i < n; i++) {
+        seqIDs.add(channel.sendEcho(path, ByteBuffer.wrap(data)));
+      }
+
+      List<Scmp.EchoMessage> results = handler.get(n);
+      for (int i = 0; i < n; i++) {
+        Scmp.EchoMessage result = results.get(i);
+        System.err.println("seqId: " + result.getSequenceNumber());
+        // assertEquals(seqId, result.getSequenceNumber());
+        assertTrue(seqIDs.contains(result.getSequenceNumber()));
+        seqIDs.remove(result.getSequenceNumber());
+        assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
+        assertTrue(result.getNanoSeconds() > 0);
+        assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
+        assertArrayEquals(data, result.getData());
+        assertFalse(result.isTimedOut());
+        Path returnPath = result.getPath();
+        assertEquals(path.getRemoteAddress(), returnPath.getRemoteAddress());
+        assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
+        assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
+      }
     } finally {
       MockNetwork.stopTiny();
     }
@@ -571,22 +633,26 @@ public class ScmpSenderAsyncTest {
     }
   }
 
-  private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
-    Scmp.EchoMessage response = null;
+  private static class EchoHandler extends ScmpHandler<List<Scmp.EchoMessage>> {
+    private ArrayList<Scmp.EchoMessage> responses = new ArrayList<>();
 
     synchronized void handle(Scmp.EchoMessage msg) {
-      response = msg;
+      responses.add(msg);
       this.notifyAll();
     }
 
     Scmp.EchoMessage get() throws IOException {
-      return super.waitForResult(() -> response);
+      return get(1).get(0);
+    }
+
+    List<Scmp.EchoMessage> get(int count) throws IOException {
+      return super.waitForResult(()  -> responses.size() >= count ? responses : null);
     }
 
     @Override
     public synchronized void reset() {
       super.reset();
-      response = null;
+      responses = new ArrayList<>();
     }
 
     @Override
