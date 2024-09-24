@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 public class MockNetwork {
 
   public static final String BORDER_ROUTER_IPV4 = "127.0.0.1";
-  public static final String BORDER_ROUTER_IPv6 = "::1";
+  public static final String BORDER_ROUTER_IPV6 = "::1";
   public static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   public static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
   public static final int TINY_SRV_PORT_1 = 22233;
@@ -87,8 +87,8 @@ public class MockNetwork {
 
   public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
     startTiny(
-        localIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
-        remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPv6,
+        localIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPV6,
+        remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPV6,
         Mode.DAEMON);
   }
 
@@ -152,6 +152,7 @@ public class MockNetwork {
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
+    getAndResetForwardCount();
   }
 
   public static synchronized void stopTiny() {
@@ -395,12 +396,16 @@ class MockBorderRouter implements Runnable {
       Scmp.TypeCode type, ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel channel)
       throws IOException {
     // send back!
+    byte[] payload = new byte[buffer.remaining()];
+    buffer.get(payload);
+
     buffer.rewind();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
     spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
     scmpHeader.setCode(type);
-    ByteBuffer out = ByteBuffer.allocate(100);
+    spi.setPayLoad(payload);
+    ByteBuffer out = ByteBuffer.allocate(1232); // 1232 limit, see spec
     spi.writePacketSCMP(out);
     out.flip();
     channel.send(out, srcAddress);

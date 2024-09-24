@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.3.0
+- Breaking change: setScmpErrorListener(ErrorMessage)
 - Make ResponsePath/RequestPath classes private. Make at least create() private... 
 - Demo that connects to Francois' website
 - Fix @Disabled tests
@@ -46,8 +47,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Improved path duplication filtering.
   [#117](https://github.com/scionproto-contrib/jpan/pull/117)
 - Added environment variable / property for DNS search domain.
-  [#119](https://github.com/scionproto-contrib/jpan/pull/119)
-
+  [#118](https://github.com/scionproto-contrib/jpan/pull/118)
+- New SCMP API: [#119](https://github.com/scionproto-contrib/jpan/pull/119) 
+  - separate ScmpSender/ScmpResponder
+  - non-blocking ScmpSenderAsync
+  - deprecated old ScmpChannel
+  
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
 - Separate topo file parser [#103](https://github.com/scionproto-contrib/jpan/pull/103)

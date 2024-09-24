@@ -40,7 +40,7 @@ public class ScmpEchoDemo {
 
   public static boolean PRINT = true;
   private static int REPEAT = 10;
-  private static Network NETWORK = Network.SCION_PROTO;
+  public static Network NETWORK = Network.PRODUCTION;
   private final int localPort;
 
   public enum Network {
@@ -127,9 +127,9 @@ public class ScmpEchoDemo {
     }
 
     printPath(path);
-    try (ScmpChannel scmpChannel = Scmp.createChannel(localPort)) {
+    try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
       for (int i = 0; i < REPEAT; i++) {
-        Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, i, data);
+        Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, data);
         if (i == 0) {
           printHeader(path.getRemoteSocketAddress(), data, msg);
         }

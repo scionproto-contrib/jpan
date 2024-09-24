@@ -15,6 +15,7 @@
 package org.scion.jpan.internal;
 
 import java.nio.ByteBuffer;
+import org.scion.jpan.ResponsePath;
 import org.scion.jpan.Scmp;
 
 public class ScmpParser {
@@ -103,6 +104,51 @@ public class ScmpParser {
         break;
       default:
         break;
+    }
+  }
+
+  /**
+   * Reads a SCMP message from the packet. Consumes the byte buffer.
+   *
+   * @param data packet data
+   * @return SCMP message
+   */
+  public static Scmp.Message consume(ByteBuffer data, ResponsePath path) {
+    int type = ByteUtil.toUnsigned(data.get());
+    int code = ByteUtil.toUnsigned(data.get());
+    data.getShort(); // checksum
+    // TODO validate checksum
+
+    Scmp.Type st = Scmp.Type.parse(type);
+    Scmp.TypeCode sc = Scmp.TypeCode.parse(type, code);
+    int short1 = ByteUtil.toUnsigned(data.getShort());
+    int short2 = ByteUtil.toUnsigned(data.getShort());
+    switch (st) {
+      case INFO_128:
+      case INFO_129:
+        Scmp.EchoMessage echo = Scmp.EchoMessage.createEmpty(path);
+        echo.setMessageArgs(sc, short1, short2);
+        echo.setData(new byte[data.remaining()]);
+        data.get(echo.getData());
+        return echo;
+      case INFO_130:
+      case INFO_131:
+        long isdAs = data.getLong();
+        long ifID = data.getLong();
+        Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.createEmpty(path);
+        trace.setMessageArgs(sc, short1, short2);
+        trace.setTracerouteArgs(isdAs, ifID);
+        return trace;
+      default:
+        if (!sc.isError()) {
+          // INFO 200, 201, 255, ...
+          return new Scmp.Message(sc, short1, short2, path);
+        }
+        Scmp.ErrorMessage error = Scmp.ErrorMessage.createEmpty(sc, path);
+        byte[] cause = new byte[data.remaining()];
+        data.get(cause);
+        error.setCause(cause);
+        return error;
     }
   }
 }

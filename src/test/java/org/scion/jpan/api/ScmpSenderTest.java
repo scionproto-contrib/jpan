@@ -21,62 +21,21 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
-import org.scion.jpan.internal.ScionHeaderParser;
+import org.scion.jpan.demo.inspector.ScmpHeader;
+import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
-public class SCMPTest {
-  private static final byte[] PING_ERROR_4_51_HK = {
-    0, 0, 0, 1, -54, 35, 0, -80,
-    1, 0, 0, 0, 0, 64, 0, 2,
-    0, 0, 0, 9, 0, 64, 0, 2,
-    0, 0, 0, 9, -127, -124, -26, 86,
-    -64, -88, 53, 20, 70, 0, 80, -128,
-    1, 0, 73, -18, 101, -90, -92, 52,
-    1, 0, -95, -22, 101, -90, -91, -103,
-    0, 63, 0, 0, 0, 1, -87, -21,
-    92, 51, 89, -87, 0, 63, 0, 1,
-    0, 2, -74, -117, -26, 74, -47, -107,
-    0, 63, 0, 1, 0, 22, -85, 62,
-    121, -62, 124, -61, 0, 63, 0, 3,
-    0, 8, -96, 93, -5, 72, -22, -58,
-    0, 63, 0, 21, 0, 0, 102, 19,
-    47, 40, 118, -111, 0, 63, 0, 0,
-    0, 5, -70, 106, -60, 125, -23, 98,
-    0, 63, 0, 1, 0, 0, 77, -14,
-    -37, -102, 103, -90, 4, 51, -35, 103,
-    0, 0, 0, 68, 0, 0, 0, 1,
-    -54, 38, 0, 16, 1, 48, 0, 0,
-    0, 66, 0, 2, 0, 0, 0, 17,
-    0, 64, 0, 2, 0, 0, 0, 9,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 1,
-    -127, -124, -26, 86, 0, 0, 33, 64,
-    0, 0, -95, -22, 101, -90, -91, -103,
-    0, 0, 73, -18, 101, -90, -92, 52,
-    0, 63, 0, 1, 0, 0, 77, -14,
-    -37, -102, 103, -90, 0, 63, 0, 0,
-    0, 5, -70, 106, -60, 125, -23, 98,
-    0, 63, 0, 21, 0, 0, 102, 19,
-    47, 40, 118, -111, 0, 63, 0, 3,
-    0, 8, -96, 93, -5, 72, -22, -58,
-    0, 63, 0, 1, 0, 22, -85, 62,
-    121, -62, 124, -61, 0, 63, 0, 1,
-    0, 2, -74, -117, -26, 74, -47, -107,
-    0, 63, 0, 0, 0, 1, -87, -21,
-    92, 51, 89, -87, -128, 0, 0, 0,
-    117, 89, 0, 0, 0, 0, 0, 0,
-    0, 0, 117, 89,
-  };
+public class ScmpSenderTest {
+  private static final ConcurrentLinkedQueue<String> errors = new ConcurrentLinkedQueue<>();
 
   @AfterAll
   public static void afterAll() {
@@ -84,33 +43,30 @@ public class SCMPTest {
     ScionService.closeDefault();
   }
 
-  @Test
-  void echo_error_invalidMAC() throws IOException {
-    ScionPacketInspector spi = ScionPacketInspector.readPacket(ByteBuffer.wrap(PING_ERROR_4_51_HK));
-    assertEquals(Scmp.TypeCode.TYPE_4_CODE_51, spi.getScmpHeader().getCode());
-
-    // Test that error can be parsed without throwing an exception
-    ByteBuffer buffer = ByteBuffer.wrap(PING_ERROR_4_51_HK);
-    InetAddress srcAddr = Inet4Address.getByAddress(new byte[] {0, 0, 0, 0});
-    InetSocketAddress srcAddress = new InetSocketAddress(srcAddr, 12345);
-    ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-    assertNotNull(path);
+  @AfterEach
+  public void afterEach() {
+    if (!errors.isEmpty()) {
+      for (String s : errors) {
+        System.err.println("ERROR: " + s);
+      }
+      fail(errors.poll());
+    }
   }
 
   @Test
-  void echo() throws IOException {
+  void sendEcho() throws IOException {
     testEcho(this::getPathTo112);
   }
 
   @Test
-  void echo_localAS_BR() throws IOException {
+  void sendEcho_localAS_BR() throws IOException {
     testEcho(this::getPathToLocalAS_BR);
     assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   @Test
-  void echo_localAS_BR_30041() throws IOException {
+  void sendEcho_localAS_BR_30041() throws IOException {
     testEcho(this::getPathToLocalAS_BR_30041);
     assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
@@ -119,13 +75,13 @@ public class SCMPTest {
   private void testEcho(Supplier<Path> pathSupplier) throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(1);
-    try (ScmpChannel channel = Scmp.createChannel()) {
-      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
-      Scmp.EchoMessage result = channel.sendEchoRequest(path, 42, ByteBuffer.wrap(data));
-      assertEquals(42, result.getSequenceNumber());
+      Scmp.EchoMessage result = channel.sendEchoRequest(path, ByteBuffer.wrap(data));
+      assertEquals(0, result.getSequenceNumber());
       assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode());
       assertTrue(result.getNanoSeconds() > 0);
       assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
@@ -141,52 +97,50 @@ public class SCMPTest {
   }
 
   @Test
-  void echo_timeout() throws IOException {
+  void sendEcho_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel channel = Scmp.createChannel()) {
-      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       channel.setTimeOut(100);
       MockNetwork.dropNextPackets(1);
-      Scmp.EchoMessage result1 = channel.sendEchoRequest(path, 42, ByteBuffer.allocate(0));
+      Scmp.EchoMessage result1 = channel.sendEchoRequest(path, ByteBuffer.allocate(0));
       assertTrue(result1.isTimedOut());
       assertEquals(100 * 1_000_000, result1.getNanoSeconds());
-      assertEquals(42, result1.getSequenceNumber());
+      assertEquals(0, result1.getSequenceNumber());
 
       // try again
       MockNetwork.answerNextScmpEchos(1);
-      Scmp.EchoMessage result2 = channel.sendEchoRequest(path, 43, ByteBuffer.allocate(0));
+      Scmp.EchoMessage result2 = channel.sendEchoRequest(path, ByteBuffer.allocate(0));
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
       assertTrue(result2.getNanoSeconds() > 0);
       assertTrue(result2.getNanoSeconds() < 10_000_000); // 10 ms
-      assertEquals(43, result2.getSequenceNumber());
+      assertEquals(1, result2.getSequenceNumber());
     } finally {
       MockNetwork.stopTiny();
     }
   }
 
   @Test
-  void echo_IOException() throws IOException {
+  void sendEcho_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel channel = Scmp.createChannel()) {
-      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+    try (ScmpSender channel = exceptionSender()) {
+      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.stopTiny();
-      // Exception because network is down.
-      assertThrows(
-          IOException.class, () -> channel.sendEchoRequest(path, 42, ByteBuffer.allocate(0)));
+      // IOException thrown by MockChannel
+      assertThrows(IOException.class, () -> channel.sendEchoRequest(path, ByteBuffer.allocate(0)));
     } finally {
       MockNetwork.stopTiny();
     }
   }
 
   @Test
-  void echo_SCMP_error() throws IOException {
+  void sendEcho_SCMP_error() throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel channel = Scmp.createChannel()) {
+    try (ScmpSender channel = errorSender()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -195,28 +149,28 @@ public class SCMPTest {
       Throwable t =
           assertThrows(
               IOException.class,
-              () -> channel.sendEchoRequest(getPathTo112(), 42, ByteBuffer.allocate(0)));
+              () -> channel.sendEchoRequest(getPathTo112(), ByteBuffer.allocate(0)));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()), t.getMessage());
       assertTrue(listenerWasTriggered.get());
-      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
   }
 
   @Test
-  void traceroute() throws IOException {
+  void sendTraceroute() throws IOException {
     testTraceroute(this::getPathTo112, 2);
   }
 
   @Test
-  void traceroute_localAS_BR() throws IOException {
+  void sendTraceroute_localAS_BR() throws IOException {
     testTraceroute(this::getPathToLocalAS_BR, 0);
   }
 
   private void testTraceroute(Supplier<Path> path, int nHops) throws IOException {
     MockNetwork.startTiny();
-    try (ScmpChannel channel = Scmp.createChannel()) {
-      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       Collection<Scmp.TracerouteMessage> results = channel.sendTracerouteRequest(path.get());
 
@@ -244,18 +198,18 @@ public class SCMPTest {
   }
 
   @Test
-  void traceroute_timeout() throws IOException {
+  void sendTraceroute_timeout() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel channel = Scmp.createChannel()) {
-      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+    try (ScmpSender channel = Scmp.newSenderBuilder().build()) {
+      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(1000, channel.getTimeOut());
       channel.setTimeOut(100);
       assertEquals(100, channel.getTimeOut());
-      MockNetwork.dropNextPackets(1);
+      MockNetwork.dropNextPackets(2);
       Collection<Scmp.TracerouteMessage> results1 = channel.sendTracerouteRequest(path);
-      assertEquals(1, results1.size());
+      assertEquals(2, results1.size());
       for (Scmp.TracerouteMessage result : results1) {
         assertTrue(result.isTimedOut());
         assertEquals(Scmp.TypeCode.TYPE_130, result.getTypeCode());
@@ -275,14 +229,13 @@ public class SCMPTest {
   }
 
   @Test
-  void traceroute_IOException() throws IOException {
+  void sendTraceroute_IOException() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel channel = Scmp.createChannel()) {
-      channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
+    try (ScmpSender channel = exceptionSender()) {
+      channel.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      MockNetwork.stopTiny();
-      // IOException because network is down
+      // IOException thrown by MockChannel
       assertThrows(IOException.class, () -> channel.sendTracerouteRequest(path));
     } finally {
       MockNetwork.stopTiny();
@@ -290,18 +243,18 @@ public class SCMPTest {
   }
 
   @Test
-  void traceroute_SCMP_error() throws IOException {
+  void sendTraceroute_SCMP_error() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
-    try (ScmpChannel channel = Scmp.createChannel()) {
+    try (ScmpSender channel = errorSender()) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       // Router will return SCMP error
       MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_1_CODE_0);
       Throwable t = assertThrows(IOException.class, () -> channel.sendTracerouteRequest(path));
+      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()), t.getMessage());
       assertTrue(listenerWasTriggered.get());
-      assertTrue(t.getMessage().contains(Scmp.TypeCode.TYPE_1_CODE_0.getText()));
     } finally {
       MockNetwork.stopTiny();
     }
@@ -345,86 +298,56 @@ public class SCMPTest {
     }
   }
 
-  @Test
-  void setUpScmpResponder_echo() throws IOException, InterruptedException {
-    MockNetwork.startTiny();
-    MockScmpHandler.stop(); // Shut down SCMP handler
-    Path path = getPathTo112(InetAddress.getLoopbackAddress());
-    // sender is in 110; responder is in 112
-    try (ScmpChannel sender = Scmp.createChannel()) {
-      sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-
-      // start responder
-      CountDownLatch barrier = new CountDownLatch(1);
-      Thread t = new Thread(() -> scmpResponder(barrier, null));
-      t.start();
-      barrier.await();
-      Thread.sleep(50);
-
-      // send request
-      for (int i = 0; i < 10; i++) {
-        Scmp.EchoMessage msg = sender.sendEchoRequest(path, 1, ByteBuffer.allocate(0));
-        assertNotNull(msg);
-        assertFalse(msg.isTimedOut());
-        assertEquals(Scmp.TypeCode.TYPE_129, msg.getTypeCode());
-      }
-
-      // finish
-      t.join(100);
-      t.interrupt(); // just in case.
-    } finally {
-      MockNetwork.stopTiny();
-    }
+  private ScmpSender exceptionSender() throws IOException {
+    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    errorChannel.setSendCallback(
+        (byteBuffer, socketAddress) -> {
+          return 0;
+        });
+    errorChannel.setThrowOnConnect(true);
+    // This selector throws an Exception when activated.
+    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    selector.setConnectCallback(
+        () -> {
+          throw new IOException();
+        });
+    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();
   }
 
-  @Test
-  void setUpScmpResponder_echo_blocked() throws IOException, InterruptedException {
-    MockNetwork.startTiny();
-    MockScmpHandler.stop(); // Shut down SCMP handler
-    Path path = getPathTo112(InetAddress.getLoopbackAddress());
-    // sender is in 110; responder is in 112
-    try (ScmpChannel sender = Scmp.createChannel()) {
-      sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+  private ScmpSender errorSender() throws IOException {
+    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    ConcurrentLinkedQueue<ScionPacketInspector> spis = new ConcurrentLinkedQueue<>();
+    ConcurrentLinkedQueue<SocketAddress> socketAddresses = new ConcurrentLinkedQueue<>();
 
-      // start responder
-      CountDownLatch barrier = new CountDownLatch(1);
-      AtomicInteger dropCount = new AtomicInteger();
-      Thread t =
-          new Thread(() -> scmpResponder(barrier, (echoMsg) -> dropCount.incrementAndGet() < -42));
-      t.start();
-      barrier.await();
-      Thread.sleep(50);
-
-      // send request
-      sender.setTimeOut(100);
-      for (int i = 0; i < 2; i++) {
-        Scmp.EchoMessage result = sender.sendEchoRequest(path, 42, ByteBuffer.allocate(0));
-        assertTrue(result.isTimedOut());
-        assertEquals(100 * 1_000_000, result.getNanoSeconds());
-        assertEquals(42, result.getSequenceNumber());
-      }
-      assertEquals(2, dropCount.get());
-
-      // finish
-      t.join(100);
-      t.interrupt(); // just in case.
-    } finally {
-      MockNetwork.stopTiny();
-    }
-  }
-
-  private void scmpResponder(CountDownLatch barrier, Predicate<Scmp.EchoMessage> predicate) {
-    try (ScmpChannel responder = Scmp.createChannel(Constants.SCMP_PORT)) {
-      responder.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
-      responder.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      responder.setScmpEchoListener(predicate);
-      barrier.countDown();
-      responder.setUpScmpEchoResponder();
-    } catch (IOException e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
+    errorChannel.setSendCallback(
+        (buffer, mySocketAddress) -> {
+          socketAddresses.add(mySocketAddress);
+          byte[] payload = new byte[buffer.remaining()];
+          buffer.get(payload);
+          buffer.rewind();
+          ScionPacketInspector spi = ScionPacketInspector.readPacket(buffer);
+          spis.add(spi);
+          spi.reversePath();
+          ScmpHeader scmpHeader = spi.getScmpHeader();
+          scmpHeader.setCode(Scmp.TypeCode.TYPE_1_CODE_0);
+          spi.setPayLoad(payload);
+          return payload.length;
+        });
+    errorChannel.setReceiveCallback(
+        (buffer) -> {
+          while (spis.isEmpty() || socketAddresses.isEmpty()) {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+            }
+          }
+          ScionPacketInspector spi = spis.remove();
+          spi.writePacketSCMP(buffer);
+          return socketAddresses.remove();
+        });
+    // This selector throws an Exception when activated.
+    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();
   }
 }

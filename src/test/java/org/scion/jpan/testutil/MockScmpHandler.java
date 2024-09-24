@@ -98,15 +98,15 @@ public class MockScmpHandler implements Runnable {
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress bind = new InetSocketAddress(ip, Constants.SCMP_PORT);
-    try (DatagramChannel chn = DatagramChannel.open().bind(bind);
+    InetSocketAddress localAddress = new InetSocketAddress(ip, Constants.SCMP_PORT);
+    try (DatagramChannel chn = DatagramChannel.open().bind(localAddress);
         Selector selector = Selector.open()) {
       chn.configureBlocking(false);
       chn.register(selector, SelectionKey.OP_READ, chn);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
       address.set((InetSocketAddress) chn.getLocalAddress());
+      logger.info("{} started on {}", name, localAddress);
       barrier.countDown();
-      logger.info("{} started on {}", name, bind);
 
       while (true) {
         if (selector.select() == 0) {

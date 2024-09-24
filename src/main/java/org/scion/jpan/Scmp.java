@@ -221,27 +221,83 @@ public class Scmp {
   }
 
   public abstract static class TimedMessage extends Message {
-    private long nanoSeconds;
+    private long sendNanoSeconds;
+    private long receiveNanoSeconds;
     private boolean timedOut = false;
+    // If (this) is a response then "request" may contain the original request
+    private TimedMessage request;
 
     private TimedMessage(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
     }
 
+    public long getSendNanoSeconds() {
+      return this.sendNanoSeconds;
+    }
+
+    public void setSendNanoSeconds(long l) {
+      this.sendNanoSeconds = l;
+    }
+
+    public long getReceiveNanoSeconds() {
+      return this.receiveNanoSeconds;
+    }
+
+    public void setReceiveNanoSeconds(long l) {
+      this.receiveNanoSeconds = l;
+    }
+
+    @Deprecated
     public void setNanoSeconds(long nanoSeconds) {
-      this.nanoSeconds = nanoSeconds;
+      this.sendNanoSeconds = 0;
+      this.receiveNanoSeconds = nanoSeconds;
     }
 
     public long getNanoSeconds() {
-      return nanoSeconds;
+      return receiveNanoSeconds - sendNanoSeconds;
     }
 
     public void setTimedOut() {
       this.timedOut = true;
     }
 
+    public void setTimedOut(long timeOutNS) {
+      this.timedOut = true;
+      this.receiveNanoSeconds = this.sendNanoSeconds + timeOutNS;
+    }
+
     public boolean isTimedOut() {
       return timedOut;
+    }
+
+    public void assignRequest(TimedMessage request, long receivedNanoSeconds) {
+      this.request = request;
+      this.sendNanoSeconds = request.sendNanoSeconds;
+      this.receiveNanoSeconds = receivedNanoSeconds;
+    }
+
+    public TimedMessage getRequest() {
+      return request;
+    }
+  }
+
+  public static class ErrorMessage extends Message {
+    private byte[] cause;
+
+    private ErrorMessage(TypeCode typeCode, Path path) {
+      super(typeCode, 0, 0, path);
+    }
+
+    public static ErrorMessage createEmpty(TypeCode typeCode, Path path) {
+      return new ErrorMessage(typeCode, path);
+    }
+
+    public byte[] getCause() {
+      return cause;
+    }
+
+    public void setCause(byte[] cause) {
+      this.cause = cause;
     }
   }
 
@@ -356,7 +412,7 @@ public class Scmp {
    * @param path Path to destination
    * @return New SCMP channel
    */
-  @Deprecated // Please remove "path" argument
+  @Deprecated // Please remove "path" argument. To be removed in 0.3.0
   public static ScmpChannel createChannel(RequestPath path) throws IOException {
     return new ScmpChannel(path);
   }
@@ -368,7 +424,7 @@ public class Scmp {
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
    */
-  @Deprecated // Please remove "path" argument
+  @Deprecated // Please remove "path" argument. To be removed in 0.3.0
   public static ScmpChannel createChannel(RequestPath path, int listeningPort) throws IOException {
     return new ScmpChannel(Scion.defaultService(), path, listeningPort);
   }
@@ -381,7 +437,7 @@ public class Scmp {
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
    */
-  @Deprecated // Please remove "path" argument
+  @Deprecated // Please remove "path" argument. To be removed in 0.3.0
   public static ScmpChannel createChannel(ScionService service, RequestPath path, int listeningPort)
       throws IOException {
     return new ScmpChannel(service, path, listeningPort);
@@ -391,7 +447,9 @@ public class Scmp {
    * Create a channel for sending SCMP requests.
    *
    * @return New SCMP channel
+   * @deprecated Please use Scmp.newBlockingSenderBuilder() instead. To be removed in 0.4.0
    */
+  @Deprecated
   public static ScmpChannel createChannel() throws IOException {
     return new ScmpChannel();
   }
@@ -401,7 +459,9 @@ public class Scmp {
    *
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
+   * @deprecated Please use Scmp.newBlockingSenderBuilder() instead. To be removed in 0.4.0
    */
+  @Deprecated
   public static ScmpChannel createChannel(int listeningPort) throws IOException {
     return new ScmpChannel(Scion.defaultService(), listeningPort);
   }
@@ -412,9 +472,40 @@ public class Scmp {
    * @param service the ScionService instance
    * @param listeningPort Local port to listen for SCMP requests.
    * @return New SCMP channel
+   * @deprecated Please use Scmp.newBlockingSenderBuilder() instead. To be removed in 0.4.0
    */
+  @Deprecated
   public static ScmpChannel createChannel(ScionService service, int listeningPort)
       throws IOException {
     return new ScmpChannel(service, listeningPort);
+  }
+
+  /**
+   * Create a sender for SCMP requests.
+   *
+   * @return New SCMP sender builder
+   */
+  public static ScmpSender.Builder newSenderBuilder() {
+    return ScmpSender.newBuilder();
+  }
+
+  /**
+   * Create an asynchronous non-blocking sender for SCMP requests.
+   *
+   * @return New SCMP sender builder
+   */
+  public static ScmpSenderAsync.Builder newSenderAsyncBuilder(
+      ScmpSenderAsync.ResponseHandler handler) {
+    return ScmpSenderAsync.newBuilder(handler);
+  }
+
+  /**
+   * Create a SCMP responder. It will listen on 30041 for SCMP echo requests and send a response
+   * back.
+   *
+   * @return New SCMP responder builder
+   */
+  public static ScmpResponder.Builder newResponderBuilder() {
+    return ScmpResponder.newBuilder();
   }
 }
