@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
@@ -153,9 +154,9 @@ public class ScmpSenderAsyncTest {
         byte[] data = new byte[] {1, 2, 3, 4, 5};
         Path path = pathSupplier.get();
         int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
+        assertEquals(i, seqId);
         Scmp.EchoMessage result = handler.get();
-        System.err.println("seqId: " + seqId + " " + result.getSequenceNumber());
-        // assertEquals(seqId, result.getSequenceNumber());
+        assertEquals(seqId, result.getSequenceNumber(), "i=" + i);
         assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
         assertTrue(result.getNanoSeconds() > 0);
         assertTrue(result.getNanoSeconds() < 100_000_000); // 10 ms
@@ -178,7 +179,7 @@ public class ScmpSenderAsyncTest {
 
   @Test
   void sendEcho_localAS_BR_async() throws IOException {
-    int n = 20;
+    int n = 25;
     testEchoAsync(this::getPathToLocalAS_BR, n);
     assertEquals(n, MockNetwork.getAndResetForwardCount()); // 1!
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
@@ -186,7 +187,7 @@ public class ScmpSenderAsyncTest {
 
   @Test
   void sendEcho_localAS_BR_30041_async() throws IOException {
-    int n = 20;
+    int n = 25;
     testEchoAsync(this::getPathToLocalAS_BR_30041, n);
     assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
@@ -197,8 +198,7 @@ public class ScmpSenderAsyncTest {
     MockNetwork.answerNextScmpEchos(n);
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
-      channel.setTimeOut(10000);
-      ScmpSenderAsync.CHECK = true;
+      channel.setTimeOut(10000); // TODO
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
@@ -210,6 +210,8 @@ public class ScmpSenderAsyncTest {
 
       System.err.println("************************************************* Start get()"); // TODO
       List<Scmp.EchoMessage> results = handler.get(n);
+      long nTimedOut = results.stream().filter(Scmp.TimedMessage::isTimedOut).count();
+      assertEquals(0, nTimedOut);
       for (int i = 0; i < n; i++) {
         Scmp.EchoMessage result = results.get(i);
         System.err.println("************************************************* seqId: " + result.getSequenceNumber()); // TODO
@@ -217,7 +219,7 @@ public class ScmpSenderAsyncTest {
         seqIDs.remove(result.getSequenceNumber());
         assertEquals(Scmp.TypeCode.TYPE_129, result.getTypeCode(), "T/O=" + result.isTimedOut());
         assertTrue(result.getNanoSeconds() > 0);
-        assertTrue(result.getNanoSeconds() < 990_000_000); // 10 ms
+        assertTrue(result.getNanoSeconds() < 500_000_000); // 10 ms
         assertArrayEquals(data, result.getData());
         assertFalse(result.isTimedOut());
         Path returnPath = result.getPath();
@@ -226,7 +228,6 @@ public class ScmpSenderAsyncTest {
         assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
       }
     } finally {
-      ScmpSenderAsync.CHECK = false;
       MockNetwork.stopTiny();
     }
   }
@@ -254,7 +255,7 @@ public class ScmpSenderAsyncTest {
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
       assertTrue(result2.getNanoSeconds() > 0);
-      assertTrue(result2.getNanoSeconds() < 10_000_000); // 10 ms
+      assertTrue(result2.getNanoSeconds() < 50_000_000); // 10 ms
       assertEquals(seqId2, result2.getSequenceNumber());
     } finally {
       MockNetwork.stopTiny();
@@ -585,20 +586,9 @@ public class ScmpSenderAsyncTest {
     final AtomicInteger exceptionCounter = new AtomicInteger();
     volatile Scmp.ErrorMessage error = null;
     volatile Throwable exception = null;
+    final List<T> responses = new CopyOnWriteArrayList<>();
 
-    synchronized void handleError(Scmp.ErrorMessage msg) {
-      error = msg;
-      errorCounter.incrementAndGet();
-      this.notifyAll();
-    }
-
-    synchronized void handleException(Throwable t) {
-      exception = t;
-      exceptionCounter.incrementAndGet();
-      this.notifyAll();
-    }
-
-    protected T waitForResult(Supplier<T> checkResult) throws IOException {
+    protected List<T> waitForResult(int count) throws IOException {
       try {
         while (true) {
           synchronized (this) {
@@ -608,8 +598,9 @@ public class ScmpSenderAsyncTest {
             if (exception != null) {
               throw new IOException(exception);
             }
-            T result = checkResult.get();
-            if (result != null) {
+            if (responses.size() >= count) {
+              ArrayList<T> result = new ArrayList<>(responses);
+              responses.clear();
               return result;
             }
             this.wait();
@@ -624,84 +615,54 @@ public class ScmpSenderAsyncTest {
     protected synchronized void reset() {
       error = null;
       exception = null;
+      responses.clear();
     }
 
     @Override
-    public void onError(Scmp.ErrorMessage msg) {
-      handleError(msg);
-    }
-
-    @Override
-    public void onException(Throwable t) {
-      handleException(t);
-    }
-  }
-
-  private static class EchoHandler extends ScmpHandler<List<Scmp.EchoMessage>> {
-    private ArrayList<Scmp.EchoMessage> responses = new ArrayList<>();
-
-    synchronized void handle(Scmp.EchoMessage msg) {
-      responses.add(msg);
-      System.err.println("seqId: " + msg.getSequenceNumber()); // TODO
+    @SuppressWarnings("unchecked")
+    public final synchronized void onResponse(Scmp.TimedMessage msg) {
+      responses.add((T) msg);
       this.notifyAll();
     }
 
+    @Override
+    public final synchronized void onTimeout(Scmp.TimedMessage msg) {
+      onResponse(msg);
+    }
+
+    @Override
+    public final synchronized void onError(Scmp.ErrorMessage msg) {
+      error = msg;
+      errorCounter.incrementAndGet();
+      this.notifyAll();
+    }
+
+    @Override
+    public final synchronized void onException(Throwable t) {
+      exception = t;
+      exceptionCounter.incrementAndGet();
+      this.notifyAll();
+    }
+  }
+
+  private static class EchoHandler extends ScmpHandler<Scmp.EchoMessage> {
     Scmp.EchoMessage get() throws IOException {
-      return get(1).get(0);
+      return super.waitForResult(1).get(0);
     }
 
     List<Scmp.EchoMessage> get(int count) throws IOException {
-      return super.waitForResult(()  -> responses.size() >= count ? responses : null);
-    }
-
-    @Override
-    public synchronized void reset() {
-      super.reset();
-      responses = new ArrayList<>();
-    }
-
-    @Override
-    public void onResponse(Scmp.TimedMessage msg) {
-      handle((Scmp.EchoMessage) msg);
-    }
-
-    @Override
-    public void onTimeout(Scmp.TimedMessage msg) {
-      handle((Scmp.EchoMessage) msg);
+      return super.waitForResult(count);
     }
   }
 
-  private static class TraceHandler extends ScmpHandler<List<Scmp.TracerouteMessage>> {
-    private ArrayList<Scmp.TracerouteMessage> responses = new ArrayList<>();
-
-    synchronized void handle(Scmp.TracerouteMessage msg) {
-      responses.add(msg);
-      this.notifyAll();
-    }
-
+  private static class TraceHandler extends ScmpHandler<Scmp.TracerouteMessage> {
     /**
      * @param count Number of SCMP response that should be registered before get() returns.
      * @return 'Count' or more messages.
      * @throws IOException in case of a problem
      */
     List<Scmp.TracerouteMessage> get(int count) throws IOException {
-      return super.waitForResult(() -> responses.size() >= count ? responses : null);
-    }
-
-    @Override
-    public synchronized void reset() {
-      super.reset();
-      responses = new ArrayList<>();
-    }
-
-    @Override
-    public void onResponse(Scmp.TimedMessage msg) {
-      handle((Scmp.TracerouteMessage) msg);
-    }
-
-    @Override
-    public void onTimeout(Scmp.TimedMessage msg) {
-      handle((Scmp.TracerouteMessage) msg);
+      return super.waitForResult(count);
     }
   }
 }

@@ -41,8 +41,6 @@ public class ScmpSenderAsync implements AutoCloseable {
   private final CountDownLatch receiverBarrier = new CountDownLatch(1);
   private final ResponseHandler handler;
 
-  public static boolean CHECK = false;
-
   public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
   }
@@ -185,6 +183,10 @@ public class ScmpSenderAsync implements AutoCloseable {
     stopReceiver();
   }
 
+  public <T> T getOption(SocketOption<T> option) throws IOException {
+    return channel.getOption(option);
+  }
+
   /**
    * This is currently only useful for {@link ScionSocketOptions#SCION_API_THROW_PARSER_FAILURE}.
    *
@@ -307,39 +309,26 @@ public class ScmpSenderAsync implements AutoCloseable {
         ByteBuffer buffer = super.getBufferReceive(DEFAULT_BUFFER_SIZE);
         buffer.clear();
         InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
-//        System.err.println("readIncoming(): " + buffer.position() + "      " + srcAddress); // TODO
-        while (srcAddress == null) {
-          srcAddress = (InetSocketAddress) incoming.receive(buffer);
-        }
-//        System.err.println("readIncoming() 2: " + buffer.remaining() + "      " + srcAddress); // TODO
         buffer.flip();
         if (buffer.remaining() == 0) {
+          System.err.println("readIncoming() - remaining= " + buffer.position() + "      " + srcAddress); // TODO
           return; // Wait for data
         }
-        boolean MULTI = buffer.remaining() > 85;
-        while (buffer.hasRemaining()) {
-          int pos1 = buffer.position();
-          if (MULTI) System.err.println("readIncoming() 3: " + buffer.position() + "      " + srcAddress); // TODO
-          if (validate(buffer)) {
-            InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-            ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-            int packetLength = ScionHeaderParser.extractPacketLength(buffer);
-            // From here on we use linear reading using the buffer's position() mechanism
-            buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-            // Check for extension headers.
-            // This should be mostly unnecessary, however we sometimes saw SCMP error headers
-            // wrapped in extensions headers.
-            hdrType = receiveExtensionHeader(buffer, hdrType);
+        if (validate(buffer)) {
+          InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+          ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+          int packetLength = ScionHeaderParser.extractPacketLength(buffer);
+          // From here on we use linear reading using the buffer's position() mechanism
+          buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
+          // Check for extension headers.
+          // This should be mostly unnecessary, however we sometimes saw SCMP error headers
+          // wrapped in extensions headers.
+          hdrType = receiveExtensionHeader(buffer, hdrType);
 
-            if (hdrType != InternalConstants.HdrTypes.SCMP) {
-              return; // drop
-            }
-            handleIncomingScmp(buffer, receivePath, packetLength);
-            int pos2 = buffer.position();
-            if (CHECK && pos2 - pos1 > 85 ) {
-              throw new IllegalStateException();
-            }
+          if (hdrType != InternalConstants.HdrTypes.SCMP) {
+            return; // drop
           }
+          handleIncomingScmp(buffer, receivePath, packetLength);
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
