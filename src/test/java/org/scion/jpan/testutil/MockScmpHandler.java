@@ -197,16 +197,16 @@ public class MockScmpHandler implements Runnable {
     ByteBuffer out = ByteBuffer.allocate(100);
     spi.writePacketSCMP(out);
     out.flip();
-//    try {
-//      // This is required for the ScmpSenderAsync test ...
-//      Thread.sleep(2);
-//    } catch (InterruptedException e) {
-//      throw new RuntimeException(e);
-//    }
+    try {
+      // This is required for the ScmpSenderAsync test ...
+      Thread.sleep(2);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
     int sent = channel.send(out, srcAddress);
-//    if (sent != out.limit()) {
-//      throw new IllegalStateException();
-//    }
+    if (sent != out.limit()) {
+      throw new IllegalStateException();
+    }
     buffer.clear();
   }
 
