@@ -73,8 +73,8 @@ public class ScionHeaderParser {
       ByteBuffer data, InetSocketAddress firstHopAddress) {
     int pos = data.position();
 
-    int i1 = data.getInt(pos + 4);
-    int i2 = data.getInt(pos + 8);
+    int i1 = data.getInt(4);
+    int i2 = data.getInt(8);
     int nextHeader = ByteUtil.readInt(i1, 0, 8);
     InternalConstants.HdrTypes hdrType = InternalConstants.HdrTypes.parse(nextHeader);
     int hdrLen = ByteUtil.readInt(i1, 8, 8);
@@ -90,11 +90,11 @@ public class ScionHeaderParser {
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr
 
-    long dstIsdAs = data.getLong(pos + 12);
-    long srcIsdAs = data.getLong(pos + 20);
+    long dstIsdAs = data.getLong(12);
+    long srcIsdAs = data.getLong(20);
 
     // dstAddress
-    data.position(pos + 28);
+    data.position(28);
     byte[] bytesDst = new byte[(dl + 1) * 4];
     data.get(bytesDst);
 
@@ -113,7 +113,7 @@ public class ScionHeaderParser {
     }
 
     // raw path
-    byte[] path = new byte[hdrLenBytes - data.position() - pos];
+    byte[] path = new byte[hdrLenBytes - data.position()];
     if (path.length > 0) {
       // raw path may be empty for local AS
       data.get(path);
@@ -121,7 +121,7 @@ public class ScionHeaderParser {
     }
 
     // get remote port from UDP or SCMP payload
-    data.position(pos + hdrLenBytes);
+    data.position(hdrLenBytes);
     int srcPort;
     int dstPort;
     if (hdrType == InternalConstants.HdrTypes.UDP) {
@@ -129,7 +129,7 @@ public class ScionHeaderParser {
       srcPort = Short.toUnsignedInt(data.getShort());
       dstPort = Short.toUnsignedInt(data.getShort());
     } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
-      data.position(pos + hdrLenBytes + 4);
+      data.position(hdrLenBytes + 4);
       // ports will be swapped further down
       dstPort = Short.toUnsignedInt(data.getShort());
       srcPort = Constants.SCMP_PORT;
@@ -227,7 +227,7 @@ public class ScionHeaderParser {
    * @return the length of the SCION common + address + path header in bytes
    */
   public static int extractHeaderLength(ByteBuffer data) {
-    int hdrLen = ByteUtil.toUnsigned(data.get(data.position() + 5));
+    int hdrLen = ByteUtil.toUnsigned(data.get(5));
     return hdrLen * 4;
   }
 

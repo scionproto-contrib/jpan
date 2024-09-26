@@ -65,7 +65,7 @@ public class ScmpParser {
   public static Scmp.Type extractType(ByteBuffer data) {
     // Avoid changing the position!
     int headerLength = ScionHeaderParser.extractHeaderLength(data);
-    return Scmp.Type.parse(ByteUtil.toUnsigned(data.get(data.position() + headerLength)));
+    return Scmp.Type.parse(ByteUtil.toUnsigned(data.get(headerLength)));
   }
 
   /**
