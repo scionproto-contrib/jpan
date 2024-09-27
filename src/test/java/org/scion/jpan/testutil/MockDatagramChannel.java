@@ -56,7 +56,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   private SocketAddress bindAddress;
   private SocketAddress connectAddress;
 
-  private boolean throwOnConnect = false;
+  private boolean throwOnSend = false;
 
   private Function<ByteBuffer, SocketAddress> receiveCallback =
       byteBuffer -> {
@@ -84,8 +84,8 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     sendCallback = cb;
   }
 
-  public void setThrowOnConnect(boolean flag) {
-    this.throwOnConnect = flag;
+  public void setThrowOnSend(boolean flag) {
+    this.throwOnSend = flag;
   }
 
   @Override
@@ -135,9 +135,6 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
   @Override
   public java.nio.channels.DatagramChannel connect(SocketAddress socketAddress) throws IOException {
-    if (throwOnConnect) {
-      throw new IOException();
-    }
     connectAddress = socketAddress;
     isConnected = true;
     if (bindAddress == null) {
@@ -168,6 +165,9 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
   @Override
   public int send(ByteBuffer byteBuffer, SocketAddress socketAddress) throws IOException {
+    if (throwOnSend) {
+      throw new IOException();
+    }
     if (bindAddress == null) {
       bindAddress = BIND_ANY_SOCKET;
     }

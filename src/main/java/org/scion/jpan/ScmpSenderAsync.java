@@ -22,9 +22,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,16 +39,8 @@ public class ScmpSenderAsync implements AutoCloseable {
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
   private final ConcurrentHashMap<Integer, TimeOutTask> timers = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
-  // The receiver thread is tasked with handling incoming packets as fast as possible. To do so, it hands of any
-  // received packets immediately to the receiverProcessor. This construct is necessary because while the receiver is
-  // handling packets (while it is _not_ waiting on select()), incoming packets are likely to be dropped.
   private Thread receiver;
-  private Thread receiverProcessor;
   private final ResponseHandler handler;
-  // Pool of buffers, shared between receiver and receiverProcessor
-  private final ConcurrentLinkedQueue<ByteBuffer> bufferPool = new ConcurrentLinkedQueue<>();
-  // Queue of buffer for moving buffers between receiver and receiverProcessor
-  private final ArrayBlockingQueue<ByteBuffer> processingQueue = new ArrayBlockingQueue<>(50);
 
   public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
@@ -75,7 +65,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       throws IOException {
     this.channel = new InternalChannel(service, port, channel, selector);
     this.handler = handler;
-    this.receiverProcessor = startHandler(this::receiveProcessorTask, "ScmpSender-receiverProcessor");
     this.receiver = startHandler(this::receiveTask, "ScmpSender-receiver");
   }
 
@@ -194,7 +183,6 @@ public class ScmpSenderAsync implements AutoCloseable {
   public void close() throws IOException {
     timer.cancel();
     stopHandler(receiver);
-    stopHandler(receiverProcessor);
     channel.close();
   }
 
@@ -246,7 +234,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
+        // super.channel().connect(path.getFirstHopAddress()); TODO
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
@@ -304,91 +292,26 @@ public class ScmpSenderAsync implements AutoCloseable {
       sendRaw(buffer, path);
     }
 
-    //    private void receiveAsync() throws IOException {
-    //      while (selector.isOpen() && selector.select() > 0) {
-    //        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-    //        if (iter.hasNext()) {
-    //          SelectionKey key = iter.next();
-    //          iter.remove();
-    //          if (key.isValid() && key.isReadable()) {
-    //            readIncomingScmp(key);
-    //          }
-    //        }
-    //      }
-    //    }
-    //
-    //    private void readIncomingScmp(SelectionKey key) throws IOException {
-    //      readLock().lock();
-    //      try {
-    //        DatagramChannel incoming = (DatagramChannel) key.channel();
-    //        ByteBuffer buffer = super.getBufferReceive(DEFAULT_BUFFER_SIZE);
-    //        buffer.clear();
-    //        InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
-    //        buffer.flip();
-    //        if (buffer.remaining() == 0) {
-    //          return; // Wait for data
-    //        }
-    //        if (validate(buffer)) {
-    //          InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
-    //          ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-    //          int packetLength = ScionHeaderParser.extractPacketLength(buffer);
-    //          // From here on we use linear reading using the buffer's position() mechanism
-    //          buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
-    //          // Check for extension headers.
-    //          // This should be mostly unnecessary, however we sometimes saw SCMP error headers
-    //          // wrapped in extensions headers.
-    //          hdrType = receiveExtensionHeader(buffer, hdrType);
-    //
-    //          if (hdrType != InternalConstants.HdrTypes.SCMP) {
-    //            return; // drop
-    //          }
-    //          handleIncomingScmp(buffer, receivePath, packetLength);
-    //        }
-    //      } catch (ScionException e) {
-    //        // Validation problem -> ignore
-    //        handler.onException(e);
-    //      } finally {
-    //        readLock().unlock();
-    //      }
-    //    }
-
-    private void receiveAsync2() throws IOException {
+    private void receiveAsync() throws IOException {
       while (selector.isOpen() && selector.select() > 0) {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         if (iter.hasNext()) {
           SelectionKey key = iter.next();
           iter.remove();
           if (key.isValid() && key.isReadable()) {
-            ByteBuffer buffer = bufferPool.poll();
-            if (buffer == null) {
-              buffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE);
-            }
-            buffer.clear();
-            DatagramChannel incoming = (DatagramChannel) key.channel();
-            InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
-            if (srcAddress != null && buffer.position() > 0) {
-                if (!processingQueue.offer(buffer)) {
-                  log.warn("SCMP process buffer overflow");
-                }
-            } else {
-              bufferPool.offer(buffer);
-            }
+            readIncomingScmp(key);
           }
         }
       }
     }
 
-    private void processAsync() throws IOException, InterruptedException {
-      while (!Thread.currentThread().isInterrupted()) {
-        ByteBuffer buffer = processingQueue.take();
-        readIncomingScmp2(buffer);
-        bufferPool.offer(buffer);
-      }
-    }
-
-    private void readIncomingScmp2(ByteBuffer buffer) throws IOException {
+    private void readIncomingScmp(SelectionKey key) throws IOException {
+      readLock().lock();
       try {
-        InetSocketAddress srcAddress = null;
+        DatagramChannel incoming = (DatagramChannel) key.channel();
+        ByteBuffer buffer = super.getBufferReceive(DEFAULT_BUFFER_SIZE);
+        buffer.clear();
+        InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
         buffer.flip();
         if (validate(buffer)) {
           InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
@@ -409,6 +332,8 @@ public class ScmpSenderAsync implements AutoCloseable {
       } catch (ScionException e) {
         // Validation problem -> ignore
         handler.onException(e);
+      } finally {
+        readLock().unlock();
       }
     }
 
@@ -465,20 +390,9 @@ public class ScmpSenderAsync implements AutoCloseable {
   private void receiveTask(CountDownLatch barrier) {
     try {
       barrier.countDown();
-      channel.receiveAsync2();
+      channel.receiveAsync();
     } catch (IOException e) {
       handler.onException(e);
-    }
-  }
-
-  private void receiveProcessorTask(CountDownLatch barrier) {
-    try {
-      barrier.countDown();
-      channel.processAsync();
-    } catch (IOException e) {
-      handler.onException(e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
     }
   }
 
