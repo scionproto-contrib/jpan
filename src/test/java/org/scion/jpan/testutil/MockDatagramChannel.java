@@ -17,14 +17,7 @@ package org.scion.jpan.testutil;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.MembershipKey;
-import java.nio.channels.Pipe;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.nio.channels.spi.AbstractSelector;
 import java.nio.channels.spi.SelectorProvider;
@@ -55,6 +48,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   private boolean isBlocking = false;
   private SocketAddress bindAddress;
   private SocketAddress connectAddress;
+  private MockSelectionKey selectionKey = null;
 
   private boolean throwOnConnect = false;
 
@@ -250,11 +244,12 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
   public static class MockSelector extends AbstractSelector {
     private final ConcurrentHashMap<SelectionKey, Object> keys = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<SelectionKey, Object> selectedKeys = new ConcurrentHashMap<>();
 
-    private Callable<Integer> connectCallback = () -> 1;
+    private Callable<Integer> selectCallback = null;
 
-    public void setConnectCallback(Callable<Integer> callback) {
-      this.connectCallback = callback;
+    public void setSelectCallback(Callable<Integer> callback) {
+      this.selectCallback = callback;
     }
 
     public static MockSelector open() {
@@ -292,7 +287,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
     @Override
     public Set<SelectionKey> selectedKeys() {
-      return keys.keySet();
+      return selectedKeys.keySet();
     }
 
     @Override
@@ -308,7 +303,17 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     @Override
     public int select() throws IOException {
       try {
-        return connectCallback.call();
+        if (selectCallback != null) {
+          return selectCallback.call();
+        }
+        while (true) {
+          synchronized (selectedKeys) {
+            if (selectedKeys.isEmpty()) {
+              selectedKeys.wait();
+            }
+            return selectedKeys().size();
+          }
+        }
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -316,7 +321,17 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
     @Override
     public Selector wakeup() {
-      return null;
+      synchronized (selectedKeys) {
+        selectedKeys.notifyAll(); // TODO ensure return even if isEmpty
+      }
+      return this;
+    }
+
+    public void mockActivateKey(SelectionKey key) {
+      synchronized(selectedKeys) {
+        selectedKeys.put(key, new Object());
+        selectedKeys.notifyAll();
+      }
     }
   }
 

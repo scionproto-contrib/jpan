@@ -307,7 +307,7 @@ public class ScmpSenderTest {
     errorChannel.setThrowOnConnect(true);
     // This selector throws an Exception when activated.
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
-    selector.setConnectCallback(
+    selector.setSelectCallback(
         () -> {
           throw new IOException();
         });

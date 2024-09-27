@@ -44,13 +44,14 @@ public class ScmpSenderAsync implements AutoCloseable {
   // The receiver thread is tasked with handling incoming packets as fast as possible. To do so, it hands of any
   // received packets immediately to the receiverProcessor. This construct is necessary because while the receiver is
   // handling packets (while it is _not_ waiting on select()), incoming packets are likely to be dropped.
-  private Thread receiver;
+  private Thread channelThread;
   private Thread receiverProcessor;
   private final ResponseHandler handler;
   // Pool of buffers, shared between receiver and receiverProcessor
   private final ConcurrentLinkedQueue<ByteBuffer> bufferPool = new ConcurrentLinkedQueue<>();
   // Queue of buffer for moving buffers between receiver and receiverProcessor
-  private final ArrayBlockingQueue<ByteBuffer> processingQueue = new ArrayBlockingQueue<>(50);
+  private final ArrayBlockingQueue<ByteBuffer> receiveQueue = new ArrayBlockingQueue<>(50);
+  private final ArrayBlockingQueue<SendEntry> sendQueue = new ArrayBlockingQueue<>(50);
 
   public static Builder newBuilder(ResponseHandler handler) {
     return new Builder(handler);
@@ -76,7 +77,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     this.channel = new InternalChannel(service, port, channel, selector);
     this.handler = handler;
     this.receiverProcessor = startHandler(this::receiveProcessorTask, "ScmpSender-receiverProcessor");
-    this.receiver = startHandler(this::receiveTask, "ScmpSender-receiver");
+    this.channelThread = startHandler(this::receiveTask, "ScmpSender-receiver");
   }
 
   private Thread startHandler(Consumer<CountDownLatch> task, String name) {
@@ -193,7 +194,7 @@ public class ScmpSenderAsync implements AutoCloseable {
   @Override
   public void close() throws IOException {
     timer.cancel();
-    stopHandler(receiver);
+    stopHandler(channelThread);
     stopHandler(receiverProcessor);
     channel.close();
   }
@@ -227,9 +228,10 @@ public class ScmpSenderAsync implements AutoCloseable {
 
       // selector
       this.selector = selector;
-      super.channel().configureBlocking(false);
-      super.channel().register(selector, SelectionKey.OP_READ);
-
+      synchronized (channel()) {
+        super.channel().configureBlocking(false);
+        super.channel().register(selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+      }
       if (port == 0) {
         if (Util.getJavaMajorVersion() >= 17) {
           super.bind(null);
@@ -244,24 +246,30 @@ public class ScmpSenderAsync implements AutoCloseable {
 
     void sendEchoRequest(Scmp.EchoMessage request) throws IOException {
       writeLock().lock();
-      try {
-        Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
-        ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
-        // EchoHeader = 8 + data
-        int len = 8 + request.getData().length;
-        buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-        int localPort = super.getLocalAddress().getPort();
-        ScmpParser.buildScmpPing(
-            buffer, Scmp.Type.INFO_128, localPort, request.getSequenceNumber(), request.getData());
-        buffer.flip();
-        request.setSizeSent(buffer.remaining());
+      synchronized (channel()) {
+        try {
+          Path path = request.getPath();
+          // super.channel().connect(path.getFirstHopAddress());  // TODO this was the crucial fix for lost SCMP packets
+          ByteBuffer buffer = getBuffer();
+          // EchoHeader = 8 + data
+          int len = 8 + request.getData().length;
+          buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
+          int localPort = super.getLocalAddress().getPort();
+          ScmpParser.buildScmpPing(
+              buffer,
+              Scmp.Type.INFO_128,
+              localPort,
+              request.getSequenceNumber(),
+              request.getData());
+          buffer.flip();
+          request.setSizeSent(buffer.remaining());
 
-        sendRequest(request, buffer, path);
-      } finally {
-        writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
+          sendRequest(request, buffer, path);
+        } finally {
+          writeLock().unlock();
+          if (super.channel().isConnected()) {
+            super.channel().disconnect();
+          }
         }
       }
     }
@@ -269,33 +277,48 @@ public class ScmpSenderAsync implements AutoCloseable {
     void sendTracerouteRequest(Scmp.TracerouteMessage request, PathHeaderParser.Node node)
         throws IOException {
       writeLock().lock();
-      try {
-        Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
-        ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
-        // TracerouteHeader = 24
-        int len = 24;
-        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
-        int interfaceNumber = request.getSequenceNumber();
-        int localPort = super.getLocalAddress().getPort();
-        ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, localPort, interfaceNumber);
-        buffer.flip();
+      synchronized (channel()) {
+        try {
+          Path path = request.getPath();
+          super.channel().connect(path.getFirstHopAddress());
+          ByteBuffer buffer = getBuffer();
+          // TracerouteHeader = 24
+          int len = 24;
+          buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
+          int interfaceNumber = request.getSequenceNumber();
+          int localPort = super.getLocalAddress().getPort();
+          ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, localPort, interfaceNumber);
+          buffer.flip();
 
-        // Set flags for border routers to return SCMP packet
-        int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
-        buffer.put(posPath + node.posHopFlags, node.hopFlags);
+          // Set flags for border routers to return SCMP packet
+          int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
+          buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
-        sendRequest(request, buffer, path);
-      } finally {
-        writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
+          sendRequest(request, buffer, path);
+        } finally {
+          writeLock().unlock();
+          if (super.channel().isConnected()) {
+            super.channel().disconnect();
+          }
         }
       }
     }
 
     private void sendRequest(Scmp.TimedMessage request, ByteBuffer buffer, Path path)
-        throws IOException {
+            throws IOException {
+      // TODO rename to schedule request?
+      // TODO get buffer from pool
+        try {
+            sendQueue.put(new SendEntry(request, buffer, path));
+            selector.wakeup();
+            System.err.println("sendRequest++: " + sendQueue.size());// TODO
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void sendRequestNew(Scmp.TimedMessage request, ByteBuffer buffer, Path path)
+            throws IOException {
       request.setSendNanoSeconds(System.nanoTime());
       TimeOutTask timerTask = new TimeOutTask(request);
       timer.schedule(timerTask, timeOutMs);
@@ -352,35 +375,54 @@ public class ScmpSenderAsync implements AutoCloseable {
     //      }
     //    }
 
-    private void receiveAsync2() throws IOException {
-      while (selector.isOpen() && selector.select() > 0) {
+    private void receiveAsync2() throws IOException, InterruptedException {
+      System.err.println("rA@-waiting...");// TODO
+      while (selector.isOpen()) {
+         int n = selector.select();
+         if (!selector.isOpen() || (n == 0 && sendQueue.isEmpty())) {
+           break;
+         }
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         if (iter.hasNext()) {
           SelectionKey key = iter.next();
           iter.remove();
+          if (key.isValid() && key.isWritable() && !sendQueue.isEmpty()) {
+            SendEntry se = sendQueue.take();
+            sendRequestNew(se.request, se.buffer, se.path);
+            System.err.println("sent: " + se.request.getSequenceNumber());// TODO
+            bufferPool.clear();
+            bufferPool.offer(se.buffer);
+          }
           if (key.isValid() && key.isReadable()) {
-            ByteBuffer buffer = bufferPool.poll();
-            if (buffer == null) {
-              buffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE);
-            }
-            buffer.clear();
-            DatagramChannel incoming = (DatagramChannel) key.channel();
-            InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
-            if (srcAddress != null && buffer.position() > 0) {
-                if (!processingQueue.offer(buffer)) {
+            ByteBuffer buffer = getBuffer();
+            synchronized (channel()) {
+              DatagramChannel incoming = (DatagramChannel) key.channel();
+              InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
+              if (srcAddress != null && buffer.position() > 0) {
+                if (!receiveQueue.offer(buffer)) {
                   log.warn("SCMP process buffer overflow");
                 }
-            } else {
-              bufferPool.offer(buffer);
+              } else {
+                bufferPool.offer(buffer);
+              }
             }
           }
         }
       }
     }
 
+    private ByteBuffer getBuffer() {
+      ByteBuffer buffer = bufferPool.poll();
+      if (buffer == null) {
+        buffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE);
+      }
+      buffer.clear();
+      return buffer;
+    }
+
     private void processAsync() throws IOException, InterruptedException {
       while (!Thread.currentThread().isInterrupted()) {
-        ByteBuffer buffer = processingQueue.take();
+        ByteBuffer buffer = receiveQueue.take();
         readIncomingScmp2(buffer);
         bufferPool.offer(buffer);
       }
@@ -389,6 +431,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     private void readIncomingScmp2(ByteBuffer buffer) throws IOException {
       try {
         InetSocketAddress srcAddress = null;
+        System.err.println("rIS2: bytes:" + buffer.position());// TODO
         buffer.flip();
         if (validate(buffer)) {
           InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
@@ -416,6 +459,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       long currentNanos = System.nanoTime();
       int bufferStart = buffer.position();
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath, packetLength);
+      System.err.println("hIS-received: " + msg.getSequenceNumber()); // TODO
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
         checkListeners(msg);
@@ -468,6 +512,8 @@ public class ScmpSenderAsync implements AutoCloseable {
       channel.receiveAsync2();
     } catch (IOException e) {
       handler.onException(e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -498,6 +544,17 @@ public class ScmpSenderAsync implements AutoCloseable {
         msg.setTimedOut(timeOutMs * 1_000_000L);
         handler.onTimeout(msg);
       }
+    }
+  }
+
+  private static class SendEntry {
+    final Scmp.TimedMessage request;
+    final ByteBuffer buffer;
+    final Path path;
+    SendEntry(Scmp.TimedMessage request, ByteBuffer buffer, Path path) {
+      this.request = request;
+      this.buffer = buffer;
+      this.path = path;
     }
   }
 
@@ -538,7 +595,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
       try {
-        channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
+        channel = channel == null ? DatagramChannel.open() : channel;
         selector = selector == null ? Selector.open() : selector;
         if (port == -1) {
           if (Util.getJavaMajorVersion() >= 17) {
