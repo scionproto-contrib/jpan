@@ -233,7 +233,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        // super.channel().connect(path.getFirstHopAddress()); TODO
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
@@ -247,9 +246,6 @@ public class ScmpSenderAsync implements AutoCloseable {
         sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
-        }
       }
     }
 
@@ -258,7 +254,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
         int len = 24;
@@ -275,9 +270,6 @@ public class ScmpSenderAsync implements AutoCloseable {
         sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
-        }
       }
     }
 
