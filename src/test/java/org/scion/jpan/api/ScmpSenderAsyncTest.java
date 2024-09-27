@@ -334,7 +334,8 @@ public class ScmpSenderAsyncTest {
     testTracerouteAsync(this::getPathTo112, 2, 25);
   }
 
-  private void testTracerouteAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat) throws IOException {
+  private void testTracerouteAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat)
+      throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(nRepeat);
     TraceHandler handler = new TraceHandler();
@@ -479,7 +480,8 @@ public class ScmpSenderAsyncTest {
     testTracerouteLastAsync(this::getPathTo112, 2, 25);
   }
 
-  private void testTracerouteLastAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat) throws IOException {
+  private void testTracerouteLastAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat)
+      throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(nRepeat);
     TraceHandler handler = new TraceHandler();
