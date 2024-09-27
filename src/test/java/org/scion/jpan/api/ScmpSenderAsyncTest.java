@@ -251,7 +251,7 @@ public class ScmpSenderAsyncTest {
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
       assertTrue(result2.getNanoSeconds() > 0);
-      assertTrue(result2.getNanoSeconds() < 50_000_000); // 10 ms
+      assertTrue(result2.getNanoSeconds() < 10_000_000); // 10 ms
       assertEquals(seqId2, result2.getSequenceNumber());
     } finally {
       MockNetwork.stopTiny();
@@ -324,6 +324,44 @@ public class ScmpSenderAsyncTest {
       }
 
       assertEquals(nHops, results.size());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void sendTraceroute_async() throws IOException {
+    testTracerouteAsync(this::getPathTo112, 2, 25);
+  }
+
+  private void testTracerouteAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat) throws IOException {
+    MockNetwork.startTiny();
+    MockNetwork.answerNextScmpEchos(nRepeat);
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      Path path = pathSupplier.get();
+      HashSet<Integer> seqIDs = new HashSet<>();
+      for (int i = 0; i < nRepeat; i++) {
+        seqIDs.addAll(channel.sendTraceroute(path));
+      }
+
+      List<Scmp.TracerouteMessage> results = handler.get(seqIDs.size());
+      long nTimedOut = results.stream().filter(Scmp.TimedMessage::isTimedOut).count();
+      assertEquals(0, nTimedOut);
+      for (int i = 0; i < nRepeat; i++) {
+        Scmp.TracerouteMessage result = results.get(i);
+        assertTrue(seqIDs.contains(result.getSequenceNumber()));
+        seqIDs.remove(result.getSequenceNumber());
+        assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode(), "T/O=" + result.isTimedOut());
+        assertTrue(result.getNanoSeconds() > 0);
+        assertTrue(result.getNanoSeconds() < 500_000_000); // 10 ms
+        assertFalse(result.isTimedOut());
+        Path returnPath = result.getPath();
+        assertEquals(path.getRemoteAddress(), returnPath.getRemoteAddress());
+        assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
+        assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
+      }
     } finally {
       MockNetwork.stopTiny();
     }
@@ -430,6 +468,44 @@ public class ScmpSenderAsyncTest {
         assertTrue(success);
       } else {
         assertFalse(success);
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void sendTracerouteLast_async() throws IOException {
+    testTracerouteLastAsync(this::getPathTo112, 2, 25);
+  }
+
+  private void testTracerouteLastAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat) throws IOException {
+    MockNetwork.startTiny();
+    MockNetwork.answerNextScmpEchos(nRepeat);
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      Path path = pathSupplier.get();
+      HashSet<Integer> seqIDs = new HashSet<>();
+      for (int i = 0; i < nRepeat; i++) {
+        seqIDs.add(channel.sendTracerouteLast(path));
+      }
+
+      List<Scmp.TracerouteMessage> results = handler.get(seqIDs.size());
+      long nTimedOut = results.stream().filter(Scmp.TimedMessage::isTimedOut).count();
+      assertEquals(0, nTimedOut);
+      for (int i = 0; i < nRepeat; i++) {
+        Scmp.TracerouteMessage result = results.get(i);
+        assertTrue(seqIDs.contains(result.getSequenceNumber()));
+        seqIDs.remove(result.getSequenceNumber());
+        assertEquals(Scmp.TypeCode.TYPE_131, result.getTypeCode(), "T/O=" + result.isTimedOut());
+        assertTrue(result.getNanoSeconds() > 0);
+        assertTrue(result.getNanoSeconds() < 500_000_000); // 10 ms
+        assertFalse(result.isTimedOut());
+        Path returnPath = result.getPath();
+        assertEquals(path.getRemoteAddress(), returnPath.getRemoteAddress());
+        assertEquals(Constants.SCMP_PORT, returnPath.getRemotePort());
+        assertEquals(path.getRemoteIsdAs(), returnPath.getRemoteIsdAs());
       }
     } finally {
       MockNetwork.stopTiny();

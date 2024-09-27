@@ -361,7 +361,6 @@ class MockBorderRouter implements Runnable {
 
   private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
-    // TODO remove buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     Scmp.Type type0 = ScmpParser.extractType(buffer);
     // ignore SCMP responses
     if (type0 == Scmp.Type.INFO_129 || type0 == Scmp.Type.INFO_131) {

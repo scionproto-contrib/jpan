@@ -156,11 +156,9 @@ public class MockScmpHandler implements Runnable {
     buffer.rewind();
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     // From here on we use linear reading using the buffer's position() mechanism
-    // TODO remove buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     Path path = PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
     Scmp.Type type = ScmpParser.extractType(buffer);
     Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
-    // TODO incorporate into consume?
     buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     ScmpParser.consume(buffer, scmpMsg);
     logger.info(
