@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
-import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

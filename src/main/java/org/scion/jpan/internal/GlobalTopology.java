@@ -27,6 +27,7 @@ import org.scion.jpan.ScionUtil;
 public class GlobalTopology {
 
   private final Map<Integer, Isd> world = new HashMap<>();
+
   /**
    * The topology is "empty" if it wasn't initialized with TRC file (or TRC metadata). THis can
    * happen when it is initialized from a local topology file without bootstrap server.

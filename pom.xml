@@ -20,7 +20,7 @@
 
         <scion.bnd-maven-plugin.version>6.4.0</scion.bnd-maven-plugin.version>
         <scion.build-helper-maven-plugin.version>3.3.0</scion.build-helper-maven-plugin.version>
-        <scion.fmt-maven.version>2.20</scion.fmt-maven.version>
+        <scion.fmt-maven.version>2.23</scion.fmt-maven.version>
         <scion.maven-clean-plugin.version>3.2.0</scion.maven-clean-plugin.version>
         <scion.maven-compiler-plugin.version>3.11.0</scion.maven-compiler-plugin.version>
         <scion.maven-deploy-plugin.version>3.1.1</scion.maven-deploy-plugin.version>
