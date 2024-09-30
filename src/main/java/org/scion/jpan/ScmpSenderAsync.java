@@ -38,7 +38,7 @@ public class ScmpSenderAsync implements AutoCloseable {
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
   private final ConcurrentHashMap<Integer, TimeOutTask> timers = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
-  private Thread receiver;
+  private final Thread receiver;
   private final ResponseHandler handler;
 
   public static Builder newBuilder(ResponseHandler handler) {
@@ -84,13 +84,11 @@ public class ScmpSenderAsync implements AutoCloseable {
   }
 
   private void stopHandler(Thread thread) {
-    if (thread != null) {
-      thread.interrupt();
-      try {
-        thread.join(100);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
+    thread.interrupt();
+    try {
+      thread.join(100);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
