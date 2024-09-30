@@ -64,7 +64,8 @@ public class ScmpParser {
 
   public static Scmp.Type extractType(ByteBuffer data) {
     // Avoid changing the position!
-    return Scmp.Type.parse(ByteUtil.toUnsigned(data.get(data.position())));
+    int headerLength = ScionHeaderParser.extractHeaderLength(data);
+    return Scmp.Type.parse(ByteUtil.toUnsigned(data.get(headerLength)));
   }
 
   /**
@@ -113,7 +114,7 @@ public class ScmpParser {
    * @param data packet data
    * @return SCMP message
    */
-  public static Scmp.Message consume(ByteBuffer data, ResponsePath path) {
+  public static Scmp.Message consume(ByteBuffer data, ResponsePath path, int packetLength) {
     int type = ByteUtil.toUnsigned(data.get());
     int code = ByteUtil.toUnsigned(data.get());
     data.getShort(); // checksum
@@ -128,7 +129,7 @@ public class ScmpParser {
       case INFO_129:
         Scmp.EchoMessage echo = Scmp.EchoMessage.createEmpty(path);
         echo.setMessageArgs(sc, short1, short2);
-        echo.setData(new byte[data.remaining()]);
+        echo.setData(new byte[packetLength - data.position()]);
         data.get(echo.getData());
         return echo;
       case INFO_130:

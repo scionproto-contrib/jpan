@@ -16,7 +16,6 @@ package org.scion.jpan.demo.inspector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -89,7 +88,7 @@ public class ScmpInspectorTest {
   }
 
   @Test
-  void testScmpError_WrongPacketSize() throws IOException {
+  void testScmpError_WrongPacketSize() {
     ByteBuffer data = ByteBuffer.wrap(SCMP_PKT_SIZE).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();
@@ -98,7 +97,7 @@ public class ScmpInspectorTest {
   }
 
   @Test
-  void testScmpError_WrongPacketSize2() throws IOException {
+  void testScmpError_WrongPacketSize2() {
     ByteBuffer data = ByteBuffer.wrap(SCMP_PACKET_SIZE2).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();
@@ -107,7 +106,7 @@ public class ScmpInspectorTest {
   }
 
   @Test
-  void testScmpError_WrongSrcIsdAs() throws IOException {
+  void testScmpError_WrongSrcIsdAs() {
     ByteBuffer data = ByteBuffer.wrap(WRONG_SRC_ISD_AS).asReadOnlyBuffer();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
     ScmpHeader hdr = spi.getScmpHeader();

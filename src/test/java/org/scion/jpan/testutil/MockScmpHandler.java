@@ -146,7 +146,6 @@ public class MockScmpHandler implements Runnable {
 
   private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel incoming)
       throws IOException {
-    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     Scmp.Type type0 = ScmpParser.extractType(buffer);
     // ignore SCMP responses
     if (type0 == Scmp.Type.INFO_129 || type0 == Scmp.Type.INFO_131) {
@@ -157,10 +156,10 @@ public class MockScmpHandler implements Runnable {
     buffer.rewind();
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     // From here on we use linear reading using the buffer's position() mechanism
-    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     Path path = PackageVisibilityHelper.getResponsePath(buffer, (InetSocketAddress) srcAddress);
     Scmp.Type type = ScmpParser.extractType(buffer);
     Scmp.Message scmpMsg = PackageVisibilityHelper.createMessage(type, path);
+    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     ScmpParser.consume(buffer, scmpMsg);
     logger.info(
         " received SCMP {} {}", scmpMsg.getTypeCode().name(), scmpMsg.getTypeCode().getText());

@@ -26,22 +26,26 @@ public class HopField {
   private boolean r3;
   private boolean r4;
   private boolean r5;
+
   /**
    * 1 bit : ConsIngress Router Alert. If the ConsIngress Router Alert is set, the ingress router
    * (in construction direction) will process the L4 payload in the packet.
    */
   private boolean flagI;
+
   /**
    * 1 bit : ConsEgress Router Alert. If the ConsEgress Router Alert is set, the egress router (in
    * construction direction) will process the L4 payload in the packet.
    */
   private boolean flagE;
+
   /**
    * 8 bits : Expiry time of a hop field. The expiration time expressed is relative. An absolute
    * expiration time in seconds is computed in combination with the timestamp field (from the
    * corresponding info field) as follows: abs_time = timestamp + (1+expiryTime)*24*60*60/256
    */
   private int expiryTime;
+
   // 16 bits : consIngress : The 16-bits ingress interface IDs in construction direction.
   private int consIngress;
   // 16 bits : consEgress : The 16-bits egress interface IDs in construction direction.

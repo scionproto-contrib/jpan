@@ -53,6 +53,17 @@ public class ScionHeaderParser {
   }
 
   /**
+   * Extract the total packet length without changing the buffer's position.
+   *
+   * @param data The datagram to read from.
+   */
+  public static int extractPacketLength(ByteBuffer data) {
+    int headerLen = extractHeaderLength(data);
+    int payloadLen = ByteUtil.toUnsigned(data.getShort(data.position() + 6));
+    return headerLen + payloadLen;
+  }
+
+  /**
    * Extract the remote socket address and path without changing the buffer's position.
    *
    * @param data The datagram to read from.
@@ -140,7 +151,7 @@ public class ScionHeaderParser {
    * @return The type of the next header.
    */
   public static InternalConstants.HdrTypes extractNextHeader(ByteBuffer data) {
-    int nextHeader = ByteUtil.toUnsigned(data.get(4));
+    int nextHeader = ByteUtil.toUnsigned(data.get(data.position() + 4));
     return InternalConstants.HdrTypes.parse(nextHeader);
   }
 

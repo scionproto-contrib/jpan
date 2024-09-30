@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +38,7 @@ public class ScmpSenderAsync implements AutoCloseable {
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
   private final ConcurrentHashMap<Integer, TimeOutTask> timers = new ConcurrentHashMap<>();
   private final Timer timer = new Timer(true);
-  private Thread receiver;
-  private final CountDownLatch receiverBarrier = new CountDownLatch(1);
+  private final Thread receiver;
   private final ResponseHandler handler;
 
   public static Builder newBuilder(ResponseHandler handler) {
@@ -64,31 +64,31 @@ public class ScmpSenderAsync implements AutoCloseable {
       throws IOException {
     this.channel = new InternalChannel(service, port, channel, selector);
     this.handler = handler;
-    startReceiver();
+    this.receiver = startHandler(this::receiveTask, "ScmpSender-receiver");
   }
 
-  private void startReceiver() {
-    this.receiver = new Thread(this::handleReceive, "ScmpSender-receiver");
-    this.receiver.setDaemon(true);
-    this.receiver.start();
+  private Thread startHandler(Consumer<CountDownLatch> task, String name) {
+    CountDownLatch barrier = new CountDownLatch(1);
+    Thread thread = new Thread(() -> task.accept(barrier), name);
+    thread.setDaemon(true);
+    thread.start();
     try {
-      if (!this.receiverBarrier.await(1, TimeUnit.SECONDS)) {
-        throw new IllegalStateException("Could not start receiver thread.");
+      if (!barrier.await(1, TimeUnit.SECONDS)) {
+        throw new IllegalStateException("Could not start receiver thread: " + name);
       }
+      return thread;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
   }
 
-  private void stopReceiver() {
-    if (receiver != null) {
-      this.receiver.interrupt();
-      try {
-        this.receiver.join(100);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
+  private void stopHandler(Thread thread) {
+    thread.interrupt();
+    try {
+      thread.join(100);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -178,9 +178,13 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   @Override
   public void close() throws IOException {
-    channel.close();
     timer.cancel();
-    stopReceiver();
+    stopHandler(receiver);
+    channel.close();
+  }
+
+  public <T> T getOption(SocketOption<T> option) throws IOException {
+    return channel.getOption(option);
   }
 
   /**
@@ -227,7 +231,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
@@ -241,9 +244,6 @@ public class ScmpSenderAsync implements AutoCloseable {
         sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
-        }
       }
     }
 
@@ -252,7 +252,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       writeLock().lock();
       try {
         Path path = request.getPath();
-        super.channel().connect(path.getFirstHopAddress());
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
         int len = 24;
@@ -269,9 +268,6 @@ public class ScmpSenderAsync implements AutoCloseable {
         sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
-        if (super.channel().isConnected()) {
-          super.channel().disconnect();
-        }
       }
     }
 
@@ -308,6 +304,8 @@ public class ScmpSenderAsync implements AutoCloseable {
         buffer.flip();
         if (validate(buffer)) {
           InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+          ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+          int packetLength = ScionHeaderParser.extractPacketLength(buffer);
           // From here on we use linear reading using the buffer's position() mechanism
           buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
           // Check for extension headers.
@@ -318,7 +316,7 @@ public class ScmpSenderAsync implements AutoCloseable {
           if (hdrType != InternalConstants.HdrTypes.SCMP) {
             return; // drop
           }
-          handleIncomingScmp(buffer, srcAddress);
+          handleIncomingScmp(buffer, receivePath, packetLength);
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
@@ -328,10 +326,10 @@ public class ScmpSenderAsync implements AutoCloseable {
       }
     }
 
-    private void handleIncomingScmp(ByteBuffer buffer, InetSocketAddress srcAddress) {
+    private void handleIncomingScmp(ByteBuffer buffer, ResponsePath receivePath, int packetLength) {
       long currentNanos = System.nanoTime();
-      ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-      Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
+      int bufferStart = buffer.position();
+      Scmp.Message msg = ScmpParser.consume(buffer, receivePath, packetLength);
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
         checkListeners(msg);
@@ -346,7 +344,7 @@ public class ScmpSenderAsync implements AutoCloseable {
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
-          ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position());
+          ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position() - bufferStart);
           ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
           handler.onResponse((Scmp.TimedMessage) msg);
         } else {
@@ -378,9 +376,9 @@ public class ScmpSenderAsync implements AutoCloseable {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 
-  private void handleReceive() {
+  private void receiveTask(CountDownLatch barrier) {
     try {
-      receiverBarrier.countDown();
+      barrier.countDown();
       channel.receiveAsync();
     } catch (IOException e) {
       handler.onException(e);

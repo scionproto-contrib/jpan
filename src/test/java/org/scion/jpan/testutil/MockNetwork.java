@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
-import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -362,7 +361,6 @@ class MockBorderRouter implements Runnable {
 
   private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
-    buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
     Scmp.Type type0 = ScmpParser.extractType(buffer);
     // ignore SCMP responses
     if (type0 == Scmp.Type.INFO_129 || type0 == Scmp.Type.INFO_131) {

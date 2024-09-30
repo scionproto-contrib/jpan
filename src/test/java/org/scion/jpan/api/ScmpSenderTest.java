@@ -304,13 +304,9 @@ public class ScmpSenderTest {
         (byteBuffer, socketAddress) -> {
           return 0;
         });
-    errorChannel.setThrowOnConnect(true);
-    // This selector throws an Exception when activated.
+    errorChannel.setThrowOnSend(true);
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
-    selector.setConnectCallback(
-        () -> {
-          throw new IOException();
-        });
+    errorChannel.setReceiveCallback(byteBuffer -> null);
     return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();
   }
 
