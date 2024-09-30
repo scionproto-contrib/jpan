@@ -633,10 +633,7 @@ public class ScmpSenderAsyncTest {
 
   private ScmpSenderAsync exceptionSender(ScmpHandler<?> handler) throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
-    errorChannel.setSendCallback(
-        (byteBuffer, socketAddress) -> {
-          return 0;
-        });
+    errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
     // This selector throws an Exception when activated.
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
     selector.setConnectCallback(
@@ -651,10 +648,7 @@ public class ScmpSenderAsyncTest {
 
   private ScmpSenderAsync errorSender(ScmpHandler<?> handler) throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
-    errorChannel.setSendCallback(
-        (byteBuffer, socketAddress) -> {
-          return 0;
-        });
+    errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
     errorChannel.setReceiveCallback(
         buffer -> {
           buffer.put(PING_ERROR_4_51_HK);
