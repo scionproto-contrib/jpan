@@ -124,6 +124,20 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
+  void getOption() throws IOException {
+    MockNetwork.startTiny();
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      assertFalse(channel.getOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
+      assertEquals(handler, channel.getHandler());
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      assertTrue(channel.getOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
   void sendEcho() throws IOException {
     testEcho(this::getPathTo112, 5);
   }
@@ -149,10 +163,10 @@ public class ScmpSenderAsyncTest {
     MockNetwork.answerNextScmpEchos(n);
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      byte[] data = new byte[] {1, 2, 3, 4, 5};
+      Path path = pathSupplier.get();
       for (int i = 0; i < 5; i++) {
-        channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-        byte[] data = new byte[] {1, 2, 3, 4, 5};
-        Path path = pathSupplier.get();
         int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
         assertEquals(i, seqId);
         Scmp.EchoMessage result = handler.get();
@@ -331,11 +345,10 @@ public class ScmpSenderAsyncTest {
 
   @Test
   void sendTraceroute_async() throws IOException {
-    testTracerouteAsync(this::getPathTo112, 2, 25);
+    testTracerouteAsync(this::getPathTo112, 25);
   }
 
-  private void testTracerouteAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat)
-      throws IOException {
+  private void testTracerouteAsync(Supplier<Path> pathSupplier, int nRepeat) throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(nRepeat);
     TraceHandler handler = new TraceHandler();
@@ -477,10 +490,10 @@ public class ScmpSenderAsyncTest {
 
   @Test
   void sendTracerouteLast_async() throws IOException {
-    testTracerouteLastAsync(this::getPathTo112, 2, 25);
+    testTracerouteLastAsync(this::getPathTo112, 25);
   }
 
-  private void testTracerouteLastAsync(Supplier<Path> pathSupplier, int nHops, int nRepeat)
+  private void testTracerouteLastAsync(Supplier<Path> pathSupplier, int nRepeat)
       throws IOException {
     MockNetwork.startTiny();
     MockNetwork.answerNextScmpEchos(nRepeat);
