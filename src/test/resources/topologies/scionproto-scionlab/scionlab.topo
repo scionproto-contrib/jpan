@@ -1,0 +1,73 @@
+--- # Tiny Topology
+ASes:
+  "1-ff00:0:1001":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:1002":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:1003":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:1004":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:1005":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:1006":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:1007":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+links:
+  - {a: "1-ff00:0:1001#21", b: "1-ff00:0:1002#11",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1001#22", b: "1-ff00:0:1002#12",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1001#31", b: "1-ff00:0:1003#11",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1001#32", b: "1-ff00:0:1003#12",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1001#41", b: "1-ff00:0:1004#11",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1001#42", b: "1-ff00:0:1004#12",  linkAtoB: CORE}
+
+  - {a: "1-ff00:0:1002#31", b: "1-ff00:0:1003#21",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1002#32", b: "1-ff00:0:1003#22",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1002#41", b: "1-ff00:0:1004#21",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1002#42", b: "1-ff00:0:1004#22",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1002#51", b: "1-ff00:0:1005#21",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1002#52", b: "1-ff00:0:1005#22",  linkAtoB: CORE}
+
+  - {a: "1-ff00:0:1003#41", b: "1-ff00:0:1004#31",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1003#42", b: "1-ff00:0:1004#32",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1003#51", b: "1-ff00:0:1005#31",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1003#52", b: "1-ff00:0:1005#32",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1003#61", b: "1-ff00:0:1006#31",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1003#62", b: "1-ff00:0:1006#32",  linkAtoB: CORE}
+
+  - {a: "1-ff00:0:1004#51", b: "1-ff00:0:1005#41",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1004#52", b: "1-ff00:0:1005#42",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1004#61", b: "1-ff00:0:1006#41",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1004#62", b: "1-ff00:0:1006#42",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1004#71", b: "1-ff00:0:1007#41",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1004#72", b: "1-ff00:0:1007#42",  linkAtoB: CORE}
+
+  - {a: "1-ff00:0:1005#61", b: "1-ff00:0:1006#51",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1005#62", b: "1-ff00:0:1006#52",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1005#71", b: "1-ff00:0:1007#51",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1005#72", b: "1-ff00:0:1007#52",  linkAtoB: CORE}
+
+  - {a: "1-ff00:0:1006#71", b: "1-ff00:0:1007#61",  linkAtoB: CORE}
+  - {a: "1-ff00:0:1006#72", b: "1-ff00:0:1007#62",  linkAtoB: CORE}

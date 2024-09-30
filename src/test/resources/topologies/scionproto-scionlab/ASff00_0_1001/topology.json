@@ -1,0 +1,105 @@
+{
+  "attributes": [
+    "core"
+  ],
+  "isd_as": "1-ff00:0:1001",
+  "mtu": 1472,
+  "test_dispatcher": true,
+  "dispatched_ports": "31000-32767",
+  "control_service": {
+    "cs1-ff00_0_1001-1": {
+      "addr": "127.0.0.71:31000"
+    }
+  },
+  "discovery_service": {
+    "cs1-ff00_0_1001-1": {
+      "addr": "127.0.0.71:31000"
+    }
+  },
+  "border_routers": {
+    "br1-ff00_0_1001-1": {
+      "internal_addr": "127.0.0.65:31002",
+      "interfaces": {
+        "21": {
+          "underlay": {
+            "local": "127.0.0.4:50000",
+            "remote": "127.0.0.5:50000"
+          },
+          "isd_as": "1-ff00:0:1002",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1001-2": {
+      "internal_addr": "127.0.0.66:31004",
+      "interfaces": {
+        "22": {
+          "underlay": {
+            "local": "127.0.0.6:50000",
+            "remote": "127.0.0.7:50000"
+          },
+          "isd_as": "1-ff00:0:1002",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1001-3": {
+      "internal_addr": "127.0.0.67:31006",
+      "interfaces": {
+        "31": {
+          "underlay": {
+            "local": "127.0.0.8:50000",
+            "remote": "127.0.0.9:50000"
+          },
+          "isd_as": "1-ff00:0:1003",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1001-4": {
+      "internal_addr": "127.0.0.68:31008",
+      "interfaces": {
+        "32": {
+          "underlay": {
+            "local": "127.0.0.10:50000",
+            "remote": "127.0.0.11:50000"
+          },
+          "isd_as": "1-ff00:0:1003",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1001-5": {
+      "internal_addr": "127.0.0.69:31010",
+      "interfaces": {
+        "41": {
+          "underlay": {
+            "local": "127.0.0.12:50000",
+            "remote": "127.0.0.13:50000"
+          },
+          "isd_as": "1-ff00:0:1004",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1001-6": {
+      "internal_addr": "127.0.0.70:31012",
+      "interfaces": {
+        "42": {
+          "underlay": {
+            "local": "127.0.0.14:50000",
+            "remote": "127.0.0.15:50000"
+          },
+          "isd_as": "1-ff00:0:1004",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    }
+  }
+}

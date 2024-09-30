@@ -1,0 +1,19 @@
+ASes:
+  "1-ff00:0:110":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:120":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "2-ff00:0:210":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+links:
+  - {a: "2-ff00:0:210#105", b: "1-ff00:0:120#210",  linkAtoB: CORE}
+  - {a: "1-ff00:0:120#10", b: "1-ff00:0:110#1",  linkAtoB: CORE}

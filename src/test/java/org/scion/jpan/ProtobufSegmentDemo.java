@@ -36,14 +36,18 @@ public class ProtobufSegmentDemo {
   private final ManagedChannel channel;
 
   public static void main(String[] args) throws ScionException {
-    // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
-    // demo.getSegments(iaETH, iaETH_CORE);
-    // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(DemoConstants.csAddr110_minimal);
-    // demo.getSegments(ia110, ia121);
-    demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
-    // demo.getSegments(toWildcard(ia121), ia121);
-    // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
+//    // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
+//    // demo.getSegments(iaETH, iaETH_CORE);
+//    // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
+//    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(DemoConstants.csAddr110_minimal);
+//    // demo.getSegments(ia110, ia121);
+//    demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
+//    // demo.getSegments(toWildcard(ia121), ia121);
+//    // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
+
+    ProtobufSegmentDemo demoLab = new ProtobufSegmentDemo("127.0.0.71:31000");
+    demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:1001"), ScionUtil.parseIA("1-ff00:0:1007"));
+
   }
 
   public ProtobufSegmentDemo(String csAddress) {
