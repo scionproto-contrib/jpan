@@ -51,11 +51,16 @@ public class ProtobufSegmentMapperDemo {
     //    // demo.getSegments(toWildcard(ia121), ia121);
     //    // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
 
-        ProtobufSegmentMapperDemo demoLab = new ProtobufSegmentMapperDemo("[fd00:f00d:cafe::7f00:14]:31000");
-        demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:110"), ScionUtil.parseIA("2-ff00:0:210"));
+    //    ProtobufSegmentMapperDemo demoLab =
+    //        new ProtobufSegmentMapperDemo("[fd00:f00d:cafe::7f00:14]:31000");
+    //    demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:110"), ScionUtil.parseIA("2-ff00:0:210"));
 
     // ProtobufSegmentMapperDemo demoLab = new ProtobufSegmentMapperDemo("127.0.0.71:31000");
     // demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:1001"), ScionUtil.parseIA("1-ff00:0:1007"));
+
+    // 64-2:0:28 Cyberlink Cloud Test AS
+    ProtobufSegmentMapperDemo demoLab = new ProtobufSegmentMapperDemo("192.168.53.20:30252");
+    demoLab.getSegments(ScionUtil.parseIA("64-0:0:0"), ScionUtil.parseIA("64-0:0:0"));
   }
 
   public ProtobufSegmentMapperDemo(String csAddress) {
@@ -131,8 +136,12 @@ public class ProtobufSegmentMapperDemo {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) return true;
-      if (!(o instanceof AsLink)) return false;
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof AsLink)) {
+        return false;
+      }
       AsLink asLink = (AsLink) o;
       return as0 == asLink.as0 && as1 == asLink.as1 && id0 == asLink.id0 && id1 == asLink.id1;
     }
