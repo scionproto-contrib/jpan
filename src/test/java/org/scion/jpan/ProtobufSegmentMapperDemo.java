@@ -21,14 +21,11 @@ import io.grpc.Grpc;
 import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import org.scion.jpan.internal.Segments;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
@@ -54,13 +51,11 @@ public class ProtobufSegmentMapperDemo {
     //    // demo.getSegments(toWildcard(ia121), ia121);
     //    // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
 
-//    ProtobufSegmentMapperDemo demoLab = new ProtobufSegmentMapperDemo("127.0.0.28:31000");
-//    demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:110"), ScionUtil.parseIA("2-ff00:0:210"));
+        ProtobufSegmentMapperDemo demoLab = new ProtobufSegmentMapperDemo("[fd00:f00d:cafe::7f00:14]:31000");
+        demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:110"), ScionUtil.parseIA("2-ff00:0:210"));
 
-        ProtobufSegmentMapperDemo demoLab = new ProtobufSegmentMapperDemo("127.0.0.71:31000");
-        demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:1001"),
-     ScionUtil.parseIA("1-ff00:0:1007"));
-
+    // ProtobufSegmentMapperDemo demoLab = new ProtobufSegmentMapperDemo("127.0.0.71:31000");
+    // demoLab.getSegments(ScionUtil.parseIA("1-ff00:0:1001"), ScionUtil.parseIA("1-ff00:0:1007"));
   }
 
   public ProtobufSegmentMapperDemo(String csAddress) {
@@ -133,6 +128,19 @@ public class ProtobufSegmentMapperDemo {
       this.id0 = id0;
       this.id1 = id1;
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (!(o instanceof AsLink)) return false;
+      AsLink asLink = (AsLink) o;
+      return as0 == asLink.as0 && as1 == asLink.as1 && id0 == asLink.id0 && id1 == asLink.id1;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(as0, as1, id0, id1);
+    }
   }
 
   private static void analyze(Seg.SegmentsResponse response) throws IOException {
@@ -159,8 +167,8 @@ public class ProtobufSegmentMapperDemo {
           // This is a bit weird, but it works.
           AsLink link = new AsLink(asPrev.isdAs, isdAs, idPrev, id1);
           asLinks.add(link);
-//          as0.addLink(id0, link);
-//          as1.addLink(id1, link);
+          //          as0.addLink(id0, link);
+          //          as1.addLink(id1, link);
         }
         asPrev = as0;
         idPrev = id0;
@@ -175,7 +183,7 @@ public class ProtobufSegmentMapperDemo {
     FileWriter writer = new FileWriter("mytopo.topo");
 
     String NL = System.lineSeparator();
-    writer.append("--- # My Topology");
+    writer.append("--- # My Topology").append(NL);
     writer.append("ASes:").append(NL);
     for (AsInfo as : asMap.values()) {
       writer.append("  \"").append(ScionUtil.toStringIA(as.isdAs)).append("\":").append(NL);

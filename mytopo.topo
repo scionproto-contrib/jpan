@@ -1,10 +1,21 @@
+--- # My Topology
 ASes:
-  "1-ff00:0:110":
+  "1-ff00:0:130":
     core: true
     voting: true
     authoritative: true
     issuing: true
   "1-ff00:0:120":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "1-ff00:0:110":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "2-ff00:0:220":
     core: true
     voting: true
     authoritative: true
@@ -15,5 +26,10 @@ ASes:
     authoritative: true
     issuing: true
 links:
-  - {a: "2-ff00:0:210#105", b: "1-ff00:0:120#210",  linkAtoB: CORE}
-  - {a: "1-ff00:0:120#10", b: "1-ff00:0:110#1",  linkAtoB: CORE}
+  - {a: "1-ff00:0:120#6", b: "1-ff00:0:110#1",  linkAtoB: CORE}
+  - {a: "1-ff00:0:120#1", b: "1-ff00:0:130#105",  linkAtoB: CORE}
+  - {a: "1-ff00:0:130#104", b: "1-ff00:0:110#2",  linkAtoB: CORE}
+  - {a: "2-ff00:0:220#501", b: "1-ff00:0:120#2",  linkAtoB: CORE}
+  - {a: "2-ff00:0:220#502", b: "1-ff00:0:120#3",  linkAtoB: CORE}
+  - {a: "2-ff00:0:210#450", b: "2-ff00:0:220#503",  linkAtoB: CORE}
+  - {a: "2-ff00:0:210#453", b: "1-ff00:0:110#3",  linkAtoB: CORE}
