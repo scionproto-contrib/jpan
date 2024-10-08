@@ -183,11 +183,7 @@ public class ScionHeaderParser {
 
     // rewind to original offset
     data.position(start);
-    try {
-      return new InetSocketAddress(dstIP, dstPort);
-    } catch (IllegalArgumentException e) {
-      throw e;
-    }
+    return new InetSocketAddress(dstIP, dstPort);
   }
 
   private static int extractDstPort(
