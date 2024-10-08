@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.*;
-
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.Scenario;
@@ -242,7 +241,7 @@ public class TopologyMapperDemo {
       }
     }
 
-      String NL = System.lineSeparator();
+    String NL = System.lineSeparator();
     writer.append("--- # My Topology").append(NL);
     writer.append("ASes:").append(NL);
     for (AsInfo as : asMap.values()) {
