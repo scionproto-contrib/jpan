@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -50,6 +51,27 @@ public class ScmpSenderTest {
         System.err.println("ERROR: " + s);
       }
       fail(errors.poll());
+    }
+  }
+
+  @Test
+  void setScmpErrorListener() throws IOException {
+    MockNetwork.startTiny();
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
+      Consumer<Scmp.ErrorMessage> hdl =
+          scmpMessage -> errors.add(scmpMessage.getTypeCode().getText());
+
+      // add handler
+      assertNull(sender.setScmpErrorListener(hdl));
+      assertEquals(hdl, sender.setScmpErrorListener(hdl));
+      MockNetwork.returnScmpErrorOnNextPacket(Scmp.TypeCode.TYPE_2);
+      MockNetwork.answerNextScmpEchos(1);
+      assertThrows(IOException.class, () -> sender.sendTracerouteRequest(getPathTo112()));
+      assertEquals(1, errors.size());
+      assertEquals(Scmp.TypeCode.TYPE_2.getText(), errors.iterator().next());
+      errors.clear();
+    } finally {
+      MockNetwork.stopTiny();
     }
   }
 

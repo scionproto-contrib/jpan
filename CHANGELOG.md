@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Clean up TODO and deprecation info. [#100](https://github.com/scionproto-contrib/jpan/pull/100) 
 - Separate topo file parser [#103](https://github.com/scionproto-contrib/jpan/pull/103)
+- BREAKING CHANGE: Changed argument and return type of `setScmpErrorListener()` in 
+  `ScionDatagramChannel` and `ScmpChannel` to `Scmp.ErrorMessage`. 
+  [#124](https://github.com/scionproto-contrib/jpan/pull/124)
 
 ### Fixed
 - Remove use of 0.0.0.0 and "::". [#103](https://github.com/scionproto-contrib/jpan/pull/103)

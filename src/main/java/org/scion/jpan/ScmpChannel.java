@@ -177,7 +177,7 @@ public class ScmpChannel implements AutoCloseable {
     channel.close();
   }
 
-  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
+  public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
     return channel.setScmpErrorListener(listener);
   }
 
@@ -298,9 +298,16 @@ public class ScmpChannel implements AutoCloseable {
         ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
         ResponsePath receivePath = receiveWithTimeout(buffer);
         if (receivePath != null) {
+          int pos = buffer.position();
           ScmpParser.consume(buffer, request);
           request.setPath(receivePath);
-          checkListeners(request);
+          if (request.getTypeCode().isError()) {
+            // Create and process ErrorMessage
+            int packetLength = ScionHeaderParser.extractPacketLength(buffer);
+            buffer.position(pos);
+            Scmp.Message em = ScmpParser.consume(buffer, receivePath, packetLength);
+            checkListeners(em);
+          }
         } else {
           request.setTimedOut();
         }

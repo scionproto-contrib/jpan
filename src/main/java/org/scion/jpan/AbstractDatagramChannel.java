@@ -55,7 +55,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           Constants.ENV_PATH_EXPIRY_MARGIN,
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
   private int cfgTrafficClass;
-  private Consumer<Scmp.Message> errorListener;
+  private Consumer<Scmp.ErrorMessage> errorListener;
   private boolean cfgRemoteDispatcher = false;
   private InetSocketAddress overrideExternalAddress = null;
 
@@ -377,7 +377,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected void checkListeners(Scmp.Message scmpMsg) {
     synchronized (stateLock) {
       if (errorListener != null && scmpMsg.getTypeCode().isError()) {
-        errorListener.accept(scmpMsg);
+        errorListener.accept((Scmp.ErrorMessage) scmpMsg);
       }
     }
   }
@@ -421,9 +421,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @param listener A consumer for error messages. Use 'null' to deregister the listener.
    * @return The previous registered listener, may be 'null'.
    */
-  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
+  public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
     synchronized (stateLock) {
-      Consumer<Scmp.Message> old = errorListener;
+      Consumer<Scmp.ErrorMessage> old = errorListener;
       errorListener = listener;
       return old;
     }
