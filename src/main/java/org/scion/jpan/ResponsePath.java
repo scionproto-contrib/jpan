@@ -33,7 +33,7 @@ public class ResponsePath extends Path {
   private final InetAddress srcAddress;
   private final int srcPort;
 
-  public static ResponsePath create(
+  static ResponsePath create(
       byte[] rawPath,
       long srcIsdAs,
       InetAddress srcIP,
