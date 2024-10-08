@@ -1,0 +1,161 @@
+{
+  "attributes": [
+    "core"
+  ],
+  "isd_as": "1-ff00:0:1005",
+  "mtu": 1472,
+  "test_dispatcher": true,
+  "dispatched_ports": "31000-32767",
+  "control_service": {
+    "cs1-ff00_0_1005-1": {
+      "addr": "127.0.0.123:31080"
+    }
+  },
+  "discovery_service": {
+    "cs1-ff00_0_1005-1": {
+      "addr": "127.0.0.123:31080"
+    }
+  },
+  "border_routers": {
+    "br1-ff00_0_1005-1": {
+      "internal_addr": "127.0.0.114:31082",
+      "interfaces": {
+        "21": {
+          "underlay": {
+            "local": "127.0.0.25:50000",
+            "remote": "127.0.0.24:50000"
+          },
+          "isd_as": "1-ff00:0:1002",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-2": {
+      "internal_addr": "127.0.0.115:31084",
+      "interfaces": {
+        "22": {
+          "underlay": {
+            "local": "127.0.0.27:50000",
+            "remote": "127.0.0.26:50000"
+          },
+          "isd_as": "1-ff00:0:1002",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-3": {
+      "internal_addr": "127.0.0.116:31086",
+      "interfaces": {
+        "31": {
+          "underlay": {
+            "local": "127.0.0.35:50000",
+            "remote": "127.0.0.34:50000"
+          },
+          "isd_as": "1-ff00:0:1003",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-4": {
+      "internal_addr": "127.0.0.117:31088",
+      "interfaces": {
+        "32": {
+          "underlay": {
+            "local": "127.0.0.37:50000",
+            "remote": "127.0.0.36:50000"
+          },
+          "isd_as": "1-ff00:0:1003",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-5": {
+      "internal_addr": "127.0.0.118:31090",
+      "interfaces": {
+        "41": {
+          "underlay": {
+            "local": "127.0.0.47:50000",
+            "remote": "127.0.0.46:50000"
+          },
+          "isd_as": "1-ff00:0:1004",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-6": {
+      "internal_addr": "127.0.0.119:31092",
+      "interfaces": {
+        "42": {
+          "underlay": {
+            "local": "127.0.0.49:50000",
+            "remote": "127.0.0.48:50000"
+          },
+          "isd_as": "1-ff00:0:1004",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-7": {
+      "internal_addr": "127.0.0.120:31094",
+      "interfaces": {
+        "61": {
+          "underlay": {
+            "local": "127.0.0.54:50000",
+            "remote": "127.0.0.55:50000"
+          },
+          "isd_as": "1-ff00:0:1006",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-8": {
+      "internal_addr": "127.0.0.121:31096",
+      "interfaces": {
+        "62": {
+          "underlay": {
+            "local": "127.0.0.56:50000",
+            "remote": "127.0.0.57:50000"
+          },
+          "isd_as": "1-ff00:0:1006",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-9": {
+      "internal_addr": "127.0.0.122:31098",
+      "interfaces": {
+        "71": {
+          "underlay": {
+            "local": "127.0.0.58:50000",
+            "remote": "127.0.0.59:50000"
+          },
+          "isd_as": "1-ff00:0:1007",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    },
+    "br1-ff00_0_1005-10": {
+      "internal_addr": "127.0.0.113:31100",
+      "interfaces": {
+        "72": {
+          "underlay": {
+            "local": "127.0.0.52:50000",
+            "remote": "127.0.0.53:50000"
+          },
+          "isd_as": "1-ff00:0:1007",
+          "link_to": "core",
+          "mtu": 1472
+        }
+      }
+    }
+  }
+}

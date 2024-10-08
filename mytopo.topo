@@ -1,0 +1,96 @@
+--- # My Topology
+ASes:
+  "64-2:0:23":
+    core: true
+    voting: true
+    authoritative: true
+    cert_issuer: 64-2:0:13
+  "64-2:0:13":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "64-0:0:e816":
+    cert_issuer: 64-2:0:13
+  "64-0:0:ce7":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+  "64-0:0:3d07":
+    core: true
+    voting: true
+    authoritative: true
+    cert_issuer: 64-2:0:13
+  "64-0:0:1a4a":
+    core: true
+    voting: true
+    authoritative: true
+    cert_issuer: 64-2:0:13
+  "64-2:0:9":
+    cert_issuer: 64-2:0:13
+  "64-0:0:303e":
+    core: true
+    voting: true
+    authoritative: true
+    cert_issuer: 64-2:0:13
+  "64-0:0:22f":
+    core: true
+    voting: true
+    authoritative: true
+    cert_issuer: 64-2:0:13
+links:
+  - {a: "64-0:0:ce7#19", b: "64-0:0:3d07#5",  linkAtoB: CORE}
+  - {a: "64-0:0:303e#5", b: "64-0:0:3d07#1",  linkAtoB: CORE}
+  - {a: "64-0:0:ce7#22", b: "64-0:0:303e#7",  linkAtoB: CORE}
+  - {a: "64-0:0:ce7#10", b: "64-0:0:1a4a#8",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#2", b: "64-2:0:13#24",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#11", b: "64-2:0:13#29",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#3", b: "64-2:0:13#22",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#27", b: "64-2:0:13#46",  linkAtoB: CORE}
+  - {a: "64-0:0:1a4a#22", b: "64-0:0:3d07#13",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#17", b: "64-0:0:ce7#1",  linkAtoB: CORE}
+  - {a: "64-2:0:13#19", b: "64-2:0:23#2",  linkAtoB: CORE}
+  - {a: "64-0:0:e816#35", b: "64-2:0:28#4",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#17", b: "64-2:0:28#1",  linkAtoB: CORE}
+  - {a: "64-0:0:e816#8", b: "64-2:0:13#33",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#26", b: "64-0:0:303e#4",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#22", b: "64-0:0:3d07#9",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#20", b: "64-2:0:13#23",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#24", b: "64-0:0:e816#3",  linkAtoB: CORE}
+  - {a: "64-0:0:ce7#20", b: "64-0:0:3d07#12",  linkAtoB: CORE}
+  - {a: "64-0:0:ce7#11", b: "64-0:0:1a4a#11",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#31", b: "64-2:0:13#31",  linkAtoB: CORE}
+  - {a: "64-0:0:1a4a#3", b: "64-2:0:13#11",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#20", b: "64-2:0:13#16",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#28", b: "64-2:0:13#44",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#18", b: "64-2:0:28#2",  linkAtoB: CORE}
+  - {a: "64-0:0:1a4a#35", b: "64-0:0:e816#9",  linkAtoB: CORE}
+  - {a: "64-0:0:ce7#2", b: "64-2:0:13#7",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#21", b: "64-0:0:3d07#8",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#4", b: "64-2:0:13#15",  linkAtoB: CORE}
+  - {a: "64-0:0:1a4a#34", b: "64-0:0:e816#4",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#23", b: "64-0:0:e816#1",  linkAtoB: CORE}
+  - {a: "64-2:0:13#30", b: "64-2:0:23#7",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#35", b: "64-0:0:303e#20003",  linkAtoB: CORE}
+  - {a: "64-0:0:303e#2", b: "64-2:0:13#28",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#19", b: "64-0:0:ce7#9",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#5", b: "64-2:0:9#1",  linkAtoB: CORE}
+  - {a: "64-2:0:13#21", b: "64-2:0:23#4",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#29", b: "64-2:0:13#45",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#34", b: "64-0:0:e816#5",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#16", b: "64-0:0:1a4a#10",  linkAtoB: CORE}
+  - {a: "64-0:0:303e#6", b: "64-0:0:3d07#10",  linkAtoB: CORE}
+  - {a: "64-0:0:3d07#22", b: "64-0:0:e816#2",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#36", b: "64-0:0:303e#20004",  linkAtoB: CORE}
+  - {a: "64-0:0:303e#1", b: "64-2:0:13#26",  linkAtoB: CORE}
+  - {a: "64-0:0:1a4a#1", b: "64-2:0:13#9",  linkAtoB: CORE}
+  - {a: "64-0:0:ce7#4", b: "64-2:0:13#18",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#6", b: "64-2:0:9#2",  linkAtoB: CORE}
+  - {a: "64-0:0:1a4a#27", b: "64-0:0:3d07#16",  linkAtoB: CORE}
+  - {a: "64-0:0:e816#34", b: "64-2:0:28#3",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#15", b: "64-0:0:1a4a#9",  linkAtoB: CORE}
+  - {a: "64-0:0:e816#7", b: "64-2:0:13#34",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#25", b: "64-0:0:303e#3",  linkAtoB: CORE}
+  - {a: "64-0:0:ce7#16", b: "64-2:0:23#5",  linkAtoB: CORE}
+  - {a: "64-0:0:22f#33", b: "64-0:0:e816#6",  linkAtoB: CORE}

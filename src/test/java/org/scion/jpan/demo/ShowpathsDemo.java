@@ -82,7 +82,8 @@ public class ShowpathsDemo {
         {
           // Local port must be 30041 for networks that expect a dispatcher
           ShowpathsDemo demo = new ShowpathsDemo(Constants.DISPATCHER_PORT);
-          demo.runDemo(DemoConstants.iaAnapayaHK);
+          demo.runDemo(ScionUtil.parseIA("64-2:0:28"));
+          // demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
           break;
         }
