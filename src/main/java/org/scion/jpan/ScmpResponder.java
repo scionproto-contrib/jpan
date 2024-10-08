@@ -47,7 +47,7 @@ public class ScmpResponder implements AutoCloseable {
     channel.close();
   }
 
-  public Consumer<Scmp.Message> setScmpErrorListener(Consumer<Scmp.Message> listener) {
+  public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
     return channel.setScmpErrorListener(listener);
   }
 
