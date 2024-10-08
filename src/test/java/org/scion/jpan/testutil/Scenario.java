@@ -149,7 +149,11 @@ public class Scenario {
     JsonElement jsonTree = JsonParser.parseString(content);
     JsonObject entry = jsonTree.getAsJsonObject();
     for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
-      daemons.put(ScionUtil.parseIA(e.getKey()), e.getValue().getAsString());
+      String addr = e.getValue().getAsString();
+      if (addr.contains(":") && !addr.contains("[") & !addr.contains(".")) {
+        addr = "[" + addr + "]";
+      }
+      daemons.put(ScionUtil.parseIA(e.getKey()), addr);
     }
   }
 

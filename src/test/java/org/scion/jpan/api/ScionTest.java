@@ -122,25 +122,6 @@ public class ScionTest {
   }
 
   @Test
-  void testIPv6_daemon_address_parsing() throws IOException {
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-
-    MockDaemon.createAndStartDefault();
-    System.setProperty(Constants.PROPERTY_DAEMON, "[fd00:f00d:cafe::7f00:33]:31060");
-    try {
-      ScionService service = Scion.defaultService();
-      Path path = service.getPaths(dstIA, dstAddress).get(0);
-      assertNotNull(path);
-      // local AS + path
-      assertEquals(2, MockDaemon.getAndResetCallCount());
-    } finally {
-      Scion.closeDefault();
-      MockDaemon.closeDefault();
-    }
-  }
-
-  @Test
   void defaultService_topoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);

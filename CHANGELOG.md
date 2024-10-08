@@ -64,6 +64,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed useless error message when providing incorrect daemon address.
   Also: made port optional (default = 30255) [#114](https://github.com/scionproto-contrib/jpan/pull/114)
 - Fixed SCMP packet loss on SCMP receive [#120](https://github.com/scionproto-contrib/jpan/pull/120)
+- Fixed problem, with parsing IPv6 addresses in topo files 
+  [123](https://github.com/scionproto-contrib/jpan/pull/123)
 
 ### Removed
 - Removed some useless IP printing functions. 
