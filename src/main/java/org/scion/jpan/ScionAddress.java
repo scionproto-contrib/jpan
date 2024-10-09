@@ -22,9 +22,9 @@ import java.net.UnknownHostException;
  *
  * <p>This class is threadsafe.
  *
- * @deprecated This will be made package private in 0.3.0
+ * @deprecated This will be made package private in 0.4.0
  */
-@Deprecated // This will be made package private in 0.3.0
+@Deprecated // This will be made package private in 0.4.0
 public class ScionAddress {
   private final long isdAs;
   private final InetAddress ipAddress;

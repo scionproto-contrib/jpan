@@ -412,7 +412,7 @@ public class ScionService {
    *
    * @param dstAddress Destination SCION address
    * @return All paths returned by the path service.
-   * @deprecated Do not use - will be removed (or made private) in 0.3.0
+   * @deprecated Do not use - will be removed (or made private) in 0.4.0
    */
   @Deprecated
   public List<Path> getPaths(ScionAddress dstAddress, int dstPort) {

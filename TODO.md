@@ -7,8 +7,7 @@
 
 ## Plan
 
-### 0.3.0
-- Fix: call CS only once for UP-Segments. Fix TODOs in ScionServiceTest
+### 0.4.0
 - Allow disabling local address resolution in DNS to local-IA. Resolving 127.0.0.x to
   localIA is fine for many purposes, but it can be confusing when testing a local
   mock-network (tiny, minimal, ...)
@@ -30,7 +29,6 @@
   - Consider peering
   - Look at newDMG (graph.go:89)
   - Order by expiration date? (netip.go:41)
-  - Consider shortcuts and on-paths (book sec 5.5, pp105 ff)
 - Selector support
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
@@ -46,6 +44,8 @@
   first hop, OR extend SHIM to accept and forward packets to the correct BR.
 - AS switching: handle localIsdAs code per Interface or IP
 - Path expiry: request new path asynchronously when old path is close to expiry
+  Reconsider handling of expired path on server side. Try requesting a new path?
+  Throw exception? Callback?
 - DNS with other options, see book p328ff, Section 13.2.3
 - UDP checksum validation + creation
 - SCMP checksum validation + creation
@@ -60,8 +60,6 @@
 - Transparent fallback to plain IP if target is in same AS?
 - https for topology server?
 - Secure DNS requests?
-- Reconsider handling of expired path on server side. Try requesting a new path?
-  Throw exception? Callback?
 - Make multi-module project for demos & inspector (also channel vs socket?)
   -> see JDO for releasing only some modules for a release.
 - Support authentication for control servers
@@ -74,19 +72,6 @@
   Or not? This would be an attack, send a partial header would block the receiver....
   We could just buffer a partial header until it is complete...
 
-
-### 0.4.0
-- SCMP error _sending_ e.h. in case of corrupt packet
-- DatagramSocket
-  - Extent DatagramPacket to ScionDatagramPacket with ScionPath info?!?!
-  - Add socket.send(packet, dstIsdAs); ?
-  - It seems we cannot use DatagramSocketImpl for implementing a Scion DatagramSocket.
-    Instead we may simply implement a class that is *similar* to DatagramSocket, e.g.
-    with enforcing bind()/connect() before send()/receive() and enforcing that connect() uses
-    ScionSocketAddresses. Problematic: how to handle path on server side?
-- Reproducible build
-- RHINE?
-
 ### 0.5.0
 - Multipathing
 - EPIC, Hidden paths
@@ -96,6 +81,8 @@
   - Protobuf-lite: https://github.com/protocolbuffers/protobuf/blob/main/java/lite.md
   - QuickBuffers: https://github.com/HebiRobotics/QuickBuffers/tree/main/benchmarks
   - FlatBuffers
+- Reproducible build
+- RHINE?
 
 ###
 - Remove methods that are not required anymore:
