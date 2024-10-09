@@ -62,7 +62,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Removed some useless IP printing functions. 
   [#105](https://github.com/scionproto-contrib/jpan/pull/105)
-- Removed deprecated code. [#122](https://github.com/scionproto-contrib/jpan/pull/122)
+- 0.3.0 preparation. [#122](https://github.com/scionproto-contrib/jpan/pull/122)
+  - Removed deprecated code
+  - Updated dependencies to latest versions
 
 ## [0.2.0] - 2024-06-24
 
