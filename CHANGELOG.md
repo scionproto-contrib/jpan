@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BREAKING CHANGE: Changed argument and return type of `setScmpErrorListener()` in 
   `ScionDatagramChannel` and `ScmpChannel` to `Scmp.ErrorMessage`. 
   [#124](https://github.com/scionproto-contrib/jpan/pull/124)
+- 0.3.0 preparation. [#122](https://github.com/scionproto-contrib/jpan/pull/122)
+  - Updated dependencies to latest versions
 
 ### Fixed
 - Remove use of 0.0.0.0 and "::". [#103](https://github.com/scionproto-contrib/jpan/pull/103)
@@ -65,7 +67,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#105](https://github.com/scionproto-contrib/jpan/pull/105)
 - 0.3.0 preparation. [#122](https://github.com/scionproto-contrib/jpan/pull/122)
   - Removed deprecated code
-  - Updated dependencies to latest versions
 
 ## [0.2.0] - 2024-06-24
 
