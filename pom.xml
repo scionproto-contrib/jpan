@@ -9,8 +9,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <scion.io-grpc.version>1.68.0</scion.io-grpc.version>
-        <scion.protobuf.version>3.25.3</scion.protobuf.version>
+        <scion.io-grpc.version>1.67.1</scion.io-grpc.version>
+        <!--        <scion.protobuf.version>3.25.3</scion.protobuf.version>-->
+        <scion.protobuf.version>4.28.2</scion.protobuf.version>
         <scion.fmt-maven.version>2.23</scion.fmt-maven.version>
         <scion.maven-enforcer-plugin.version>3.5.0</scion.maven-enforcer-plugin.version>
     </properties>

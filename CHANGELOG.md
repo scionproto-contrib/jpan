@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - GatheringByteChannel, ScatteringByteChannel
   - Selector support
   - Inherit DatagramChannel 
+- Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
 ### Added
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
