@@ -31,7 +31,7 @@ The following artifact contains the complete SCION Java implementation:
 ### Planned features
 - API: `Selector` for `DatagramChannel`
 - Autodetection of NAT external IP
-- Path creation with short-cuts, on-path and peering routes
+- Paths with peering routes
 - Improve docs, demos and testing
 - Many more
 
@@ -89,9 +89,10 @@ The central classes of the API are:
 - `Scion`, `ScionUtil`, `ScionConstants`: Utility classes.
 - `ScionSocketOptions`: Options for the `DatagramChannel`.
 - `Scmp`:
-  - `ScmpType` and `ScmpCode` enums with text messages. 
-  - `Message` (for SCMP errors) and `EchoMessage`/`TracerouteMessage` types.
-  - `createChannel(...)` for sending echo and traceroute requests
+  - `Scmp.createSender(...)` for sending echo and traceroute requests
+  - `Scmp.createReceiver(...)` for receiving and responding to echo requests
+  - `Scmp.Type` and `Scmp.TypeCode` enums with text messages. 
+  - `Scmp.ErrorMessage`/`Scmp.EchoMessage`/`Scmp.TracerouteMessage` types
 
 ### Features
 Supported:
@@ -111,7 +112,7 @@ Supported:
 
 Missing:
 - DatagramChannel support for Selectors
-- Path construction with short-cuts, on-path, peering
+- Path construction with peering
 - EPIC
 - RHINE
 - ...
