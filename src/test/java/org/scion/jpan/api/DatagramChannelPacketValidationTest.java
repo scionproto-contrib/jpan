@@ -23,6 +23,8 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -117,8 +119,9 @@ class DatagramChannelPacketValidationTest {
   private void receive_validationFails_isBlocking_noThrow(boolean throwBad, boolean isBlocking)
       throws IOException, InterruptedException {
     barrier = new CountDownLatch(1);
-    Thread serverThread = startServer(throwBad, isBlocking);
-    barrier.await(1, TimeUnit.SECONDS); // Wait for thread to start
+    ExecutorService serverThread = startServer(throwBad, isBlocking);
+    // Wait for thread to start
+    assertTrue(barrier.await(1, TimeUnit.SECONDS), String.valueOf(failure.get()));
 
     // client - send bad message
     for (int i = 0; i < 10; i++) {
@@ -134,60 +137,60 @@ class DatagramChannelPacketValidationTest {
       channel.send(outgoing, localAddress.get());
     }
 
-    serverThread.join();
+    serverThread.shutdown();
+    assertTrue(serverThread.awaitTermination(1, TimeUnit.SECONDS), String.valueOf(failure.get()));
 
     // check results
     assertNull(failure.get());
     assertEquals(1, receiveCount.get());
   }
 
-  private Thread startServer(boolean openThrowOnBadPacket, boolean isBlocking) {
-    Thread serverThread =
-        new Thread(
-            () -> {
-              try {
-                try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-                  channel.configureBlocking(isBlocking);
-                  if (openThrowOnBadPacket) {
-                    channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-                  }
-                  channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
-                  localAddress.set(channel.getLocalAddress());
-                  barrier.countDown();
-
-                  ByteBuffer response = ByteBuffer.allocate(500);
-                  // repeat until we get no exception
-                  boolean failed;
-                  do {
-                    failed = false;
-                    try {
-                      if (isBlocking) {
-                        assertNotNull(channel.receive(response));
-                      } else {
-                        while (channel.receive(response) == null) {
-                          Thread.sleep(10);
-                        }
-                      }
-                    } catch (Exception e) {
-                      receiveBadCount.incrementAndGet();
-                      failed = true;
-                    }
-                  } while (failed);
-
-                  // make sure we receive exactly one message
-                  receiveCount.incrementAndGet();
-
-                  response.flip();
-                  String pong = Charset.defaultCharset().decode(response).toString();
-                  if (!MSG.equals(pong)) {
-                    failure.set(new IllegalStateException(pong));
-                  }
-                }
-              } catch (IOException e) {
-                failure.set(e);
+  private ExecutorService startServer(boolean openThrowOnBadPacket, boolean isBlocking) {
+    ExecutorService ex = Executors.newSingleThreadExecutor();
+    ex.execute(
+        () -> {
+          try {
+            try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+              channel.configureBlocking(isBlocking);
+              if (openThrowOnBadPacket) {
+                channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
               }
-            });
-    serverThread.start();
-    return serverThread;
+              channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+              localAddress.set(channel.getLocalAddress());
+              barrier.countDown();
+
+              ByteBuffer response = ByteBuffer.allocate(500);
+              // repeat until we get no exception
+              boolean failed;
+              do {
+                failed = false;
+                try {
+                  if (isBlocking) {
+                    assertNotNull(channel.receive(response));
+                  } else {
+                    while (channel.receive(response) == null) {
+                      Thread.sleep(10);
+                    }
+                  }
+                } catch (Exception e) {
+                  receiveBadCount.incrementAndGet();
+                  failed = true;
+                }
+              } while (failed);
+
+              // make sure we receive exactly one message
+              receiveCount.incrementAndGet();
+
+              response.flip();
+              String pong = Charset.defaultCharset().decode(response).toString();
+              if (!MSG.equals(pong)) {
+                failure.set(new IllegalStateException(pong));
+              }
+            }
+          } catch (Exception e) {
+            failure.set(e);
+          }
+        });
+    return ex;
   }
 }

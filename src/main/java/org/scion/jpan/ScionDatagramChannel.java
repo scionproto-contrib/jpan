@@ -19,8 +19,8 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
-import java.nio.channels.NotYetConnectedException;
+import java.nio.channels.*;
+import java.nio.channels.spi.SelectorProvider;
 import java.time.Instant;
 import java.util.List;
 import java.util.WeakHashMap;
@@ -56,23 +56,6 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
   public static ScionDatagramChannel open(ScionService service) throws IOException {
     return open(service, java.nio.channels.DatagramChannel.open());
-  }
-
-  public static ScionDatagramChannel open(
-      ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
-    return new ScionDatagramChannel(service, channel);
-  }
-
-  // TODO we return `void` here. If we implement SelectableChannel
-  //  this can be changed to return SelectableChannel.
-  @Override
-  public void configureBlocking(boolean block) throws IOException {
-    super.configureBlocking(block);
-  }
-
-  @Override
-  public boolean isBlocking() {
-    return super.isBlocking();
   }
 
   public ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
