@@ -24,12 +24,12 @@ The following artifact contains the complete SCION Java implementation:
 
 ### Feature summary
 - 100% Java
-- UDP over SCION via `DatagramChannel` or `DatagramSocket`
+- UDP over SCION via `ScionDatagramChannel` or `ScionDatagramSocket`
 - [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html) (ICMP for SCION)
 - Works stand-alone or with a local SCION daemon (without dispatcher, see below) 
 
 ### Planned features
-- API: `Selector` for `DatagramChannel`
+- API: `Selector` for `ScionDatagramChannel`
 - Autodetection of NAT external IP
 - Paths with peering routes
 - Improve docs, demos and testing
@@ -48,9 +48,9 @@ JPAN can be used in one of the following ways:
   however it must listen on port 30041 for incoming SCION packets because
   SCION routers currently will forward data only to that port. 
 - If you are contacting an endhost within your own AS, and the endhost uses a dispatcher, then you 
-  must set the flag `DatagramChannel.configureRemoteDispatcher(true)`. This ensure that the outgoing
-  packet is sent to port 30041 on the remote machine. The flag has no effect on traffic sent to a 
-  remote AS. 
+  must set the flag `ScionDatagramChannel.configureRemoteDispatcher(true)`. This ensure that the 
+  outgoing packet is sent to port 30041 on the remote machine. The flag has no effect on traffic 
+  sent to a remote AS. 
 - If you need a local SCION installation on your machine (Go implementation),
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding
@@ -71,7 +71,7 @@ Note that this solution only works for NATs, there is currently no solution for 
 
 The central classes of the API are:
 
-- `DatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
+- `ScionDatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
   `Channel` and `ByteChannel`. Scattering, gathering, multicast and selectors are currently not
   supported.
 - `ScionSocketAddress` is an `InetSocketAddress` with the IP of a Scion enabled endhost.
@@ -87,7 +87,7 @@ The central classes of the API are:
   `ScionService` instances can be created with the `Scion` class. The first instance that is created will subsequently
   returned by `Scion.defaultService()`.
 - `Scion`, `ScionUtil`, `ScionConstants`: Utility classes.
-- `ScionSocketOptions`: Options for the `DatagramChannel`.
+- `ScionSocketOptions`: Options for the `ScionDatagramChannel`.
 - `Scmp`:
   - `Scmp.createSender(...)` for sending echo and traceroute requests
   - `Scmp.createReceiver(...)` for receiving and responding to echo requests
@@ -122,7 +122,7 @@ Missing:
 A simple client looks like this:
 ```java
 InetSocketAddress addr = new InetSocketAddress(...);
-try (DatagramChannel channel = DatagramChannel.open()) {
+try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
   channel.configureBlocking(true);
   channel.connect(addr);
   channel.write(ByteBuffer.wrap("Hello Scion".getBytes()));
@@ -292,7 +292,7 @@ API beyond the standard Java `DatagramScoket`:
 * `getCachedPath(InetAddress address)` get the cached path for a given IP
 * `setPathCacheCapacity(int capacity)` and `getPathCacheCapacity()` for managing the cache size
 * `setOption(...)` and `getOption()` are supported even though they were only added in Java 9.
-  They support the same (additional) options as `DatagramChannel`. 
+  They support the same (additional) options as `ScionDatagramChannel`. 
 
 
 ## Performance pitfalls
@@ -320,7 +320,7 @@ JPAN can be used in standalone mode or with a local daemon.
 There are also several methods that allow specifying a local topology file, a topology server 
 address or a different DNS server with a scion NAPTR record. These are only meant for debugging. 
 
-The method `Scion.defaultService()` (internally called by `DatagramChannel.open()`) will 
+The method `Scion.defaultService()` (internally called by `ScionDatagramChannel.open()`) will 
 attempt to get network information in the following order until it succeeds:
 - For debugging: Check for local topology file (if file name is given)
 - For debugging: Check for bootstrap server address (if address is given)
