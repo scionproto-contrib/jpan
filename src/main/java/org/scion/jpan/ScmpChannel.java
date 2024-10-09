@@ -42,7 +42,6 @@ public class ScmpChannel implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpChannel.class);
   private int timeOutMs = 1000;
   private final InternalChannel channel;
-  @Deprecated private final RequestPath path;
 
   ScmpChannel() throws IOException {
     this(Scion.defaultService(), 12345);
@@ -50,46 +49,6 @@ public class ScmpChannel implements AutoCloseable {
 
   ScmpChannel(ScionService service, int port) throws IOException {
     this.channel = new InternalChannel(service, port);
-    this.path = null;
-  }
-
-  /**
-   * @param path path
-   * @throws IOException Exception
-   * @deprecated Please use channel.send(path, ...) instead
-   */
-  @Deprecated // Please use channel.send(path, ...) instead
-  ScmpChannel(RequestPath path) throws IOException {
-    this(Scion.defaultService(), path, 12345);
-  }
-
-  /**
-   * @param service service
-   * @param path path
-   * @param port port
-   * @throws IOException error
-   * @deprecated Please use channel.send(path, ...) instead
-   */
-  @Deprecated // Please use channel.send(path, ...) instead
-  ScmpChannel(ScionService service, RequestPath path, int port) throws IOException {
-    this.channel = new InternalChannel(service, port);
-    this.path = path;
-  }
-
-  /**
-   * Sends a SCMP echo request to the connected destination.
-   *
-   * @param sequenceNumber sequence number of the request
-   * @param data user data that is sent with the request
-   * @return A SCMP result. If a reply is received, the result contains the reply and the time in
-   *     milliseconds that the reply took. If the request timed out, the result contains no message
-   *     and the time is equal to the time-out duration.
-   * @throws IOException if an IO error occurs or if an SCMP error is received.
-   * @deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
-   */
-  @Deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
-  public Scmp.EchoMessage sendEchoRequest(int sequenceNumber, ByteBuffer data) throws IOException {
-    return sendEchoRequest(path, sequenceNumber, data);
   }
 
   /**
@@ -108,21 +67,6 @@ public class ScmpChannel implements AutoCloseable {
     Scmp.EchoMessage request = Scmp.EchoMessage.createRequest(sequenceNumber, path, data);
     sendScmpRequest(() -> channel.sendEchoRequest(request), Scmp.TypeCode.TYPE_129);
     return request;
-  }
-
-  /**
-   * Sends a SCMP traceroute request to the connected destination.
-   *
-   * @return A list of SCMP results, one for each hop on the route. For every reply received, the
-   *     result contains the reply and the time in milliseconds that the reply took. If the request
-   *     timed out, the result contains no message and the time is equal to the time-out duration.
-   *     If a request times out, the traceroute is aborted.
-   * @throws IOException if an IO error occurs or if an SCMP error is received.
-   * @deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
-   */
-  @Deprecated // Please use sendTracerouteRequest(path) instead. TODO remove in 0.3.0
-  public List<Scmp.TracerouteMessage> sendTracerouteRequest() throws IOException {
-    return sendTracerouteRequest(path);
   }
 
   /**

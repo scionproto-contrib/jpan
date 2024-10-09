@@ -9,31 +9,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <scion.dnsjava.version>3.6.1</scion.dnsjava.version>
-        <scion.google-java-format.version>1.22.0</scion.google-java-format.version>
-        <scion.io-grpc.version>1.63.0</scion.io-grpc.version>
-        <scion.junit.version>5.10.1</scion.junit.version>
-        <scion.protobuf.version>3.25.3</scion.protobuf.version>
-        <scion.os72-protoc.version>3.11.4</scion.os72-protoc.version>
-        <scion.slf4j.version>2.0.9</scion.slf4j.version>
-
-        <scion.bnd-maven-plugin.version>6.4.0</scion.bnd-maven-plugin.version>
-        <scion.build-helper-maven-plugin.version>3.3.0</scion.build-helper-maven-plugin.version>
+        <scion.io-grpc.version>1.67.1</scion.io-grpc.version>
+        <!--        <scion.protobuf.version>3.25.3</scion.protobuf.version>-->
+        <scion.protobuf.version>4.28.2</scion.protobuf.version>
         <scion.fmt-maven.version>2.23</scion.fmt-maven.version>
-        <scion.maven-clean-plugin.version>3.2.0</scion.maven-clean-plugin.version>
-        <scion.maven-compiler-plugin.version>3.11.0</scion.maven-compiler-plugin.version>
-        <scion.maven-deploy-plugin.version>3.1.1</scion.maven-deploy-plugin.version>
-        <scion.maven-enforcer-plugin.version>3.3.0</scion.maven-enforcer-plugin.version>
-        <scion.maven-gpg-plugin.version>3.0.1</scion.maven-gpg-plugin.version>
-        <scion.maven-install-plugin.version>3.1.1</scion.maven-install-plugin.version>
-        <scion.maven-jar-plugin.version>3.3.0</scion.maven-jar-plugin.version>
-        <scion.maven-javadoc-plugin.version>3.5.0</scion.maven-javadoc-plugin.version>
-        <scion.maven-plugin-plugin.version>3.8.2</scion.maven-plugin-plugin.version>
-        <scion.maven-resources-plugin.version>3.3.1</scion.maven-resources-plugin.version>
-        <scion.maven-source-plugin.version>3.2.1</scion.maven-source-plugin.version>
-        <scion.maven-surefire-plugin.version>3.1.2</scion.maven-surefire-plugin.version>
-        <scion.nexus-staging-maven-plugin.version>1.6.13</scion.nexus-staging-maven-plugin.version>
+        <scion.maven-enforcer-plugin.version>3.5.0</scion.maven-enforcer-plugin.version>
     </properties>
 
     <name>SCION Java API</name>
@@ -87,21 +67,21 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${scion.slf4j.version}</version>
+            <version>2.0.13</version>
         </dependency>
 
         <!-- Include default slf4j implementation for all tests -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>${scion.slf4j.version}</version>
+            <version>2.0.13</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>${scion.junit.version}</version>
+            <version>5.11.2</version>
             <scope>test</scope>
         </dependency>
 
@@ -152,13 +132,13 @@
         <dependency>
             <groupId>dnsjava</groupId>
             <artifactId>dnsjava</artifactId>
-            <version>${scion.dnsjava.version}</version>
+            <version>3.6.2</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.googlejavaformat</groupId>
             <artifactId>google-java-format</artifactId>
-            <version>${scion.google-java-format.version}</version>
+            <version>1.24.0</version>
         </dependency>
     </dependencies>
 
@@ -175,7 +155,7 @@
             <plugin>
                 <groupId>com.github.os72</groupId>
                 <artifactId>protoc-jar-maven-plugin</artifactId>
-                <version>${scion.os72-protoc.version}</version>
+                <version>3.11.4</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>
@@ -267,7 +247,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${scion.maven-surefire-plugin.version}</version>
+                <version>3.3.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

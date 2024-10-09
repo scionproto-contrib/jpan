@@ -33,6 +33,19 @@ public class ResponsePath extends Path {
   private final InetAddress srcAddress;
   private final int srcPort;
 
+  /**
+   * @param rawPath raw path
+   * @param srcIsdAs source IDA/AS
+   * @param srcIP source IP
+   * @param srcPort source port
+   * @param dstIsdAs destination ISD/AS
+   * @param dstIP destination IP
+   * @param dstPort destination port
+   * @param firstHopAddress first hop
+   * @return new path
+   * @deprecated Will be removed in 0.4.0
+   */
+  @Deprecated
   public static ResponsePath create(
       byte[] rawPath,
       long srcIsdAs,

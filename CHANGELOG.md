@@ -8,28 +8,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### TODO for 0.3.0
-- Breaking change: setScmpErrorListener(ErrorMessage)
-- Make ResponsePath/RequestPath classes private. Make at least create() private... 
-- Demo that connects to Francois' website
+### TODO for 0.4.0
 - Fix @Disabled tests
 - Support topofile port range
-- `ResponsePath` is now package private (not public anymore)
+  - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
-- Improve SCMP to only accept responses with correct ID. -> Allows pinging in parallel.
-  Currently this requires using different local ports. 
 - remove ScionAddress?
-- Remove getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) <- ISD + Scion address!!!
 - ScionDatagramChannel
   - GatheringByteChannel, ScatteringByteChannel
   - Selector support
   - Inherit DatagramChannel 
-- AS switching?
-
-### TODO post 0.3.0
-- Upgrade all JUnit topo files to post 0.11 with new format (including port range)
-- ...
+- Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
 ### Added
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
@@ -59,6 +49,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BREAKING CHANGE: Changed argument and return type of `setScmpErrorListener()` in 
   `ScionDatagramChannel` and `ScmpChannel` to `Scmp.ErrorMessage`. 
   [#124](https://github.com/scionproto-contrib/jpan/pull/124)
+- 0.3.0 preparation. [#122](https://github.com/scionproto-contrib/jpan/pull/122)
+  - Updated dependencies to latest versions
 
 ### Fixed
 - Remove use of 0.0.0.0 and "::". [#103](https://github.com/scionproto-contrib/jpan/pull/103)
@@ -73,6 +65,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Removed some useless IP printing functions. 
   [#105](https://github.com/scionproto-contrib/jpan/pull/105)
+- 0.3.0 preparation. [#122](https://github.com/scionproto-contrib/jpan/pull/122)
+  - Removed deprecated code
 
 ## [0.2.0] - 2024-06-24
 
