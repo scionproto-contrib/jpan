@@ -81,14 +81,14 @@ public class ScmpEchoDemo {
         {
           // Use scenario builder to get access to relevant IP addresses
           Scenario scenario = Scenario.readFrom("topologies/scionproto-default");
-          long srcIsdAs = ScionUtil.parseIA("2-ff00:0:212");
-          long dstIsdAs = ScionUtil.parseIA("2-ff00:0:222");
+          long srcIsdAs = ScionUtil.parseIA("1-ff00:0:133");
+          long dstIsdAs = ScionUtil.parseIA("1-ff00:0:122");
 
-          if (!true) {
+          if (true) {
             // Alternative #1: Bootstrap from topo file
             System.setProperty(
                 Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-                "topologies/scionproto-default/ASff00_0_212/topology.json");
+                "topologies/scionproto-default/ASff00_0_133/topology.json");
           } else {
             // Alternative #2: Bootstrap from SCION daemon
             System.setProperty(Constants.PROPERTY_DAEMON, scenario.getDaemon(srcIsdAs));
