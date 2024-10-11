@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
+### Fixed
+- Do not immediately fail if discovery server is missing in topo file. 
+  [#126](https://github.com/scionproto-contrib/jpan/pull/126)
+  
 ## [0.3.0] - 2024-10-09
 
 ### Added

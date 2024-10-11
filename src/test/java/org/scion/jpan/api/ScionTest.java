@@ -196,6 +196,24 @@ public class ScionTest {
   }
 
   @Test
+  void defaultService_bootstrapTopoFile_withoutDiscovery() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    try {
+      // String file = "topologies/scionproto-tiny/topology-110.json"
+      String file = "topologies/no-discovery.json";
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, file);
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
   void defaultService_bootstrapTopoFile_IOError_NoSuchFile() {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE + ".x");
     try {
