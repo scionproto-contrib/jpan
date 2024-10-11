@@ -38,7 +38,7 @@ The following artifact contains the complete SCION Java implementation:
 ### WARNING - Dispatcher
 JPAN connects directly to SCION **without dispatcher**.
 
-Currently (April 2024), the SCION system uses a "dispatcher" (a process that runs on endhosts,
+Currently, the SCION system uses a "dispatcher" (a process that runs on endhosts,
 listens on a fixed port (30041) and forwards any incoming SCION packets, after stripping the SCION 
 header, to local application).
 
@@ -371,7 +371,7 @@ JPAN uses the slf4j logging library. To use it, you have to install a logger. Fo
 <dependency>
     <groupId>org.slf4j</groupId>
     <artifactId>slf4j-simple</artifactId>
-    <version>2.0.9</version>
+    <version>2.0.13</version>
 </dependency>
 ```
 
@@ -383,15 +383,53 @@ before using *any* JPAN code.
 ### No DNS search domain found. Please check your /etc/resolv.conf or similar. / No DNS record found for bootstrap server.
 
 You may have to set the DNS search domain explicitly to a server with SCION NAPTR records. For example (works only if you are inside ETH):  
+
+
+This happens, for example, on Windows when using a VPN.
+There are several solutions to this (aside from reconfiguring your system).
+
+#### Solution #1: Provide search domain
+
+This is useful if you have access to a search domain with a NAPTR record of the discovery server.
+You can specify the search domain via environment variable `SCION_DNS_SEARCH_DOMAINS` or via Java 
+property `org.scion.dnsSearchDomains`. 
+One example of a search domain is `ethz.ch.` but it obviously works only when you are in the ETH 
+domain. For example:
+
 ```java
-System.setProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS, "ethz.ch.");
+System.setProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS, "yourDomain.org.");
 ```
+
+#### Solution #2: Provide a discovery server
+
+You can directly set the IP:port of the discovery server via environment variable 
+`SCION_BOOTSTRAP_HOST` or via Java property `org.scion.bootstrap.host`. 
+
+```java
+System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "serverIP:8041");
+```
+
+#### Solution #3: Provide a topology file
+
+If you have a topology file, you can specify it via environment variable `SCION_BOOTSTRAP_TOPO_FILE` 
+or via Java property `org.scion.bootstrap.topoFile`:
+
+```java
+System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "youtTopoFile.json");
+```
+
+
+
+
 
 ### Local testbed (scionproto) does not contain any path
 
 A common problem is that the certificates of the testbed have expired (default validity: 3 days).
 The certificates can be renewed by recreating the network with 
 `./scion.sh topology -c <your_topology_here.topo>`.
+
+Another thing to remember is that the network needs a few seconds to exchange beacons and 
+discover segments. Waiting a few seconds may fix the missing paths problem.
 
 ### ERROR: "TRC NOT FOUND"
 This error occurs when requesting a path with an ISD/AS code that is not
