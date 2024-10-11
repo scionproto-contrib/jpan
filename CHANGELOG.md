@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Better troubleshooting for connection problems.
+  [#127](https://github.com/scionproto-contrib/jpan/pull/127)
+- Auto-add port to discovery server setting + better error message.
   [#128](https://github.com/scionproto-contrib/jpan/pull/128)
 
 ### Fixed
