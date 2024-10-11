@@ -116,10 +116,12 @@ public class LocalTopology {
         JsonObject cs = e.getValue().getAsJsonObject();
         controlServices.add(new ServiceNode(e.getKey(), cs.get("addr").getAsString()));
       }
-      JsonObject dss = safeGet(o, "discovery_service").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> e : dss.entrySet()) {
-        JsonObject ds = e.getValue().getAsJsonObject();
-        discoveryServices.add(new ServiceNode(e.getKey(), ds.get("addr").getAsString()));
+      JsonElement dss = o.get("discovery_service");
+      if (dss != null) {
+        for (Map.Entry<String, JsonElement> e : dss.getAsJsonObject().entrySet()) {
+          JsonObject ds = e.getValue().getAsJsonObject();
+          discoveryServices.add(new ServiceNode(e.getKey(), ds.get("addr").getAsString()));
+        }
       }
       JsonArray attr = safeGet(o, "attributes").getAsJsonArray();
       for (int i = 0; i < attr.size(); i++) {

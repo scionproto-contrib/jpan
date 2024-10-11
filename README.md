@@ -331,14 +331,14 @@ attempt to get network information in the following order until it succeeds:
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
 
-| Option                                       | Java property                                       | Environment variable           | Default value   |
-|----------------------------------------------|-----------------------------------------------------|--------------------------------|-----------------|
-| Daemon port, IP, or IP:port                  | `org.scion.daemon`                                  | `SCION_DAEMON`                 | localhost:30255 | 
-| Bootstrap topology file path                 | `org.scion.bootstrap.topoFile`                      | `SCION_BOOTSTRAP_TOPO_FILE`    |                 | 
-| Bootstrap server host                        | `org.scion.bootstrap.host`                          | `SCION_BOOTSTRAP_HOST`         |                 |
-| Bootstrap DNS NAPTR entry host name          | `org.scion.bootstrap.naptr.name`                    | `SCION_BOOTSTRAP_NAPTR_NAME`   |                 | 
-| List of DNS search domains                   | `org.scion.dnsSearchDomains` | `SCION_DNS_SEARCH_DOMAINS`    |                 |
-| Use OS search domains, e.g. /etc/resolv.conf | `org.scion.test.useOsSearchDomains`    | `SCION_USE_OS_SEARCH_DOMAINS`  | true            |
+| Option                                        | Java property                       | Environment variable          | Default value   |
+|-----------------------------------------------|-------------------------------------|-------------------------------|-----------------|
+| Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                | localhost:30255 | 
+| Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
+| Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`        |                 |
+| Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
+| List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`    |                 |
+| Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            |
 
 
 ### DNS
