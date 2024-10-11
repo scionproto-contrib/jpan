@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
+## [0.3.1] - 2024-10-11
+
 ### Added
 - Better troubleshooting for connection problems.
   [#127](https://github.com/scionproto-contrib/jpan/pull/127)
@@ -238,7 +240,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/scionproto-contrib/jpan/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/scionproto-contrib/jpan/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/scionproto-contrib/jpan/compare/v0.1.0...v0.1.1
