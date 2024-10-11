@@ -44,7 +44,7 @@ public class ScionBootstrapper {
   private final GlobalTopology world;
 
   protected ScionBootstrapper(String topologyServiceAddress) {
-    this.topologyResource = topologyServiceAddress;
+    this.topologyResource = IPHelper.ensurePortOrDefault(topologyServiceAddress, 8041);
     this.localAS = initLocal();
     this.world = initGlobal();
   }
@@ -142,7 +142,7 @@ public class ScionBootstrapper {
       return fetchFile(url);
     } catch (IOException e) {
       throw new ScionRuntimeException(
-          "While fetching resource '" + resource + "' from " + topologyResource);
+          "While fetching resource '" + resource + "' from " + topologyResource, e);
     }
   }
 

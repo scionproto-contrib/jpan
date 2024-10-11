@@ -145,20 +145,32 @@ public class ScionTest {
 
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
-      String host;
-      MockBootstrapServer mts = MockNetwork.getTopoServer();
-      if (mts.getAddress().getAddress() instanceof Inet6Address) {
-        host = "[" + mts.getAddress().getAddress().getHostAddress() + "]";
-      } else {
-        host = mts.getAddress().getHostString();
-      }
-      host += ":" + mts.getAddress().getPort();
+      InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
+      String host = ToStringUtil.toString(discoveryAddress.getAddress());
+      host += ":" + discoveryAddress.getPort();
 
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapAddress_defaultPort() {
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    try {
+      InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
+      String host = ToStringUtil.toString(discoveryAddress.getAddress());
+      // We do _not_ add a port here.
+
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
+      Throwable t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
+      // Check that the default port 8041 was added
+      assertTrue(t.getMessage().contains(host + ":8041"));
     } finally {
       MockNetwork.stopTiny();
     }

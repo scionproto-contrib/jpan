@@ -415,12 +415,8 @@ If you have a topology file, you can specify it via environment variable `SCION_
 or via Java property `org.scion.bootstrap.topoFile`:
 
 ```java
-System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "youtTopoFile.json");
+System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, "yourTopoFile.json");
 ```
-
-
-
-
 
 ### Local testbed (scionproto) does not contain any path
 

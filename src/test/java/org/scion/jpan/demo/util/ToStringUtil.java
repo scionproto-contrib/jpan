@@ -125,4 +125,14 @@ public class ToStringUtil {
     ph.read(ByteBuffer.wrap(raw));
     return ph.toString();
   }
+
+  public static String toString(InetAddress address) {
+    String host;
+    if (address instanceof Inet6Address) {
+      host = "[" + address.getHostAddress() + "]";
+    } else {
+      host = address.toString().substring(1);
+    }
+    return host;
+  }
 }
