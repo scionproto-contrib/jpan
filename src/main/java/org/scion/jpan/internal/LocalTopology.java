@@ -33,6 +33,33 @@ public class LocalTopology {
   private String localIsdAs;
   private boolean isCoreAs;
   private int localMtu;
+  private DispatcherPortRange portRange;
+
+  public static class DispatcherPortRange {
+    private final int portMin;
+    private final int portMax;
+
+    private DispatcherPortRange(int min, int max) {
+      portMin = min;
+      portMax = max;
+    }
+
+    public static DispatcherPortRange createAll() {
+      return new DispatcherPortRange(-1, -1);
+    }
+
+    public boolean hasPortRange() {
+      return portMin >= 1 && portMax <= 65535;
+    }
+
+    public int getPortMin() {
+      return portMin;
+    }
+
+    public int getPortMax() {
+      return portMax;
+    }
+  }
 
   public static synchronized LocalTopology create(String topologyFile) {
     LocalTopology topo = new LocalTopology();
@@ -123,6 +150,11 @@ public class LocalTopology {
           discoveryServices.add(new ServiceNode(e.getKey(), ds.get("addr").getAsString()));
         }
       }
+      JsonElement underlay = o.get("underlay");
+      if (underlay != null) {
+        JsonObject u = underlay.getAsJsonObject();
+        portRange = parsePortRange(u.get("dispatched_ports").getAsString());
+      }
       JsonArray attr = safeGet(o, "attributes").getAsJsonArray();
       for (int i = 0; i < attr.size(); i++) {
         if ("core".equals(attr.get(i).getAsString())) {
@@ -130,6 +162,31 @@ public class LocalTopology {
         }
       }
     }
+  }
+
+  private static DispatcherPortRange parsePortRange(String v) {
+    if ("-".equals(v)) {
+      // EMPTY range means the only port we can possibly use is 30041, if no SHIM is listening
+      // there.
+      return new DispatcherPortRange(30041, 30041);
+    } else if ("all".equalsIgnoreCase(v)) {
+      return DispatcherPortRange.createAll();
+    } else {
+      String[] sa = v.split("-");
+      if (sa.length != 2) {
+        throw new ScionRuntimeException("Illegal expression in topo file dispatched_ports: " + v);
+      }
+      int portMin = Integer.parseInt(sa[0]);
+      int portMax = Integer.parseInt(sa[1]);
+      if (portMin < 1 || portMin > 65535 || portMax < 1 || portMax > 65535 || portMin > portMax) {
+        throw new ScionRuntimeException("Illegal port values in topo file dispatched_ports: " + v);
+      }
+      return new DispatcherPortRange(portMin, portMax);
+    }
+  }
+
+  public DispatcherPortRange getPortRange() {
+    return portRange;
   }
 
   @Override

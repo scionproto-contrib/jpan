@@ -214,12 +214,102 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     try {
       // String file = "topologies/scionproto-tiny/topology-110.json"
-      String file = "topologies/no-discovery.json";
-      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, file);
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/no-discovery.json");
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
       assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_ignoredByExplicitPort()
+      throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range.json");
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.bind(new InetSocketAddress(12321));
+      channel.connect(path);
+      assertEquals(12321, channel.getLocalAddress().getPort());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange() throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range.json");
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(path);
+      assertEquals(31000, channel.getLocalAddress().getPort());
+
+      try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
+        channel2.connect(path);
+        assertEquals(31001, channel2.getLocalAddress().getPort());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_EMPTY() throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range-empty.json");
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    // stop here to free up port 30041
+    MockNetwork.stopTiny();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(path);
+      // default to 30041!
+      assertEquals(30041, channel.getLocalAddress().getPort());
+
+      // the next should fail!
+      try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
+        IOException e = assertThrows(IOException.class, () -> channel2.connect(path));
+        assertTrue(e.getMessage().contains("30041"));
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRang_ALL() throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range-all.json");
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(path);
+      // just any port
+      assertNotNull(channel.getLocalAddress().getPort());
+
+      try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
+        channel2.connect(path);
+        assertNotNull(channel2.getLocalAddress().getPort());
+        assertNotEquals(channel.getLocalAddress().getPort(), channel2.getLocalAddress().getPort());
+      }
     } finally {
       MockNetwork.stopTiny();
     }

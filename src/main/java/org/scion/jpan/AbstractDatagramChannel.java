@@ -25,10 +25,7 @@ import java.nio.channels.NotYetConnectedException;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import org.scion.jpan.internal.ExtensionHeader;
-import org.scion.jpan.internal.InternalConstants;
-import org.scion.jpan.internal.ScionHeaderParser;
-import org.scion.jpan.internal.ScmpParser;
+import org.scion.jpan.internal.*;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
@@ -153,7 +150,26 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private void ensureBound() throws IOException {
     synchronized (stateLock) {
       if (localAddress == null) {
-        bind(null);
+        System.out.println("sendRaw-LA=null");
+        LocalTopology.DispatcherPortRange ports = getOrCreateService().getLocalPortRange();
+        if (ports != null && ports.hasPortRange()) {
+          System.out.println("sendRaw-PR");
+          // This is a bit ugly, we iterate through all ports to find a free one.
+          int min = ports.getPortMin();
+          int max = ports.getPortMax();
+          for (int port = min; port <= max; port++) {
+            System.out.println("sendRaw-trying: " + port);
+            try {
+              channel.bind(new InetSocketAddress("0.0.0.0", port));
+              return;
+            } catch (IOException e) {
+              // ignore and try next port
+            }
+          }
+          throw new IOException("No free port found in SCION port range: " + min + "-" + max);
+        } else {
+          bind(null);
+        }
       }
     }
   }

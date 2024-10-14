@@ -75,6 +75,7 @@ public class ScionService {
   private final ScionBootstrapper bootstrapper;
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
+  private LocalTopology.DispatcherPortRange portRange;
 
   private final boolean minimizeRequests;
   private final ManagedChannel channel;
@@ -652,5 +653,32 @@ public class ScionService {
     } else {
       return bootstrapper.getLocalTopology().getBorderRouterAddresses();
     }
+  }
+
+  LocalTopology.DispatcherPortRange getLocalPortRange() {
+    if (portRange == null) {
+      if (bootstrapper != null) {
+        portRange = bootstrapper.getLocalTopology().getPortRange();
+      } else if (daemonStub != null) {
+        // TODO try daemon
+        //        Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
+        //        Daemon.ASResponse response;
+        //        try {
+        //          response = daemonStub.aS(request);
+        //        } catch (StatusRuntimeException e) {
+        //          if (e.getStatus().getCode() == Status.Code.UNAVAILABLE) {
+        //            throw new ScionRuntimeException("Could not connect to SCION daemon: " +
+        // e.getMessage(), e);
+        //          }
+        //          throw new ScionRuntimeException("Error while getting AS info: " +
+        // e.getMessage(), e);
+        //        }
+        // portRange = ...
+
+      } else {
+        portRange = LocalTopology.DispatcherPortRange.createAll();
+      }
+    }
+    return portRange;
   }
 }
