@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Cache local address, see AbstractChannel:600
   srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
 - Cache paths
+- Server should get firstHop from topofile or daemon, not from packet IP!
+  -> BRs may use different ports for in/outgoing traffic.
+  -> Thios would also solve the server/SHIM problem, see TODO.md 
 - Fix @Disabled tests
 - Support topofile port range
   - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
