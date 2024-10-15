@@ -147,20 +147,18 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private void ensureBound() throws IOException {
+  protected void ensureBound() throws IOException {
     synchronized (stateLock) {
       if (localAddress == null) {
-        System.out.println("sendRaw-LA=null");
         LocalTopology.DispatcherPortRange ports = getOrCreateService().getLocalPortRange();
         if (ports != null && ports.hasPortRange()) {
-          System.out.println("sendRaw-PR");
           // This is a bit ugly, we iterate through all ports to find a free one.
           int min = ports.getPortMin();
           int max = ports.getPortMax();
           for (int port = min; port <= max; port++) {
-            System.out.println("sendRaw-trying: " + port);
             try {
-              channel.bind(new InetSocketAddress("0.0.0.0", port));
+              // bind(new InetSocketAddress("0.0.0.0", port));
+              bind(new InetSocketAddress(port));
               return;
             } catch (IOException e) {
               // ignore and try next port

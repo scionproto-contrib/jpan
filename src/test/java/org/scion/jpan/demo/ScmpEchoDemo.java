@@ -122,14 +122,16 @@ public class ScmpEchoDemo {
     println("Listening on port " + localPort + " ...");
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
+      println("Listening on port " + channel.getLocalAddress().getPort() + " ...");
       println("Resolved local address: ");
       println("  " + channel.getLocalAddress().getAddress().getHostAddress());
     }
 
     printPath(path);
-    try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
+      println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
       for (int i = 0; i < REPEAT; i++) {
-        Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, data);
+        Scmp.EchoMessage msg = sender.sendEchoRequest(path, data);
         if (i == 0) {
           printHeader(path.getRemoteSocketAddress(), data, msg);
         }

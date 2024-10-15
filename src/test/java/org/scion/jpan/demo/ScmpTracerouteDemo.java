@@ -83,8 +83,6 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
-          //          System.setProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS, "ethz.ch.");
-
           // Local port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(Constants.SCMP_PORT);
           demo.runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
@@ -110,17 +108,19 @@ public class ScmpTracerouteDemo {
     }
     Path path = paths.get(0);
 
-    println("Listening on port " + localPort + " ...");
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      channel.connect(path);
-      println("Resolved local address: ");
-      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
-    }
+    // TODO
+    //    println("Listening on port " + localPort + " ...");
+    //    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+    //      channel.connect(path);
+    //      println("Resolved local address: ");
+    //      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
+    //    }
 
     printPath(path);
 
-    try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
-      List<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest(path);
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
+      //  println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
+      List<Scmp.TracerouteMessage> results = sender.sendTracerouteRequest(path);
       for (Scmp.TracerouteMessage msg : results) {
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String out = "" + msg.getSequenceNumber();
@@ -130,6 +130,7 @@ public class ScmpTracerouteDemo {
         out += " " + millis + "ms";
         println(out);
       }
+      println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
     }
   }
 

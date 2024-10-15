@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class ScmpSenderAsync implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpSenderAsync.class);
+  private static final int PORT_NOT_SET = -1;
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
@@ -215,12 +216,14 @@ public class ScmpSenderAsync implements AutoCloseable {
       super.channel().configureBlocking(false);
       super.channel().register(selector, SelectionKey.OP_READ);
 
-      if (port == 0) {
-        if (Util.getJavaMajorVersion() >= 17) {
-          super.bind(null);
-        } else {
-          throw new IllegalArgumentException("With Java < 17, Please assign a local port >= 0");
-        }
+      if (port == PORT_NOT_SET) {
+        ensureBound();
+        //        if (Util.getJavaMajorVersion() >= 17) {
+        //          super.bind(null);
+        //        } else {
+        //          throw new IllegalArgumentException("With Java < 17, please assign a local port >
+        // 0");
+        //        }
       } else {
         // listen on ANY interface: 0.0.0.0 / [::]
         super.bind(new InetSocketAddress(port));
@@ -406,7 +409,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   public static class Builder {
     private ScionService service;
-    private int port = -1;
+    private int port = PORT_NOT_SET;
     private final ResponseHandler handler;
     private java.nio.channels.DatagramChannel channel = null;
     private Selector selector = null;
@@ -443,13 +446,14 @@ public class ScmpSenderAsync implements AutoCloseable {
       try {
         channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
         selector = selector == null ? Selector.open() : selector;
-        if (port == -1) {
-          if (Util.getJavaMajorVersion() >= 17) {
-            port = 0;
-          } else {
-            port = 51315; // Some random port
-          }
-        }
+        // TODO remove
+        //        if (port == -1) {
+        //          if (Util.getJavaMajorVersion() >= 17) {
+        //            port = 0;
+        //          } else {
+        //            port = 51315; // Some random port
+        //          }
+        //        }
         return new ScmpSenderAsync(service, port, handler, channel, selector);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
