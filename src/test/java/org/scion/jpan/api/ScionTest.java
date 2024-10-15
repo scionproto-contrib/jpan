@@ -267,11 +267,22 @@ public class ScionTest {
 
   @Test
   void defaultService_bootstrapTopoFile_dispatcherPortRange_EMPTY() throws IOException {
+    testDefaultService_bootstrapTopoFile_dispatcherPortRange(
+        "topologies/dispatcher-port-range-empty.json");
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_NONE() throws IOException {
+    testDefaultService_bootstrapTopoFile_dispatcherPortRange(
+        "topologies/dispatcher-port-range-none.json");
+  }
+
+  private void testDefaultService_bootstrapTopoFile_dispatcherPortRange(String topoFile)
+      throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
-    System.setProperty(
-        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range-empty.json");
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFile);
     ScionService service = Scion.defaultService();
     Path path = service.getPaths(dstIA, dstAddress).get(0);
     // stop here to free up port 30041
@@ -303,11 +314,11 @@ public class ScionTest {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
       // just any port
-      assertNotNull(channel.getLocalAddress().getPort());
+      assertNotNull(channel.getLocalAddress());
 
       try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
         channel2.connect(path);
-        assertNotNull(channel2.getLocalAddress().getPort());
+        assertNotNull(channel2.getLocalAddress());
         assertNotEquals(channel.getLocalAddress().getPort(), channel2.getLocalAddress().getPort());
       }
     } finally {
@@ -489,8 +500,7 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
       System.setProperty(
-          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-          "topologies/scionproto-tiny/topology-scionproto-0.11.json");
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-scionproto-0.11.json");
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);

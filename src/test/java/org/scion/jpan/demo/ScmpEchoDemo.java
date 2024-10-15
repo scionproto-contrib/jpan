@@ -40,8 +40,7 @@ public class ScmpEchoDemo {
 
   public static boolean PRINT = true;
   private static int REPEAT = 10;
-  public static Network NETWORK = Network.PRODUCTION;
-  private final int localPort;
+  public static Network NETWORK = Network.SCION_PROTO;
 
   public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -53,14 +52,6 @@ public class ScmpEchoDemo {
     PRINT = print;
     NETWORK = network;
     REPEAT = repeat;
-  }
-
-  private ScmpEchoDemo() {
-    this(12345);
-  }
-
-  private ScmpEchoDemo(int localPort) {
-    this.localPort = localPort;
   }
 
   public static void main(String[] args) throws IOException {
@@ -94,20 +85,18 @@ public class ScmpEchoDemo {
             System.setProperty(Constants.PROPERTY_DAEMON, scenario.getDaemon(srcIsdAs));
           }
 
-          // Use a port from the dispatcher compatibility range
-          ScmpEchoDemo demo = new ScmpEchoDemo(32766);
           // Ping the dispatcher/shim. It listens on the same IP as the control service.
           InetAddress ip = scenario.getControlServer(dstIsdAs).getAddress();
 
           // Get paths
           List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
-          demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
+          new ScmpEchoDemo().runDemo(PathPolicy.MIN_HOPS.filter(paths));
           break;
         }
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
-          ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
+          ScmpEchoDemo demo = new ScmpEchoDemo();
           ScionService service = Scion.defaultService();
           demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
           break;
@@ -119,17 +108,19 @@ public class ScmpEchoDemo {
   private void runDemo(Path path) throws IOException {
     ByteBuffer data = ByteBuffer.allocate(0);
 
-    println("Listening on port " + localPort + " ...");
+    String localAddress;
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
-      println("Listening on port " + channel.getLocalAddress().getPort() + " ...");
-      println("Resolved local address: ");
-      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
+      // We determine the address separately because SCMP will always have 0.0.0.0 as local address
+      localAddress = channel.getLocalAddress().getAddress().getHostAddress();
     }
 
-    printPath(path);
     try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
       println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
+      println("Resolved local address: ");
+      println("  " + localAddress);
+      printPath(path);
+
       for (int i = 0; i < REPEAT; i++) {
         Scmp.EchoMessage msg = sender.sendEchoRequest(path, data);
         if (i == 0) {

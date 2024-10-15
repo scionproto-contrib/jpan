@@ -163,8 +163,11 @@ public class LocalTopology {
         }
       }
       JsonElement underlay = o.get("underlay");
-      if (underlay == null) {
+      JsonElement dispatchedPorts = o.get("dispatched_ports");
+      if (underlay == null && dispatchedPorts == null) {
         portRange = DispatcherPortRange.createEmpty();
+      } else if (dispatchedPorts != null) {
+        portRange = parsePortRange(dispatchedPorts.getAsString());
       } else {
         JsonObject u = underlay.getAsJsonObject();
         portRange = parsePortRange(u.get("dispatched_ports").getAsString());
@@ -179,6 +182,9 @@ public class LocalTopology {
   }
 
   private static DispatcherPortRange parsePortRange(String v) {
+    if (v.startsWith("\"") && v.endsWith("\"")) {
+      v = v.substring(1, v.length() -2);
+    }
     if ("-".equals(v)) {
       return DispatcherPortRange.createEmpty();
     } else if ("all".equalsIgnoreCase(v)) {

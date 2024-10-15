@@ -7,8 +7,9 @@
   "test_dispatcher": true,
   "endhost_start_port": 1024,
   "endhost_end_port": 65535,
+  "dispatched_ports": "31000-32767",
   "control_service": {
-    "cs2-ff00_0_210-1": {
+  "cs2-ff00_0_210-1": {
       "addr": "127.0.0.91:31044"
     }
   },

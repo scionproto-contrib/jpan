@@ -37,7 +37,6 @@ public class ShowpathsDemo {
 
   public static boolean PRINT = true;
   private static Network NETWORK = Network.PRODUCTION;
-  private final int localPort;
 
   public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network
@@ -48,14 +47,6 @@ public class ShowpathsDemo {
   public static void init(boolean print, ShowpathsDemo.Network network) {
     PRINT = print;
     NETWORK = network;
-  }
-
-  public ShowpathsDemo() {
-    this(12345); // Any port is fine unless we connect to a dispatcher network
-  }
-
-  public ShowpathsDemo(int localPort) {
-    this.localPort = localPort;
   }
 
   public static void main(String[] args) throws IOException {
@@ -80,8 +71,7 @@ public class ShowpathsDemo {
         }
       case PRODUCTION:
         {
-          // Local port must be 30041 for networks that expect a dispatcher
-          ShowpathsDemo demo = new ShowpathsDemo(Constants.DISPATCHER_PORT);
+          ShowpathsDemo demo = new ShowpathsDemo();
           demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
           break;
@@ -102,7 +92,6 @@ public class ShowpathsDemo {
       throw new IOException("No path found from " + src + " to " + dst);
     }
 
-    println("Listening on port " + localPort + " ...");
     println("Available paths to " + ScionUtil.toStringIA(destinationIA));
 
     int id = 0;

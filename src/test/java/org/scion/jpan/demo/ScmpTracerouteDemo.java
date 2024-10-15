@@ -36,8 +36,7 @@ import org.scion.jpan.testutil.MockDNS;
 public class ScmpTracerouteDemo {
 
   public static boolean PRINT = true;
-  public static Network NETWORK = Network.PRODUCTION;
-  private final int localPort;
+  public static Network NETWORK = Network.SCION_PROTO;
 
   public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -48,14 +47,6 @@ public class ScmpTracerouteDemo {
   public static void init(boolean print, ScmpTracerouteDemo.Network network) {
     PRINT = print;
     NETWORK = network;
-  }
-
-  public ScmpTracerouteDemo() {
-    this(12345); // Any port is fine unless we connect to a dispatcher network
-  }
-
-  public ScmpTracerouteDemo(int localPort) {
-    this.localPort = localPort;
   }
 
   public static void main(String[] args) throws IOException {
@@ -75,7 +66,7 @@ public class ScmpTracerouteDemo {
           //   "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           // Use a port from the dispatcher compatibility range
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(32766);
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(DemoConstants.ia211);
           demo.runDemo(DemoConstants.ia111);
           demo.runDemo(DemoConstants.ia1111);
@@ -83,8 +74,7 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
-          // Local port must be 30041 for networks that expect a dispatcher
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(Constants.SCMP_PORT);
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
           // demo.runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore
           // demo.runDemo(DemoConstants.iaAnapayaHK);
@@ -108,18 +98,19 @@ public class ScmpTracerouteDemo {
     }
     Path path = paths.get(0);
 
-    // TODO
-    //    println("Listening on port " + localPort + " ...");
-    //    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-    //      channel.connect(path);
-    //      println("Resolved local address: ");
-    //      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
-    //    }
-
-    printPath(path);
+    String localAddress;
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(path);
+      // We determine the address separately because SCMP will always have 0.0.0.0 as local address
+      localAddress = channel.getLocalAddress().getAddress().getHostAddress();
+    }
 
     try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
-      //  println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
+      println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
+      println("Resolved local address: ");
+      println("  " + localAddress);
+      printPath(path);
+
       List<Scmp.TracerouteMessage> results = sender.sendTracerouteRequest(path);
       for (Scmp.TracerouteMessage msg : results) {
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
@@ -130,7 +121,6 @@ public class ScmpTracerouteDemo {
         out += " " + millis + "ms";
         println(out);
       }
-      println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
     }
   }
 
