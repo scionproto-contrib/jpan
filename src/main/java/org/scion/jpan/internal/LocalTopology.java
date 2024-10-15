@@ -45,6 +45,10 @@ public class LocalTopology {
       portMax = max;
     }
 
+    public static DispatcherPortRange create(int min, int max) {
+      return new DispatcherPortRange(min, max);
+    }
+
     public static DispatcherPortRange createAll() {
       return new DispatcherPortRange(-1, -1);
     }

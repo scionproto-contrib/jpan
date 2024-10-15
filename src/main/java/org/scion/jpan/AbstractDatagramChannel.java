@@ -317,6 +317,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       checkConnected(false);
       ensureBound();
+      if (localAddress.isAnyLocalAddress()) {
+        // Do we really need this?
+        // - It ensures that after connect we have a proper local address for getLocalAddress(),
+        //   this is what connect() should do.
+        // - It allows us to have an ANY address underneath which could help with interface
+        //   switching.
+        localAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+      }
       updateConnection((RequestPath) path, false);
       return (C) this;
     }

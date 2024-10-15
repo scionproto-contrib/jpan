@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- Cache local address, see AbstractChannel:600
+  srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+- Cache paths
 - Fix @Disabled tests
 - Support topofile port range
   - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
@@ -26,7 +29,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
 
 TODO: 
-- Get range from daemon
+- Test demos with JUNIT topo and with scioproto topo
+- Demos: remove hardcoded 30041
+- Add dispatched_ports to topo files
 - Unit-test for "With Java < 17, please assign a local port > 0" ?
 
 ## [0.3.1] - 2024-10-11
