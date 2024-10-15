@@ -37,7 +37,6 @@ public class ScmpTracerouteDemo {
 
   public static boolean PRINT = true;
   public static Network NETWORK = Network.PRODUCTION;
-  private final int localPort;
 
   public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -50,22 +49,13 @@ public class ScmpTracerouteDemo {
     NETWORK = network;
   }
 
-  public ScmpTracerouteDemo() {
-    this(12345); // Any port is fine unless we connect to a dispatcher network
-  }
-
-  public ScmpTracerouteDemo(int localPort) {
-    this.localPort = localPort;
-  }
-
   public static void main(String[] args) throws IOException {
     switch (NETWORK) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(DemoConstants.ia112);
+          runDemo(DemoConstants.ia112);
           DemoTopology.shutDown();
           break;
         }
@@ -74,30 +64,24 @@ public class ScmpTracerouteDemo {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           //   "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          // Use a port from the dispatcher compatibility range
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(32766);
-          demo.runDemo(DemoConstants.ia211);
-          demo.runDemo(DemoConstants.ia111);
-          demo.runDemo(DemoConstants.ia1111);
+          runDemo(DemoConstants.ia211);
+          runDemo(DemoConstants.ia111);
+          runDemo(DemoConstants.ia1111);
           break;
         }
       case PRODUCTION:
         {
-          //          System.setProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS, "ethz.ch.");
-
-          // Local port must be 30041 for networks that expect a dispatcher
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo(Constants.SCMP_PORT);
-          demo.runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
-          // demo.runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore
-          // demo.runDemo(DemoConstants.iaAnapayaHK);
-          // demo.runDemo(DemoConstants.iaOVGU);
+          runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
+          // runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore
+          // runDemo(DemoConstants.iaAnapayaHK);
+          // runDemo(DemoConstants.iaOVGU);
           break;
         }
     }
     Scion.closeDefault();
   }
 
-  private void runDemo(long destinationIA) throws IOException {
+  private static void runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // Dummy address. The traceroute will contact the control service IP instead.
     InetSocketAddress destinationAddress =
@@ -110,17 +94,20 @@ public class ScmpTracerouteDemo {
     }
     Path path = paths.get(0);
 
-    println("Listening on port " + localPort + " ...");
+    String localAddress;
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
-      println("Resolved local address: ");
-      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
+      // We determine the address separately because SCMP will always have 0.0.0.0 as local address
+      localAddress = channel.getLocalAddress().getAddress().getHostAddress();
     }
 
-    printPath(path);
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
+      println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
+      println("Resolved local address: ");
+      println("  " + localAddress);
+      printPath(path);
 
-    try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
-      List<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest(path);
+      List<Scmp.TracerouteMessage> results = sender.sendTracerouteRequest(path);
       for (Scmp.TracerouteMessage msg : results) {
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String out = "" + msg.getSequenceNumber();
@@ -133,7 +120,7 @@ public class ScmpTracerouteDemo {
     }
   }
 
-  private void printPath(Path path) {
+  private static void printPath(Path path) {
     String nl = System.lineSeparator();
     StringBuilder sb = new StringBuilder();
     // sb.append("Actual local address:").append(nl);

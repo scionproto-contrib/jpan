@@ -25,10 +25,7 @@ import java.nio.channels.NotYetConnectedException;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import org.scion.jpan.internal.ExtensionHeader;
-import org.scion.jpan.internal.InternalConstants;
-import org.scion.jpan.internal.ScionHeaderParser;
-import org.scion.jpan.internal.ScmpParser;
+import org.scion.jpan.internal.*;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
@@ -150,10 +147,26 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private void ensureBound() throws IOException {
+  protected void ensureBound() throws IOException {
     synchronized (stateLock) {
       if (localAddress == null) {
-        bind(null);
+        LocalTopology.DispatcherPortRange ports = getOrCreateService().getLocalPortRange();
+        if (ports != null && ports.hasPortRange()) {
+          // This is a bit ugly, we iterate through all ports to find a free one.
+          int min = ports.getPortMin();
+          int max = ports.getPortMax();
+          for (int port = min; port <= max; port++) {
+            try {
+              bind(new InetSocketAddress(port));
+              return;
+            } catch (IOException e) {
+              // ignore and try next port
+            }
+          }
+          throw new IOException("No free port found in SCION port range: " + min + "-" + max);
+        } else {
+          bind(null);
+        }
       }
     }
   }
@@ -304,6 +317,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       checkConnected(false);
       ensureBound();
+      if (localAddress.isAnyLocalAddress()) {
+        // Do we really need this?
+        // - It ensures that after connect we have a proper local address for getLocalAddress(),
+        //   this is what connect() should do.
+        // - It allows us to have an ANY address underneath which could help with interface
+        //   switching.
+        localAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+      }
       updateConnection((RequestPath) path, false);
       return (C) this;
     }

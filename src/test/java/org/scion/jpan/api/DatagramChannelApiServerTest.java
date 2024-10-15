@@ -74,6 +74,7 @@ class DatagramChannelApiServerTest {
   void send_withoutService() throws IOException {
     // check that send(Path) does not internally require a ScionService.
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
       assertNull(channel.getService());
       ResponsePath path =
           PackageVisibilityHelper.createDummyResponsePath(
@@ -101,6 +102,7 @@ class DatagramChannelApiServerTest {
           return addr;
         });
     try (ScionDatagramChannel channel = ScionDatagramChannel.open(null, mock)) {
+      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
       assertNull(channel.getService());
       ByteBuffer buffer = ByteBuffer.allocate(100);
       ScionSocketAddress responseAddress = channel.receive(buffer);
