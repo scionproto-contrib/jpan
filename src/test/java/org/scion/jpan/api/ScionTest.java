@@ -494,7 +494,25 @@ public class ScionTest {
 
   /** See Issue #72: <a href="https://github.com/scionproto-contrib/jpan/issues/72">...</a> */
   @Test
-  void defaultService_bootstrapTopoFile_ScionProto_11() {
+  void defaultService_bootstrapTopoFile_ScionProto_0_10() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    try {
+      System.setProperty(
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-scionproto-0.10.json");
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  /** See Issue #72: <a href="https://github.com/scionproto-contrib/jpan/issues/72">...</a> */
+  @Test
+  void defaultService_bootstrapTopoFile_ScionProto_0_11() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);

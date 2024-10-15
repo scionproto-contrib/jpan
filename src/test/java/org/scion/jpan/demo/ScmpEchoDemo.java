@@ -40,7 +40,7 @@ public class ScmpEchoDemo {
 
   public static boolean PRINT = true;
   private static int REPEAT = 10;
-  public static Network NETWORK = Network.SCION_PROTO;
+  public static Network NETWORK = Network.PRODUCTION;
 
   public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -60,9 +60,8 @@ public class ScmpEchoDemo {
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ScmpEchoDemo demo = new ScmpEchoDemo();
           InetSocketAddress br211 = new InetSocketAddress("::1", MockNetwork.BORDER_ROUTER_PORT2);
-          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, br211).get(0));
+          runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, br211).get(0));
           DemoTopology.shutDown();
           break;
         }
@@ -90,22 +89,20 @@ public class ScmpEchoDemo {
 
           // Get paths
           List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
-          new ScmpEchoDemo().runDemo(PathPolicy.MIN_HOPS.filter(paths));
+          runDemo(PathPolicy.MIN_HOPS.filter(paths));
           break;
         }
       case PRODUCTION:
         {
-          // Local port must be 30041 for networks that expect a dispatcher
-          ScmpEchoDemo demo = new ScmpEchoDemo();
           ScionService service = Scion.defaultService();
-          demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
+          runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
           break;
         }
     }
     Scion.closeDefault();
   }
 
-  private void runDemo(Path path) throws IOException {
+  private static void runDemo(Path path) throws IOException {
     ByteBuffer data = ByteBuffer.allocate(0);
 
     String localAddress;
@@ -147,7 +144,7 @@ public class ScmpEchoDemo {
     }
   }
 
-  private void printPath(Path path) {
+  private static void printPath(Path path) {
     String nl = System.lineSeparator();
     String sb = "Using path:" + nl + "  Hops: " + ScionUtil.toStringPath(path.getMetadata());
     sb += " MTU: " + path.getMetadata().getMtu();
@@ -155,9 +152,9 @@ public class ScmpEchoDemo {
     println(sb);
   }
 
-  private void printHeader(ScionSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
-    String sb = "PING " + ScionUtil.toStringIA(dstAddress.getIsdAs()) + ",";
-    sb += dstAddress.getHostString() + ":" + dstAddress.getPort() + " pld=" + data.remaining();
+  private static void printHeader(ScionSocketAddress dst, ByteBuffer data, Scmp.EchoMessage msg) {
+    String sb = "PING " + ScionUtil.toStringIA(dst.getIsdAs()) + ",";
+    sb += dst.getHostString() + ":" + dst.getPort() + " pld=" + data.remaining();
     sb += "B scion_pkt=" + msg.getSizeSent() + "B";
     println(sb);
   }

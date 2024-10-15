@@ -55,8 +55,7 @@ public class ShowpathsDemo {
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ShowpathsDemo demo = new ShowpathsDemo();
-          demo.runDemo(DemoConstants.ia110);
+          runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
         }
@@ -65,22 +64,20 @@ public class ShowpathsDemo {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          ShowpathsDemo demo = new ShowpathsDemo();
-          demo.runDemo(DemoConstants.ia211);
+          runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
         {
-          ShowpathsDemo demo = new ShowpathsDemo();
-          demo.runDemo(DemoConstants.iaAnapayaHK);
-          // demo.runDemo(DemoConstants.iaOVGU);
+          runDemo(DemoConstants.iaAnapayaHK);
+          // runDemo(DemoConstants.iaOVGU);
           break;
         }
     }
     Scion.closeDefault();
   }
 
-  private void runDemo(long destinationIA) throws IOException {
+  private static void runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // dummy address
     InetSocketAddress destinationAddress =

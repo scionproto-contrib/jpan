@@ -30,9 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 TODO: 
 - Test demos with JUNIT topo and with scioproto topo
-- Demos: remove hardcoded 30041
-- Add dispatched_ports to topo files
-- Unit-test for "With Java < 17, please assign a local port > 0" ?
+- FIX: if no ephemeral ports are available, just use ANY port but enforce 30041 as return port.
 
 ## [0.3.1] - 2024-10-11
 

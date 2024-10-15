@@ -36,7 +36,7 @@ import org.scion.jpan.testutil.MockDNS;
 public class ScmpTracerouteDemo {
 
   public static boolean PRINT = true;
-  public static Network NETWORK = Network.SCION_PROTO;
+  public static Network NETWORK = Network.PRODUCTION;
 
   public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -55,8 +55,7 @@ public class ScmpTracerouteDemo {
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(DemoConstants.ia112);
+          runDemo(DemoConstants.ia112);
           DemoTopology.shutDown();
           break;
         }
@@ -65,27 +64,24 @@ public class ScmpTracerouteDemo {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           //   "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          // Use a port from the dispatcher compatibility range
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(DemoConstants.ia211);
-          demo.runDemo(DemoConstants.ia111);
-          demo.runDemo(DemoConstants.ia1111);
+          runDemo(DemoConstants.ia211);
+          runDemo(DemoConstants.ia111);
+          runDemo(DemoConstants.ia1111);
           break;
         }
       case PRODUCTION:
         {
-          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
-          // demo.runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore
-          // demo.runDemo(DemoConstants.iaAnapayaHK);
-          // demo.runDemo(DemoConstants.iaOVGU);
+          runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
+          // runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore
+          // runDemo(DemoConstants.iaAnapayaHK);
+          // runDemo(DemoConstants.iaOVGU);
           break;
         }
     }
     Scion.closeDefault();
   }
 
-  private void runDemo(long destinationIA) throws IOException {
+  private static void runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // Dummy address. The traceroute will contact the control service IP instead.
     InetSocketAddress destinationAddress =
@@ -124,7 +120,7 @@ public class ScmpTracerouteDemo {
     }
   }
 
-  private void printPath(Path path) {
+  private static void printPath(Path path) {
     String nl = System.lineSeparator();
     StringBuilder sb = new StringBuilder();
     // sb.append("Actual local address:").append(nl);

@@ -183,7 +183,7 @@ public class LocalTopology {
 
   private static DispatcherPortRange parsePortRange(String v) {
     if (v.startsWith("\"") && v.endsWith("\"")) {
-      v = v.substring(1, v.length() -2);
+      v = v.substring(1, v.length() - 2);
     }
     if ("-".equals(v)) {
       return DispatcherPortRange.createEmpty();
