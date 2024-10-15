@@ -157,7 +157,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           int max = ports.getPortMax();
           for (int port = min; port <= max; port++) {
             try {
-              // bind(new InetSocketAddress("0.0.0.0", port));
               bind(new InetSocketAddress(port));
               return;
             } catch (IOException e) {

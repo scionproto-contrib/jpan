@@ -218,12 +218,6 @@ public class ScmpSenderAsync implements AutoCloseable {
 
       if (port == PORT_NOT_SET) {
         ensureBound();
-        //        if (Util.getJavaMajorVersion() >= 17) {
-        //          super.bind(null);
-        //        } else {
-        //          throw new IllegalArgumentException("With Java < 17, please assign a local port >
-        // 0");
-        //        }
       } else {
         // listen on ANY interface: 0.0.0.0 / [::]
         super.bind(new InetSocketAddress(port));
@@ -420,9 +414,6 @@ public class ScmpSenderAsync implements AutoCloseable {
 
     public Builder setLocalPort(int localPort) {
       this.port = localPort;
-      if (port == 0 && Util.getJavaMajorVersion() < 17) {
-        log.warn("Using port 0 does likely not work with Java < 17");
-      }
       return this;
     }
 
@@ -446,14 +437,6 @@ public class ScmpSenderAsync implements AutoCloseable {
       try {
         channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
         selector = selector == null ? Selector.open() : selector;
-        // TODO remove
-        //        if (port == -1) {
-        //          if (Util.getJavaMajorVersion() >= 17) {
-        //            port = 0;
-        //          } else {
-        //            port = 51315; // Some random port
-        //          }
-        //        }
         return new ScmpSenderAsync(service, port, handler, channel, selector);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);

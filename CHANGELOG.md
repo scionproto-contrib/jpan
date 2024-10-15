@@ -25,7 +25,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for `dispatched_ports` in topo files
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
 
-TODO: Unit-test for "With Java < 17, please assign a local port > 0"
+TODO: 
+- Get range from daemon
+- Unit-test for "With Java < 17, please assign a local port > 0" ?
 
 ## [0.3.1] - 2024-10-11
 

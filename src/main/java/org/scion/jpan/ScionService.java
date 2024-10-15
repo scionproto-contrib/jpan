@@ -674,7 +674,6 @@ public class ScionService {
         // e.getMessage(), e);
         //        }
         // portRange = ...
-
       } else {
         portRange = LocalTopology.DispatcherPortRange.createAll();
       }
