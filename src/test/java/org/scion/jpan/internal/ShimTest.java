@@ -31,14 +31,14 @@ import org.scion.jpan.testutil.PingPongChannelHelper;
 
 class ShimTest {
 
-  private static final AtomicInteger counter = new AtomicInteger();
+  private static final AtomicInteger shimForwardingCounter = new AtomicInteger();
 
   @BeforeEach
   void beforeEach() {
     Scion.closeDefault();
     Shim.uninstall();
     System.setProperty(Shim.DEBUG_PROPERTY_START_SHIM, "true");
-    counter.set(0);
+    shimForwardingCounter.set(0);
   }
 
   @AfterEach
@@ -126,7 +126,7 @@ class ShimTest {
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph = new PingPongChannelHelper(1, 1, 10);
     pph.runPingPong(serverFn, clientFn, false);
-    assertEquals(2 * 10, counter.getAndSet(0));
+    assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
   }
 
   public void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {
@@ -134,10 +134,11 @@ class ShimTest {
     MockScmpHandler.stop();
     // Install the SHIM
     Shim.install(Scion.defaultService());
+    assertTrue(Shim.isInstalled());
     // Set callback
     Shim.setCallback(
         byteBuffer -> {
-          counter.incrementAndGet();
+          shimForwardingCounter.incrementAndGet();
           return true;
         });
     // ensure that packets are sent to 30041
