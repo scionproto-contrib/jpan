@@ -157,20 +157,15 @@ public class Shim implements AutoCloseable {
   }
 
   public static class Builder {
-    private ScionService service;
-    private int port = Constants.SCMP_PORT;
+    private final ScionService service;
 
     Builder(ScionService service) {
       this.service = service;
     }
 
-    public Builder setService(ScionService service) {
-      this.service = service;
-      return this;
-    }
-
     public Shim build() {
       ScionService service2 = service == null ? Scion.defaultService() : service;
+      int port = Constants.SCMP_PORT;
       return new Shim(service2, port);
     }
   }
