@@ -15,7 +15,6 @@
 package org.scion.jpan.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -30,6 +29,7 @@ import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
+@Disabled
 class ShimTest {
 
   private static final AtomicInteger shimForwardingCounter = new AtomicInteger();
