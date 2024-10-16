@@ -29,7 +29,6 @@ import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
-@Disabled
 class ShimTest {
 
   private static final AtomicInteger shimForwardingCounter = new AtomicInteger();
@@ -52,6 +51,7 @@ class ShimTest {
   @AfterAll
   static void afterAll() {
     System.setProperty(Shim.DEBUG_PROPERTY_START_SHIM, "false");
+    MockNetwork.stopTiny();
   }
 
   @Test
