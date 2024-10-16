@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
+
+- Add a SHIM, required for #130.
+  [#130](https://github.com/scionproto-contrib/jpan/pull/130)
+
 ## [0.3.1] - 2024-10-11
 
 ### Added

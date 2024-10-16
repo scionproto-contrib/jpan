@@ -44,11 +44,11 @@ public class ScmpChannel implements AutoCloseable {
   private final InternalChannel channel;
 
   ScmpChannel() throws IOException {
-    this(Scion.defaultService(), 12345);
+    this(Scion.defaultService(), 12345, DatagramChannel.open());
   }
 
-  ScmpChannel(ScionService service, int port) throws IOException {
-    this.channel = new InternalChannel(service, port);
+  ScmpChannel(ScionService service, int port, DatagramChannel channel) throws IOException {
+    this.channel = new InternalChannel(service, port, channel);
   }
 
   /**
@@ -166,8 +166,9 @@ public class ScmpChannel implements AutoCloseable {
     private final Selector selector;
     private Predicate<Scmp.EchoMessage> echoListener;
 
-    protected InternalChannel(ScionService service, int port) throws IOException {
-      super(service);
+    protected InternalChannel(ScionService service, int port, DatagramChannel channel)
+        throws IOException {
+      super(service, channel);
 
       // selector
       this.selector = Selector.open();
