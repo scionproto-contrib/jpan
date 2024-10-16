@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
@@ -32,6 +33,7 @@ import org.scion.jpan.testutil.PingPongChannelHelper;
 class ShimTest {
 
   private static final AtomicInteger shimForwardingCounter = new AtomicInteger();
+  private static final CountDownLatch serverBarrier = new CountDownLatch(1);
 
   @BeforeEach
   void beforeEach() {
@@ -150,6 +152,13 @@ class ShimTest {
     // would not work with configureRemoteDispatcher().
     serverAddress = createDummyPath(serverAddress.getRemotePort());
 
+    // wait for server to start
+    try {
+      serverBarrier.await();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+
     String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
     channel.send(sendBuf, serverAddress);
@@ -167,6 +176,7 @@ class ShimTest {
 
   public void server(ScionDatagramChannel channel) throws IOException {
     ByteBuffer request = ByteBuffer.allocate(512);
+    serverBarrier.countDown();
     ScionSocketAddress responseAddress = channel.receive(request);
 
     request.flip();
