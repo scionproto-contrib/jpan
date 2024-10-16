@@ -110,6 +110,7 @@ public class Shim implements AutoCloseable {
       Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
+    log.info("SHIM started.");
   }
 
   private void forwardStarter() {
