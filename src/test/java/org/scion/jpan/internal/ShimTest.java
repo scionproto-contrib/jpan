@@ -126,6 +126,7 @@ class ShimTest {
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph = new PingPongChannelHelper(1, 1, 10);
     pph.runPingPong(serverFn, clientFn, false);
+    assertTrue(Shim.isInstalled());
     assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
   }
 
