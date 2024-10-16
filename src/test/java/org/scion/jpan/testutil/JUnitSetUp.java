@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
+import org.scion.jpan.internal.Shim;
 
 public class JUnitSetUp
     implements BeforeAllCallback, BeforeEachCallback, ExtensionContext.Store.CloseableResource {
@@ -73,6 +74,7 @@ public class JUnitSetUp
     System.clearProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS);
     System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
     System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
+    System.setProperty(Shim.DEBUG_PROPERTY_START_SHIM, "false");
     if (failed) {
       System.exit(1);
     }

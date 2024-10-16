@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
 - Fix @Disabled tests
 - Support topofile port range
   - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
@@ -21,7 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
-
+### Added
 - Add a SHIM, required for #130.
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
 

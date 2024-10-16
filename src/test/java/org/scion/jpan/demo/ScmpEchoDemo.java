@@ -106,8 +106,7 @@ public class ScmpEchoDemo {
         }
       case PRODUCTION:
         {
-          // Local port must be 30041 for networks that expect a dispatcher
-          ScmpEchoDemo demo = new ScmpEchoDemo(Constants.SCMP_PORT);
+          ScmpEchoDemo demo = new ScmpEchoDemo();
           ScionService service = Scion.defaultService();
           demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
           break;

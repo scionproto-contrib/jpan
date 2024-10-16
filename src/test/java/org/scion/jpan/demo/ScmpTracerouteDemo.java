@@ -83,9 +83,6 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
-          //          System.setProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS, "ethz.ch.");
-
-          // Local port must be 30041 for networks that expect a dispatcher
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
           demo.runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
           // demo.runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore

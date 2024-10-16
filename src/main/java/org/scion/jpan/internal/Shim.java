@@ -17,21 +17,19 @@ package org.scion.jpan.internal;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
-import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.scion.jpan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The SHIM acts similar to the SHIM component of a normal SCION installation:
- * https://docs.scion.org/en/latest/dev/design/router-port-dispatch.html
+ * The SHIM acts similar to the SHIM component of a normal SCION installation: <a
+ * href="https://docs.scion.org/en/latest/dev/design/router-port-dispatch.html">link</a>
  *
  * <p>The SHIM will try to install itself on port 30041. If that is not possible, it will
  * optimistically assume that another SHIM is already running there.
@@ -40,10 +38,16 @@ import org.slf4j.LoggerFactory;
  * address encoded in the SCION header. If parsing of the SCION header fails, the packet is dropped.
  */
 public class Shim implements AutoCloseable {
+  /** Property that allows specifying that the SHIM should NOT be started. */
+  public static final String DEBUG_PROPERTY_START_SHIM = "DEBUG_SCION_SHIM";
+
+  public static final String DEBUG_ENV_START_SHIM = "org.scion.debug.shim";
+
   private static final Logger log = LoggerFactory.getLogger(Shim.class);
   private static final AtomicReference<Shim> singleton = new AtomicReference<>();
   private final ScmpResponder scmpResponder;
   private Thread forwarder;
+  private Predicate<ByteBuffer> forwardCallback = null;
 
   private Shim(ScionService service, int port) {
     this.scmpResponder =
@@ -54,8 +58,12 @@ public class Shim implements AutoCloseable {
   public static void install(ScionService service) {
     synchronized (singleton) {
       if (singleton.get() == null) {
-        singleton.set(Shim.newBuilder(service).build());
-        singleton.get().start();
+        String flag =
+            ScionUtil.getPropertyOrEnv(DEBUG_PROPERTY_START_SHIM, DEBUG_ENV_START_SHIM, "true");
+        if (flag.equalsIgnoreCase("true")) {
+          singleton.set(Shim.newBuilder(service).build());
+          singleton.get().start();
+        }
       }
     }
   }
@@ -72,12 +80,35 @@ public class Shim implements AutoCloseable {
     }
   }
 
+  static void setCallback(Predicate<ByteBuffer> cb) {
+    synchronized (singleton) {
+      if (singleton.get() != null) {
+        singleton.get().forwardCallback = cb;
+      }
+    }
+  }
+
   private static Builder newBuilder(ScionService service) {
     return new Builder(service);
   }
 
+  public static boolean isInstalled() {
+    return singleton.get() != null;
+  }
+
   private void start() {
-    this.forwarder = startHandler(this::forwardStarter, "Shim-forwarder");
+    CountDownLatch barrier = new CountDownLatch(1);
+    forwarder = new Thread(() -> forwardStarter(barrier), "Shim-forwarder");
+    forwarder.setDaemon(true);
+    forwarder.start();
+    try {
+      if (!barrier.await(1, TimeUnit.SECONDS)) {
+        throw new IllegalStateException("Could not start receiver thread: " + forwarder.getName());
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ScionRuntimeException(e);
+    }
   }
 
   private void forwardStarter(CountDownLatch barrier) {
@@ -87,23 +118,9 @@ public class Shim implements AutoCloseable {
     } catch (BindException e) {
       // Ignore
       log.info("Could not start SHIM: {}", e.getMessage());
+      // This is not thread safe but best effort to indicate a failed start.
+      singleton.set(null);
     } catch (IOException e) {
-      throw new ScionRuntimeException(e);
-    }
-  }
-
-  private Thread startHandler(Consumer<CountDownLatch> task, String name) {
-    CountDownLatch barrier = new CountDownLatch(1);
-    Thread thread = new Thread(() -> task.accept(barrier), name);
-    thread.setDaemon(true);
-    thread.start();
-    try {
-      if (!barrier.await(1, TimeUnit.SECONDS)) {
-        throw new IllegalStateException("Could not start receiver thread: " + name);
-      }
-      return thread;
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
   }
@@ -126,37 +143,13 @@ public class Shim implements AutoCloseable {
   public void forward(ByteBuffer buf, DatagramChannel channel) {
     buf.rewind();
     try {
-      InetSocketAddress dst = ScionHeaderParser.extractDestinationSocketAddress(buf);
-      channel.send(buf, dst);
+      if (forwardCallback != null && forwardCallback.test(buf)) {
+        InetSocketAddress dst = ScionHeaderParser.extractDestinationSocketAddress(buf);
+        channel.send(buf, dst);
+      }
     } catch (IOException e) {
       log.info("ERROR while forwarding packet: {}", e.getMessage());
     }
-  }
-
-  public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
-    return scmpResponder.setScmpErrorListener(listener);
-  }
-
-  /**
-   * Install a listener for echo messages. The listener is called for every incoming echo request
-   * message. A response will be sent iff the listener returns 'true'. That means that any time
-   * spent in the listener counts towards the RTT of the echo request.
-   *
-   * <p>The listener will only be called for messages received during `setUpScmpEchoResponder()`.
-   *
-   * @param listener THe listener function
-   * @return Any previously installed listener or 'null' if none was installed.
-   */
-  public Predicate<Scmp.EchoMessage> setScmpEchoListener(Predicate<Scmp.EchoMessage> listener) {
-    return scmpResponder.setScmpEchoListener(listener);
-  }
-
-  public <T> void setOption(SocketOption<T> option, T t) throws IOException {
-    scmpResponder.setOption(option, t);
-  }
-
-  public InetSocketAddress getLocalAddress() throws IOException {
-    return scmpResponder.getLocalAddress();
   }
 
   public static class Builder {
@@ -165,11 +158,6 @@ public class Shim implements AutoCloseable {
 
     Builder(ScionService service) {
       this.service = service;
-    }
-
-    public Builder setLocalPort(int localPort) {
-      this.port = localPort;
-      return this;
     }
 
     public Builder setService(ScionService service) {
