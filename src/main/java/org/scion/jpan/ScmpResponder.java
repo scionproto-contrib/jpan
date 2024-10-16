@@ -148,6 +148,9 @@ public class ScmpResponder implements AutoCloseable {
       readLock().lock();
       writeLock().lock();
       try {
+        if (shim != null) {
+          shim.signalReadiness();
+        }
         while (true) {
           ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
           ResponsePath path = receiveLoop(buffer);

@@ -48,6 +48,7 @@ public class Shim implements AutoCloseable {
   private final ScmpResponder scmpResponder;
   private Thread forwarder;
   private Predicate<ByteBuffer> forwardCallback = null;
+  private final CountDownLatch scmpResponderBarrier = new CountDownLatch(1);
 
   private Shim(ScionService service, int port) {
     this.scmpResponder =
@@ -97,13 +98,13 @@ public class Shim implements AutoCloseable {
   }
 
   private void start() {
-    CountDownLatch barrier = new CountDownLatch(1);
-    forwarder = new Thread(() -> forwardStarter(barrier), "Shim-forwarder");
+    forwarder = new Thread(this::forwardStarter, "Shim-forwarder");
     forwarder.setDaemon(true);
     forwarder.start();
     try {
-      if (!barrier.await(1, TimeUnit.SECONDS)) {
-        throw new IllegalStateException("Could not start receiver thread: " + forwarder.getName());
+      if (!scmpResponderBarrier.await(100, TimeUnit.MILLISECONDS)) {
+        // ignore
+        log.info("Could not start SHIM: {}", forwarder.getName());
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -111,18 +112,21 @@ public class Shim implements AutoCloseable {
     }
   }
 
-  private void forwardStarter(CountDownLatch barrier) {
-    barrier.countDown();
+  private void forwardStarter() {
     try {
       this.scmpResponder.start();
     } catch (BindException e) {
       // Ignore
-      log.info("Could not start SHIM: {}", e.getMessage());
+      log.info("Error while starting SHIM: {}", e.getMessage());
       // This is not thread safe but best effort to indicate a failed start.
       singleton.set(null);
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
+  }
+
+  public void signalReadiness() {
+    scmpResponderBarrier.countDown();
   }
 
   private void stopHandler(Thread thread) {
