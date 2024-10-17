@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 class ShimTest {
@@ -57,9 +58,9 @@ class ShimTest {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.DAEMON);
       // Stop the SCMP responder on 30041
-      // MockScmpHandler.stop();
+      MockScmpHandler.stop();
 
-      // testShim();
+      testShim();
     } finally {
       MockNetwork.stopTiny();
     }
@@ -81,25 +82,25 @@ class ShimTest {
   }
 
   private void testShim() throws IOException {
-    //    assertFalse(Shim.isInstalled());
-    //    // ScionService service = Scion.defaultService();
-    //    // assertTrue(Shim.isInstalled());
-    //
-    //    // test that SCMP echo requests are answered
-    //    //    testScmpEchoReflect();
-    //    //    testScmpEchoReflect();
-    //
-    //    //    // check double install doesn't fail
-    //    //    Shim.install(null);
-    //    //    assertTrue(Shim.isInstalled());
-    //    //    Shim.install(service);
-    //    //    assertTrue(Shim.isInstalled());
-    //
-    //    // This shouldn't be called normally, but we test it anyway
-    //    Shim.uninstall();
-    //    assertFalse(Shim.isInstalled());
-    //    Shim.uninstall();
-    //    assertFalse(Shim.isInstalled());
+    assertFalse(Shim.isInstalled());
+    // ScionService service = Scion.defaultService();
+    // assertTrue(Shim.isInstalled());
+
+    // test that SCMP echo requests are answered
+    //    testScmpEchoReflect();
+    //    testScmpEchoReflect();
+
+    //    // check double install doesn't fail
+    //    Shim.install(null);
+    //    assertTrue(Shim.isInstalled());
+    //    Shim.install(service);
+    //    assertTrue(Shim.isInstalled());
+
+    // This shouldn't be called normally, but we test it anyway
+    Shim.uninstall();
+    assertFalse(Shim.isInstalled());
+    Shim.uninstall();
+    assertFalse(Shim.isInstalled());
   }
 
   private void testScmpEchoReflect() throws IOException {
