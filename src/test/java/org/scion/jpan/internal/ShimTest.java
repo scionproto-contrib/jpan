@@ -70,7 +70,7 @@ class ShimTest {
     //    System.setProperty(
     //        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/scionproto-tiny/topology-110.json");
     try {
-      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      // MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Stop the SCMP responder on 30041
       // MockScmpHandler.stop();
 
