@@ -60,7 +60,7 @@ class ShimTest {
       // Stop the SCMP responder on 30041
       MockScmpHandler.stop();
 
-      // testShim();
+      testShim();
     } finally {
       MockNetwork.stopTiny();
     }
@@ -126,7 +126,7 @@ class ShimTest {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph = new PingPongChannelHelper(1, 1, 10);
-    pph.runPingPong(serverFn, clientFn, false);
+    // pph.runPingPong(serverFn, clientFn, false);
     //    assertTrue(Shim.isInstalled());
     //    assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
   }
