@@ -56,15 +56,15 @@ class ShimTest {
 
   @Test
   void testShim_withDaemon() throws IOException {
-    //    try {
-    //      MockNetwork.startTiny(MockNetwork.Mode.DAEMON);
-    //      // Stop the SCMP responder on 30041
-    //      MockScmpHandler.stop();
-    //
-    //      testShim();
-    //    } finally {
-    //      MockNetwork.stopTiny();
-    //    }
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.DAEMON);
+      // Stop the SCMP responder on 30041
+      MockScmpHandler.stop();
+
+      // testShim();
+    } finally {
+      MockNetwork.stopTiny();
+    }
   }
 
   @Test
