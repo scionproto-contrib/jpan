@@ -58,7 +58,7 @@ class ShimTest {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.DAEMON);
       // Stop the SCMP responder on 30041
-      MockScmpHandler.stop();
+      // MockScmpHandler.stop();
 
       // testShim();
     } finally {
@@ -73,7 +73,7 @@ class ShimTest {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Stop the SCMP responder on 30041
-      MockScmpHandler.stop();
+      // MockScmpHandler.stop();
 
       //         testShim();
     } finally {
