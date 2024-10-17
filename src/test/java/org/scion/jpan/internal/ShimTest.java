@@ -83,8 +83,8 @@ class ShimTest {
 
   private void testShim() throws IOException {
     assertFalse(Shim.isInstalled());
-    // ScionService service = Scion.defaultService();
-    // assertTrue(Shim.isInstalled());
+    ScionService service = Scion.defaultService();
+    assertTrue(Shim.isInstalled());
 
     // test that SCMP echo requests are answered
     //    testScmpEchoReflect();
