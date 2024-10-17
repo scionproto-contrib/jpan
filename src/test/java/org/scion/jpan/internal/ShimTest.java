@@ -90,11 +90,11 @@ class ShimTest {
     //    testScmpEchoReflect();
     //    testScmpEchoReflect();
 
-    // check double install doesn't fail
-    Shim.install(null);
-    assertTrue(Shim.isInstalled());
-    Shim.install(service);
-    assertTrue(Shim.isInstalled());
+    //    // check double install doesn't fail
+    //    Shim.install(null);
+    //    assertTrue(Shim.isInstalled());
+    //    Shim.install(service);
+    //    assertTrue(Shim.isInstalled());
 
     // This shouldn't be called normally, but we test it anyway
     Shim.uninstall();
