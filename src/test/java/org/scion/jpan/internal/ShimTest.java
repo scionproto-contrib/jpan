@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.*;
@@ -69,7 +70,8 @@ class ShimTest {
   @Test
   void testShim_withTopofile() throws IOException {
     //    System.setProperty(
-    //        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/scionproto-tiny/topology-110.json");
+    //        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+    // "topologies/scionproto-tiny/topology-110.json");
     try {
       // MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Stop the SCMP responder on 30041
@@ -129,63 +131,63 @@ class ShimTest {
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph = new PingPongChannelHelper(1, 1, 10);
     pph.runPingPong(serverFn, clientFn, false);
-    //    assertTrue(Shim.isInstalled());
-    //    assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
+    assertTrue(Shim.isInstalled());
+    assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
   }
 
   public void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {
-    //    // Stop the SCMP responder on 30041
-    //    MockScmpHandler.stop();
-    //    // Install the SHIM
-    //    Shim.install(Scion.defaultService());
-    //    assertTrue(Shim.isInstalled());
-    //    // Set callback
-    //    Shim.setCallback(
-    //        byteBuffer -> {
-    //          shimForwardingCounter.incrementAndGet();
-    //          return true;
-    //        });
-    //    // ensure that packets are sent to 30041
-    //    channel.configureRemoteDispatcher(true);
-    //
-    //    // overwrite path with a new path that stays in the local AS.
-    //    // We need to do that because the PingPong utility usually assumes separate ASes but that
-    //    // would not work with configureRemoteDispatcher().
-    //    serverAddress = createDummyPath(serverAddress.getRemotePort());
-    //
-    //    // wait for server to start
-    //    try {
-    //      serverBarrier.await();
-    //    } catch (InterruptedException e) {
-    //      throw new RuntimeException(e);
-    //    }
-    //
-    //    String message = PingPongChannelHelper.MSG + "-" + id;
-    //    ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
-    //    channel.send(sendBuf, serverAddress);
-    //
-    //    ByteBuffer response = ByteBuffer.allocate(512);
-    //    ScionSocketAddress address = channel.receive(response);
-    //    assertNotNull(address);
-    //    assertEquals(serverAddress.getRemoteAddress(), address.getAddress());
-    //    assertEquals(serverAddress.getRemotePort(), address.getPort());
-    //
-    //    response.flip();
-    //    String pong = Charset.defaultCharset().decode(response).toString();
-    //    assertEquals(message, pong);
+    // Stop the SCMP responder on 30041
+    MockScmpHandler.stop();
+    // Install the SHIM
+    Shim.install(Scion.defaultService());
+    assertTrue(Shim.isInstalled());
+    // Set callback
+    Shim.setCallback(
+        byteBuffer -> {
+          shimForwardingCounter.incrementAndGet();
+          return true;
+        });
+    // ensure that packets are sent to 30041
+    channel.configureRemoteDispatcher(true);
+
+    // overwrite path with a new path that stays in the local AS.
+    // We need to do that because the PingPong utility usually assumes separate ASes but that
+    // would not work with configureRemoteDispatcher().
+    serverAddress = createDummyPath(serverAddress.getRemotePort());
+
+    // wait for server to start
+    try {
+      serverBarrier.await();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+
+    String message = PingPongChannelHelper.MSG + "-" + id;
+    ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());
+    channel.send(sendBuf, serverAddress);
+
+    ByteBuffer response = ByteBuffer.allocate(512);
+    ScionSocketAddress address = channel.receive(response);
+    assertNotNull(address);
+    assertEquals(serverAddress.getRemoteAddress(), address.getAddress());
+    assertEquals(serverAddress.getRemotePort(), address.getPort());
+
+    response.flip();
+    String pong = Charset.defaultCharset().decode(response).toString();
+    assertEquals(message, pong);
   }
 
   public void server(ScionDatagramChannel channel) throws IOException {
-    //    ByteBuffer request = ByteBuffer.allocate(512);
-    //    serverBarrier.countDown();
-    //    ScionSocketAddress responseAddress = channel.receive(request);
-    //
-    //    request.flip();
-    //    String msg = Charset.defaultCharset().decode(request).toString();
-    //    assertTrue(msg.startsWith(PingPongChannelHelper.MSG), msg);
-    //    assertTrue(PingPongChannelHelper.MSG.length() + 3 >= msg.length());
-    //
-    //    request.flip();
-    //    channel.send(request, responseAddress);
+    ByteBuffer request = ByteBuffer.allocate(512);
+    serverBarrier.countDown();
+    ScionSocketAddress responseAddress = channel.receive(request);
+
+    request.flip();
+    String msg = Charset.defaultCharset().decode(request).toString();
+    assertTrue(msg.startsWith(PingPongChannelHelper.MSG), msg);
+    assertTrue(PingPongChannelHelper.MSG.length() + 3 >= msg.length());
+
+    request.flip();
+    channel.send(request, responseAddress);
   }
 }
