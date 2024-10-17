@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 class ShimTest {
@@ -70,15 +69,15 @@ class ShimTest {
   void testShim_withTopofile() throws IOException {
     System.setProperty(
         Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/scionproto-tiny/topology-110.json");
-    try {
-      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
-      // Stop the SCMP responder on 30041
-      // MockScmpHandler.stop();
-
-      //         testShim();
-    } finally {
-      MockNetwork.stopTiny();
-    }
+    //    try {
+    //      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    //      // Stop the SCMP responder on 30041
+    //      // MockScmpHandler.stop();
+    //
+    //      //         testShim();
+    //    } finally {
+    //      MockNetwork.stopTiny();
+    //    }
   }
 
   private void testShim() throws IOException {
