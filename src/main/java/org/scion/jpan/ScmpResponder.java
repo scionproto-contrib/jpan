@@ -27,6 +27,7 @@ import java.util.function.Predicate;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
+import org.scion.jpan.internal.Shim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,8 +35,9 @@ public class ScmpResponder implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpResponder.class);
   private final InternalChannel channel;
 
-  private ScmpResponder(ScionService service, int port) throws IOException {
-    this.channel = new InternalChannel(service, port);
+  private ScmpResponder(
+      ScionService service, int port, DatagramChannel channel, Selector selector, Shim shim) {
+    this.channel = new InternalChannel(service, port, channel, selector, shim);
   }
 
   public static Builder newBuilder() {
@@ -76,23 +78,31 @@ public class ScmpResponder implements AutoCloseable {
    * <p>SCMP requests can be monitored and intercepted through a listener, see {@link
    * #setScmpEchoListener(Predicate)}.
    *
-   * <p>This method blocks until the responder's thread is interrupted.
+   * <p>This method blocks until {@link #close()} is called.
    *
    * @throws IOException If an IO exception occurs.
    */
   public void start() throws IOException {
+    this.channel.start();
     this.channel.sendEchoResponses();
   }
 
   private static class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
     private final Selector selector;
     private Predicate<Scmp.EchoMessage> echoListener;
+    private final int port;
+    private final Shim shim;
 
-    protected InternalChannel(ScionService service, int port) throws IOException {
-      super(service);
+    protected InternalChannel(
+        ScionService service, int port, DatagramChannel channel, Selector selector, Shim shim) {
+      super(service, channel);
+      this.shim = shim;
+      this.port = port;
+      this.selector = selector;
+    }
 
+    void start() throws IOException {
       // selector
-      this.selector = Selector.open();
       super.channel().configureBlocking(false);
       super.channel().register(selector, SelectionKey.OP_READ);
 
@@ -121,6 +131,9 @@ public class ScmpResponder implements AutoCloseable {
               hdrType = receiveExtensionHeader(buffer, hdrType);
 
               if (hdrType != InternalConstants.HdrTypes.SCMP) {
+                if (shim != null) {
+                  shim.forward(buffer, super.channel());
+                }
                 continue; // drop
               }
               return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
@@ -135,6 +148,9 @@ public class ScmpResponder implements AutoCloseable {
       readLock().lock();
       writeLock().lock();
       try {
+        if (shim != null) {
+          shim.signalReadiness();
+        }
         while (true) {
           ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
           ResponsePath path = receiveLoop(buffer);
@@ -163,7 +179,11 @@ public class ScmpResponder implements AutoCloseable {
             sendRaw(buffer, path);
             log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
           } else {
-            log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
+            if (shim != null) {
+              shim.forward(buffer, super.channel());
+            } else {
+              log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
+            }
           }
         }
       } finally {
@@ -203,6 +223,9 @@ public class ScmpResponder implements AutoCloseable {
   public static class Builder {
     private ScionService service;
     private int port = Constants.SCMP_PORT;
+    private DatagramChannel channel;
+    private Selector selector;
+    private Shim shim;
 
     public Builder setLocalPort(int localPort) {
       this.port = localPort;
@@ -217,10 +240,17 @@ public class ScmpResponder implements AutoCloseable {
     public ScmpResponder build() {
       ScionService service2 = service == null ? ScionService.defaultService() : service;
       try {
-        return new ScmpResponder(service2, port);
+        channel = channel == null ? DatagramChannel.open() : channel;
+        selector = selector == null ? Selector.open() : selector;
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
+      return new ScmpResponder(service2, port, channel, selector, shim);
+    }
+
+    public Builder setShim(Shim shim) {
+      this.shim = shim;
+      return this;
     }
   }
 }

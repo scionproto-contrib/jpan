@@ -125,9 +125,8 @@ public class ScionTest {
   void defaultService_topoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-
-    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
@@ -142,9 +141,8 @@ public class ScionTest {
   void defaultService_bootstrapAddress() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-
-    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
       InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
       String host = ToStringUtil.toString(discoveryAddress.getAddress());
       host += ":" + discoveryAddress.getPort();
@@ -161,8 +159,8 @@ public class ScionTest {
 
   @Test
   void defaultService_bootstrapAddress_defaultPort() {
-    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
       InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
       String host = ToStringUtil.toString(discoveryAddress.getAddress());
       // We do _not_ add a port here.
@@ -180,8 +178,8 @@ public class ScionTest {
   void defaultService_bootstrapNaptrRecord() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
@@ -195,8 +193,8 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
@@ -211,8 +209,8 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile_withoutDiscovery() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // String file = "topologies/scionproto-tiny/topology-110.json"
       String file = "topologies/no-discovery.json";
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, file);
@@ -396,8 +394,8 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile_ScionProto_11() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
       System.setProperty(
           Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           "topologies/scionproto-tiny/topology-scionproto-0.11.json");

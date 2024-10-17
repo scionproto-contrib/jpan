@@ -59,10 +59,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private boolean cfgRemoteDispatcher = false;
   private InetSocketAddress overrideExternalAddress = null;
 
-  protected AbstractDatagramChannel(ScionService service) throws IOException {
-    this(service, DatagramChannel.open());
-  }
-
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel) {
     this.channel = channel;

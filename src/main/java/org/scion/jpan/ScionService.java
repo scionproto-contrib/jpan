@@ -126,6 +126,7 @@ public class ScionService {
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
     }
     shutdownHook = addShutdownHook();
+    Shim.install(this);
     try {
       getLocalIsdAs(); // Init
     } catch (RuntimeException e) {
