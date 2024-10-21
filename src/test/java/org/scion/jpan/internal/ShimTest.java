@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
@@ -81,6 +82,14 @@ class ShimTest {
       //         testShim();
     } finally {
       MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void testShim_noDaemon() throws IOException {
+    try (MockNetwork2 unused =
+        MockNetwork2.start("topologies/minimal/", "ASff00_0_110/topology.json")) {
+      testShim();
     }
   }
 
