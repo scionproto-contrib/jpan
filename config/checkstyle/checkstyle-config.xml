@@ -6,7 +6,7 @@
         <!-- Checks for imports                              -->
         <!-- See http://checkstyle.sf.net/config_import.html -->
         <module name="AvoidStarImport">
-            <property name="excludes" value="java.io,java.util,java.net,io.grpc,org.junit.jupiter.api.Assertions,org.scion.jpan.internal,org.scion.jpan,org.scion.jpan.demo.inspector.ByteUtil,org.xbill.DNS"/>
+            <property name="excludes" value="java.io,java.util,java.net,io.grpc,org.junit.jupiter.api,org.junit.jupiter.api.Assertions,org.scion.jpan.internal,org.scion.jpan,org.scion.jpan.demo.inspector.ByteUtil,org.xbill.DNS"/>
 <!--            <property name="severity" value="warning" />-->
         </module>
         <module name="NeedBraces"/>

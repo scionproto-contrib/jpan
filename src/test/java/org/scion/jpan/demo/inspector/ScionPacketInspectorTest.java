@@ -16,7 +16,6 @@ package org.scion.jpan.demo.inspector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterAll;
@@ -34,7 +33,7 @@ public class ScionPacketInspectorTest {
   }
 
   @Test
-  void test() throws IOException {
+  void test() {
     // client
     ByteBuffer composed = compose("Hello scion".getBytes());
 
@@ -88,7 +87,7 @@ public class ScionPacketInspectorTest {
     return newData;
   }
 
-  public static ByteBuffer composeReply(ByteBuffer data, byte[] userData) throws IOException {
+  public static ByteBuffer composeReply(ByteBuffer data, byte[] userData) {
     ScionPacketInspector spi = ScionPacketInspector.readPacket(data);
 
     // reverse path etc

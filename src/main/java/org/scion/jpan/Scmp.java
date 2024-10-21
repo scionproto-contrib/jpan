@@ -16,6 +16,7 @@ package org.scion.jpan;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 
 public class Scmp {
 
@@ -426,7 +427,7 @@ public class Scmp {
    */
   @Deprecated
   public static ScmpChannel createChannel(int listeningPort) throws IOException {
-    return new ScmpChannel(Scion.defaultService(), listeningPort);
+    return new ScmpChannel(Scion.defaultService(), listeningPort, DatagramChannel.open());
   }
 
   /**
@@ -440,7 +441,7 @@ public class Scmp {
   @Deprecated
   public static ScmpChannel createChannel(ScionService service, int listeningPort)
       throws IOException {
-    return new ScmpChannel(service, listeningPort);
+    return new ScmpChannel(service, listeningPort, DatagramChannel.open());
   }
 
   /**
