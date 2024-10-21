@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 
@@ -33,6 +34,44 @@ public class LocalTopology {
   private String localIsdAs;
   private boolean isCoreAs;
   private int localMtu;
+  private DispatcherPortRange portRange;
+
+  public static class DispatcherPortRange {
+    private final int portMin;
+    private final int portMax;
+
+    private DispatcherPortRange(int min, int max) {
+      portMin = min;
+      portMax = max;
+    }
+
+    public static DispatcherPortRange create(int min, int max) {
+      return new DispatcherPortRange(min, max);
+    }
+
+    public static DispatcherPortRange createAll() {
+      return new DispatcherPortRange(-1, -1);
+    }
+
+    public static DispatcherPortRange createEmpty() {
+      // For the empty range we allow only port 30041.
+      // If the port is used by the SHIM, than we cannot connect. However, if there is no SHIM,
+      // then we can safely use 30041.
+      return new DispatcherPortRange(Constants.SCMP_PORT, Constants.SCMP_PORT);
+    }
+
+    public boolean hasPortRange() {
+      return portMin >= 1 && portMax <= 65535;
+    }
+
+    public int getPortMin() {
+      return portMin;
+    }
+
+    public int getPortMax() {
+      return portMax;
+    }
+  }
 
   public static synchronized LocalTopology create(String topologyFile) {
     LocalTopology topo = new LocalTopology();
@@ -123,6 +162,16 @@ public class LocalTopology {
           discoveryServices.add(new ServiceNode(e.getKey(), ds.get("addr").getAsString()));
         }
       }
+      JsonElement underlay = o.get("underlay");
+      JsonElement dispatchedPorts = o.get("dispatched_ports");
+      if (underlay == null && dispatchedPorts == null) {
+        portRange = DispatcherPortRange.createEmpty();
+      } else if (dispatchedPorts != null) {
+        portRange = parsePortRange(dispatchedPorts.getAsString());
+      } else {
+        JsonObject u = underlay.getAsJsonObject();
+        portRange = parsePortRange(u.get("dispatched_ports").getAsString());
+      }
       JsonArray attr = safeGet(o, "attributes").getAsJsonArray();
       for (int i = 0; i < attr.size(); i++) {
         if ("core".equals(attr.get(i).getAsString())) {
@@ -130,6 +179,32 @@ public class LocalTopology {
         }
       }
     }
+  }
+
+  private static DispatcherPortRange parsePortRange(String v) {
+    if (v.startsWith("\"") && v.endsWith("\"")) {
+      v = v.substring(1, v.length() - 2);
+    }
+    if ("-".equals(v)) {
+      return DispatcherPortRange.createEmpty();
+    } else if ("all".equalsIgnoreCase(v)) {
+      return DispatcherPortRange.createAll();
+    } else {
+      String[] sa = v.split("-");
+      if (sa.length != 2) {
+        throw new ScionRuntimeException("Illegal expression in topo file dispatched_ports: " + v);
+      }
+      int portMin = Integer.parseInt(sa[0]);
+      int portMax = Integer.parseInt(sa[1]);
+      if (portMin < 1 || portMax < 1 || portMax > 65535 || portMin > portMax) {
+        throw new ScionRuntimeException("Illegal port values in topo file dispatched_ports: " + v);
+      }
+      return new DispatcherPortRange(portMin, portMax);
+    }
+  }
+
+  public DispatcherPortRange getPortRange() {
+    return portRange;
   }
 
   @Override

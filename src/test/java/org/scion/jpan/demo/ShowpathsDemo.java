@@ -37,7 +37,6 @@ public class ShowpathsDemo {
 
   public static boolean PRINT = true;
   private static Network NETWORK = Network.PRODUCTION;
-  private final int localPort;
 
   public enum Network {
     JUNIT_MOCK, // SCION Java JUnit mock network
@@ -50,22 +49,13 @@ public class ShowpathsDemo {
     NETWORK = network;
   }
 
-  public ShowpathsDemo() {
-    this(12345); // Any port is fine unless we connect to a dispatcher network
-  }
-
-  public ShowpathsDemo(int localPort) {
-    this.localPort = localPort;
-  }
-
   public static void main(String[] args) throws IOException {
     switch (NETWORK) {
       case JUNIT_MOCK:
         {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-          ShowpathsDemo demo = new ShowpathsDemo();
-          demo.runDemo(DemoConstants.ia110);
+          runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           break;
         }
@@ -74,23 +64,20 @@ public class ShowpathsDemo {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          ShowpathsDemo demo = new ShowpathsDemo();
-          demo.runDemo(DemoConstants.ia211);
+          runDemo(DemoConstants.ia211);
           break;
         }
       case PRODUCTION:
         {
-          // Local port must be 30041 for networks that expect a dispatcher
-          ShowpathsDemo demo = new ShowpathsDemo(Constants.DISPATCHER_PORT);
-          demo.runDemo(DemoConstants.iaAnapayaHK);
-          // demo.runDemo(DemoConstants.iaOVGU);
+          runDemo(DemoConstants.iaAnapayaHK);
+          // runDemo(DemoConstants.iaOVGU);
           break;
         }
     }
     Scion.closeDefault();
   }
 
-  private void runDemo(long destinationIA) throws IOException {
+  private static void runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // dummy address
     InetSocketAddress destinationAddress =
@@ -102,7 +89,6 @@ public class ShowpathsDemo {
       throw new IOException("No path found from " + src + " to " + dst);
     }
 
-    println("Listening on port " + localPort + " ...");
     println("Available paths to " + ScionUtil.toStringIA(destinationIA));
 
     int id = 0;
