@@ -15,6 +15,7 @@
 package org.scion.jpan.testutil;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import com.google.protobuf.Timestamp;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
@@ -218,6 +219,16 @@ public class MockDaemon implements AutoCloseable {
         // Interface IDs are currently not supported
         replyBuilder.putInterfaces(i--, ifBuilder.build());
       }
+      responseObserver.onNext(replyBuilder.build());
+      responseObserver.onCompleted();
+    }
+
+    @Override
+    public void portRange(Empty req, StreamObserver<Daemon.PortRangeResponse> responseObserver) {
+      callCount.incrementAndGet();
+      Daemon.PortRangeResponse.Builder replyBuilder = Daemon.PortRangeResponse.newBuilder();
+      replyBuilder.setDispatchedPortStart(32000);
+      replyBuilder.setDispatchedPortEnd(32767);
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
     }

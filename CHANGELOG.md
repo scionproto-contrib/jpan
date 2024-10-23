@@ -9,7 +9,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- USe topo port range for connections in local AS!
 - Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
+- Cache local address, see AbstractChannel:600
+  srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+- Cache paths
+- Server should get firstHop from topofile or daemon, not from packet IP!
+  -> BRs may use different ports for in/outgoing traffic.
+  -> Thios would also solve the server/SHIM problem, see TODO.md 
 - Fix @Disabled tests
 - Support topofile port range
   - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
@@ -25,6 +32,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add a SHIM, required for #130 (topo file port range support).
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
+- Support for `dispatched_ports` in topo files
+  [#130](https://github.com/scionproto-contrib/jpan/pull/130)
+
+TODO: 
+- Test demos with JUNIT topo and with scioproto topo
+- FIX: if no ephemeral ports are available, just use ANY port but enforce 30041 as return port.
 
 ## [0.3.1] - 2024-10-11
 

@@ -4,6 +4,7 @@
   ],
   "isd_as": "1-ff00:0:110",
   "mtu": 1400,
+  "dispatched_ports": "31000-32767",
   "control_service": {
     "cs1-ff00_0_110-1": {
       "addr": "127.0.0.11:31000"

@@ -30,6 +30,7 @@ import static org.scion.jpan.Constants.PROPERTY_DAEMON;
 import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_USE_OS_SEARCH_DOMAINS;
 
+import com.google.protobuf.Empty;
 import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -75,6 +76,7 @@ public class ScionService {
   private final ScionBootstrapper bootstrapper;
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
+  private LocalTopology.DispatcherPortRange portRange;
 
   private final boolean minimizeRequests;
   private final ManagedChannel channel;
@@ -653,5 +655,29 @@ public class ScionService {
     } else {
       return bootstrapper.getLocalTopology().getBorderRouterAddresses();
     }
+  }
+
+  LocalTopology.DispatcherPortRange getLocalPortRange() {
+    if (portRange == null) {
+      if (bootstrapper != null) {
+        portRange = bootstrapper.getLocalTopology().getPortRange();
+      } else if (daemonStub != null) {
+        // try daemon
+        Daemon.PortRangeResponse response;
+        try {
+          response = daemonStub.portRange(Empty.getDefaultInstance());
+          portRange =
+              LocalTopology.DispatcherPortRange.create(
+                  response.getDispatchedPortStart(), response.getDispatchedPortEnd());
+        } catch (StatusRuntimeException e) {
+          LOG.warn("ERROR getting port range from daemon: {}", e.getMessage());
+          // Daemon doesn't support port range.
+          portRange = LocalTopology.DispatcherPortRange.createEmpty();
+        }
+      } else {
+        portRange = LocalTopology.DispatcherPortRange.createAll();
+      }
+    }
+    return portRange;
   }
 }
