@@ -147,7 +147,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       if (localAddress == null) {
         LocalTopology.DispatcherPortRange ports = getOrCreateService().getLocalPortRange();
-        if (ports != null && ports.hasPortRange()) {
+        if (ports.hasPortRange()) {
           // This is a bit ugly, we iterate through all ports to find a free one.
           int min = ports.getPortMin();
           int max = ports.getPortMax();

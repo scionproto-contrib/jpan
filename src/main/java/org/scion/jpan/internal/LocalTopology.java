@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 
@@ -35,43 +34,6 @@ public class LocalTopology {
   private boolean isCoreAs;
   private int localMtu;
   private DispatcherPortRange portRange;
-
-  public static class DispatcherPortRange {
-    private final int portMin;
-    private final int portMax;
-
-    private DispatcherPortRange(int min, int max) {
-      portMin = min;
-      portMax = max;
-    }
-
-    public static DispatcherPortRange create(int min, int max) {
-      return new DispatcherPortRange(min, max);
-    }
-
-    public static DispatcherPortRange createAll() {
-      return new DispatcherPortRange(-1, -1);
-    }
-
-    public static DispatcherPortRange createEmpty() {
-      // For the empty range we allow only port 30041.
-      // If the port is used by the SHIM, than we cannot connect. However, if there is no SHIM,
-      // then we can safely use 30041.
-      return new DispatcherPortRange(Constants.SCMP_PORT, Constants.SCMP_PORT);
-    }
-
-    public boolean hasPortRange() {
-      return portMin >= 1 && portMax <= 65535;
-    }
-
-    public int getPortMin() {
-      return portMin;
-    }
-
-    public int getPortMax() {
-      return portMax;
-    }
-  }
 
   public static synchronized LocalTopology create(String topologyFile) {
     LocalTopology topo = new LocalTopology();
@@ -304,6 +266,40 @@ public class LocalTopology {
     @Override
     public String toString() {
       return "{" + "name='" + name + '\'' + ", ipString='" + ipString + '\'' + '}';
+    }
+  }
+
+  public static class DispatcherPortRange {
+    private final int portMin;
+    private final int portMax;
+
+    private DispatcherPortRange(int min, int max) {
+      portMin = min;
+      portMax = max;
+    }
+
+    public static DispatcherPortRange create(int min, int max) {
+      return new DispatcherPortRange(min, max);
+    }
+
+    public static DispatcherPortRange createAll() {
+      return new DispatcherPortRange(1, 65535);
+    }
+
+    public static DispatcherPortRange createEmpty() {
+      return new DispatcherPortRange(-1, -2);
+    }
+
+    public boolean hasPortRange() {
+      return portMin >= 1 && portMax <= 65535 && portMax >= portMin;
+    }
+
+    public int getPortMin() {
+      return portMin;
+    }
+
+    public int getPortMax() {
+      return portMax;
     }
   }
 }

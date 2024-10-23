@@ -283,17 +283,22 @@ public class ScionTest {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFile);
     ScionService service = Scion.defaultService();
     Path path = service.getPaths(dstIA, dstAddress).get(0);
-    // stop here to free up port 30041
+    // stop here to free up port 30041 for the SHIM
     MockNetwork.stopTiny();
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
-      // default to 30041!
-      assertEquals(30041, channel.getLocalAddress().getPort());
+      // use ephemeral port
+      assertTrue(
+          32768 <= channel.getLocalAddress().getPort(),
+          "port=" + channel.getLocalAddress().getPort());
 
-      // the next should fail!
       try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
-        IOException e = assertThrows(IOException.class, () -> channel2.connect(path));
-        assertTrue(e.getMessage().contains("30041"));
+        channel2.connect(path);
+        // use ephemeral port
+        assertTrue(
+            32768 <= channel2.getLocalAddress().getPort(),
+            "port=" + channel2.getLocalAddress().getPort());
+        assertNotEquals(channel.getLocalAddress().getPort(), channel2.getLocalAddress().getPort());
       }
     } finally {
       MockNetwork.stopTiny();
@@ -301,7 +306,7 @@ public class ScionTest {
   }
 
   @Test
-  void defaultService_bootstrapTopoFile_dispatcherPortRang_ALL() throws IOException {
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_ALL() throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
