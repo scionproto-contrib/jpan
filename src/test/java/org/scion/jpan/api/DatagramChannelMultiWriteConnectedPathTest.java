@@ -39,7 +39,7 @@ class DatagramChannelMultiWriteConnectedPathTest {
   void test() {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
-    PingPongChannelHelper pph = new PingPongChannelHelper(1, 10, 10);
+    PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 10, 10).build();
     pph.runPingPong(serverFn, clientFn);
   }
 

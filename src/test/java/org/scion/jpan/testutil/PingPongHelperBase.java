@@ -38,6 +38,8 @@ public class PingPongHelperBase {
   protected final int nServers;
   private final int nRounds;
   protected final boolean connectClients;
+  private final boolean resetCounters;
+  private final String serverIsdAs;
 
   final CountDownLatch startUpBarrierClient;
   final CountDownLatch startUpBarrierServer;
@@ -45,11 +47,20 @@ public class PingPongHelperBase {
   protected final AtomicInteger nRoundsServer = new AtomicInteger();
   protected final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
 
-  protected PingPongHelperBase(int nServers, int nClients, int nRounds, boolean connect) {
+  protected PingPongHelperBase(
+      int nServers,
+      int nClients,
+      int nRounds,
+      boolean connect,
+      boolean resetCounters,
+      String serverIsdAs) {
     this.nClients = nClients;
     this.nServers = nServers;
     this.nRounds = nRounds;
     this.connectClients = connect;
+    this.resetCounters = resetCounters;
+    this.serverIsdAs = serverIsdAs;
+
     startUpBarrierClient = new CountDownLatch(nClients);
     startUpBarrierServer = new CountDownLatch(nServers);
     shutDownBarrier = new CountDownLatch(nClients + nServers);
@@ -91,7 +102,7 @@ public class PingPongHelperBase {
     AbstractEndpoint create(int id, int nRounds);
   }
 
-  void runPingPong(ServerFactory serverFactory, ClientFactory clientFactory, boolean reset) {
+  void runPingPong(ServerFactory serverFactory, ClientFactory clientFactory) {
     try {
       MockNetwork.startTiny();
 
@@ -106,7 +117,7 @@ public class PingPongHelperBase {
         throw new RuntimeException("Server startup failed: " + startUpBarrierServer);
       }
       InetSocketAddress serverAddress = servers[0].getLocalAddress();
-      MockDNS.install(MockNetwork.TINY_SRV_ISD_AS, serverAddress.getAddress());
+      MockDNS.install(serverIsdAs, serverAddress.getAddress());
       Path requestPath = Scion.defaultService().lookupAndGetPath(serverAddress, null);
 
       Thread[] clients = new Thread[nClients];
@@ -144,7 +155,7 @@ public class PingPongHelperBase {
       checkExceptions();
     }
 
-    if (reset) {
+    if (resetCounters) {
       assertEquals(nRounds * nClients * 2, MockNetwork.getAndResetForwardCount());
     }
     assertEquals(nRounds * nClients, nRoundsClient.get());
@@ -163,5 +174,36 @@ public class PingPongHelperBase {
     }
     assertEquals(0, exceptions.size());
     exceptions.clear();
+  }
+
+  protected abstract static class Builder<T extends PingPongHelperBase.Builder<T>> {
+    protected final int nClients;
+    protected final int nServers;
+    protected final int nRounds;
+    protected boolean connectClients = true;
+    protected boolean resetCounters = false;
+    protected String serverIA = MockNetwork.TINY_SRV_ISD_AS;
+
+    protected Builder(int nServers, int nClients, int nRounds, boolean connect) {
+      this.nClients = nClients;
+      this.nServers = nServers;
+      this.nRounds = nRounds;
+      this.connectClients = connect;
+    }
+
+    public T resetCounters(boolean resetCounters) {
+      this.resetCounters = resetCounters;
+      return (T) this;
+    }
+
+    public T serverIsdAs(String serverIsdAs) {
+      this.serverIA = serverIsdAs;
+      return (T) this;
+    }
+
+    public T connect(boolean connectClients) {
+      this.connectClients = connectClients;
+      return (T) this;
+    }
   }
 }

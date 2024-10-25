@@ -26,8 +26,18 @@ import org.scion.jpan.ScionDatagramSocket;
 
 public class PingPongSocketHelper extends PingPongHelperBase {
 
-  public PingPongSocketHelper(int nServers, int nClients, int nRounds) {
-    super(nServers, nClients, nRounds, false);
+  private PingPongSocketHelper(
+      int nServers,
+      int nClients,
+      int nRounds,
+      boolean connect,
+      boolean resetCounters,
+      String serverIsdAs) {
+    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs);
+  }
+
+  public static PingPongSocketHelper.Builder newBuilder(int nServers, int nClients, int nRounds) {
+    return new PingPongSocketHelper.Builder(nServers, nClients, nRounds);
   }
 
   private abstract class AbstractSocketEndpoint extends AbstractEndpoint {
@@ -137,18 +147,13 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   }
 
   public void runPingPong(Server serverFn, Client clientFn) {
-    runPingPong(serverFn, clientFn, true);
-  }
-
-  public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
         (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
-        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds),
-        reset);
+        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds));
   }
 
-  public void runPingPongSharedServerSocket(
-      Server receiverFn, Server senderFn, Client clientFn, boolean reset) throws IOException {
+  public void runPingPongSharedServerSocket(Server receiverFn, Server senderFn, Client clientFn)
+      throws IOException {
     if (nServers != 2) {
       throw new IllegalStateException();
     }
@@ -156,8 +161,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
       runPingPong(
           (id, nRounds) ->
               new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
-          (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds),
-          reset);
+          (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds));
     }
   }
 
@@ -188,5 +192,16 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     assertTrue(MSG.length() + 3 >= msg.length());
 
     socket.send(packet);
+  }
+
+  public static class Builder extends PingPongHelperBase.Builder<PingPongSocketHelper.Builder> {
+    protected Builder(int nServers, int nClients, int nRounds) {
+      super(nServers, nClients, nRounds, false);
+    }
+
+    public PingPongSocketHelper build() {
+      return new PingPongSocketHelper(
+          nServers, nClients, nRounds, connectClients, resetCounters, serverIA);
+    }
   }
 }

@@ -26,12 +26,18 @@ import org.scion.jpan.ScionSocketAddress;
 
 public class PingPongChannelHelper extends PingPongHelperBase {
 
-  public PingPongChannelHelper(int nServers, int nClients, int nRounds) {
-    this(nServers, nClients, nRounds, true);
+  private PingPongChannelHelper(
+      int nServers,
+      int nClients,
+      int nRounds,
+      boolean connect,
+      boolean resetCounters,
+      String serverIsdAs) {
+    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs);
   }
 
-  public PingPongChannelHelper(int nServers, int nClients, int nRounds, boolean connect) {
-    super(nServers, nClients, nRounds, connect);
+  public static Builder newBuilder(int nServers, int nClients, int nRounds) {
+    return new Builder(nServers, nClients, nRounds);
   }
 
   private abstract class AbstractChannelEndpoint extends AbstractEndpoint {
@@ -118,14 +124,9 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   }
 
   public void runPingPong(Server serverFn, Client clientFn) {
-    runPingPong(serverFn, clientFn, true);
-  }
-
-  public void runPingPong(Server serverFn, Client clientFn, boolean reset) {
     runPingPong(
         (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
-        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients),
-        reset);
+        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients));
   }
 
   public static void defaultClient(ScionDatagramChannel channel, Path serverAddress, int id)
@@ -159,5 +160,21 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     request.flip();
     channel.send(request, responseAddress);
     // System.out.println("SERVER: Sent: " + responseAddress);
+  }
+
+  public static class Builder extends PingPongHelperBase.Builder<PingPongChannelHelper.Builder> {
+
+    protected Builder(int nServers, int nClients, int nRounds) {
+      super(nServers, nClients, nRounds, true);
+    }
+
+    protected Builder(int nServers, int nClients, int nRounds, boolean connect) {
+      super(nServers, nClients, nRounds, connect);
+    }
+
+    public PingPongChannelHelper build() {
+      return new PingPongChannelHelper(
+          nServers, nClients, nRounds, connectClients, resetCounters, serverIA);
+    }
   }
 }

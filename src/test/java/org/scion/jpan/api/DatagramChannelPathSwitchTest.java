@@ -52,8 +52,9 @@ class DatagramChannelPathSwitchTest {
   void test() {
     PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
     PingPongChannelHelper.Client clientFn = this::client;
-    PingPongChannelHelper pph = new PingPongChannelHelper(1, 2, 10);
-    pph.runPingPong(serverFn, clientFn, false);
+    PingPongChannelHelper pph =
+        PingPongChannelHelper.newBuilder(1, 2, 10).resetCounters(false).build();
+    pph.runPingPong(serverFn, clientFn);
     // TODO: This sometimes reports 22 i.o. 20.
     assertEquals(
         2 * 10,
