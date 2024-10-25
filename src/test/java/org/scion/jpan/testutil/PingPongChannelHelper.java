@@ -174,7 +174,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
 
     public PingPongChannelHelper build() {
       return new PingPongChannelHelper(
-          nServers, nClients, nRounds, connectClients, resetCounters, serverIA);
+          nServers, nClients, nRounds, connectClients, checkCounters, serverIA);
     }
   }
 }

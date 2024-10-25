@@ -204,6 +204,10 @@ public class MockNetwork {
     return nForwardTotal.getAndSet(0);
   }
 
+  public static int getForwardCount() {
+    return nForwardTotal.get();
+  }
+
   /**
    * Set the routers to drop the next n packets.
    *

@@ -45,7 +45,7 @@ class DatagramChannelStreamTest {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph =
-        PingPongChannelHelper.newBuilder(1, 2, 2).resetCounters(false).build();
+        PingPongChannelHelper.newBuilder(1, 2, 2).checkCounters(false).build();
     pph.runPingPong(serverFn, clientFn);
     assertEquals(2 * 2 * 2 * N_BULK, MockNetwork.getAndResetForwardCount());
   }

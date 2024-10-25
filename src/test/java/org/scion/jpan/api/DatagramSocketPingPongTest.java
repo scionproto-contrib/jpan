@@ -39,8 +39,7 @@ class DatagramSocketPingPongTest {
   void test() {
     PingPongSocketHelper.Server serverFn = this::server;
     PingPongSocketHelper.Client clientFn = this::client;
-    PingPongSocketHelper pph =
-        PingPongSocketHelper.newBuilder(1, 10, 10).resetCounters(false).build();
+    PingPongSocketHelper pph = PingPongSocketHelper.newBuilder(1, 10, 10).build();
     pph.runPingPong(serverFn, clientFn);
     assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
   }

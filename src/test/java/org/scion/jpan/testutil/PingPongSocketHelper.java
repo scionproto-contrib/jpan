@@ -201,7 +201,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     public PingPongSocketHelper build() {
       return new PingPongSocketHelper(
-          nServers, nClients, nRounds, connectClients, resetCounters, serverIA);
+          nServers, nClients, nRounds, connectClients, checkCounters, serverIA);
     }
   }
 }

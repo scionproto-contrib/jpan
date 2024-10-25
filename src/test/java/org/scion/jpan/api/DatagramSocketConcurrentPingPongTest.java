@@ -55,8 +55,7 @@ class DatagramSocketConcurrentPingPongTest {
     PingPongSocketHelper.Server receiverFn = this::receiver;
     PingPongSocketHelper.Server senderFn = this::sender;
     PingPongSocketHelper.Client clientFn = this::client;
-    PingPongSocketHelper pph =
-        PingPongSocketHelper.newBuilder(2, 5, 100).resetCounters(false).build();
+    PingPongSocketHelper pph = PingPongSocketHelper.newBuilder(2, 5, 100).build();
     pph.runPingPongSharedServerSocket(receiverFn, senderFn, clientFn);
     assertEquals(2 * 5 * 100, MockNetwork.getAndResetForwardCount());
   }

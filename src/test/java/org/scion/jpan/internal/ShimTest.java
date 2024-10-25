@@ -135,8 +135,9 @@ class ShimTest {
   void testForwardingUDP() {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
+    // we are circumventing the daemon! -> checkCounters(false)
     PingPongChannelHelper pph =
-        PingPongChannelHelper.newBuilder(1, 2, 10).resetCounters(false).build();
+        PingPongChannelHelper.newBuilder(1, 2, 10).checkCounters(false).build();
     pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
     assertEquals(2 * 2 * 10, shimForwardingCounter.getAndSet(0));
@@ -149,6 +150,7 @@ class ShimTest {
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph =
         PingPongChannelHelper.newBuilder(1, 2, 10)
+            .checkCounters(false)
             .serverIsdAs(MockNetwork.TINY_CLIENT_ISD_AS)
             .build();
     pph.runPingPong(serverFn, clientFn);

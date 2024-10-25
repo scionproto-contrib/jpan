@@ -38,7 +38,7 @@ public class PingPongHelperBase {
   protected final int nServers;
   private final int nRounds;
   protected final boolean connectClients;
-  private final boolean resetCounters;
+  private final boolean checkCounters;
   private final String serverIsdAs;
 
   final CountDownLatch startUpBarrierClient;
@@ -52,13 +52,13 @@ public class PingPongHelperBase {
       int nClients,
       int nRounds,
       boolean connect,
-      boolean resetCounters,
+      boolean checkCounters,
       String serverIsdAs) {
     this.nClients = nClients;
     this.nServers = nServers;
     this.nRounds = nRounds;
     this.connectClients = connect;
-    this.resetCounters = resetCounters;
+    this.checkCounters = checkCounters;
     this.serverIsdAs = serverIsdAs;
 
     startUpBarrierClient = new CountDownLatch(nClients);
@@ -155,8 +155,8 @@ public class PingPongHelperBase {
       checkExceptions();
     }
 
-    if (resetCounters) {
-      assertEquals(nRounds * nClients * 2, MockNetwork.getAndResetForwardCount());
+    if (checkCounters) {
+      assertEquals(nRounds * nClients * 2, MockNetwork.getForwardCount());
     }
     assertEquals(nRounds * nClients, nRoundsClient.get());
     // For now, we assume that every request is handles by every server thread.
@@ -181,7 +181,7 @@ public class PingPongHelperBase {
     protected final int nServers;
     protected final int nRounds;
     protected boolean connectClients = true;
-    protected boolean resetCounters = false;
+    protected boolean checkCounters = true;
     protected String serverIA = MockNetwork.TINY_SRV_ISD_AS;
 
     protected Builder(int nServers, int nClients, int nRounds, boolean connect) {
@@ -192,7 +192,6 @@ public class PingPongHelperBase {
     }
 
     public T resetCounters(boolean resetCounters) {
-      this.resetCounters = resetCounters;
       return (T) this;
     }
 
@@ -203,6 +202,11 @@ public class PingPongHelperBase {
 
     public T connect(boolean connectClients) {
       this.connectClients = connectClients;
+      return (T) this;
+    }
+
+    public T checkCounters(boolean checkCounters) {
+      this.checkCounters = checkCounters;
       return (T) this;
     }
   }
