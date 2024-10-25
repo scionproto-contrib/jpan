@@ -30,7 +30,7 @@ class PingPongHelperTest {
   void testChannel() {
     PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
     PingPongChannelHelper.Client clientFn = PingPongChannelHelper::defaultClient;
-    PingPongChannelHelper pph = new PingPongChannelHelper(1, 1, 10);
+    PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 1, 10).build();
     pph.runPingPong(serverFn, clientFn);
   }
 
@@ -38,7 +38,7 @@ class PingPongHelperTest {
   void testSocket() {
     PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
     PingPongSocketHelper.Client clientFn = PingPongSocketHelper::defaultClient;
-    PingPongSocketHelper pph = new PingPongSocketHelper(1, 1, 10);
+    PingPongSocketHelper pph = PingPongSocketHelper.newBuilder(1, 1, 10).build();
     pph.runPingPong(serverFn, clientFn);
   }
 }

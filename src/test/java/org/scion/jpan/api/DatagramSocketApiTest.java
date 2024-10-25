@@ -618,7 +618,7 @@ class DatagramSocketApiTest {
           String pong = Charset.defaultCharset().decode(response).toString();
           assertEquals(PingPongSocketHelper.MSG, pong);
         };
-    PingPongSocketHelper pph = new PingPongSocketHelper(1, 10, 5);
+    PingPongSocketHelper pph = PingPongSocketHelper.newBuilder(1, 10, 5).build();
     pph.runPingPong(serverFn, clientFn);
   }
 

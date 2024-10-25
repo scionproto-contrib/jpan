@@ -42,7 +42,7 @@ class DatagramChannelMultiSendInetAddrTest {
   void test() {
     PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
     PingPongChannelHelper.Client clientFn = this::client;
-    PingPongChannelHelper pph = new PingPongChannelHelper(1, 20, 50, false);
+    PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 20, 50).connect(false).build();
     pph.runPingPong(serverFn, clientFn);
   }
 

@@ -61,6 +61,8 @@ public class MockNetwork {
   public static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
+  public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
+  public static final String TINY_CLIENT_TOPOFILE = MockBootstrapServer.TOPOFILE_TINY_110;
   static final AtomicInteger nForwardTotal = new AtomicInteger();
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
@@ -139,12 +141,10 @@ public class MockNetwork {
     MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
 
     if (mode == Mode.NAPTR || mode == Mode.BOOTSTRAP) {
-      topoServer =
-          MockBootstrapServer.start(MockBootstrapServer.TOPOFILE_TINY_110, mode == Mode.NAPTR);
+      topoServer = MockBootstrapServer.start(TINY_CLIENT_TOPOFILE, mode == Mode.NAPTR);
       controlServer = MockControlServer.start(topoServer.getControlServerPort());
     } else if (mode == Mode.AS_ONLY) {
-      AsInfo asInfo =
-          JsonFileParser.parseTopologyFile(Paths.get(MockBootstrapServer.TOPOFILE_TINY_110));
+      AsInfo asInfo = JsonFileParser.parseTopologyFile(Paths.get(TINY_CLIENT_TOPOFILE));
       controlServer = MockControlServer.start(asInfo.getControlServerPort());
     }
 
@@ -202,6 +202,10 @@ public class MockNetwork {
       nForwards.set(i, 0);
     }
     return nForwardTotal.getAndSet(0);
+  }
+
+  public static int getForwardCount() {
+    return nForwardTotal.get();
   }
 
   /**

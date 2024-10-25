@@ -133,16 +133,29 @@ class ShimTest {
 
   @Test
   void testForwardingUDP() {
-    test();
-  }
-
-  private void test() {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
-    PingPongChannelHelper pph = new PingPongChannelHelper(1, 1, 10);
-    pph.runPingPong(serverFn, clientFn, false);
+    // we are circumventing the daemon! -> checkCounters(false)
+    PingPongChannelHelper pph =
+        PingPongChannelHelper.newBuilder(1, 2, 10).checkCounters(false).build();
+    pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
-    assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
+    assertEquals(2 * 2 * 10, shimForwardingCounter.getAndSet(0));
+  }
+
+  @Disabled
+  @Test
+  void testForwardingUDP_LocalAS() {
+    PingPongChannelHelper.Server serverFn = this::server;
+    PingPongChannelHelper.Client clientFn = this::client;
+    PingPongChannelHelper pph =
+        PingPongChannelHelper.newBuilder(1, 2, 10)
+            .checkCounters(false)
+            .serverIsdAs(MockNetwork.TINY_CLIENT_ISD_AS)
+            .build();
+    pph.runPingPong(serverFn, clientFn);
+    assertTrue(Shim.isInstalled());
+    assertEquals(2 * 2 * 10, shimForwardingCounter.getAndSet(0));
   }
 
   public void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {

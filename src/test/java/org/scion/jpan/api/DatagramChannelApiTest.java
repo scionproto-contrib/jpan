@@ -536,7 +536,7 @@ class DatagramChannelApiTest {
           String pong = Charset.defaultCharset().decode(response).toString();
           assertEquals(PingPongChannelHelper.MSG, pong);
         };
-    PingPongChannelHelper pph = new PingPongChannelHelper(1, 10, 5, connect);
+    PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 10, 5).connect(connect).build();
     pph.runPingPong(serverFn, clientFn);
   }
 
