@@ -23,8 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionRuntimeException;
@@ -80,19 +78,22 @@ public class JsonFileParser {
         JsonObject br = e.getValue().getAsJsonObject();
         String addr = safeGet(br, "internal_addr").getAsString();
         JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
-        List<AsInfo.BorderRouterInterface> interfaces = new ArrayList<>();
+        AsInfo.BorderRouter router = new AsInfo.BorderRouter(e.getKey(), addr);
+        as.add(router);
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
           JsonObject ife = ifEntry.getValue().getAsJsonObject();
           // TODO bandwidth, mtu, ... etc
           JsonObject underlay = ife.getAsJsonObject("underlay");
-          interfaces.add(
+          JsonElement local = underlay.get("local");
+          local = local == null ? underlay.get("public") : local;
+          router.addInterface(
               new AsInfo.BorderRouterInterface(
                   ifEntry.getKey(),
                   ife.get("isd_as").getAsString(),
-                  underlay.get("public").getAsString(),
-                  underlay.get("remote").getAsString()));
+                  local.getAsString(),
+                  underlay.get("remote").getAsString(),
+                  router));
         }
-        as.add(new AsInfo.BorderRouter(e.getKey(), addr, interfaces));
       }
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {

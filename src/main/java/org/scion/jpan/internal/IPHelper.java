@@ -15,6 +15,7 @@
 package org.scion.jpan.internal;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import org.xbill.DNS.Address;
 
@@ -63,9 +64,25 @@ public class IPHelper {
     return Address.toByteArray(s, family);
   }
 
+  public static int toPort(String s) {
+    int posPort = s.lastIndexOf(":");
+    return Integer.parseInt(s.substring(posPort + 1));
+  }
+
   public static InetAddress toInetAddress(String s) throws UnknownHostException {
     byte[] bytes = toByteArray(s);
     return InetAddress.getByAddress(bytes);
+  }
+
+  public static InetSocketAddress toInetSocketAddress(String s) {
+    int posPort = s.lastIndexOf(":");
+    int port = Integer.parseInt(s.substring(posPort + 1));
+    byte[] bytes = toByteArray(s.substring(0, posPort - 1));
+    try {
+      return new InetSocketAddress(InetAddress.getByAddress(bytes), port);
+    } catch (UnknownHostException e) {
+      throw new IllegalArgumentException(e);
+    }
   }
 
   /**

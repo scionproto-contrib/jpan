@@ -42,7 +42,7 @@ public class DemoTopology {
 
   static DemoTopology configureMock(boolean remoteIPv4) {
     DemoTopology cfg = new DemoTopology();
-    MockNetwork.startTiny(true, remoteIPv4);
+    MockNetwork.startTiny(remoteIPv4);
     cfg.clientDaemonAddress = MockDaemon.DEFAULT_ADDRESS;
     //    cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
     return cfg;

@@ -15,6 +15,8 @@
 package org.scion.jpan.testutil;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
@@ -24,16 +26,34 @@ public class AsInfo {
   private String controlServer;
   private final List<BorderRouter> borderRouters = new ArrayList<>();
 
-  public void setIsdAs(long isdAs) {
+  void setIsdAs(long isdAs) {
     this.isdAs = isdAs;
   }
 
-  public void add(BorderRouter borderRouter) {
+  void add(BorderRouter borderRouter) {
     borderRouters.add(borderRouter);
   }
 
-  public void setControlServer(String addr) {
+  void setControlServer(String addr) {
     controlServer = addr;
+  }
+
+  public void connectWith(AsInfo asInfoRemote) {
+    // Associate BorderRouters
+    HashMap<String, BorderRouterInterface> map = new HashMap<>();
+    for (BorderRouter br : asInfoRemote.borderRouters) {
+      for (BorderRouterInterface brIf : br.interfaces) {
+        if (map.put(brIf.localUnderlay, brIf) != null) {
+          throw new IllegalStateException();
+        }
+      }
+    }
+    for (BorderRouter br : borderRouters) {
+      for (BorderRouterInterface brIf : br.interfaces) {
+        BorderRouterInterface remoteIf = map.get(brIf.remoteUnderlay);
+        brIf.setRemoteInterface(remoteIf);
+      }
+    }
   }
 
   public String getControlServerIP() {
@@ -46,8 +66,8 @@ public class AsInfo {
 
   public String getBorderRouterAddressByIA(long remoteIsdAs) {
     for (BorderRouter br : borderRouters) {
-      for (BorderRouterInterface brif : br.interfaces) {
-        if (brif.isdAs == remoteIsdAs) {
+      for (BorderRouterInterface brIf : br.interfaces) {
+        if (brIf.isdAs == remoteIsdAs) {
           return br.internalAddress;
         }
       }
@@ -59,29 +79,64 @@ public class AsInfo {
     return isdAs;
   }
 
+  public List<BorderRouter> getBorderRouters() {
+    return Collections.unmodifiableList(borderRouters);
+  }
+
   public static class BorderRouter {
     private final String name;
     private final String internalAddress;
-    private final List<BorderRouterInterface> interfaces;
+    private final List<BorderRouterInterface> interfaces = new ArrayList<>();
 
-    public BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
+    public BorderRouter(String name, String addr) {
       this.name = name;
       this.internalAddress = addr;
-      this.interfaces = interfaces;
+    }
+
+    public void addInterface(BorderRouterInterface borderRouterInterface) {
+      this.interfaces.add(borderRouterInterface);
+    }
+
+    public String getInternalAddress() {
+      return internalAddress;
+    }
+
+    public List<BorderRouterInterface> getInterfaces() {
+      return Collections.unmodifiableList(interfaces);
     }
   }
 
   public static class BorderRouterInterface {
     final int id;
     final long isdAs;
-    final String publicUnderlay;
+    final String localUnderlay;
     final String remoteUnderlay;
+    final BorderRouter borderRouter;
+    BorderRouterInterface remoteInterface;
 
-    public BorderRouterInterface(String id, String isdAs, String publicU, String remoteU) {
+    public BorderRouterInterface(
+        String id,
+        String isdAs,
+        String localUnderlay,
+        String remoteUnderlay,
+        BorderRouter borderRouter) {
       this.id = Integer.parseInt(id);
       this.isdAs = ScionUtil.parseIA(isdAs);
-      this.publicUnderlay = publicU;
-      this.remoteUnderlay = remoteU;
+      this.localUnderlay = localUnderlay;
+      this.remoteUnderlay = remoteUnderlay;
+      this.borderRouter = borderRouter;
+    }
+
+    void setRemoteInterface(BorderRouterInterface remoteInterface) {
+      this.remoteInterface = remoteInterface;
+    }
+
+    public BorderRouterInterface getRemoteInterface() {
+      return remoteInterface;
+    }
+
+    public BorderRouter getBorderRouter() {
+      return borderRouter;
     }
   }
 }
