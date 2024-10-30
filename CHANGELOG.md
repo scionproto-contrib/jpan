@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- Fix demos to return an "int" that can be tested!
 - Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
 - Fix @Disabled tests
 - Support topofile port range
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)
+- MockNetwork should use topofiles. [#134](https://github.com/scionproto-contrib/jpan/pull/134)
 
 ## [0.3.1] - 2024-10-11
 

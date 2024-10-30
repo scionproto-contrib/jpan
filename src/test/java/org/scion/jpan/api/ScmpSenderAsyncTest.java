@@ -610,7 +610,7 @@ public class ScmpSenderAsyncTest {
 
   private Path getPathToLocalAS_BR() {
     // Border router address
-    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, MockNetwork.BORDER_ROUTER_PORT1);
+    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, MockNetwork.getBorderRouterPort1());
   }
 
   private Path getPathToLocalAS_BR_30041() {

@@ -2,6 +2,8 @@
   "attributes": [],
   "isd_as": "1-ff00:0:111",
   "mtu": 1472,
+  "test_dispatcher": true,
+  "dispatched_ports": "31000-32767",
   "control_service": {
     "cs1-ff00_0_111-1": {
       "addr": "127.0.0.18:31006"
@@ -18,7 +20,7 @@
       "interfaces": {
         "41": {
           "underlay": {
-            "public": "127.0.0.5:50000",
+            "local": "127.0.0.5:50000",
             "remote": "127.0.0.4:50000"
           },
           "isd_as": "1-ff00:0:110",

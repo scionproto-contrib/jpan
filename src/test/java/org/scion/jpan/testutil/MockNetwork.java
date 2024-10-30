@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
+import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,8 @@ public class MockNetwork {
   public static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
+  public static final String TINY_SRV_TOPO_V4 = "topologies/scionproto-tiny/topology-112.json";
+  public static final String TINY_SRV_TOPO_V6 = "topologies/scionproto-tiny/topology-112-ipV6.json";
   public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
   public static final String TINY_CLIENT_TOPOFILE = MockBootstrapServer.TOPOFILE_TINY_110;
   static final AtomicInteger nForwardTotal = new AtomicInteger();
@@ -69,13 +72,16 @@ public class MockNetwork {
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
   static final AtomicInteger answerNextScmpEchos = new AtomicInteger();
   static CountDownLatch barrier = null;
-  public static final int BORDER_ROUTER_PORT1 = 30555;
-  public static final int BORDER_ROUTER_PORT2 = 30556;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
   private static MockBootstrapServer topoServer;
   private static MockControlServer controlServer;
+
+  private static MockNetwork mock;
+  private final AsInfo asInfoLocal;
+  private final AsInfo asInfoRemote;
+  private final int[] localPort = new int[2];
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
@@ -83,14 +89,12 @@ public class MockNetwork {
    * resolving the SRV-address to "1-ff00:0:112".
    */
   public static synchronized void startTiny() {
-    startTiny(true, true);
+    startTiny(true);
   }
 
-  public static synchronized void startTiny(boolean localIPv4, boolean remoteIPv4) {
+  public static synchronized void startTiny(boolean remoteIPv4) {
     startTiny(
-        localIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPV6,
-        remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPV6,
-        Mode.DAEMON);
+        BORDER_ROUTER_IPV4, remoteIPv4 ? BORDER_ROUTER_IPV4 : BORDER_ROUTER_IPV6, Mode.DAEMON);
   }
 
   public static synchronized void startTiny(Mode mode) {
@@ -102,16 +106,27 @@ public class MockNetwork {
       throw new IllegalStateException();
     }
 
+    mock = new MockNetwork(TINY_CLIENT_TOPOFILE, TINY_SRV_TOPO_V4);
+
     routers = Executors.newFixedThreadPool(2);
 
     MockScmpHandler.start(remoteIP);
 
     List<MockBorderRouter> brList = new ArrayList<>();
-    brList.add(
-        new MockBorderRouter(0, BORDER_ROUTER_PORT1, BORDER_ROUTER_PORT2, localIP, remoteIP));
-    brList.add(
-        new MockBorderRouter(
-            1, BORDER_ROUTER_PORT1 + 10, BORDER_ROUTER_PORT2 + 10, localIP, remoteIP));
+    for (AsInfo.BorderRouter br : mock.asInfoLocal.getBorderRouters()) {
+      for (AsInfo.BorderRouterInterface brIf : br.getInterfaces()) {
+        String local = br.getInternalAddress();
+        if (brIf.getRemoteInterface() == null) {
+          // can happen for e.g. AS 111
+          continue;
+        }
+        String remote = brIf.getRemoteInterface().getBorderRouter().getInternalAddress();
+        InetSocketAddress bind1 = new InetSocketAddress(localIP, IPHelper.toPort(local));
+        InetSocketAddress bind2 = new InetSocketAddress(remoteIP, IPHelper.toPort(remote));
+        brList.add(new MockBorderRouter(brList.size(), bind1, bind2));
+        mock.localPort[brList.size() - 1] = bind1.getPort();
+      }
+    }
 
     barrier = new CountDownLatch(brList.size());
     for (MockBorderRouter br : brList) {
@@ -190,6 +205,21 @@ public class MockNetwork {
     dropNextPackets.getAndSet(0);
     answerNextScmpEchos.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
+    mock = null;
+  }
+
+  private MockNetwork(String localTopo, String remoteTopo) {
+    asInfoLocal = JsonFileParser.parseTopologyFile(Paths.get(localTopo));
+    asInfoRemote = JsonFileParser.parseTopologyFile(Paths.get(remoteTopo));
+    asInfoLocal.connectWith(asInfoRemote);
+  }
+
+  public static int getBorderRouterPort1() {
+    return mock.localPort[0];
+  }
+
+  public static int getBorderRouterPort2() {
+    return mock.localPort[1];
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {
@@ -266,25 +296,19 @@ class MockBorderRouter implements Runnable {
 
   private final int id;
   private final String name;
-  private final int port1;
-  private final int port2;
-  private final String ip1;
-  private final String ip2;
+  private final InetSocketAddress bind1;
+  private final InetSocketAddress bind2;
 
-  MockBorderRouter(int id, int port1, int port2, String ip1, String ip2) {
+  MockBorderRouter(int id, InetSocketAddress bind1, InetSocketAddress bind2) {
     this.id = id;
     this.name = "BorderRouter-" + id;
-    this.port1 = port1;
-    this.port2 = port2;
-    this.ip1 = ip1;
-    this.ip2 = ip2;
+    this.bind1 = bind1;
+    this.bind2 = bind2;
   }
 
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress bind1 = new InetSocketAddress(ip1, port1);
-    InetSocketAddress bind2 = new InetSocketAddress(ip2, port2);
     try (DatagramChannel chnLocal = DatagramChannel.open().bind(bind1);
         DatagramChannel chnRemote = DatagramChannel.open().bind(bind2);
         Selector selector = Selector.open()) {
@@ -415,6 +439,6 @@ class MockBorderRouter implements Runnable {
   }
 
   public int getPort1() {
-    return port1;
+    return bind1.getPort();
   }
 }

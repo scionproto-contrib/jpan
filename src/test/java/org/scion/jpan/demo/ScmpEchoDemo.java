@@ -70,7 +70,8 @@ public class ScmpEchoDemo {
           DemoTopology.configureMock();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          InetSocketAddress br211 = new InetSocketAddress("::1", MockNetwork.BORDER_ROUTER_PORT2);
+          InetSocketAddress br211 =
+              new InetSocketAddress("::1", MockNetwork.getBorderRouterPort2());
           demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, br211).get(0));
           DemoTopology.shutDown();
           break;
