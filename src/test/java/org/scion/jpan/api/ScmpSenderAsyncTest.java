@@ -91,6 +91,7 @@ public class ScmpSenderAsyncTest {
 
   @AfterEach
   public void afterEach() {
+    MockNetwork.stopTiny();
     if (!errors.isEmpty()) {
       for (String s : errors) {
         System.err.println("ERROR: " + s);
@@ -146,7 +147,7 @@ public class ScmpSenderAsyncTest {
   void sendEcho_localAS_BR() throws IOException {
     int n = 5;
     testEcho(this::getPathToLocalAS_BR, n);
-    assertEquals(n, MockNetwork.getAndResetForwardCount()); // 1!
+    assertEquals(2 * n, MockNetwork.getAndResetForwardCount());
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
 
@@ -154,19 +155,18 @@ public class ScmpSenderAsyncTest {
   void sendEcho_localAS_BR_30041() throws IOException {
     int n = 5;
     testEcho(this::getPathToLocalAS_BR_30041, n);
-    assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
+    assertEquals(0, MockNetwork.getAndResetForwardCount());
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   private void testEcho(Supplier<Path> pathSupplier, int n) throws IOException {
     MockNetwork.startTiny();
-    MockNetwork.answerNextScmpEchos(n);
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       byte[] data = new byte[] {1, 2, 3, 4, 5};
       Path path = pathSupplier.get();
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < n; i++) {
         int seqId = channel.sendEcho(path, ByteBuffer.wrap(data));
         assertEquals(i, seqId);
         Scmp.EchoMessage result = handler.get();
@@ -195,7 +195,7 @@ public class ScmpSenderAsyncTest {
   void sendEcho_localAS_BR_async() throws IOException {
     int n = 25;
     testEchoAsync(this::getPathToLocalAS_BR, n);
-    assertEquals(n, MockNetwork.getAndResetForwardCount()); // 1!
+    assertEquals(2 * n, MockNetwork.getAndResetForwardCount());
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
 
@@ -203,13 +203,12 @@ public class ScmpSenderAsyncTest {
   void sendEcho_localAS_BR_30041_async() throws IOException {
     int n = 25;
     testEchoAsync(this::getPathToLocalAS_BR_30041, n);
-    assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
+    assertEquals(0, MockNetwork.getAndResetForwardCount());
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   private void testEchoAsync(Supplier<Path> pathSupplier, int n) throws IOException {
     MockNetwork.startTiny();
-    MockNetwork.answerNextScmpEchos(n);
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -259,7 +258,6 @@ public class ScmpSenderAsyncTest {
 
       // try again
       handler.reset();
-      MockNetwork.answerNextScmpEchos(1);
       int seqId2 = channel.sendEcho(path, ByteBuffer.allocate(0));
       Scmp.EchoMessage result2 = handler.get();
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
@@ -350,7 +348,6 @@ public class ScmpSenderAsyncTest {
 
   private void testTracerouteAsync(Supplier<Path> pathSupplier, int nRepeat) throws IOException {
     MockNetwork.startTiny();
-    MockNetwork.answerNextScmpEchos(nRepeat);
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -460,7 +457,6 @@ public class ScmpSenderAsyncTest {
 
   private void testTracerouteLast(Supplier<Path> pathSupplier, boolean success) throws IOException {
     MockNetwork.startTiny();
-    MockNetwork.answerNextScmpEchos(1);
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -496,7 +492,6 @@ public class ScmpSenderAsyncTest {
   private void testTracerouteLastAsync(Supplier<Path> pathSupplier, int nRepeat)
       throws IOException {
     MockNetwork.startTiny();
-    MockNetwork.answerNextScmpEchos(nRepeat);
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = Scmp.newSenderAsyncBuilder(handler).build()) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -546,7 +541,6 @@ public class ScmpSenderAsyncTest {
 
       // try again
       handler.reset();
-      MockNetwork.answerNextScmpEchos(1);
       int seqId2 = channel.sendTracerouteLast(path);
       List<Scmp.TracerouteMessage> results2 = handler.get(1);
       assertEquals(1, results2.size());
@@ -594,12 +588,7 @@ public class ScmpSenderAsyncTest {
   }
 
   private Path getPathTo112() {
-    try {
-      InetAddress zero = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
-      return getPathTo112(zero);
-    } catch (UnknownHostException e) {
-      throw new IllegalStateException(e);
-    }
+    return getPathTo112(MockScmpHandler.getAddress().getAddress());
   }
 
   private Path getPathTo112(InetAddress dstAddress) {
@@ -610,25 +599,23 @@ public class ScmpSenderAsyncTest {
 
   private Path getPathToLocalAS_BR() {
     // Border router address
-    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, MockNetwork.getBorderRouterPort1());
+    return getPathToLocalAS(MockNetwork.getBorderRouterAddress1());
   }
 
   private Path getPathToLocalAS_BR_30041() {
     // Border router address
-    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, Constants.SCMP_PORT);
+    InetSocketAddress address =
+        new InetSocketAddress(
+            MockNetwork.getBorderRouterAddress1().getAddress(), Constants.SCMP_PORT);
+    return getPathToLocalAS(address);
   }
 
-  private Path getPathToLocalAS(String addressStr, int port) {
+  private Path getPathToLocalAS(InetSocketAddress address) {
     ScionService service = Scion.defaultService();
     long dstIA = service.getLocalIsdAs();
-    try {
-      // Service address
-      InetAddress addr = InetAddress.getByName(addressStr);
-      List<Path> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
-      return paths.get(0);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+    // Service address
+    List<Path> paths = service.getPaths(dstIA, address);
+    return paths.get(0);
   }
 
   private ScmpSenderAsync exceptionSender(ScmpHandler<?> handler) throws IOException {
@@ -652,7 +639,7 @@ public class ScmpSenderAsyncTest {
     errorChannel.setReceiveCallback(
         buffer -> {
           buffer.put(PING_ERROR_4_51_HK);
-          return new InetSocketAddress(MockNetwork.BORDER_ROUTER_IPV4, 30041);
+          return new InetSocketAddress(MockNetwork.getBorderRouterAddress1().getAddress(), 30041);
         });
     // This selector throws an Exception when activated.
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();

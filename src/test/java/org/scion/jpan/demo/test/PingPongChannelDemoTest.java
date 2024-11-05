@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.demo.DemoTopology;
 import org.scion.jpan.demo.PingPongChannelClient;
@@ -71,6 +72,7 @@ public class PingPongChannelDemoTest {
     if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
       fail();
     }
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.

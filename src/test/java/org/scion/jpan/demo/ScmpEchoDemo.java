@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
-import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.Scenario;
 
 /**
@@ -44,7 +44,8 @@ public class ScmpEchoDemo {
   private final int localPort;
 
   public enum Network {
-    JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
+    JUNIT_MOCK_V4, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
+    JUNIT_MOCK_V6, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
   }
@@ -64,17 +65,37 @@ public class ScmpEchoDemo {
   }
 
   public static void main(String[] args) throws IOException {
+    try {
+      run();
+    } finally {
+      Scion.closeDefault();
+    }
+  }
+
+  public static int run() throws IOException {
     switch (NETWORK) {
-      case JUNIT_MOCK:
+      case JUNIT_MOCK_V4:
         {
-          DemoTopology.configureMock();
-          MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+          DemoTopology.configureMockV4();
+          InetAddress remote = MockScmpHandler.getAddress().getAddress();
+          MockDNS.install("1-ff00:0:112", "localhost", remote.toString());
           ScmpEchoDemo demo = new ScmpEchoDemo();
-          InetSocketAddress br211 =
-              new InetSocketAddress("::1", MockNetwork.getBorderRouterPort2());
-          demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, br211).get(0));
+          InetSocketAddress dst = MockScmpHandler.getAddress();
+          int n = demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
           DemoTopology.shutDown();
-          break;
+          return n;
+        }
+      case JUNIT_MOCK_V6:
+        {
+          DemoTopology.configureMockV6();
+          ScmpEchoDemo demo = new ScmpEchoDemo();
+          MockScmpHandler.stop();
+          MockScmpHandler.start("[::1]"); // We need the SCMP handler running on IPv6
+          InetSocketAddress dst = MockScmpHandler.getAddress();
+          int n = demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
+          DemoTopology.shutDown();
+          MockScmpHandler.stop();
+          return n;
         }
       case SCION_PROTO:
         // Same as:
@@ -85,7 +106,7 @@ public class ScmpEchoDemo {
           long srcIsdAs = ScionUtil.parseIA("2-ff00:0:212");
           long dstIsdAs = ScionUtil.parseIA("2-ff00:0:222");
 
-          if (!true) {
+          if (false) {
             // Alternative #1: Bootstrap from topo file
             System.setProperty(
                 Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
@@ -102,21 +123,19 @@ public class ScmpEchoDemo {
 
           // Get paths
           List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
-          demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
-          break;
+          return demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
         }
       case PRODUCTION:
         {
           ScmpEchoDemo demo = new ScmpEchoDemo();
           ScionService service = Scion.defaultService();
-          demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
-          break;
+          return demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
         }
     }
-    Scion.closeDefault();
+    return -1;
   }
 
-  private void runDemo(Path path) throws IOException {
+  private int runDemo(Path path) throws IOException {
     ByteBuffer data = ByteBuffer.allocate(0);
 
     println("Listening on port " + localPort + " ...");
@@ -127,6 +146,7 @@ public class ScmpEchoDemo {
     }
 
     printPath(path);
+    int n = 0;
     try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
       for (int i = 0; i < REPEAT; i++) {
         Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, data);
@@ -140,6 +160,8 @@ public class ScmpEchoDemo {
         echoMsgStr += ": scmp_seq=" + msg.getSequenceNumber();
         if (msg.isTimedOut()) {
           echoMsgStr += " Timed out after";
+        } else {
+          n++;
         }
         echoMsgStr += " time=" + millis + "ms";
         println(echoMsgStr);
@@ -152,6 +174,7 @@ public class ScmpEchoDemo {
         }
       }
     }
+    return n;
   }
 
   private void printPath(Path path) {

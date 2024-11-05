@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import org.scion.jpan.Constants;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
@@ -46,7 +45,7 @@ public class MockDaemon implements AutoCloseable {
 
   private final InetSocketAddress address;
   private Server server;
-  private final List<InetSocketAddress> borderRouters;
+  private final List<MockBorderRouter> borderRouters;
   private static final AtomicInteger callCount = new AtomicInteger();
   private static final byte[] PATH_RAW_TINY_110_112 = {
     0, 0, 32, 0, 1, 0, 11, 16,
@@ -55,12 +54,20 @@ public class MockDaemon implements AutoCloseable {
     0, 63, 0, 1, 0, 0, -8, 2,
     -114, 25, 76, -122,
   };
+  // Same as PATH_RAW_TINY_110_112 but uses interfaces 11<>22
+  private static final byte[] PATH_RAW_TINY_110_112_b = {
+    0, 0, 32, 0, 1, 0, 11, 16,
+    101, 83, 118, -81, 0, 63, 0, 0,
+    0, 22, 118, -21, 86, -46, 89, 0,
+    0, 63, 0, 11, 0, 0, -8, 2,
+    -114, 25, 76, -122,
+  };
 
   private static void setEnvironment() {
     System.setProperty(Constants.PROPERTY_DAEMON, DEFAULT_IP + ":" + DEFAULT_PORT);
   }
 
-  public static MockDaemon createForBorderRouter(List<InetSocketAddress> borderRouter) {
+  public static MockDaemon createForBorderRouter(List<MockBorderRouter> borderRouter) {
     setEnvironment();
     return new MockDaemon(DEFAULT_ADDRESS, borderRouter);
   }
@@ -85,21 +92,21 @@ public class MockDaemon implements AutoCloseable {
   private MockDaemon(InetSocketAddress address) {
     this.address = address;
     this.borderRouters = new ArrayList<>();
-    this.borderRouters.add(new InetSocketAddress("127.0.0.10", 31004));
+    InetSocketAddress bind1 = new InetSocketAddress("127.0.0.10", 31004);
+    InetSocketAddress bind2 = new InetSocketAddress("127.0.0.25", 31012);
+    this.borderRouters.add(new MockBorderRouter(0, bind1, bind2, 2, 1));
   }
 
-  private MockDaemon(InetSocketAddress address, List<InetSocketAddress> borderRouters) {
+  private MockDaemon(InetSocketAddress address, List<MockBorderRouter> borderRouters) {
     this.address = address;
     this.borderRouters = borderRouters;
   }
 
   public MockDaemon start() throws IOException {
-    List<String> brStr =
-        borderRouters.stream().map(br -> br.toString().substring(1)).collect(Collectors.toList());
     int port = address.getPort();
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
-            .addService(new MockDaemon.DaemonImpl(brStr))
+            .addService(new MockDaemon.DaemonImpl(borderRouters))
             .build()
             .start();
     logger.info("Server started, listening on {}", address);
@@ -143,9 +150,9 @@ public class MockDaemon implements AutoCloseable {
   }
 
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
-    final List<String> borderRouters;
+    final List<MockBorderRouter> borderRouters;
 
-    DaemonImpl(List<String> borderRouters) {
+    DaemonImpl(List<MockBorderRouter> borderRouters) {
       this.borderRouters = borderRouters;
     }
 
@@ -155,13 +162,16 @@ public class MockDaemon implements AutoCloseable {
       logger.debug(
           "Got request from client: {} / {}", req.getSourceIsdAs(), req.getDestinationIsdAs());
       callCount.incrementAndGet();
-      ByteString rawPath = ByteString.copyFrom(PATH_RAW_TINY_110_112);
+      ByteString rawPath1 = ByteString.copyFrom(PATH_RAW_TINY_110_112);
+      ByteString rawPath11 = ByteString.copyFrom(PATH_RAW_TINY_110_112_b);
       long expirySecs = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
       Timestamp expiry = Timestamp.newBuilder().setSeconds(expirySecs).build();
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
       if (req.getSourceIsdAs() == ExamplePacket.SRC_IA
           && req.getDestinationIsdAs() == ExamplePacket.DST_IA) {
-        for (String brAddress : borderRouters) {
+        for (MockBorderRouter br : borderRouters) {
+          String brAddress = br.getAddress1().toString().substring(1);
+          ByteString rawPath = br.getInterfaceId2() == 1 ? rawPath1 : rawPath11;
           Daemon.Path p0 =
               Daemon.Path.newBuilder()
                   .setInterface(
@@ -170,12 +180,12 @@ public class MockDaemon implements AutoCloseable {
                           .build())
                   .addInterfaces(
                       Daemon.PathInterface.newBuilder()
-                          .setId(2)
+                          .setId(br.getInterfaceId1())
                           .setIsdAs(ExamplePacket.SRC_IA)
                           .build())
                   .addInterfaces(
                       Daemon.PathInterface.newBuilder()
-                          .setId(1)
+                          .setId(br.getInterfaceId2())
                           .setIsdAs(ExamplePacket.DST_IA)
                           .build())
                   .setRaw(rawPath)
@@ -211,12 +221,12 @@ public class MockDaemon implements AutoCloseable {
         Daemon.InterfacesRequest req, StreamObserver<Daemon.InterfacesResponse> responseObserver) {
       callCount.incrementAndGet();
       Daemon.InterfacesResponse.Builder replyBuilder = Daemon.InterfacesResponse.newBuilder();
-      int i = -1;
-      for (String br : borderRouters) {
+      for (MockBorderRouter br : borderRouters) {
+        String brAddress = br.getAddress1().toString().substring(1);
         Daemon.Interface.Builder ifBuilder = Daemon.Interface.newBuilder();
-        ifBuilder.setAddress(Daemon.Underlay.newBuilder().setAddress(br).build());
+        ifBuilder.setAddress(Daemon.Underlay.newBuilder().setAddress(brAddress).build());
         // Interface IDs are currently not supported
-        replyBuilder.putInterfaces(i--, ifBuilder.build());
+        replyBuilder.putInterfaces(br.getInterfaceId1(), ifBuilder.build());
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();

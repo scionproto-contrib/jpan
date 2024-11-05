@@ -69,6 +69,7 @@ public class ScionTest {
   public void beforeEach() {
     // reset counter
     MockDaemon.getAndResetCallCount();
+    MockNetwork.stopTiny();
   }
 
   @AfterEach

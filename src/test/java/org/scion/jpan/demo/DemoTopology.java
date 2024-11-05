@@ -48,8 +48,12 @@ public class DemoTopology {
     return cfg;
   }
 
-  static DemoTopology configureMock() {
+  static DemoTopology configureMockV6() {
     return configureMock(false);
+  }
+
+  static DemoTopology configureMockV4() {
+    return configureMock(true);
   }
 
   public static void shutDown() {

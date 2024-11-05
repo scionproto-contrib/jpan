@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)
 - MockNetwork should use topofiles. [#134](https://github.com/scionproto-contrib/jpan/pull/134)
+- MockNetwork should really use topofiles. [#135](https://github.com/scionproto-contrib/jpan/pull/135)
 
 ## [0.3.1] - 2024-10-11
 

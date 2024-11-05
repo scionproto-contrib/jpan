@@ -37,8 +37,6 @@ import org.scion.jpan.testutil.MockDatagramChannel;
  */
 class DatagramChannelApiServerTest {
 
-  private static final int dummyPort = 44444;
-
   @BeforeEach
   public void beforeEach() throws IOException {
     MockDaemon.closeDefault();

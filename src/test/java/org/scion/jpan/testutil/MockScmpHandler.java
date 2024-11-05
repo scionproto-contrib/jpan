@@ -59,7 +59,9 @@ public class MockScmpHandler implements Runnable {
     handler = Executors.newSingleThreadExecutor();
     handler.execute(new MockScmpHandler(ip));
     try {
-      barrier.await();
+      if (!barrier.await(1, TimeUnit.SECONDS)) {
+        throw new IllegalStateException();
+      }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }

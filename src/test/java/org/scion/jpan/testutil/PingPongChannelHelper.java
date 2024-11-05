@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import org.scion.jpan.Path;
-import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionSocketAddress;
+import org.scion.jpan.*;
 
 public class PingPongChannelHelper extends PingPongHelperBase {
 
@@ -32,8 +30,9 @@ public class PingPongChannelHelper extends PingPongHelperBase {
       int nRounds,
       boolean connect,
       boolean resetCounters,
-      String serverIsdAs) {
-    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs);
+      String serverIsdAs,
+      ScionService service) {
+    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, service);
   }
 
   public static Builder newBuilder(int nServers, int nClients, int nRounds) {
@@ -41,15 +40,18 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   }
 
   private abstract class AbstractChannelEndpoint extends AbstractEndpoint {
-    AbstractChannelEndpoint(int id) {
+    private final ScionService service;
+
+    AbstractChannelEndpoint(int id, ScionService service) {
       super(id);
+      this.service = service;
     }
 
     abstract void runImpl(ScionDatagramChannel channel) throws IOException;
 
     @Override
     public final void run() {
-      try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      try (ScionDatagramChannel channel = ScionDatagramChannel.open(service)) {
         channel.configureBlocking(true);
         runImpl(channel);
       } catch (IOException e) {
@@ -71,7 +73,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     private final boolean connect;
 
     ClientEndpoint(Client client, int id, Path requestPath, int nRounds, boolean connect) {
-      super(id);
+      super(id, Scion.defaultService());
       this.client = client;
       this.path = requestPath;
       this.nRounds = nRounds;
@@ -99,7 +101,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     private final int nRounds;
 
     ServerEndpoint(Server server, int id, int nRounds) {
-      super(id);
+      super(id, serverService);
       this.server = server;
       this.nRounds = nRounds;
     }
@@ -124,9 +126,14 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   }
 
   public void runPingPong(Server serverFn, Client clientFn) {
-    runPingPong(
-        (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
-        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients));
+    try {
+      start();
+      run(
+          (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
+          (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients));
+    } finally {
+      close();
+    }
   }
 
   public static void defaultClient(ScionDatagramChannel channel, Path serverAddress, int id)
@@ -174,7 +181,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
 
     public PingPongChannelHelper build() {
       return new PingPongChannelHelper(
-          nServers, nClients, nRounds, connectClients, checkCounters, serverIA);
+          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, service());
     }
   }
 }

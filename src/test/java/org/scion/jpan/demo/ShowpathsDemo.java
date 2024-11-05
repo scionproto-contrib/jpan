@@ -19,6 +19,7 @@ import java.net.*;
 import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.MockScmpHandler;
 
 /**
  * This demo mimics the "scion ping" command available in scionproto (<a
@@ -36,11 +37,12 @@ import org.scion.jpan.testutil.MockDNS;
 public class ShowpathsDemo {
 
   public static boolean PRINT = true;
-  private static Network NETWORK = Network.PRODUCTION;
+  public static Network NETWORK = Network.PRODUCTION;
   private final int localPort;
 
   public enum Network {
-    JUNIT_MOCK, // SCION Java JUnit mock network
+    JUNIT_MOCK_V4, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
+    JUNIT_MOCK_V6, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
   }
@@ -59,15 +61,33 @@ public class ShowpathsDemo {
   }
 
   public static void main(String[] args) throws IOException {
+    try {
+      run();
+    } finally {
+      Scion.closeDefault();
+    }
+  }
+
+  public static int run() throws IOException {
     switch (NETWORK) {
-      case JUNIT_MOCK:
+      case JUNIT_MOCK_V4:
         {
-          DemoTopology.configureMock();
+          DemoTopology.configureMockV4();
+          InetAddress remote = MockScmpHandler.getAddress().getAddress();
+          MockDNS.install("1-ff00:0:112", "localhost", remote.toString());
+          ShowpathsDemo demo = new ShowpathsDemo();
+          int n = demo.runDemo(DemoConstants.ia110);
+          DemoTopology.shutDown();
+          return n;
+        }
+      case JUNIT_MOCK_V6:
+        {
+          DemoTopology.configureMockV6();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           ShowpathsDemo demo = new ShowpathsDemo();
-          demo.runDemo(DemoConstants.ia110);
+          int n = demo.runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
-          break;
+          return n;
         }
       case SCION_PROTO:
         {
@@ -75,22 +95,20 @@ public class ShowpathsDemo {
           // "topologies/minimal/ASff00_0_1111/topology.json");
           System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
           ShowpathsDemo demo = new ShowpathsDemo();
-          demo.runDemo(DemoConstants.ia211);
-          break;
+          return demo.runDemo(DemoConstants.ia211);
         }
       case PRODUCTION:
         {
           // Local port must be 30041 for networks that expect a dispatcher
           ShowpathsDemo demo = new ShowpathsDemo(Constants.DISPATCHER_PORT);
-          demo.runDemo(DemoConstants.iaAnapayaHK);
+          return demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
-          break;
         }
     }
-    Scion.closeDefault();
+    return -1;
   }
 
-  private void runDemo(long destinationIA) throws IOException {
+  private int runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // dummy address
     InetSocketAddress destinationAddress =
@@ -126,6 +144,7 @@ public class ShowpathsDemo {
               + localIP;
       println(sb);
     }
+    return paths.size();
   }
 
   private static void println(String msg) {

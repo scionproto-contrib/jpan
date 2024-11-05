@@ -41,6 +41,7 @@ public class ScmpResponderTest {
 
   @AfterEach
   public void afterEach() {
+    MockNetwork.stopTiny();
     if (!errors.isEmpty()) {
       for (String s : errors) {
         System.err.println("ERROR: " + s);
