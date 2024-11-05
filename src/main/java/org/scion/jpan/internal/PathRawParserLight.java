@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import static org.scion.jpan.internal.ByteUtil.readBoolean;
 import static org.scion.jpan.internal.ByteUtil.readInt;
+import static org.scion.jpan.internal.ByteUtil.toUnsigned;
 
 import java.nio.ByteBuffer;
 
@@ -28,7 +29,7 @@ public class PathRawParserLight {
   private PathRawParserLight() {}
 
   public static int[] getSegments(ByteBuffer data) {
-    int i0 = data.getInt();
+    int i0 = data.getInt(data.position());
     int[] segLen = new int[3];
     segLen[0] = readInt(i0, 14, 6);
     segLen[1] = readInt(i0, 20, 6);
@@ -46,20 +47,47 @@ public class PathRawParserLight {
     return nHops - calcSegmentCount(segLen);
   }
 
+  public static int extractHopCount(ByteBuffer data) {
+    int i0 = data.getInt();
+    int segCount = 0;
+    segCount += readInt(i0, 14, 6);
+    segCount += readInt(i0, 20, 6);
+    segCount += readInt(i0, 26, 6);
+    return segCount;
+  }
+
   public static int extractHopFieldIngress(ByteBuffer data, int segCount, int hopID) {
     int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopID * HOP_FIELD_LEN;
-    return ByteUtil.toUnsigned(data.getShort(hfOffset + 2));
+    return ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 2));
   }
 
   public static int extractHopFieldEgress(ByteBuffer data, int segCount, int hopID) {
     int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopID * HOP_FIELD_LEN;
-    return ByteUtil.toUnsigned(data.getShort(hfOffset + 4));
+    return ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 4));
+  }
+
+  public static int extractSegmentCount(byte[] data) {
+    int i0 = toUnsigned(data[1]) << 16 | toUnsigned(data[2]) << 8 | toUnsigned(data[3]);
+    int segCount = 0;
+    segCount += readInt(i0, 14, 6);
+    segCount += readInt(i0, 20, 6);
+    segCount += readInt(i0, 26, 6);
+    return segCount;
+  }
+
+  public static int extractSegmentCount(ByteBuffer data) {
+    int i0 = data.getInt(data.position());
+    int segmentCount = 0;
+    segmentCount += readInt(i0, 14, 6) > 0 ? 1 : 0;
+    segmentCount += readInt(i0, 20, 6) > 0 ? 1 : 0;
+    segmentCount += readInt(i0, 26, 6) > 0 ? 1 : 0;
+    return segmentCount;
   }
 
   public static int calcSegmentCount(int[] segLen) {
-    int nSegmentCount = 1;
-    nSegmentCount += segLen[1] > 0 ? 1 : 0;
-    nSegmentCount += segLen[2] > 0 ? 1 : 0;
-    return nSegmentCount;
+    int segmentCount = 1;
+    segmentCount += segLen[1] > 0 ? 1 : 0;
+    segmentCount += segLen[2] > 0 ? 1 : 0;
+    return segmentCount;
   }
 }

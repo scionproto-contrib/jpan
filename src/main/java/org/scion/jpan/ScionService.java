@@ -654,4 +654,22 @@ public class ScionService {
       return bootstrapper.getLocalTopology().getBorderRouterAddresses();
     }
   }
+
+  InetSocketAddress getBorderRouterAddress(int interfaceID) {
+    if (daemonStub != null) {
+      final String MSG = "No border router found for interfaceID: ";
+      String address =
+          getInterfaces().entrySet().stream()
+              .filter(entry -> entry.getKey() == interfaceID)
+              .findAny()
+              .orElseThrow(() -> new ScionRuntimeException(MSG + interfaceID))
+              .getValue()
+              .getAddress()
+              .getAddress();
+      return IPHelper.toInetSocketAddress(address);
+    } else {
+      String address = bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
+      return IPHelper.toInetSocketAddress(address);
+    }
+  }
 }

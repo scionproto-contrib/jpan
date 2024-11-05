@@ -347,9 +347,7 @@ class DatagramChannelApiTest {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      // The initial channel should NOT have a service.
-      // A server side channel may never need a service so we shouldn't create it.
-      assertNull(channel.getService());
+      assertEquals(service1, channel.getService());
 
       // trigger service initialization in channel
       Path path = PackageVisibilityHelper.createDummyPath();
@@ -369,6 +367,13 @@ class DatagramChannelApiTest {
       assertNotEquals(service1, channel.getService());
     }
     service2.close();
+  }
+
+  @Test
+  void getService_non_default_NULL() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
+      assertNull(channel.getService());
+    }
   }
 
   @Test

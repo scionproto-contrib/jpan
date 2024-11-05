@@ -84,7 +84,7 @@ The central classes of the API are:
 - `PathPolicy` is an interface with several example implementations for:
   first path returned by daemon (default), max bandwidth, min latency, min hops, ...
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
-  `ScionService` instances can be created with the `Scion` class. The first instance that is created will subsequently
+  `ScionService` instances can be created with the `Scion` class. The first instance that is created is subsequently
   returned by `Scion.defaultService()`.
 - `Scion`, `ScionUtil`, `ScionConstants`: Utility classes.
 - `ScionSocketOptions`: Options for the `ScionDatagramChannel`.

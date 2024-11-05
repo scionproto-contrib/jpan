@@ -27,6 +27,7 @@ import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockDatagramChannel;
+import org.scion.jpan.testutil.MockNetwork;
 
 /**
  * Test that typical "server" operations do not require a ScionService.
@@ -53,25 +54,67 @@ class DatagramChannelApiServerTest {
 
   @Test
   void open_withoutService() throws IOException {
-    // check that open() (without service argument) does not internally require a ScionService.
+    MockNetwork.startTiny();
+    // check that open() (without service argument) creates a default service.
+    ScionService.closeDefault();
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      assertEquals(Scion.defaultService(), channel.getService());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void open_withoutService2() throws IOException {
+    MockNetwork.startTiny();
+    // check that open() (without service argument) uses the default service.
+    ScionService.closeDefault();
+    ScionService service = Scion.defaultService();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      assertEquals(service, channel.getService());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void open_withNullService() throws IOException {
+    // check that open() (without service argument) does not internally create a ScionService.
+    ScionService.closeDefault();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
       assertNull(channel.getService());
     }
   }
 
   @Test
-  void bind_withoutService() throws IOException {
-    // check that open() (without service argument) does not internally require a ScionService.
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+  void open_withNullService2() throws IOException {
+    MockNetwork.startTiny();
+    // check that open() (without service argument) does not internally use a ScionService, even if
+    // one exists.
+    ScionService.closeDefault();
+    Scion.defaultService();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
+      assertNull(channel.getService());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void bind_withNullService() throws IOException {
+    // check that bind() does not internally require a ScionService.
+    ScionService.closeDefault();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
       channel.bind(new InetSocketAddress("127.0.0.1", 12345));
       assertNull(channel.getService());
     }
   }
 
   @Test
-  void send_withoutService() throws IOException {
+  void send_withNullService() throws IOException {
     // check that send(Path) does not internally require a ScionService.
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+    ScionService.closeDefault();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
       assertNull(channel.getService());
       ResponsePath path =
           PackageVisibilityHelper.createDummyResponsePath(
@@ -89,7 +132,7 @@ class DatagramChannelApiServerTest {
   }
 
   @Test
-  void receive_withoutService() throws IOException {
+  void receive_withNullService() throws IOException {
     // check that receive() does not internally require a ScionService.
     SocketAddress addr = new InetSocketAddress("127.0.0.1", 12345);
     MockDatagramChannel mock = MockDatagramChannel.open();

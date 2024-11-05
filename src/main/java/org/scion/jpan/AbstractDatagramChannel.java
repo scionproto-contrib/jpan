@@ -25,10 +25,7 @@ import java.nio.channels.NotYetConnectedException;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import org.scion.jpan.internal.ExtensionHeader;
-import org.scion.jpan.internal.InternalConstants;
-import org.scion.jpan.internal.ScionHeaderParser;
-import org.scion.jpan.internal.ScmpParser;
+import org.scion.jpan.internal.*;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
@@ -48,7 +45,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private boolean isBoundToAddress = false;
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
-  private ScionService service;
+  private final ScionService service;
   private int cfgExpirationSafetyMargin =
       ScionUtil.getPropertyOrEnv(
           Constants.PROPERTY_PATH_EXPIRY_MARGIN,
@@ -100,27 +97,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
-        connectionPath =
-            (RequestPath) pathPolicy.filter(getOrCreateService().getPaths(connectionPath));
+        connectionPath = (RequestPath) pathPolicy.filter(getService().getPaths(connectionPath));
         updateConnection(connectionPath, true);
       }
     }
   }
 
-  protected ScionService getOrCreateService() {
-    synchronized (stateLock) {
-      if (service == null) {
-        service = ScionService.defaultService();
-      }
-      return this.service;
-    }
-  }
-
   /**
-   * Return the ScionService used by this channel. Unless the service is provided during channel
-   * construction, the service will only be created when it is actually required, e.g. for creating
-   * lookup up a path from a daemon or control server. That mean that a server side channel may
-   * never have a ScionService instance because it never needs to look up paths.
+   * Return the ScionService used by this channel. A ScionService is, for example, required for
+   * lookup up a path from a daemon or control server. See also {@link
+   * ScionDatagramChannel#open(ScionService)}.
    *
    * @return the service or 'null'.
    */
@@ -237,7 +223,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (addr instanceof ScionSocketAddress) {
         return connect(((ScionSocketAddress) addr).getPath());
       }
-      Path path = getOrCreateService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy);
+      Path path = getService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy);
       return connect(path);
     }
   }
@@ -341,7 +327,28 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       // in extensions headers.
       hdrType = receiveExtensionHeader(buffer, hdrType);
 
-      ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+      InetSocketAddress firstHopAddress;
+      if (getService() != null) {
+        int oldPos = buffer.position();
+        int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
+        if (pathPos > 0) {
+          buffer.position(pathPos);
+          int segCount = PathRawParserLight.extractSegmentCount(buffer);
+          buffer.position(pathPos + 4 + segCount * 8);
+          int interfaceId1 = PathRawParserLight.extractHopFieldEgress(buffer, segCount, 0);
+          int interfaceId2 = PathRawParserLight.extractHopFieldIngress(buffer, segCount, 0);
+          buffer.position(oldPos);
+          int interfaceId = interfaceId2 == 0 ? interfaceId1 : interfaceId2;
+          firstHopAddress = service.getBorderRouterAddress(interfaceId);
+        } else {
+          buffer.position(0);
+          firstHopAddress = ScionHeaderParser.extractSourceSocketAddress(buffer);
+          buffer.position(oldPos);
+        }
+      } else {
+        firstHopAddress = srcAddress;
+      }
+      ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, firstHopAddress);
       if (hdrType == expectedHdrType) {
         return path;
       }
@@ -567,7 +574,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcAddress = rPath.getLocalAddress();
         srcPort = rPath.getLocalPort();
       } else {
-        srcIA = getOrCreateService().getLocalIsdAs();
+        srcIA = getService().getLocalIsdAs();
         if (overrideExternalAddress != null) {
           // Use specified external address. This can be useful to work with NATs.
           srcAddress = overrideExternalAddress.getAddress();
@@ -580,7 +587,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
             // elsewhere (from the service).
 
             // TODO cache this or add it to path object?
-            srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+            srcAddress = getService().getExternalIP(path.getFirstHopAddress());
           } else {
             srcAddress = localAddress;
           }
@@ -627,7 +634,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       //     I.e. getExternalIP() is fine if we have a connection.
       //     It is NOT fine if we are bound to an explicit IP/port
       InetAddress oldLocalAddress = localAddress;
-      localAddress = getOrCreateService().getExternalIP(newPath.getFirstHopAddress());
+      localAddress = getService().getExternalIP(newPath.getFirstHopAddress());
       if (!Objects.equals(localAddress, oldLocalAddress)) {
         // TODO check CS / bootstrapping
       }
