@@ -39,8 +39,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 TODO
 - Implement and Test that correct BR-address is chosen
-- Clean up AbstractChannel receiveFromChannel()
-- MockNetwork: use topo file!
 
 ## [0.3.1] - 2024-10-11
 

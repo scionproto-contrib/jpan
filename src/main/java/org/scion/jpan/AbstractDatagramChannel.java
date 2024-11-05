@@ -327,32 +327,39 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       // in extensions headers.
       hdrType = receiveExtensionHeader(buffer, hdrType);
 
-      InetSocketAddress firstHopAddress;
-      if (getService() != null) {
-        int oldPos = buffer.position();
-        int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
-        if (pathPos > 0) {
-          buffer.position(pathPos);
-          int segCount = PathRawParserLight.extractSegmentCount(buffer);
-          buffer.position(pathPos + 4 + segCount * 8);
-          int interfaceId1 = PathRawParserLight.extractHopFieldEgress(buffer, segCount, 0);
-          int interfaceId2 = PathRawParserLight.extractHopFieldIngress(buffer, segCount, 0);
-          buffer.position(oldPos);
-          int interfaceId = interfaceId2 == 0 ? interfaceId1 : interfaceId2;
-          firstHopAddress = service.getBorderRouterAddress(interfaceId);
-        } else {
-          buffer.position(0);
-          firstHopAddress = ScionHeaderParser.extractSourceSocketAddress(buffer);
-          buffer.position(oldPos);
-        }
-      } else {
-        firstHopAddress = srcAddress;
-      }
+      InetSocketAddress firstHopAddress = getFirstHopAddress(buffer, srcAddress);
       ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, firstHopAddress);
       if (hdrType == expectedHdrType) {
         return path;
       }
       receiveScmp(buffer, path);
+    }
+  }
+
+  private InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress)
+      throws UnknownHostException {
+    if (getService() != null) {
+      int oldPos = buffer.position();
+      int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
+      // If we have a path we need to use it to get the return address.
+      // If we don't have a path (local AS) we need to use the underlay IP address.
+      if (pathPos > 0) {
+        buffer.position(pathPos);
+        int segCount = PathRawParserLight.extractSegmentCount(buffer);
+        buffer.position(pathPos + 4 + segCount * 8);
+        int interfaceId1 = PathRawParserLight.extractHopFieldEgress(buffer, segCount, 0);
+        int interfaceId2 = PathRawParserLight.extractHopFieldIngress(buffer, segCount, 0);
+        buffer.position(oldPos);
+        int interfaceId = interfaceId2 == 0 ? interfaceId1 : interfaceId2;
+        return service.getBorderRouterAddress(interfaceId);
+      } else {
+        buffer.position(0);
+        InetSocketAddress firstHopAddress = ScionHeaderParser.extractSourceSocketAddress(buffer);
+        buffer.position(oldPos);
+        return firstHopAddress;
+      }
+    } else {
+      return srcAddress;
     }
   }
 
