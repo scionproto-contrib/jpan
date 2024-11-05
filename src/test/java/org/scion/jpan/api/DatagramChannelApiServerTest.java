@@ -21,8 +21,10 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
@@ -148,5 +150,86 @@ class DatagramChannelApiServerTest {
       assertNull(channel.getService());
       assertEquals(addr, responseAddress.getPath().getFirstHopAddress());
     }
+  }
+
+  @Disabled
+  @Test
+  void receive_correctSrc_divergentBR() throws IOException {
+    // Check that the ResponsePath's first hop is looked up by from the border router table
+    byte[] scionSrcBytes = {10, 0, 123, 123};
+    InetSocketAddress src = new InetSocketAddress(InetAddress.getByAddress(scionSrcBytes), 12345);
+
+    InetSocketAddress brAddress =
+        new InetSocketAddress(
+            InetAddress.getByAddress(new byte[] {192 - 256, 168 - 256, 42, 42}), 42424);
+
+    ScionPacketInspector spi = new ScionPacketInspector();
+    spi.read(ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING));
+    spi.getScionHeader().setSrcHostAddress(scionSrcBytes);
+    InetAddress scionSrcIP = spi.getScionHeader().getSrcHostAddress();
+    int scionSrcPort = spi.getOverlayHeaderUdp().getSrcPort();
+    InetSocketAddress scionSrc = new InetSocketAddress(scionSrcIP, scionSrcPort);
+
+    MockDatagramChannel mdc = MockDatagramChannel.open();
+    mdc.setReceiveCallback(
+        buf -> {
+          spi.writePacket(buf, new byte[0]);
+          return src;
+        });
+
+    MockNetwork.startTiny();
+    ScionService service =
+        Scion.newServiceWithTopologyFile("topologies/scionproto-tiny/topology-112.json");
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
+      ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
+      assertEquals(brAddress, address.getPath().getFirstHopAddress());
+      assertNotEquals(scionSrc, address.getPath().getFirstHopAddress());
+      assertNotEquals(src, address.getPath().getFirstHopAddress());
+      assertEquals(src, address);
+    } finally {
+      ScionService.closeDefault();
+      MockNetwork.stopTiny();
+    }
+
+    fail();
+  }
+
+  @Disabled
+  @Test
+  void receive_correctSrc_emptyPath() throws IOException {
+    // In case of an empty path, the ResponsePath's first hop is the IP src address
+    byte[] scionSrcBytes = {10, 0, 123, 123};
+    InetSocketAddress src =
+        new InetSocketAddress(InetAddress.getByAddress(new byte[] {10, 0, 123, 123}), 12345);
+
+    ScionPacketInspector spi = new ScionPacketInspector();
+    spi.read(ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING));
+    spi.getScionHeader().setSrcHostAddress(scionSrcBytes);
+    spi.getPathHeaderScion().reset();
+    InetAddress scionSrcIP = spi.getScionHeader().getSrcHostAddress();
+    int scionSrcPort = spi.getOverlayHeaderUdp().getSrcPort();
+    InetSocketAddress scionSrc = new InetSocketAddress(scionSrcIP, scionSrcPort);
+
+    MockDatagramChannel mdc = MockDatagramChannel.open();
+    mdc.setReceiveCallback(
+        buf -> {
+          spi.writePacket(buf, new byte[0]);
+          return src;
+        });
+
+    MockNetwork.startTiny();
+    ScionService service =
+        Scion.newServiceWithTopologyFile("topologies/scionproto-tiny/topology-112.json");
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
+      ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
+      assertEquals(src, address.getPath().getFirstHopAddress());
+      assertEquals(scionSrc, address.getPath().getFirstHopAddress());
+      assertEquals(src, address);
+    } finally {
+      ScionService.closeDefault();
+      MockNetwork.stopTiny();
+    }
+
+    fail();
   }
 }

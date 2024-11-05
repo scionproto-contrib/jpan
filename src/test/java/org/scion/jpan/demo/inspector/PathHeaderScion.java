@@ -188,7 +188,7 @@ public class PathHeaderScion {
     return len;
   }
 
-  private void reset() {
+  public void reset() {
     currINF = 0;
     currHF = 0;
     reserved = 0;
