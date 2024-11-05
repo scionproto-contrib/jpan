@@ -77,12 +77,17 @@ public class IPHelper {
   public static InetSocketAddress toInetSocketAddress(String s) {
     int posPort = s.lastIndexOf(":");
     int port = Integer.parseInt(s.substring(posPort + 1));
-    byte[] bytes = toByteArray(s.substring(0, posPort - 1));
+    byte[] bytes = toByteArray(s.substring(0, posPort));
     try {
       return new InetSocketAddress(InetAddress.getByAddress(bytes), port);
     } catch (UnknownHostException e) {
       throw new IllegalArgumentException(e);
     }
+  }
+
+  public static String extractIP(String s) {
+    int posPort = s.lastIndexOf(":");
+    return s.substring(0, posPort);
   }
 
   /**

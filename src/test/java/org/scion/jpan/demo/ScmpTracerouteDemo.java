@@ -19,6 +19,7 @@ import java.net.*;
 import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.MockScmpHandler;
 
 /**
  * This demo mimics the "scion traceroute" command available in scionproto (<a
@@ -40,7 +41,8 @@ public class ScmpTracerouteDemo {
   private final int localPort;
 
   public enum Network {
-    JUNIT_MOCK, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
+    JUNIT_MOCK_V4, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
+    JUNIT_MOCK_V6, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
     PRODUCTION // production network
   }
@@ -59,15 +61,36 @@ public class ScmpTracerouteDemo {
   }
 
   public static void main(String[] args) throws IOException {
+    try {
+      run();
+    } finally {
+      Scion.closeDefault();
+    }
+  }
+
+  public static int run() throws IOException {
     switch (NETWORK) {
-      case JUNIT_MOCK:
+      case JUNIT_MOCK_V4:
         {
-          DemoTopology.configureMock();
-          MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+          DemoTopology.configureMockV4();
+          InetAddress remote = MockScmpHandler.getAddress().getAddress();
+          MockDNS.install("1-ff00:0:112", "localhost", remote.toString());
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(DemoConstants.ia112);
+          int n = demo.runDemo(DemoConstants.ia112);
           DemoTopology.shutDown();
-          break;
+          return n;
+        }
+      case JUNIT_MOCK_V6:
+        {
+          DemoTopology.configureMockV6();
+          MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
+          MockScmpHandler.stop();
+          MockScmpHandler.start("[::1]"); // We need the SCMP handler running on IPv6
+          ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
+          int n = demo.runDemo(DemoConstants.ia112);
+          DemoTopology.shutDown();
+          MockScmpHandler.stop();
+          return n;
         }
       case SCION_PROTO:
         {
@@ -78,23 +101,21 @@ public class ScmpTracerouteDemo {
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo(32766);
           demo.runDemo(DemoConstants.ia211);
           demo.runDemo(DemoConstants.ia111);
-          demo.runDemo(DemoConstants.ia1111);
-          break;
+          return demo.runDemo(DemoConstants.ia1111);
         }
       case PRODUCTION:
         {
           ScmpTracerouteDemo demo = new ScmpTracerouteDemo();
-          demo.runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
+          return demo.runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
           // demo.runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore
           // demo.runDemo(DemoConstants.iaAnapayaHK);
           // demo.runDemo(DemoConstants.iaOVGU);
-          break;
         }
     }
-    Scion.closeDefault();
+    return -1;
   }
 
-  private void runDemo(long destinationIA) throws IOException {
+  private int runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // Dummy address. The traceroute will contact the control service IP instead.
     InetSocketAddress destinationAddress =
@@ -116,9 +137,13 @@ public class ScmpTracerouteDemo {
 
     printPath(path);
 
+    int n = 0;
     try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
       List<Scmp.TracerouteMessage> results = scmpChannel.sendTracerouteRequest(path);
       for (Scmp.TracerouteMessage msg : results) {
+        if (!msg.isTimedOut()) {
+          n++;
+        }
         String millis = String.format("%.4f", msg.getNanoSeconds() / (double) 1_000_000);
         String out = "" + msg.getSequenceNumber();
         out += " " + ScionUtil.toStringIA(msg.getIsdAs());
@@ -128,6 +153,7 @@ public class ScmpTracerouteDemo {
         println(out);
       }
     }
+    return n;
   }
 
   private void printPath(Path path) {

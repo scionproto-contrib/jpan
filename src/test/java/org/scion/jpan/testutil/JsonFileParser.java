@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.IPHelper;
 
 public class JsonFileParser {
 
@@ -78,7 +79,7 @@ public class JsonFileParser {
         JsonObject br = e.getValue().getAsJsonObject();
         String addr = safeGet(br, "internal_addr").getAsString();
         JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
-        AsInfo.BorderRouter router = new AsInfo.BorderRouter(e.getKey(), addr);
+        AsInfo.BorderRouter router = new AsInfo.BorderRouter(e.getKey(), mapToLoopbackV6(addr));
         as.add(router);
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
           JsonObject ife = ifEntry.getValue().getAsJsonObject();
@@ -112,5 +113,15 @@ public class JsonFileParser {
       throw new ScionRuntimeException("Entry not found in topology file: " + name);
     }
     return e;
+  }
+
+  private static String mapToLoopbackV6(String s) {
+    // Map any IPv6 address to ::1
+    String ip = IPHelper.extractIP(s);
+    if (ip.contains(":")) {
+      int port = IPHelper.toPort(s);
+      return "[::1]:" + port;
+    }
+    return s;
   }
 }

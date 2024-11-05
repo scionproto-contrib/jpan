@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramSocket;
+import org.scion.jpan.ScionService;
 
 public class PingPongSocketHelper extends PingPongHelperBase {
 
@@ -32,8 +33,9 @@ public class PingPongSocketHelper extends PingPongHelperBase {
       int nRounds,
       boolean connect,
       boolean resetCounters,
-      String serverIsdAs) {
-    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs);
+      String serverIsdAs,
+      ScionService service) {
+    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, service);
   }
 
   public static PingPongSocketHelper.Builder newBuilder(int nServers, int nClients, int nRounds) {
@@ -105,7 +107,8 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     @Override
     public final void runImpl() throws IOException {
-      try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
+      try (ScionDatagramSocket socket =
+          ScionDatagramSocket.create(new InetSocketAddress(0), serverService)) {
         registerStartUpServer((InetSocketAddress) socket.getLocalSocketAddress());
         for (int i = 0; i < nRounds; i++) {
           server.run(socket);
@@ -147,9 +150,14 @@ public class PingPongSocketHelper extends PingPongHelperBase {
   }
 
   public void runPingPong(Server serverFn, Client clientFn) {
-    runPingPong(
-        (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
-        (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds));
+    try {
+      start();
+      run(
+          (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
+          (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds));
+    } finally {
+      close();
+    }
   }
 
   public void runPingPongSharedServerSocket(Server receiverFn, Server senderFn, Client clientFn)
@@ -157,11 +165,17 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     if (nServers != 2) {
       throw new IllegalStateException();
     }
-    try (ScionDatagramSocket socket = new ScionDatagramSocket(MockNetwork.TINY_SRV_PORT_1)) {
-      runPingPong(
-          (id, nRounds) ->
-              new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
-          (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds));
+    try {
+      start();
+      int port = MockNetwork.getTinyServerAddress().getPort();
+      try (ScionDatagramSocket socket = new ScionDatagramSocket(port)) {
+        run(
+            (id, nRounds) ->
+                new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
+            (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds));
+      }
+    } finally {
+      close();
     }
   }
 
@@ -201,7 +215,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     public PingPongSocketHelper build() {
       return new PingPongSocketHelper(
-          nServers, nClients, nRounds, connectClients, checkCounters, serverIA);
+          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, service());
     }
   }
 }

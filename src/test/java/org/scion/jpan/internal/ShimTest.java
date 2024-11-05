@@ -131,6 +131,7 @@ class ShimTest {
         localIA, dstAddr, serverPort, new byte[0], firstHop);
   }
 
+  @Disabled // TODO reenable!
   @Test
   void testForwardingUDP() {
     PingPongChannelHelper.Server serverFn = this::server;

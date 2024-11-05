@@ -18,6 +18,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.*;
+import org.scion.jpan.testutil.MockNetwork;
 
 public class PingPongChannelServer {
 
@@ -26,6 +27,7 @@ public class PingPongChannelServer {
   public static final String SERVER_HOST_NAME = "ping.pong.org";
   public static final InetSocketAddress SERVER_ADDRESS;
   public static final int SERVER_PORT = 44444;
+  public static String TOPO_FILE = MockNetwork.TINY_SRV_TOPO_V4;
 
   static {
     try {
@@ -38,6 +40,7 @@ public class PingPongChannelServer {
   }
 
   public static void main(String[] args) {
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     try {
       service();
     } catch (SocketException ex) {

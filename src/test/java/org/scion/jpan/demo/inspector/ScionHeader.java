@@ -52,10 +52,10 @@ public class ScionHeader {
   private int reserved;
 
   // ****************************  Address Header  **********************************
-  //  8 bit: DstISD
+  // 16 bit: DstISD
   // 48 bit: DstAS
   private long dstIsdAs;
-  //  8 bit: SrcISD
+  // 16 bit: SrcISD
   // 48 bit: SrcAS
   private long srcIsdAs;
   //  ? bit: DstHostAddr
@@ -94,9 +94,9 @@ public class ScionHeader {
     reserved = ByteUtil.readInt(i2, 16, 16);
 
     // Address header
-    //  8 bit: DstISD
+    // 16 bit: DstISD
     // 48 bit: DstAS
-    //  8 bit: SrcISD
+    // 16 bit: SrcISD
     // 48 bit: SrcAS
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr

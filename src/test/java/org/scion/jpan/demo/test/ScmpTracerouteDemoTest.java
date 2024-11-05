@@ -23,6 +23,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionService;
@@ -37,6 +38,11 @@ public class ScmpTracerouteDemoTest {
     ScionService.closeDefault();
   }
 
+  @AfterEach
+  void afterEach() {
+    ScmpTracerouteDemo.NETWORK = ScmpTracerouteDemo.Network.PRODUCTION;
+  }
+
   @AfterAll
   public static void afterAll() {
     DemoTopology.shutDown();
@@ -45,20 +51,28 @@ public class ScmpTracerouteDemoTest {
   }
 
   @Test
-  void test() throws InterruptedException, ExecutionException {
+  void testV4() throws InterruptedException, ExecutionException {
+    test(ScmpTracerouteDemo.Network.JUNIT_MOCK_V4);
+  }
+
+  @Test
+  void testV6() throws InterruptedException, ExecutionException {
+    test(ScmpTracerouteDemo.Network.JUNIT_MOCK_V6);
+  }
+
+  void test(ScmpTracerouteDemo.Network network) throws InterruptedException, ExecutionException {
     ExecutorService exec = Executors.newSingleThreadExecutor();
     AtomicInteger failures = new AtomicInteger();
     assertEquals(ScmpTracerouteDemo.Network.PRODUCTION, ScmpTracerouteDemo.NETWORK);
-    ScmpTracerouteDemo.init(false, ScmpTracerouteDemo.Network.JUNIT_MOCK);
+    ScmpTracerouteDemo.init(false, network);
 
     // Yes, there is a race condition because client may send a packet before
     // the server is ready. Let's fix if it actually happens.
-    Future<Boolean> result =
+    Future<Integer> result =
         exec.submit(
             () -> {
               try {
-                ScmpTracerouteDemo.main(null);
-                return true;
+                return ScmpTracerouteDemo.run();
               } catch (Throwable e) {
                 failures.incrementAndGet();
                 throw new RuntimeException(e);
@@ -66,7 +80,7 @@ public class ScmpTracerouteDemoTest {
             });
 
     // Wait for result
-    assertTrue(result.get());
+    assertEquals(2, result.get());
     exec.shutdown();
     assertTrue(exec.awaitTermination(900, TimeUnit.MILLISECONDS));
     exec.shutdownNow();

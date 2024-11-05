@@ -105,20 +105,19 @@ public class ScmpChannelTest {
   @Test
   void echo_localAS_BR() throws IOException {
     testEcho(this::getPathToLocalAS_BR);
-    assertEquals(1, MockNetwork.getAndResetForwardCount()); // 1!
+    assertEquals(2, MockNetwork.getAndResetForwardCount());
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   @Test
   void echo_localAS_BR_30041() throws IOException {
     testEcho(this::getPathToLocalAS_BR_30041);
-    assertEquals(0, MockNetwork.getAndResetForwardCount()); // 0!
+    assertEquals(0, MockNetwork.getAndResetForwardCount());
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
   private void testEcho(Supplier<Path> pathSupplier) throws IOException {
     MockNetwork.startTiny();
-    MockNetwork.answerNextScmpEchos(1);
     try (ScmpChannel channel = Scmp.createChannel()) {
       channel.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
@@ -155,7 +154,6 @@ public class ScmpChannelTest {
       assertEquals(42, result1.getSequenceNumber());
 
       // try again
-      MockNetwork.answerNextScmpEchos(1);
       Scmp.EchoMessage result2 = channel.sendEchoRequest(path, 43, ByteBuffer.allocate(0));
       assertEquals(Scmp.TypeCode.TYPE_129, result2.getTypeCode());
       assertFalse(result2.isTimedOut());
@@ -308,12 +306,7 @@ public class ScmpChannelTest {
   }
 
   private Path getPathTo112() {
-    try {
-      InetAddress zero = InetAddress.getByAddress(new byte[] {0, 0, 0, 0});
-      return getPathTo112(zero);
-    } catch (UnknownHostException e) {
-      throw new IllegalStateException(e);
-    }
+    return getPathTo112(MockScmpHandler.getAddress().getAddress());
   }
 
   private Path getPathTo112(InetAddress dstAddress) {
@@ -324,25 +317,23 @@ public class ScmpChannelTest {
 
   private Path getPathToLocalAS_BR() {
     // Border router address
-    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, MockNetwork.getBorderRouterPort1());
+    return getPathToLocalAS(MockNetwork.getBorderRouterAddress1());
   }
 
   private Path getPathToLocalAS_BR_30041() {
     // Border router address
-    return getPathToLocalAS(MockNetwork.BORDER_ROUTER_IPV4, Constants.SCMP_PORT);
+    InetSocketAddress address =
+        new InetSocketAddress(
+            MockNetwork.getBorderRouterAddress1().getAddress(), Constants.SCMP_PORT);
+    return getPathToLocalAS(address);
   }
 
-  private Path getPathToLocalAS(String addressStr, int port) {
+  private Path getPathToLocalAS(InetSocketAddress address) {
     ScionService service = Scion.defaultService();
     long dstIA = service.getLocalIsdAs();
-    try {
-      // Service address
-      InetAddress addr = InetAddress.getByName(addressStr);
-      List<Path> paths = service.getPaths(dstIA, new InetSocketAddress(addr, port));
-      return paths.get(0);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+    // Service address
+    List<Path> paths = service.getPaths(dstIA, address);
+    return paths.get(0);
   }
 
   @Test

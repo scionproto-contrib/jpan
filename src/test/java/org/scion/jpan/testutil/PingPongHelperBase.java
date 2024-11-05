@@ -26,10 +26,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
+import org.scion.jpan.ScionService;
 
+/**
+ * This uses a "tiny" network topology for ping-pong experiments. By default, the client is in 110
+ * and the server in 112.
+ */
 public class PingPongHelperBase {
 
   public static final String MSG = "Hello scion!";
+  public static final String SERVER_ISD_AS = MockNetwork.TINY_SRV_ISD_AS;
+  public static final String SERVER_TOPO = MockNetwork.TINY_SRV_TOPO_V4;
+
   private static final int TIMEOUT = 10; // seconds
   private static final String SERVER_NAME = "ping.pong.org";
   protected final CountDownLatch shutDownBarrier;
@@ -40,6 +48,7 @@ public class PingPongHelperBase {
   protected final boolean connectClients;
   private final boolean checkCounters;
   private final String serverIsdAs;
+  protected final ScionService serverService;
 
   final CountDownLatch startUpBarrierClient;
   final CountDownLatch startUpBarrierServer;
@@ -53,13 +62,15 @@ public class PingPongHelperBase {
       int nRounds,
       boolean connect,
       boolean checkCounters,
-      String serverIsdAs) {
+      String serverIsdAs,
+      ScionService serverService) {
     this.nClients = nClients;
     this.nServers = nServers;
     this.nRounds = nRounds;
     this.connectClients = connect;
     this.checkCounters = checkCounters;
     this.serverIsdAs = serverIsdAs;
+    this.serverService = serverService;
 
     startUpBarrierClient = new CountDownLatch(nClients);
     startUpBarrierServer = new CountDownLatch(nServers);
@@ -102,10 +113,12 @@ public class PingPongHelperBase {
     AbstractEndpoint create(int id, int nRounds);
   }
 
-  void runPingPong(ServerFactory serverFactory, ClientFactory clientFactory) {
-    try {
-      MockNetwork.startTiny();
+  void start() {
+    MockNetwork.startTiny();
+  }
 
+  void run(ServerFactory serverFactory, ClientFactory clientFactory) {
+    try {
       AbstractEndpoint[] servers = new AbstractEndpoint[nServers];
       for (int i = 0; i < servers.length; i++) {
         servers[i] = serverFactory.create(i, nRounds * nClients);
@@ -150,10 +163,21 @@ public class PingPongHelperBase {
     } catch (IOException e) {
       exceptions.add(e);
       throw new RuntimeException(e);
-    } finally {
-      MockNetwork.stopTiny();
-      checkExceptions();
     }
+  }
+
+  void close() {
+    if (serverService != null) {
+      try {
+        serverService.close();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    ScionService.closeDefault();
+    MockNetwork.stopTiny();
+
+    checkExceptions();
 
     if (checkCounters) {
       assertEquals(nRounds * nClients * 2, MockNetwork.getForwardCount());
@@ -182,7 +206,9 @@ public class PingPongHelperBase {
     protected final int nRounds;
     protected boolean connectClients = true;
     protected boolean checkCounters = true;
-    protected String serverIA = MockNetwork.TINY_SRV_ISD_AS;
+    protected String serverIsdAs = SERVER_ISD_AS;
+    protected ScionService serverService = null;
+    private boolean serverServiceIsSet = false;
 
     protected Builder(int nServers, int nClients, int nRounds, boolean connect) {
       this.nClients = nClients;
@@ -191,23 +217,33 @@ public class PingPongHelperBase {
       this.connectClients = connect;
     }
 
-    public T resetCounters(boolean resetCounters) {
-      return (T) this;
-    }
-
+    @SuppressWarnings("unchecked")
     public T serverIsdAs(String serverIsdAs) {
-      this.serverIA = serverIsdAs;
+      this.serverIsdAs = serverIsdAs;
       return (T) this;
     }
 
+    @SuppressWarnings("unchecked")
     public T connect(boolean connectClients) {
       this.connectClients = connectClients;
       return (T) this;
     }
 
+    @SuppressWarnings("unchecked")
     public T checkCounters(boolean checkCounters) {
       this.checkCounters = checkCounters;
       return (T) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T serverService(ScionService service) {
+      this.serverService = service;
+      this.serverServiceIsSet = true;
+      return (T) this;
+    }
+
+    protected ScionService service() {
+      return serverServiceIsSet ? serverService : Scion.newServiceWithTopologyFile(SERVER_TOPO);
     }
   }
 }

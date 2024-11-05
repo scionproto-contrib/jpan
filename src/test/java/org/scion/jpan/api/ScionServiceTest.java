@@ -543,8 +543,8 @@ public class ScionServiceTest {
 
   @Test
   void testDomainSearchResolver_PROPERTY() throws IOException {
-    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
     try {
+      MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
       // Change to use custom search domain
       System.setProperty(
           Constants.PROPERTY_DNS_SEARCH_DOMAINS, MockBootstrapServer.TOPO_HOST + ".");
