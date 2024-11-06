@@ -336,8 +336,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress)
-      throws UnknownHostException {
+  private InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
     if (getService() != null) {
       int oldPos = buffer.position();
       int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
@@ -352,16 +351,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         buffer.position(oldPos);
         int interfaceId = interfaceId2 == 0 ? interfaceId1 : interfaceId2;
         return service.getBorderRouterAddress(interfaceId);
-      } else {
-//        buffer.position(0);
-//        InetSocketAddress firstHopAddress = ScionHeaderParser.extractSourceSocketAddress(buffer);
-//        buffer.position(oldPos);
-//        return firstHopAddress;
-        return srcAddress;
       }
-    } else {
-      return srcAddress;
     }
+    // With path length == 0 or without ScionService we just use the IP source address.
+    return srcAddress;
   }
 
   protected static InternalConstants.HdrTypes receiveExtensionHeader(
