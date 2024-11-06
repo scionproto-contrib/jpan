@@ -185,10 +185,16 @@ public class PathHeaderScion {
   }
 
   public int length() {
-    return len;
+    int len = 0;
+    len += 4;
+    len += getSegLen(0) > 0 ? 8 : 0;
+    len += getSegLen(1) > 0 ? 8 : 0;
+    len += getSegLen(2) > 0 ? 8 : 0;
+    len += 12 * (getSegLen(0) + getSegLen(1) + getSegLen(2));
+    return len > 4 ? len : 0; // Return 0 if there are no segments
   }
 
-  private void reset() {
+  public void reset() {
     currINF = 0;
     currHF = 0;
     reserved = 0;

@@ -111,8 +111,4 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
     super.close();
     selector.close();
   }
-
-  public ScionService getOrCreateService2() {
-    return super.getOrCreateService();
-  }
 }

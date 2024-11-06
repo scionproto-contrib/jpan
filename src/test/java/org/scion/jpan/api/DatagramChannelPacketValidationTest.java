@@ -146,7 +146,8 @@ class DatagramChannelPacketValidationTest {
         new Thread(
             () -> {
               try {
-                try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+                // We don´t need a daemon or BR here, set service to NULL
+                try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
                   channel.configureBlocking(isBlocking);
                   if (openThrowOnBadPacket) {
                     channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);

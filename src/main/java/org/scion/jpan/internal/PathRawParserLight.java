@@ -28,7 +28,7 @@ public class PathRawParserLight {
   private PathRawParserLight() {}
 
   public static int[] getSegments(ByteBuffer data) {
-    int i0 = data.getInt();
+    int i0 = data.getInt(data.position());
     int[] segLen = new int[3];
     segLen[0] = readInt(i0, 14, 6);
     segLen[1] = readInt(i0, 20, 6);
@@ -48,18 +48,27 @@ public class PathRawParserLight {
 
   public static int extractHopFieldIngress(ByteBuffer data, int segCount, int hopID) {
     int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopID * HOP_FIELD_LEN;
-    return ByteUtil.toUnsigned(data.getShort(hfOffset + 2));
+    return ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 2));
   }
 
   public static int extractHopFieldEgress(ByteBuffer data, int segCount, int hopID) {
     int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopID * HOP_FIELD_LEN;
-    return ByteUtil.toUnsigned(data.getShort(hfOffset + 4));
+    return ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 4));
+  }
+
+  public static int extractSegmentCount(ByteBuffer data) {
+    int i0 = data.getInt(data.position());
+    int segmentCount = 0;
+    segmentCount += readInt(i0, 14, 6) > 0 ? 1 : 0;
+    segmentCount += readInt(i0, 20, 6) > 0 ? 1 : 0;
+    segmentCount += readInt(i0, 26, 6) > 0 ? 1 : 0;
+    return segmentCount;
   }
 
   public static int calcSegmentCount(int[] segLen) {
-    int nSegmentCount = 1;
-    nSegmentCount += segLen[1] > 0 ? 1 : 0;
-    nSegmentCount += segLen[2] > 0 ? 1 : 0;
-    return nSegmentCount;
+    int segmentCount = 1;
+    segmentCount += segLen[1] > 0 ? 1 : 0;
+    segmentCount += segLen[2] > 0 ? 1 : 0;
+    return segmentCount;
   }
 }

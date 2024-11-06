@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.4.0
 - Fix demos to return an "int" that can be tested!
+- ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
+- Bootstrap JPAN with reverse lookup to get search-domain --> Francois
+
 - Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
 - Fix @Disabled tests
 - Support topofile port range
@@ -29,6 +32,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)
+- Server to use BR addresses instead of received addresses. 
+  [#133](https://github.com/scionproto-contrib/jpan/pull/133)
 - MockNetwork should use topofiles. [#134](https://github.com/scionproto-contrib/jpan/pull/134)
 - MockNetwork should really use topofiles. [#135](https://github.com/scionproto-contrib/jpan/pull/135)
 

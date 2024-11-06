@@ -50,10 +50,34 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     super(service, channel);
   }
 
+  /**
+   * Creates a channel with the default ScionService.
+   *
+   * @return new channel
+   * @throws IOException in case of an error
+   */
   public static ScionDatagramChannel open() throws IOException {
-    return open(null);
+    return open(Scion.defaultService());
   }
 
+  /**
+   * Creates a channel with a specific ScionService instance. The instance can be 'null'.
+   *
+   * <p>Use of 'null' is not recommended but can be used for server side channels if no topology
+   * file is available. The ScionService is required to look up and refresh paths. It is also
+   * required to determine addresses and ports of border routers.
+   *
+   * <p>A server side channel (a channel that only responds to packets by reversing their path) may
+   * work without a service. However, having a service allows the server to look up the correct
+   * border router port for the first hop. If no service is available, the port is determined from
+   * the incoming IP header, assuming that the border router sends and receives on the same IP/port.
+   * Unfortunately, this is not guaranteed to be the case, so using a service to look up the correct
+   * port is recommended.
+   *
+   * @param service ScionService.
+   * @return new channel
+   * @throws IOException if an error occurs
+   */
   public static ScionDatagramChannel open(ScionService service) throws IOException {
     return open(service, java.nio.channels.DatagramChannel.open());
   }
@@ -117,7 +141,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     synchronized (stateLock()) {
       path = resolvedDestinations.get(dst);
       if (path == null) {
-        path = (RequestPath) getOrCreateService().lookupAndGetPath(dst, getPathPolicy());
+        path = (RequestPath) getService().lookupAndGetPath(dst, getPathPolicy());
         resolvedDestinations.put(dst, path);
       }
     }
@@ -251,7 +275,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       return null;
     }
     // expired, get new path
-    List<Path> paths = getOrCreateService().getPaths(path);
+    List<Path> paths = getService().getPaths(path);
     switch (refreshPolicy) {
       case OFF:
         // let this pass until it is ACTUALLY expired
@@ -260,7 +284,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         }
         throw new ScionRuntimeException("Path is expired");
       case POLICY:
-        return (RequestPath) getPathPolicy().filter(getOrCreateService().getPaths(path));
+        return (RequestPath) getPathPolicy().filter(getService().getPaths(path));
       case SAME_LINKS:
         return findPathSameLinks(paths, path);
       default:

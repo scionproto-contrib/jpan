@@ -83,9 +83,9 @@ public class ScionHeaderParser {
     int sl = ByteUtil.readInt(i2, 14, 2);
 
     // Address header
-    //  8 bit: DstISD
+    // 16 bit: DstISD
     // 48 bit: DstAS
-    //  8 bit: SrcISD
+    // 16 bit: SrcISD
     // 48 bit: SrcAS
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr
@@ -168,9 +168,9 @@ public class ScionHeaderParser {
     int dl = ByteUtil.readInt(i2, 10, 2);
 
     // Address header
-    //  8 bit: DstISD
+    // 16 bit: DstISD
     // 48 bit: DstAS
-    //  8 bit: SrcISD
+    // 16 bit: SrcISD
     // 48 bit: SrcAS
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr
@@ -241,7 +241,7 @@ public class ScionHeaderParser {
     int nextHeader = ByteUtil.toUnsigned(data.get(4));
     if (nextHeader != InternalConstants.HdrTypes.UDP.code()
         && nextHeader != InternalConstants.HdrTypes.SCMP.code()) {
-      throw new UnsupportedOperationException("This method UDP ans SCMP headers");
+      throw new UnsupportedOperationException("This method supports only UDP and SCMP headers");
     }
 
     int pathType = ByteUtil.toUnsigned(data.get(8));
@@ -325,9 +325,9 @@ public class ScionHeaderParser {
     }
 
     // Address header
-    //  8 bit: DstISD
+    // 16 bit: DstISD
     // 48 bit: DstAS
-    //  8 bit: SrcISD
+    // 16 bit: SrcISD
     // 48 bit: SrcAS
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr

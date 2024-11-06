@@ -60,7 +60,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   private final Object closeLock = new Object();
 
   public ScionDatagramSocket() throws SocketException {
-    this(new InetSocketAddress(0), null);
+    this(new InetSocketAddress(0), Scion.defaultService());
   }
 
   public ScionDatagramSocket(int port) throws SocketException {
@@ -72,7 +72,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   }
 
   public ScionDatagramSocket(SocketAddress bindAddress) throws SocketException {
-    this(bindAddress, null);
+    this(bindAddress, Scion.defaultService());
   }
 
   // "private" to avoid ambiguity with DatagramSocket((SocketAddress) null) -> use create()
@@ -100,6 +100,14 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     }
   }
 
+  /**
+   * Creates a ScionDatagramSocket with a specific ScionService instance. Under some circumstances
+   * the ScionService may be 'null', however, this is not recommended. See also {@link
+   * ScionDatagramChannel#open(ScionService)}.
+   *
+   * @param service A ScionService or 'null'.
+   * @return a new socket.
+   */
   public static ScionDatagramSocket create(ScionService service) throws SocketException {
     return new ScionDatagramSocket(service);
   }
@@ -296,13 +304,13 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
         synchronized (pathCache) {
           path = pathCache.get(addr);
           if (path == null) {
-            path = channel.getOrCreateService().lookupAndGetPath(addr, channel.getPathPolicy());
+            path = channel.getService().lookupAndGetPath(addr, channel.getPathPolicy());
           } else if (path instanceof RequestPath
               && ((RequestPath) path).getMetadata().getExpiration()
                   > Instant.now().getEpochSecond()) {
             // check expiration only for RequestPaths
             RequestPath request = (RequestPath) path;
-            path = channel.getPathPolicy().filter(channel.getOrCreateService2().getPaths(request));
+            path = channel.getPathPolicy().filter(channel.getService().getPaths(request));
           }
           if (path == null) {
             throw new IOException("Address is not resolvable in SCION: " + packet.getAddress());

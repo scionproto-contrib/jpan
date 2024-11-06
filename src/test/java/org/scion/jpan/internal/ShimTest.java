@@ -131,14 +131,14 @@ class ShimTest {
         localIA, dstAddr, serverPort, new byte[0], firstHop);
   }
 
-  @Disabled // TODO reenable!
   @Test
   void testForwardingUDP() {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
     // we are circumventing the daemon! -> checkCounters(false)
+    // TODO the serverService(null) should be removed once SHIM becomes the default
     PingPongChannelHelper pph =
-        PingPongChannelHelper.newBuilder(1, 2, 10).checkCounters(false).build();
+        PingPongChannelHelper.newBuilder(1, 2, 10).checkCounters(false).serverService(null).build();
     pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
     assertEquals(2 * 2 * 10, shimForwardingCounter.getAndSet(0));

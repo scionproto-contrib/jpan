@@ -36,10 +36,20 @@ class DatagramSocketPingPongTest {
   }
 
   @Test
-  void test() {
-    PingPongSocketHelper.Server serverFn = this::server;
+  void testWithServerDefault() {
+    PingPongSocketHelper.Server serverFn = (socket) -> server(socket, false);
     PingPongSocketHelper.Client clientFn = this::client;
     PingPongSocketHelper pph = PingPongSocketHelper.newBuilder(1, 10, 10).build();
+    pph.runPingPong(serverFn, clientFn);
+    assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
+  }
+
+  @Test
+  void testWithServerNoService() {
+    PingPongSocketHelper.Server serverFn = (socket) -> server(socket, true);
+    PingPongSocketHelper.Client clientFn = this::client;
+    PingPongSocketHelper pph =
+        PingPongSocketHelper.newBuilder(1, 10, 10).serverService(null).build();
     pph.runPingPong(serverFn, clientFn);
     assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
   }
@@ -60,7 +70,12 @@ class DatagramSocketPingPongTest {
     assertEquals(MSG, pong);
   }
 
-  private void server(ScionDatagramSocket socket) throws IOException {
+  private void server(ScionDatagramSocket socket, boolean isServiceNull) throws IOException {
+    if (isServiceNull) {
+      assertNull(socket.getService());
+    } else {
+      assertNotNull(socket.getService());
+    }
     DatagramPacket request = new DatagramPacket(new byte[200], 200);
     // System.out.println("SERVER: --- USER - Waiting for packet ---------------------- ");
     socket.receive(request);

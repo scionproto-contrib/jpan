@@ -345,9 +345,7 @@ class DatagramSocketApiTest {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
-      // The initial socket should NOT have a service.
-      // A server side socket may never need a service so we shouldn't create it.
-      assertNull(socket.getService());
+      assertEquals(service1, socket.getService());
 
       // trigger service initialization in channel
       socket.send(dummyPacket);
@@ -366,6 +364,13 @@ class DatagramSocketApiTest {
       assertNotEquals(service1, socket.getService());
     }
     service2.close();
+  }
+
+  @Test
+  void getService_non_default_null() throws IOException {
+    try (ScionDatagramSocket socket = ScionDatagramSocket.create(null)) {
+      assertNull(socket.getService());
+    }
   }
 
   @Test
