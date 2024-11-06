@@ -353,10 +353,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         int interfaceId = interfaceId2 == 0 ? interfaceId1 : interfaceId2;
         return service.getBorderRouterAddress(interfaceId);
       } else {
-        buffer.position(0);
-        InetSocketAddress firstHopAddress = ScionHeaderParser.extractSourceSocketAddress(buffer);
-        buffer.position(oldPos);
-        return firstHopAddress;
+//        buffer.position(0);
+//        InetSocketAddress firstHopAddress = ScionHeaderParser.extractSourceSocketAddress(buffer);
+//        buffer.position(oldPos);
+//        return firstHopAddress;
+        return srcAddress;
       }
     } else {
       return srcAddress;
