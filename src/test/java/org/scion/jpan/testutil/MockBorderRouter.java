@@ -28,6 +28,7 @@ import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
+import org.scion.jpan.internal.Shim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,6 +124,9 @@ public class MockBorderRouter implements Runnable {
   private void forwardPacket(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
+    if ("true".equalsIgnoreCase(System.getProperty(Shim.DEBUG_PROPERTY_START_SHIM))) {
+      dstAddress = MockNetwork.asInfo.mapDispatcherPorts(dstAddress);
+    }
     logger.info(
         "{} forwarding {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dstAddress);
 

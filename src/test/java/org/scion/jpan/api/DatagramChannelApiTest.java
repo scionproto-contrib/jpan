@@ -101,6 +101,7 @@ class DatagramChannelApiTest {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(dummyAddress);
       InetSocketAddress local = channel.getLocalAddress();
+      assertNotNull(local);
       assertFalse(local.getAddress().isAnyLocalAddress());
     }
   }

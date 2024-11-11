@@ -16,6 +16,7 @@ package org.scion.jpan.testutil;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -25,7 +26,10 @@ import org.scion.jpan.Scion;
 import org.scion.jpan.internal.Shim;
 
 public class JUnitSetUp
-    implements BeforeAllCallback, BeforeEachCallback, ExtensionContext.Store.CloseableResource {
+    implements BeforeAllCallback,
+        BeforeEachCallback,
+        AfterEachCallback,
+        ExtensionContext.Store.CloseableResource {
   private static boolean started = false;
   private static boolean failed = false;
 
@@ -65,18 +69,22 @@ public class JUnitSetUp
   @Override
   public void beforeEach(ExtensionContext context) {
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, "....invalid-dummy-filename");
+    if (failed) {
+      System.exit(1);
+    }
+  }
 
+  @Override
+  public void afterEach(ExtensionContext context) {
     Scion.closeDefault();
+    Shim.uninstall();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS);
     System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
+    System.clearProperty(Constants.PROPERTY_SHIM);
     System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
-    System.setProperty(Shim.DEBUG_PROPERTY_START_SHIM, "false");
-    if (failed) {
-      System.exit(1);
-    }
   }
 }

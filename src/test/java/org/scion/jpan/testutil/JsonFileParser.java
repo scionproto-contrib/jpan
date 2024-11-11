@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.internal.LocalTopology;
 
 public class JsonFileParser {
 
@@ -74,6 +75,12 @@ public class JsonFileParser {
       JsonObject o = jsonTree.getAsJsonObject();
       as.setIsdAs(ScionUtil.parseIA(safeGet(o, "isd_as").getAsString()));
       // localMtu = safeGet(o, "mtu").getAsInt();
+      JsonElement dispatchedPorts = o.get("dispatched_ports");
+      if (dispatchedPorts == null) {
+        as.setPortRange(LocalTopology.DispatcherPortRange.createEmpty());
+      } else {
+        as.setPortRange(parsePortRange(dispatchedPorts.getAsString()));
+      }
       JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
         JsonObject br = e.getValue().getAsJsonObject();
@@ -113,6 +120,28 @@ public class JsonFileParser {
       throw new ScionRuntimeException("Entry not found in topology file: " + name);
     }
     return e;
+  }
+
+  private static LocalTopology.DispatcherPortRange parsePortRange(String v) {
+    if (v.startsWith("\"") && v.endsWith("\"")) {
+      v = v.substring(1, v.length() - 2);
+    }
+    if ("-".equals(v)) {
+      return LocalTopology.DispatcherPortRange.createEmpty();
+    } else if ("all".equalsIgnoreCase(v)) {
+      return LocalTopology.DispatcherPortRange.createAll();
+    } else {
+      String[] sa = v.split("-");
+      if (sa.length != 2) {
+        throw new ScionRuntimeException("Illegal expression in topo file dispatched_ports: " + v);
+      }
+      int portMin = Integer.parseInt(sa[0]);
+      int portMax = Integer.parseInt(sa[1]);
+      if (portMin < 1 || portMax < 1 || portMax > 65535 || portMin > portMax) {
+        throw new ScionRuntimeException("Illegal port values in topo file dispatched_ports: " + v);
+      }
+      return LocalTopology.DispatcherPortRange.create(portMin, portMax);
+    }
   }
 
   private static String mapToLoopbackV6(String s) {

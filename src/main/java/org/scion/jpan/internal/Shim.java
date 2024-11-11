@@ -59,9 +59,10 @@ public class Shim implements AutoCloseable {
   public static void install(ScionService service) {
     synchronized (singleton) {
       if (singleton.get() == null) {
-        String flag =
-            ScionUtil.getPropertyOrEnv(DEBUG_PROPERTY_START_SHIM, DEBUG_ENV_START_SHIM, "true");
-        if (flag.equalsIgnoreCase("true")) {
+        boolean flag =
+            ScionUtil.getPropertyOrEnv(
+                Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM);
+        if (flag) {
           singleton.set(Shim.newBuilder(service).build());
           singleton.get().start();
         }
@@ -105,12 +106,13 @@ public class Shim implements AutoCloseable {
       if (!scmpResponderBarrier.await(100, TimeUnit.MILLISECONDS)) {
         // ignore
         log.info("Could not start SHIM: {}", forwarder.getName());
+      } else {
+        log.info("SHIM started.");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
-    log.info("SHIM started.");
   }
 
   private void forwardStarter() {
@@ -148,7 +150,7 @@ public class Shim implements AutoCloseable {
   public void forward(ByteBuffer buf, DatagramChannel channel) {
     buf.rewind();
     try {
-      if (forwardCallback != null && forwardCallback.test(buf)) {
+      if (forwardCallback == null || forwardCallback.test(buf)) {
         InetSocketAddress dst = ScionHeaderParser.extractDestinationSocketAddress(buf);
         channel.send(buf, dst);
       }

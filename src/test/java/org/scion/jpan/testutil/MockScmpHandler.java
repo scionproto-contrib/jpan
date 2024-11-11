@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 public class MockScmpHandler implements Runnable {
 
   private static final Logger logger = LoggerFactory.getLogger(MockScmpHandler.class.getName());
+  public static final int PORT = 30041; // Yes, we use 30042 to avoid conflicts with SHIM etc.
   private static ExecutorService handler;
   private static final AtomicInteger nAnswerTotal = new AtomicInteger();
   private static CountDownLatch barrier = null;
@@ -100,7 +101,7 @@ public class MockScmpHandler implements Runnable {
   @Override
   public void run() {
     Thread.currentThread().setName(name);
-    InetSocketAddress localAddress = new InetSocketAddress(ip, Constants.SCMP_PORT);
+    InetSocketAddress localAddress = new InetSocketAddress(ip, PORT);
     try (DatagramChannel chn = DatagramChannel.open().bind(localAddress);
         Selector selector = Selector.open()) {
       chn.configureBlocking(false);

@@ -34,8 +34,9 @@ public class PingPongSocketHelper extends PingPongHelperBase {
       boolean connect,
       boolean resetCounters,
       String serverIsdAs,
+      InetSocketAddress serverAddress,
       ScionService service) {
-    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, service);
+    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, serverAddress, service);
   }
 
   public static PingPongSocketHelper.Builder newBuilder(int nServers, int nClients, int nRounds) {
@@ -215,7 +216,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     public PingPongSocketHelper build() {
       return new PingPongSocketHelper(
-          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, service());
+          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, null, service());
     }
   }
 }

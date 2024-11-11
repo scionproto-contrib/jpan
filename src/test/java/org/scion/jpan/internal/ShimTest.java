@@ -135,35 +135,45 @@ class ShimTest {
   void testForwardingUDP() {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
-    // we are circumventing the daemon! -> checkCounters(false)
+    // TODO remove this once we have server-side portRanges
+    //   we are circumventing the daemon! -> checkCounters(false)
     // TODO the serverService(null) should be removed once SHIM becomes the default
     PingPongChannelHelper pph =
         PingPongChannelHelper.newBuilder(1, 2, 10).checkCounters(false).serverService(null).build();
     pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
     assertEquals(2 * 2 * 10, shimForwardingCounter.getAndSet(0));
+    // TODO should be 40
+    assertEquals(1 * 2 * 10, MockNetwork.getAndResetForwardCount());
   }
 
-  @Disabled
   @Test
-  void testForwardingUDP_LocalAS() {
+  void testForwardingUDP_LocalAS_remoteInsideRange() {
+    testForwardingUDP_LocalAS(31000, 0);
+  }
+
+  @Test
+  void testForwardingUDP_LocalAS_remoteOutsideRange() {
+    testForwardingUDP_LocalAS(45678, 2 * 2 * 10);
+  }
+
+  void testForwardingUDP_LocalAS(int port, int expectedShimCount) {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
+    // we are circumventing the daemon! -> checkCounters(false)
     PingPongChannelHelper pph =
         PingPongChannelHelper.newBuilder(1, 2, 10)
             .checkCounters(false)
             .serverIsdAs(MockNetwork.TINY_CLIENT_ISD_AS)
+            .serverBindAddress(new InetSocketAddress("127.0.0.1", port))
             .build();
     pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
-    assertEquals(2 * 2 * 10, shimForwardingCounter.getAndSet(0));
+    assertEquals(expectedShimCount, shimForwardingCounter.getAndSet(0));
+    assertEquals(0, MockNetwork.getAndResetForwardCount());
   }
 
   public void client(ScionDatagramChannel channel, Path serverAddress, int id) throws IOException {
-    // Stop the SCMP responder on 30041
-    MockScmpHandler.stop();
-    // Install the SHIM
-    Shim.install(Scion.defaultService());
     assertTrue(Shim.isInstalled());
     // Set callback
     Shim.setCallback(
@@ -171,13 +181,6 @@ class ShimTest {
           shimForwardingCounter.incrementAndGet();
           return true;
         });
-    // ensure that packets are sent to 30041
-    channel.configureRemoteDispatcher(true);
-
-    // overwrite path with a new path that stays in the local AS.
-    // We need to do that because the PingPong utility usually assumes separate ASes but that
-    // would not work with configureRemoteDispatcher().
-    serverAddress = createDummyPath(serverAddress.getRemotePort());
 
     // wait for server to start
     try {

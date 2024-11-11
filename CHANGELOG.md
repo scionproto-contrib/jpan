@@ -9,11 +9,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- USe topo port range for connections in local AS!
 - Fix demos to return an "int" that can be tested!
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
 - Bootstrap JPAN with reverse lookup to get search-domain --> Francois
 
 - Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
+- Bootstrap to find local search domain with reverse lookup, ask Francois!
+- Cache local address, see AbstractChannel:600
+  srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+- MockDaemon: read properties from topofile, see TODO
+- Cache paths
+- Server should get firstHop from topofile or daemon, not from packet IP!
+  -> BRs may use different ports for in/outgoing traffic.
+  -> Thios would also solve the server/SHIM problem, see TODO.md 
 - Fix @Disabled tests
 - Support topofile port range
   - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
@@ -30,6 +39,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add a SHIM, required for #130 (topo file port range support).
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
 - ManagedThread test helper. [#136](https://github.com/scionproto-contrib/jpan/pull/136)
+- Support for `dispatched_ports` in topo files
+  [#130](https://github.com/scionproto-contrib/jpan/pull/130)
+
+TODO: 
+- Test demos with JUNIT topo and with scioproto topo
+- FIX: if no ephemeral ports are available, just use ANY port but enforce 30041 as return port.
+- Deprecate configureRemoteDispatcher()
+- Remove workaround from sendRaw() that checks for SHIM. Currently required for tests....
+  -> Do this in separate PR?
 
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)

@@ -2,8 +2,9 @@
   "attributes": [],
   "isd_as": "1-ff00:0:131",
   "mtu": 1472,
+  "dispatched_ports": "31000-32767",
   "control_service": {
-    "cs1-ff00_0_131-1": {
+  "cs1-ff00_0_131-1": {
       "addr": "127.0.0.76:31052"
     }
   },

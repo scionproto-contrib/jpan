@@ -213,8 +213,7 @@ public class ScionTest {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // String file = "topologies/scionproto-tiny/topology-110.json"
-      String file = "topologies/no-discovery.json";
-      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, file);
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/no-discovery.json");
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
@@ -222,6 +221,121 @@ public class ScionTest {
     } finally {
       MockNetwork.stopTiny();
     }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_ignoredByExplicitPort()
+      throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range.json");
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.bind(new InetSocketAddress(12321));
+      channel.connect(path);
+      assertEquals(12321, channel.getLocalAddress().getPort());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange() throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range.json");
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(path);
+      assertEquals(31000, channel.getLocalAddress().getPort());
+
+      try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
+        channel2.connect(path);
+        assertEquals(31001, channel2.getLocalAddress().getPort());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_EMPTY() throws IOException {
+    testDefaultService_bootstrapTopoFile_dispatcherPortRange(
+        "topologies/dispatcher-port-range-empty.json");
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_NONE() throws IOException {
+    testDefaultService_bootstrapTopoFile_dispatcherPortRange(
+        "topologies/dispatcher-port-range-none.json");
+  }
+
+  private void testDefaultService_bootstrapTopoFile_dispatcherPortRange(String topoFile)
+      throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFile);
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    // stop here to free up port 30041 for the SHIM
+    MockNetwork.stopTiny();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(path);
+      // use ephemeral port
+      assertTrue(
+          32768 <= channel.getLocalAddress().getPort(),
+          "port=" + channel.getLocalAddress().getPort());
+
+      try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
+        channel2.connect(path);
+        // use ephemeral port
+        assertTrue(
+            32768 <= channel2.getLocalAddress().getPort(),
+            "port=" + channel2.getLocalAddress().getPort());
+        assertNotEquals(channel.getLocalAddress().getPort(), channel2.getLocalAddress().getPort());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_ALL() throws IOException {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range-all.json");
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(path);
+      // just any port
+      assertNotNull(channel.getLocalAddress());
+
+      try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
+        channel2.connect(path);
+        assertNotNull(channel2.getLocalAddress());
+        assertNotEquals(channel.getLocalAddress().getPort(), channel2.getLocalAddress().getPort());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_Illegal() {
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range-bad.json");
+    Throwable t = assertThrows(Throwable.class, Scion::defaultService);
+    assertTrue(t.getMessage().contains("Illegal port values in topo file"));
   }
 
   @Test
@@ -392,14 +506,31 @@ public class ScionTest {
 
   /** See Issue #72: <a href="https://github.com/scionproto-contrib/jpan/issues/72">...</a> */
   @Test
-  void defaultService_bootstrapTopoFile_ScionProto_11() {
+  void defaultService_bootstrapTopoFile_ScionProto_0_10() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try {
       MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
       System.setProperty(
-          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-          "topologies/scionproto-tiny/topology-scionproto-0.11.json");
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-scionproto-0.10.json");
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  /** See Issue #72: <a href="https://github.com/scionproto-contrib/jpan/issues/72">...</a> */
+  @Test
+  void defaultService_bootstrapTopoFile_ScionProto_0_11() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    try {
+      System.setProperty(
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-scionproto-0.11.json");
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);

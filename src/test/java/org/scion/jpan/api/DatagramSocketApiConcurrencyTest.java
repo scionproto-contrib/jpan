@@ -36,7 +36,7 @@ import org.scion.jpan.testutil.MockDaemon;
 
 class DatagramSocketApiConcurrencyTest {
 
-  private static final int dummyPort = 44444;
+  private static final int dummyPort = 32000;
   private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
 

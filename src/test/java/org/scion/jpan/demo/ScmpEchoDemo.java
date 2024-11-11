@@ -19,7 +19,6 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.scion.jpan.*;
-import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.Scenario;
 
@@ -41,7 +40,6 @@ public class ScmpEchoDemo {
   public static boolean PRINT = true;
   private static int REPEAT = 10;
   public static Network NETWORK = Network.PRODUCTION;
-  private final int localPort;
 
   public enum Network {
     JUNIT_MOCK_V4, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -56,14 +54,6 @@ public class ScmpEchoDemo {
     REPEAT = repeat;
   }
 
-  private ScmpEchoDemo() {
-    this(12345);
-  }
-
-  private ScmpEchoDemo(int localPort) {
-    this.localPort = localPort;
-  }
-
   public static void main(String[] args) throws IOException {
     try {
       run();
@@ -76,23 +66,21 @@ public class ScmpEchoDemo {
     switch (NETWORK) {
       case JUNIT_MOCK_V4:
         {
+          System.setProperty(Constants.PROPERTY_SHIM, "false"); // disable SHIM
           DemoTopology.configureMockV4();
-          InetAddress remote = MockScmpHandler.getAddress().getAddress();
-          MockDNS.install("1-ff00:0:112", "localhost", remote.toString());
-          ScmpEchoDemo demo = new ScmpEchoDemo();
           InetSocketAddress dst = MockScmpHandler.getAddress();
-          int n = demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
+          int n = runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
           DemoTopology.shutDown();
           return n;
         }
       case JUNIT_MOCK_V6:
         {
+          System.setProperty(Constants.PROPERTY_SHIM, "false"); // disable SHIM
           DemoTopology.configureMockV6();
-          ScmpEchoDemo demo = new ScmpEchoDemo();
           MockScmpHandler.stop();
           MockScmpHandler.start("[::1]"); // We need the SCMP handler running on IPv6
           InetSocketAddress dst = MockScmpHandler.getAddress();
-          int n = demo.runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
+          int n = runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
           DemoTopology.shutDown();
           MockScmpHandler.stop();
           return n;
@@ -116,40 +104,41 @@ public class ScmpEchoDemo {
             System.setProperty(Constants.PROPERTY_DAEMON, scenario.getDaemon(srcIsdAs));
           }
 
-          // Use a port from the dispatcher compatibility range
-          ScmpEchoDemo demo = new ScmpEchoDemo(32766);
           // Ping the dispatcher/shim. It listens on the same IP as the control service.
           InetAddress ip = scenario.getControlServer(dstIsdAs).getAddress();
 
           // Get paths
           List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
-          return demo.runDemo(PathPolicy.MIN_HOPS.filter(paths));
+          return runDemo(PathPolicy.MIN_HOPS.filter(paths));
         }
       case PRODUCTION:
         {
-          ScmpEchoDemo demo = new ScmpEchoDemo();
           ScionService service = Scion.defaultService();
-          return demo.runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
+          return runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
         }
     }
     return -1;
   }
 
-  private int runDemo(Path path) throws IOException {
+  private static int runDemo(Path path) throws IOException {
     ByteBuffer data = ByteBuffer.allocate(0);
 
-    println("Listening on port " + localPort + " ...");
+    String localAddress;
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path);
-      println("Resolved local address: ");
-      println("  " + channel.getLocalAddress().getAddress().getHostAddress());
+      // We determine the address separately because SCMP will always have 0.0.0.0 as local address
+      localAddress = channel.getLocalAddress().getAddress().getHostAddress();
     }
 
-    printPath(path);
     int n = 0;
-    try (ScmpSender scmpChannel = Scmp.newSenderBuilder().setLocalPort(localPort).build()) {
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
+      println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
+      println("Resolved local address: ");
+      println("  " + localAddress);
+      printPath(path);
+
       for (int i = 0; i < REPEAT; i++) {
-        Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, data);
+        Scmp.EchoMessage msg = sender.sendEchoRequest(path, data);
         if (i == 0) {
           printHeader(path.getRemoteSocketAddress(), data, msg);
         }
@@ -177,7 +166,7 @@ public class ScmpEchoDemo {
     return n;
   }
 
-  private void printPath(Path path) {
+  private static void printPath(Path path) {
     String nl = System.lineSeparator();
     String sb = "Using path:" + nl + "  Hops: " + ScionUtil.toStringPath(path.getMetadata());
     sb += " MTU: " + path.getMetadata().getMtu();
@@ -185,9 +174,9 @@ public class ScmpEchoDemo {
     println(sb);
   }
 
-  private void printHeader(ScionSocketAddress dstAddress, ByteBuffer data, Scmp.EchoMessage msg) {
-    String sb = "PING " + ScionUtil.toStringIA(dstAddress.getIsdAs()) + ",";
-    sb += dstAddress.getHostString() + ":" + dstAddress.getPort() + " pld=" + data.remaining();
+  private static void printHeader(ScionSocketAddress dst, ByteBuffer data, Scmp.EchoMessage msg) {
+    String sb = "PING " + ScionUtil.toStringIA(dst.getIsdAs()) + ",";
+    sb += dst.getHostString() + ":" + dst.getPort() + " pld=" + data.remaining();
     sb += "B scion_pkt=" + msg.getSizeSent() + "B";
     println(sb);
   }

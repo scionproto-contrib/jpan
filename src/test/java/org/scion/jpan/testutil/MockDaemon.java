@@ -15,11 +15,13 @@
 package org.scion.jpan.testutil;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import com.google.protobuf.Timestamp;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +48,7 @@ public class MockDaemon implements AutoCloseable {
   private final InetSocketAddress address;
   private Server server;
   private final List<MockBorderRouter> borderRouters;
+  private final AsInfo asInfo;
   private static final AtomicInteger callCount = new AtomicInteger();
   private static final byte[] PATH_RAW_TINY_110_112 = {
     0, 0, 32, 0, 1, 0, 11, 16,
@@ -95,18 +98,20 @@ public class MockDaemon implements AutoCloseable {
     InetSocketAddress bind1 = new InetSocketAddress("127.0.0.10", 31004);
     InetSocketAddress bind2 = new InetSocketAddress("127.0.0.25", 31012);
     this.borderRouters.add(new MockBorderRouter(0, bind1, bind2, 2, 1));
+    asInfo = JsonFileParser.parseTopologyFile(Paths.get(MockBootstrapServer.TOPOFILE_TINY_110));
   }
 
   private MockDaemon(InetSocketAddress address, List<MockBorderRouter> borderRouters) {
     this.address = address;
     this.borderRouters = borderRouters;
+    asInfo = JsonFileParser.parseTopologyFile(Paths.get(MockBootstrapServer.TOPOFILE_TINY_110));
   }
 
   public MockDaemon start() throws IOException {
     int port = address.getPort();
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
-            .addService(new MockDaemon.DaemonImpl(borderRouters))
+            .addService(new MockDaemon.DaemonImpl(borderRouters, asInfo))
             .build()
             .start();
     logger.info("Server started, listening on {}", address);
@@ -126,23 +131,29 @@ public class MockDaemon implements AutoCloseable {
 
   @Override
   public void close() throws IOException {
-    server.shutdown(); // Disable new tasks from being submitted
-    try {
-      // Wait a while for existing tasks to terminate
-      if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
-        server.shutdownNow(); // Cancel currently executing tasks
-        // Wait a while for tasks to respond to being cancelled
+    if (server != null) {
+      server.shutdown(); // Disable new tasks from being submitted
+      try {
+        // Wait a while for existing tasks to terminate
         if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
-          logger.error("Daemon server did not terminate");
+          server.shutdownNow(); // Cancel currently executing tasks
+          // Wait a while for tasks to respond to being cancelled
+          if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
+            logger.error("Daemon server did not terminate");
+          }
         }
+        logger.info("Daemon server shut down");
+      } catch (InterruptedException ie) {
+        // (Re-)Cancel if current thread also interrupted
+        server.shutdownNow();
+        // Preserve interrupt status
+        Thread.currentThread().interrupt();
       }
-      logger.info("Daemon server shut down");
-    } catch (InterruptedException ie) {
-      // (Re-)Cancel if current thread also interrupted
-      server.shutdownNow();
-      // Preserve interrupt status
-      Thread.currentThread().interrupt();
     }
+  }
+
+  public AsInfo getASInfo() {
+    return asInfo;
   }
 
   public static int getAndResetCallCount() {
@@ -151,9 +162,11 @@ public class MockDaemon implements AutoCloseable {
 
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
     final List<MockBorderRouter> borderRouters;
+    final AsInfo asInfo;
 
-    DaemonImpl(List<MockBorderRouter> borderRouters) {
+    DaemonImpl(List<MockBorderRouter> borderRouters, AsInfo asInfo) {
       this.borderRouters = borderRouters;
+      this.asInfo = asInfo;
     }
 
     @Override
@@ -228,6 +241,16 @@ public class MockDaemon implements AutoCloseable {
         // Interface IDs are currently not supported
         replyBuilder.putInterfaces(br.getInterfaceId1(), ifBuilder.build());
       }
+      responseObserver.onNext(replyBuilder.build());
+      responseObserver.onCompleted();
+    }
+
+    @Override
+    public void portRange(Empty req, StreamObserver<Daemon.PortRangeResponse> responseObserver) {
+      callCount.incrementAndGet();
+      Daemon.PortRangeResponse.Builder replyBuilder = Daemon.PortRangeResponse.newBuilder();
+      replyBuilder.setDispatchedPortStart(asInfo.getPortRange().getPortMin());
+      replyBuilder.setDispatchedPortEnd(asInfo.getPortRange().getPortMax());
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
     }

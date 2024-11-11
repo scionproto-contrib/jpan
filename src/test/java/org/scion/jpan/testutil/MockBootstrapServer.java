@@ -168,6 +168,10 @@ public class MockBootstrapServer implements Closeable {
     return asInfo.getIsdAs();
   }
 
+  public AsInfo getASInfo() {
+    return asInfo;
+  }
+
   private class TopologyServerImpl implements Runnable {
     private final String topologyFile;
     private final String trcsFilesJson;
