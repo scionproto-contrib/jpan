@@ -22,8 +22,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
@@ -34,6 +32,8 @@ import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketOptions;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.ManagedThread;
+import org.scion.jpan.testutil.ManagedThreadNews;
 
 class DatagramChannelPacketValidationTest {
 
@@ -42,16 +42,12 @@ class DatagramChannelPacketValidationTest {
   private final AtomicReference<SocketAddress> localAddress = new AtomicReference<>();
   private final AtomicInteger receiveCount = new AtomicInteger();
   private final AtomicInteger receiveBadCount = new AtomicInteger();
-  private final AtomicReference<Exception> failure = new AtomicReference<>();
-  private CountDownLatch barrier;
 
   @BeforeEach
   public void beforeEach() {
     localAddress.set(null);
     receiveCount.set(0);
     receiveBadCount.set(0);
-    failure.set(null);
-    barrier = null;
   }
 
   @AfterAll
@@ -62,7 +58,7 @@ class DatagramChannelPacketValidationTest {
 
   @Test
   void validate_length() {
-    String PRE = "SCION packet validation failed: ";
+    String prefix = "SCION packet validation failed: ";
     // packet too short
     for (int i = 0; i < packetBytes.length; i++) {
       ByteBuffer bb = ByteBuffer.allocate(i);
@@ -70,7 +66,7 @@ class DatagramChannelPacketValidationTest {
       bb.flip();
       String result = ScionHeaderParser.validate(bb);
       assertNotNull(result);
-      assertTrue(result.startsWith(PRE + "Invalid packet length:"), result);
+      assertTrue(result.startsWith(prefix + "Invalid packet length:"), result);
     }
 
     // correct length
@@ -86,39 +82,38 @@ class DatagramChannelPacketValidationTest {
       bb.flip();
       String result = ScionHeaderParser.validate(bb);
       assertNotNull(result);
-      assertTrue(result.startsWith(PRE + "Invalid packet length:"), result);
+      assertTrue(result.startsWith(prefix + "Invalid packet length:"), result);
     }
   }
 
   @Test
-  void receive_validationFails_nonBlocking_noThrow() throws IOException, InterruptedException {
+  void receive_validationFails_nonBlocking_noThrow() throws IOException {
     // silently drop bad packets
     receive_validationFails_isBlocking_noThrow(false, false);
   }
 
   @Test
-  void receive_validationFails_nonBlocking_throw() throws IOException, InterruptedException {
+  void receive_validationFails_nonBlocking_throw() throws IOException {
     // throw exception when receiving bad packet
     receive_validationFails_isBlocking_noThrow(true, false);
   }
 
   @Test
-  void receive_validationFails_isBlocking_noThrow() throws IOException, InterruptedException {
+  void receive_validationFails_isBlocking_noThrow() throws IOException {
     // silently drop bad packets
     receive_validationFails_isBlocking_noThrow(false, true);
   }
 
   @Test
-  void receive_validationFails_isBlocking_throw() throws IOException, InterruptedException {
+  void receive_validationFails_isBlocking_throw() throws IOException {
     // throw exception when receiving bad packet
     receive_validationFails_isBlocking_noThrow(true, true);
   }
 
   private void receive_validationFails_isBlocking_noThrow(boolean throwBad, boolean isBlocking)
-      throws IOException, InterruptedException {
-    barrier = new CountDownLatch(1);
-    Thread serverThread = startServer(throwBad, isBlocking);
-    barrier.await(1, TimeUnit.SECONDS); // Wait for thread to start
+      throws IOException {
+    ManagedThread serverThread = ManagedThread.newBuilder().build();
+    serverThread.submit(mtn -> startServer(throwBad, isBlocking, mtn));
 
     // client - send bad message
     for (int i = 0; i < 10; i++) {
@@ -137,58 +132,48 @@ class DatagramChannelPacketValidationTest {
     serverThread.join();
 
     // check results
-    assertNull(failure.get());
     assertEquals(1, receiveCount.get());
   }
 
-  private Thread startServer(boolean openThrowOnBadPacket, boolean isBlocking) {
-    Thread serverThread =
-        new Thread(
-            () -> {
-              try {
-                // We don´t need a daemon or BR here, set service to NULL
-                try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
-                  channel.configureBlocking(isBlocking);
-                  if (openThrowOnBadPacket) {
-                    channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-                  }
-                  channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
-                  localAddress.set(channel.getLocalAddress());
-                  barrier.countDown();
+  private void startServer(boolean openThrowOnBadPacket, boolean isBlocking, ManagedThreadNews mtn)
+      throws IOException {
+    // We don´t need a daemon or BR here, set service to NULL
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
+      channel.configureBlocking(isBlocking);
+      if (openThrowOnBadPacket) {
+        channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      }
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+      localAddress.set(channel.getLocalAddress());
+      mtn.reportStarted();
 
-                  ByteBuffer response = ByteBuffer.allocate(500);
-                  // repeat until we get no exception
-                  boolean failed;
-                  do {
-                    failed = false;
-                    try {
-                      if (isBlocking) {
-                        assertNotNull(channel.receive(response));
-                      } else {
-                        while (channel.receive(response) == null) {
-                          Thread.sleep(10);
-                        }
-                      }
-                    } catch (Exception e) {
-                      receiveBadCount.incrementAndGet();
-                      failed = true;
-                    }
-                  } while (failed);
+      ByteBuffer response = ByteBuffer.allocate(500);
+      // repeat until we get no exception
+      boolean failed;
+      do {
+        failed = false;
+        try {
+          if (isBlocking) {
+            assertNotNull(channel.receive(response));
+          } else {
+            while (channel.receive(response) == null) {
+              Thread.sleep(10);
+            }
+          }
+        } catch (Exception e) {
+          receiveBadCount.incrementAndGet();
+          failed = true;
+        }
+      } while (failed);
 
-                  // make sure we receive exactly one message
-                  receiveCount.incrementAndGet();
+      // make sure we receive exactly one message
+      receiveCount.incrementAndGet();
 
-                  response.flip();
-                  String pong = Charset.defaultCharset().decode(response).toString();
-                  if (!MSG.equals(pong)) {
-                    failure.set(new IllegalStateException(pong));
-                  }
-                }
-              } catch (IOException e) {
-                failure.set(e);
-              }
-            });
-    serverThread.start();
-    return serverThread;
+      response.flip();
+      String pong = Charset.defaultCharset().decode(response).toString();
+      if (!MSG.equals(pong)) {
+        mtn.reportException(new IllegalStateException(pong));
+      }
+    }
   }
 }

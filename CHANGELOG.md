@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add a SHIM, required for #130 (topo file port range support).
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
+- ManagedThread test helper. [#136](https://github.com/scionproto-contrib/jpan/pull/136)
 
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)
