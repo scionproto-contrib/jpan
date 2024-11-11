@@ -350,13 +350,14 @@ public class ScmpChannelTest {
     MockScmpHandler.stop(); // Shut down SCMP handler
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
+    Thread t = null;
     try (ScmpChannel sender = Scmp.createChannel()) {
       sender.setScmpErrorListener(scmpMessage -> fail(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
       // start responder
       CountDownLatch barrier = new CountDownLatch(1);
-      Thread t = new Thread(() -> scmpResponder(barrier, null));
+      t = new Thread(() -> scmpResponder(barrier, null));
       t.start();
       barrier.await();
       Thread.sleep(50);
@@ -371,8 +372,10 @@ public class ScmpChannelTest {
 
       // finish
       t.join(100);
-      t.interrupt(); // just in case.
     } finally {
+      if (t != null) {
+        t.interrupt(); // just in case
+      }
       MockNetwork.stopTiny();
     }
   }
