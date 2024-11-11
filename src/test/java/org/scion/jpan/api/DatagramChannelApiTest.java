@@ -24,7 +24,6 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.Charset;
 import java.time.Instant;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterAll;
@@ -36,6 +35,7 @@ import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.Util;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockDatagramChannel;
@@ -239,28 +239,24 @@ class DatagramChannelApiTest {
       throws IOException, InterruptedException {
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
-    CountDownLatch latch = new CountDownLatch(1);
     AtomicBoolean wasBlocking = new AtomicBoolean(true);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(address);
       channel.configureBlocking(isBlocking);
       assertEquals(isBlocking, channel.isBlocking());
-      Thread t =
-          new Thread(
-              () -> {
-                try {
-                  latch.countDown();
-                  fn.accept(channel);
-                  // Should only be reached with non-blocking channel
-                  wasBlocking.getAndSet(false);
-                } catch (InterruptedException | IOException e) {
-                  // ignore
-                }
-              });
-      t.start();
-      latch.await();
+      ManagedThread t = ManagedThread.newBuilder().build();
+      t.submit(
+          mtn -> {
+            try {
+              mtn.reportStarted();
+              fn.accept(channel);
+              // Should only be reached with non-blocking channel
+              wasBlocking.getAndSet(false);
+            } catch (InterruptedException | IOException e) {
+              // ignore
+            }
+          });
       t.join(30);
-      t.interrupt();
       assertEquals(isBlocking, wasBlocking.get());
     }
   }

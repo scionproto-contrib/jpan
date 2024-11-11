@@ -21,13 +21,13 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.ManagedThread;
+import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
@@ -69,7 +69,7 @@ public class ScmpResponderTest {
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
       // start responder
-      responder.submit((rs, re) -> scmpResponder(null, rs, re));
+      responder.submit(mtn -> scmpResponder(null, mtn));
 
       // send request
       for (int i = 0; i < 10; i++) {
@@ -97,8 +97,7 @@ public class ScmpResponderTest {
 
       // start responder
       AtomicInteger dropCount = new AtomicInteger();
-      responder.submit(
-          (rs, re) -> scmpResponder(echoMsg -> dropCount.incrementAndGet() < -42, rs, re));
+      responder.submit(mtn -> scmpResponder(echoMsg -> dropCount.incrementAndGet() < -42, mtn));
 
       // send request
       sender.setTimeOut(100);
@@ -115,20 +114,15 @@ public class ScmpResponderTest {
     }
   }
 
-  private void scmpResponder(
-      Predicate<Scmp.EchoMessage> predicate,
-      Runnable reportStarted,
-      Consumer<Throwable> reportException) {
+  private void scmpResponder(Predicate<Scmp.EchoMessage> predicate, ManagedThreadNews mtn)
+      throws IOException {
     try (ScmpResponder responder = Scmp.newResponderBuilder().build()) {
       responder.setScmpErrorListener(
           scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       responder.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       responder.setScmpEchoListener(predicate);
-      reportStarted.run();
+      mtn.reportStarted();
       responder.start();
-    } catch (IOException e) {
-      reportException.accept(e);
-      throw new RuntimeException(e);
     }
   }
 }

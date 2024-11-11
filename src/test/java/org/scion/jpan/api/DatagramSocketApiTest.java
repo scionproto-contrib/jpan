@@ -25,9 +25,7 @@ import java.nio.channels.IllegalBlockingModeException;
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -39,6 +37,7 @@ import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.Util;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
@@ -186,33 +185,29 @@ class DatagramSocketApiTest {
     int timeOutMs = 50;
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
-    CountDownLatch latch = new CountDownLatch(1);
     AtomicLong timeMs = new AtomicLong();
-    AtomicReference<Exception> exception = new AtomicReference<>();
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.setSoTimeout(timeOutMs);
       socket.connect(address);
       // Running a separate thread prevents this from halting infinitely.
-      Thread t =
-          new Thread(
-              () -> {
-                latch.countDown();
-                long t1 = System.nanoTime();
-                try {
-                  socket.receive(dummyPacket);
-                } catch (Exception e) {
-                  exception.set(e);
-                }
-                long t2 = System.nanoTime();
-                timeMs.set((t2 - t1) / 1_000_000);
-              });
-      t.start();
-      latch.await();
+      ManagedThread t = ManagedThread.newBuilder().expectException(true).build();
+      t.submit(
+          mtn -> {
+            mtn.reportStarted();
+            long t1 = System.nanoTime();
+            try {
+              socket.receive(dummyPacket);
+            } catch (Exception e) {
+              mtn.reportException(e);
+            }
+            long t2 = System.nanoTime();
+            timeMs.set((t2 - t1) / 1_000_000);
+          });
       t.join(3 * timeOutMs);
-      t.interrupt();
-      assertInstanceOf(SocketTimeoutException.class, exception.get(), exception.get().getMessage());
+      assertInstanceOf(
+          SocketTimeoutException.class, t.getException(), t.getException().getMessage());
       // Verify that it waited for at least "timeout".
-      // We use 0.9 because Windows otherwise may somehow reports sometimes 48ms for 50ms timeout.
+      // We use 0.9 because Windows otherwise may somehow report sometimes 48ms for 50ms timeout.
       assertTrue(timeMs.get() >= timeOutMs * 0.9, timeMs.get() + " >= " + timeOutMs);
       // Verify that it waited less than te JUnit test timeout
       assertTrue(timeMs.get() < 1.5 * timeOutMs, timeMs.get() + " < 1.5* " + timeOutMs);
