@@ -419,9 +419,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    *
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
-   * @deprecated Not required anymore, will be removed for 0.6.0
+   * @deprecated Not required anymore, will be removed for 0.5.0
    */
-  @Deprecated // TODO remove for 0.6.0
+  @Deprecated // TODO remove for 0.5.0
   public void configureRemoteDispatcher(boolean hasDispatcher) {
     this.cfgRemoteDispatcher = hasDispatcher;
   }

@@ -640,9 +640,9 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
    * @see ScionDatagramChannel#configureRemoteDispatcher(boolean)
-   * @deprecated Not required anymore, will be removed for 0.6.0
+   * @deprecated Not required anymore, will be removed for 0.5.0
    */
-  @Deprecated // TODO remove for 0.6.0
+  @Deprecated // TODO remove for 0.5.0
   public synchronized ScionDatagramSocket setRemoteDispatcher(boolean hasDispatcher) {
     channel.configureRemoteDispatcher(hasDispatcher);
     return this;
