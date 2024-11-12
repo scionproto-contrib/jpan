@@ -47,10 +47,11 @@ JPAN can be used in one of the following ways:
 - You can use JPAN stand-alone (without local SCION installation),
   however it must listen on port 30041 for incoming SCION packets because
   SCION routers currently will forward data only to that port. 
-- If you are contacting an endhost within your own AS, and the endhost uses a dispatcher, then you 
+- ~~If you are contacting an endhost within your own AS, and the endhost uses a dispatcher, then you 
   must set the flag `ScionDatagramChannel.configureRemoteDispatcher(true)`. This ensure that the 
   outgoing packet is sent to port 30041 on the remote machine. The flag has no effect on traffic 
-  sent to a remote AS. 
+  sent to a remote AS.~~
+  JPAN uses the topo file's port range to detect which parts need to be mapped to 30041. 
 - If you need a local SCION installation on your machine (Go implementation),
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding

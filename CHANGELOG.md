@@ -40,15 +40,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add a SHIM, required for #130 (topo file port range support).
   [#131](https://github.com/scionproto-contrib/jpan/pull/131)
 - ManagedThread test helper. [#136](https://github.com/scionproto-contrib/jpan/pull/136)
-- Support for `dispatched_ports` in topo files
+- Support for `dispatched_ports` in topo files. Deprecated `configureRemoteDispatcher()`.
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
 
 TODO: 
 - FIX: if no ephemeral ports are available, just use ANY port but enforce 30041 as return port.
-- Deprecate configureRemoteDispatcher()
-- Remove workaround from sendRaw() that checks for SHIM. Currently required for tests....
-  -> Do this in separate PR?
-- Remove DEBUG_SHIM_PROP
 
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)

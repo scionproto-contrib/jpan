@@ -39,7 +39,6 @@ class ShimTest {
   void beforeEach() {
     Scion.closeDefault();
     Shim.uninstall();
-    System.setProperty(Shim.DEBUG_PROPERTY_START_SHIM, "true");
     shimForwardingCounter.set(0);
   }
 
@@ -51,7 +50,6 @@ class ShimTest {
 
   @AfterAll
   static void afterAll() {
-    System.setProperty(Shim.DEBUG_PROPERTY_START_SHIM, "false");
     MockNetwork.stopTiny();
   }
 

@@ -38,11 +38,6 @@ import org.slf4j.LoggerFactory;
  * address encoded in the SCION header. If parsing of the SCION header fails, the packet is dropped.
  */
 public class Shim implements AutoCloseable {
-  /** Property that allows specifying that the SHIM should NOT be started. */
-  public static final String DEBUG_PROPERTY_START_SHIM = "DEBUG_SCION_SHIM";
-
-  public static final String DEBUG_ENV_START_SHIM = "org.scion.debug.shim";
-
   private static final Logger log = LoggerFactory.getLogger(Shim.class);
   private static final AtomicReference<Shim> singleton = new AtomicReference<>();
   private final ScmpResponder scmpResponder;
