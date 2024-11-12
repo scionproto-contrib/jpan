@@ -36,10 +36,16 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   private int timeoutMs = 0;
 
   public SelectingDatagramChannel(ScionService service) throws IOException {
-    super(service, DatagramChannel.open());
+    this(service, null);
+  }
+
+  public SelectingDatagramChannel(ScionService service, DatagramChannel channel)
+      throws IOException {
+    super(service, channel == null ? DatagramChannel.open() : channel);
 
     // selector
-    this.selector = Selector.open();
+    DatagramChannel channel2 = channel == null ? DatagramChannel.open() : channel;
+    this.selector = channel2.provider().openSelector();
     super.channel().configureBlocking(false);
     super.channel().register(selector, SelectionKey.OP_READ);
   }
@@ -78,7 +84,8 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
             // in extensions headers.
             hdrType = receiveExtensionHeader(buffer, hdrType);
 
-            ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+            InetSocketAddress firstHopAddress = getFirstHopAddress(buffer, srcAddress);
+            ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, firstHopAddress);
             if (hdrType == expectedHdrType) {
               return path;
             }

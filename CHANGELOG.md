@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- replace Selector.open() with channel.provider().openSelector();
 - USe topo port range for connections in local AS!
 - Fix demos to return an "int" that can be tested!
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default

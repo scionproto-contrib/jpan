@@ -267,18 +267,18 @@ The following standard options are **not** supported:
 
 `DatagramSocket` work similar to `DatagramChannel` in terms of using `Path` or `Service`.
 `DatagramSocket` is somewhat discouraged because it requires storing/caching of paths internally
-which can lead to increased memory usage of even failure to resolve paths, especially when handling
+which can lead to increased memory usage or even failure to resolve paths, especially when handling
 multiple connections over a single socket.
 
 The problem is that `DatagramPacket` and `InetAddress` are not extensible to store path information.
 For a server to be able to send data back to a client, it has to remember these paths internally.
 This is done internally in a path cache that stores the received path for every remote IP address.
-The cache is by default limited to 100 entries (`setPathCacheCapacity()`). In cse there are more 
+The cache is by default limited to 100 entries (`setPathCacheCapacity()`). In case there are more 
 than 100 remote clients, the cache will 'forget' those paths that haven't been used for the longest
 time. That means the server won't be able to send anything anymore to these forgotten clients.
 
 This can become a security problem if an attacker initiates connections from many different (or 
-spoofed) IPs, causing the cache to consume a lot of memory or to overflow, being unable to
+spoofed) IPs, causing the cache to consume a lot of memory or to overflow, becoming unable to
 answer to valid requests.
 
 Internally, the `DatagramSocket` uses a SCION `DatagraChannel`.
@@ -297,16 +297,16 @@ API beyond the standard Java `DatagramScoket`:
 
 ## Performance pitfalls
 
-- **Using `SocketAddress` for `send()`**. `send(buffer, socketAddress)` is a convenience function. However, when sending 
-  multiple packets to the same destination, one should use `path = send(buffer, path)` or `connect()` + `write()` in 
-  order to avoid frequent path lookups.
+- **Using `SocketAddress` for `send()`**. `send(buffer, socketAddress)` is a convenience function. 
+  However, when sending multiple packets to the same destination, one should use 
+  `path = send(buffer, path)` or `connect()` + `write()` in order to avoid frequent path lookups.
 
-- **Using expired path (client).** When using `send(buffer, path)` with an expired `Path`, the channel will 
-  transparently look up a new path. This works but causes a path lookup for every `send()`.
-  Solution: always use the latest path returned by send, e.g. `path = send(buffer, path)`.
+- **Using expired path (client).** When using `send(buffer, path)` with an expired `Path`, the 
+  channel will transparently look up a new path. This works but causes a path lookup for every 
+  `send()`. Solution: always use the latest path returned by send, e.g. `path = send(buffer, path)`.
 
-- **Using expired path (server).** When using `send(buffer, path)` with an expired `Path`, the channel will
-  simple send it anyway.
+- **Using expired path (server).** When using `send(buffer, path)` with an expired `Path`, the 
+  channel will simple send it anyway.
 
 ## Configuration
 

@@ -169,7 +169,8 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     try {
       start();
       int port = MockNetwork.getTinyServerAddress().getPort();
-      try (ScionDatagramSocket socket = new ScionDatagramSocket(port)) {
+      try (ScionDatagramSocket socket =
+          ScionDatagramSocket.create(new InetSocketAddress(port), serverService)) {
         run(
             (id, nRounds) ->
                 new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),

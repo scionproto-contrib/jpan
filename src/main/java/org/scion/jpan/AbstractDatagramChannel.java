@@ -360,7 +360,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
+  protected InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
     if (getService() != null) {
       int oldPos = buffer.position();
       int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);

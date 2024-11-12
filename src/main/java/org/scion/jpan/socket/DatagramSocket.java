@@ -53,7 +53,7 @@ public class DatagramSocket extends ScionDatagramSocket {
 
   // "private" to avoid ambiguity with DatagramSocket((SocketAddress) null) -> use create()
   private DatagramSocket(ScionService service) throws SocketException {
-    super(service);
+    super(service, null);
   }
 
   // "private" for consistency, all non-standard constructors are private -> use create()

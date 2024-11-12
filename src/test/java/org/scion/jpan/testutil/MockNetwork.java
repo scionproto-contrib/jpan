@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
-import org.scion.jpan.internal.Shim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,10 +110,8 @@ public class MockNetwork {
     String remoteIP =
         mock.asInfoLocal.getBorderRouterAddressByIA(ScionUtil.parseIA(TINY_SRV_ISD_AS));
     remoteIP = IPHelper.extractIP(remoteIP);
-    boolean hasShim =
-        ScionUtil.getPropertyOrEnv(
-            Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM);
-    if (!"true".equalsIgnoreCase(System.getProperty(Shim.DEBUG_PROPERTY_START_SHIM)) && !hasShim) {
+    if (!ScionUtil.getPropertyOrEnv(
+        Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM)) {
       // Do not start a SCMP handler on 30041 if we want to use SHIMs.
       // The SHIM also includes its own SCMP handler.
       MockScmpHandler.start(remoteIP);

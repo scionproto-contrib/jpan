@@ -63,7 +63,7 @@ public class JUnitSetUp
 
   @Override
   public void close() {
-    // System.out.println("Singleton::Finish-Once");
+    // Nothing
   }
 
   @Override

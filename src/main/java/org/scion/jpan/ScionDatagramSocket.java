@@ -76,10 +76,11 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   }
 
   // "private" to avoid ambiguity with DatagramSocket((SocketAddress) null) -> use create()
-  protected ScionDatagramSocket(ScionService service) throws SocketException {
+  protected ScionDatagramSocket(ScionService service, DatagramChannel channel)
+      throws SocketException {
     super(new DummyDatagramSocketImpl());
     try {
-      channel = new SelectingDatagramChannel(service);
+      this.channel = new SelectingDatagramChannel(service, channel);
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }
@@ -88,7 +89,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   // "private" for consistency, all non-standard constructors are private -> use create()
   protected ScionDatagramSocket(SocketAddress bindAddress, ScionService service)
       throws SocketException {
-    this(service);
+    this(service, null);
     // DatagramSockets always immediately bind unless the bindAddress is null.
     if (bindAddress != null) {
       try {
@@ -109,7 +110,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * @return a new socket.
    */
   public static ScionDatagramSocket create(ScionService service) throws SocketException {
-    return new ScionDatagramSocket(service);
+    return new ScionDatagramSocket(service, null);
+  }
+
+  public static ScionDatagramSocket create(ScionService service, DatagramChannel channel)
+      throws SocketException {
+    return new ScionDatagramSocket(service, channel);
   }
 
   public static ScionDatagramSocket create(SocketAddress bindAddress, ScionService service)

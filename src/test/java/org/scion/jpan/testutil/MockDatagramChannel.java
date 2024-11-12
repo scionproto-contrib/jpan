@@ -73,7 +73,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   protected MockDatagramChannel() {
-    super(SelectorProvider.provider());
+    super(MockSelectorProvider.provider());
   }
 
   public void setReceiveCallback(Function<ByteBuffer, SocketAddress> cb) {
@@ -297,12 +297,17 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
     @Override
     public int selectNow() throws IOException {
-      return 0;
+      throw new UnsupportedOperationException();
+      //       return 0;
     }
 
     @Override
     public int select(long timeout) throws IOException {
-      return 0;
+      try {
+        return connectCallback.call();
+      } catch (Exception e) {
+        throw new IOException(e);
+      }
     }
 
     @Override
@@ -316,40 +321,54 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
     @Override
     public Selector wakeup() {
-      return null;
+      throw new UnsupportedOperationException();
+      // return this;
     }
   }
 
   public static class MockSelectorProvider extends SelectorProvider {
 
+    private static final MockSelectorProvider INSTANCE = new MockSelectorProvider();
+
+    public static MockSelectorProvider provider() {
+      return INSTANCE;
+    }
+
+    private MockSelectorProvider() {}
+
     @Override
     public DatagramChannel openDatagramChannel() throws IOException {
-      return null;
+      throw new UnsupportedOperationException();
+      // return null;
     }
 
     @Override
     public DatagramChannel openDatagramChannel(ProtocolFamily family) throws IOException {
-      return null;
+      throw new UnsupportedOperationException();
+      // return null;
     }
 
     @Override
     public Pipe openPipe() throws IOException {
-      return null;
+      throw new UnsupportedOperationException();
+      // return null;
     }
 
     @Override
     public AbstractSelector openSelector() throws IOException {
-      return null;
+      return new MockSelector(this);
     }
 
     @Override
     public ServerSocketChannel openServerSocketChannel() throws IOException {
-      return null;
+      throw new UnsupportedOperationException();
+      // return null;
     }
 
     @Override
     public SocketChannel openSocketChannel() throws IOException {
-      return null;
+      throw new UnsupportedOperationException();
+      // return null;
     }
   }
 

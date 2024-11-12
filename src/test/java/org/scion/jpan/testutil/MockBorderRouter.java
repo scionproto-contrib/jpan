@@ -22,13 +22,14 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
+import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.ScionUtil;
 import org.scion.jpan.Scmp;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
-import org.scion.jpan.internal.Shim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +125,8 @@ public class MockBorderRouter implements Runnable {
   private void forwardPacket(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
-    if ("true".equalsIgnoreCase(System.getProperty(Shim.DEBUG_PROPERTY_START_SHIM))) {
+    if (ScionUtil.getPropertyOrEnv(
+        Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM)) {
       dstAddress = MockNetwork.asInfo.mapDispatcherPorts(dstAddress);
     }
     logger.info(
