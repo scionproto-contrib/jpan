@@ -132,10 +132,26 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private void ensureBound() throws IOException {
+  protected void ensureBound() throws IOException {
     synchronized (stateLock) {
       if (localAddress == null) {
-        bind(null);
+        LocalTopology.DispatcherPortRange ports = getService().getLocalPortRange();
+        if (ports.hasPortRange()) {
+          // This is a bit ugly, we iterate through all ports to find a free one.
+          int min = ports.getPortMin();
+          int max = ports.getPortMax();
+          for (int port = min; port <= max; port++) {
+            try {
+              bind(new InetSocketAddress(port));
+              return;
+            } catch (IOException e) {
+              // ignore and try next port
+            }
+          }
+          throw new IOException("No free port found in SCION port range: " + min + "-" + max);
+        } else {
+          bind(null);
+        }
       }
     }
   }
@@ -286,6 +302,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       checkConnected(false);
       ensureBound();
+      if (localAddress.isAnyLocalAddress()) {
+        // Do we really need this?
+        // - It ensures that after connect we have a proper local address for getLocalAddress(),
+        //   this is what connect() should do.
+        // - It allows us to have an ANY address underneath which could help with interface
+        //   switching.
+        localAddress = getService().getExternalIP(path.getFirstHopAddress());
+      }
       updateConnection((RequestPath) path, false);
       return (C) this;
     }
@@ -336,7 +360,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  private InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
+  protected InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
     if (getService() != null) {
       int oldPos = buffer.position();
       int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
@@ -395,7 +419,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    *
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
+   * @deprecated Not required anymore, will be removed for 0.5.0
    */
+  @Deprecated // TODO remove for 0.5.0
   public void configureRemoteDispatcher(boolean hasDispatcher) {
     this.cfgRemoteDispatcher = hasDispatcher;
   }
@@ -412,6 +438,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
+    // For inter-AS connections we need to send directly to the destination address.
+    // We also need to respect the port range and use 30041 when applicable.
+    if (getService() != null && path.getRawPath().length == 0) {
+      InetSocketAddress remoteHostIP = path.getFirstHopAddress();
+      remoteHostIP = getService().getLocalPortRange().mapToLocalPort(remoteHostIP);
+      return channel.send(buffer, remoteHostIP);
+    }
     if (cfgRemoteDispatcher && path.getRawPath().length == 0) {
       InetAddress remoteHostIP = path.getFirstHopAddress().getAddress();
       return channel.send(buffer, new InetSocketAddress(remoteHostIP, Constants.DISPATCHER_PORT));

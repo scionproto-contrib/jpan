@@ -66,6 +66,7 @@ public class MockNetwork {
   private static MockDaemon daemon = null;
   private static MockBootstrapServer topoServer;
   private static MockControlServer controlServer;
+  static AsInfo asInfo;
 
   private static MockNetwork mock;
   private final AsInfo asInfoLocal;
@@ -109,7 +110,12 @@ public class MockNetwork {
     String remoteIP =
         mock.asInfoLocal.getBorderRouterAddressByIA(ScionUtil.parseIA(TINY_SRV_ISD_AS));
     remoteIP = IPHelper.extractIP(remoteIP);
-    MockScmpHandler.start(remoteIP);
+    if (!ScionUtil.getPropertyOrEnv(
+        Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM)) {
+      // Do not start a SCMP handler on 30041 if we want to use SHIMs.
+      // The SHIM also includes its own SCMP handler.
+      MockScmpHandler.start(remoteIP);
+    }
 
     List<MockBorderRouter> brList = new ArrayList<>();
     for (AsInfo.BorderRouter br : mock.asInfoLocal.getBorderRouters()) {
@@ -151,12 +157,20 @@ public class MockNetwork {
 
     MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
 
-    if (mode == Mode.NAPTR || mode == Mode.BOOTSTRAP) {
-      topoServer = MockBootstrapServer.start(localTopo, mode == Mode.NAPTR);
-      controlServer = MockControlServer.start(topoServer.getControlServerPort());
-    } else if (mode == Mode.AS_ONLY) {
-      AsInfo asInfo = JsonFileParser.parseTopologyFile(Paths.get(localTopo));
-      controlServer = MockControlServer.start(asInfo.getControlServerPort());
+    switch (mode) {
+      case BOOTSTRAP:
+      case NAPTR:
+        topoServer = MockBootstrapServer.start(localTopo, mode == Mode.NAPTR);
+        controlServer = MockControlServer.start(topoServer.getControlServerPort());
+        asInfo = topoServer.getASInfo();
+        break;
+      case AS_ONLY:
+        asInfo = JsonFileParser.parseTopologyFile(Paths.get(localTopo));
+        controlServer = MockControlServer.start(asInfo.getControlServerPort());
+        break;
+      case DAEMON:
+        asInfo = daemon.getASInfo();
+        break;
     }
 
     dropNextPackets.getAndSet(0);
@@ -199,6 +213,7 @@ public class MockNetwork {
 
     dropNextPackets.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
+    asInfo = null;
     mock = null;
   }
 

@@ -48,6 +48,7 @@ public class PingPongHelperBase {
   protected final boolean connectClients;
   private final boolean checkCounters;
   private final String serverIsdAs;
+  protected final InetSocketAddress serverAddress;
   protected final ScionService serverService;
 
   final CountDownLatch startUpBarrierClient;
@@ -63,6 +64,7 @@ public class PingPongHelperBase {
       boolean connect,
       boolean checkCounters,
       String serverIsdAs,
+      InetSocketAddress serverAddress,
       ScionService serverService) {
     this.nClients = nClients;
     this.nServers = nServers;
@@ -70,6 +72,7 @@ public class PingPongHelperBase {
     this.connectClients = connect;
     this.checkCounters = checkCounters;
     this.serverIsdAs = serverIsdAs;
+    this.serverAddress = serverAddress;
     this.serverService = serverService;
 
     startUpBarrierClient = new CountDownLatch(nClients);

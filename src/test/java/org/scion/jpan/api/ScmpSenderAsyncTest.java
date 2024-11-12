@@ -27,12 +27,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.ScionHeaderParser;
+import org.scion.jpan.internal.Shim;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
@@ -83,10 +82,17 @@ public class ScmpSenderAsyncTest {
 
   private static final ConcurrentLinkedQueue<String> errors = new ConcurrentLinkedQueue<>();
 
+  @BeforeEach
+  void beforeEach() {
+    System.setProperty(Constants.PROPERTY_SHIM, "false");
+    Shim.uninstall();
+  }
+
   @AfterAll
   public static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
+    System.clearProperty(Constants.PROPERTY_SHIM);
   }
 
   @AfterEach
@@ -145,8 +151,10 @@ public class ScmpSenderAsyncTest {
 
   @Test
   void sendEcho_localAS_BR() throws IOException {
+    // Q: does this test make sense? We send a ping to port 30555.... should that really work?
     int n = 5;
     testEcho(this::getPathToLocalAS_BR, n);
+    // These are sent to the daemon port 31004 which is in the unmapped port range.
     assertEquals(2 * n, MockNetwork.getAndResetForwardCount());
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
@@ -195,7 +203,8 @@ public class ScmpSenderAsyncTest {
   void sendEcho_localAS_BR_async() throws IOException {
     int n = 25;
     testEchoAsync(this::getPathToLocalAS_BR, n);
-    assertEquals(2 * n, MockNetwork.getAndResetForwardCount());
+    // These are sent to the daemon port 31004 which is in the unmapped port range.
+    assertEquals(2 * n, MockNetwork.getAndResetForwardCount()); // 1!
     assertEquals(n, MockScmpHandler.getAndResetAnswerTotal());
   }
 

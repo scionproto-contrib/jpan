@@ -47,10 +47,11 @@ JPAN can be used in one of the following ways:
 - You can use JPAN stand-alone (without local SCION installation),
   however it must listen on port 30041 for incoming SCION packets because
   SCION routers currently will forward data only to that port. 
-- If you are contacting an endhost within your own AS, and the endhost uses a dispatcher, then you 
+- ~~If you are contacting an endhost within your own AS, and the endhost uses a dispatcher, then you 
   must set the flag `ScionDatagramChannel.configureRemoteDispatcher(true)`. This ensure that the 
   outgoing packet is sent to port 30041 on the remote machine. The flag has no effect on traffic 
-  sent to a remote AS. 
+  sent to a remote AS.~~
+  JPAN uses the topo file's port range to detect which parts need to be mapped to 30041. 
 - If you need a local SCION installation on your machine (Go implementation),
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding
@@ -267,18 +268,18 @@ The following standard options are **not** supported:
 
 `DatagramSocket` work similar to `DatagramChannel` in terms of using `Path` or `Service`.
 `DatagramSocket` is somewhat discouraged because it requires storing/caching of paths internally
-which can lead to increased memory usage of even failure to resolve paths, especially when handling
+which can lead to increased memory usage or even failure to resolve paths, especially when handling
 multiple connections over a single socket.
 
 The problem is that `DatagramPacket` and `InetAddress` are not extensible to store path information.
 For a server to be able to send data back to a client, it has to remember these paths internally.
 This is done internally in a path cache that stores the received path for every remote IP address.
-The cache is by default limited to 100 entries (`setPathCacheCapacity()`). In cse there are more 
+The cache is by default limited to 100 entries (`setPathCacheCapacity()`). In case there are more 
 than 100 remote clients, the cache will 'forget' those paths that haven't been used for the longest
 time. That means the server won't be able to send anything anymore to these forgotten clients.
 
 This can become a security problem if an attacker initiates connections from many different (or 
-spoofed) IPs, causing the cache to consume a lot of memory or to overflow, being unable to
+spoofed) IPs, causing the cache to consume a lot of memory or to overflow, becoming unable to
 answer to valid requests.
 
 Internally, the `DatagramSocket` uses a SCION `DatagraChannel`.
@@ -297,16 +298,16 @@ API beyond the standard Java `DatagramScoket`:
 
 ## Performance pitfalls
 
-- **Using `SocketAddress` for `send()`**. `send(buffer, socketAddress)` is a convenience function. However, when sending 
-  multiple packets to the same destination, one should use `path = send(buffer, path)` or `connect()` + `write()` in 
-  order to avoid frequent path lookups.
+- **Using `SocketAddress` for `send()`**. `send(buffer, socketAddress)` is a convenience function. 
+  However, when sending multiple packets to the same destination, one should use 
+  `path = send(buffer, path)` or `connect()` + `write()` in order to avoid frequent path lookups.
 
-- **Using expired path (client).** When using `send(buffer, path)` with an expired `Path`, the channel will 
-  transparently look up a new path. This works but causes a path lookup for every `send()`.
-  Solution: always use the latest path returned by send, e.g. `path = send(buffer, path)`.
+- **Using expired path (client).** When using `send(buffer, path)` with an expired `Path`, the 
+  channel will transparently look up a new path. This works but causes a path lookup for every 
+  `send()`. Solution: always use the latest path returned by send, e.g. `path = send(buffer, path)`.
 
-- **Using expired path (server).** When using `send(buffer, path)` with an expired `Path`, the channel will
-  simple send it anyway.
+- **Using expired path (server).** When using `send(buffer, path)` with an expired `Path`, the 
+  channel will simple send it anyway.
 
 ## Configuration
 
@@ -342,17 +343,35 @@ while the other options are skipped if no property or environment variable is de
 
 
 ### DNS
+
 JPAN will check the OS default DNS server to resolve SCION addresses.
 In addition, addresses can be specified in a `/etc/scion/hosts` file. The location of the hosts file
 is configurable, see next section.  
 
+### SHIM
+
+Every JPAN application will try to start a 
+[SHIM dispatcher](https://docs.scion.org/en/latest/dev/design/router-port-dispatch.html)
+on port 30041. The SHIM is required to support the `dispathed_ports` feature in topo files.
+
+A SHIM does no traffic checking, it blindly forwards every parseable packet to the inscribed SCION 
+destination address. That means a JPAN SHIM will act as a SHIM for all applications on a machine.
+(The slight problem being that if the application stops, the SHIM is stopped, leaving all other 
+applications without a SHIM).
+
+If the SHIM cannot be started because port 30041 is taken, the application will start anyway, 
+assuming that another SHIM is running on 30041.
+ 
+Whether a SHIM is started can be controlled with a configuration option, see below.
+
 ### Other Options
 
-| Option                                                                                                               | Java property                         | Environment variable                 | Default value      |
-|----------------------------------------------------------------------------------------------------------------------|---------------------------------------|--------------------------------------|--------------------|
-| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`          | `SCION_PATH_EXPIRY_MARGIN`           | 10                 |
-| Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles`                | `SCION_HOSTS_FILES`                  | `/etc/scion/hosts` |
-| Minimize segment requests to local AS at the cost of reduced range of path available.                                | `org.scion.resolver.experimentalMinimizeRequests` | `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS`   | `false`            |
+| Option                                                                                               | Java property                                     | Environment variable                            | Default value      |
+|------------------------------------------------------------------------------------------------------|---------------------------------------------------|-------------------------------------------------|--------------------|
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`                      | `SCION_PATH_EXPIRY_MARGIN`                      | 10                 |
+| Location of `hosts` file. Multiple location can be specified separated by `;`.                       | `org.scion.hostsFiles`                            | `SCION_HOSTS_FILES`                             | `/etc/scion/hosts` |
+| Start SHIM.                                                                                          | `org.scion.shim`                                  | `SCION_SHIM`                                    | `true`             |
+| Minimize segment requests to local AS at the cost of reduced range of path available.                | `org.scion.resolver.experimentalMinimizeRequests` | `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` | `false`            |
 
 `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that request CORE segments only of other 
 path can be constructed. This may reduce response time when requesting new paths. It is very likely,

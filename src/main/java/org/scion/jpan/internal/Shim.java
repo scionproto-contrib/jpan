@@ -38,11 +38,6 @@ import org.slf4j.LoggerFactory;
  * address encoded in the SCION header. If parsing of the SCION header fails, the packet is dropped.
  */
 public class Shim implements AutoCloseable {
-  /** Property that allows specifying that the SHIM should NOT be started. */
-  public static final String DEBUG_PROPERTY_START_SHIM = "DEBUG_SCION_SHIM";
-
-  public static final String DEBUG_ENV_START_SHIM = "org.scion.debug.shim";
-
   private static final Logger log = LoggerFactory.getLogger(Shim.class);
   private static final AtomicReference<Shim> singleton = new AtomicReference<>();
   private final ScmpResponder scmpResponder;
@@ -59,9 +54,10 @@ public class Shim implements AutoCloseable {
   public static void install(ScionService service) {
     synchronized (singleton) {
       if (singleton.get() == null) {
-        String flag =
-            ScionUtil.getPropertyOrEnv(DEBUG_PROPERTY_START_SHIM, DEBUG_ENV_START_SHIM, "true");
-        if (flag.equalsIgnoreCase("true")) {
+        boolean flag =
+            ScionUtil.getPropertyOrEnv(
+                Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM);
+        if (flag) {
           singleton.set(Shim.newBuilder(service).build());
           singleton.get().start();
         }
@@ -105,12 +101,13 @@ public class Shim implements AutoCloseable {
       if (!scmpResponderBarrier.await(100, TimeUnit.MILLISECONDS)) {
         // ignore
         log.info("Could not start SHIM: {}", forwarder.getName());
+      } else {
+        log.info("SHIM started.");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
-    log.info("SHIM started.");
   }
 
   private void forwardStarter() {
@@ -148,7 +145,7 @@ public class Shim implements AutoCloseable {
   public void forward(ByteBuffer buf, DatagramChannel channel) {
     buf.rewind();
     try {
-      if (forwardCallback != null && forwardCallback.test(buf)) {
+      if (forwardCallback == null || forwardCallback.test(buf)) {
         InetSocketAddress dst = ScionHeaderParser.extractDestinationSocketAddress(buf);
         channel.send(buf, dst);
       }

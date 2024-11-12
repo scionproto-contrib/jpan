@@ -33,7 +33,7 @@ import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 
-class DatagramChannelApiServerTest {
+class DatagramSocketApiServerTest {
 
   @AfterEach
   public void afterEach() throws IOException {
@@ -47,8 +47,8 @@ class DatagramChannelApiServerTest {
     MockNetwork.startTiny();
     // check that open() (without service argument) creates a default service.
     ScionService.closeDefault();
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      assertEquals(Scion.defaultService(), channel.getService());
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
+      assertEquals(Scion.defaultService(), socket.getService());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -60,8 +60,8 @@ class DatagramChannelApiServerTest {
     // check that open() (without service argument) uses the default service.
     ScionService.closeDefault();
     ScionService service = Scion.defaultService();
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      assertEquals(service, channel.getService());
+    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
+      assertEquals(service, socket.getService());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -71,8 +71,8 @@ class DatagramChannelApiServerTest {
   void open_withNullService() throws IOException {
     // check that open() (without service argument) does not internally create a ScionService.
     ScionService.closeDefault();
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
-      assertNull(channel.getService());
+    try (ScionDatagramSocket socket = ScionDatagramSocket.create(null)) {
+      assertNull(socket.getService());
     }
   }
 
@@ -83,8 +83,8 @@ class DatagramChannelApiServerTest {
     // one exists.
     ScionService.closeDefault();
     Scion.defaultService();
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
-      assertNull(channel.getService());
+    try (ScionDatagramSocket socket = ScionDatagramSocket.create(null)) {
+      assertNull(socket.getService());
     } finally {
       MockNetwork.stopTiny();
     }
@@ -94,9 +94,9 @@ class DatagramChannelApiServerTest {
   void bind_withNullService() throws IOException {
     // check that bind() does not internally require a ScionService.
     ScionService.closeDefault();
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
-      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
-      assertNull(channel.getService());
+    try (ScionDatagramSocket socket = ScionDatagramSocket.create(null)) {
+      socket.bind(new InetSocketAddress("127.0.0.1", 12345));
+      assertNull(socket.getService());
     }
   }
 
@@ -104,21 +104,26 @@ class DatagramChannelApiServerTest {
   void send_withNullService() throws IOException {
     // check that send(Path) does not internally require a ScionService.
     ScionService.closeDefault();
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
-      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
-      assertNull(channel.getService());
-      ResponsePath path =
-          PackageVisibilityHelper.createDummyResponsePath(
-              new byte[0],
-              1,
-              new byte[4],
-              1,
-              1,
-              new byte[4],
-              1,
-              new InetSocketAddress("127.0.0.1", 1));
-      channel.send(ByteBuffer.allocate(0), path);
-      assertNull(channel.getService());
+
+    SocketAddress addr = new InetSocketAddress("127.0.0.1", 1);
+    MockDatagramChannel mock = MockDatagramChannel.open();
+    mock.setReceiveCallback(
+        buf -> {
+          buf.put(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
+          return addr;
+        });
+    mock.setSendCallback((buf, addr2) -> 42);
+
+    try (ScionDatagramSocket socket = ScionDatagramSocket.create(null, mock)) {
+      socket.bind(new InetSocketAddress("127.0.0.1", 12345));
+      assertNull(socket.getService());
+      // First, we need to receive a packet.
+      DatagramPacket buffer = new DatagramPacket(new byte[1000], 1000);
+      socket.receive(buffer);
+
+      // Now, send it.
+      socket.send(buffer);
+      assertNull(socket.getService());
     }
   }
 
@@ -132,13 +137,12 @@ class DatagramChannelApiServerTest {
           buf.put(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
           return addr;
         });
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null, mock)) {
-      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
-      assertNull(channel.getService());
-      ByteBuffer buffer = ByteBuffer.allocate(100);
-      ScionSocketAddress responseAddress = channel.receive(buffer);
-      assertNull(channel.getService());
-      assertEquals(addr, responseAddress.getPath().getFirstHopAddress());
+    try (ScionDatagramSocket socket = ScionDatagramSocket.create(null, mock)) {
+      socket.bind(new InetSocketAddress("127.0.0.1", 12345));
+      assertNull(socket.getService());
+      DatagramPacket packet = new DatagramPacket(new byte[100], 0);
+      socket.receive(packet);
+      assertNull(socket.getService());
     }
   }
 
@@ -177,11 +181,16 @@ class DatagramChannelApiServerTest {
     ScionService service = null;
     try {
       service = Scion.newServiceWithTopologyFile(topoFile);
-      try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
-        ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
-        assertEquals(brAddress, address.getPath().getFirstHopAddress());
-        assertNotEquals(scionSrc, address.getPath().getFirstHopAddress());
-        assertNotEquals(underLaySrc, address.getPath().getFirstHopAddress());
+      try (ScionDatagramSocket socket = ScionDatagramSocket.create(service, mdc)) {
+        DatagramPacket buffer = new DatagramPacket(new byte[1000], 1000);
+        socket.receive(buffer);
+        InetSocketAddress address = (InetSocketAddress) buffer.getSocketAddress();
+        Path path = socket.getCachedPath(address);
+        assertEquals(brAddress, path.getFirstHopAddress());
+        assertNotEquals(scionSrc, path.getFirstHopAddress());
+        assertNotEquals(underLaySrc, path.getFirstHopAddress());
+        assertEquals(scionSrc.getAddress(), path.getRemoteAddress());
+        assertEquals(scionSrc.getPort(), path.getRemotePort());
         assertEquals(scionSrc.getAddress(), address.getAddress());
         assertEquals(scionSrc.getPort(), address.getPort());
       } finally {
@@ -219,10 +228,12 @@ class DatagramChannelApiServerTest {
     ScionService service = null;
     try {
       service = Scion.newServiceWithTopologyFile("topologies/scionproto-tiny/topology-112.json");
-      try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
-        ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
-        assertEquals(underLaySrc, address.getPath().getFirstHopAddress());
-        assertNotEquals(scionSrc, address.getPath().getFirstHopAddress());
+      try (ScionDatagramSocket socket = ScionDatagramSocket.create(service, mdc)) {
+        DatagramPacket buffer = new DatagramPacket(new byte[1000], 1000);
+        socket.receive(buffer);
+        Path path = socket.getCachedPath(((InetSocketAddress) buffer.getSocketAddress()));
+        assertEquals(underLaySrc, path.getFirstHopAddress());
+        assertNotEquals(scionSrc, path.getFirstHopAddress());
       } finally {
         ScionService.closeDefault();
         MockNetwork.stopTiny();

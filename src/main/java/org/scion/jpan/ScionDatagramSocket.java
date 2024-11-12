@@ -76,10 +76,11 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   }
 
   // "private" to avoid ambiguity with DatagramSocket((SocketAddress) null) -> use create()
-  protected ScionDatagramSocket(ScionService service) throws SocketException {
+  protected ScionDatagramSocket(ScionService service, DatagramChannel channel)
+      throws SocketException {
     super(new DummyDatagramSocketImpl());
     try {
-      channel = new SelectingDatagramChannel(service);
+      this.channel = new SelectingDatagramChannel(service, channel);
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }
@@ -88,7 +89,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   // "private" for consistency, all non-standard constructors are private -> use create()
   protected ScionDatagramSocket(SocketAddress bindAddress, ScionService service)
       throws SocketException {
-    this(service);
+    this(service, null);
     // DatagramSockets always immediately bind unless the bindAddress is null.
     if (bindAddress != null) {
       try {
@@ -109,7 +110,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * @return a new socket.
    */
   public static ScionDatagramSocket create(ScionService service) throws SocketException {
-    return new ScionDatagramSocket(service);
+    return new ScionDatagramSocket(service, null);
+  }
+
+  public static ScionDatagramSocket create(ScionService service, DatagramChannel channel)
+      throws SocketException {
+    return new ScionDatagramSocket(service, channel);
   }
 
   public static ScionDatagramSocket create(SocketAddress bindAddress, ScionService service)
@@ -634,7 +640,9 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
    *     30041.
    * @see ScionDatagramChannel#configureRemoteDispatcher(boolean)
+   * @deprecated Not required anymore, will be removed for 0.5.0
    */
+  @Deprecated // TODO remove for 0.5.0
   public synchronized ScionDatagramSocket setRemoteDispatcher(boolean hasDispatcher) {
     channel.configureRemoteDispatcher(hasDispatcher);
     return this;

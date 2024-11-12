@@ -5,7 +5,7 @@
   "test_dispatcher": true,
   "dispatched_ports": "31000-32767",
   "control_service": {
-    "cs1-ff00_0_111-1": {
+  "cs1-ff00_0_111-1": {
       "addr": "127.0.0.18:31006"
     }
   },

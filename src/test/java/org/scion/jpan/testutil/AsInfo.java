@@ -14,20 +14,35 @@
 
 package org.scion.jpan.testutil;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.LocalTopology;
 
 public class AsInfo {
   private long isdAs;
   private String controlServer;
+  private LocalTopology.DispatcherPortRange portRange;
   private final List<BorderRouter> borderRouters = new ArrayList<>();
 
   void setIsdAs(long isdAs) {
     this.isdAs = isdAs;
+  }
+
+  void setPortRange(LocalTopology.DispatcherPortRange portRange) {
+    this.portRange = portRange;
+  }
+
+  LocalTopology.DispatcherPortRange getPortRange() {
+    return this.portRange;
+  }
+
+  public InetSocketAddress mapDispatcherPorts(InetSocketAddress address) {
+    return portRange.mapToLocalPort(address);
   }
 
   void add(BorderRouter borderRouter) {

@@ -31,8 +31,9 @@ public class PingPongChannelHelper extends PingPongHelperBase {
       boolean connect,
       boolean resetCounters,
       String serverIsdAs,
+      InetSocketAddress serverAddress,
       ScionService service) {
-    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, service);
+    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, serverAddress, service);
   }
 
   public static Builder newBuilder(int nServers, int nClients, int nRounds) {
@@ -99,16 +100,18 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   private class ServerEndpoint extends AbstractChannelEndpoint {
     private final Server server;
     private final int nRounds;
+    private final InetSocketAddress localAddress;
 
-    ServerEndpoint(Server server, int id, int nRounds) {
+    ServerEndpoint(Server server, int id, int nRounds, InetSocketAddress localAddress) {
       super(id, serverService);
       this.server = server;
       this.nRounds = nRounds;
+      this.localAddress = localAddress; // can be null
     }
 
     @Override
     public final void runImpl(ScionDatagramChannel channel) throws IOException {
-      channel.bind(null);
+      channel.bind(localAddress);
       registerStartUpServer(channel.getLocalAddress());
       for (int i = 0; i < nRounds; i++) {
         server.run(channel);
@@ -129,7 +132,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     try {
       start();
       run(
-          (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds),
+          (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds, serverAddress),
           (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients));
     } finally {
       close();
@@ -170,6 +173,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
   }
 
   public static class Builder extends PingPongHelperBase.Builder<PingPongChannelHelper.Builder> {
+    private InetSocketAddress serverAddress = null;
 
     protected Builder(int nServers, int nClients, int nRounds) {
       super(nServers, nClients, nRounds, true);
@@ -181,7 +185,19 @@ public class PingPongChannelHelper extends PingPongHelperBase {
 
     public PingPongChannelHelper build() {
       return new PingPongChannelHelper(
-          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, service());
+          nServers,
+          nClients,
+          nRounds,
+          connectClients,
+          checkCounters,
+          serverIsdAs,
+          serverAddress,
+          service());
+    }
+
+    public Builder serverBindAddress(InetSocketAddress serverBindAddress) {
+      this.serverAddress = serverBindAddress;
+      return this;
     }
   }
 }

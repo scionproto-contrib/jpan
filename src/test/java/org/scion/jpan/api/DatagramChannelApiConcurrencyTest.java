@@ -34,7 +34,7 @@ import org.scion.jpan.testutil.MockDaemon;
 
 class DatagramChannelApiConcurrencyTest {
 
-  private static final int dummyPort = 44444;
+  private static final int dummyPort = 32000;
   private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
 
@@ -143,7 +143,6 @@ class DatagramChannelApiConcurrencyTest {
           synchronized (receiveCount) {
             receiveCount.wait(1000);
           }
-          assertEquals(2, receiveCount.get());
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         } finally {
@@ -151,6 +150,7 @@ class DatagramChannelApiConcurrencyTest {
           r2.interrupt();
           s1.interrupt();
         }
+        assertEquals(2, receiveCount.get());
       }
     }
   }

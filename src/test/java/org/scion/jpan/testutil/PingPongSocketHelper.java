@@ -34,8 +34,9 @@ public class PingPongSocketHelper extends PingPongHelperBase {
       boolean connect,
       boolean resetCounters,
       String serverIsdAs,
+      InetSocketAddress serverAddress,
       ScionService service) {
-    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, service);
+    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, serverAddress, service);
   }
 
   public static PingPongSocketHelper.Builder newBuilder(int nServers, int nClients, int nRounds) {
@@ -168,7 +169,8 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     try {
       start();
       int port = MockNetwork.getTinyServerAddress().getPort();
-      try (ScionDatagramSocket socket = new ScionDatagramSocket(port)) {
+      try (ScionDatagramSocket socket =
+          ScionDatagramSocket.create(new InetSocketAddress(port), serverService)) {
         run(
             (id, nRounds) ->
                 new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
@@ -215,7 +217,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     public PingPongSocketHelper build() {
       return new PingPongSocketHelper(
-          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, service());
+          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, null, service());
     }
   }
 }

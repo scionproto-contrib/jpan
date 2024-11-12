@@ -9,11 +9,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- AbstractDataChannel
+  - Remove receive(expectedHeaderType) -> just check for SCMP, otherwise -> default
+  - Move buildHeader() -> UDP-part out of this function. 
+- replace Selector.open() with channel.provider().openSelector();
+- USe topo port range for connections in local AS!
 - Fix demos to return an "int" that can be tested!
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
 - Bootstrap JPAN with reverse lookup to get search-domain --> Francois
 
 - Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
+- Bootstrap to find local search domain with reverse lookup, ask Francois!
+- Cache local address, see AbstractChannel:600
+  srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
+- MockDaemon: read properties from topofile, see TODO
+- Cache paths
+- Server should get firstHop from topofile or daemon, not from packet IP!
+  -> BRs may use different ports for in/outgoing traffic.
+  -> Thios would also solve the server/SHIM problem, see TODO.md 
 - Fix @Disabled tests
 - Support topofile port range
   - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
@@ -26,10 +39,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
+**BREAKING CHANGE**
+- The SHIM now occupies port 30041. This means any application trying to use that port will fail.
+  - Solution #1: Just use any other port instead, the SHIM will forward traffic to it.
+  - Solution #2: Disable the SHIM with 
+
 ### Added
 - Add a SHIM, required for #130 (topo file port range support).
-  [#130](https://github.com/scionproto-contrib/jpan/pull/130)
+  [#131](https://github.com/scionproto-contrib/jpan/pull/131)
 - ManagedThread test helper. [#136](https://github.com/scionproto-contrib/jpan/pull/136)
+- Support for `dispatched_ports` in topo files. Deprecated `configureRemoteDispatcher()`.
+  [#130](https://github.com/scionproto-contrib/jpan/pull/130)
 
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)

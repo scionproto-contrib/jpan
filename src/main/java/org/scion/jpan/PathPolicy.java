@@ -78,7 +78,7 @@ public interface PathPolicy {
 
     private boolean checkPath(Path path) {
       for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
-        int isd = (int) (pif.getIsdAs() >>> 48);
+        int isd = ScionUtil.extractIsd(pif.getIsdAs());
         if (!allowedIsds.contains(isd)) {
           return false;
         }
@@ -104,7 +104,7 @@ public interface PathPolicy {
 
     private boolean checkPath(Path path) {
       for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
-        int isd = (int) (pif.getIsdAs() >>> 48);
+        int isd = ScionUtil.extractIsd(pif.getIsdAs());
         if (disallowedIsds.contains(isd)) {
           return false;
         }

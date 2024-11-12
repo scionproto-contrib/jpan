@@ -22,10 +22,9 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.Shim;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockNetwork;
@@ -34,10 +33,17 @@ import org.scion.jpan.testutil.MockScmpHandler;
 public class ScmpResponderTest {
   private static final ConcurrentLinkedQueue<String> errors = new ConcurrentLinkedQueue<>();
 
+  @BeforeEach
+  void beforeEach() {
+    System.setProperty(Constants.PROPERTY_SHIM, "false");
+    Shim.uninstall();
+  }
+
   @AfterAll
   public static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
+    System.clearProperty(Constants.PROPERTY_SHIM);
   }
 
   @AfterEach

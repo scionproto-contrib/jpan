@@ -33,9 +33,6 @@
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
 - Consider subclassing DatagramChannel directly.
-- DISPATCHER migration:
-  - Daemon supposedly provides information about dispatcher. Double check updated proto files
-  - Parse topofiles with port range information -> indicates DISPATCHER presence
 - Consider SHIM support. SHIM is a compatibility component that supports
   old border-router software (requiring a fixed port on the client, unless
   the client is listening on this very port).  When SHIM is used, we cannot 
