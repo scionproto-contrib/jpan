@@ -343,17 +343,35 @@ while the other options are skipped if no property or environment variable is de
 
 
 ### DNS
+
 JPAN will check the OS default DNS server to resolve SCION addresses.
 In addition, addresses can be specified in a `/etc/scion/hosts` file. The location of the hosts file
 is configurable, see next section.  
 
+### SHIM
+
+Every JPAN application will try to start a 
+[SHIM dispatcher](https://docs.scion.org/en/latest/dev/design/router-port-dispatch.html)
+on port 30041. The SHIM is required to support the `dispathed_ports` feature in topo files.
+
+A SHIM does no traffic checking, it blindly forwards every parseable packet to the inscribed SCION 
+destination address. That means a JPAN SHIM will act as a SHIM for all applications on a machine.
+(The slight problem being that if the application stops, the SHIM is stopped, leaving all other 
+applications without a SHIM).
+
+If the SHIM cannot be started because port 30041 is taken, the application will start anyway, 
+assuming that another SHIM is running on 30041.
+ 
+Whether a SHIM is started can be controlled with a configuration option, see below.
+
 ### Other Options
 
-| Option                                                                                                               | Java property                         | Environment variable                 | Default value      |
-|----------------------------------------------------------------------------------------------------------------------|---------------------------------------|--------------------------------------|--------------------|
-| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`          | `SCION_PATH_EXPIRY_MARGIN`           | 10                 |
-| Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles`                | `SCION_HOSTS_FILES`                  | `/etc/scion/hosts` |
-| Minimize segment requests to local AS at the cost of reduced range of path available.                                | `org.scion.resolver.experimentalMinimizeRequests` | `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS`   | `false`            |
+| Option                                                                                               | Java property                                     | Environment variable                            | Default value      |
+|------------------------------------------------------------------------------------------------------|---------------------------------------------------|-------------------------------------------------|--------------------|
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`                      | `SCION_PATH_EXPIRY_MARGIN`                      | 10                 |
+| Location of `hosts` file. Multiple location can be specified separated by `;`.                       | `org.scion.hostsFiles`                            | `SCION_HOSTS_FILES`                             | `/etc/scion/hosts` |
+| Start SHIM.                                                                                          | `org.scion.shim`                                  | `SCION_SHIM`                                    | `true`             |
+| Minimize segment requests to local AS at the cost of reduced range of path available.                | `org.scion.resolver.experimentalMinimizeRequests` | `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` | `false`            |
 
 `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that request CORE segments only of other 
 path can be constructed. This may reduce response time when requesting new paths. It is very likely,

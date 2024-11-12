@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 
+**BREAKING CHANGE**
+- The SHIM now occupies port 30041. This means any application trying to use that port will fail.
+  - Solution #1: Just use any other port instead, the SHIM will forward traffic to it.
+  - Solution #2: Disable the SHIM with 
+
 ### Added
 - Add a SHIM, required for #130 (topo file port range support).
   [#131](https://github.com/scionproto-contrib/jpan/pull/131)
