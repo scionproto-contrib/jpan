@@ -63,16 +63,17 @@ public class ShowpathsDemo {
     switch (NETWORK) {
       case JUNIT_MOCK_V4:
         {
+          System.setProperty(Constants.PROPERTY_SHIM, "false"); // disable SHIM
           DemoTopology.configureMockV4();
           InetAddress remote = MockScmpHandler.getAddress().getAddress();
           MockDNS.install("1-ff00:0:112", "localhost", remote.toString());
-          ShowpathsDemo demo = new ShowpathsDemo();
-          int n = demo.runDemo(DemoConstants.ia110);
+          int n = runDemo(DemoConstants.ia110);
           DemoTopology.shutDown();
           return n;
         }
       case JUNIT_MOCK_V6:
         {
+          System.setProperty(Constants.PROPERTY_SHIM, "false"); // disable SHIM
           DemoTopology.configureMockV6();
           MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
           int n = runDemo(DemoConstants.ia110);
