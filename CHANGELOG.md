@@ -9,15 +9,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
-- AbstractDataChannel
-  - Remove receive(expectedHeaderType) -> just check for SCMP, otherwise -> default
-  - Move buildHeader() -> UDP-part out of this function. 
-- replace Selector.open() with channel.provider().openSelector();
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
 - Bootstrap JPAN with reverse lookup to get search-domain --> Francois
-
+  - dig +short A whoami.akamai.net @zh.akamaitech.net
+  - dig -x 129.132.230.73
+  - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
 - Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
-- Bootstrap to find local search domain with reverse lookup, ask Francois!
+- getExternalIP() can be simplified. 
+  Can we assume that a given AS (CS) is always reachable via the same interface/IP?
+  Then we could completely avoid externalIP detection, unless CS (AS) changes. 
+  - How to detect an AS change?
+  - Prioritize WiFi over 5G? How?
 - Cache local address, see AbstractChannel:600
   srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
 - Cache paths
@@ -30,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Selector support
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
+- Multi-release-jar?
 
 **BREAKING CHANGE**
 - The SHIM now occupies port 30041. This means any application trying to use that port will fail.

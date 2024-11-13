@@ -668,6 +668,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       localAddress = getService().getExternalIP(newPath.getFirstHopAddress());
       if (!Objects.equals(localAddress, oldLocalAddress)) {
         // TODO check CS / bootstrapping
+        throw new UnsupportedOperationException();
       }
     }
   }
