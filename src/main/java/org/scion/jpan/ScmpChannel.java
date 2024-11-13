@@ -171,7 +171,7 @@ public class ScmpChannel implements AutoCloseable {
       super(service, channel);
 
       // selector
-      this.selector = Selector.open();
+      this.selector = channel.provider().openSelector();
       super.channel().configureBlocking(false);
       super.channel().register(selector, SelectionKey.OP_READ);
 

@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.Selector;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -32,17 +31,12 @@ public class ScmpSender implements AutoCloseable {
   private final UnifyingResponseHandler responseHandler = new UnifyingResponseHandler();
   private Consumer<Scmp.ErrorMessage> errorListener = null;
 
-  private ScmpSender(
-      ScionService service,
-      int port,
-      java.nio.channels.DatagramChannel channel,
-      Selector selector) {
+  private ScmpSender(ScionService service, int port, java.nio.channels.DatagramChannel channel) {
     this.sender =
         ScmpSenderAsync.newBuilder(responseHandler)
             .setService(service)
             .setLocalPort(port)
             .setDatagramChannel(channel)
-            .setSelector(selector)
             .build();
   }
 
@@ -237,7 +231,6 @@ public class ScmpSender implements AutoCloseable {
     private ScionService service;
     private int port = -1; // -1 is treated as auto-assign  (similar to port 0)
     private java.nio.channels.DatagramChannel channel = null;
-    private Selector selector = null;
 
     public Builder setLocalPort(int localPort) {
       this.port = localPort;
@@ -254,14 +247,9 @@ public class ScmpSender implements AutoCloseable {
       return this;
     }
 
-    public Builder setSelector(Selector selector) {
-      this.selector = selector;
-      return this;
-    }
-
     public ScmpSender build() {
       ScionService service2 = service == null ? ScionService.defaultService() : service;
-      return new ScmpSender(service2, port, channel, selector);
+      return new ScmpSender(service2, port, channel);
     }
   }
 }

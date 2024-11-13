@@ -630,16 +630,14 @@ public class ScmpSenderAsyncTest {
   private ScmpSenderAsync exceptionSender(ScmpHandler<?> handler) throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
     errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
+    errorChannel.setReceiveCallback(byteBuffer -> null);
     // This selector throws an Exception when activated.
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
     selector.setConnectCallback(
         () -> {
           throw new IOException();
         });
-    return Scmp.newSenderAsyncBuilder(handler)
-        .setDatagramChannel(errorChannel)
-        .setSelector(selector)
-        .build();
+    return Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).build();
   }
 
   private ScmpSenderAsync errorSender(ScmpHandler<?> handler) throws IOException {
@@ -650,12 +648,7 @@ public class ScmpSenderAsyncTest {
           buffer.put(PING_ERROR_4_51_HK);
           return new InetSocketAddress(MockNetwork.getBorderRouterAddress1().getAddress(), 30041);
         });
-    // This selector throws an Exception when activated.
-    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
-    return Scmp.newSenderAsyncBuilder(handler)
-        .setDatagramChannel(errorChannel)
-        .setSelector(selector)
-        .build();
+    return Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).build();
   }
 
   private abstract static class ScmpHandler<T> implements ScmpSenderAsync.ResponseHandler {

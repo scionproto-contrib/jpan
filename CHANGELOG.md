@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Cleanup in AbstractDatagramChannel [#137](https://github.com/scionproto-contrib/jpan/pull/137)
   - buildHeader()
   - undeprecate SCION_TRAFFIC_CLASS
-  - 
+  - Cleanup Selector.open() usages
   
 ## [0.3.0] - 2024-10-09
 

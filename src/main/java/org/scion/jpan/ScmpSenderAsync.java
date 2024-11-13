@@ -28,11 +28,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ScmpSenderAsync implements AutoCloseable {
-  private static final Logger log = LoggerFactory.getLogger(ScmpSenderAsync.class);
   private static final int PORT_NOT_SET = -1;
   private int timeOutMs = 1000;
   private final InternalChannel channel;
@@ -60,10 +57,8 @@ public class ScmpSenderAsync implements AutoCloseable {
       ScionService service,
       int port,
       ResponseHandler handler,
-      java.nio.channels.DatagramChannel channel,
-      Selector selector)
-      throws IOException {
-    this.channel = new InternalChannel(service, port, channel, selector);
+      java.nio.channels.DatagramChannel channel) {
+    this.channel = new InternalChannel(service, port, channel);
     this.handler = handler;
     this.receiver = startHandler(this::receiveTask, "ScmpSender-receiver");
   }
@@ -204,23 +199,23 @@ public class ScmpSenderAsync implements AutoCloseable {
     private final Selector selector;
 
     protected InternalChannel(
-        ScionService service,
-        int port,
-        java.nio.channels.DatagramChannel channel,
-        Selector selector)
-        throws IOException {
+        ScionService service, int port, java.nio.channels.DatagramChannel channel) {
       super(service, channel);
 
-      // selector
-      this.selector = selector;
-      super.channel().configureBlocking(false);
-      super.channel().register(selector, SelectionKey.OP_READ);
+      try {
+        // selector
+        this.selector = channel.provider().openSelector();
+        super.channel().configureBlocking(false);
+        super.channel().register(this.selector, SelectionKey.OP_READ);
 
-      if (port == PORT_NOT_SET) {
-        ensureBound();
-      } else {
-        // listen on ANY interface: 0.0.0.0 / [::]
-        super.bind(new InetSocketAddress(port));
+        if (port == PORT_NOT_SET) {
+          ensureBound();
+        } else {
+          // listen on ANY interface: 0.0.0.0 / [::]
+          super.bind(new InetSocketAddress(port));
+        }
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
       }
     }
 
@@ -406,7 +401,6 @@ public class ScmpSenderAsync implements AutoCloseable {
     private int port = PORT_NOT_SET;
     private final ResponseHandler handler;
     private java.nio.channels.DatagramChannel channel = null;
-    private Selector selector = null;
 
     private Builder(ResponseHandler handler) {
       this.handler = handler;
@@ -427,17 +421,11 @@ public class ScmpSenderAsync implements AutoCloseable {
       return this;
     }
 
-    public Builder setSelector(Selector selector) {
-      this.selector = selector;
-      return this;
-    }
-
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
       try {
         channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
-        selector = selector == null ? Selector.open() : selector;
-        return new ScmpSenderAsync(service, port, handler, channel, selector);
+        return new ScmpSenderAsync(service, port, handler, channel);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }

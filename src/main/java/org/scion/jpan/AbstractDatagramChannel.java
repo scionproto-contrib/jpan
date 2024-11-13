@@ -356,6 +356,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (hdrType == expectedHdrType) {
         return path;
       }
+      // Must be an error...
       receiveScmp(buffer, path);
     }
   }
