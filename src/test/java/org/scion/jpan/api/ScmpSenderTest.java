@@ -321,10 +321,7 @@ public class ScmpSenderTest {
 
   private ScmpSender exceptionSender() throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
-    errorChannel.setSendCallback(
-        (byteBuffer, socketAddress) -> {
-          return 0;
-        });
+    errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
     errorChannel.setThrowOnSend(true);
     errorChannel.setReceiveCallback(byteBuffer -> null);
     return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).build();

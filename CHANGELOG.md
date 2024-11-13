@@ -14,11 +14,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - dig +short A whoami.akamai.net @zh.akamaitech.net
   - dig -x 129.132.230.73
   - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
-- getExternalIP() can be simplified. 
-  Can we assume that a given AS (CS) is always reachable via the same interface/IP?
-  Then we could completely avoid externalIP detection, unless CS (AS) changes. 
-  - How to detect an AS change?
-  - Prioritize WiFi over 5G? How?
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -68,6 +63,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Cleanup Selector.open() usages
   - Caching for getExternalIP()
   - ShowpathsDemo output
+  - Spurious failures of SCMP exception handling tests
   
 ## [0.3.0] - 2024-10-09
 

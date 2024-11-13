@@ -372,7 +372,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     try {
       barrier.countDown();
       channel.receiveAsync();
-    } catch (IOException e) {
+    } catch (Exception e) {
       handler.onException(e);
     }
   }
