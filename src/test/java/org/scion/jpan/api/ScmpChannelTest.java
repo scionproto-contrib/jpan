@@ -109,11 +109,10 @@ public class ScmpChannelTest {
     testEcho(this::getPathTo112);
   }
 
-  @Disabled
   @Test
   void echo_localAS_BR() throws IOException {
     testEcho(this::getPathToLocalAS_BR);
-    assertEquals(0, MockNetwork.getAndResetForwardCount());
+    assertEquals(2, MockNetwork.getAndResetForwardCount());
     assertEquals(1, MockScmpHandler.getAndResetAnswerTotal());
   }
 
