@@ -53,6 +53,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Auto-add port to discovery server setting + better error message.
   [#128](https://github.com/scionproto-contrib/jpan/pull/128)
 - ManagedThread unit test helper [#136](https://github.com/scionproto-contrib/jpan/pull/136)
+- Bootstrapping with recursive search domain resolution.
+  [#138](https://github.com/scionproto-contrib/jpan/pull/138)
 
 ### Fixed
 - Do not immediately fail if discovery server is missing in topo file. 
