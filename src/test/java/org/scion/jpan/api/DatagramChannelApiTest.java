@@ -710,11 +710,13 @@ class DatagramChannelApiTest {
 
       // src should be overrideAddress
       channel.setOverrideSourceAddress(overrideSrc);
+      assertEquals(overrideSrc, channel.getOverrideSourceAddress());
       mock.setSendCallback((buffer, address) -> checkAddress(buffer, overrideSrc));
       channel.send(buf, dummyAddress);
 
       // src should be local address again
       channel.setOverrideSourceAddress(null);
+      assertNull(channel.getOverrideSourceAddress());
       mock.setSendCallback((buffer, address) -> checkAddress(buffer, localAddress));
       channel.send(buf, dummyAddress);
     }

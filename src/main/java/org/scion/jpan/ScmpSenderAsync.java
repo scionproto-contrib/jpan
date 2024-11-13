@@ -232,7 +232,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
         buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-        int localPort = super.getLocalAddress().getPort();
+        int localPort = getLocalPortForSend();
         ScmpParser.buildScmpPing(
             buffer, Scmp.Type.INFO_128, localPort, request.getSequenceNumber(), request.getData());
         buffer.flip();
@@ -254,7 +254,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         int len = 24;
         buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
         int interfaceNumber = request.getSequenceNumber();
-        int localPort = super.getLocalAddress().getPort();
+        int localPort = getLocalPortForSend();
         ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, localPort, interfaceNumber);
         buffer.flip();
 
