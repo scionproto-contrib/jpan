@@ -9,27 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
-- AbstractDataChannel
-  - Remove receive(expectedHeaderType) -> just check for SCMP, otherwise -> default
-  - Move buildHeader() -> UDP-part out of this function. 
-- replace Selector.open() with channel.provider().openSelector();
-- USe topo port range for connections in local AS!
-- Fix demos to return an "int" that can be tested!
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
 - Bootstrap JPAN with reverse lookup to get search-domain --> Francois
-
-- Fix showpaths to show "127.0.0.81:31038" i.o. "/192.168.53.20"
-- Bootstrap to find local search domain with reverse lookup, ask Francois!
-- Cache local address, see AbstractChannel:600
-  srcAddress = getOrCreateService().getExternalIP(path.getFirstHopAddress());
-- MockDaemon: read properties from topofile, see TODO
+  - dig +short A whoami.akamai.net @zh.akamaitech.net
+  - dig -x 129.132.230.73
+  - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
 - Cache paths
-- Server should get firstHop from topofile or daemon, not from packet IP!
-  -> BRs may use different ports for in/outgoing traffic.
-  -> Thios would also solve the server/SHIM problem, see TODO.md 
 - Fix @Disabled tests
-- Support topofile port range
-  - Upgrade all JUnit topo files to post 0.11 with new format (including port range)
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
 - remove ScionAddress?
@@ -38,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Selector support
   - Inherit DatagramChannel 
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
+- Multi-release-jar?
 
 **BREAKING CHANGE**
 - The SHIM now occupies port 30041. This means any application trying to use that port will fail.
@@ -65,10 +52,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#127](https://github.com/scionproto-contrib/jpan/pull/127)
 - Auto-add port to discovery server setting + better error message.
   [#128](https://github.com/scionproto-contrib/jpan/pull/128)
+- ManagedThread unit test helper [#136](https://github.com/scionproto-contrib/jpan/pull/136)
 
 ### Fixed
 - Do not immediately fail if discovery server is missing in topo file. 
   [#126](https://github.com/scionproto-contrib/jpan/pull/126)
+- Cleanup in AbstractDatagramChannel [#137](https://github.com/scionproto-contrib/jpan/pull/137)
+  - buildHeader()
+  - undeprecate SCION_TRAFFIC_CLASS
+  - Cleanup Selector.open() usages
+  - Caching for getExternalIP()
+  - ShowpathsDemo output
+  - Spurious failures of SCMP exception handling tests
   
 ## [0.3.0] - 2024-10-09
 

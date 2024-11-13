@@ -35,9 +35,8 @@ public class ScmpResponder implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ScmpResponder.class);
   private final InternalChannel channel;
 
-  private ScmpResponder(
-      ScionService service, int port, DatagramChannel channel, Selector selector, Shim shim) {
-    this.channel = new InternalChannel(service, port, channel, selector, shim);
+  private ScmpResponder(ScionService service, int port, DatagramChannel channel, Shim shim) {
+    this.channel = new InternalChannel(service, port, channel, shim);
   }
 
   public static Builder newBuilder() {
@@ -93,12 +92,15 @@ public class ScmpResponder implements AutoCloseable {
     private final int port;
     private final Shim shim;
 
-    protected InternalChannel(
-        ScionService service, int port, DatagramChannel channel, Selector selector, Shim shim) {
+    protected InternalChannel(ScionService service, int port, DatagramChannel channel, Shim shim) {
       super(service, channel);
       this.shim = shim;
       this.port = port;
-      this.selector = selector;
+      try {
+        this.selector = channel.provider().openSelector();
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      }
     }
 
     void start() throws IOException {
@@ -171,9 +173,9 @@ public class ScmpResponder implements AutoCloseable {
             // EchoHeader = 8 + data
             int len = 8 + msg.getData().length;
             buildHeader(buffer, msg.getPath(), len, InternalConstants.HdrTypes.SCMP);
-            int port = msg.getIdentifier();
+            int srcPort = msg.getIdentifier();
             ScmpParser.buildScmpPing(
-                buffer, Scmp.Type.INFO_129, port, msg.getSequenceNumber(), msg.getData());
+                buffer, Scmp.Type.INFO_129, srcPort, msg.getSequenceNumber(), msg.getData());
             buffer.flip();
             msg.setSizeSent(buffer.remaining());
             sendRaw(buffer, path);
@@ -224,7 +226,6 @@ public class ScmpResponder implements AutoCloseable {
     private ScionService service;
     private int port = Constants.SCMP_PORT;
     private DatagramChannel channel;
-    private Selector selector;
     private Shim shim;
 
     public Builder setLocalPort(int localPort) {
@@ -241,11 +242,10 @@ public class ScmpResponder implements AutoCloseable {
       ScionService service2 = service == null ? ScionService.defaultService() : service;
       try {
         channel = channel == null ? DatagramChannel.open() : channel;
-        selector = selector == null ? Selector.open() : selector;
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
-      return new ScmpResponder(service2, port, channel, selector, shim);
+      return new ScmpResponder(service2, port, channel, shim);
     }
 
     public Builder setShim(Shim shim) {

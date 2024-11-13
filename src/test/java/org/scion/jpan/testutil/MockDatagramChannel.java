@@ -258,7 +258,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     }
 
     public static MockSelector open() {
-      return new MockSelector(new MockSelectorProvider());
+      return new MockSelector(MockSelectorProvider.provider());
     }
 
     /**

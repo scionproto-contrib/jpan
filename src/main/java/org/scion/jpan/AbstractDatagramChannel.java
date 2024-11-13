@@ -356,6 +356,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (hdrType == expectedHdrType) {
         return path;
       }
+      // Must be an error...
       receiveScmp(buffer, path);
     }
   }
@@ -437,6 +438,32 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.overrideExternalAddress = address;
   }
 
+  public InetSocketAddress getOverrideSourceAddress() {
+    return this.overrideExternalAddress;
+  }
+
+  protected InetAddress getLocalAddressForSend(Path path) throws IOException {
+    if (overrideExternalAddress != null) {
+      return overrideExternalAddress.getAddress();
+    }
+    // Get external host address. This must be done *after* refreshing the path!
+    if (localAddress.isAnyLocalAddress()) {
+      // For sending request path we need to have a valid local external address.
+      // If the local address is a wildcard address then we get the external IP
+      // elsewhere (from the service).
+      return getService().getExternalIP(path.getFirstHopAddress());
+    } else {
+      return localAddress;
+    }
+  }
+
+  protected int getLocalPortForSend() throws IOException {
+    if (overrideExternalAddress != null) {
+      return overrideExternalAddress.getPort();
+    }
+    return ((InetSocketAddress) channel.getLocalAddress()).getPort();
+  }
+
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
     // For inter-AS connections we need to send directly to the destination address.
     // We also need to respect the port range and use 30041 when applicable.
@@ -493,7 +520,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  @SuppressWarnings({"unchecked", "deprecation"})
+  @SuppressWarnings("unchecked")
   public <T> T getOption(SocketOption<T> option) throws IOException {
     checkOpen();
     synchronized (stateLock) {
@@ -516,7 +543,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  @SuppressWarnings({"unchecked", "deprecation"})
+  @SuppressWarnings("unchecked")
   public <T> C setOption(SocketOption<T> option, T t) throws IOException {
     checkOpen();
     synchronized (stateLock) {
@@ -597,43 +624,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       ensureBound();
       buffer.clear();
-      long srcIA;
+      long srcIsdAs;
       InetAddress srcAddress;
-      int srcPort;
       if (path instanceof ResponsePath) {
-        // We could get source IA, address and port locally, but it seems cleaner
-        // to get these from the inverted header.
+        // We get the source ISD/AS and IP from the path because ScionService may be null.
         ResponsePath rPath = (ResponsePath) path;
-        srcIA = rPath.getLocalIsdAs();
+        srcIsdAs = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
-        srcPort = rPath.getLocalPort();
       } else {
-        srcIA = getService().getLocalIsdAs();
-        if (overrideExternalAddress != null) {
-          // Use specified external address. This can be useful to work with NATs.
-          srcAddress = overrideExternalAddress.getAddress();
-          srcPort = overrideExternalAddress.getPort();
-        } else {
-          // Get external host address. This must be done *after* refreshing the path!
-          if (localAddress.isAnyLocalAddress()) {
-            // For sending request path we need to have a valid local external address.
-            // If the local address is a wildcard address then we get the external IP
-            // elsewhere (from the service).
-
-            // TODO cache this or add it to path object?
-            srcAddress = getService().getExternalIP(path.getFirstHopAddress());
-          } else {
-            srcAddress = localAddress;
-          }
-          srcPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-          if (srcPort == 0) {
-            // This has apparently been fixed in Java 14:
-            // https://bugs.openjdk.org/browse/JDK-8231880
-            throw new IllegalStateException(
-                "Local port is 0. This happens after calling "
-                    + "disconnect(). Please connect() or bind() before send() or write().");
-          }
-        }
+        srcIsdAs = getService().getLocalIsdAs();
+        srcAddress = getLocalAddressForSend(path);
       }
 
       byte[] rawPath = path.getRawPath();
@@ -641,18 +641,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           buffer,
           payloadLength,
           rawPath.length,
-          srcIA,
+          srcIsdAs,
           srcAddress.getAddress(),
           path.getRemoteIsdAs(),
           path.getRemoteAddress().getAddress(),
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
-
-      if (hdrType == InternalConstants.HdrTypes.UDP) {
-        int dstPort = path.getRemotePort();
-        ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
-      }
     }
   }
 
@@ -671,6 +666,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       localAddress = getService().getExternalIP(newPath.getFirstHopAddress());
       if (!Objects.equals(localAddress, oldLocalAddress)) {
         // TODO check CS / bootstrapping
+        throw new UnsupportedOperationException();
       }
     }
   }

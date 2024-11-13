@@ -321,14 +321,10 @@ public class ScmpSenderTest {
 
   private ScmpSender exceptionSender() throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
-    errorChannel.setSendCallback(
-        (byteBuffer, socketAddress) -> {
-          return 0;
-        });
+    errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
     errorChannel.setThrowOnSend(true);
-    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
     errorChannel.setReceiveCallback(byteBuffer -> null);
-    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();
+    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).build();
   }
 
   private ScmpSender errorSender() throws IOException {
@@ -363,8 +359,6 @@ public class ScmpSenderTest {
           spi.writePacketSCMP(buffer);
           return socketAddresses.remove();
         });
-    // This selector throws an Exception when activated.
-    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
-    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).setSelector(selector).build();
+    return Scmp.newSenderBuilder().setDatagramChannel(errorChannel).build();
   }
 }

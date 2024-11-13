@@ -259,6 +259,9 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       }
       // + 8 for UDP overlay header length
       buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP);
+      int dstPort = path.getRemotePort();
+      int srcPort = getLocalPortForSend();
+      ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
     }
   }
 

@@ -280,11 +280,25 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendEcho_IOException() throws IOException {
+  void sendEcho_Exception_send() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     EchoHandler handler = new EchoHandler();
     try (ScmpSenderAsync channel = exceptionSender(handler)) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      // Exception thrown by MockChannel
+      assertThrows(Exception.class, () -> channel.sendEcho(path, ByteBuffer.allocate(0)));
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void sendEcho_Exception_receive() throws IOException {
+    MockNetwork.startTiny();
+    Path path = getPathTo112();
+    EchoHandler handler = new EchoHandler();
+    try (ScmpSenderAsync channel = exceptionReceiver(handler)) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       channel.sendEcho(path, ByteBuffer.allocate(0));
       // IOException thrown by MockChannel
@@ -422,11 +436,25 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendTraceroute_IOException() throws IOException {
+  void sendTraceroute_Exception_send() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = exceptionSender(handler)) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      // Exception thrown by MockChannel
+      assertThrows(Exception.class, () -> channel.sendTraceroute(path));
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void sendTraceroute_Exception_receive() throws IOException {
+    MockNetwork.startTiny();
+    Path path = getPathTo112();
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = exceptionReceiver(handler)) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       List<Integer> ids = channel.sendTraceroute(path);
       // IOException thrown by MockChannel
@@ -565,11 +593,25 @@ public class ScmpSenderAsyncTest {
   }
 
   @Test
-  void sendTracerouteLast_IOException() throws IOException {
+  void sendTracerouteLast_Exception_send() throws IOException {
     MockNetwork.startTiny();
     Path path = getPathTo112();
     TraceHandler handler = new TraceHandler();
     try (ScmpSenderAsync channel = exceptionSender(handler)) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      // Exception thrown by MockChannel
+      assertThrows(Exception.class, () -> channel.sendTracerouteLast(path));
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void sendTracerouteLast_Exception_receive() throws IOException {
+    MockNetwork.startTiny();
+    Path path = getPathTo112();
+    TraceHandler handler = new TraceHandler();
+    try (ScmpSenderAsync channel = exceptionReceiver(handler)) {
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       channel.sendTracerouteLast(path);
       // IOException thrown by MockChannel
@@ -629,17 +671,36 @@ public class ScmpSenderAsyncTest {
 
   private ScmpSenderAsync exceptionSender(ScmpHandler<?> handler) throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
-    errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
+    errorChannel.setSendCallback(
+        (byteBuffer, socketAddress) -> {
+          throw new IllegalStateException();
+        });
+    errorChannel.setReceiveCallback(byteBuffer -> null);
+
     // This selector throws an Exception when activated.
     MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
     selector.setConnectCallback(
         () -> {
           throw new IOException();
         });
-    return Scmp.newSenderAsyncBuilder(handler)
-        .setDatagramChannel(errorChannel)
-        .setSelector(selector)
-        .build();
+    return Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).build();
+  }
+
+  private ScmpSenderAsync exceptionReceiver(ScmpHandler<?> handler) throws IOException {
+    MockDatagramChannel errorChannel = MockDatagramChannel.open();
+    errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
+    errorChannel.setReceiveCallback(
+        byteBuffer -> {
+          throw new IllegalStateException();
+        });
+
+    // This selector throws an Exception when activated.
+    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
+    selector.setConnectCallback(
+        () -> {
+          throw new IOException();
+        });
+    return Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).build();
   }
 
   private ScmpSenderAsync errorSender(ScmpHandler<?> handler) throws IOException {
@@ -650,12 +711,7 @@ public class ScmpSenderAsyncTest {
           buffer.put(PING_ERROR_4_51_HK);
           return new InetSocketAddress(MockNetwork.getBorderRouterAddress1().getAddress(), 30041);
         });
-    // This selector throws an Exception when activated.
-    MockDatagramChannel.MockSelector selector = MockDatagramChannel.MockSelector.open();
-    return Scmp.newSenderAsyncBuilder(handler)
-        .setDatagramChannel(errorChannel)
-        .setSelector(selector)
-        .build();
+    return Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).build();
   }
 
   private abstract static class ScmpHandler<T> implements ScmpSenderAsync.ResponseHandler {

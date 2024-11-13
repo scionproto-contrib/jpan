@@ -103,7 +103,7 @@ public class MockScmpHandler implements Runnable {
     Thread.currentThread().setName(name);
     InetSocketAddress localAddress = new InetSocketAddress(ip, PORT);
     try (DatagramChannel chn = DatagramChannel.open().bind(localAddress);
-        Selector selector = Selector.open()) {
+        Selector selector = chn.provider().openSelector()) {
       chn.configureBlocking(false);
       chn.register(selector, SelectionKey.OP_READ, chn);
       ByteBuffer buffer = ByteBuffer.allocate(66000);

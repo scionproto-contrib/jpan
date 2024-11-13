@@ -128,7 +128,9 @@ public class ShowpathsDemo {
               + " MTU: "
               + meta.getMtu()
               + " NextHop: "
-              + path.getFirstHopAddress().getAddress()
+              + path.getFirstHopAddress().getHostString()
+              + ":"
+              + path.getFirstHopAddress().getPort()
               + " LocalIP: "
               + localIP;
       println(sb);
