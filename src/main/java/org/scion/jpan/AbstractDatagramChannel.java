@@ -522,7 +522,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings("unchecked")
   public <T> T getOption(SocketOption<T> option) throws IOException {
     checkOpen();
     synchronized (stateLock) {
@@ -545,7 +545,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  @SuppressWarnings({"unchecked", "deprecation"})
+  @SuppressWarnings("unchecked")
   public <T> C setOption(SocketOption<T> option, T t) throws IOException {
     checkOpen();
     synchronized (stateLock) {

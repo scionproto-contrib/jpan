@@ -213,22 +213,22 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void isBlocking_true_read() throws IOException, InterruptedException {
+  void isBlocking_true_read() throws IOException {
     testBlocking(true, channel -> channel.read(ByteBuffer.allocate(100)));
   }
 
   @Test
-  void isBlocking_false_read() throws IOException, InterruptedException {
+  void isBlocking_false_read() throws IOException {
     testBlocking(false, channel -> channel.read(ByteBuffer.allocate(100)));
   }
 
   @Test
-  void isBlocking_true_receiver() throws IOException, InterruptedException {
+  void isBlocking_true_receiver() throws IOException {
     testBlocking(true, channel -> channel.receive(ByteBuffer.allocate(100)));
   }
 
   @Test
-  void isBlocking_false_receive() throws IOException, InterruptedException {
+  void isBlocking_false_receive() throws IOException {
     testBlocking(false, channel -> channel.receive(ByteBuffer.allocate(100)));
   }
 
@@ -236,8 +236,7 @@ class DatagramChannelApiTest {
     void accept(ScionDatagramChannel channel) throws InterruptedException, IOException;
   }
 
-  private void testBlocking(boolean isBlocking, ChannelConsumer fn)
-      throws IOException, InterruptedException {
+  private void testBlocking(boolean isBlocking, ChannelConsumer fn) throws IOException {
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
     AtomicBoolean wasBlocking = new AtomicBoolean(true);
