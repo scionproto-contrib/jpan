@@ -82,7 +82,8 @@ public class ScionService {
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
   private Thread shutdownHook;
-  private final java.nio.channels.DatagramChannel[] ifDiscoveryChannel = {null};
+  private java.nio.channels.DatagramChannel ifDiscoveryChannel = null;
+  private final Map<InetAddress, InetAddress> ifDiscoveryMap = new HashMap<>();
   private final HostsFileParser hostsFile = new HostsFileParser();
   private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
 
@@ -248,12 +249,13 @@ public class ScionService {
           LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
         }
       }
-      synchronized (ifDiscoveryChannel) {
+      synchronized (ifDiscoveryMap) {
         try {
-          if (ifDiscoveryChannel[0] != null) {
-            ifDiscoveryChannel[0].close();
+          if (ifDiscoveryChannel != null) {
+            ifDiscoveryChannel.close();
           }
-          ifDiscoveryChannel[0] = null;
+          ifDiscoveryChannel = null;
+          ifDiscoveryMap.clear();
         } catch (IOException e) {
           throw new ScionRuntimeException(e);
         }
@@ -631,18 +633,27 @@ public class ScionService {
    * @param firstHopAddress Reachable address.
    */
   InetAddress getExternalIP(InetSocketAddress firstHopAddress) {
-    synchronized (ifDiscoveryChannel) {
-      try {
-        if (ifDiscoveryChannel[0] == null) {
-          ifDiscoveryChannel[0] = java.nio.channels.DatagramChannel.open();
-        }
-        ifDiscoveryChannel[0].connect(firstHopAddress);
-        SocketAddress address = ifDiscoveryChannel[0].getLocalAddress();
-        ifDiscoveryChannel[0].disconnect();
-        return ((InetSocketAddress) address).getAddress();
-      } catch (IOException e) {
-        throw new ScionRuntimeException(e);
-      }
+    // We currently keep a map with BR->externalIP. This may be overkill, probably all BR in
+    // a given AS are reachable via the same interface.
+    // TODO
+    // Moreover, it DOES NOT WORK with multiple AS, because BR IPs are not unique across ASes.
+    // However, switching ASes is not currently implemented...
+    synchronized (ifDiscoveryMap) {
+      return ifDiscoveryMap.computeIfAbsent(
+          firstHopAddress.getAddress(),
+          firstHop -> {
+            try {
+              if (ifDiscoveryChannel == null) {
+                ifDiscoveryChannel = java.nio.channels.DatagramChannel.open();
+              }
+              ifDiscoveryChannel.connect(firstHopAddress);
+              SocketAddress address = ifDiscoveryChannel.getLocalAddress();
+              ifDiscoveryChannel.disconnect();
+              return ((InetSocketAddress) address).getAddress();
+            } catch (IOException e) {
+              throw new ScionRuntimeException(e);
+            }
+          });
     }
   }
 

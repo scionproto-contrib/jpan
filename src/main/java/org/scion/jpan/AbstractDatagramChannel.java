@@ -451,8 +451,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       // For sending request path we need to have a valid local external address.
       // If the local address is a wildcard address then we get the external IP
       // elsewhere (from the service).
-
-      // TODO cache this or add it to path object?
       return getService().getExternalIP(path.getFirstHopAddress());
     } else {
       return localAddress;
