@@ -203,7 +203,7 @@ public class DNSHelper {
     // external domain. We then strip subdomains from the domain until we get one that
     // gives us a usable NAPTR record.
     // - dig +short A whoami.akamai.net @zh.akamaitech.net
-    // - dig -x 129.132.230.73
+    // - dig -x 129.132.0.0
     // - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
 
     try {
@@ -259,7 +259,7 @@ public class DNSHelper {
         String domStr = domain.toString(false);
         int pos = domStr.indexOf('.');
         if (pos <= 0 || pos == domStr.length() - 1) {
-          return null;
+          break;
         }
         domain = Name.fromString(domStr.substring(pos + 1));
       }
