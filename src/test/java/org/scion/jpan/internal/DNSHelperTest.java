@@ -14,14 +14,13 @@
 
 package org.scion.jpan.internal;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.net.InetAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.testutil.DNSUtil;
 import org.xbill.DNS.*;
-
-import java.net.InetAddress;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class DNSHelperTest {
 

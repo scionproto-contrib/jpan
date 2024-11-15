@@ -126,10 +126,10 @@ public class DNSHelper {
         domains.add(domain);
       } else {
         LOG.warn(
-                "No DNS search domain found. Please check your /etc/resolv.conf or similar." +
-                        " You can also specify a domain via {} or {}",
-                        ENV_DNS_SEARCH_DOMAINS,
-                        PROPERTY_DNS_SEARCH_DOMAINS);
+            "No DNS search domain found. Please check your /etc/resolv.conf or similar."
+                + " You can also specify a domain via {} or {}",
+            ENV_DNS_SEARCH_DOMAINS,
+            PROPERTY_DNS_SEARCH_DOMAINS);
       }
     }
     for (Name domain : domains) {
@@ -240,7 +240,8 @@ public class DNSHelper {
     return null;
   }
 
-  private static Name findSearchDomainViaReverseLookup(InetAddress address) throws TextParseException {
+  private static Name findSearchDomainViaReverseLookup(InetAddress address)
+      throws TextParseException {
     Name name = Name.fromString(reverseAddressForARPA(address));
     org.xbill.DNS.Record[] records = new Lookup(name, Type.PTR).run();
     if (records == null) {

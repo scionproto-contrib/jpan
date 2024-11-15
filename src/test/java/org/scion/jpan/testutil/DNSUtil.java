@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-
 import org.xbill.DNS.*;
 
 public class DNSUtil {

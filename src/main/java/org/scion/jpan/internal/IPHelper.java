@@ -127,6 +127,7 @@ public class IPHelper {
 
   /**
    * Convenience function that creates an IP address from a int[] instead of a byte[]
+   *
    * @param ints Address bytes.
    * @return InetAddress
    */
@@ -136,9 +137,9 @@ public class IPHelper {
       bytes[i] = ByteUtil.toByte(ints[i]);
     }
     try {
-        return InetAddress.getByAddress(bytes);
+      return InetAddress.getByAddress(bytes);
     } catch (UnknownHostException e) {
-        throw new IllegalArgumentException(e);
+      throw new IllegalArgumentException(e);
     }
   }
 }
