@@ -17,11 +17,12 @@ package org.scion.jpan.testutil;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import org.xbill.DNS.*;
 
 public class DNSUtil {
 
-  public static InetAddress install(String asHost, byte[] addrBytes) {
+  public static InetAddress installAddress(String asHost, byte[] addrBytes) {
     try {
       Name name = Name.fromString(asHost + ".");
       Cache c = Lookup.getDefaultCache(DClass.IN);
@@ -101,6 +102,29 @@ public class DNSUtil {
         return Name.fromString(hostName);
       }
       return Name.fromString(hostName + ".");
+    } catch (TextParseException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void installPTR(String key, String value) {
+    // Example:
+    // key = "4.3.2.1.in-addr.arpa.
+    // value = "my-dhcp-192-168-0-42.my.domain.org"
+    try {
+      String[] results = value.split("\\.");
+      ByteBuffer bb = ByteBuffer.allocate(1000);
+      for (String r : results) {
+        bb.put((byte) r.length());
+        bb.put(r.getBytes());
+      }
+      bb.put((byte) 0);
+      byte[] data = new byte[bb.position()];
+      bb.flip();
+      bb.get(data);
+      Name name = Name.fromString(key);
+      org.xbill.DNS.Record ptrRecord = PTRRecord.newRecord(name, Type.PTR, DClass.IN, 3600, data);
+      Lookup.getDefaultCache(DClass.IN).addRecord(ptrRecord, 10);
     } catch (TextParseException e) {
       throw new RuntimeException(e);
     }

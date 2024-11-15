@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.junit.jupiter.api.Test;
 
@@ -95,5 +96,44 @@ class IPHelperTest {
     assertEquals("localhost:333", IPHelper.ensurePortOrDefault("localhost:333", 12345));
 
     assertEquals("localhost:333", IPHelper.ensurePortOrDefault("333", 12345));
+  }
+
+  @Test
+  void getByAddress_error() {
+    int[] inputV4 = new int[] {255, 255, 255, 255, 255};
+    assertThrows(IllegalArgumentException.class, () -> IPHelper.getByAddress(inputV4));
+  }
+
+  @Test
+  void getByAddress_IPv4() throws UnknownHostException {
+    int[] inputV4 = new int[] {129, 132, 255, 255};
+    byte[] expectedV4 = new byte[] {129 - 256, 132 - 256, 255 - 256, 255 - 256};
+    assertEquals(InetAddress.getByAddress(expectedV4), IPHelper.getByAddress(inputV4));
+  }
+
+  @Test
+  void getByAddress_IPv6() throws UnknownHostException {
+    int[] inputV6 =
+        new int[] {0x20, 0x01, 0x06, 0x7c, 0x10, 0xec, 0x57, 0x84, 0x80, 0x00, 0, 0, 0, 0, 0, 0};
+    byte[] expectedV6 =
+        new byte[] {
+          0x20,
+          0x01,
+          0x06,
+          0x7c,
+          0x10,
+          0xec - 256,
+          0x57,
+          0x84 - 256,
+          0x80 - 256,
+          0x00,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        };
+    assertEquals(InetAddress.getByAddress(expectedV6), IPHelper.getByAddress(inputV6));
   }
 }

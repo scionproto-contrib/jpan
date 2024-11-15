@@ -124,4 +124,22 @@ public class IPHelper {
     }
     return address + ':' + port;
   }
+
+  /**
+   * Convenience function that creates an IP address from a int[] instead of a byte[]
+   *
+   * @param ints Address bytes.
+   * @return InetAddress
+   */
+  public static InetAddress getByAddress(int[] ints) {
+    byte[] bytes = new byte[ints.length];
+    for (int i = 0; i < bytes.length; i++) {
+      bytes[i] = ByteUtil.toByte(ints[i]);
+    }
+    try {
+      return InetAddress.getByAddress(bytes);
+    } catch (UnknownHostException e) {
+      throw new IllegalArgumentException(e);
+    }
+  }
 }
