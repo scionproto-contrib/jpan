@@ -18,7 +18,9 @@ import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.function.Function;
 import org.scion.jpan.ScionRuntimeException;
@@ -119,17 +121,22 @@ public class DNSHelper {
 
     List<Name> domains = Lookup.getDefaultSearchPath();
     if (domains.isEmpty()) {
-      LOG.warn(
-          "No DNS search domain found. Please check your /etc/resolv.conf or similar. You can also specify a domain via "
-              + ENV_DNS_SEARCH_DOMAINS
-              + " or "
-              + PROPERTY_DNS_SEARCH_DOMAINS);
+      Name domain = findSearchDomainViaReverseLookup();
+      if (domain != null) {
+        domains.add(domain);
+      } else {
+        LOG.warn(
+                "No DNS search domain found. Please check your /etc/resolv.conf or similar." +
+                        " You can also specify a domain via {} or {}",
+                        ENV_DNS_SEARCH_DOMAINS,
+                        PROPERTY_DNS_SEARCH_DOMAINS);
+      }
     }
     for (Name domain : domains) {
       LOG.debug("Checking discovery service domain: {}", domain);
-      String a = getScionDiscoveryAddress(domain);
-      if (a != null) {
-        return a;
+      String address = getScionDiscoveryAddress(domain);
+      if (address != null) {
+        return address;
       }
     }
     return null;
@@ -188,5 +195,96 @@ public class DNSHelper {
           "Could not find valid TXT " + STR_X_SCION + " record for host: " + hostName);
     }
     return discoveryPort;
+  }
+
+  static Name findSearchDomainViaReverseLookup() {
+    // Idea:
+    // We call whoami to get our (external) IP, then reverse lookup the IP to get our
+    // external domain. We then strip subdomains from the domain until we get one that
+    // gives us a usable NAPTR record.
+    // - dig +short A whoami.akamai.net @zh.akamaitech.net
+    // - dig -x 129.132.230.73
+    // - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
+
+    try {
+      Name reverseLookupHost = Name.fromString("whoami.akamai.net");
+      Resolver resolver = new SimpleResolver("zh.akamaitech.net");
+
+      // IPv4
+      Lookup lookup4 = new Lookup(reverseLookupHost, Type.A);
+      lookup4.setResolver(resolver);
+      org.xbill.DNS.Record[] records4 = lookup4.run();
+      for (org.xbill.DNS.Record record4 : records4) {
+        ARecord arecord = (ARecord) record4;
+        InetAddress localAddress = arecord.getAddress();
+        Name domain = findSearchDomainViaReverseLookup(localAddress);
+        if (domain != null) {
+          return domain;
+        }
+      }
+
+      Lookup lookup6 = new Lookup(reverseLookupHost, Type.AAAA);
+      lookup6.setResolver(resolver);
+      org.xbill.DNS.Record[] records6 = lookup6.run();
+      for (org.xbill.DNS.Record record6 : records6) {
+        AAAARecord arecord = (AAAARecord) record6;
+        InetAddress localAddress = arecord.getAddress();
+        Name domain = findSearchDomainViaReverseLookup(localAddress);
+        if (domain != null) {
+          return domain;
+        }
+      }
+    } catch (TextParseException | UnknownHostException e) {
+      throw new ScionRuntimeException(e);
+    }
+    return null;
+  }
+
+  private static Name findSearchDomainViaReverseLookup(InetAddress address) throws TextParseException {
+    Name name = Name.fromString(reverseAddressForARPA(address));
+    org.xbill.DNS.Record[] records = new Lookup(name, Type.PTR).run();
+    if (records == null) {
+      return null;
+    }
+    for (org.xbill.DNS.Record record2 : records) {
+      PTRRecord ptrRecord = (PTRRecord) record2;
+      Name domain = ptrRecord.getTarget();
+      while (true) {
+        if (new Lookup(domain, Type.NAPTR).run() != null) {
+          return domain;
+        }
+
+        // Recursively strip subdomains
+        String domStr = domain.toString(false);
+        int pos = domStr.indexOf('.');
+        if (pos <= 0 || pos == domStr.length() - 1) {
+          return null;
+        }
+        domain = Name.fromString(domStr.substring(pos + 1));
+      }
+    }
+    return null;
+  }
+
+  static String reverseAddressForARPA(InetAddress address) {
+    StringBuilder sb = new StringBuilder();
+    if (address instanceof Inet4Address) {
+      byte[] ba = address.getAddress();
+      for (int i = 0; i < ba.length; i++) {
+        sb.append(ByteUtil.toUnsigned(ba[ba.length - i - 1])).append(".");
+      }
+      sb.append("in-addr.arpa.");
+    } else {
+      byte[] ba = address.getAddress();
+      for (int i = 0; i < ba.length; i++) {
+        int b = ByteUtil.toUnsigned(ba[ba.length - i - 1]);
+        int b0 = b >> 4;
+        int b1 = b & 0xf;
+        sb.append(Integer.toHexString(b1)).append(".");
+        sb.append(Integer.toHexString(b0)).append(".");
+      }
+      sb.append("ip6.arpa.");
+    }
+    return sb.toString();
   }
 }

@@ -10,10 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.4.0
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
-- Bootstrap JPAN with reverse lookup to get search-domain --> Francois
-  - dig +short A whoami.akamai.net @zh.akamaitech.net
-  - dig -x 129.132.230.73
-  - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
+- SHIM TODO: Do not start SHIM if port-range=ALL
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -23,6 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - GatheringByteChannel, ScatteringByteChannel
   - Selector support
   - Inherit DatagramChannel 
+- Authenticate SCMP with DR-key
+- Bootstrap with DHCP
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
@@ -37,6 +36,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - ManagedThread test helper. [#136](https://github.com/scionproto-contrib/jpan/pull/136)
 - Support for `dispatched_ports` in topo files. Deprecated `configureRemoteDispatcher()`.
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
+- Bootstrapping: use reverse domain lookup to find NAPTR records.
+  [#138](https://github.com/scionproto-contrib/jpan/pull/138)
 
 ### Changed
 - Buildified PingPong test helper. [#132](https://github.com/scionproto-contrib/jpan/pull/132)
