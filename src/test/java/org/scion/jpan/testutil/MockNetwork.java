@@ -160,8 +160,8 @@ public class MockNetwork {
       case BOOTSTRAP:
       case NAPTR:
         topoServer = MockBootstrapServer.start(localTopo, mode == Mode.NAPTR);
-        controlServer = MockControlServer.start(topoServer.getControlServerPort());
         asInfo = topoServer.getASInfo();
+        controlServer = MockControlServer.start(asInfo.getControlServerPort());
         break;
       case AS_ONLY:
         asInfo = JsonFileParser.parseTopologyFile(Paths.get(localTopo));
@@ -178,8 +178,10 @@ public class MockNetwork {
   }
 
   public static synchronized void stopTiny() {
-    if (topoServer != null) {
+    if (controlServer != null) {
       controlServer.close();
+    }
+    if (topoServer != null) {
       topoServer.close();
     }
 
