@@ -210,17 +210,17 @@ public class ScionServiceTest {
       // Non-existing AS
       paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:119"), dstAddress);
       assertEquals(0, paths.size());
-      // TODO assertEquals(1, nw.getControlServer().getAndResetCallCount());
+      assertTrue(nw.getControlServer().getAndResetCallCount() <= 3);
 
       // non existing ISD
       paths = service.getPaths(ScionUtil.parseIA("9-ff00:0:910"), dstAddress);
       assertEquals(0, paths.size());
-      // TODO assertEquals(2, nw.getControlServer().getAndResetCallCount());
+      assertTrue(nw.getControlServer().getAndResetCallCount() <= 3);
 
       // remote ISD with non-existing AS
       paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:219"), dstAddress);
       assertEquals(0, paths.size());
-      // TODO assertEquals(3, nw.getControlServer().getAndResetCallCount());
+      assertTrue(nw.getControlServer().getAndResetCallCount() <= 3);
     }
   }
 
@@ -236,17 +236,17 @@ public class ScionServiceTest {
       // Non-existing AS
       paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:119"), dstAddress);
       assertEquals(0, paths.size());
-      // TODO assertEquals(1, nw.getControlServer().getAndResetCallCount());
+      assertTrue(nw.getControlServer().getAndResetCallCount() <= 3);
 
       // non existing ISD
       paths = service.getPaths(ScionUtil.parseIA("9-ff00:0:910"), dstAddress);
       assertEquals(0, paths.size());
-      // TODO assertEquals(2, nw.getControlServer().getAndResetCallCount());
+      assertTrue(nw.getControlServer().getAndResetCallCount() <= 3);
 
       // remote ISD with non-existing AS
       paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:219"), dstAddress);
       assertEquals(0, paths.size());
-      // TODO assertEquals(3, nw.getControlServer().getAndResetCallCount());
+      assertTrue(nw.getControlServer().getAndResetCallCount() <= 3);
     }
   }
 
