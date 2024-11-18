@@ -149,7 +149,9 @@ class ShimTest {
         assertFalse(Shim.isInstalled());
       }
     } finally {
-      service.close();
+      if (service != null) {
+        service.close();
+      }
       MockNetwork.stopTiny();
     }
   }
