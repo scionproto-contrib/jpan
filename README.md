@@ -374,8 +374,8 @@ Whether a SHIM is started can be controlled with a configuration option, see bel
 | Start SHIM. If not set, SHIM will be started unless the dispatcher port range is set to `all`.                       | `org.scion.shim`                                  | `SCION_SHIM`                                    |                    |
 | Minimize segment requests to local AS at the cost of reduced range of path available.                                | `org.scion.resolver.experimentalMinimizeRequests` | `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` | `false`            |
 
-`EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that request CORE segments only of other 
-path can be constructed. This may reduce response time when requesting new paths. It is very likely,
+`EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that requests CORE segments only 
+if noother path can be constructed. This may reduce response time when requesting new paths. It is very likely,
 but not guaranteed, that the shortest path (fewest hops) will be available. 
 If this property is not set (= default), CORE segments are always requested, resulting in additional
 path options. While these additional path options almost always result in longer paths, they may have 
