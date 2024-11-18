@@ -399,9 +399,8 @@ public class ScionServiceTest {
     String host = "127.0.0.55";
     System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);
     // Use any topo file
-    MockBootstrapServer topo =
-        MockBootstrapServer.start(MockBootstrapServer.TOPOFILE_TINY_110, true);
-    try {
+    try (MockBootstrapServer topo =
+        MockBootstrapServer.start(MockBootstrapServer.TOPOFILE_TINY_110, true)) {
       ScionService service = Scion.defaultService();
       Exception ex =
           assertThrows(ScionException.class, () -> service.lookupAndGetPath(host, 123, null));
@@ -409,7 +408,6 @@ public class ScionServiceTest {
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
       ScionService.closeDefault();
-      topo.close();
     }
   }
 

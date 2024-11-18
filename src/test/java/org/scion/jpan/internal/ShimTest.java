@@ -78,6 +78,7 @@ class ShimTest {
       testShim();
     } finally {
       MockNetwork.stopTiny();
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     }
   }
 
