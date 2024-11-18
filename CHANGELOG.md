@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Do not start SHIM if dispatcher port range is ALL
   [#139](https://github.com/scionproto-contrib/jpan/pull/139)
-- Cleanup and fixed SHIM tests
+- Cleanup and fixed SHIM tests and other tests
   [#140](https://github.com/scionproto-contrib/jpan/pull/140)
 
 ## [0.3.1] - 2024-10-11
