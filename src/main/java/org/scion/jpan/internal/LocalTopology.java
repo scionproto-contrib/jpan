@@ -281,6 +281,10 @@ public class LocalTopology {
       return portMin >= 1 && portMax <= 65535 && portMax >= portMin;
     }
 
+    public boolean hasPortRangeALL() {
+      return portMin == 1 && portMax == 65535;
+    }
+
     public InetSocketAddress mapToLocalPort(InetSocketAddress address) {
       if (address.getPort() == Constants.SCMP_PORT
           || (address.getPort() >= portMin && address.getPort() <= portMax)) {

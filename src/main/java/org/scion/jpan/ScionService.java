@@ -128,9 +128,12 @@ public class ScionService {
       segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
     }
     shutdownHook = addShutdownHook();
-    Shim.install(this);
     try {
       getLocalIsdAs(); // Init
+      // Start SHIM unless we have port range 'ALL'.
+      if (!getLocalPortRange().hasPortRangeALL()) {
+        Shim.install(this);
+      }
     } catch (RuntimeException e) {
       // If this fails for whatever reason we want to make sure that the channel is closed.
       try {

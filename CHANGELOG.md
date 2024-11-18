@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
+- DatagramSocketPingPongTest takes > 1 sec!
+- testDomainSearchResolver_invalidHost() takes 4-5 seconds!
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
 - SHIM TODO: Do not start SHIM if port-range=ALL
 - Cache paths
