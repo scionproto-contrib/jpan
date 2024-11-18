@@ -146,6 +146,22 @@ class ShimTest {
   }
 
   @Test
+  void testShim_notStartedForALL() throws IOException {
+    // Do not start SHIM in an AS with port range ALL
+    MockNetwork.startTiny();
+    ScionService service = null;
+    try {
+      service = Scion.newServiceWithTopologyFile("topologies/dispatcher-port-range-all.json");
+      try (ScionDatagramChannel unused = ScionDatagramChannel.open(service)) {
+        assertFalse(Shim.isInstalled());
+      }
+    } finally {
+      service.close();
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
   void testForwardingUDP_LocalAS_remoteInsideRange() {
     testForwardingUDP_LocalAS(31000, 0);
   }

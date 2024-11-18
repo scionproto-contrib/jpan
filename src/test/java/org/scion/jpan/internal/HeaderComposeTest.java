@@ -123,6 +123,7 @@ public class HeaderComposeTest {
       }
       assertEquals(packetBytes[i], p.get(i), "Mismatch at position " + i);
     }
-    assertEquals(2, MockDaemon.getAndResetCallCount());
+    // port-range + local AS + path
+    assertEquals(3, MockDaemon.getAndResetCallCount());
   }
 }

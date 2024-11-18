@@ -75,8 +75,8 @@ public class ScionServiceTest {
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
       Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
-      // local AS + path
-      assertEquals(2, MockDaemon.getAndResetCallCount());
+      // port-range + local AS + path
+      assertEquals(3, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -91,8 +91,8 @@ public class ScionServiceTest {
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
       Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
-      // local AS + path
-      assertEquals(2, MockDaemon.getAndResetCallCount());
+      // port-range + local AS + path
+      assertEquals(3, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -119,18 +119,14 @@ public class ScionServiceTest {
       //    0: 2 561850441793808
       //    0: 1 561850441793810
       assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
-      // assertEquals(srcIA, path.getSourceIsdAs());
       assertEquals(dstIA, path.getRemoteIsdAs());
       assertEquals(36, path.getRawPath().length);
 
       assertEquals("127.0.0.10:31004", path.getMetadata().getInterface().getAddress());
       assertEquals(2, path.getMetadata().getInterfacesList().size());
-      // assertEquals(1, viewer.getInternalHopsList().size());
-      // assertEquals(0, viewer.getMtu());
-      // assertEquals(0, viewer.getLinkTypeList().size());
 
-      // localAS & path
-      assertEquals(2, MockDaemon.getAndResetCallCount());
+      // port-range + local AS + path
+      assertEquals(3, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -159,12 +155,11 @@ public class ScionServiceTest {
       assertEquals(1, paths.size());
       for (Path path : paths) {
         assertEquals("/127.0.0.10:31004", path.getFirstHopAddress().toString());
-        // assertEquals(srcIA, path.getSourceIsdAs());
         assertEquals(dstIA, path.getRemoteIsdAs());
       }
 
-      // get local AS, get PATH
-      assertEquals(2, MockDaemon.getAndResetCallCount());
+      // port-range + local AS + path
+      assertEquals(3, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -189,7 +184,6 @@ public class ScionServiceTest {
       //  Path:  exp=1708596832 / 2024-02-22T10:13:52Z  mtu=1472
       //  Path: first hop =
       //          raw: []
-      //  raw: {}
       assertEquals(1, paths.size());
       Path path = paths.get(0);
       InetAddress addr = path.getRemoteAddress();
@@ -197,8 +191,8 @@ public class ScionServiceTest {
       assertEquals(sAddr, path.getFirstHopAddress());
       assertEquals(dstIA, path.getRemoteIsdAs());
 
-      // get local AS, get PATH
-      assertEquals(2, MockDaemon.getAndResetCallCount());
+      // get port-range + local AS + path
+      assertEquals(3, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }

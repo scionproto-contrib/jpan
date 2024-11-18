@@ -93,8 +93,8 @@ public class ScionTest {
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
-      // local AS + path
-      assertEquals(2, MockDaemon.getAndResetCallCount());
+      // port-range + local AS + path
+      assertEquals(3, MockDaemon.getAndResetCallCount());
     } finally {
       Scion.closeDefault();
       MockDaemon.closeDefault();
