@@ -66,18 +66,16 @@ class ShimTest {
     }
   }
 
-  //  @Disabled // TODO this fails on MacOS
   @Test
   void testShim_withTopofile() throws IOException {
-    //    System.setProperty(
-    //        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-    // "topologies/scionproto-tiny/topology-110.json");
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/scionproto-tiny/topology-110.json");
     try {
-      // MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Stop the SCMP responder on 30041
-      // MockScmpHandler.stop();
+      MockScmpHandler.stop();
 
-      //         testShim();
+      testShim();
     } finally {
       MockNetwork.stopTiny();
     }
@@ -136,7 +134,7 @@ class ShimTest {
     PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 2, 10).build();
     pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
-    assertEquals(1 * 2 * 10, shimForwardingCounter.getAndSet(0));
+    assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
     assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
   }
 
