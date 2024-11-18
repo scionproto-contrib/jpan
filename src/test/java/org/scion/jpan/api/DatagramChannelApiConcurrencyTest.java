@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketAddress;
+import org.scion.jpan.testutil.ManagedThread;
+import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 
@@ -77,11 +79,11 @@ class DatagramChannelApiConcurrencyTest {
   }
 
   private interface Reader {
-    void run(ScionDatagramChannel channel, AtomicInteger receiveCount);
+    void run(ScionDatagramChannel channel, AtomicInteger receiveCount, ManagedThreadNews cb);
   }
 
   private interface Writer {
-    void run(ScionDatagramChannel channel, CountDownLatch receiveCount);
+    void run(ScionDatagramChannel channel, CountDownLatch receiveCount, ManagedThreadNews cb);
   }
 
   /** Test 2x receive() and 1x send(). */
@@ -101,17 +103,17 @@ class DatagramChannelApiConcurrencyTest {
         if (connect) {
           client.connect(dummyAddress);
         }
-        Thread r1 = new Thread(() -> c1.run(client, receiveCount));
-        Thread r2 = new Thread(() -> c2.run(client, receiveCount));
-        Thread s1 = new Thread(() -> w1.run(client, senderLatch));
+        ManagedThread rcv1 = ManagedThread.newBuilder().build();
+        ManagedThread rcv2 = ManagedThread.newBuilder().build();
+        ManagedThread sender = ManagedThread.newBuilder().build();
         try {
-          r1.start();
-          r2.start();
+          rcv1.submit(mtn -> c1.run(client, receiveCount, mtn));
+          rcv2.submit(mtn -> c2.run(client, receiveCount, mtn));
 
           // A little race here is difficult to avoid ....
           assertEquals(0, receiveCount.get());
 
-          s1.start();
+          sender.submit(mtn -> w1.run(client, senderLatch, mtn));
 
           // Check that sending in parallel works
           senderLatch.await(1, TimeUnit.SECONDS);
@@ -146,18 +148,20 @@ class DatagramChannelApiConcurrencyTest {
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         } finally {
-          r1.interrupt();
-          r2.interrupt();
-          s1.interrupt();
+          rcv1.join();
+          rcv2.join();
+          sender.join();
         }
         assertEquals(2, receiveCount.get());
       }
     }
   }
 
-  private void receive(ScionDatagramChannel channel, AtomicInteger receiveCount) {
+  private void receive(
+      ScionDatagramChannel channel, AtomicInteger receiveCount, ManagedThreadNews cb) {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try {
+      cb.reportStarted();
       channel.receive(buffer);
       buffer.flip();
       assertEquals(12, buffer.remaining());
@@ -166,24 +170,29 @@ class DatagramChannelApiConcurrencyTest {
         receiveCount.notifyAll();
       }
     } catch (IOException e) {
+      cb.reportException(e);
       throw new RuntimeException(e);
     }
   }
 
-  private void send(ScionDatagramChannel channel, CountDownLatch latch) {
+  private void send(ScionDatagramChannel channel, CountDownLatch latch, ManagedThreadNews cb) {
     ByteBuffer buffer = ByteBuffer.wrap("Hello scion!".getBytes());
     try {
       buffer.flip();
+      cb.reportStarted();
       channel.send(buffer, dummyAddress);
       latch.countDown();
     } catch (IOException e) {
+      cb.reportException(e);
       throw new RuntimeException(e);
     }
   }
 
-  private void read(ScionDatagramChannel channel, AtomicInteger receiveCount) {
+  private void read(
+      ScionDatagramChannel channel, AtomicInteger receiveCount, ManagedThreadNews cb) {
     ByteBuffer buffer = ByteBuffer.allocate(100);
     try {
+      cb.reportStarted();
       channel.read(buffer);
       buffer.flip();
       assertEquals(12, buffer.remaining());
@@ -192,17 +201,20 @@ class DatagramChannelApiConcurrencyTest {
         receiveCount.notifyAll();
       }
     } catch (IOException e) {
+      cb.reportException(e);
       throw new RuntimeException(e);
     }
   }
 
-  private void write(ScionDatagramChannel channel, CountDownLatch latch) {
+  private void write(ScionDatagramChannel channel, CountDownLatch latch, ManagedThreadNews cb) {
     ByteBuffer buffer = ByteBuffer.wrap("Hello scion!".getBytes());
     try {
       buffer.flip();
+      cb.reportStarted();
       channel.write(buffer);
       latch.countDown();
     } catch (IOException e) {
+      cb.reportException(e);
       throw new RuntimeException(e);
     }
   }

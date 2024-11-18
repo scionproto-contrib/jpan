@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
-- testDomainSearchResolver_invalidHost() takes 4-5 seconds!
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
