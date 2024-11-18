@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
-- testDomainSearchResolver_invalidHost() takes 4-5 seconds!
-- ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -28,7 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 **BREAKING CHANGE**
 - The SHIM now occupies port 30041. This means any application trying to use that port will fail.
   - Solution #1: Just use any other port instead, the SHIM will forward traffic to it.
-  - Solution #2: Disable the SHIM with 
+  - Solution #2: Disable the SHIM with `org.scion.shim = false` or `SCION_SHIM = false`.
 
 ### Added
 - Add a SHIM, required for #130 (topo file port range support).
@@ -45,6 +43,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#133](https://github.com/scionproto-contrib/jpan/pull/133)
 - MockNetwork should use topofiles. [#134](https://github.com/scionproto-contrib/jpan/pull/134)
 - MockNetwork should really use topofiles. [#135](https://github.com/scionproto-contrib/jpan/pull/135)
+
+### Fixed
+- Do not start SHIM if dispatcher port range is ALL
+  [#139](https://github.com/scionproto-contrib/jpan/pull/139)
+- Cleanup and fixed SHIM tests and other tests
+  [#140](https://github.com/scionproto-contrib/jpan/pull/140)
 
 ## [0.3.1] - 2024-10-11
 
@@ -67,8 +71,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Caching for getExternalIP()
   - ShowpathsDemo output
   - Spurious failures of SCMP exception handling tests
-- Do not start SHIM if dispatcher port range is ALL
-  [#139](https://github.com/scionproto-contrib/jpan/pull/139)
   
 ## [0.3.0] - 2024-10-09
 
