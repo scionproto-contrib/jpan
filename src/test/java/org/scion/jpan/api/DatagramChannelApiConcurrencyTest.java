@@ -19,8 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -83,14 +81,13 @@ class DatagramChannelApiConcurrencyTest {
   }
 
   private interface Writer {
-    void run(ScionDatagramChannel channel, CountDownLatch receiveCount, ManagedThreadNews cb);
+    void run(ScionDatagramChannel channel, ManagedThreadNews cb);
   }
 
-  /** Test 2x receive() and 1x send(). */
+  /** Test 2x receive() and 1x send() on the same channel concurrently. */
   private void concurrentReceive(Reader c1, Reader c2, Writer w1, boolean connect)
       throws IOException {
     AtomicInteger receiveCount = new AtomicInteger();
-    CountDownLatch senderLatch = new CountDownLatch(1);
     ByteBuffer buffer = ByteBuffer.allocate(100);
     buffer.put("Hello scion!".getBytes());
     buffer.flip();
@@ -113,10 +110,7 @@ class DatagramChannelApiConcurrencyTest {
           // A little race here is difficult to avoid ....
           assertEquals(0, receiveCount.get());
 
-          sender.submit(mtn -> w1.run(client, senderLatch, mtn));
-
-          // Check that sending in parallel works
-          senderLatch.await(1, TimeUnit.SECONDS);
+          sender.submit(mtn -> w1.run(client, mtn));
           assertEquals(0, receiveCount.get());
 
           // Check that these work
@@ -175,13 +169,12 @@ class DatagramChannelApiConcurrencyTest {
     }
   }
 
-  private void send(ScionDatagramChannel channel, CountDownLatch latch, ManagedThreadNews cb) {
+  private void send(ScionDatagramChannel channel, ManagedThreadNews cb) {
     ByteBuffer buffer = ByteBuffer.wrap("Hello scion!".getBytes());
     try {
       buffer.flip();
-      cb.reportStarted();
       channel.send(buffer, dummyAddress);
-      latch.countDown();
+      cb.reportStarted(); // Indicate to main thread that it can continue.
     } catch (IOException e) {
       cb.reportException(e);
       throw new RuntimeException(e);
@@ -206,13 +199,12 @@ class DatagramChannelApiConcurrencyTest {
     }
   }
 
-  private void write(ScionDatagramChannel channel, CountDownLatch latch, ManagedThreadNews cb) {
+  private void write(ScionDatagramChannel channel, ManagedThreadNews cb) {
     ByteBuffer buffer = ByteBuffer.wrap("Hello scion!".getBytes());
     try {
       buffer.flip();
-      cb.reportStarted();
       channel.write(buffer);
-      latch.countDown();
+      cb.reportStarted(); // Indicate to main thread that it can continue.
     } catch (IOException e) {
       cb.reportException(e);
       throw new RuntimeException(e);
