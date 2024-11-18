@@ -130,10 +130,7 @@ public class ScionService {
     shutdownHook = addShutdownHook();
     try {
       getLocalIsdAs(); // Init
-      // Start SHIM unless we have port range 'ALL'.
-      if (!getLocalPortRange().hasPortRangeALL()) {
-        Shim.install(this);
-      }
+      checkStartShim();
     } catch (RuntimeException e) {
       // If this fails for whatever reason we want to make sure that the channel is closed.
       try {
@@ -142,6 +139,16 @@ public class ScionService {
         // Ignore, we just want to get out.
       }
       throw e;
+    }
+  }
+
+  private void checkStartShim() {
+    // Start SHIM unless we have port range 'ALL'. However, config overrides this setting.
+    String config = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_SHIM, Constants.ENV_SHIM);
+    boolean hasAllPorts = getLocalPortRange().hasPortRangeALL();
+    boolean start = config != null ? Boolean.parseBoolean(config) : !hasAllPorts;
+    if (start) {
+      Shim.install(this);
     }
   }
 

@@ -110,8 +110,7 @@ public class MockNetwork {
     String remoteIP =
         mock.asInfoLocal.getBorderRouterAddressByIA(ScionUtil.parseIA(TINY_SRV_ISD_AS));
     remoteIP = IPHelper.extractIP(remoteIP);
-    if (!ScionUtil.getPropertyOrEnv(
-        Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM)) {
+    if (!useShim()) {
       // Do not start a SCMP handler on 30041 if we want to use SHIMs.
       // The SHIM also includes its own SCMP handler.
       MockScmpHandler.start(remoteIP);
@@ -221,6 +220,12 @@ public class MockNetwork {
     asInfoLocal = JsonFileParser.parseTopologyFile(Paths.get(localTopo));
     asInfoRemote = JsonFileParser.parseTopologyFile(Paths.get(remoteTopo));
     asInfoLocal.connectWith(asInfoRemote);
+  }
+
+  public static boolean useShim() {
+    String config = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_SHIM, Constants.ENV_SHIM);
+    boolean hasAllPorts = mock.asInfoLocal.getPortRange().hasPortRangeALL();
+    return config != null ? Boolean.parseBoolean(config) : !hasAllPorts;
   }
 
   public static InetSocketAddress getBorderRouterAddress1() {

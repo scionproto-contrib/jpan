@@ -9,10 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.4.0
-- DatagramSocketPingPongTest takes > 1 sec!
 - testDomainSearchResolver_invalidHost() takes 4-5 seconds!
 - ShimTest: TODO the serverService(null) should be removed once SHIM becomes the default
-- SHIM TODO: Do not start SHIM if port-range=ALL
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -69,6 +67,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Caching for getExternalIP()
   - ShowpathsDemo output
   - Spurious failures of SCMP exception handling tests
+- Do not start SHIM if dispatcher port range is ALL
+  [#139](https://github.com/scionproto-contrib/jpan/pull/139)
   
 ## [0.3.0] - 2024-10-09
 

@@ -54,13 +54,8 @@ public class Shim implements AutoCloseable {
   public static void install(ScionService service) {
     synchronized (singleton) {
       if (singleton.get() == null) {
-        boolean flag =
-            ScionUtil.getPropertyOrEnv(
-                Constants.PROPERTY_SHIM, Constants.ENV_SHIM, Constants.DEFAULT_SHIM);
-        if (flag) {
-          singleton.set(Shim.newBuilder(service).build());
-          singleton.get().start();
-        }
+        singleton.set(Shim.newBuilder(service).build());
+        singleton.get().start();
       }
     }
   }
