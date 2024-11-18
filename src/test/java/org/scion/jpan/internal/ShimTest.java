@@ -66,7 +66,7 @@ class ShimTest {
     }
   }
 
-  @Disabled // TODO this fails on MacOS
+  //  @Disabled // TODO this fails on MacOS
   @Test
   void testShim_withTopofile() throws IOException {
     //    System.setProperty(
@@ -133,16 +133,11 @@ class ShimTest {
   void testForwardingUDP() {
     PingPongChannelHelper.Server serverFn = this::server;
     PingPongChannelHelper.Client clientFn = this::client;
-    // TODO remove this once we have server-side portRanges
-    //   we are circumventing the daemon! -> checkCounters(false)
-    // TODO the serverService(null) should be removed once SHIM becomes the default
-    PingPongChannelHelper pph =
-        PingPongChannelHelper.newBuilder(1, 2, 10).checkCounters(false).serverService(null).build();
+    PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 2, 10).build();
     pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
-    assertEquals(2 * 2 * 10, shimForwardingCounter.getAndSet(0));
-    // TODO should be 40
-    assertEquals(1 * 2 * 10, MockNetwork.getAndResetForwardCount());
+    assertEquals(1 * 2 * 10, shimForwardingCounter.getAndSet(0));
+    assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
   }
 
   @Test

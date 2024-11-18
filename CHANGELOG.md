@@ -46,6 +46,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - MockNetwork should use topofiles. [#134](https://github.com/scionproto-contrib/jpan/pull/134)
 - MockNetwork should really use topofiles. [#135](https://github.com/scionproto-contrib/jpan/pull/135)
 
+### Fixed
+- Do not start SHIM if dispatcher port range is ALL
+  [#139](https://github.com/scionproto-contrib/jpan/pull/139)
+- Cleanup and fixed SHIM tests
+  [#140](https://github.com/scionproto-contrib/jpan/pull/140)
+
 ## [0.3.1] - 2024-10-11
 
 ### Added
@@ -67,8 +73,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Caching for getExternalIP()
   - ShowpathsDemo output
   - Spurious failures of SCMP exception handling tests
-- Do not start SHIM if dispatcher port range is ALL
-  [#139](https://github.com/scionproto-contrib/jpan/pull/139)
   
 ## [0.3.0] - 2024-10-09
 

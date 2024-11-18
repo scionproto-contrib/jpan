@@ -94,7 +94,6 @@ public final class Constants {
   public static final String PROPERTY_SHIM = "org.scion.shim";
 
   public static final String ENV_SHIM = "SCION_SHIM";
-  public static final boolean DEFAULT_SHIM = true;
 
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
