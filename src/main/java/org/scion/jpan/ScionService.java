@@ -254,10 +254,9 @@ public class ScionService {
 
   public void close() throws IOException {
     try {
-      if (!channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)) {
-        if (!channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)) {
-          LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-        }
+      if (!channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
+          && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
+        LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
       }
       synchronized (ifDiscoveryMap) {
         try {
@@ -339,22 +338,6 @@ public class ScionService {
   }
 
   /**
-   * Requests paths from the local ISD/AS to the destination.
-   *
-   * @param dstAddress Destination IP address. It will try to perform a DNS look up to map the
-   *     hostName to SCION address.
-   * @return All paths returned by the path service.
-   * @throws IOException if an errors occurs while querying paths.
-   * @deprecated Please use lookup() instead
-   */
-  @Deprecated // Please use lookup() instead
-  public List<Path> getPaths(InetSocketAddress dstAddress) throws IOException {
-    // Use getHostString() to avoid DNS reverse lookup.
-    ScionAddress sa = getScionAddress(dstAddress.getHostString());
-    return getPaths(sa.getIsdAs(), sa.getInetAddress(), dstAddress.getPort());
-  }
-
-  /**
    * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
@@ -431,10 +414,9 @@ public class ScionService {
     long srcIsdAs = getLocalIsdAs();
     List<Daemon.Path> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
     List<Path> scionPaths = new ArrayList<>(paths.size());
-    for (int i = 0; i < paths.size(); i++) {
+    for (Daemon.Path path : paths) {
       scionPaths.add(
-          RequestPath.create(
-              paths.get(i), dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
+          RequestPath.create(path, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
     }
     return scionPaths;
   }
@@ -498,11 +480,6 @@ public class ScionService {
     }
 
     throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
-  }
-
-  @Deprecated // Please use lookupScionAddress() instead.
-  public ScionAddress getScionAddress(String hostName) throws ScionException {
-    return lookupAddress(hostName);
   }
 
   /**

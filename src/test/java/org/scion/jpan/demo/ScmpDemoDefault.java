@@ -111,9 +111,9 @@ public class ScmpDemoDefault {
   private static void runDemo(Path path) throws IOException {
     ByteBuffer data = ByteBuffer.allocate(0);
     printPath(path);
-    try (ScmpChannel scmpChannel = Scmp.createChannel(LOCAL_PORT)) {
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
       for (int i = 0; i < REPEAT; i++) {
-        Scmp.EchoMessage msg = scmpChannel.sendEchoRequest(path, i, data);
+        Scmp.EchoMessage msg = sender.sendEchoRequest(path, data);
         String millis = String.format("%.3f", msg.getNanoSeconds() / (double) 1_000_000);
         String echoMsgStr = "  " + msg.getSizeReceived() + " bytes from ";
         InetAddress addr = msg.getPath().getRemoteAddress();
