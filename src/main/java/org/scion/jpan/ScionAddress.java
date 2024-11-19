@@ -21,11 +21,8 @@ import java.net.UnknownHostException;
  * ScionAddress is an InetAddress + ISD/AS information.
  *
  * <p>This class is threadsafe.
- *
- * @deprecated This will be made package private in 0.4.0
  */
-@Deprecated // This will be made package private in 0.4.0
-public class ScionAddress {
+class ScionAddress {
   private final long isdAs;
   private final InetAddress ipAddress;
 

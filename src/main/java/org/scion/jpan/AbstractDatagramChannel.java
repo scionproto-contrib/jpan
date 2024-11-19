@@ -70,8 +70,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  // `protected` because it should not be visible in ScmpChannel API.
-  protected boolean isBlocking() {
+  public boolean isBlocking() {
     synchronized (stateLock) {
       return channel.isBlocking();
     }
