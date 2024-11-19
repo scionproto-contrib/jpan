@@ -5,10 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
-
 ## [Unreleased]
 
-### TODO for 0.4.0
+### TODO for 0.5.0
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -22,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Bootstrap with DHCP
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
+
+## [0.4.0] - 2024-11-19
 
 **BREAKING CHANGE**
 - The SHIM now occupies port 30041. This means any application trying to use that port will fail.
@@ -279,7 +280,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.4.0
 [0.3.1]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/scionproto-contrib/jpan/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/scionproto-contrib/jpan/compare/v0.1.1...v0.2.0

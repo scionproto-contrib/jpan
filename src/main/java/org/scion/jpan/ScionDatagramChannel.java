@@ -94,11 +94,6 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     super.configureBlocking(block);
   }
 
-  @Override
-  public boolean isBlocking() {
-    return super.isBlocking();
-  }
-
   public ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
