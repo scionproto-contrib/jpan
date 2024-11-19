@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Cleanup and fixed SHIM tests and other tests
   [#140](https://github.com/scionproto-contrib/jpan/pull/140)
 
+### Removed
+- Removed deprecated code, e.g. `ScmpChannel` and public `ScionAddress`
+  [#141](https://github.com/scionproto-contrib/jpan/pull/141)
+
 ## [0.3.1] - 2024-10-11
 
 ### Added

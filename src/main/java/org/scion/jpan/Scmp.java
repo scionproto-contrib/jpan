@@ -368,14 +368,6 @@ public class Scmp {
       return ifID;
     }
 
-    @Override
-    public String toString() {
-      String echoMsgStr = getTypeCode().getText();
-      echoMsgStr += " scmp_seq=" + getSequenceNumber();
-      echoMsgStr += " " + ScionUtil.toStringIA(getIsdAs()) + " IfID=" + getIfID();
-      return echoMsgStr;
-    }
-
     public void setTracerouteArgs(long isdAs, long ifID) {
       this.isdAs = isdAs;
       this.ifID = ifID;
