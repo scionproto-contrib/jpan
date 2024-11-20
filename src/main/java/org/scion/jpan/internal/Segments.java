@@ -108,7 +108,7 @@ public class Segments {
     }
 
     // First, if necessary, try to get UP segments
-    List<PathSegment> segmentsUp = null;
+    List<PathSegment> segmentsUp = Collections.emptyList();
     if (!localAS.isCoreAs()) {
       // get UP segments
       segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
@@ -120,25 +120,25 @@ public class Segments {
         if (!directUp.isEmpty()) {
           // DST is core or on-path
           PathDuplicationFilter paths = new PathDuplicationFilter();
-          combineSegment(paths, directUp, localAS, dstIsdAs);
+          combineSegment(paths, directUp, localAS, srcIsdAs, dstIsdAs);
           return paths.getPaths();
         }
       }
     }
 
-    // TODO skip this if core has only one AS
     // Next, we look for core segments.
     // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable leaf)
     // we still should look at core segments because they may offer additional paths.
     List<PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
-    if (segmentsUp == null) {
+    if (localAS.isCoreAs()) {
       // SRC is core, we can disregard all CORE segments that don't start with SRC
       segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);
     }
     // For CORE we ensure that dstIsdAs is at the END of a segment, not somewhere in the middle
     if (endsWithIsdAs(segmentsCore, dstIsdAs)) {
       // dst is CORE
-      return combineSegments(segmentsUp, segmentsCore, null, srcIsdAs, dstIsdAs, localAS);
+      return combineSegments(
+          segmentsUp, segmentsCore, Collections.emptyList(), srcIsdAs, dstIsdAs, localAS);
     }
 
     List<PathSegment> segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
@@ -211,9 +211,9 @@ public class Segments {
       long srcIsdAs,
       long dstIsdAs,
       LocalTopology localAS) {
-    int code = segmentsUp != null ? 4 : 0;
-    code |= segmentsCore != null ? 2 : 0;
-    code |= segmentsDown != null ? 1 : 0;
+    int code = !segmentsUp.isEmpty() ? 4 : 0;
+    code |= !segmentsCore.isEmpty() ? 2 : 0;
+    code |= !segmentsDown.isEmpty() ? 1 : 0;
     PathDuplicationFilter paths = new PathDuplicationFilter();
     switch (code) {
       case 7:
@@ -225,26 +225,28 @@ public class Segments {
         break;
       case 6:
         combineTwoSegments(paths, segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS);
-        combineSegment(paths, filterForIsdAs(segmentsUp, dstIsdAs), localAS, dstIsdAs);
+        combineSegment(paths, filterForIsdAs(segmentsUp, dstIsdAs), localAS, srcIsdAs, dstIsdAs);
         break;
       case 5:
         combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
         break;
       case 4:
-        combineSegment(paths, segmentsUp, localAS, dstIsdAs);
+        combineSegment(paths, segmentsUp, localAS, srcIsdAs, dstIsdAs);
         break;
       case 3:
         combineTwoSegments(paths, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
-        combineSegment(paths, filterForIsdAs(segmentsDown, srcIsdAs), localAS, dstIsdAs);
+        combineSegment(paths, filterForIsdAs(segmentsDown, srcIsdAs), localAS, srcIsdAs, dstIsdAs);
         break;
       case 2:
-        combineSegment(paths, segmentsCore, localAS, dstIsdAs);
+        combineSegment(paths, segmentsCore, localAS, srcIsdAs, dstIsdAs);
         break;
       case 1:
-        combineSegment(paths, segmentsDown, localAS, dstIsdAs);
+        combineSegment(paths, segmentsDown, localAS, srcIsdAs, dstIsdAs);
         break;
       default:
-        throw new UnsupportedOperationException();
+        // We found segments, but they don't form a path. This can happen, for example,
+        // when we query for a non-existing AS
+        return paths.getPaths();
     }
     return paths.getPaths();
   }
@@ -253,9 +255,12 @@ public class Segments {
       PathDuplicationFilter paths,
       List<PathSegment> segments,
       LocalTopology localAS,
+      long srcIsdAs,
       long dstIsdAs) {
     for (PathSegment pathSegment : segments) {
-      buildPath(paths, localAS, dstIsdAs, pathSegment);
+      if (containsIsdAses(pathSegment, srcIsdAs, dstIsdAs)) {
+        buildPath(paths, localAS, dstIsdAs, pathSegment);
+      }
     }
   }
 
@@ -600,6 +605,11 @@ public class Segments {
       return endings[0];
     }
     return -1;
+  }
+
+  private static boolean containsIsdAses(PathSegment seg, long isdAs1, long isdAs2) {
+    return seg.getAsEntriesList().stream().anyMatch(asEntry -> asEntry.getIsdAs() == isdAs1)
+        && seg.getAsEntriesList().stream().anyMatch(asEntry -> asEntry.getIsdAs() == isdAs2);
   }
 
   /**
