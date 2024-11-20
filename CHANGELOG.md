@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
+- Add LICENSE to generated jar. Why doesn´t that happen automatically?
+  Do we need the assembly plugin?
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -21,6 +23,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Bootstrap with DHCP
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
+
+### Changed
+- Post 0.4.0 release updates. [#143](https://github.com/scionproto-contrib/jpan/pull/143)
 
 ## [0.4.0] - 2024-11-19
 
