@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
+### Changed
+- Post 0.4.0 release updates. [#143](https://github.com/scionproto-contrib/jpan/pull/143)
+
 ## [0.4.0] - 2024-11-19
 
 **BREAKING CHANGE**
