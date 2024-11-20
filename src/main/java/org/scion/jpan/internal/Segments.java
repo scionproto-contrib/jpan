@@ -108,7 +108,7 @@ public class Segments {
     }
 
     // First, if necessary, try to get UP segments
-    List<PathSegment> segmentsUp = null;
+    List<PathSegment> segmentsUp = Collections.emptyList();
     if (!localAS.isCoreAs()) {
       // get UP segments
       segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
@@ -126,19 +126,19 @@ public class Segments {
       }
     }
 
-    // TODO skip this if core has only one AS
     // Next, we look for core segments.
     // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable leaf)
     // we still should look at core segments because they may offer additional paths.
     List<PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
-    if (segmentsUp == null) {
+    if (localAS.isCoreAs()) {
       // SRC is core, we can disregard all CORE segments that don't start with SRC
       segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);
     }
     // For CORE we ensure that dstIsdAs is at the END of a segment, not somewhere in the middle
     if (endsWithIsdAs(segmentsCore, dstIsdAs)) {
       // dst is CORE
-      return combineSegments(segmentsUp, segmentsCore, null, srcIsdAs, dstIsdAs, localAS);
+      return combineSegments(
+          segmentsUp, segmentsCore, Collections.emptyList(), srcIsdAs, dstIsdAs, localAS);
     }
 
     List<PathSegment> segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
@@ -211,9 +211,9 @@ public class Segments {
       long srcIsdAs,
       long dstIsdAs,
       LocalTopology localAS) {
-    int code = segmentsUp != null && !segmentsUp.isEmpty() ? 4 : 0;
-    code |= segmentsCore != null && !segmentsCore.isEmpty() ? 2 : 0;
-    code |= segmentsDown != null && !segmentsDown.isEmpty() ? 1 : 0;
+    int code = !segmentsUp.isEmpty() ? 4 : 0;
+    code |= !segmentsCore.isEmpty() ? 2 : 0;
+    code |= !segmentsDown.isEmpty() ? 1 : 0;
     PathDuplicationFilter paths = new PathDuplicationFilter();
     switch (code) {
       case 7:
