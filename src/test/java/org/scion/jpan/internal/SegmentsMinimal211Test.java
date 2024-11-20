@@ -89,14 +89,15 @@ public class SegmentsMinimal211Test extends AbstractSegmentsMinimalTest {
       //  [0] Hops: [2-ff00:0:211 503>450 2-ff00:0:210]
       //            MTU: 1280 NextHop: 127.0.0.97:31052 Status: alive LocalIP: 127.0.0.1
 
-
       //  Path:  exp=1732141476 / 2024-11-20T22:24:36Z  mtu=1280
       //  Path: first hop = 127.0.0.97:31052
       //  pathIf: 0: 503 843325418504721  2-ff00:0:211
       //  pathIf: 1: 450 843325418504720  2-ff00:0:210
       //  linkType: 0 LINK_TYPE_UNSPECIFIED
-      byte[] raw = {0, 0, 32, 0, 0, 0, 20, -94, 103, 62, 13, 68, 0, 63, 1, -9, 0, 0, -5, 79, -123,
-              -14, -82, -105, 0, 63, 0, 0, 1, -62, 24, 79, 52, 50, -112, 53};
+      byte[] raw = {
+        0, 0, 32, 0, 0, 0, 20, -94, 103, 62, 13, 68, 0, 63, 1, -9, 0, 0, -5, 79, -123, -14, -82,
+        -105, 0, 63, 0, 0, 1, -62, 24, 79, 52, 50, -112, 53
+      };
 
       Daemon.Path path = paths.get(0);
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();

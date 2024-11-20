@@ -211,7 +211,7 @@ public class Segments {
       long srcIsdAs,
       long dstIsdAs,
       LocalTopology localAS) {
-    int code = segmentsUp != null  && !segmentsUp.isEmpty() ? 4 : 0;
+    int code = segmentsUp != null && !segmentsUp.isEmpty() ? 4 : 0;
     code |= segmentsCore != null && !segmentsCore.isEmpty() ? 2 : 0;
     code |= segmentsDown != null && !segmentsDown.isEmpty() ? 1 : 0;
     PathDuplicationFilter paths = new PathDuplicationFilter();
@@ -608,14 +608,8 @@ public class Segments {
   }
 
   private static boolean containsIsdAses(PathSegment seg, long isdAs1, long isdAs2) {
-    long[] endings = getEndingIAs(seg);
-    if (endings[0] == isdAs1 && endings[1] == isdAs2) {
-      return true;
-    }
-    if (endings[0] == isdAs2 && endings[1] == isdAs1) {
-      return true;
-    }
-    return false;
+    return seg.getAsEntriesList().stream().anyMatch(asEntry -> asEntry.getIsdAs() == isdAs1)
+        && seg.getAsEntriesList().stream().anyMatch(asEntry -> asEntry.getIsdAs() == isdAs2);
   }
 
   /**
