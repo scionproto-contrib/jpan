@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import chat.dim.stun.Client;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -40,8 +41,9 @@ public class STUN {
     }
   }
 
-  public static TransactionID writeRequestLib(ByteBuffer buffer) {
-    Client client = new Client() {
+  public static TransactionID writeRequestLib(ByteBuffer buffer, InetSocketAddress sourceAddress) {
+    TransactionID id = createTxID();
+    Client client = new Client(sourceAddress) {
       @Override
       public byte[] receive() {
         return new byte[0];
@@ -52,6 +54,7 @@ public class STUN {
         return 0;
       }
     };
+    return id;
   }
 
   public static TransactionID writeRequest(ByteBuffer buffer) {
