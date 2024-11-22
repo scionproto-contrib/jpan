@@ -30,6 +30,7 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static final String AS_HOST = MockNetwork2.AS_HOST;
   protected static final String CFG_MINIMAL = "topologies/minimal/";
   protected static final String CFG_DEFAULT = "topologies/default/";
+  protected static final String CFG_TINY4 = "topologies/tiny4/";
 
   /** ISD 1 - core AS */
   protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
@@ -186,6 +187,15 @@ public abstract class AbstractSegmentsMinimalTest {
 
     addCore(AS_130, AS_120);
     addCore(AS_120, AS_130);
+  }
+
+  protected void addResponsesScionprotoTiny4() {
+    long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
+    long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
+    long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
+
+    addUpDown(AS_111, AS_110);
+    addUpDown(AS_112, AS_110);
   }
 
   private void addCore(long local, long origin) {
