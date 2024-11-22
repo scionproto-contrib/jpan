@@ -114,10 +114,10 @@ public class STUN {
   }
 
   private static String readSOFTWARE(ByteBuffer in, int length) {
+    length = (length + 3) & 0xfffc;
     byte[] bytes = new byte[length];
     in.get(bytes);
-    String str = new String(bytes);
-    return str;
+    return new String(bytes);
   }
 
   private static InetSocketAddress readXOR_MAPPED_ADDRESS(ByteBuffer in) {

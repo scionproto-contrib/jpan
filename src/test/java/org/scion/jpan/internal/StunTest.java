@@ -98,6 +98,7 @@ class StunTest {
     ByteBuffer out = ByteBuffer.allocate(1000);
     STUN.TransactionID id = STUN.writeRequest(out);
     InetAddress addr = InetAddress.getByName("stun.solnet.ch");
+    // InetAddress addr = InetAddress.getByName("stun.ipfire.org");
     InetSocketAddress server = new InetSocketAddress(addr, 3478);
     try (DatagramChannel channel = DatagramChannel.open()) {
 
