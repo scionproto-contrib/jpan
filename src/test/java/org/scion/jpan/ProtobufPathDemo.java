@@ -31,13 +31,12 @@ public class ProtobufPathDemo {
   private final ScionService service;
 
   public static void main(String[] args) {
-    try (Scion.CloseableService daemon =
-        Scion.newServiceWithDaemon(DemoConstants.daemon1111_minimal)) {
+    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(DemoConstants.daemon110_tiny)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(DemoConstants.ia1111, DemoConstants.ia1112);
+      demo.testPathsDaemon(DemoConstants.ia110, DemoConstants.ia111);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
