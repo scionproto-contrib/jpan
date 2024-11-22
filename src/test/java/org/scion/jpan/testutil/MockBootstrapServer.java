@@ -39,9 +39,8 @@ import org.slf4j.LoggerFactory;
 public class MockBootstrapServer implements Closeable {
 
   public static final String TOPO_HOST = "my-topo-host.org";
-  public static final String CONFIG_DIR_TINY = "topologies/scionproto-tiny/";
-  public static final String TOPOFILE_TINY_110 = CONFIG_DIR_TINY + "topology-110.json";
-  public static final String TOPOFILE_TINY_111 = CONFIG_DIR_TINY + "topology-111.json";
+  public static final String CONFIG_DIR_TINY = "topologies/tiny4/";
+  public static final String TOPO_TINY_110 = CONFIG_DIR_TINY + "ASff00_0_110/";
   private static final Logger logger = LoggerFactory.getLogger(MockBootstrapServer.class.getName());
   private final ExecutorService executor;
   private final AtomicInteger callCount = new AtomicInteger();
@@ -49,11 +48,12 @@ public class MockBootstrapServer implements Closeable {
   private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
   private final AsInfo asInfo;
 
-  private MockBootstrapServer(Path topoFile, Path configPath, boolean installNaptr) {
+  private MockBootstrapServer(Path topoDir, Path configPath, boolean installNaptr) {
     getAndResetCallCount();
     Path configResource = JsonFileParser.toResourcePath(configPath);
-    asInfo = JsonFileParser.parseTopologyFile(topoFile);
+    asInfo = JsonFileParser.parseTopology(topoDir);
     executor = Executors.newSingleThreadExecutor();
+    Path topoFile = topoDir.resolve("topology.json");
     executor.submit(new TopologyServerImpl(JsonFileParser.readFile(topoFile), configResource));
 
     try {
@@ -72,26 +72,22 @@ public class MockBootstrapServer implements Closeable {
     logger.info("Server started, listening on {}", serverSocket);
   }
 
-  public static MockBootstrapServer start() {
-    return new MockBootstrapServer(Paths.get(TOPOFILE_TINY_111), null, false);
-  }
-
-  public static MockBootstrapServer start(String topoFile, boolean installNaptr) {
-    if (!TOPOFILE_TINY_110.equals(topoFile)) {
+  public static MockBootstrapServer start(String topoDir, boolean installNaptr) {
+    if (!TOPO_TINY_110.equals(topoDir)) {
       throw new UnsupportedOperationException("Add config dir");
     }
-    return new MockBootstrapServer(Paths.get(topoFile), Paths.get(CONFIG_DIR_TINY), installNaptr);
+    return new MockBootstrapServer(Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY), installNaptr);
   }
 
   /**
    * Start a new bootstrap server.
    *
    * @param cfgPath path to topology folder
-   * @param topoFile sub-path to topology file
+   * @param topoDir sub-path to topology file
    * @return server instance
    */
-  public static MockBootstrapServer start(String cfgPath, String topoFile) {
-    return new MockBootstrapServer(Paths.get(cfgPath + topoFile), Paths.get(cfgPath), false);
+  public static MockBootstrapServer start(String cfgPath, String topoDir) {
+    return new MockBootstrapServer(Paths.get(cfgPath + topoDir), Paths.get(cfgPath), false);
   }
 
   @Override

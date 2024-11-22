@@ -50,12 +50,11 @@ public class MockNetwork {
   private static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
-  public static final String TINY_SRV_TOPO_V4 = "topologies/scionproto-tiny/topology-112.json";
-  public static final String TINY_SRV_TOPO_V6 = "topologies/scionproto-tiny/topology-112-ipV6.json";
+  public static final String TINY_SRV_TOPO_V4 = "topologies/tiny4/ASff00_0_112";
+  public static final String TINY_SRV_TOPO_V6 = "topologies/tiny/ASff00_0_112";
   public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
-  private static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPOFILE_TINY_110;
-  private static final String TINY_CLIENT_TOPO_V6 =
-      "topologies/scionproto-tiny/topology-110-ipV6.json";
+  private static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPO_TINY_110;
+  private static final String TINY_CLIENT_TOPO_V6 = "topologies/tiny/ASff00_0_110";
   static final AtomicInteger nForwardTotal = new AtomicInteger();
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
@@ -164,7 +163,7 @@ public class MockNetwork {
         controlServer = MockControlServer.start(asInfo.getControlServerPort());
         break;
       case AS_ONLY:
-        asInfo = JsonFileParser.parseTopologyFile(Paths.get(localTopo));
+        asInfo = JsonFileParser.parseTopology(Paths.get(localTopo));
         controlServer = MockControlServer.start(asInfo.getControlServerPort());
         break;
       case DAEMON:
@@ -219,8 +218,8 @@ public class MockNetwork {
   }
 
   private MockNetwork(String localTopo, String remoteTopo) {
-    asInfoLocal = JsonFileParser.parseTopologyFile(Paths.get(localTopo));
-    asInfoRemote = JsonFileParser.parseTopologyFile(Paths.get(remoteTopo));
+    asInfoLocal = JsonFileParser.parseTopology(Paths.get(localTopo));
+    asInfoRemote = JsonFileParser.parseTopology(Paths.get(remoteTopo));
     asInfoLocal.connectWith(asInfoRemote);
   }
 

@@ -35,9 +35,7 @@ public class ScmpDemoDefault {
 
   public static boolean PRINT = true;
   private static int REPEAT = 2;
-  // Use a port from the dispatcher compatibility range
-  private static final int LOCAL_PORT = 32766;
-  private static final String PREFIX = "topologies/scionproto-default/";
+  private static final String PREFIX = "topologies/default/";
 
   public static void init(boolean print, int repeat) {
     PRINT = print;

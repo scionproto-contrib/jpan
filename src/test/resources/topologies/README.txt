@@ -9,5 +9,7 @@ Files:
 Folders:
 * `minimal` is a relatively small topology without peering that is used for testing
   path construction in JPAN
-* `scionproto-tiny` is the "tiny" topology used in the scionproto SCION project
-* `scionproto-default` is the "default" topology used in the scionproto SCION project
+* `tiny4` is the "tiny4" topology used in the scionproto SCION project,
+  except for an additional link between 110 and 112
+* `tiny` is the "tiny" topology used in the scionproto SCION project
+* `default` is the "default" topology used in the scionproto SCION project

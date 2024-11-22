@@ -67,6 +67,10 @@ public class JsonFileParser {
     return toResourcePath(Paths.get(fileName));
   }
 
+  public static AsInfo parseTopology(Path path) {
+    return parseTopologyFile(path.resolve("topology.json"));
+  }
+
   public static AsInfo parseTopologyFile(Path path) {
     String fileStr = readFile(path);
     AsInfo as = new AsInfo();

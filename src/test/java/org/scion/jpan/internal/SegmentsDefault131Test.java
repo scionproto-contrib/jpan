@@ -42,7 +42,7 @@ public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_DEFAULT, "ASff00_0_131/topology.json");
+    topoServer = MockBootstrapServer.start(CFG_DEFAULT, "ASff00_0_131");
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());

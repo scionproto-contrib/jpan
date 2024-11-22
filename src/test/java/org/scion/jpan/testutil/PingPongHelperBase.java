@@ -36,7 +36,7 @@ public class PingPongHelperBase {
 
   public static final String MSG = "Hello scion!";
   public static final String SERVER_ISD_AS = MockNetwork.TINY_SRV_ISD_AS;
-  public static final String SERVER_TOPO = MockNetwork.TINY_SRV_TOPO_V4;
+  public static final String SERVER_TOPO = MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json";
 
   private static final int TIMEOUT = 10; // seconds
   private static final String SERVER_NAME = "ping.pong.org";

@@ -90,7 +90,7 @@ public class ScmpEchoDemo {
         // scion ping 2-ff00:0:211,127.0.0.10 --sciond 127.0.0.43:30255
         {
           // Use scenario builder to get access to relevant IP addresses
-          Scenario scenario = Scenario.readFrom("topologies/scionproto-default");
+          Scenario scenario = Scenario.readFrom("topologies/default");
           long srcIsdAs = ScionUtil.parseIA("2-ff00:0:212");
           long dstIsdAs = ScionUtil.parseIA("2-ff00:0:222");
 
@@ -98,7 +98,7 @@ public class ScmpEchoDemo {
             // Alternative #1: Bootstrap from topo file
             System.setProperty(
                 Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-                "topologies/scionproto-default/ASff00_0_212/topology.json");
+                "topologies/default/ASff00_0_212/topology.json");
           } else {
             // Alternative #2: Bootstrap from SCION daemon
             System.setProperty(Constants.PROPERTY_DAEMON, scenario.getDaemon(srcIsdAs));
