@@ -81,7 +81,6 @@ public class STUN {
           System.out.println("        SOFTWARE: " + readSOFTWARE(in, len));
           // log.debug("SOFTWARE: {}", readSOFTWARE(in, len));
           break;
-
         case XXX_RESERVATION_TOKEN:
           in.position(in.position() + len);
           // ignore
