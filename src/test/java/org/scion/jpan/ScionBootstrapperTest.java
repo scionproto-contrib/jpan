@@ -32,7 +32,7 @@ class ScionBootstrapperTest {
 
   @Test
   void testTiny110() {
-    java.nio.file.Path topoFile = Paths.get("topologies/scionproto-tiny/topology-110.json");
+    java.nio.file.Path topoFile = Paths.get("topologies/scionproto-tiny4/ASff00_0_110/topology.json");
     ScionBootstrapper sb = ScionBootstrapper.createViaTopoFile(topoFile);
     LocalTopology topo = sb.getLocalTopology();
 

@@ -50,12 +50,12 @@ public class MockNetwork {
   private static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
-  public static final String TINY_SRV_TOPO_V4 = "topologies/scionproto-tiny/topology-112.json";
-  public static final String TINY_SRV_TOPO_V6 = "topologies/scionproto-tiny/topology-112-ipV6.json";
+  public static final String TINY_SRV_TOPO_V4 = "topologies/scionproto-tiny4/ASff00_0_112/topology.json";
+  public static final String TINY_SRV_TOPO_V6 = "topologies/scionproto-tiny6/ASff00_0_112/topology.json";
   public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
   private static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPOFILE_TINY_110;
   private static final String TINY_CLIENT_TOPO_V6 =
-      "topologies/scionproto-tiny/topology-110-ipV6.json";
+          "topologies/scionproto-tiny6/ASff00_0_110/topology.json";
   static final AtomicInteger nForwardTotal = new AtomicInteger();
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();

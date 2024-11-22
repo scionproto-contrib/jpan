@@ -39,9 +39,8 @@ import org.slf4j.LoggerFactory;
 public class MockBootstrapServer implements Closeable {
 
   public static final String TOPO_HOST = "my-topo-host.org";
-  public static final String CONFIG_DIR_TINY = "topologies/scionproto-tiny/";
-  public static final String TOPOFILE_TINY_110 = CONFIG_DIR_TINY + "topology-110.json";
-  public static final String TOPOFILE_TINY_111 = CONFIG_DIR_TINY + "topology-111.json";
+  public static final String CONFIG_DIR_TINY = "topologies/scionproto-tiny4/";
+  public static final String TOPOFILE_TINY_110 = CONFIG_DIR_TINY + "ASff00_0_110/topology.json";
   private static final Logger logger = LoggerFactory.getLogger(MockBootstrapServer.class.getName());
   private final ExecutorService executor;
   private final AtomicInteger callCount = new AtomicInteger();
@@ -70,10 +69,6 @@ public class MockBootstrapServer implements Closeable {
     }
 
     logger.info("Server started, listening on {}", serverSocket);
-  }
-
-  public static MockBootstrapServer start() {
-    return new MockBootstrapServer(Paths.get(TOPOFILE_TINY_111), null, false);
   }
 
   public static MockBootstrapServer start(String topoFile, boolean installNaptr) {
