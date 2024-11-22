@@ -43,7 +43,7 @@ public class ScionTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
-  private static final String TOPO_FILE = "topologies/scionproto-tiny4/ASff00_0_110/topology.json";
+  private static final String TOPO_FILE = "topologies/tiny4/ASff00_0_110/topology.json";
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @BeforeAll
@@ -493,7 +493,7 @@ public class ScionTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
-    String topofile = "topologies/scionproto-tiny4/ASff00_0_110/topology.json";
+    String topofile = "topologies/tiny4/ASff00_0_110/topology.json";
     try (Scion.CloseableService service = Scion.newServiceWithTopologyFile(topofile)) {
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);

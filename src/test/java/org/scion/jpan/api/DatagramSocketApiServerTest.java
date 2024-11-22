@@ -148,7 +148,7 @@ class DatagramSocketApiServerTest {
 
   @Test
   void receive_correctSrc_divergentBR() throws IOException {
-    String topoFile = "topologies/scionproto-tiny4/ASff00_0_112/topology.json";
+    String topoFile = "topologies/tiny4/ASff00_0_112/topology.json";
     // Check that the ResponsePath's first hop is looked up from the border router table,
     // i.e. that it doesn't simply use the underlay's source address as first hop.
     byte[] scionSrcBytes = {10, 0, 123, 123};
@@ -227,7 +227,7 @@ class DatagramSocketApiServerTest {
     MockNetwork.startTiny();
     ScionService service = null;
     try {
-      service = Scion.newServiceWithTopologyFile("topologies/scionproto-tiny4/ASff00_0_112/topology.json");
+      service = Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
       try (ScionDatagramSocket socket = ScionDatagramSocket.create(service, mdc)) {
         DatagramPacket buffer = new DatagramPacket(new byte[1000], 1000);
         socket.receive(buffer);

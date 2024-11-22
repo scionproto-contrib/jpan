@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 public class MockBootstrapServer implements Closeable {
 
   public static final String TOPO_HOST = "my-topo-host.org";
-  public static final String CONFIG_DIR_TINY = "topologies/scionproto-tiny4/";
+  public static final String CONFIG_DIR_TINY = "topologies/tiny4/";
   public static final String TOPO_TINY_110 = CONFIG_DIR_TINY + "ASff00_0_110/";
   private static final Logger logger = LoggerFactory.getLogger(MockBootstrapServer.class.getName());
   private final ExecutorService executor;

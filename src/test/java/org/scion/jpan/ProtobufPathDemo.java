@@ -48,7 +48,7 @@ public class ProtobufPathDemo {
     this.service = service;
   }
 
-  private void testAsInfo() throws ScionException {
+  private void testAsInfo() {
     Daemon.ASResponse asInfo = service.getASInfo();
     System.out.println(
         "ASInfo found: "
@@ -61,7 +61,7 @@ public class ProtobufPathDemo {
             + asInfo.getMtu());
   }
 
-  private void testInterfaces() throws ScionException {
+  private void testInterfaces() {
     Map<Long, Daemon.Interface> interfaces = service.getInterfaces();
     System.out.println("Interfaces found: " + interfaces.size());
     for (Map.Entry<Long, Daemon.Interface> entry : interfaces.entrySet()) {
@@ -69,7 +69,7 @@ public class ProtobufPathDemo {
     }
   }
 
-  private void testPathsDaemon(long srcIA, long dstIA) throws ScionException {
+  private void testPathsDaemon(long srcIA, long dstIA) {
     List<Daemon.Path> paths = service.getPathListDaemon(srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
@@ -116,7 +116,7 @@ public class ProtobufPathDemo {
     String addr111 = "127.0.0.18:31006";
     // ScionService csSercice = Scion.newServiceWithBootstrapServerIP(addr111);
     ScionService csSercice =
-        Scion.newServiceWithTopologyFile("topologies/scionproto-tiny4/ASff00_0_112/topology.json");
+        Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
     List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(csSercice, srcIA, dstIA);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
@@ -147,8 +147,8 @@ public class ProtobufPathDemo {
     System.out.println("Services found: " + services.size());
     for (Map.Entry<String, Daemon.ListService> entry : services.entrySet()) {
       System.out.println("ListService: " + entry.getKey());
-      for (Daemon.Service service : entry.getValue().getServicesList()) {
-        System.out.println("    Service: " + service.getUri());
+      for (Daemon.Service daemonService : entry.getValue().getServicesList()) {
+        System.out.println("    Service: " + daemonService.getUri());
       }
     }
   }

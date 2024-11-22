@@ -69,7 +69,7 @@ class ShimTest {
   @Test
   void testShim_withTopofile() throws IOException {
     System.setProperty(
-        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/scionproto-tiny4/ASff00_0_110/topology.json");
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/tiny4/ASff00_0_110/topology.json");
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Stop the SCMP responder on 30041
@@ -84,8 +84,7 @@ class ShimTest {
 
   @Test
   void testShim_noDaemon() throws IOException {
-    try (MockNetwork2 unused =
-        MockNetwork2.start("topologies/minimal/", "ASff00_0_110")) {
+    try (MockNetwork2 unused = MockNetwork2.start("topologies/minimal/", "ASff00_0_110")) {
       testShim();
     }
   }
