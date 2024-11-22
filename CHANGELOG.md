@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Post 0.4.0 release updates. [#143](https://github.com/scionproto-contrib/jpan/pull/143)
+- Pre 0.4.1 release updates. [#147](https://github.com/scionproto-contrib/jpan/pull/147)
 
 ## [0.4.0] - 2024-11-19
 
