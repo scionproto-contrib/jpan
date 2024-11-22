@@ -21,12 +21,12 @@ import org.scion.jpan.internal.AbstractSegmentsMinimalTest;
 
 /** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
-  public static final String AS_HOST =
-      "my-as-host-test.org"; // TODO remove from AbstractSegmentsMinimalTest
+  public static final String AS_HOST = "my-as-host-test.org";
   private final MockBootstrapServer topoServer;
   private final MockControlServer controlServer;
 
   static class MinimalInitializer extends AbstractSegmentsMinimalTest {
+    @Override
     public void addResponses() {
       super.addResponses();
     }
@@ -36,16 +36,17 @@ public class MockNetwork2 implements AutoCloseable {
     }
   }
 
-  public static MockNetwork2 start(String configDir, String topoFileOfLocalAS) {
-    return new MockNetwork2(configDir, topoFileOfLocalAS);
+  public static MockNetwork2 start(String configDir, String topoOfLocalAS) {
+    return new MockNetwork2(configDir, topoOfLocalAS);
   }
 
-  private MockNetwork2(String configDir, String topoFileOfLocalAS) {
-    topoServer = MockBootstrapServer.start(configDir, topoFileOfLocalAS);
+  private MockNetwork2(String configDir, String topoOfLocalAS) {
+    topoServer = MockBootstrapServer.start(configDir, topoOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, configDir + topoFileOfLocalAS);
+    String topoFileOfLocalAS = configDir + topoOfLocalAS + "/topology.json";
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
     if (configDir.startsWith("topologies/minimal")) {
       MinimalInitializer data = new MinimalInitializer();
       data.init(controlServer);

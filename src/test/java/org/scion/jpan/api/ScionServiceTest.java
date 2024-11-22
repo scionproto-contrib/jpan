@@ -202,7 +202,7 @@ public class ScionServiceTest {
   void getPaths_noPathFound_fromCore() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw =
-        MockNetwork2.start("topologies/minimal/", "ASff00_0_110/topology.json")) {
+        MockNetwork2.start("topologies/minimal/", "ASff00_0_110")) {
       ScionService service = Scion.defaultService();
       List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
@@ -228,7 +228,7 @@ public class ScionServiceTest {
   void getPaths_noPathFound_fromLeaf() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw =
-        MockNetwork2.start("topologies/minimal/", "ASff00_0_1111/topology.json")) {
+        MockNetwork2.start("topologies/minimal/", "ASff00_0_1111")) {
       ScionService service = Scion.defaultService();
       List<Path> paths;
       nw.getControlServer().getAndResetCallCount();
@@ -400,7 +400,7 @@ public class ScionServiceTest {
     System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, host + "=" + txtEntry);
     // Use any topo file
     try (MockBootstrapServer topo =
-        MockBootstrapServer.start(MockBootstrapServer.TOPOFILE_TINY_110, true)) {
+        MockBootstrapServer.start(MockBootstrapServer.TOPO_TINY_110, true)) {
       ScionService service = Scion.defaultService();
       Exception ex =
           assertThrows(ScionException.class, () -> service.lookupAndGetPath(host, 123, null));

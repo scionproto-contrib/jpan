@@ -27,7 +27,7 @@ public class PingPongChannelServer {
   public static final String SERVER_HOST_NAME = "ping.pong.org";
   public static final InetSocketAddress SERVER_ADDRESS;
   public static final int SERVER_PORT = 44444;
-  public static String TOPO_FILE = MockNetwork.TINY_SRV_TOPO_V4;
+  public static String TOPO_FILE = MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json";
 
   static {
     try {

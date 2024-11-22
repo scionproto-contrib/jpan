@@ -53,7 +53,7 @@ public class SegmentsMinimal211Test extends AbstractSegmentsMinimalTest {
 
   @BeforeAll
   public static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_211/topology.json");
+    topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_211");
     InetSocketAddress topoAddr = topoServer.getAddress();
     firstHop210 = topoServer.getBorderRouterAddressByIA(AS_210);
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());

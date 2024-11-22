@@ -23,10 +23,11 @@ import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.Scenario;
 
 public abstract class AbstractSegmentsMinimalTest {
-  protected static final String AS_HOST = "my-as-host.org";
+  protected static final String AS_HOST = MockNetwork2.AS_HOST;
   protected static final String CFG_MINIMAL = "topologies/minimal/";
   protected static final String CFG_DEFAULT = "topologies/scionproto-default/";
 

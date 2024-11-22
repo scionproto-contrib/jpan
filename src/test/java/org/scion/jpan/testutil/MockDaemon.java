@@ -98,13 +98,13 @@ public class MockDaemon implements AutoCloseable {
     InetSocketAddress bind1 = new InetSocketAddress("127.0.0.10", 31004);
     InetSocketAddress bind2 = new InetSocketAddress("127.0.0.25", 31012);
     this.borderRouters.add(new MockBorderRouter(0, bind1, bind2, 2, 1));
-    asInfo = JsonFileParser.parseTopologyFile(Paths.get(MockBootstrapServer.TOPOFILE_TINY_110));
+    asInfo = JsonFileParser.parseTopology(Paths.get(MockBootstrapServer.TOPO_TINY_110));
   }
 
   private MockDaemon(InetSocketAddress address, List<MockBorderRouter> borderRouters) {
     this.address = address;
     this.borderRouters = borderRouters;
-    asInfo = JsonFileParser.parseTopologyFile(Paths.get(MockBootstrapServer.TOPOFILE_TINY_110));
+    asInfo = JsonFileParser.parseTopology(Paths.get(MockBootstrapServer.TOPO_TINY_110));
   }
 
   public MockDaemon start() throws IOException {
