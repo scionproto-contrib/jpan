@@ -24,7 +24,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
+### Added
+
+- Added Path construction tests for tiny4. 
+  [#146](https://github.com/scionproto-contrib/jpan/pull/146)
+
 ### Changed
+- 
 - Cleaned up test topologies.  [#145](https://github.com/scionproto-contrib/jpan/pull/145)
 
 ## [0.4.1] - 2024-11-22
