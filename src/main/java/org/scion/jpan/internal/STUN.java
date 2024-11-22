@@ -82,6 +82,10 @@ public class STUN {
           // log.debug("SOFTWARE: {}", readSOFTWARE(in, len));
           break;
 
+        case XXX_RESERVATION_TOKEN:
+          in.position(in.position() + len);
+          // ignore
+          break;
         default:
           byte[] data = new byte[len];
           in.get(data);
@@ -209,6 +213,8 @@ public class STUN {
     REALM(0x0014, "REALM"),
     NONCE(0x0015, "NONCE"),
     XOR_MAPPED_ADDRESS(0x0020, "XOR-MAPPED-ADDRESS"),
+    // https://www.iana.org/assignments/stun-parameters/stun-parameters.xhtml
+    XXX_RESERVATION_TOKEN(0x0022, "RESERVATION-TOKEN"),
 
     // Comprehension-optional range (0x8000-0xFFFF)
     // 0x8020 is not properly defined, or is it?
