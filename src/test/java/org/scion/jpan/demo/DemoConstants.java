@@ -51,8 +51,8 @@ public class DemoConstants {
   public static final String csAddr210_minimal = "127.0.0.91:31038";
 
   // ----------------  "tiny" network - daemons and control servers  ------------------
-  public static final String daemon110_tiny = "127.0.0.12:30255";
-  public static final String daemon111_tiny = "127.0.0.19:30255";
+  public static final String daemon110_tiny = "127.0.0.21:30255";
+  public static final String daemon111_tiny = "127.0.0.27:30255";
   public static final String csAddr110_tiny = "127.0.0.11:31000";
   public static final String csAddr111_tiny = "127.0.0.18:31006";
   public static final String csAddr112_tiny = "[fd00:f00d:cafe::7f00:a]:31010";
