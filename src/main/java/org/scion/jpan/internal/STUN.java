@@ -14,18 +14,17 @@
 
 package org.scion.jpan.internal;
 
-import chat.dim.stun.Client;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.Random;
 import org.scion.jpan.ScionRuntimeException;
 
 public class STUN {
 
-  private static final Random rnd = new Random();
+  private static final SecureRandom rnd = new SecureRandom();
 
   private static final int MAGIC_COOKIE = 0x42A41221;
   // This must be UTF-8
@@ -234,7 +233,7 @@ public class STUN {
     }
   }
 
-  static class TransactionID {
+  public static class TransactionID {
     int[] id = new int[3];
 
     TransactionID(Random rnd) {
@@ -248,24 +247,6 @@ public class STUN {
     synchronized (rnd) {
       return new TransactionID(rnd);
     }
-  }
-
-  public static TransactionID writeRequestLib(ByteBuffer buffer, InetSocketAddress sourceAddress) {
-    TransactionID id = createTxID();
-    Client client =
-        new Client(sourceAddress) {
-          @Override
-          public byte[] receive() {
-            return new byte[0];
-          }
-
-          @Override
-          public int send(byte[] bytes, SocketAddress socketAddress, SocketAddress socketAddress1) {
-            return 0;
-          }
-        };
-
-    return id;
   }
 
   public static TransactionID writeRequest(ByteBuffer buffer) {

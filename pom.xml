@@ -139,12 +139,6 @@
             <artifactId>google-java-format</artifactId>
             <version>1.24.0</version>
         </dependency>
-
-        <dependency>
-            <groupId>chat.dim</groupId>
-            <artifactId>STUN</artifactId>
-            <version>0.1.5</version>
-        </dependency>
     </dependencies>
 
     <build>
