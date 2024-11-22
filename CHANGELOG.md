@@ -28,9 +28,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Added Path construction tests for tiny4. 
   [#146](https://github.com/scionproto-contrib/jpan/pull/146)
+- Added experimental support for STUN [#142](https://github.com/scionproto-contrib/jpan/pull/142)
 
 ### Changed
-- 
+
 - Cleaned up test topologies.  [#145](https://github.com/scionproto-contrib/jpan/pull/145)
 
 ## [0.4.1] - 2024-11-22
