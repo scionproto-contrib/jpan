@@ -14,20 +14,89 @@
 
 package org.scion.jpan.internal;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.nio.file.Path;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.testutil.JsonFileParser;
+import org.scion.jpan.testutil.MockNetwork;
 
 class StunTest {
+
+  @Disabled
+  @Test
+  void testPublicServers() throws IOException {
+    Path file = JsonFileParser.toResourcePath("stun-servers.txt");
+
+    BufferedReader br = new BufferedReader(new FileReader(file.toFile()));
+    String st;
+    while ((st = br.readLine()) != null) {
+      System.out.print("Trying: " + st + " ... ");
+      InetSocketAddress addr;
+      if (st.startsWith("[") || Character.isDigit(st.charAt(0))) {
+        addr = IPHelper.toInetSocketAddress(st);
+      } else {
+        try {
+          int pos = st.indexOf(":");
+          InetAddress inet = InetAddress.getByName(st.substring(0, pos));
+          int port = Integer.parseInt(st.substring(pos + 1));
+          addr = new InetSocketAddress(inet, port);
+        } catch (UnknownHostException e) {
+          System.out.println("Unknown host");
+          continue;
+        }
+      }
+      System.out.print(addr + " ...");
+      test(addr);
+    }
+  }
+
+  private void test(InetSocketAddress server) throws IOException {
+    ByteBuffer out = ByteBuffer.allocate(1000);
+    STUN.TransactionID id = STUN.writeRequest(out);
+    out.flip();
+
+    try (DatagramSocket channel = new DatagramSocket()) {
+      channel.setSoTimeout(1000);
+
+      DatagramPacket pOut = new DatagramPacket(out.array(), out.remaining(), server);
+      channel.send(pOut);
+
+      ByteBuffer in = ByteBuffer.allocate(1000);
+      DatagramPacket pIn = new DatagramPacket(new byte[1000], 1000);
+      try {
+        channel.receive(pIn);
+      } catch (SocketTimeoutException e) {
+        System.out.println("Timeout");
+        return;
+      }
+      //      InetSocketAddress server2 = (InetSocketAddress) pIn.getSocketAddress();
+      //      System.out.println("Received from: " + server2);
+      for (int i = 0; i < pIn.getLength(); i++) {
+        in.put(pIn.getData()[i]);
+      }
+      in.flip();
+
+      boolean isSTUN = STUN.isStunPacket(in, id);
+      if (isSTUN) {
+        InetSocketAddress external = STUN.parseResponse(in);
+        //        System.out.println("Address: " + external);
+      }
+    }
+  }
 
   @Test
   void test() throws IOException {
     ByteBuffer out = ByteBuffer.allocate(1000);
     STUN.TransactionID id = STUN.writeRequest(out);
-    // STUN.TransactionID id = STUN.writeRequestLib(out);
     InetAddress addr = InetAddress.getByName("stun.solnet.ch");
     InetSocketAddress server = new InetSocketAddress(addr, 3478);
     try (DatagramChannel channel = DatagramChannel.open()) {
@@ -61,6 +130,36 @@ class StunTest {
         InetSocketAddress external = STUN.parseResponse(in);
         System.out.println("Address: " + external);
       }
+    }
+  }
+
+  @Test
+  void testBorderRouter() throws IOException {
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      MockNetwork.startTiny();
+
+      // send
+      InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
+      ByteBuffer out = ByteBuffer.allocate(1000);
+      STUN.TransactionID id = STUN.writeRequest(out);
+      out.flip();
+      channel.send(out, br);
+
+      // receive
+      ByteBuffer in = ByteBuffer.allocate(1000);
+      InetSocketAddress server = (InetSocketAddress) channel.receive(in);
+      assertEquals(br, server);
+      in.flip();
+
+      // check
+      boolean isSTUN = STUN.isStunPacket(in, id);
+      assertTrue(isSTUN);
+
+      InetSocketAddress external = STUN.parseResponse(in);
+      // We compare only the port, the IP may differ ("any" vs localhost, etc...)
+      assertEquals(((InetSocketAddress) channel.getLocalAddress()).getPort(), external.getPort());
+    } finally {
+      MockNetwork.stopTiny();
     }
   }
 }

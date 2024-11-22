@@ -21,8 +21,12 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Random;
 import org.scion.jpan.ScionRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class STUN {
+
+  private static final Logger log = LoggerFactory.getLogger(STUN.class);
 
   private static final SecureRandom rnd = new SecureRandom();
 
@@ -60,23 +64,28 @@ public class STUN {
       switch (typeEnum) {
         case MAPPED_ADDRESS:
           mappedAddress = readMAPPED_ADDRESS(in);
+          log.warn("MAPPED_ADDRESS: {}", mappedAddress);
           break;
         case WAS_SOURCE_ADDRESS:
-          System.out.println("        SOURCE_ADDRESS: " + readMAPPED_ADDRESS(in));
+          log.warn("SOURCE_ADDRESS: {}", readMAPPED_ADDRESS(in));
           break;
         case WAS_CHANGED_ADDRESS:
-          System.out.println("        CHANGED_ADDRESS: " + readMAPPED_ADDRESS(in));
+          log.warn("CHANGED_ADDRESS: {}", readMAPPED_ADDRESS(in));
           break;
         case XOR_MAPPED_ADDRESS:
+        case OLD_XOR_MAPPED_ADDRESS:
           System.out.println("        XOR_MAPPED_ADDRESS: " + readXOR_MAPPED_ADDRESS(in));
+          // log.debug("XOR_MAPPED_ADDRESS: {}", readMAPPED_ADDRESS(in));
           break;
         case SOFTWARE:
           System.out.println("        SOFTWARE: " + readSOFTWARE(in, len));
+          // log.debug("SOFTWARE: {}", readSOFTWARE(in, len));
           break;
 
         default:
           byte[] data = new byte[len];
           in.get(data);
+          throw new IllegalStateException(typeEnum.getText());
       }
     }
 
@@ -93,7 +102,7 @@ public class STUN {
     } else if (family == 0x02) {
       bytes = new byte[16];
     } else {
-      throw new UnsupportedOperationException("Unsupported fammily: " + family); // TODO
+      throw new UnsupportedOperationException("Unsupported family: " + family); // TODO
     }
     in.get(bytes);
     try {
@@ -202,6 +211,8 @@ public class STUN {
     XOR_MAPPED_ADDRESS(0x0020, "XOR-MAPPED-ADDRESS"),
 
     // Comprehension-optional range (0x8000-0xFFFF)
+    // 0x8020 is not properly defined, or is it?
+    OLD_XOR_MAPPED_ADDRESS(0x8020, "XOR-MAPPED-ADDRESS"),
     SOFTWARE(0x8022, "SOFTWARE"),
     ALTERNATE_SERVER(0x8023, "ALTERNATE-SERVER"),
     FINGERPRINT(0x8028, "FINGERPRINT");
