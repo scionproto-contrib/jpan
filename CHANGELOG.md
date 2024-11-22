@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
+## [0.4.1] - 2024-11-22
+
 ### Fixed
 - No path constructed for single UP segment in case there is only a single core AS.
   [#144](https://github.com/scionproto-contrib/jpan/pull/144)
@@ -293,7 +295,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/scionproto-contrib/jpan/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.4.0
 [0.3.1]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/scionproto-contrib/jpan/compare/v0.2.0...v0.3.0
