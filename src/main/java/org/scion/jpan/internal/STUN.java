@@ -87,12 +87,12 @@ public class STUN {
         case XOR_MAPPED_ADDRESS:
           InetSocketAddress xor = readXOR_MAPPED_ADDRESS(in, fullTxId);
           mappedAddressXor = xor;
-          log.info("XOR_MAPPED_ADDRESS: {}", xor);
+          log.warn("XOR_MAPPED_ADDRESS: {}", xor);
           break;
         case OLD_XOR_MAPPED_ADDRESS:
           InetSocketAddress xor_old = readXOR_MAPPED_ADDRESS(in, fullTxId);
           mappedAddressXor = xor_old;
-          log.info("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
+          log.warn("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
           break;
         case SOFTWARE:
           String software = readSOFTWARE(in, len);
@@ -118,7 +118,9 @@ public class STUN {
       }
     }
 
-    if (mappedAddressXor != null && !mappedAddress.equals(mappedAddressXor)) {
+    if (mappedAddress != null
+        && mappedAddressXor != null
+        && !mappedAddress.equals(mappedAddressXor)) {
       log.error("Mismatch: {} <-> {}", mappedAddress, mappedAddressXor);
       // We ignore this for now, because 3 out of 41 XOR responses return bogus addresses...
     }

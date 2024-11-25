@@ -22,7 +22,6 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.file.Path;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.testutil.JsonFileParser;
@@ -33,7 +32,7 @@ class StunTest {
   @Disabled
   @Test
   void testPublicServers() throws IOException {
-    Path file = JsonFileParser.toResourcePath("stun-servers2.txt");
+    Path file = JsonFileParser.toResourcePath("stun-servers3.txt");
 
     BufferedReader br = new BufferedReader(new FileReader(file.toFile()));
     String st;
@@ -151,6 +150,8 @@ class StunTest {
     addrStr = "stun.ekiga.net"; // Has 2nd MAPPED address with wrong port.
     // addrStr = "stun.ippi.fr";  // ERROR code
     // addrStr = "stun.mywatson.it"; // ERROR code
+
+    addrStr = "stun.dunyatelekom.com"; // Has no MAPPED_ADDRESS
     InetAddress addr = InetAddress.getByName(addrStr);
     InetSocketAddress server = new InetSocketAddress(addr, 3478);
     try (DatagramChannel channel = DatagramChannel.open()) {
