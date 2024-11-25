@@ -66,6 +66,7 @@ public class STUN {
     }
 
     InetSocketAddress mappedAddress = null;
+    InetSocketAddress mappedAddressXor = null;
 
     // Attributes
     while (in.remaining() > 0) {
@@ -75,25 +76,27 @@ public class STUN {
       switch (typeEnum) {
         case MAPPED_ADDRESS:
           mappedAddress = readMAPPED_ADDRESS(in);
-          log.warn("MAPPED_ADDRESS: {}", mappedAddress);
+          log.info("MAPPED_ADDRESS: {}", mappedAddress);
           break;
         case WAS_SOURCE_ADDRESS:
-          log.warn("SOURCE_ADDRESS: {}", readMAPPED_ADDRESS(in));
+          log.info("SOURCE_ADDRESS: {}", readMAPPED_ADDRESS(in));
           break;
         case WAS_CHANGED_ADDRESS:
-          log.warn("CHANGED_ADDRESS: {}", readMAPPED_ADDRESS(in));
+          log.info("CHANGED_ADDRESS: {}", readMAPPED_ADDRESS(in));
           break;
         case XOR_MAPPED_ADDRESS:
           InetSocketAddress xor = readXOR_MAPPED_ADDRESS(in, fullTxId);
-          log.warn("XOR_MAPPED_ADDRESS: {}", xor);
+          mappedAddressXor = xor;
+          log.info("XOR_MAPPED_ADDRESS: {}", xor);
           break;
         case OLD_XOR_MAPPED_ADDRESS:
           InetSocketAddress xor_old = readXOR_MAPPED_ADDRESS(in, fullTxId);
-          log.warn("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
+          mappedAddressXor = xor_old;
+          log.info("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
           break;
         case SOFTWARE:
           String software = readSOFTWARE(in, len);
-          log.warn("SOFTWARE: {}", software);
+          log.info("SOFTWARE: {}", software);
           break;
         case XXX_RESERVATION_TOKEN:
           in.position(in.position() + len);
@@ -115,6 +118,10 @@ public class STUN {
       }
     }
 
+    if (mappedAddressXor != null && !mappedAddress.equals(mappedAddressXor)) {
+      log.error("Mismatch: {} <-> {}", mappedAddress, mappedAddressXor);
+      // We ignore this for now, because 3 out of 41 XOR responses return bogus addresses...
+    }
     return mappedAddress;
   }
 
@@ -317,7 +324,10 @@ public class STUN {
   }
 
   public static TransactionID writeRequest(ByteBuffer buffer) {
-    boolean addFingerprint = false; // TODO
+    // TODO disabled, 2 out of 112 return Error 400 when using this method.
+    //   Note, the implementation is probably correct, flipping som bits causes another
+    //   4 servers to simply time out.
+    boolean addFingerprint = !false;
     //    0                   1                   2                   3
     //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -376,8 +386,8 @@ public class STUN {
       buffer.limit(fpPos + 8);
       // write fingerprint
       buffer.position(fpPos + 4);
-      // long fingerprint = crc32.getValue() ^ 0x5354554e;
-      long fingerprint = crc32.getValue() ^ 0x4e555453;
+      long fingerprint = crc32.getValue() ^ 0x5354554e;
+      // long fingerprint = crc32.getValue() ^ 0x4e555453;
       buffer.putInt(ByteUtil.toInt(fingerprint));
       // System.out.println("pos2 = " + fpPos + " / " + buffer.limit());
     }

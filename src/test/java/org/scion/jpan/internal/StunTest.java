@@ -17,13 +17,12 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.file.Path;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.testutil.JsonFileParser;
@@ -34,7 +33,7 @@ class StunTest {
   @Disabled
   @Test
   void testPublicServers() throws IOException {
-    Path file = JsonFileParser.toResourcePath("stun-servers.txt");
+    Path file = JsonFileParser.toResourcePath("stun-servers2.txt");
 
     BufferedReader br = new BufferedReader(new FileReader(file.toFile()));
     String st;
@@ -67,7 +66,9 @@ class StunTest {
         }
       }
       System.out.print(addr + " ... ");
-      test(addr, nTimeout, nNull, nSuccess);
+      if (test(addr, nTimeout, nNull, nSuccess)) {
+        // yay!
+      }
     }
     System.out.println("Summary");
     System.out.println("   total:        " + nTotal);
@@ -77,7 +78,7 @@ class StunTest {
     System.out.println("   success:      " + nSuccess.get());
   }
 
-  private void test(
+  private boolean test(
       InetSocketAddress server,
       ByteUtil.MutLong nTimeout,
       ByteUtil.MutLong nNull,
@@ -100,7 +101,7 @@ class StunTest {
       } catch (SocketTimeoutException e) {
         System.out.println("Timeout");
         nTimeout.v++;
-        return;
+        return false;
       }
       //      InetSocketAddress server2 = (InetSocketAddress) pIn.getSocketAddress();
       //      System.out.println("Received from: " + server2);
@@ -109,18 +110,19 @@ class StunTest {
       }
       in.flip();
 
-      boolean isSTUN = STUN.isStunResponse(in, id);
+      boolean isSTUN = STUN.isStunPacket(in, id);
       if (isSTUN) {
         InetSocketAddress external = STUN.parseResponse(in, id);
         if (external == null) {
           nNull.v++;
           System.out.println("NULL");
-          return;
+          return false;
         }
         System.out.println("Address: " + external);
         nSuccess.v++;
       }
     }
+    return true;
   }
 
   @Test
