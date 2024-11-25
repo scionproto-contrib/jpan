@@ -87,12 +87,12 @@ public class STUN {
         case XOR_MAPPED_ADDRESS:
           InetSocketAddress xor = readXOR_MAPPED_ADDRESS(in, fullTxId);
           mappedAddressXor = xor;
-          log.warn("XOR_MAPPED_ADDRESS: {}", xor);
+          log.info("XOR_MAPPED_ADDRESS: {}", xor);
           break;
         case OLD_XOR_MAPPED_ADDRESS:
           InetSocketAddress xor_old = readXOR_MAPPED_ADDRESS(in, fullTxId);
           mappedAddressXor = xor_old;
-          log.warn("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
+          log.info("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
           break;
         case SOFTWARE:
           String software = readSOFTWARE(in, len);
@@ -107,9 +107,11 @@ public class STUN {
           log.error(errorMsg);
           break;
         case FINGERPRINT:
-          System.out.println("FINGERPRINT!!!!");
-          in.position(in.position() + len);
-          // ignore
+          boolean match = readFINGERPRINT(in);
+          log.warn("FINGERPRINT: match = {}", match);
+          if (!match) {
+            return null;
+          }
           break;
         default:
           byte[] data = new byte[len];
@@ -125,6 +127,30 @@ public class STUN {
       // We ignore this for now, because 3 out of 41 XOR responses return bogus addresses...
     }
     return mappedAddress;
+  }
+
+  private static boolean readFINGERPRINT(ByteBuffer in) {
+    int fpPos = in.position() - 4;
+    int packetCRC = in.getInt();
+
+    // calculate fingerprint
+    CRC32 crc32 = new CRC32();
+    in.flip();
+    in.position(0);
+    in.limit(fpPos);
+    crc32.update(in);
+    in.limit(fpPos + 8);
+
+    long fingerprint = crc32.getValue() ^ 0x5354554e;
+
+    // check fingerprint
+    in.position(fpPos + 8);
+
+    if (packetCRC != fingerprint) {
+      log.error("FINGERPRINT mismatch: packet = {} vs calculated = {}", packetCRC, fingerprint);
+      return false;
+    }
+    return true;
   }
 
   private static String readERROR_CODE(ByteBuffer in) {
@@ -371,7 +397,6 @@ public class STUN {
       buffer.putShort(ByteUtil.toShort(Type.FINGERPRINT.code()));
       buffer.putShort(ByteUtil.toShort(4));
       buffer.putInt(0); // dummy
-      // System.out.println("pos = " + fpPos + " / " + buffer.limit());
     }
 
     // post processing
@@ -389,9 +414,7 @@ public class STUN {
       // write fingerprint
       buffer.position(fpPos + 4);
       long fingerprint = crc32.getValue() ^ 0x5354554e;
-      // long fingerprint = crc32.getValue() ^ 0x4e555453;
       buffer.putInt(ByteUtil.toInt(fingerprint));
-      // System.out.println("pos2 = " + fpPos + " / " + buffer.limit());
     }
 
     return id;
