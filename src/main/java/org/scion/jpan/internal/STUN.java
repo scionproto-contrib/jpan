@@ -20,6 +20,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Random;
+import java.util.zip.CRC32;
 import org.scion.jpan.ScionRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,29 +36,34 @@ public class STUN {
   private static final String SOFTWARE_ID = "jpan.scion.org v0.4.0";
 
   public static boolean isStunPacket(ByteBuffer buf, TransactionID id) {
-    return buf.getInt(4) == MAGIC_COOKIE
-        && buf.getInt(8) == id.id[0]
-        && buf.getInt(12) == id.id[1]
-        && buf.getInt(16) == id.id[2];
+    try {
+      return buf.getShort(2) + 20 == buf.remaining()
+          && buf.getInt(4) == MAGIC_COOKIE
+          && buf.getInt(8) == id.id[0]
+          && buf.getInt(12) == id.id[1]
+          && buf.getInt(16) == id.id[2];
+    } catch (IndexOutOfBoundsException e) {
+      // ignore, bad packet
+      return false;
+    }
+  }
+
+  public static boolean isStunResponse(ByteBuffer buf, TransactionID id) {
+    byte b0 = buf.get(0);
+    byte b1 = buf.get(1);
+    return isStunPacket(buf, id) && b0 == 0x1 && b1 == 0x1;
   }
 
   public static InetSocketAddress parseResponse(ByteBuffer in, TransactionID id) {
-    byte b0 = in.get();
-    byte b1 = in.get();
+    in.get();
+    in.get();
     int dataLength = in.getShort();
     byte[] fullTxId = new byte[16];
     in.get(fullTxId);
-//    long id0 = in.getLong();
-//    long id1 = in.getLong();
-    int i0 = in.getInt(4);
-    int i1 = in.getInt(8);
-    int i2 = in.getInt(12);
-    int i3 = in.getInt(16);
     if (in.remaining() != dataLength) {
       throw new IllegalStateException(
           "STUN validation error: length = " + in.remaining() + " " + dataLength);
     }
-    System.out.println("More bytes: " + dataLength);
 
     InetSocketAddress mappedAddress = null;
 
@@ -66,7 +72,6 @@ public class STUN {
       int typeInt = ByteUtil.toUnsigned(in.getShort());
       int len = in.getShort();
       Type typeEnum = Type.parse(typeInt);
-      // System.out.println("    type: " + typeEnum);
       switch (typeEnum) {
         case MAPPED_ADDRESS:
           mappedAddress = readMAPPED_ADDRESS(in);
@@ -94,6 +99,15 @@ public class STUN {
           in.position(in.position() + len);
           // ignore
           break;
+        case ERROR_CODE:
+          String errorMsg = readERROR_CODE(in);
+          log.error(errorMsg);
+          break;
+        case FINGERPRINT:
+          System.out.println("FINGERPRINT!!!!");
+          in.position(in.position() + len);
+          // ignore
+          break;
         default:
           byte[] data = new byte[len];
           in.get(data);
@@ -102,6 +116,20 @@ public class STUN {
     }
 
     return mappedAddress;
+  }
+
+  private static String readERROR_CODE(ByteBuffer in) {
+    int i0 = in.getInt();
+    int errorClass = ByteUtil.readInt(i0, 21, 3);
+    int errorNumber = ByteUtil.readInt(i0, 24, 8);
+    int errorCode = errorClass * 100 + errorNumber;
+    byte[] bytes = new byte[in.remaining()];
+    in.get(bytes);
+    String msg = new String(bytes);
+    if (!processError(errorCode).isEmpty()) {
+      msg = msg + "\n" + processError(errorCode);
+    }
+    return errorCode + ": " + msg;
   }
 
   private static InetSocketAddress readMAPPED_ADDRESS(ByteBuffer in) {
@@ -114,14 +142,16 @@ public class STUN {
     } else if (family == 0x02) {
       bytes = new byte[16];
     } else {
-      throw new UnsupportedOperationException("Unsupported family: " + family); // TODO
+      log.error("Unknown address family: {}", family);
+      return null;
     }
     in.get(bytes);
     try {
       InetAddress address = InetAddress.getByAddress(bytes);
       return new InetSocketAddress(address, port);
     } catch (UnknownHostException e) {
-      throw new ScionRuntimeException(e); // TODO ???
+      // This should never happen
+      throw new ScionRuntimeException(e);
     }
   }
 
@@ -136,43 +166,26 @@ public class STUN {
     byte b0 = in.get();
     byte family = in.get();
     int port = ByteUtil.toUnsigned(in.getShort());
-//    port = reverseBytesShort(port);
     port ^= 0x42A4;
-    // port ^= 0x1221;
-    //port = reverseBytesShort(port);
     byte[] bytes;
     if (family == 0x01) {
       bytes = new byte[4];
     } else if (family == 0x02) {
       bytes = new byte[16];
     } else {
-      throw new UnsupportedOperationException("Unsupported family: " + family); // TODO
+      log.error("Unknown address family: {}", family);
+      return null;
     }
     in.get(bytes);
 
-  //  reverseBytes(bytes);
     xorBytes(bytes, id);
 
     try {
       InetAddress address = InetAddress.getByAddress(bytes);
       return new InetSocketAddress(address, port);
     } catch (UnknownHostException e) {
-      throw new ScionRuntimeException(e); // TODO ???
-    }
-  }
-
-  private static int reverseBytesShort(int i) {
-    int b0 = i & 0xff;
-    int b1 = i & 0xff00;
-    return (b0 << 8) | (b1 >>> 8);
-  }
-
-  private static void reverseBytes(byte[] bytes) {
-    int max = bytes.length - 1;
-    for (int i = 0; i < bytes.length/2; i++) {
-      byte b = bytes[i];
-      bytes[i] = bytes[max - i];
-      bytes[max - i] = b;
+      // This should never happen
+      throw new ScionRuntimeException(e);
     }
   }
 
@@ -223,8 +236,7 @@ public class STUN {
         return "Server Error: The server has suffered a temporary error.  The\n"
             + "client should try again.";
       default:
-        // TODO handle gracefully
-        throw new UnsupportedOperationException("Unknown error: " + errorCode);
+        return "";
     }
   }
 
@@ -232,6 +244,7 @@ public class STUN {
     // https://datatracker.ietf.org/doc/html/rfc3489#section-11.2
     // https://datatracker.ietf.org/doc/html/rfc5389#section-15
     // https://datatracker.ietf.org/doc/html/rfc5389#section-18.2
+    // https://www.iana.org/assignments/stun-parameters/stun-parameters.xhtml
 
     //  Comprehension-required range (0x0000-0x7FFF):
     RESERVED_0(0x0000, "(Reserved)"),
@@ -304,6 +317,7 @@ public class STUN {
   }
 
   public static TransactionID writeRequest(ByteBuffer buffer) {
+    boolean addFingerprint = false; // TODO
     //    0                   1                   2                   3
     //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -339,8 +353,35 @@ public class STUN {
       buffer.put((byte) 0);
     }
 
-    // adjust length
+    // FINGERPRINT
+    int fpPos = buffer.position();
+    if (addFingerprint) {
+      buffer.putShort(ByteUtil.toShort(Type.FINGERPRINT.code()));
+      buffer.putShort(ByteUtil.toShort(4));
+      buffer.putInt(0); // dummy
+      // System.out.println("pos = " + fpPos + " / " + buffer.limit());
+    }
+
+    // post processing
+    // adjust length, excluding the 20 byte header
     buffer.putShort(2, (short) (buffer.position() - 20));
+
+    // calculate fingerprint
+    if (addFingerprint) {
+      CRC32 crc32 = new CRC32();
+      buffer.flip();
+      buffer.position(0);
+      buffer.limit(fpPos);
+      crc32.update(buffer);
+      buffer.limit(fpPos + 8);
+      // write fingerprint
+      buffer.position(fpPos + 4);
+      // long fingerprint = crc32.getValue() ^ 0x5354554e;
+      long fingerprint = crc32.getValue() ^ 0x4e555453;
+      buffer.putInt(ByteUtil.toInt(fingerprint));
+      // System.out.println("pos2 = " + fpPos + " / " + buffer.limit());
+    }
+
     return id;
   }
 }
