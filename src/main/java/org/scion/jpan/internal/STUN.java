@@ -41,12 +41,18 @@ public class STUN {
         && buf.getInt(16) == id.id[2];
   }
 
-  public static InetSocketAddress parseResponse(ByteBuffer in) {
+  public static InetSocketAddress parseResponse(ByteBuffer in, TransactionID id) {
     byte b0 = in.get();
     byte b1 = in.get();
     int dataLength = in.getShort();
-    long id0 = in.getLong();
-    long id1 = in.getLong();
+    byte[] fullTxId = new byte[16];
+    in.get(fullTxId);
+//    long id0 = in.getLong();
+//    long id1 = in.getLong();
+    int i0 = in.getInt(4);
+    int i1 = in.getInt(8);
+    int i2 = in.getInt(12);
+    int i3 = in.getInt(16);
     if (in.remaining() != dataLength) {
       throw new IllegalStateException(
           "STUN validation error: length = " + in.remaining() + " " + dataLength);
@@ -60,7 +66,7 @@ public class STUN {
       int typeInt = ByteUtil.toUnsigned(in.getShort());
       int len = in.getShort();
       Type typeEnum = Type.parse(typeInt);
-      System.out.println("type: " + typeEnum);
+      // System.out.println("    type: " + typeEnum);
       switch (typeEnum) {
         case MAPPED_ADDRESS:
           mappedAddress = readMAPPED_ADDRESS(in);
@@ -73,13 +79,16 @@ public class STUN {
           log.warn("CHANGED_ADDRESS: {}", readMAPPED_ADDRESS(in));
           break;
         case XOR_MAPPED_ADDRESS:
+          InetSocketAddress xor = readXOR_MAPPED_ADDRESS(in, fullTxId);
+          log.warn("XOR_MAPPED_ADDRESS: {}", xor);
+          break;
         case OLD_XOR_MAPPED_ADDRESS:
-          System.out.println("        XOR_MAPPED_ADDRESS: " + readXOR_MAPPED_ADDRESS(in));
-          // log.debug("XOR_MAPPED_ADDRESS: {}", readMAPPED_ADDRESS(in));
+          InetSocketAddress xor_old = readXOR_MAPPED_ADDRESS(in, fullTxId);
+          log.warn("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
           break;
         case SOFTWARE:
-          System.out.println("        SOFTWARE: " + readSOFTWARE(in, len));
-          // log.debug("SOFTWARE: {}", readSOFTWARE(in, len));
+          String software = readSOFTWARE(in, len);
+          log.warn("SOFTWARE: {}", software);
           break;
         case XXX_RESERVATION_TOKEN:
           in.position(in.position() + len);
@@ -123,24 +132,53 @@ public class STUN {
     return new String(bytes);
   }
 
-  private static InetSocketAddress readXOR_MAPPED_ADDRESS(ByteBuffer in) {
+  private static InetSocketAddress readXOR_MAPPED_ADDRESS(ByteBuffer in, byte[] id) {
     byte b0 = in.get();
     byte family = in.get();
     int port = ByteUtil.toUnsigned(in.getShort());
+//    port = reverseBytesShort(port);
+    port ^= 0x42A4;
+    // port ^= 0x1221;
+    //port = reverseBytesShort(port);
     byte[] bytes;
     if (family == 0x01) {
       bytes = new byte[4];
     } else if (family == 0x02) {
       bytes = new byte[16];
     } else {
-      throw new UnsupportedOperationException("Unsupported fammily: " + family); // TODO
+      throw new UnsupportedOperationException("Unsupported family: " + family); // TODO
     }
     in.get(bytes);
+
+  //  reverseBytes(bytes);
+    xorBytes(bytes, id);
+
     try {
       InetAddress address = InetAddress.getByAddress(bytes);
       return new InetSocketAddress(address, port);
     } catch (UnknownHostException e) {
       throw new ScionRuntimeException(e); // TODO ???
+    }
+  }
+
+  private static int reverseBytesShort(int i) {
+    int b0 = i & 0xff;
+    int b1 = i & 0xff00;
+    return (b0 << 8) | (b1 >>> 8);
+  }
+
+  private static void reverseBytes(byte[] bytes) {
+    int max = bytes.length - 1;
+    for (int i = 0; i < bytes.length/2; i++) {
+      byte b = bytes[i];
+      bytes[i] = bytes[max - i];
+      bytes[max - i] = b;
+    }
+  }
+
+  private static void xorBytes(byte[] bytes, byte[] bytes2) {
+    for (int i = 0; i < bytes.length; i++) {
+      bytes[i] ^= bytes2[i];
     }
   }
 

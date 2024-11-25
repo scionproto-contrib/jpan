@@ -38,7 +38,12 @@ class StunTest {
 
     BufferedReader br = new BufferedReader(new FileReader(file.toFile()));
     String st;
+    int nTotal = 0;
+    int nUnknownHost = 0;
+    final ByteUtil.MutLong nTimout = new ByteUtil.MutLong(0);
+    final ByteUtil.MutLong nSuccess = new ByteUtil.MutLong(0);
     while ((st = br.readLine()) != null) {
+      nTotal++;
       System.out.print("Trying: " + st + " ... ");
       InetSocketAddress addr;
       if (st.startsWith("[") || Character.isDigit(st.charAt(0))) {
@@ -46,20 +51,31 @@ class StunTest {
       } else {
         try {
           int pos = st.indexOf(":");
-          InetAddress inet = InetAddress.getByName(st.substring(0, pos));
-          int port = Integer.parseInt(st.substring(pos + 1));
-          addr = new InetSocketAddress(inet, port);
+          if (pos > 0) {
+            InetAddress inet = InetAddress.getByName(st.substring(0, pos));
+            int port = Integer.parseInt(st.substring(pos + 1));
+            addr = new InetSocketAddress(inet, port);
+          } else {
+            InetAddress inet = InetAddress.getByName(st);
+            addr = new InetSocketAddress(inet, 3478);
+          }
         } catch (UnknownHostException e) {
+          nUnknownHost++;
           System.out.println("Unknown host");
           continue;
         }
       }
       System.out.print(addr + " ...");
-      test(addr);
+      test(addr, nTimout, nSuccess);
     }
+    System.out.println("Summary");
+    System.out.println("   total:        " + nTotal);
+    System.out.println("   unknown host: " + nUnknownHost);
+    System.out.println("   timeout:      " + nTimout.get());
+    System.out.println("   success:      " + nSuccess.get());
   }
 
-  private void test(InetSocketAddress server) throws IOException {
+  private void test(InetSocketAddress server, ByteUtil.MutLong nTimeout, ByteUtil.MutLong nSuccess) throws IOException {
     ByteBuffer out = ByteBuffer.allocate(1000);
     STUN.TransactionID id = STUN.writeRequest(out);
     out.flip();
@@ -76,6 +92,7 @@ class StunTest {
         channel.receive(pIn);
       } catch (SocketTimeoutException e) {
         System.out.println("Timeout");
+        nTimeout.v++;
         return;
       }
       //      InetSocketAddress server2 = (InetSocketAddress) pIn.getSocketAddress();
@@ -87,8 +104,9 @@ class StunTest {
 
       boolean isSTUN = STUN.isStunPacket(in, id);
       if (isSTUN) {
-        InetSocketAddress external = STUN.parseResponse(in);
+        InetSocketAddress external = STUN.parseResponse(in, id);
         //        System.out.println("Address: " + external);
+        nSuccess.v++;
       }
     }
   }
@@ -97,8 +115,21 @@ class StunTest {
   void test() throws IOException {
     ByteBuffer out = ByteBuffer.allocate(1000);
     STUN.TransactionID id = STUN.writeRequest(out);
-    InetAddress addr = InetAddress.getByName("stun.solnet.ch");
+    // InetAddress addr = InetAddress.getByName("stun.solnet.ch");
     // InetAddress addr = InetAddress.getByName("stun.ipfire.org");
+    //InetAddress addr = InetAddress.getByName("relay.webwormhole.io");
+    //InetAddress addr = InetAddress.getByName("stun.zoiper.com"); //  XOR
+    //InetAddress addr = InetAddress.getByName("stun.12connect.com"); // Vovida 0.98
+    // InetAddress addr = InetAddress.getByName("stun.1und1.de");
+    // stun.commpeak.com // unknown SOFTWARE
+    // stun.counterpath.com // vovida.org 0.98-CPC
+    String addrStr;
+    // addrStr = "stun.linphone.org";    // DIfferent IP: 226.50.80.11:64249, oRTP 0.99
+    // stun.solcon.nl          // DIfferent IP: 226.50.80.11:33989
+    // stun.usfamily.net        // Different IP: 154.251.231.174:43532
+
+    addrStr = "stun.ekiga.net";   // Has 2nd MAPPED address with wrong port.
+    InetAddress addr = InetAddress.getByName(addrStr);
     InetSocketAddress server = new InetSocketAddress(addr, 3478);
     try (DatagramChannel channel = DatagramChannel.open()) {
 
@@ -128,7 +159,7 @@ class StunTest {
       boolean isSTUN = STUN.isStunPacket(in, id);
       System.out.println("Is stun: " + isSTUN);
       if (isSTUN) {
-        InetSocketAddress external = STUN.parseResponse(in);
+        InetSocketAddress external = STUN.parseResponse(in, id);
         System.out.println("Address: " + external);
       }
     }
@@ -156,7 +187,7 @@ class StunTest {
       boolean isSTUN = STUN.isStunPacket(in, id);
       assertTrue(isSTUN);
 
-      InetSocketAddress external = STUN.parseResponse(in);
+      InetSocketAddress external = STUN.parseResponse(in, id);
       // We compare only the port, the IP may differ ("any" vs localhost, etc...)
       assertEquals(((InetSocketAddress) channel.getLocalAddress()).getPort(), external.getPort());
     } finally {
