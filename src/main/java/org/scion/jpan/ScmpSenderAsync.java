@@ -348,9 +348,9 @@ public class ScmpSenderAsync implements AutoCloseable {
     }
 
     @Override
-    public void close() throws IOException {
+    protected void implCloseSelectableChannel() throws IOException {
       selector.close();
-      super.close();
+      super.implCloseSelectableChannel();
     }
   }
 
