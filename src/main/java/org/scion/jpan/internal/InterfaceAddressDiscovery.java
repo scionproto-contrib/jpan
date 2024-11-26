@@ -30,6 +30,7 @@ public class InterfaceAddressDiscovery {
   private static final AtomicReference<InterfaceAddressDiscovery> singleton =
       new AtomicReference<>();
   private static final String[] KNOWN_SERVERS = {
+    "stun:stun.cloudflare.com:3478",
     "stun.l.google.com:19302",
     "stun1.l.google.com:19302",
     "stun2.l.google.com:19302",
