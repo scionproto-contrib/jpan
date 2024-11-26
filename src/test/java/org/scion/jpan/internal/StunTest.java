@@ -91,6 +91,7 @@ class StunTest {
       channel.setSoTimeout(1000);
 
       DatagramPacket pOut = new DatagramPacket(out.array(), out.remaining(), server);
+      long time0 = System.nanoTime();
       channel.send(pOut);
 
       ByteBuffer in = ByteBuffer.allocate(1000);
@@ -102,6 +103,7 @@ class StunTest {
         nTimeout.v++;
         return false;
       }
+      long time1 = System.nanoTime();
       //      InetSocketAddress server2 = (InetSocketAddress) pIn.getSocketAddress();
       //      System.out.println("Received from: " + server2);
       for (int i = 0; i < pIn.getLength(); i++) {
@@ -117,7 +119,9 @@ class StunTest {
           System.out.println("NULL");
           return false;
         }
-        System.out.println("Address: " + external);
+        long timeMs = (time1 - time0) / 1_000_000;
+        System.out.print("Address: " + external);
+        System.out.println("    time= " + timeMs + "ms");
         nSuccess.v++;
       }
     }
@@ -152,6 +156,7 @@ class StunTest {
     // addrStr = "stun.mywatson.it"; // ERROR code
 
     addrStr = "stun.dunyatelekom.com"; // Has no MAPPED_ADDRESS
+
     InetAddress addr = InetAddress.getByName(addrStr);
     InetSocketAddress server = new InetSocketAddress(addr, 3478);
     try (DatagramChannel channel = DatagramChannel.open()) {

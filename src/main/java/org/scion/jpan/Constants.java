@@ -96,6 +96,26 @@ public final class Constants {
   public static final String ENV_SHIM = "SCION_SHIM";
 
   /**
+   * Use STUN to detect external IP addresses.
+   *
+   * <p>Possible values:<br>
+   * - "OFF": No STUN discovery <br>
+   * - "BR": Discovery using STUN interface of border routers <br>
+   * - "PUBLIC": Discovery using known public STUN servers<br>
+   * - "CUSTOM": Discovery using custom STUN server<br>
+   * - "AUTO": Use auto detection.<br>
+   *
+   * <p>"AUTO" works as follows: <br>
+   * 1) Check for custom STUN setting and use if possible<br>
+   * 2) Check border routers if they support STUN (timeout = 10ms)<br>
+   * 3) If border router responds to traceroute/ping, do not use STUN at all<br>
+   * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails)<br>
+   */
+  public static final String PROPERTY_STUN = "org.scion.shim";
+
+  public static final String ENV_STUN = "SCION_SHIM";
+
+  /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
    * entries: server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
    */

@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added Path construction tests for tiny4. 
   [#146](https://github.com/scionproto-contrib/jpan/pull/146)
 - Added experimental support for STUN [#142](https://github.com/scionproto-contrib/jpan/pull/142)
+TODO
+- COnfigure 
+  - Own server
+  - OFF
+  - None
+  - Default list (google)
+  - BR
+  - SEPARATE: ENFORCE use of XOR?
+- Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
+- Implement keep alive?
+
+- ICMP TRACEROIUTE MULTIPING!!!!
 
 ### Changed
 

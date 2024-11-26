@@ -35,7 +35,6 @@ import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -82,8 +81,6 @@ public class ScionService {
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
   private Thread shutdownHook;
-  private java.nio.channels.DatagramChannel ifDiscoveryChannel = null;
-  private final Map<InetAddress, InetAddress> ifDiscoveryMap = new HashMap<>();
   private final HostsFileParser hostsFile = new HostsFileParser();
   private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
 
@@ -257,17 +254,6 @@ public class ScionService {
       if (!channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
           && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
         LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-      }
-      synchronized (ifDiscoveryMap) {
-        try {
-          if (ifDiscoveryChannel != null) {
-            ifDiscoveryChannel.close();
-          }
-          ifDiscoveryChannel = null;
-          ifDiscoveryMap.clear();
-        } catch (IOException e) {
-          throw new ScionRuntimeException(e);
-        }
       }
       if (shutdownHook != null) {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
@@ -618,28 +604,7 @@ public class ScionService {
    * @param firstHopAddress Reachable address.
    */
   InetAddress getExternalIP(InetSocketAddress firstHopAddress) {
-    // We currently keep a map with BR->externalIP. This may be overkill, probably all BR in
-    // a given AS are reachable via the same interface.
-    // TODO
-    // Moreover, it DOES NOT WORK with multiple AS, because BR IPs are not unique across ASes.
-    // However, switching ASes is not currently implemented...
-    synchronized (ifDiscoveryMap) {
-      return ifDiscoveryMap.computeIfAbsent(
-          firstHopAddress.getAddress(),
-          firstHop -> {
-            try {
-              if (ifDiscoveryChannel == null) {
-                ifDiscoveryChannel = java.nio.channels.DatagramChannel.open();
-              }
-              ifDiscoveryChannel.connect(firstHopAddress);
-              SocketAddress address = ifDiscoveryChannel.getLocalAddress();
-              ifDiscoveryChannel.disconnect();
-              return ((InetSocketAddress) address).getAddress();
-            } catch (IOException e) {
-              throw new ScionRuntimeException(e);
-            }
-          });
-    }
+    return InterfaceAddressDiscovery.getInstance().getExternalIP(firstHopAddress);
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {
