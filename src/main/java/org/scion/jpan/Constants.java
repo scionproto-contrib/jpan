@@ -115,6 +115,7 @@ public final class Constants {
 
   public static final String ENV_STUN = "SCION_STUN";
 
+  /** Define a custom SUN server, such as "192.168.0.42:3478" */
   public static final String PROPERTY_STUN_SERVER = "org.scion.stun.server";
 
   public static final String ENV_STUN_SERVER = "SCION_STUN_SERVER";

@@ -35,6 +35,7 @@ import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -618,8 +619,10 @@ public class ScionService {
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path)
    */
-  InetSocketAddress getSourceAddress(Path path, int knownLocalPort) {
-    return InterfaceAddressDiscovery.getInstance().getSourceAddress(path, knownLocalPort);
+  InetSocketAddress getSourceAddress(
+      Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
+    return InterfaceAddressDiscovery.getInstance()
+        .getSourceAddress(path, knownLocalPort, locasIsdAs, channel);
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {
