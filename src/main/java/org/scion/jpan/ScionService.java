@@ -603,7 +603,7 @@ public class ScionService {
    *
    * @param path Path
    * @return External address
-   * @see #getSourceIP(Path)
+   * @see #getSourceAddress(Path, int)
    */
   InetAddress getExternalIP(Path path) {
     return InterfaceAddressDiscovery.getInstance().getExternalIP(path);
