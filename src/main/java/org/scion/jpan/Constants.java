@@ -111,9 +111,13 @@ public final class Constants {
    * 3) If border router responds to traceroute/ping, do not use STUN at all<br>
    * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails)<br>
    */
-  public static final String PROPERTY_STUN = "org.scion.shim";
+  public static final String PROPERTY_STUN = "org.scion.stun";
 
-  public static final String ENV_STUN = "SCION_SHIM";
+  public static final String ENV_STUN = "SCION_STUN";
+
+  public static final String PROPERTY_STUN_SERVER = "org.scion.stun.server";
+
+  public static final String ENV_STUN_SERVER = "SCION_STUN_SERVER";
 
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two

@@ -601,10 +601,25 @@ public class ScionService {
   /**
    * Determine the network interface and external IP used for connecting to the specified address.
    *
-   * @param firstHopAddress Reachable address.
+   * @param path Path
+   * @return External address
+   * @see #getSourceIP(Path)
    */
-  InetAddress getExternalIP(InetSocketAddress firstHopAddress) {
-    return InterfaceAddressDiscovery.getInstance().getExternalIP(firstHopAddress);
+  InetAddress getExternalIP(Path path) {
+    return InterfaceAddressDiscovery.getInstance().getExternalIP(path);
+  }
+
+  /**
+   * Determine the IP that should be your as SRC address in a SCION header. This may differ from the
+   * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
+   *
+   * @param path Path
+   * @param knownLocalPort Known local port
+   * @return External address or NAT mapped address
+   * @see #getExternalIP(Path)
+   */
+  InetSocketAddress getSourceAddress(Path path, int knownLocalPort) {
+    return InterfaceAddressDiscovery.getInstance().getSourceAddress(path, knownLocalPort);
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {

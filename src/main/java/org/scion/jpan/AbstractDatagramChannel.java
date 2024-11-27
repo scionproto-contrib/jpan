@@ -92,7 +92,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @param pathPolicy the new path policy
    * @see PathPolicy#DEFAULT
    */
-  public void setPathPolicy(PathPolicy pathPolicy) throws IOException {
+  public void setPathPolicy(PathPolicy pathPolicy) {
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
@@ -307,7 +307,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   this is what connect() should do.
         // - It allows us to have an ANY address underneath which could help with interface
         //   switching.
-        localAddress = getService().getExternalIP(path.getFirstHopAddress());
+        localAddress = getService().getExternalIP(path);
       }
       updateConnection((RequestPath) path, false);
       return (C) this;
@@ -441,7 +441,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return this.overrideExternalAddress;
   }
 
-  protected InetAddress getLocalAddressForSend(Path path) throws IOException {
+  protected InetAddress getLocalAddressForSend(Path path) {
     if (overrideExternalAddress != null) {
       return overrideExternalAddress.getAddress();
     }
@@ -450,7 +450,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       // For sending request path we need to have a valid local external address.
       // If the local address is a wildcard address then we get the external IP
       // elsewhere (from the service).
-      return getService().getExternalIP(path.getFirstHopAddress());
+      return getService().getExternalIP(path);
     } else {
       return localAddress;
     }
@@ -621,12 +621,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
       throws IOException {
     synchronized (stateLock) {
+      // We need to be bound to a local port in order to have a valid source address
       ensureBound();
       buffer.clear();
       long srcIsdAs;
       InetAddress srcAddress;
       if (path instanceof ResponsePath) {
         // We get the source ISD/AS and IP from the path because ScionService may be null.
+        // Also, we may be behind a NAT, so the path's address is known to be correct.
         ResponsePath rPath = (ResponsePath) path;
         srcIsdAs = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
@@ -650,7 +652,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected void updateConnection(RequestPath newPath, boolean mustBeConnected) throws IOException {
+  protected void updateConnection(RequestPath newPath, boolean mustBeConnected) {
     if (mustBeConnected && !isConnected()) {
       return;
     }
@@ -662,7 +664,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       //     I.e. getExternalIP() is fine if we have a connection.
       //     It is NOT fine if we are bound to an explicit IP/port
       InetAddress oldLocalAddress = localAddress;
-      localAddress = getService().getExternalIP(newPath.getFirstHopAddress());
+      localAddress = getService().getExternalIP(newPath);
       if (!Objects.equals(localAddress, oldLocalAddress)) {
         // TODO check CS / bootstrapping
         throw new UnsupportedOperationException();
