@@ -27,7 +27,17 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * This class provides utility functions to detect: <br>
+ * - the external IP address of a device that is used to connect to a given border router<br>
+ * - the external IP address of a potential NAT between the device and a border router<br>
+ *
+ * <p>TODO: - We may leave an AS and reenter it on a different NAT (Wifi access point??), we somehow
+ * need to detect that case and deal with it.
+ */
 public class InterfaceAddressDiscovery {
 
   private static final AtomicReference<InterfaceAddressDiscovery> singleton =
@@ -40,11 +50,13 @@ public class InterfaceAddressDiscovery {
     "stun3.l.google.com:19302",
     "stun4.l.google.com:19302"
   };
-  private static final int TIMEOUT_MS = 10;
+  private static final int TIMEOUT_MS = 10; // milliseconds
+  private static final int NAT_UDP_MAPPING_TIMEOUT = 300; // seconds
+  private static final Logger log = LoggerFactory.getLogger(InterfaceAddressDiscovery.class);
 
   private java.nio.channels.DatagramChannel ifDiscoveryChannel = null;
   private final Map<String, InetAddress> externalIPs = new HashMap<>();
-  private final Map<String, InetSocketAddress> sourceIPs = new HashMap<>();
+  private final Map<String, Entry> sourceIPs = new HashMap<>();
   private final ConfigMode configMode;
 
   // TODO use SimpleCache
@@ -69,10 +81,28 @@ public class InterfaceAddressDiscovery {
     STUN_AUTO
   }
 
-  private enum State {
-    NOT_INITIALIZED,
-    HAS_NAT,
-    HAS_NO_NAT
+  private static class Entry {
+    InetSocketAddress source;
+    long lastUsed;
+
+    Entry(InetSocketAddress source) {
+      this.source = source;
+      lastUsed = System.currentTimeMillis();
+    }
+
+    InetSocketAddress getSource() {
+      lastUsed = System.currentTimeMillis();
+      return source;
+    }
+
+    public boolean isExpired() {
+      return (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000);
+    }
+
+    public void updateSource(InetSocketAddress source) {
+      lastUsed = System.currentTimeMillis();
+      this.source = source;
+    }
   }
 
   public static InterfaceAddressDiscovery getInstance() {
@@ -150,6 +180,31 @@ public class InterfaceAddressDiscovery {
    */
   public synchronized InetSocketAddress getSourceAddress(
       Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
+    String key = toKey(path);
+    Entry entry = sourceIPs.get(key);
+    if (entry == null || entry.isExpired()) {
+      InetSocketAddress source = detectSourceAddress(path, knownLocalPort, locasIsdAs, channel);
+      if (entry == null) {
+        entry = new Entry(source);
+        sourceIPs.put(key, entry);
+      } else {
+        entry.updateSource(source);
+      }
+    }
+    return entry.getSource();
+  }
+
+  /**
+   * Determine the IP that should be your as SRC address in a SCION header. This may differ from the
+   * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
+   *
+   * @param path Path
+   * @param knownLocalPort Known local port
+   * @return External address or NAT mapped address
+   * @see #getExternalIP(Path)
+   */
+  private InetSocketAddress detectSourceAddress(
+      Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
     switch (configMode) {
       case STUN_OFF:
         return new InetSocketAddress(getExternalIP(path), knownLocalPort);
@@ -198,26 +253,31 @@ public class InterfaceAddressDiscovery {
     if (source != null) {
       return source;
     }
+
     // Check BR
+    // - Check if BR is NAT enabled (gives correct address)
+    // Try first with STUN, this should eventually be available everywhere
+    source = tryStunBorderRouter(path);
+    if (source != null) {
+      return source;
+    }
+
     // - Check if BR responds to tr/ping (is reachable)
     source = new InetSocketAddress(getExternalIP(path), knownLocalPort);
     if (isBorderRouterReachable(source, path, locasIsdAs, channel)) {
-      return source;
-    }
-    // - Check if BR is NAT enabled (gives correct address)
-    source = tryStunBorderRouter(path);
-    if (source != null) {
       return source;
     }
 
     // Check PUBLIC (or not?)
     source = tryPublicServer();
     if (source != null) {
-      return source;
+      // - Verify with tr/ping BR -> fail if not reachable
+      if (isBorderRouterReachable(source, path, locasIsdAs, channel)) {
+        return source;
+      }
     }
-    // - Verify with tr/ping BR -> fail if not reachable
-    // TODO
-    throw new UnsupportedOperationException();
+    log.error("Could not find a STUN/NAT solution for border router {}", path.getFirstHopAddress());
+    throw new ScionRuntimeException("Could not find a STUN/NAT solution for the border router.");
   }
 
   private InetSocketAddress tryStunServer(String stunAddress) {
@@ -237,7 +297,7 @@ public class InterfaceAddressDiscovery {
       System.out.println("Sent bytes to BR: " + sent);
 
       System.out.println("Waiting ...");
-      ByteBuffer in = ByteBuffer.allocate(1000);
+      ByteBuffer in = ByteBuffer.allocate(1000); // TODO reuse
       InetSocketAddress server2 = (InetSocketAddress) channel.receive(in);
       System.out.println("Received from: " + server2);
       in.flip();
