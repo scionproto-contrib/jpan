@@ -121,6 +121,7 @@ public class InterfaceAddressDiscovery {
 
   private ConfigMode getConfig() {
     String v = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_STUN, Constants.ENV_STUN, "OFF");
+    v = v.toUpperCase();
     switch (v) {
       case "OFF":
         return ConfigMode.STUN_OFF;

@@ -604,7 +604,7 @@ public class ScionService {
    *
    * @param path Path
    * @return External address
-   * @see #getSourceAddress(Path, int)
+   * @see #getSourceAddress(Path, int, long, DatagramChannel)
    */
   InetAddress getExternalIP(Path path) {
     return InterfaceAddressDiscovery.getInstance().getExternalIP(path);

@@ -106,7 +106,7 @@ public final class Constants {
    * - "AUTO": Use auto detection.<br>
    *
    * <p>"AUTO" works as follows: <br>
-   * 1) Check for custom STUN setting and use if possible<br>
+   * 1) Check for custom STUN server and use if possible<br>
    * 2) Check border routers if they support STUN (timeout = 10ms)<br>
    * 3) If border router responds to traceroute/ping, do not use STUN at all<br>
    * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails)<br>
