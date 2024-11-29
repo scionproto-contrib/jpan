@@ -226,7 +226,7 @@ public class ScionTest {
   void defaultService_bootstrapTopoFile_dispatcherPortRange_ignoredByExplicitPort()
       throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    InetSocketAddress dstAddress = new InetSocketAddress("localhost", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     System.setProperty(
         Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range.json");
@@ -244,7 +244,7 @@ public class ScionTest {
   @Test
   void defaultService_bootstrapTopoFile_dispatcherPortRange() throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    InetSocketAddress dstAddress = new InetSocketAddress("localhost", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     System.setProperty(
         Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range.json");
@@ -278,7 +278,7 @@ public class ScionTest {
   private void testDefaultService_bootstrapTopoFile_dispatcherPortRange(String topoFile)
       throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    InetSocketAddress dstAddress = new InetSocketAddress("localhost", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFile);
     ScionService service = Scion.defaultService();
