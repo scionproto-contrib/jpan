@@ -40,6 +40,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -627,6 +628,11 @@ public class ScionService {
         .getSourceAddress(path, localIP, localPort, getLocalIsdAs(), channel);
   }
 
+  void prefetchSourceAddresses(DatagramChannel channel) {
+    InterfaceAddressDiscovery.getInstance()
+        .prefetchMappings(getLocalIsdAs(), channel, getBorderRouterAddresses());
+  }
+
   LocalTopology.DispatcherPortRange getLocalPortRange() {
     if (portRange == null) {
       if (bootstrapper != null) {
@@ -666,6 +672,18 @@ public class ScionService {
     } else {
       String address = bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
       return IPHelper.toInetSocketAddress(address);
+    }
+  }
+
+  private List<String> getBorderRouterAddresses() {
+    if (daemonStub != null) {
+      return getInterfaces().entrySet().stream()
+          .map(e -> e.getValue().getAddress().getAddress())
+          .collect(Collectors.toList());
+    } else {
+      return bootstrapper.getLocalTopology().getBorderRouters().stream()
+          .map(LocalTopology.BorderRouter::getInternalAddress)
+          .collect(Collectors.toList());
     }
   }
 }

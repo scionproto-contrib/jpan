@@ -24,6 +24,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.spi.AbstractSelector;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.*;
@@ -43,7 +44,7 @@ public class InterfaceAddressDiscovery {
   private static final AtomicReference<InterfaceAddressDiscovery> singleton =
       new AtomicReference<>();
   private static final String[] KNOWN_SERVERS = {
-    "stun:stun.cloudflare.com:3478",
+    // "stun.cloudflare.com:3478",
     "stun.l.google.com:19302",
     "stun1.l.google.com:19302",
     "stun2.l.google.com:19302",
@@ -149,19 +150,23 @@ public class InterfaceAddressDiscovery {
    * @see #getSourceAddress(Path, InetAddress, int, long, DatagramChannel)
    */
   public synchronized InetAddress getExternalIP(Path path, long localIsdAs) {
+    return getExternalIP(path.getFirstHopAddress(), localIsdAs);
+  }
+
+  private InetAddress getExternalIP(InetSocketAddress firstHop, long localIsdAs) {
     // We currently keep a map with BR->externalIP. This may be overkill, probably all BR in
     // a given AS are reachable via the same interface.
     // TODO
     // Moreover, it DOES NOT WORK with multiple AS, because BR IPs are not unique across ASes.
     // However, switching ASes is not currently implemented...
     return externalIPs.computeIfAbsent(
-        toKeyExternalIP(path, localIsdAs),
-        firstHop -> {
+        toKeyExternalIP(firstHop, localIsdAs),
+        key -> {
           try {
             if (ifDiscoveryChannel == null) {
               ifDiscoveryChannel = java.nio.channels.DatagramChannel.open();
             }
-            ifDiscoveryChannel.connect(path.getFirstHopAddress());
+            ifDiscoveryChannel.connect(firstHop);
             SocketAddress address = ifDiscoveryChannel.getLocalAddress();
             ifDiscoveryChannel.disconnect();
             return ((InetSocketAddress) address).getAddress();
@@ -169,6 +174,40 @@ public class InterfaceAddressDiscovery {
             throw new ScionRuntimeException(e);
           }
         });
+  }
+
+  public void prefetchMappings(
+      long localIsdAs, DatagramChannel channel, List<String> borderRouterAddresses) {
+    // TODO we need to do this for every Interface....
+    for (String brAddress : borderRouterAddresses) {
+      try {
+        InetSocketAddress firstHop = IPHelper.toInetSocketAddress(brAddress);
+        channel.connect(firstHop);
+        InetSocketAddress localAddress = (InetSocketAddress) channel.getLocalAddress();
+        int localPort = localAddress.getPort();
+        String key =
+            toKeySourceAddress(brAddress, localIsdAs, localAddress.getAddress(), localPort);
+        Entry entry = sourceIPs.get(key);
+        if (entry == null) {
+          InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
+          entry = new Entry(source);
+          sourceIPs.put(key, entry);
+        } else {
+          InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
+          entry.updateSource(source);
+        }
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      } finally {
+        if (channel.isConnected()) {
+          try {
+            channel.disconnect();
+          } catch (IOException e) {
+            throw new ScionRuntimeException(e);
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -185,14 +224,16 @@ public class InterfaceAddressDiscovery {
    */
   public synchronized InetSocketAddress getSourceAddress(
       Path path, InetAddress localIP, int localPort, long localIsdAs, DatagramChannel channel) {
+    // TODO can't we get localAddress/port from the channel??? After we did the connect()?
+    InetSocketAddress firstHop = path.getFirstHopAddress();
     String key = toKeySourceAddress(path, localIsdAs, localIP, localPort);
     Entry entry = sourceIPs.get(key);
     if (entry == null) {
-      InetSocketAddress source = detectSourceAddress(path, localPort, localIsdAs, channel);
+      InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
       entry = new Entry(source);
       sourceIPs.put(key, entry);
     } else {
-      InetSocketAddress source = detectSourceAddress(path, localPort, localIsdAs, channel);
+      InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
       entry.updateSource(source);
     }
     return entry.getSource();
@@ -202,24 +243,24 @@ public class InterfaceAddressDiscovery {
    * Determine the IP that should be your as SRC address in a SCION header. This may differ from the
    * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
    *
-   * @param path Path
-   * @param knownLocalPort Known local port
+   * @param firstHop Border router address
+   * @param localPort Known local port
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path, long)
    */
   private InetSocketAddress detectSourceAddress(
-      Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
+      InetSocketAddress firstHop, int localPort, long locasIsdAs, DatagramChannel channel) {
     switch (configMode) {
       case STUN_OFF:
-        return new InetSocketAddress(getExternalIP(path, locasIsdAs), knownLocalPort);
+        return new InetSocketAddress(getExternalIP(firstHop, locasIsdAs), localPort);
       case STUN_AUTO:
-        return autoDetect(path, knownLocalPort, locasIsdAs, channel);
+        return autoDetect(firstHop, localPort, locasIsdAs, channel);
       case STUN_CUSTOM:
         return tryCustomServer();
       case STUN_PUBLIC:
         return tryPublicServer();
       case STUN_BR:
-        return tryStunBorderRouter(path);
+        return tryStunBorderRouter(firstHop);
       default:
         throw new UnsupportedOperationException("Unknown config mode: " + configMode);
     }
@@ -251,7 +292,7 @@ public class InterfaceAddressDiscovery {
   }
 
   private InetSocketAddress autoDetect(
-      Path path, int knownLocalPort, long localIsdAs, DatagramChannel channel) {
+      InetSocketAddress firstHop, int knownLocalPort, long localIsdAs, DatagramChannel channel) {
     // Check CUSTOM
     InetSocketAddress source = tryCustomServer();
     if (source != null) {
@@ -261,14 +302,14 @@ public class InterfaceAddressDiscovery {
     // Check BR
     // - Check if BR is NAT enabled (gives correct address)
     // Try first with STUN, this should eventually be available everywhere
-    source = tryStunBorderRouter(path);
+    source = tryStunBorderRouter(firstHop);
     if (source != null) {
       return source;
     }
 
     // - Check if BR responds to tr/ping (is reachable)
-    source = new InetSocketAddress(getExternalIP(path, localIsdAs), knownLocalPort);
-    if (isBorderRouterReachable(source, path, localIsdAs, channel)) {
+    source = new InetSocketAddress(getExternalIP(firstHop, localIsdAs), knownLocalPort);
+    if (isBorderRouterReachable(source, firstHop, localIsdAs, channel)) {
       return source;
     }
 
@@ -276,20 +317,25 @@ public class InterfaceAddressDiscovery {
     source = tryPublicServer();
     if (source != null) {
       // - Verify with tr/ping BR -> fail if not reachable
-      if (isBorderRouterReachable(source, path, localIsdAs, channel)) {
+      if (isBorderRouterReachable(source, firstHop, localIsdAs, channel)) {
         return source;
       }
     }
-    log.error("Could not find a STUN/NAT solution for border router {}", path.getFirstHopAddress());
+    log.error("Could not find a STUN/NAT solution for border router {}", firstHop);
     throw new ScionRuntimeException("Could not find a STUN/NAT solution for the border router.");
   }
 
   private InetSocketAddress tryStunServer(String stunAddress) {
-    return doStunRequest(IPHelper.toInetSocketAddress(stunAddress));
+    try {
+      return doStunRequest(IPHelper.toInetSocketAddress(stunAddress));
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Could not resolve STUN_SERVER address: \"" + stunAddress + "\"");
+    }
   }
 
-  private InetSocketAddress tryStunBorderRouter(Path path) {
-    return doStunRequest(path.getFirstHopAddress());
+  private InetSocketAddress tryStunBorderRouter(InetSocketAddress firstHop) {
+    return doStunRequest(firstHop);
   }
 
   private InetSocketAddress doStunRequest(InetSocketAddress server) {
@@ -320,7 +366,7 @@ public class InterfaceAddressDiscovery {
   }
 
   private boolean isBorderRouterReachable(
-      InetSocketAddress src, Path path, long localIsdAs, DatagramChannel channel) {
+      InetSocketAddress src, InetSocketAddress firstHop, long localIsdAs, DatagramChannel channel) {
     ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO -> class field?
     ScionHeaderParser.write(
         buffer,
@@ -329,13 +375,13 @@ public class InterfaceAddressDiscovery {
         localIsdAs,
         src.getAddress().getAddress(),
         localIsdAs,
-        path.getFirstHopAddress().getAddress().getAddress(), // TODO correct?
+        firstHop.getAddress().getAddress(), // TODO correct?
         InternalConstants.HdrTypes.SCMP,
         0); // correct?
     ScmpParser.buildScmpPing(buffer, Scmp.Type.INFO_128, src.getPort(), 0, new byte[0]);
     buffer.flip();
     try {
-      channel.send(buffer, path.getFirstHopAddress());
+      channel.send(buffer, firstHop);
       buffer.flip();
       AbstractSelector selector =
           channel.provider().openSelector(); // TODO is this creating a new selector????
@@ -363,25 +409,25 @@ public class InterfaceAddressDiscovery {
 
   private String toKeySourceAddress(
       Path path, long localIsdAs, InetAddress localAddress, int localPort) {
+    return toKeySourceAddress(
+        path.getFirstHopAddress().toString(), localIsdAs, localAddress, localPort);
+  }
+
+  private String toKeySourceAddress(
+      String brAddress, long localIsdAs, InetAddress localAddress, int localPort) {
     // The NAT mapped address depends on:
     // - the local port
     // - the local IP (local interface we are using)
     // - the AS we are connected to (a different local AS may have the same ports/IPs
     // - the border router port/IP
-    return localIsdAs
-        + "_"
-        + localAddress.getHostAddress()
-        + "_"
-        + localPort
-        + "_"
-        + path.getFirstHopAddress().toString();
+    return localIsdAs + "_" + localAddress.getHostAddress() + "_" + localPort + "_" + brAddress;
   }
 
-  private String toKeyExternalIP(Path path, long localIsdAs) {
+  private String toKeyExternalIP(InetSocketAddress firstHop, long localIsdAs) {
     // The external IP depends on:
     // - the border router port/IP
     // - the local AS
-    return localIsdAs + "_" + path.getFirstHopAddress().toString();
+    return localIsdAs + "_" + firstHop.toString();
   }
 
   public synchronized void close() {
@@ -397,6 +443,14 @@ public class InterfaceAddressDiscovery {
         throw new ScionRuntimeException(e);
       }
       singleton.set(null);
+    }
+  }
+
+  public static void uninstall() {
+    synchronized (singleton) {
+      if (singleton.get() != null) {
+        singleton.get().close();
+      }
     }
   }
 }

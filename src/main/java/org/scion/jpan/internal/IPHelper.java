@@ -76,12 +76,16 @@ public class IPHelper {
 
   public static InetSocketAddress toInetSocketAddress(String s) {
     int posPort = s.lastIndexOf(":");
-    int port = Integer.parseInt(s.substring(posPort + 1));
-    byte[] bytes = toByteArray(s.substring(0, posPort));
     try {
+      int port = Integer.parseInt(s.substring(posPort + 1));
+      byte[] bytes = toByteArray(s.substring(0, posPort));
+      if (bytes == null) {
+        InetAddress inet = InetAddress.getByName(s.substring(0, posPort));
+        return new InetSocketAddress(inet, port);
+      }
       return new InetSocketAddress(InetAddress.getByAddress(bytes), port);
-    } catch (UnknownHostException e) {
-      throw new IllegalArgumentException(e);
+    } catch (NumberFormatException | UnknownHostException e) {
+      throw new IllegalArgumentException("Could not resolve address: \"" + s + "\"", e);
     }
   }
 

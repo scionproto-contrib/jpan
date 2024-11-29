@@ -35,7 +35,7 @@ Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaratio
 
 TODO
 - COnfigure 
-  - Own server
+  - CUSTOM: merge with PUBLIC!
   - OFF
   - None
   - Default list (google)
@@ -44,7 +44,19 @@ TODO
 - Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
 - Implement keep alive?
 
-- ICMP TRACEROIUTE MULTIPING!!!!
+TODO
+- 2 reasons for detecting STUN on startup:
+  1. Detection while the channel is active is hard, because the receiver() may be blocked
+  2. Detection may take time (DNS lookup for PUBLIC, BR timeout, BR roundtrip...)
+     This may be weird for users, e.g. SCMP measurements.
+- However, during channel startup we don´t know where we want to connect to, so we don't
+  know which interface we are using / we don't know the local IP yet.
+  --> However, Depending on the setteings (BR, etc) we can probe all BRs.
+  --> This is still slightly inconsistent because the underlayChannel gets an IP
+      assigned before the first send() happens. But is that really a problem? The 
+      SCION channel can stay with localAddress = null....
+  --> For now: Let's do the prefetch. It seems easier. We can do on-demand later if we want.
+      KNOWN problem: make take a while with large ASes...
 
 ### Changed
 
