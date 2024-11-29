@@ -308,7 +308,7 @@ public class ScionTest {
   @Test
   void defaultService_bootstrapTopoFile_dispatcherPortRange_ALL() throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    InetSocketAddress dstAddress = new InetSocketAddress("localhost", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     System.setProperty(
         Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range-all.json");

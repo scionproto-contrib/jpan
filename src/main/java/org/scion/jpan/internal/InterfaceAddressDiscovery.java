@@ -161,7 +161,6 @@ public class InterfaceAddressDiscovery {
             if (ifDiscoveryChannel == null) {
               ifDiscoveryChannel = java.nio.channels.DatagramChannel.open();
             }
-            log.error("FIrstHop: {}", path.getFirstHopAddress());
             ifDiscoveryChannel.connect(path.getFirstHopAddress());
             SocketAddress address = ifDiscoveryChannel.getLocalAddress();
             ifDiscoveryChannel.disconnect();

@@ -643,7 +643,8 @@ class DatagramSocketApiTest {
 
   @Test
   void getConnectionPath() throws IOException {
-    Path path = ExamplePacket.PATH;
+    // Build fails on MacOS on internal channel.connect("::1") so we use "127.0.0.1"
+    Path path = ExamplePacket.PATH_IPV4;
     DatagramPacket packet = new DatagramPacket(new byte[50], 50, toAddress(path));
     try (ScionDatagramSocket channel = new ScionDatagramSocket()) {
       assertNull(channel.getConnectionPath());
