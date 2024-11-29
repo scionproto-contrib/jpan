@@ -196,16 +196,9 @@ public class InterfaceAddressDiscovery {
           InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
           entry.updateSource(source);
         }
+        channel.disconnect();
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
-      } finally {
-        if (channel.isConnected()) {
-          try {
-            channel.disconnect();
-          } catch (IOException e) {
-            throw new ScionRuntimeException(e);
-          }
-        }
       }
     }
   }
