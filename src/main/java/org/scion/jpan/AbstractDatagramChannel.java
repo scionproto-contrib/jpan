@@ -638,8 +638,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       ByteUtil.MutInt port)
       throws IOException {
     synchronized (stateLock) {
-      // We need to be bound to a local port in order to have a valid source address
-      ensureBound(); // TODO move inside getSourceAddress()
+      // We need to be bound to a local port in order to have a valid local address.
+      // This may be necessary for getSourceAddress(), but it is definitely necessary for
+      // consistent API behavior that getLocalAddress() should return an address after send().
+      ensureBound();
       buffer.clear();
       long srcIsdAs;
       InetAddress srcAddress;
@@ -650,13 +652,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcIsdAs = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
         port.set(rPath.getLocalPort());
-        System.out.println("RES: source address: " + srcAddress + " : " + port.get());
       } else {
         srcIsdAs = getService().getLocalIsdAs();
         InetSocketAddress src = getSourceAddress(path);
         srcAddress = src.getAddress();
         port.set(src.getPort());
-        System.out.println("REQ: source address: " + src);
       }
 
       byte[] rawPath = path.getRawPath();
