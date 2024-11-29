@@ -604,10 +604,10 @@ public class ScionService {
    *
    * @param path Path
    * @return External address
-   * @see #getSourceAddress(Path, int, long, DatagramChannel)
+   * @see #getSourceAddress(Path, InetAddress, int, DatagramChannel)
    */
   InetAddress getExternalIP(Path path) {
-    return InterfaceAddressDiscovery.getInstance().getExternalIP(path);
+    return InterfaceAddressDiscovery.getInstance().getExternalIP(path, getLocalIsdAs());
   }
 
   /**
@@ -615,14 +615,16 @@ public class ScionService {
    * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
    *
    * @param path Path
-   * @param knownLocalPort Known local port
+   * @param localIP Known local address
+   * @param localPort Known local port
+   * @param channel channel
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path)
    */
   InetSocketAddress getSourceAddress(
-      Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
+      Path path, InetAddress localIP, int localPort, DatagramChannel channel) {
     return InterfaceAddressDiscovery.getInstance()
-        .getSourceAddress(path, knownLocalPort, locasIsdAs, channel);
+        .getSourceAddress(path, localIP, localPort, getLocalIsdAs(), channel);
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {

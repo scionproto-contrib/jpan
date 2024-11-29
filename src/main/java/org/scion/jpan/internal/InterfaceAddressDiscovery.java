@@ -144,17 +144,18 @@ public class InterfaceAddressDiscovery {
    * Determine the network interface and external IP used for connecting to the specified address.
    *
    * @param path Path
+   * @param localIsdAs Local ISD/AS
    * @return External IP address
-   * @see #getSourceAddress(Path, int, long, DatagramChannel)
+   * @see #getSourceAddress(Path, InetAddress, int, long, DatagramChannel)
    */
-  public synchronized InetAddress getExternalIP(Path path) {
+  public synchronized InetAddress getExternalIP(Path path, long localIsdAs) {
     // We currently keep a map with BR->externalIP. This may be overkill, probably all BR in
     // a given AS are reachable via the same interface.
     // TODO
     // Moreover, it DOES NOT WORK with multiple AS, because BR IPs are not unique across ASes.
     // However, switching ASes is not currently implemented...
     return externalIPs.computeIfAbsent(
-        toKey(path),
+        toKeyExternalIP(path, localIsdAs),
         firstHop -> {
           try {
             if (ifDiscoveryChannel == null) {
@@ -175,22 +176,24 @@ public class InterfaceAddressDiscovery {
    * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
    *
    * @param path Path
-   * @param knownLocalPort Known local port
+   * @param localPort Known local port
+   * @param localIP Known local IP
+   * @param localIsdAs Local ISD/AS
+   * @param channel Underlying DatagramChannel
    * @return External address or NAT mapped address
-   * @see #getExternalIP(Path)
+   * @see #getExternalIP(Path, long)
    */
   public synchronized InetSocketAddress getSourceAddress(
-      Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
-    String key = toKey(path);
+      Path path, InetAddress localIP, int localPort, long localIsdAs, DatagramChannel channel) {
+    String key = toKeySourceAddress(path, localIsdAs, localIP, localPort);
     Entry entry = sourceIPs.get(key);
-    if (entry == null || entry.isExpired()) {
-      InetSocketAddress source = detectSourceAddress(path, knownLocalPort, locasIsdAs, channel);
-      if (entry == null) {
-        entry = new Entry(source);
-        sourceIPs.put(key, entry);
-      } else {
-        entry.updateSource(source);
-      }
+    if (entry == null) {
+      InetSocketAddress source = detectSourceAddress(path, localPort, localIsdAs, channel);
+      entry = new Entry(source);
+      sourceIPs.put(key, entry);
+    } else {
+      InetSocketAddress source = detectSourceAddress(path, localPort, localIsdAs, channel);
+      entry.updateSource(source);
     }
     return entry.getSource();
   }
@@ -202,13 +205,13 @@ public class InterfaceAddressDiscovery {
    * @param path Path
    * @param knownLocalPort Known local port
    * @return External address or NAT mapped address
-   * @see #getExternalIP(Path)
+   * @see #getExternalIP(Path, long)
    */
   private InetSocketAddress detectSourceAddress(
       Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
     switch (configMode) {
       case STUN_OFF:
-        return new InetSocketAddress(getExternalIP(path), knownLocalPort);
+        return new InetSocketAddress(getExternalIP(path, locasIsdAs), knownLocalPort);
       case STUN_AUTO:
         return autoDetect(path, knownLocalPort, locasIsdAs, channel);
       case STUN_CUSTOM:
@@ -248,7 +251,7 @@ public class InterfaceAddressDiscovery {
   }
 
   private InetSocketAddress autoDetect(
-      Path path, int knownLocalPort, long locasIsdAs, DatagramChannel channel) {
+      Path path, int knownLocalPort, long localIsdAs, DatagramChannel channel) {
     // Check CUSTOM
     InetSocketAddress source = tryCustomServer();
     if (source != null) {
@@ -264,8 +267,8 @@ public class InterfaceAddressDiscovery {
     }
 
     // - Check if BR responds to tr/ping (is reachable)
-    source = new InetSocketAddress(getExternalIP(path), knownLocalPort);
-    if (isBorderRouterReachable(source, path, locasIsdAs, channel)) {
+    source = new InetSocketAddress(getExternalIP(path, localIsdAs), knownLocalPort);
+    if (isBorderRouterReachable(source, path, localIsdAs, channel)) {
       return source;
     }
 
@@ -273,7 +276,7 @@ public class InterfaceAddressDiscovery {
     source = tryPublicServer();
     if (source != null) {
       // - Verify with tr/ping BR -> fail if not reachable
-      if (isBorderRouterReachable(source, path, locasIsdAs, channel)) {
+      if (isBorderRouterReachable(source, path, localIsdAs, channel)) {
         return source;
       }
     }
@@ -358,8 +361,27 @@ public class InterfaceAddressDiscovery {
     }
   }
 
-  private String toKey(Path path) {
-    return path.getRemoteIsdAs() + path.getFirstHopAddress().toString();
+  private String toKeySourceAddress(
+      Path path, long localIsdAs, InetAddress localAddress, int localPort) {
+    // The NAT mapped address depends on:
+    // - the local port
+    // - the local IP (local interface we are using)
+    // - the AS we are connected to (a different local AS may have the same ports/IPs
+    // - the border router port/IP
+    return localIsdAs
+        + "_"
+        + localAddress.getHostAddress()
+        + "_"
+        + localPort
+        + "_"
+        + path.getFirstHopAddress().toString();
+  }
+
+  private String toKeyExternalIP(Path path, long localIsdAs) {
+    // The external IP depends on:
+    // - the border router port/IP
+    // - the local AS
+    return localIsdAs + "_" + path.getFirstHopAddress().toString();
   }
 
   public synchronized void close() {

@@ -463,6 +463,19 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return ((InetSocketAddress) channel.getLocalAddress()).getPort();
   }
 
+  private InetSocketAddress getSourceAddress(Path path) {
+    // Externally visible address
+    if (overrideExternalAddress != null) {
+      return overrideExternalAddress;
+    }
+    try {
+      int knownLocalPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
+      return getService().getSourceAddress(path, localAddress, knownLocalPort, channel);
+    } catch (IOException e) {
+      throw new ScionRuntimeException(e);
+    }
+  }
+
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
     // For inter-AS connections we need to send directly to the destination address.
     // We also need to respect the port range and use 30041 when applicable.
@@ -618,11 +631,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @throws IOException in case of IOException.
    */
   protected void buildHeader(
-      ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
+      ByteBuffer buffer,
+      Path path,
+      int payloadLength,
+      InternalConstants.HdrTypes hdrType,
+      ByteUtil.MutInt port)
       throws IOException {
     synchronized (stateLock) {
       // We need to be bound to a local port in order to have a valid source address
-      ensureBound();
+      ensureBound(); // TODO move inside getSourceAddress()
       buffer.clear();
       long srcIsdAs;
       InetAddress srcAddress;
@@ -632,9 +649,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         ResponsePath rPath = (ResponsePath) path;
         srcIsdAs = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
+        port.set(rPath.getLocalPort());
+        System.out.println("RES: source address: " + srcAddress + " : " + port.get());
       } else {
         srcIsdAs = getService().getLocalIsdAs();
-        srcAddress = getLocalAddressForSend(path);
+        InetSocketAddress src = getSourceAddress(path);
+        srcAddress = src.getAddress();
+        port.set(src.getPort());
+        System.out.println("REQ: source address: " + src);
       }
 
       byte[] rawPath = path.getRawPath();

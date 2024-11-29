@@ -16,11 +16,28 @@ package org.scion.jpan.internal;
 
 public class ByteUtil {
 
+  /** Mutable integer. */
+  public static class MutInt {
+    public int v;
+
+    public MutInt(int v) {
+      this.v = v;
+    }
+
+    public int get() {
+      return v;
+    }
+
+    public void set(int i) {
+      this.v = i;
+    }
+  }
+
   /** Mutable long integer. */
   public static class MutLong {
     public long v;
 
-    MutLong(long v) {
+    public MutLong(long v) {
       this.v = v;
     }
 

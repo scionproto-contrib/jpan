@@ -737,7 +737,7 @@ class DatagramSocketApiTest {
 
       // 1st client
       try (ScionDatagramSocket client =
-          new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
+          new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 1}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
         clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();

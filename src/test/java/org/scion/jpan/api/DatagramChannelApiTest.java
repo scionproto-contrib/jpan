@@ -541,7 +541,7 @@ class DatagramChannelApiTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private Path createExpiredPath(Path basePath) throws UnknownHostException {
+  private Path createExpiredPath(Path basePath) {
     long now = Instant.now().getEpochSecond();
     Daemon.Path.Builder builder =
         Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());

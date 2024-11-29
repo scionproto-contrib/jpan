@@ -38,9 +38,9 @@ class StunTest {
     String st;
     int nTotal = 0;
     int nUnknownHost = 0;
-    final ByteUtil.MutLong nNull = new ByteUtil.MutLong(0);
-    final ByteUtil.MutLong nTimeout = new ByteUtil.MutLong(0);
-    final ByteUtil.MutLong nSuccess = new ByteUtil.MutLong(0);
+    final ByteUtil.MutInt nNull = new ByteUtil.MutInt(0);
+    final ByteUtil.MutInt nTimeout = new ByteUtil.MutInt(0);
+    final ByteUtil.MutInt nSuccess = new ByteUtil.MutInt(0);
     while ((st = br.readLine()) != null) {
       nTotal++;
       System.out.print("Trying: " + st + " ... ");
@@ -79,9 +79,9 @@ class StunTest {
 
   private boolean test(
       InetSocketAddress server,
-      ByteUtil.MutLong nTimeout,
-      ByteUtil.MutLong nNull,
-      ByteUtil.MutLong nSuccess)
+      ByteUtil.MutInt nTimeout,
+      ByteUtil.MutInt nNull,
+      ByteUtil.MutInt nSuccess)
       throws IOException {
     ByteBuffer out = ByteBuffer.allocate(1000);
     STUN.TransactionID id = STUN.writeRequest(out);
