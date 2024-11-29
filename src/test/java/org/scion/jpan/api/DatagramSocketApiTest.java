@@ -737,7 +737,7 @@ class DatagramSocketApiTest {
 
       // 1st client
       try (ScionDatagramSocket client =
-          new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 1}))) {
+          new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
         clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();
@@ -747,14 +747,16 @@ class DatagramSocketApiTest {
 
       DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
       server.receive(packet1);
-      assertEquals(clientAddress1, packet1.getSocketAddress());
+      // We only compare the port. Depending on the OS, the IP may have changed to 127.0.0.1 or not.
+      assertEquals(
+          clientAddress1.getPort(), ((InetSocketAddress) packet1.getSocketAddress()).getPort());
 
       Path path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1, toAddress(path1));
+      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
 
       // 2nd client
       try (ScionDatagramSocket client =
-          new ScionDatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 1}))) {
+          new ScionDatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 12}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
         clientAddress2 = (InetSocketAddress) client.getLocalSocketAddress();
@@ -767,14 +769,15 @@ class DatagramSocketApiTest {
 
       DatagramPacket packet2 = new DatagramPacket(new byte[size], size, serverAddress);
       server.receive(packet2);
-      assertEquals(clientAddress2, packet2.getSocketAddress());
+      assertEquals(
+          clientAddress2.getPort(), ((InetSocketAddress) packet2.getSocketAddress()).getPort());
 
       // path 1 should still be there
       path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1, toAddress(path1));
+      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
       // path 2 should also be there
       Path path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2, toAddress(path2));
+      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
 
       // reduce capacity
       server.setPathCacheCapacity(1);
@@ -784,7 +787,7 @@ class DatagramSocketApiTest {
       assertNull(server.getCachedPath((InetSocketAddress) packet1.getSocketAddress()));
       // path 2 should be there
       path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2, toAddress(path2));
+      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
     }
   }
 
