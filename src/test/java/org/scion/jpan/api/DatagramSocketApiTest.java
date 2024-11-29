@@ -622,7 +622,7 @@ class DatagramSocketApiTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private Path createExpiredPath(Path basePath) throws UnknownHostException {
+  private Path createExpiredPath(Path basePath) {
     long now = Instant.now().getEpochSecond();
     Timestamp timestamp = Timestamp.newBuilder().setSeconds(now - 10).build();
     Daemon.Path.Builder builder = Daemon.Path.newBuilder().setExpiration(timestamp);

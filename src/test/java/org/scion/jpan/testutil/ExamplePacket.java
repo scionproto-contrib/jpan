@@ -41,7 +41,7 @@ public class ExamplePacket {
   };
   public static final Path PATH =
       PackageVisibilityHelper.createDummyPath(
-          DST_IA, DST_HOST, 8080, PATH_RAW_TINY_110_112, FIRST_HOP);
+          DST_IA, SRC_HOST, 38080, PATH_RAW_TINY_110_112, FIRST_HOP);
 
   /**
    * Packet bytes for a message sent in the "tiny"network config in scionproto.
