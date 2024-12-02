@@ -26,6 +26,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.*;
 import org.slf4j.Logger;
@@ -43,15 +50,7 @@ public class InterfaceAddressDiscovery {
 
   private static final AtomicReference<InterfaceAddressDiscovery> singleton =
       new AtomicReference<>();
-  private static final String[] KNOWN_SERVERS = {
-    // "stun.cloudflare.com:3478",
-    "stun.l.google.com:19302",
-    "stun1.l.google.com:19302",
-    "stun2.l.google.com:19302",
-    "stun3.l.google.com:19302",
-    "stun4.l.google.com:19302"
-  };
-  private static final int TIMEOUT_MS = 10; // milliseconds
+  private static final int TIMEOUT_MS = 10; // milliseconds // TODO configurable!
   private static final int NAT_UDP_MAPPING_TIMEOUT = 300; // seconds
   private static final Logger log = LoggerFactory.getLogger(InterfaceAddressDiscovery.class);
 
@@ -68,8 +67,6 @@ public class InterfaceAddressDiscovery {
     STUN_OFF,
     /** Discovery using STUN interface of border routers */
     STUN_BR,
-    /** Discovery using known public STUN servers */
-    STUN_PUBLIC,
     /** Discovery using custom STUN servaer */
     STUN_CUSTOM,
     /**
@@ -128,14 +125,12 @@ public class InterfaceAddressDiscovery {
         return ConfigMode.STUN_OFF;
       case "BR":
         return ConfigMode.STUN_BR;
-      case "PUBLIC":
-        return ConfigMode.STUN_PUBLIC;
       case "CUSTOM":
         return ConfigMode.STUN_CUSTOM;
       case "AUTO":
         return ConfigMode.STUN_AUTO;
       default:
-        throw new IllegalArgumentException("Illegal argument for STUN: \"" + v + "\"");
+        throw new IllegalArgumentException("Illegal value for STUN: \"" + v + "\"");
     }
   }
 
@@ -176,31 +171,33 @@ public class InterfaceAddressDiscovery {
         });
   }
 
-  public void prefetchMappings(
+  public synchronized void prefetchMappings(
       long localIsdAs, DatagramChannel channel, List<String> borderRouterAddresses) {
+    System.out.println("-------------- prefetchMappings() ---------------------------------------");
     // TODO we need to do this for every Interface....
     for (String brAddress : borderRouterAddresses) {
       try {
         InetSocketAddress firstHop = IPHelper.toInetSocketAddress(brAddress);
-        channel.connect(firstHop);
         InetSocketAddress localAddress = (InetSocketAddress) channel.getLocalAddress();
         int localPort = localAddress.getPort();
         String key =
             toKeySourceAddress(brAddress, localIsdAs, localAddress.getAddress(), localPort);
         Entry entry = sourceIPs.get(key);
         if (entry == null) {
-          InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
+          InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
           entry = new Entry(source);
           sourceIPs.put(key, entry);
+          System.out.println("IAD-PM-new: " + key + " " + source); // TODO
         } else {
-          InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
+          InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
           entry.updateSource(source);
+          System.out.println("IAD-PM-update: " + key + " " + source); // TODO
         }
-        channel.disconnect();
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
     }
+    System.out.println("-------------- prefetchMappings() ---DONE--------------------------------");
   }
 
   /**
@@ -217,17 +214,22 @@ public class InterfaceAddressDiscovery {
    */
   public synchronized InetSocketAddress getSourceAddress(
       Path path, InetAddress localIP, int localPort, long localIsdAs, DatagramChannel channel) {
+    System.out.println("-------------- getSourceAddress() ---------------------------------------");
     // TODO can't we get localAddress/port from the channel??? After we did the connect()?
     InetSocketAddress firstHop = path.getFirstHopAddress();
     String key = toKeySourceAddress(path, localIsdAs, localIP, localPort);
     Entry entry = sourceIPs.get(key);
-    if (entry == null) {
-      InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
-      entry = new Entry(source);
-      sourceIPs.put(key, entry);
-    } else {
-      InetSocketAddress source = detectSourceAddress(firstHop, localPort, localIsdAs, channel);
-      entry.updateSource(source);
+    try {
+      if (entry == null) {
+        InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
+        entry = new Entry(source);
+        sourceIPs.put(key, entry);
+      } else {
+        InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
+        entry.updateSource(source);
+      }
+    } catch (IOException e) {
+      throw new ScionRuntimeException(e);
     }
     return entry.getSource();
   }
@@ -237,57 +239,48 @@ public class InterfaceAddressDiscovery {
    * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
    *
    * @param firstHop Border router address
-   * @param localPort Known local port
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path, long)
    */
   private InetSocketAddress detectSourceAddress(
-      InetSocketAddress firstHop, int localPort, long locasIsdAs, DatagramChannel channel) {
+      InetSocketAddress firstHop, long localIsdAs, DatagramChannel channel) throws IOException {
     switch (configMode) {
       case STUN_OFF:
-        return new InetSocketAddress(getExternalIP(firstHop, locasIsdAs), localPort);
+        int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
+        return new InetSocketAddress(getExternalIP(firstHop, localIsdAs), localPort);
       case STUN_AUTO:
-        return autoDetect(firstHop, localPort, locasIsdAs, channel);
+        return autoDetect(firstHop, localIsdAs, channel);
       case STUN_CUSTOM:
-        return tryCustomServer();
-      case STUN_PUBLIC:
-        return tryPublicServer();
+        return tryCustomServer(channel, true);
       case STUN_BR:
-        return tryStunBorderRouter(firstHop);
+        return tryStunBorderRouter(firstHop, channel);
       default:
         throw new UnsupportedOperationException("Unknown config mode: " + configMode);
     }
   }
 
-  private InetSocketAddress tryCustomServer() {
+  private InetSocketAddress tryCustomServer(DatagramChannel channel, boolean useDefault) {
+    String defaultSrv = useDefault ? Constants.DEFAULT_STUN_SERVER : null;
     String custom =
-        ScionUtil.getPropertyOrEnv(Constants.PROPERTY_STUN_SERVER, Constants.ENV_STUN_SERVER);
-    if (custom == null) {
-      throw new IllegalStateException(
-          "No custom STUN server setting found. Please provide a server address via "
-              + "SCION_STUN_SERVER or org.scion.stun.server .");
+        ScionUtil.getPropertyOrEnv(
+            Constants.PROPERTY_STUN_SERVER, Constants.ENV_STUN_SERVER, defaultSrv);
+    if (custom != null && !custom.isEmpty()) {
+      return tryStunServer(custom, channel);
     }
-    return tryStunServer(custom);
-  }
-
-  private InetSocketAddress tryPublicServer() {
-    for (String server : KNOWN_SERVERS) {
-      InetSocketAddress addr = tryStunServer(server);
-      if (addr != null) {
-        // TODO verify  that BR is reachable !?!!?!?!?
-        return addr;
-      }
+    if (useDefault) {
+      throw new IllegalArgumentException(
+          "Please provide a valid STUN server address in "
+              + "SCION_STUN_SERVER or org.scion.stun.server, was: \""
+              + custom
+              + "\"");
     }
-    throw new IllegalStateException(
-        "Could not reach public STUN servers. Please make sure you are connected to the "
-            + "public internet or configure a custom STUN server via SCION_STUN_SERVER or "
-            + "org.scion.stun.server .");
+    return null;
   }
 
   private InetSocketAddress autoDetect(
-      InetSocketAddress firstHop, int knownLocalPort, long localIsdAs, DatagramChannel channel) {
+      InetSocketAddress firstHop, long localIsdAs, DatagramChannel channel) throws IOException {
     // Check CUSTOM
-    InetSocketAddress source = tryCustomServer();
+    InetSocketAddress source = tryCustomServer(channel, false);
     if (source != null) {
       return source;
     }
@@ -295,19 +288,22 @@ public class InterfaceAddressDiscovery {
     // Check BR
     // - Check if BR is NAT enabled (gives correct address)
     // Try first with STUN, this should eventually be available everywhere
-    source = tryStunBorderRouter(firstHop);
+    source = tryStunBorderRouter(firstHop, channel);
     if (source != null) {
       return source;
     }
 
     // - Check if BR responds to tr/ping (is reachable)
-    source = new InetSocketAddress(getExternalIP(firstHop, localIsdAs), knownLocalPort);
+    // At this point we should have a local address with port.
+    int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
+    source = new InetSocketAddress(getExternalIP(firstHop, localIsdAs), localPort);
     if (isBorderRouterReachable(source, firstHop, localIsdAs, channel)) {
       return source;
     }
 
-    // Check PUBLIC (or not?)
-    source = tryPublicServer();
+    // Check DEFAULT servers
+    // Check CUSTOM
+    source = tryCustomServer(channel, true);
     if (source != null) {
       // - Verify with tr/ping BR -> fail if not reachable
       if (isBorderRouterReachable(source, firstHop, localIsdAs, channel)) {
@@ -318,48 +314,76 @@ public class InterfaceAddressDiscovery {
     throw new ScionRuntimeException("Could not find a STUN/NAT solution for the border router.");
   }
 
-  private InetSocketAddress tryStunServer(String stunAddress) {
-    try {
-      return doStunRequest(IPHelper.toInetSocketAddress(stunAddress));
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException(
-          "Could not resolve STUN_SERVER address: \"" + stunAddress + "\"");
+  private InetSocketAddress tryStunServer(String stunAddress, DatagramChannel channel) {
+    if (stunAddress == null || stunAddress.isEmpty()) {
+      return null;
     }
-  }
-
-  private InetSocketAddress tryStunBorderRouter(InetSocketAddress firstHop) {
-    return doStunRequest(firstHop);
-  }
-
-  private InetSocketAddress doStunRequest(InetSocketAddress server) {
-    ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
-    STUN.TransactionID id = STUN.writeRequest(out);
-    out.flip();
-    try (DatagramChannel channel = DatagramChannel.open()) {
-      int sent = channel.send(out, server);
-      System.out.println("Sent bytes to BR: " + sent);
-
-      System.out.println("Waiting ...");
-      ByteBuffer in = ByteBuffer.allocate(1000); // TODO reuse
-      InetSocketAddress server2 = (InetSocketAddress) channel.receive(in);
-      System.out.println("Received from: " + server2);
-      in.flip();
-
-      boolean isSTUN = STUN.isStunResponse(in, id);
-      System.out.println("Is stun: " + isSTUN);
-      if (isSTUN) {
-        InetSocketAddress external = STUN.parseResponse(in, id);
-        System.out.println("Address: " + external);
-        return external;
+    String[] servers = stunAddress.split(";");
+    for (String server : servers) {
+      InetSocketAddress address = null;
+      try {
+        address = doStunRequest(IPHelper.toInetSocketAddress(server), channel);
+      } catch (IOException e) {
+        log.warn("Could not connect to STUN_SERVER: \"{}\"", server);
       }
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
+      if (address != null) {
+        return address;
+      }
     }
     return null;
   }
 
+  private InetSocketAddress tryStunBorderRouter(InetSocketAddress firstHop, DatagramChannel channel)
+      throws IOException {
+    return doStunRequest(firstHop, channel);
+  }
+
+  private InetSocketAddress doStunRequest(InetSocketAddress server, DatagramChannel channel)
+      throws IOException {
+    // prepare receiver
+    ExecutorService executor = Executors.newSingleThreadExecutor(); // TODO reuse? / Singleton?
+    Receiver receiver = new Receiver(channel);
+
+    // prepare send
+    ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
+    STUN.TransactionID id = STUN.writeRequest(out);
+    receiver.ids.put(id, id);
+    out.flip();
+
+    // start receiver
+    executor.submit(receiver);
+    try {
+      receiver.startUpBarrier.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Start sending
+    channel.send(out, server);
+
+    // Wait
+    try {
+      if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+        executor.shutdownNow();
+        if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+          throw new IllegalStateException();
+        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ScionRuntimeException(e);
+    }
+    return receiver.queue.poll();
+  }
+
   private boolean isBorderRouterReachable(
-      InetSocketAddress src, InetSocketAddress firstHop, long localIsdAs, DatagramChannel channel) {
+      InetSocketAddress src, InetSocketAddress firstHop, long localIsdAs, DatagramChannel channel)
+      throws IOException {
+    // prepare receiver
+    ExecutorService executor = Executors.newSingleThreadExecutor(); // TODO reuse? / Singleton?
+    ScmpReceiver receiver = new ScmpReceiver(channel);
+
+    // prepare send
     ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO -> class field?
     ScionHeaderParser.write(
         buffer,
@@ -373,31 +397,31 @@ public class InterfaceAddressDiscovery {
         0); // correct?
     ScmpParser.buildScmpPing(buffer, Scmp.Type.INFO_128, src.getPort(), 0, new byte[0]);
     buffer.flip();
+
+    // start receiver
+    executor.submit(receiver);
     try {
-      channel.send(buffer, firstHop);
-      buffer.flip();
-      AbstractSelector selector =
-          channel.provider().openSelector(); // TODO is this creating a new selector????
-      while (true) {
-        int i = selector.select(TIMEOUT_MS);
-        if (i == 0) {
-          return false;
-        }
-        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-        while (iter.hasNext()) {
-          SelectionKey key = iter.next();
-          if (key.isReadable()) {
-            if (ScionHeaderParser.extractNextHeader(buffer) == InternalConstants.HdrTypes.SCMP
-                && ScmpParser.extractType(buffer) == Scmp.Type.INFO_129) {
-              // TODO check sequence number????
-              return true;
-            }
-          }
+      receiver.startUpBarrier.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Start sending
+    channel.send(buffer, firstHop);
+
+    // Wait
+    try {
+      if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+        executor.shutdownNow();
+        if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+          throw new IllegalStateException();
         }
       }
-    } catch (IOException e) {
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new ScionRuntimeException(e);
     }
+    return receiver.success.get();
   }
 
   private String toKeySourceAddress(
@@ -443,6 +467,118 @@ public class InterfaceAddressDiscovery {
     synchronized (singleton) {
       if (singleton.get() != null) {
         singleton.get().close();
+      }
+    }
+  }
+
+  private static class Receiver implements Runnable {
+    final CountDownLatch startUpBarrier = new CountDownLatch(1);
+    final ConcurrentLinkedQueue<InetSocketAddress> queue = new ConcurrentLinkedQueue<>();
+    final ConcurrentHashMap<STUN.TransactionID, Object> ids = new ConcurrentHashMap<>();
+    private final DatagramChannel channel;
+
+    Receiver(DatagramChannel channel) {
+      this.channel = channel;
+    }
+
+    public void run() {
+      ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
+      boolean isBlocking = channel.isBlocking();
+      try {
+        AbstractSelector selector =
+            channel.provider().openSelector(); // TODO is this creating a new selector????
+        channel.configureBlocking(false);
+        channel.register(selector, SelectionKey.OP_READ, channel);
+
+        startUpBarrier.countDown();
+        while (true) {
+          int i = selector.select(TIMEOUT_MS);
+          if (i == 0) {
+            selector.close(); // TODO remove this!!!!
+            return;
+          }
+          Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+          while (iter.hasNext()) {
+            SelectionKey key = iter.next();
+            if (key.isReadable()) {
+
+              DatagramChannel channelIn = (DatagramChannel) key.channel();
+              channelIn.receive(buffer);
+              buffer.flip();
+
+              ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+              InetSocketAddress external =
+                  STUN.parseResponse(buffer, id -> ids.remove(id) != null, error);
+              if (external != null && error.get() == null) {
+                queue.add(external);
+                if (ids.isEmpty()) {
+                  return;
+                }
+              }
+            }
+          }
+        }
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      } finally {
+        try {
+          channel.configureBlocking(isBlocking);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+  }
+
+  private static class ScmpReceiver implements Runnable {
+    final CountDownLatch startUpBarrier = new CountDownLatch(1);
+    final AtomicBoolean success = new AtomicBoolean(false);
+    private final DatagramChannel channel;
+
+    ScmpReceiver(DatagramChannel channel) {
+      this.channel = channel;
+    }
+
+    public void run() {
+      ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
+      boolean isBlocking = channel.isBlocking();
+      try {
+        AbstractSelector selector =
+            channel.provider().openSelector(); // TODO is this creating a new selector????
+        channel.configureBlocking(false);
+        channel.register(selector, SelectionKey.OP_READ, channel);
+
+        startUpBarrier.countDown();
+        while (true) {
+          int i = selector.select(TIMEOUT_MS);
+          if (i == 0) {
+            selector.close(); // TODO remove this!!!!
+            return;
+          }
+          Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+          while (iter.hasNext()) {
+            SelectionKey key = iter.next();
+            if (key.isReadable()) {
+              DatagramChannel channelIn = (DatagramChannel) key.channel();
+              channelIn.receive(buffer);
+              buffer.flip();
+              if (ScionHeaderParser.extractNextHeader(buffer) == InternalConstants.HdrTypes.SCMP
+                  && ScmpParser.extractType(buffer) == Scmp.Type.INFO_129) {
+                // TODO check sequence number????
+                success.set(true);
+                return;
+              }
+            }
+          }
+        }
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      } finally {
+        try {
+          channel.configureBlocking(isBlocking);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       }
     }
   }

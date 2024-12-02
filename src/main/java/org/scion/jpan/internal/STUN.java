@@ -19,7 +19,9 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Objects;
 import java.util.Random;
+import java.util.function.Function;
 import java.util.zip.CRC32;
 import org.scion.jpan.ScionRuntimeException;
 import org.slf4j.Logger;
@@ -39,9 +41,9 @@ public class STUN {
     try {
       return buf.getShort(2) + 20 == buf.remaining()
           && buf.getInt(4) == MAGIC_COOKIE
-          && buf.getInt(8) == id.id[0]
-          && buf.getInt(12) == id.id[1]
-          && buf.getInt(16) == id.id[2];
+          && buf.getInt(8) == id.id0
+          && buf.getInt(12) == id.id1
+          && buf.getInt(16) == id.id2;
     } catch (IndexOutOfBoundsException e) {
       // ignore, bad packet
       return false;
@@ -55,15 +57,45 @@ public class STUN {
   }
 
   public static InetSocketAddress parseResponse(ByteBuffer in, TransactionID id) {
+    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+    InetSocketAddress address = parseResponse(in, id::equals, error);
+    if (error.get() != null) {
+      throw new IllegalArgumentException(error.get());
+    }
+    return address;
+  }
+
+  public static InetSocketAddress parseResponse(
+      ByteBuffer in, Function<TransactionID, Boolean> idHandler, ByteUtil.MutRef<String> error) {
+    if (in.remaining() < 20) {
+      return null;
+    }
     in.get();
     in.get();
     int dataLength = in.getShort();
+    if (in.remaining() - 16 != dataLength) {
+      error.set("STUN validation error, invalid length.");
+      return null;
+    }
+    int magic = in.getInt();
+    if (magic != MAGIC_COOKIE) {
+      error.set("STUN validation error, invalid MAGIC_COOKIE.");
+      return null;
+    }
+
+    int txId1 = in.getInt();
+    int txId2 = in.getInt();
+    int txId3 = in.getInt();
+    TransactionID id = TransactionID.from(txId1, txId2, txId3);
+    if (!idHandler.apply(id)) {
+      error.set("STUN validation error, TxID validation failed.");
+      return null;
+    }
+
+    // read again as byte[]
+    in.position(in.position() - 16);
     byte[] fullTxId = new byte[16];
     in.get(fullTxId);
-    if (in.remaining() != dataLength) {
-      throw new IllegalStateException(
-          "STUN validation error: length = " + in.remaining() + " " + dataLength);
-    }
 
     InetSocketAddress mappedAddress = null;
     InetSocketAddress mappedAddressXor = null;
@@ -336,12 +368,38 @@ public class STUN {
   }
 
   public static class TransactionID {
-    int[] id = new int[3];
+    final int id0;
+    final int id1;
+    final int id2;
 
     TransactionID(Random rnd) {
-      for (int i = 0; i < id.length; i++) {
-        id[i] = rnd.nextInt();
+      id0 = rnd.nextInt();
+      id1 = rnd.nextInt();
+      id2 = rnd.nextInt();
+    }
+
+    TransactionID(int id0, int id1, int id2) {
+      this.id0 = id0;
+      this.id1 = id1;
+      this.id2 = id2;
+    }
+
+    public static TransactionID from(int id0, int id1, int id2) {
+      return new TransactionID(id0, id1, id2);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o == null || getClass() != o.getClass()) {
+        return false;
       }
+      TransactionID that = (TransactionID) o;
+      return id0 == that.id0 && id1 == that.id1 && id2 == that.id2;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id0, id1, id2);
     }
   }
 
@@ -377,9 +435,9 @@ public class STUN {
 
     // Transaction ID
     TransactionID id = createTxID();
-    for (int i = 0; i < id.id.length; i++) {
-      buffer.putInt(id.id[i]);
-    }
+    buffer.putInt(id.id0);
+    buffer.putInt(id.id1);
+    buffer.putInt(id.id2);
 
     // SOFTWARE attribute
     byte[] softwareBytes = SOFTWARE_ID.getBytes();

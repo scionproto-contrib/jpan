@@ -50,6 +50,27 @@ public class ByteUtil {
     }
   }
 
+  /** Mutable reference. */
+  public static class MutRef<T> {
+    public T v;
+
+    public MutRef() {
+      this.v = null;
+    }
+
+    public MutRef(T v) {
+      this.v = v;
+    }
+
+    public T get() {
+      return v;
+    }
+
+    public void set(T v) {
+      this.v = v;
+    }
+  }
+
   /**
    * Reads some bits from an integer and returns them as another integer, shifted right such that
    * the least significant extracted bit becomes the least significant bit in the output.

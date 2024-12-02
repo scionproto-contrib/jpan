@@ -119,6 +119,8 @@ public final class Constants {
   public static final String PROPERTY_STUN_SERVER = "org.scion.stun.server";
 
   public static final String ENV_STUN_SERVER = "SCION_STUN_SERVER";
+  public static final String DEFAULT_STUN_SERVER =
+      "stun.cloudflare.com:3478;stun.l.google.com:19302";
 
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two

@@ -35,12 +35,10 @@ Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaratio
 
 TODO
 - COnfigure 
-  - CUSTOM: merge with PUBLIC!
-  - OFF
-  - None
-  - Default list (google)
-  - BR
   - SEPARATE: ENFORCE use of XOR?
+  - Timeout
+- Test:
+  - prefetch() 
 - Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
 - Implement keep alive?
 

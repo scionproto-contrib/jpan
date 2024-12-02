@@ -20,11 +20,10 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Constants;
-import org.scion.jpan.Path;
-import org.scion.jpan.ScionUtil;
+import org.scion.jpan.*;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -35,13 +34,33 @@ class InterfaceAddressDiscoveryTest {
     System.clearProperty(Constants.PROPERTY_STUN);
     System.clearProperty(Constants.PROPERTY_STUN_SERVER);
     InterfaceAddressDiscovery.uninstall();
+    MockNetwork.stopTiny();
+  }
+
+  @AfterAll
+  static void afterAll() {
+    System.clearProperty(Constants.PROPERTY_STUN);
+    System.clearProperty(Constants.PROPERTY_STUN_SERVER);
+    InterfaceAddressDiscovery.uninstall();
+    MockNetwork.stopTiny();
+  }
+
+  @Test
+  void test_wrongSetting() throws IOException {
+    System.setProperty(Constants.PROPERTY_STUN, "Hello!");
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+      Exception e =
+          assertThrows(IllegalArgumentException.class, InterfaceAddressDiscovery::getInstance);
+      assertTrue(e.getMessage().startsWith("Illegal value for STUN: "));
+    }
   }
 
   @Test
   void testOFF() throws IOException {
     System.setProperty(Constants.PROPERTY_STUN, "OFF");
     try (DatagramChannel channel = DatagramChannel.open()) {
-      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
       Path path = ExamplePacket.PATH_IPV4;
@@ -53,37 +72,39 @@ class InterfaceAddressDiscoveryTest {
     }
   }
 
-  //
-  //  @Test
-  //  void testBR_notRunning() throws IOException {
-  //    System.setProperty(Constants.PROPERTY_STUN, "BR");
-  //    try (DatagramChannel channel = DatagramChannel.open()) {
-  //      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
-  //      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-  //      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-  //      Path path = ExamplePacket.PATH_IPV4;
-  //      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-  //      InetSocketAddress src =
-  //              idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
-  //      assertEquals(local, src);
-  //      assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
-  //    }
-  //  }
-
   @Test
-  void testPUBLIC() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "PUBLIC");
+  void testBR() throws IOException {
+    System.setProperty(Constants.PROPERTY_STUN, "BR");
+    MockNetwork.startTiny();
     try (DatagramChannel channel = DatagramChannel.open()) {
-      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      Path path = ExamplePacket.PATH_IPV4;
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      Path path = createPath(MockNetwork.getBorderRouterAddress1());
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       InetSocketAddress src =
           idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
-      assertNotEquals(local, src);
-      assertEquals(local.getPort(), src.getPort());
+      assertEquals(local, src);
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
+    }
+  }
+
+  @Test
+  void testBR_notRunning() throws IOException {
+    MockNetwork.startTiny();
+    InetSocketAddress firstHop = MockNetwork.getBorderRouterAddress1();
+    MockNetwork.stopTiny();
+
+    System.setProperty(Constants.PROPERTY_STUN, "BR");
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
+      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      Path path = createPath(firstHop);
+      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
+      InetSocketAddress src =
+          idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
+      assertNull(src); // TODO assertThrows()?
     }
   }
 
@@ -94,32 +115,38 @@ class InterfaceAddressDiscoveryTest {
     Path path = ExamplePacket.PATH_IPV4;
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense");
+    String prefix =
+        "Please provide a valid STUN server address in SCION_STUN_SERVER or org.scion.stun.server, was: ";
+
+    System.setProperty(Constants.PROPERTY_STUN_SERVER, "");
     Exception e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local));
-    assertTrue(e.getMessage().contains("Could not resolve STUN_SERVER address: \"nonsense\""));
+    assertTrue(e.getMessage().contains(prefix + "\"\""), e.getMessage());
+
+    System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense");
+    e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local));
+    assertTrue(e.getMessage().contains("Could not resolve address:port: \"nonsense\""));
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local));
-    assertTrue(
-        e.getMessage().contains("Could not resolve STUN_SERVER address: \"nonsense:12345\""));
+    assertTrue(e.getMessage().contains("Could not resolve address:port: \"nonsense:12345\""));
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local));
-    assertTrue(
-        e.getMessage().contains("Could not resolve STUN_SERVER address: \"nonsense:1234567\""));
+    assertTrue(e.getMessage().contains("Could not resolve address:port: \"nonsense:1234567\""));
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.1:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local));
-    assertTrue(e.getMessage().contains("Could not resolve STUN_SERVER address: "), e.getMessage());
+    assertTrue(e.getMessage().contains("Could not resolve address:port: \"127.0.0.1:1234567\""));
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.0.1:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local));
-    assertTrue(e.getMessage().contains("Could not resolve STUN_SERVER address: "));
+    assertTrue(e.getMessage().contains("Could not resolve address:port: \"127.0.0.0.1:12345\""));
   }
 
-  private InetSocketAddress tryIFD(Path path, InetSocketAddress local) throws IOException {
+  private InetSocketAddress tryIFD(Path path, InetSocketAddress bind) throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
-      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+      channel.bind(bind);
+      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       return idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
@@ -135,22 +162,62 @@ class InterfaceAddressDiscoveryTest {
     System.setProperty(Constants.PROPERTY_STUN_SERVER, br.getHostString() + ":" + br.getPort());
 
     Path path = ExamplePacket.PATH_IPV4;
-    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12444);
 
     InetSocketAddress src = tryIFD(path, local);
     assertEquals(local, src);
+  }
 
-    //    try (DatagramChannel channel = DatagramChannel.open()) {
-    //      channel.bind();
-    //      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-    //      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-    //      Path path = ExamplePacket.PATH_IPV4;
-    //      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-    //      InetSocketAddress src =
-    //              idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
-    //      assertNotEquals(local, src);
-    //      assertEquals(local.getPort(), src.getPort());
-    //      assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
-    //    }
+  @Test
+  void testAUTO_CUSTOM() throws IOException {
+    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
+
+    MockNetwork.startTiny();
+    InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
+    System.setProperty(Constants.PROPERTY_STUN_SERVER, br.getHostString() + ":" + br.getPort());
+
+    Path path = ExamplePacket.PATH_IPV4;
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12333);
+
+    InetSocketAddress src = tryIFD(path, local);
+    assertEquals(local, src);
+  }
+
+  @Test
+  void testAUTO_noCUSTOM_BR() throws IOException {
+    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
+
+    MockNetwork.startTiny();
+    // System.setProperty(Constants.PROPERTY_STUN_SERVER, "");
+
+    Path path = createPath(MockNetwork.getBorderRouterAddress1());
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12777);
+
+    InetSocketAddress src = tryIFD(path, local);
+    assertEquals(local, src);
+  }
+
+  @Test
+  void testAUTO_noCUSTOM_noBR_PUBLIC() {
+    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
+
+    MockNetwork.startTiny();
+
+    Path path = ExamplePacket.PATH_IPV4;
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+
+    // This is not nice, we assume this fails because the PUBLIC servers are not reachable from
+    // the loopback interface
+    Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local));
+    assertEquals("Could not find a STUN/NAT solution for the border router.", e.getMessage());
+  }
+
+  private RequestPath createPath(InetSocketAddress firstHop) {
+    return PackageVisibilityHelper.createDummyPath(
+        ScionUtil.parseIA("1-ff00:0:112"),
+        new byte[] {127, 0, 0, 1},
+        54321,
+        ExamplePacket.PATH_RAW_TINY_110_112,
+        firstHop);
   }
 }

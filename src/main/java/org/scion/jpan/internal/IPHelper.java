@@ -74,6 +74,10 @@ public class IPHelper {
     return InetAddress.getByAddress(bytes);
   }
 
+  /**
+   * @param s IP and port, e.g. 127.0.0.1:8080 or localhost:8080
+   * @return InetSocketAddress
+   */
   public static InetSocketAddress toInetSocketAddress(String s) {
     int posPort = s.lastIndexOf(":");
     try {
@@ -84,8 +88,9 @@ public class IPHelper {
         return new InetSocketAddress(inet, port);
       }
       return new InetSocketAddress(InetAddress.getByAddress(bytes), port);
-    } catch (NumberFormatException | UnknownHostException e) {
-      throw new IllegalArgumentException("Could not resolve address: \"" + s + "\"", e);
+    } catch (IllegalArgumentException | UnknownHostException e) {
+      // We nest everything into an IllegalArgumentException with a useful error message:
+      throw new IllegalArgumentException("Could not resolve address:port: \"" + s + "\"", e);
     }
   }
 

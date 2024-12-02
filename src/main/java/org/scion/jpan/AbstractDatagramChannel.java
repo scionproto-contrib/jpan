@@ -127,6 +127,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       channel.bind(address);
       isBoundToAddress = address != null;
       localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
+      if (service != null) {
+        service.prefetchSourceAddresses(channel);
+      }
       return (C) this;
     }
   }
