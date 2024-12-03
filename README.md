@@ -134,7 +134,7 @@ can install it with `sudo apt install maven` (Ubuntu etc) or download it
 [here](https://maven.apache.org/index.html).
 
 To install it locally:
-```bash 
+```shell 
 git clone https://github.com/scionproto-contrib/jpan.git
 cd jpan
 mvn clean install
@@ -229,7 +229,7 @@ Create a file `/etc/scion/hosts` to assign ISD/AS ans SCION IP to host names:
 #### Specify ISD/AS in program
 
 We can use the ISD/AS directly to request a path:
-```
+```java
 long isdAs = ScionUtil.parseIA("64-2:0:9");
 InetSocketAddress serverAddress = new InetSocketAddress("129.x.x.x", 80);
 Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);

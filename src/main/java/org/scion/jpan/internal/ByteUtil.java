@@ -16,6 +16,10 @@ package org.scion.jpan.internal;
 
 public class ByteUtil {
 
+  private ByteUtil() {
+    // empty
+  }
+
   /** Mutable integer. */
   public static class MutInt {
     public int v;
@@ -52,7 +56,7 @@ public class ByteUtil {
 
   /** Mutable reference. */
   public static class MutRef<T> {
-    public T v;
+    private T v;
 
     public MutRef() {
       this.v = null;
@@ -142,10 +146,10 @@ public class ByteUtil {
   }
 
   public static int toUnsigned(byte code) {
-    return code >= 0 ? code : ((int) code) + (1 << 8);
+    return code >= 0 ? code : (code + (1 << 8));
   }
 
   public static int toUnsigned(short code) {
-    return code >= 0 ? code : ((int) code) + (1 << 16);
+    return code >= 0 ? code : (code + (1 << 16));
   }
 }
