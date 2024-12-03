@@ -177,6 +177,36 @@ We used to use `connnect(firstHop)` to ensure a valid external IP. However,
 `connect()` blocks when used concurrently while a `receive()` is in progress.
 -> Solution: Use separate channel/socket with `connect()` to find external IP.
 
+## STUN / Interface Discovery
+
+1) We want to detect STUN for all BR as soon as possible.
+   Otherwise it would interfere with normal network operation.
+   However, we need to wait until a local address is known (`bind()`) or about
+   to be known (`bind()` called by `send()`). What about `receive()`?
+   - We call STUN detection in `bind()` call. This works also for the SCMP
+     classes which do `bind()` *before* measuring latency.
+   - We don't need to know our external address for `receive()` or a subsequent `send()`. 
+     **However**: If a *client* defensively starts `receive()` before `send()`, we have a problem.
+     Running STUN detection requires `send()` + `receive()` on the same channel. While `send()`
+     can be done concurrently, `receive()` is exclusive. How do we solve that? 
+     - We can do STUN detection before `receive()` starts -> may be a waste on servers  
+     - We can create a callback in `receive()` that intercepts packets meant for the STUN detector
+       -> We may have to do this anyway to facilitate keep-alive messages. 
+2) Sequence for AUTO:
+   - Check for CUSTOM server setting
+   - Check if border router supports STUN -> 1st NW call, 1 per BR
+   - Check if border router responds to SCMP (means: no NAT) -> 2nd NW call, one per BR
+   - Check public STUN servers and try again with new IP -> 3rd + 4th NW call, one per BR
+     (Don't do 4th call if returned IP equals known local IP)
+
+As can be seen from above, in an AS with `n` border routers (BR), we have at least `n` network calls
+even if all BRs support STUN. If they don't, we get up to `3n+1` network calls, possibly more if
+multiple public STUN servers are used.
+To speed up the detection, we send out `n` packets at once before checking for answers. 
+However, following the approach above, we still get 3 rounds of `n` plus a single request to the 
+public STUN server, resulting in a worst case of 4*TIMEOUT (default = 10ms) before giving up. 
+In the best case the timeout is never reached, i.e. STUN detection may take less than 10ms.  
+
 # TODO
 
 ## DatagramChannel
