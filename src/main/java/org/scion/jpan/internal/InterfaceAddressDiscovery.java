@@ -21,18 +21,11 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.spi.AbstractSelector;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.*;
 import org.slf4j.Logger;
@@ -81,10 +74,13 @@ public class InterfaceAddressDiscovery {
 
   private static class Entry {
     InetSocketAddress source;
+    final InetSocketAddress firstHop;
     long lastUsed;
+    String brAddress;
 
-    Entry(InetSocketAddress source) {
+    Entry(InetSocketAddress source, InetSocketAddress firstHop) {
       this.source = source;
+      this.firstHop = firstHop;
       lastUsed = System.currentTimeMillis();
     }
 
@@ -99,6 +95,11 @@ public class InterfaceAddressDiscovery {
 
     public void updateSource(InetSocketAddress source) {
       lastUsed = System.currentTimeMillis();
+      this.source = source;
+    }
+
+    public void setFixedSource(InetSocketAddress source) {
+      lastUsed = Long.MAX_VALUE;
       this.source = source;
     }
   }
@@ -175,29 +176,61 @@ public class InterfaceAddressDiscovery {
       long localIsdAs, DatagramChannel channel, List<String> borderRouterAddresses) {
     System.out.println("-------------- prefetchMappings() ---------------------------------------");
     // TODO we need to do this for every Interface....
+    List<Entry> newEntries = new ArrayList<>();
     for (String brAddress : borderRouterAddresses) {
       try {
-        InetSocketAddress firstHop = IPHelper.toInetSocketAddress(brAddress);
         InetSocketAddress localAddress = (InetSocketAddress) channel.getLocalAddress();
         int localPort = localAddress.getPort();
         String key =
             toKeySourceAddress(brAddress, localIsdAs, localAddress.getAddress(), localPort);
         Entry entry = sourceIPs.get(key);
         if (entry == null) {
-          InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
-          entry = new Entry(source);
+          InetSocketAddress firstHop = IPHelper.toInetSocketAddress(brAddress);
+          entry = new Entry(null, firstHop);
           sourceIPs.put(key, entry);
-          System.out.println("IAD-PM-new: " + key + " " + source); // TODO
-        } else {
-          InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
-          entry.updateSource(source);
-          System.out.println("IAD-PM-update: " + key + " " + source); // TODO
         }
+        newEntries.add(entry);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
     }
+
+    try {
+      detectSourceAddress(newEntries, localIsdAs, channel);
+    } catch (IOException e) {
+      throw new ScionRuntimeException(e);
+    }
     System.out.println("-------------- prefetchMappings() ---DONE--------------------------------");
+  }
+
+  private void detectSourceAddress(List<Entry> entries, long localIsdAs, DatagramChannel channel)
+      throws IOException {
+    switch (configMode) {
+      case STUN_OFF:
+        int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
+        for (Entry e : entries) {
+          e.setFixedSource(new InetSocketAddress(getExternalIP(e.firstHop, localIsdAs), localPort));
+        }
+        break;
+      case STUN_AUTO:
+        for (Entry e : entries) {
+          e.updateSource(autoDetect(e.firstHop, localIsdAs, channel)); // TODO
+        }
+        break;
+      case STUN_CUSTOM:
+        InetSocketAddress addr = tryCustomServer(channel, true);
+        if (addr != null) {
+          for (Entry e : entries) {
+            e.updateSource(addr);
+          }
+        } // TODO else error?
+        break;
+      case STUN_BR:
+        tryStunBorderRouter(entries, channel);
+        break;
+      default:
+        throw new UnsupportedOperationException("Unknown config mode: " + configMode);
+    }
   }
 
   /**
@@ -216,16 +249,16 @@ public class InterfaceAddressDiscovery {
       Path path, InetAddress localIP, int localPort, long localIsdAs, DatagramChannel channel) {
     System.out.println("-------------- getSourceAddress() ---------------------------------------");
     // TODO can't we get localAddress/port from the channel??? After we did the connect()?
-    InetSocketAddress firstHop = path.getFirstHopAddress();
     String key = toKeySourceAddress(path, localIsdAs, localIP, localPort);
     Entry entry = sourceIPs.get(key);
     try {
       if (entry == null) {
+        InetSocketAddress firstHop = path.getFirstHopAddress();
         InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
-        entry = new Entry(source);
+        entry = new Entry(source, firstHop);
         sourceIPs.put(key, entry);
       } else {
-        InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
+        InetSocketAddress source = detectSourceAddress(entry.firstHop, localIsdAs, channel);
         entry.updateSource(source);
       }
     } catch (IOException e) {
@@ -333,6 +366,65 @@ public class InterfaceAddressDiscovery {
     return null;
   }
 
+  private void tryStunBorderRouter(List<Entry> entries, DatagramChannel channel)
+      throws IOException {
+    boolean isBlocking = channel.isBlocking();
+    // TODO is this creating a new selector????
+    try (AbstractSelector selector = channel.provider().openSelector()) {
+      channel.configureBlocking(false);
+      // start receiver
+      channel.register(selector, SelectionKey.OP_READ, channel);
+      doStunRequest(entries, channel, selector);
+    } finally {
+      channel.configureBlocking(isBlocking);
+    }
+  }
+
+  private InetSocketAddress doStunRequest(
+      List<Entry> servers, DatagramChannel channel, Selector selector) throws IOException {
+    // prepare receiver
+    final ConcurrentLinkedQueue<InetSocketAddress> queue = new ConcurrentLinkedQueue<>();
+    final ConcurrentHashMap<STUN.TransactionID, Object> ids = new ConcurrentHashMap<>();
+
+    // prepare send
+    ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
+    STUN.TransactionID id = STUN.writeRequest(out);
+    ids.put(id, id);
+    out.flip();
+
+    // Start sending
+    for (Entry e : servers) {
+      channel.send(out, e.firstHop);
+      out.flip();
+    }
+
+    // Wait
+    ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
+    while (selector.select(TIMEOUT_MS) > 0) {
+      Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+      while (iter.hasNext()) {
+        SelectionKey key = iter.next();
+        iter.remove();
+        if (key.isReadable()) {
+          DatagramChannel channelIn = (DatagramChannel) key.channel();
+          channelIn.receive(buffer);
+          buffer.flip();
+
+          ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+          InetSocketAddress external =
+              STUN.parseResponse(buffer, id2 -> ids.remove(id2) != null, error);
+          if (external != null && error.get() == null) {
+            queue.add(external);
+            if (ids.isEmpty()) {
+              return queue.poll();
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   private InetSocketAddress tryStunBorderRouter(InetSocketAddress firstHop, DatagramChannel channel)
       throws IOException {
     return doStunRequest(firstHop, channel);
@@ -341,48 +433,66 @@ public class InterfaceAddressDiscovery {
   private InetSocketAddress doStunRequest(InetSocketAddress server, DatagramChannel channel)
       throws IOException {
     // prepare receiver
-    ExecutorService executor = Executors.newSingleThreadExecutor(); // TODO reuse? / Singleton?
-    Receiver receiver = new Receiver(channel);
+    final ConcurrentLinkedQueue<InetSocketAddress> queue = new ConcurrentLinkedQueue<>();
+    final ConcurrentHashMap<STUN.TransactionID, Object> ids = new ConcurrentHashMap<>();
 
     // prepare send
     ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
     STUN.TransactionID id = STUN.writeRequest(out);
-    receiver.ids.put(id, id);
+    ids.put(id, id);
     out.flip();
 
     // start receiver
-    executor.submit(receiver);
-    try {
-      receiver.startUpBarrier.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
+    boolean isBlocking = channel.isBlocking();
+    AbstractSelector selector =
+        channel.provider().openSelector(); // TODO is this creating a new selector????
+    channel.configureBlocking(false);
+    channel.register(selector, SelectionKey.OP_READ, channel);
 
     // Start sending
     channel.send(out, server);
 
     // Wait
     try {
-      if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-        executor.shutdownNow();
-        if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-          throw new IllegalStateException();
+      while (selector.select(TIMEOUT_MS) > 0) {
+        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+        while (iter.hasNext()) {
+          SelectionKey key = iter.next();
+          iter.remove();
+          if (key.isReadable()) {
+            DatagramChannel channelIn = (DatagramChannel) key.channel();
+            channelIn.receive(buffer);
+            buffer.flip();
+
+            ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+            InetSocketAddress external =
+                STUN.parseResponse(buffer, id2 -> ids.remove(id2) != null, error);
+            if (external != null && error.get() == null) {
+              queue.add(external);
+              if (ids.isEmpty()) {
+                return queue.poll();
+              }
+            }
+          }
         }
       }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+    } catch (IOException e) {
       throw new ScionRuntimeException(e);
+    } finally {
+      selector.close(); // TODO remove this?!?!?!
+      try {
+        channel.configureBlocking(isBlocking);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
-    return receiver.queue.poll();
+    return null;
   }
 
   private boolean isBorderRouterReachable(
       InetSocketAddress src, InetSocketAddress firstHop, long localIsdAs, DatagramChannel channel)
       throws IOException {
-    // prepare receiver
-    ExecutorService executor = Executors.newSingleThreadExecutor(); // TODO reuse? / Singleton?
-    ScmpReceiver receiver = new ScmpReceiver(channel);
-
     // prepare send
     ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO -> class field?
     ScionHeaderParser.write(
@@ -399,29 +509,47 @@ public class InterfaceAddressDiscovery {
     buffer.flip();
 
     // start receiver
-    executor.submit(receiver);
-    try {
-      receiver.startUpBarrier.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    boolean isBlocking = channel.isBlocking();
+    AbstractSelector selector =
+        channel.provider().openSelector(); // TODO is this creating a new selector????
+    channel.configureBlocking(false);
+    channel.register(selector, SelectionKey.OP_READ, channel);
 
     // Start sending
     channel.send(buffer, firstHop);
 
     // Wait
     try {
-      if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-        executor.shutdownNow();
-        if (!executor.awaitTermination(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-          throw new IllegalStateException();
+      while (true) {
+        int i = selector.select(TIMEOUT_MS);
+        if (i == 0) {
+          selector.close(); // TODO remove this!!!!
+          return false; // TODO??
+        }
+        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+        while (iter.hasNext()) {
+          SelectionKey key = iter.next();
+          if (key.isReadable()) {
+            DatagramChannel channelIn = (DatagramChannel) key.channel();
+            channelIn.receive(buffer);
+            buffer.flip();
+            if (ScionHeaderParser.extractNextHeader(buffer) == InternalConstants.HdrTypes.SCMP
+                && ScmpParser.extractType(buffer) == Scmp.Type.INFO_129) {
+              // TODO check sequence number????
+              return true;
+            }
+          }
         }
       }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+    } catch (IOException e) {
       throw new ScionRuntimeException(e);
+    } finally {
+      try {
+        channel.configureBlocking(isBlocking);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
-    return receiver.success.get();
   }
 
   private String toKeySourceAddress(
@@ -467,118 +595,6 @@ public class InterfaceAddressDiscovery {
     synchronized (singleton) {
       if (singleton.get() != null) {
         singleton.get().close();
-      }
-    }
-  }
-
-  private static class Receiver implements Runnable {
-    final CountDownLatch startUpBarrier = new CountDownLatch(1);
-    final ConcurrentLinkedQueue<InetSocketAddress> queue = new ConcurrentLinkedQueue<>();
-    final ConcurrentHashMap<STUN.TransactionID, Object> ids = new ConcurrentHashMap<>();
-    private final DatagramChannel channel;
-
-    Receiver(DatagramChannel channel) {
-      this.channel = channel;
-    }
-
-    public void run() {
-      ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
-      boolean isBlocking = channel.isBlocking();
-      try {
-        AbstractSelector selector =
-            channel.provider().openSelector(); // TODO is this creating a new selector????
-        channel.configureBlocking(false);
-        channel.register(selector, SelectionKey.OP_READ, channel);
-
-        startUpBarrier.countDown();
-        while (true) {
-          int i = selector.select(TIMEOUT_MS);
-          if (i == 0) {
-            selector.close(); // TODO remove this!!!!
-            return;
-          }
-          Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-          while (iter.hasNext()) {
-            SelectionKey key = iter.next();
-            if (key.isReadable()) {
-
-              DatagramChannel channelIn = (DatagramChannel) key.channel();
-              channelIn.receive(buffer);
-              buffer.flip();
-
-              ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
-              InetSocketAddress external =
-                  STUN.parseResponse(buffer, id -> ids.remove(id) != null, error);
-              if (external != null && error.get() == null) {
-                queue.add(external);
-                if (ids.isEmpty()) {
-                  return;
-                }
-              }
-            }
-          }
-        }
-      } catch (IOException e) {
-        throw new ScionRuntimeException(e);
-      } finally {
-        try {
-          channel.configureBlocking(isBlocking);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    }
-  }
-
-  private static class ScmpReceiver implements Runnable {
-    final CountDownLatch startUpBarrier = new CountDownLatch(1);
-    final AtomicBoolean success = new AtomicBoolean(false);
-    private final DatagramChannel channel;
-
-    ScmpReceiver(DatagramChannel channel) {
-      this.channel = channel;
-    }
-
-    public void run() {
-      ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
-      boolean isBlocking = channel.isBlocking();
-      try {
-        AbstractSelector selector =
-            channel.provider().openSelector(); // TODO is this creating a new selector????
-        channel.configureBlocking(false);
-        channel.register(selector, SelectionKey.OP_READ, channel);
-
-        startUpBarrier.countDown();
-        while (true) {
-          int i = selector.select(TIMEOUT_MS);
-          if (i == 0) {
-            selector.close(); // TODO remove this!!!!
-            return;
-          }
-          Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-          while (iter.hasNext()) {
-            SelectionKey key = iter.next();
-            if (key.isReadable()) {
-              DatagramChannel channelIn = (DatagramChannel) key.channel();
-              channelIn.receive(buffer);
-              buffer.flip();
-              if (ScionHeaderParser.extractNextHeader(buffer) == InternalConstants.HdrTypes.SCMP
-                  && ScmpParser.extractType(buffer) == Scmp.Type.INFO_129) {
-                // TODO check sequence number????
-                success.set(true);
-                return;
-              }
-            }
-          }
-        }
-      } catch (IOException e) {
-        throw new ScionRuntimeException(e);
-      } finally {
-        try {
-          channel.configureBlocking(isBlocking);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
       }
     }
   }
