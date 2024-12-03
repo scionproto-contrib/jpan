@@ -115,7 +115,6 @@ public class InterfaceAddressDiscovery {
 
   private InterfaceAddressDiscovery() {
     configMode = getConfig();
-    init();
   }
 
   private ConfigMode getConfig() {
@@ -134,8 +133,6 @@ public class InterfaceAddressDiscovery {
         throw new IllegalArgumentException("Illegal value for STUN: \"" + v + "\"");
     }
   }
-
-  private void init() {}
 
   /**
    * Determine the network interface and external IP used for connecting to the specified address.
@@ -177,8 +174,8 @@ public class InterfaceAddressDiscovery {
     if (borderRouterAddresses.isEmpty()) {
       return;
     }
-    // TODO we need to do this for every Interface....
 
+    // determine local address
     InetSocketAddress localAddress;
     try {
       localAddress = (InetSocketAddress) channel.getLocalAddress();
@@ -195,18 +192,17 @@ public class InterfaceAddressDiscovery {
     }
     int localPort = localAddress.getPort();
 
+    // prepare entries
     List<Entry> newEntries = new ArrayList<>();
     for (String brAddress : borderRouterAddresses) {
       String key = toKeySourceAddress(brAddress, localIsdAs, localAddress.getAddress(), localPort);
-      Entry entry = sourceIPs.get(key);
-      if (entry == null) {
-        InetSocketAddress firstHop = IPHelper.toInetSocketAddress(brAddress);
-        entry = new Entry(null, firstHop);
-        sourceIPs.put(key, entry);
-      }
+      Entry entry =
+          sourceIPs.computeIfAbsent(
+              key, k -> new Entry(null, IPHelper.toInetSocketAddress(brAddress)));
       newEntries.add(entry);
     }
 
+    // detect addresses
     try {
       detectSourceAddress(newEntries, localIsdAs, channel);
     } catch (IOException e) {
@@ -234,7 +230,7 @@ public class InterfaceAddressDiscovery {
           for (Entry e : entries) {
             e.updateSource(addr);
           }
-        } // TODO else error?
+        } // TODO else error? -> BR not available, block from usage in path? Could be temporary...
         break;
       case STUN_BR:
         tryStunBorderRouter(entries, channel);
