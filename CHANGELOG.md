@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
-- Add LICENSE to generated jar. Why doesn´t that happen automatically?
+- Add LICENSE to generated jar. Why doesn't that happen automatically?
   Do we need the assembly plugin?
 - Cache paths
 - Fix @Disabled tests
@@ -38,9 +38,13 @@ TODO
   - SEPARATE: ENFORCE use of XOR?
   - Timeout
 - Test:
-  - prefetch() 
+  - prefetch()
+  - Test that prefetched addresses really work. Disallow detection in getSourceAddress()?
 - Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
 - Implement keep alive?
+- Implement: s
+  - end detections in same thread, all at once, before checking results.
+  - Avoid double prefetching() 
 
 TODO
 - 2 reasons for detecting STUN on startup:
@@ -49,7 +53,7 @@ TODO
      This may be weird for users, e.g. SCMP measurements.
 - However, during channel startup we don´t know where we want to connect to, so we don't
   know which interface we are using / we don't know the local IP yet.
-  --> However, Depending on the setteings (BR, etc) we can probe all BRs.
+  --> However, Depending on the settings (BR, etc) we can probe all BRs.
   --> This is still slightly inconsistent because the underlayChannel gets an IP
       assigned before the first send() happens. But is that really a problem? The 
       SCION channel can stay with localAddress = null....
