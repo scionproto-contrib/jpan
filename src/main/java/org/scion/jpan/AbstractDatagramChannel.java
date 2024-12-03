@@ -444,36 +444,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return this.overrideExternalAddress;
   }
 
-  protected InetAddress getLocalAddressForSend(Path path) {
-    if (overrideExternalAddress != null) {
-      return overrideExternalAddress.getAddress();
-    }
-    // Get external host address. This must be done *after* refreshing the path!
-    if (localAddress.isAnyLocalAddress()) {
-      // For sending request path we need to have a valid local external address.
-      // If the local address is a wildcard address then we get the external IP
-      // elsewhere (from the service).
-      return getService().getExternalIP(path);
-    } else {
-      return localAddress;
-    }
-  }
-
-  protected int getLocalPortForSend() throws IOException {
-    if (overrideExternalAddress != null) {
-      return overrideExternalAddress.getPort();
-    }
-    return ((InetSocketAddress) channel.getLocalAddress()).getPort();
-  }
-
   private InetSocketAddress getSourceAddress(Path path) {
     // Externally visible address
     if (overrideExternalAddress != null) {
       return overrideExternalAddress;
     }
     try {
-      int knownLocalPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-      return getService().getSourceAddress(path, localAddress, knownLocalPort, channel);
+      InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
+      return getService().getSourceAddress(path, local.getAddress(), local.getPort(), channel);
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }

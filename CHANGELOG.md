@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaration. 
 
 TODO
+- TODO implement ISD/AS map
+   - enum BR: consult sourceIP map (rename it)
+   - enum STUN_SERVER: same IP for all addresses, can also be used ofr dst-AS==src-AS
+   - store expiration date here, only once for all BRs in a given AS
+
 - COnfigure 
   - SEPARATE: ENFORCE use of XOR?
   - Timeout
@@ -44,7 +49,12 @@ TODO
 - Implement keep alive?
 - Implement: s
   - end detections in same thread, all at once, before checking results.
-  - Avoid double prefetching() 
+  - Avoid double prefetching()
+  - SHIM uses a ScionDatagramSocket, that should be unnecessary, avoid it? Avoid prefetch()?
+- Implement and document handling in local AS, e.g. responder should respond
+  to UDP underlay instead of SCION source address(?).
+  - We cannot use BR as STUN.
+  - We could use public STUN, but that would just complicate things....?
 
 TODO
 - 2 reasons for detecting STUN on startup:

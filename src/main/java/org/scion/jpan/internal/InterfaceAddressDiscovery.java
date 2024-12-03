@@ -174,25 +174,44 @@ public class InterfaceAddressDiscovery {
 
   public synchronized void prefetchMappings(
       long localIsdAs, DatagramChannel channel, List<String> borderRouterAddresses) {
+    if (borderRouterAddresses.isEmpty()) {
+      return;
+    }
     System.out.println("-------------- prefetchMappings() ---------------------------------------");
     // TODO we need to do this for every Interface....
+
+    InetSocketAddress localAddress;
+    try {
+      localAddress = (InetSocketAddress) channel.getLocalAddress();
+      if (localAddress.getAddress().isAnyLocalAddress()) {
+        InetSocketAddress firstHop = IPHelper.toInetSocketAddress(borderRouterAddresses.get(0));
+        localAddress =
+            new InetSocketAddress(getExternalIP(firstHop, localIsdAs), localAddress.getPort());
+        //        ByteBuffer buf = ByteBuffer.allocate(100);
+        //        buf.putInt(42);
+        //        buf.flip();
+        //        channel.send(buf, firstHop);
+        //        //channel.connect(firstHop);
+        //        localAddress = (InetSocketAddress) channel.getLocalAddress();
+        if (localAddress.getAddress().isAnyLocalAddress()) {
+          throw new IllegalStateException();
+        }
+      }
+    } catch (IOException e) {
+      throw new ScionRuntimeException(e);
+    }
+    int localPort = localAddress.getPort();
+
     List<Entry> newEntries = new ArrayList<>();
     for (String brAddress : borderRouterAddresses) {
-      try {
-        InetSocketAddress localAddress = (InetSocketAddress) channel.getLocalAddress();
-        int localPort = localAddress.getPort();
-        String key =
-            toKeySourceAddress(brAddress, localIsdAs, localAddress.getAddress(), localPort);
-        Entry entry = sourceIPs.get(key);
-        if (entry == null) {
-          InetSocketAddress firstHop = IPHelper.toInetSocketAddress(brAddress);
-          entry = new Entry(null, firstHop);
-          sourceIPs.put(key, entry);
-        }
-        newEntries.add(entry);
-      } catch (IOException e) {
-        throw new ScionRuntimeException(e);
+      String key = toKeySourceAddress(brAddress, localIsdAs, localAddress.getAddress(), localPort);
+      Entry entry = sourceIPs.get(key);
+      if (entry == null) {
+        InetSocketAddress firstHop = IPHelper.toInetSocketAddress(brAddress);
+        entry = new Entry(null, firstHop);
+        sourceIPs.put(key, entry);
       }
+      newEntries.add(entry);
     }
 
     try {
@@ -245,18 +264,25 @@ public class InterfaceAddressDiscovery {
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path, long)
    */
+  // TODO pass in InetSocketAddress
   public synchronized InetSocketAddress getSourceAddress(
       Path path, InetAddress localIP, int localPort, long localIsdAs, DatagramChannel channel) {
+    if (localIP.isAnyLocalAddress()) {
+      // TODO report this back to the channel so we don't call it all the time (even though it is
+      // just a map lookup)
+      localIP = getExternalIP(path.getFirstHopAddress(), localIsdAs);
+    }
     System.out.println("-------------- getSourceAddress() ---------------------------------------");
     // TODO can't we get localAddress/port from the channel??? After we did the connect()?
     String key = toKeySourceAddress(path, localIsdAs, localIP, localPort);
     Entry entry = sourceIPs.get(key);
     try {
       if (entry == null) {
-        InetSocketAddress firstHop = path.getFirstHopAddress();
-        InetSocketAddress source = detectSourceAddress(firstHop, localIsdAs, channel);
-        entry = new Entry(source, firstHop);
-        sourceIPs.put(key, entry);
+        // This is not a known border router, the destination is presumably in the local AS
+        if (path.getRemoteIsdAs() == localIsdAs) {
+          return new InetSocketAddress(localIP, localPort);
+        }
+        throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
       } else {
         InetSocketAddress source = detectSourceAddress(entry.firstHop, localIsdAs, channel);
         entry.updateSource(source);
@@ -554,8 +580,9 @@ public class InterfaceAddressDiscovery {
 
   private String toKeySourceAddress(
       Path path, long localIsdAs, InetAddress localAddress, int localPort) {
-    return toKeySourceAddress(
-        path.getFirstHopAddress().toString(), localIsdAs, localAddress, localPort);
+    // remove leading "/"
+    String firstHop = path.getFirstHopAddress().toString().substring(1);
+    return toKeySourceAddress(firstHop, localIsdAs, localAddress, localPort);
   }
 
   private String toKeySourceAddress(
