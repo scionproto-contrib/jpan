@@ -177,7 +177,6 @@ public class InterfaceAddressDiscovery {
     if (borderRouterAddresses.isEmpty()) {
       return;
     }
-    System.out.println("-------------- prefetchMappings() ---------------------------------------");
     // TODO we need to do this for every Interface....
 
     InetSocketAddress localAddress;
@@ -187,12 +186,6 @@ public class InterfaceAddressDiscovery {
         InetSocketAddress firstHop = IPHelper.toInetSocketAddress(borderRouterAddresses.get(0));
         localAddress =
             new InetSocketAddress(getExternalIP(firstHop, localIsdAs), localAddress.getPort());
-        //        ByteBuffer buf = ByteBuffer.allocate(100);
-        //        buf.putInt(42);
-        //        buf.flip();
-        //        channel.send(buf, firstHop);
-        //        //channel.connect(firstHop);
-        //        localAddress = (InetSocketAddress) channel.getLocalAddress();
         if (localAddress.getAddress().isAnyLocalAddress()) {
           throw new IllegalStateException();
         }
@@ -219,7 +212,6 @@ public class InterfaceAddressDiscovery {
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
-    System.out.println("-------------- prefetchMappings() ---DONE--------------------------------");
   }
 
   private void detectSourceAddress(List<Entry> entries, long localIsdAs, DatagramChannel channel)
@@ -272,7 +264,6 @@ public class InterfaceAddressDiscovery {
       // just a map lookup)
       localIP = getExternalIP(path.getFirstHopAddress(), localIsdAs);
     }
-    System.out.println("-------------- getSourceAddress() ---------------------------------------");
     // TODO can't we get localAddress/port from the channel??? After we did the connect()?
     String key = toKeySourceAddress(path, localIsdAs, localIP, localPort);
     Entry entry = sourceIPs.get(key);
