@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Objects;
 import java.util.Random;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.zip.CRC32;
 import org.scion.jpan.ScionRuntimeException;
 import org.slf4j.Logger;
@@ -66,7 +66,15 @@ public class STUN {
   }
 
   public static InetSocketAddress parseResponse(
-      ByteBuffer in, Function<TransactionID, Boolean> idHandler, ByteUtil.MutRef<String> error) {
+      ByteBuffer in, Predicate<TransactionID> idHandler, ByteUtil.MutRef<String> error) {
+    return parseResponse(in, idHandler, new ByteUtil.MutRef<>(), error);
+  }
+
+  public static InetSocketAddress parseResponse(
+      ByteBuffer in,
+      Predicate<TransactionID> idHandler,
+      ByteUtil.MutRef<TransactionID> txIdOut,
+      ByteUtil.MutRef<String> error) {
     if (in.remaining() < 20) {
       return null;
     }
@@ -87,7 +95,8 @@ public class STUN {
     int txId2 = in.getInt();
     int txId3 = in.getInt();
     TransactionID id = TransactionID.from(txId1, txId2, txId3);
-    if (!idHandler.apply(id)) {
+    txIdOut.set(id);
+    if (!idHandler.test(id)) {
       error.set("STUN validation error, TxID validation failed.");
       return null;
     }
@@ -413,7 +422,7 @@ public class STUN {
     // TODO disabled, 2 out of 112 return Error 400 when using this method.
     //   Note, the implementation is probably correct, flipping som bits causes another
     //   4 servers to simply time out.
-    boolean addFingerprint = !false;
+    boolean addFingerprint = true;
     //    0                   1                   2                   3
     //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

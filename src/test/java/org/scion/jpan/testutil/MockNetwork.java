@@ -236,6 +236,14 @@ public class MockNetwork {
     return mock.localAddress[0];
   }
 
+  public static List<String> getBorderRouterAddresses() {
+    ArrayList<String> ret = new ArrayList<>();
+    for (InetSocketAddress isa : mock.localAddress) {
+      ret.add(isa.getAddress().getHostAddress() + ":" + isa.getPort());
+    }
+    return ret;
+  }
+
   public static InetSocketAddress getTinyServerAddress() throws IOException {
     return new InetSocketAddress(
         InetAddress.getByAddress(TINY_SRV_NAME_1, TINY_SRV_ADDR_BYTES_1), TINY_SRV_PORT_1);

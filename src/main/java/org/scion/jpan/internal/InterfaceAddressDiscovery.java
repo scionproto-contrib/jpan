@@ -266,7 +266,7 @@ public class InterfaceAddressDiscovery {
     try {
       if (entry == null) {
         // This is not a known border router, the destination is presumably in the local AS
-        if (path.getRemoteIsdAs() == localIsdAs) {
+        if (path.getRemoteIsdAs() == localIsdAs || configMode == ConfigMode.STUN_OFF) {
           return new InetSocketAddress(localIP, localPort);
         }
         throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
@@ -393,22 +393,21 @@ public class InterfaceAddressDiscovery {
     }
   }
 
-  private InetSocketAddress doStunRequest(
-      List<Entry> servers, DatagramChannel channel, Selector selector) throws IOException {
+  private void doStunRequest(List<Entry> servers, DatagramChannel channel, Selector selector)
+      throws IOException {
     // prepare receiver
-    final ConcurrentLinkedQueue<InetSocketAddress> queue = new ConcurrentLinkedQueue<>();
-    final ConcurrentHashMap<STUN.TransactionID, Object> ids = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<STUN.TransactionID, Entry> ids = new ConcurrentHashMap<>();
 
     // prepare send
-    ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
-    STUN.TransactionID id = STUN.writeRequest(out);
-    ids.put(id, id);
-    out.flip();
 
     // Start sending
+    ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
     for (Entry e : servers) {
-      channel.send(out, e.firstHop);
+      out.clear();
+      STUN.TransactionID id = STUN.writeRequest(out);
+      ids.put(id, e);
       out.flip();
+      channel.send(out, e.firstHop);
     }
 
     // Wait
@@ -420,22 +419,23 @@ public class InterfaceAddressDiscovery {
         iter.remove();
         if (key.isReadable()) {
           DatagramChannel channelIn = (DatagramChannel) key.channel();
+          buffer.clear();
           channelIn.receive(buffer);
           buffer.flip();
 
           ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
-          InetSocketAddress external =
-              STUN.parseResponse(buffer, id2 -> ids.remove(id2) != null, error);
+          final ByteUtil.MutRef<STUN.TransactionID> id = new ByteUtil.MutRef<>();
+          InetSocketAddress external = STUN.parseResponse(buffer, ids::containsKey, id, error);
+          Entry e = ids.remove(id.get());
+          e.updateSource(external);
           if (external != null && error.get() == null) {
-            queue.add(external);
             if (ids.isEmpty()) {
-              return queue.poll();
+              return;
             }
           }
         }
       }
     }
-    return null;
   }
 
   private InetSocketAddress tryStunBorderRouter(InetSocketAddress firstHop, DatagramChannel channel)
@@ -475,6 +475,7 @@ public class InterfaceAddressDiscovery {
           iter.remove();
           if (key.isReadable()) {
             DatagramChannel channelIn = (DatagramChannel) key.channel();
+            buffer.clear();
             channelIn.receive(buffer);
             buffer.flip();
 
