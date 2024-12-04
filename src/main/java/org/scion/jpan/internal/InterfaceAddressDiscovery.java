@@ -311,17 +311,11 @@ public class InterfaceAddressDiscovery {
     String custom =
         ScionUtil.getPropertyOrEnv(
             Constants.PROPERTY_STUN_SERVER, Constants.ENV_STUN_SERVER, defaultSrv);
-    if (custom != null && !custom.isEmpty()) {
-      return tryStunServer(custom, channel);
+    if (!useDefault && (custom == null || custom.isEmpty())) {
+      // Ignore empty sever address if we don't rely on it
+      return null;
     }
-    if (useDefault) {
-      throw new IllegalArgumentException(
-          "Please provide a valid STUN server address in "
-              + "SCION_STUN_SERVER or org.scion.stun.server, was: \""
-              + custom
-              + "\"");
-    }
-    return null;
+    return tryStunServer(custom, channel);
   }
 
   private InetSocketAddress autoDetect(
@@ -362,19 +356,29 @@ public class InterfaceAddressDiscovery {
   }
 
   private InetSocketAddress tryStunServer(String stunAddress, DatagramChannel channel) {
-    if (stunAddress == null || stunAddress.isEmpty()) {
-      return null;
-    }
     String[] servers = stunAddress.split(";");
     for (String server : servers) {
-      InetSocketAddress address = null;
+      InetSocketAddress stunServer;
+
+      // decode STUN server address
       try {
-        address = doStunRequest(IPHelper.toInetSocketAddress(server), channel);
+        stunServer = IPHelper.toInetSocketAddress(server);
+      } catch (IllegalArgumentException e) {
+        String prefix =
+            "Please provide a valid STUN server address as 'address:port' in "
+                + "SCION_STUN_SERVER or org.scion.stun.server, was: ";
+        log.error("{}\"{}\"", prefix, server);
+        throw new IllegalArgumentException(prefix + "\"" + server + "\"");
+      }
+
+      // contact STUN server
+      try {
+        InetSocketAddress address = doStunRequest(stunServer, channel);
+        if (address != null) {
+          return address;
+        }
       } catch (IOException e) {
         log.warn("Could not connect to STUN_SERVER: \"{}\"", server);
-      }
-      if (address != null) {
-        return address;
       }
     }
     return null;

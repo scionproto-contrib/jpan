@@ -125,31 +125,32 @@ class InterfaceAddressDiscoveryTest {
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
 
     String prefix =
-        "Please provide a valid STUN server address in SCION_STUN_SERVER or org.scion.stun.server, was: ";
+        "Please provide a valid STUN server address as 'address:port' in "
+            + "SCION_STUN_SERVER or org.scion.stun.server, was: ";
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "");
     Exception e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains(prefix + "\"\""), e.getMessage());
+    assertEquals(prefix + "\"\"", e.getMessage());
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains("Could not resolve address:port: \"nonsense\""));
+    assertTrue(e.getMessage().contains(prefix + "\"nonsense\""), e.getMessage());
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains("Could not resolve address:port: \"nonsense:12345\""));
+    assertTrue(e.getMessage().contains(prefix + "\"nonsense:12345\""));
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains("Could not resolve address:port: \"nonsense:1234567\""));
+    assertTrue(e.getMessage().contains(prefix + "\"nonsense:1234567\""));
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.1:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains("Could not resolve address:port: \"127.0.0.1:1234567\""));
+    assertTrue(e.getMessage().contains(prefix + "\"127.0.0.1:1234567\""));
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.0.1:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains("Could not resolve address:port: \"127.0.0.0.1:12345\""));
+    assertTrue(e.getMessage().contains(prefix + "\"127.0.0.0.1:12345\""));
   }
 
   private InetSocketAddress tryIFD(Path path, InetSocketAddress bind, List<String> brs)
@@ -201,7 +202,6 @@ class InterfaceAddressDiscoveryTest {
     System.setProperty(Constants.PROPERTY_STUN, "AUTO");
 
     MockNetwork.startTiny();
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "");
 
     Path path = createPath(MockNetwork.getBorderRouterAddress1());
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12777);
