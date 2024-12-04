@@ -21,7 +21,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,14 +61,15 @@ class InterfaceAddressDiscoveryTest {
   @Test
   void testOFF() throws IOException {
     System.setProperty(Constants.PROPERTY_STUN, "OFF");
+    MockNetwork.startTiny();
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = ExamplePacket.PATH_IPV4;
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      idf.prefetchMappings(isdAs, channel, Collections.emptyList());
-      InetSocketAddress src = idf.getSourceAddress(path, isdAs, channel);
+      idf.prefetchMappings(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+      InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
       assertEquals(local, src);
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
     }
@@ -86,7 +86,7 @@ class InterfaceAddressDiscoveryTest {
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, MockNetwork.getBorderRouterAddresses());
-      InetSocketAddress src = idf.getSourceAddress(path, isdAs, channel);
+      InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
       assertEquals(local, src);
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
     }
@@ -107,7 +107,7 @@ class InterfaceAddressDiscoveryTest {
       Path path = createPath(firstHop);
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, brs);
-      InetSocketAddress src = idf.getSourceAddress(path, isdAs, channel);
+      InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
       assertNull(src); // TODO assertThrows()?
     }
   }
@@ -157,7 +157,7 @@ class InterfaceAddressDiscoveryTest {
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, brs);
-      return idf.getSourceAddress(path, isdAs, channel);
+      return idf.getMappedAddress(path, isdAs, channel);
     }
   }
 

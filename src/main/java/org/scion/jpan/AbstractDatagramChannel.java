@@ -449,7 +449,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     if (overrideExternalAddress != null) {
       return overrideExternalAddress;
     }
-    return getService().getSourceAddress(path, channel);
+    return getService().getMappedAddress(path, channel);
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {

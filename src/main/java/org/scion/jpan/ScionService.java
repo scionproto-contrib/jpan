@@ -620,8 +620,8 @@ public class ScionService {
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path)
    */
-  InetSocketAddress getSourceAddress(Path path, DatagramChannel channel) {
-    return InterfaceAddressDiscovery.getInstance().getSourceAddress(path, getLocalIsdAs(), channel);
+  InetSocketAddress getMappedAddress(Path path, DatagramChannel channel) {
+    return InterfaceAddressDiscovery.getInstance().getMappedAddress(path, getLocalIsdAs(), channel);
   }
 
   void prefetchSourceAddresses(DatagramChannel channel) {

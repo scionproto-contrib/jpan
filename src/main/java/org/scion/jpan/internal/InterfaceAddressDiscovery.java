@@ -51,6 +51,7 @@ public class InterfaceAddressDiscovery {
   private final Map<String, InetAddress> externalIPs = new HashMap<>();
   private final Map<String, Entry> sourceIPs = new HashMap<>();
   private final ConfigMode configMode;
+  private final Map<Long, ASInfo> asInfoMap = new HashMap<>();
 
   // TODO use SimpleCache
 
@@ -104,6 +105,27 @@ public class InterfaceAddressDiscovery {
     }
   }
 
+  private static class ASInfo {
+    List<String> borderRouters;
+    long lastUsed;
+
+    ASInfo(List<String> borderRouters) {
+      this.borderRouters = Collections.unmodifiableList(borderRouters);
+    }
+
+    public boolean isExpired() {
+      return (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000);
+    }
+
+    public void touch() {
+      lastUsed = System.currentTimeMillis();
+    }
+
+    public List<String> getBorderRouters() {
+      return borderRouters;
+    }
+  }
+
   public static InterfaceAddressDiscovery getInstance() {
     synchronized (singleton) {
       if (singleton.get() == null) {
@@ -140,7 +162,7 @@ public class InterfaceAddressDiscovery {
    * @param path Path
    * @param localIsdAs Local ISD/AS
    * @return External IP address
-   * @see #getSourceAddress(Path, long, DatagramChannel)
+   * @see #getMappedAddress(Path, long, DatagramChannel)
    */
   public synchronized InetAddress getExternalIP(Path path, long localIsdAs) {
     return getExternalIP(path.getFirstHopAddress(), localIsdAs);
@@ -175,6 +197,9 @@ public class InterfaceAddressDiscovery {
       log.warn("No border routers found in local topology information.");
       return;
     }
+
+    ASInfo asInfo = asInfoMap.computeIfAbsent(localIsdAs, k -> new ASInfo(borderRouterAddresses));
+    asInfo.touch();
 
     // determine local address
     InetSocketAddress localAddress;
@@ -251,9 +276,8 @@ public class InterfaceAddressDiscovery {
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path, long)
    */
-  public synchronized InetSocketAddress getSourceAddress(
+  public synchronized InetSocketAddress getMappedAddress(
       Path path, long localIsdAs, DatagramChannel channel) {
-
     try {
       InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
       InetAddress localIP = local.getAddress();
@@ -262,6 +286,17 @@ public class InterfaceAddressDiscovery {
         // just a map lookup)
         localIP = getExternalIP(path.getFirstHopAddress(), localIsdAs);
       }
+
+      // NAT mapping expired?
+      ASInfo asInfo = asInfoMap.get(localIsdAs);
+      if (asInfo == null) {
+        throw new IllegalStateException("Unknown AS: " + ScionUtil.toStringIA(localIsdAs));
+      }
+      if (asInfo.isExpired()) {
+        prefetchMappings(localIsdAs, channel, asInfo.getBorderRouters());
+      }
+
+      // Find mapping
       String key = toKeySourceAddress(path, localIsdAs, localIP, local.getPort());
       Entry entry = sourceIPs.get(key);
       if (entry == null) {
@@ -270,38 +305,10 @@ public class InterfaceAddressDiscovery {
           return new InetSocketAddress(localIP, local.getPort());
         }
         throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
-      } else {
-        InetSocketAddress source = detectSourceAddress(entry.firstHop, localIsdAs, channel);
-        entry.updateSource(source);
       }
       return entry.getSource();
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
-    }
-  }
-
-  /**
-   * Determine the IP that should be your as SRC address in a SCION header. This may differ from the
-   * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
-   *
-   * @param firstHop Border router address
-   * @return External address or NAT mapped address
-   * @see #getExternalIP(Path, long)
-   */
-  private InetSocketAddress detectSourceAddress(
-      InetSocketAddress firstHop, long localIsdAs, DatagramChannel channel) throws IOException {
-    switch (configMode) {
-      case STUN_OFF:
-        int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-        return new InetSocketAddress(getExternalIP(firstHop, localIsdAs), localPort);
-      case STUN_AUTO:
-        return autoDetect(firstHop, localIsdAs, channel);
-      case STUN_CUSTOM:
-        return tryCustomServer(channel, true);
-      case STUN_BR:
-        return tryStunBorderRouter(firstHop, channel);
-      default:
-        throw new UnsupportedOperationException("Unknown config mode: " + configMode);
     }
   }
 
