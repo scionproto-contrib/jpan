@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -117,7 +118,8 @@ class InterfaceAddressDiscoveryTest {
   @Test
   void testCUSTOM_fails() {
     System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
-    List<String> brs = Collections.emptyList();
+    List<String> brs = new ArrayList<>();
+    brs.add("127.0.0.1:55555");
 
     Path path = ExamplePacket.PATH_IPV4;
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -170,7 +172,7 @@ class InterfaceAddressDiscoveryTest {
     InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
     System.setProperty(Constants.PROPERTY_STUN_SERVER, br.getHostString() + ":" + br.getPort());
 
-    Path path = ExamplePacket.PATH_IPV4;
+    Path path = createPath(br);
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12444);
     List<String> brs = MockNetwork.getBorderRouterAddresses();
 
@@ -186,7 +188,7 @@ class InterfaceAddressDiscoveryTest {
     InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
     System.setProperty(Constants.PROPERTY_STUN_SERVER, br.getHostString() + ":" + br.getPort());
 
-    Path path = ExamplePacket.PATH_IPV4;
+    Path path = createPath(br);
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12333);
     List<String> brs = MockNetwork.getBorderRouterAddresses();
 
@@ -199,7 +201,7 @@ class InterfaceAddressDiscoveryTest {
     System.setProperty(Constants.PROPERTY_STUN, "AUTO");
 
     MockNetwork.startTiny();
-    // System.setProperty(Constants.PROPERTY_STUN_SERVER, "");
+    System.setProperty(Constants.PROPERTY_STUN_SERVER, "");
 
     Path path = createPath(MockNetwork.getBorderRouterAddress1());
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12777);
@@ -210,14 +212,30 @@ class InterfaceAddressDiscoveryTest {
   }
 
   @Test
-  void testAUTO_noCUSTOM_noBR_PUBLIC() {
+  void testAUTO_noCUSTOM_noBR_PUBLIC() { // TODO
     System.setProperty(Constants.PROPERTY_STUN, "AUTO");
 
     MockNetwork.startTiny();
 
-    Path path = ExamplePacket.PATH_IPV4;
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
     List<String> brs = MockNetwork.getBorderRouterAddresses();
+    Path path = createPath(MockNetwork.getBorderRouterAddress1());
+
+    // This is not nice, we assume this fails because the PUBLIC servers are not reachable from
+    // the loopback interface
+    Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local, brs));
+    assertEquals("Could not find a STUN/NAT solution for the border router.", e.getMessage());
+  }
+
+  @Test
+  void testAUTO_noCUSTOM_noBR_noPUBLIC() { // TODO
+    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<String> brs = MockNetwork.getBorderRouterAddresses();
+    Path path = createPath(MockNetwork.getBorderRouterAddress1());
 
     // This is not nice, we assume this fails because the PUBLIC servers are not reachable from
     // the loopback interface

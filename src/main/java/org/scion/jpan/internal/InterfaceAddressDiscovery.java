@@ -172,6 +172,7 @@ public class InterfaceAddressDiscovery {
   public synchronized void prefetchMappings(
       long localIsdAs, DatagramChannel channel, List<String> borderRouterAddresses) {
     if (borderRouterAddresses.isEmpty()) {
+      log.warn("No border routers found in local topology information.");
       return;
     }
 
