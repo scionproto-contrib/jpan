@@ -449,6 +449,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     if (overrideExternalAddress != null) {
       return overrideExternalAddress;
     }
+    // TODO we should have a variable that caches getExtrnalIP() or, better
+    //   just bind() to getExternal()_after/during getExternbalIP()
     return getService().getMappedAddress(path, channel);
   }
 
@@ -662,6 +664,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       //     I.e. getExternalIP() is fine if we have a connection.
       //     It is NOT fine if we are bound to an explicit IP/port
       InetAddress oldLocalAddress = localAddress;
+      // TODO should we do this only if localAddress = null || ANY? Should we set isBound=true?
       localAddress = getService().getExternalIP(newPath);
       if (!Objects.equals(localAddress, oldLocalAddress)) {
         // TODO check CS / bootstrapping

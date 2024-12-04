@@ -36,7 +36,8 @@ Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaratio
 TODO
 - TODO implement ISD/AS map
    - enum BR: consult sourceIP map (rename it)
-   - enum STUN_SERVER: same IP for all addresses, can also be used ofr dst-AS==src-AS
+   - enum STUN_SERVER: same IP for all addresses, can also be used for dst-AS==src-AS
+   - enum NO_NAT: just use local IP
    - store expiration date here, only once for all BRs in a given AS
 
 - COnfigure 
@@ -51,6 +52,7 @@ TODO
   to UDP underlay instead of SCION source address(?).
   - We cannot use BR as STUN.
   - We could use public STUN, but that would just complicate things....?
+- Check TODO in AbstractChannel.updateConnection()
 
 TODO
 - 2 reasons for detecting STUN on startup:

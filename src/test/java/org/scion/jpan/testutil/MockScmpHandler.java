@@ -195,7 +195,7 @@ public class MockScmpHandler implements Runnable {
     spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
     scmpHeader.setCode(Scmp.TypeCode.TYPE_129);
-    ByteBuffer out = ByteBuffer.allocate(100);
+    ByteBuffer out = ByteBuffer.allocate(200);
     spi.writePacketSCMP(out);
     out.flip();
     channel.send(out, srcAddress);
@@ -222,7 +222,7 @@ public class MockScmpHandler implements Runnable {
         scmpHeader.setTraceData(ScionUtil.parseIA("1-ff00:0:110"), 42);
       }
     }
-    ByteBuffer out = ByteBuffer.allocate(100);
+    ByteBuffer out = ByteBuffer.allocate(200);
     spi.writePacketSCMP(out);
     out.flip();
     incoming.send(out, srcAddress);

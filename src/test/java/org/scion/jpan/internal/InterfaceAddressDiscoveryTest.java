@@ -71,6 +71,7 @@ class InterfaceAddressDiscoveryTest {
       idf.prefetchMappings(isdAs, channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
       assertEquals(local, src);
+      assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
     }
   }
@@ -88,6 +89,7 @@ class InterfaceAddressDiscoveryTest {
       idf.prefetchMappings(isdAs, channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
       assertEquals(local, src);
+      assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
     }
   }
@@ -175,6 +177,7 @@ class InterfaceAddressDiscoveryTest {
 
     InetSocketAddress src = tryIFD(path, local, brs);
     assertEquals(local, src);
+    assertFalse(src.getAddress().isAnyLocalAddress());
   }
 
   @Test
@@ -191,6 +194,7 @@ class InterfaceAddressDiscoveryTest {
 
     InetSocketAddress src = tryIFD(path, local, brs);
     assertEquals(local, src);
+    assertFalse(src.getAddress().isAnyLocalAddress());
   }
 
   @Test
@@ -205,6 +209,7 @@ class InterfaceAddressDiscoveryTest {
 
     InetSocketAddress src = tryIFD(path, local, brs);
     assertEquals(local, src);
+    assertFalse(src.getAddress().isAnyLocalAddress());
   }
 
   @Test
