@@ -616,16 +616,12 @@ public class ScionService {
    * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
    *
    * @param path Path
-   * @param localIP Known local address
-   * @param localPort Known local port
    * @param channel channel
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path)
    */
-  InetSocketAddress getSourceAddress(
-      Path path, InetAddress localIP, int localPort, DatagramChannel channel) {
-    return InterfaceAddressDiscovery.getInstance()
-        .getSourceAddress(path, localIP, localPort, getLocalIsdAs(), channel);
+  InetSocketAddress getSourceAddress(Path path, DatagramChannel channel) {
+    return InterfaceAddressDiscovery.getInstance().getSourceAddress(path, getLocalIsdAs(), channel);
   }
 
   void prefetchSourceAddresses(DatagramChannel channel) {

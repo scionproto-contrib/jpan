@@ -42,13 +42,9 @@ TODO
 - COnfigure 
   - SEPARATE: ENFORCE use of XOR?
   - Timeout
-- Test:
-  - prefetch()
-  - Test that prefetched addresses really work. Disallow detection in getSourceAddress()?
 - Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
 - Implement keep alive?
-- Implement: s
-  - end detections in same thread, all at once, before checking results.
+- Implement: 
   - Avoid double prefetching()
   - SHIM uses a ScionDatagramSocket, that should be unnecessary, avoid it? Avoid prefetch()?
 - Implement and document handling in local AS, e.g. responder should respond

@@ -140,7 +140,7 @@ public class InterfaceAddressDiscovery {
    * @param path Path
    * @param localIsdAs Local ISD/AS
    * @return External IP address
-   * @see #getSourceAddress(Path, InetAddress, int, long, DatagramChannel)
+   * @see #getSourceAddress(Path, long, DatagramChannel)
    */
   public synchronized InetAddress getExternalIP(Path path, long localIsdAs) {
     return getExternalIP(path.getFirstHopAddress(), localIsdAs);
@@ -246,39 +246,38 @@ public class InterfaceAddressDiscovery {
    * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
    *
    * @param path Path
-   * @param localPort Known local port
-   * @param localIP Known local IP
    * @param localIsdAs Local ISD/AS
    * @param channel Underlying DatagramChannel
    * @return External address or NAT mapped address
    * @see #getExternalIP(Path, long)
    */
-  // TODO pass in InetSocketAddress
   public synchronized InetSocketAddress getSourceAddress(
-      Path path, InetAddress localIP, int localPort, long localIsdAs, DatagramChannel channel) {
-    if (localIP.isAnyLocalAddress()) {
-      // TODO report this back to the channel so we don't call it all the time (even though it is
-      // just a map lookup)
-      localIP = getExternalIP(path.getFirstHopAddress(), localIsdAs);
-    }
-    // TODO can't we get localAddress/port from the channel??? After we did the connect()?
-    String key = toKeySourceAddress(path, localIsdAs, localIP, localPort);
-    Entry entry = sourceIPs.get(key);
+      Path path, long localIsdAs, DatagramChannel channel) {
+
     try {
+      InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
+      InetAddress localIP = local.getAddress();
+      if (localIP.isAnyLocalAddress()) {
+        // TODO report this back to the channel so we don't call it all the time (even though it is
+        // just a map lookup)
+        localIP = getExternalIP(path.getFirstHopAddress(), localIsdAs);
+      }
+      String key = toKeySourceAddress(path, localIsdAs, localIP, local.getPort());
+      Entry entry = sourceIPs.get(key);
       if (entry == null) {
         // This is not a known border router, the destination is presumably in the local AS
         if (path.getRemoteIsdAs() == localIsdAs || configMode == ConfigMode.STUN_OFF) {
-          return new InetSocketAddress(localIP, localPort);
+          return new InetSocketAddress(localIP, local.getPort());
         }
         throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
       } else {
         InetSocketAddress source = detectSourceAddress(entry.firstHop, localIsdAs, channel);
         entry.updateSource(source);
       }
+      return entry.getSource();
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
-    return entry.getSource();
   }
 
   /**
@@ -401,7 +400,7 @@ public class InterfaceAddressDiscovery {
   private void doStunRequest(List<Entry> servers, DatagramChannel channel, Selector selector)
       throws IOException {
     // prepare receiver
-    final ConcurrentHashMap<STUN.TransactionID, Entry> ids = new ConcurrentHashMap<>();
+    final HashMap<STUN.TransactionID, Entry> ids = new HashMap<>();
 
     // prepare send
 

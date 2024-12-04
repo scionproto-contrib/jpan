@@ -69,8 +69,7 @@ class InterfaceAddressDiscoveryTest {
       Path path = ExamplePacket.PATH_IPV4;
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, Collections.emptyList());
-      InetSocketAddress src =
-          idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
+      InetSocketAddress src = idf.getSourceAddress(path, isdAs, channel);
       assertEquals(local, src);
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
     }
@@ -87,8 +86,7 @@ class InterfaceAddressDiscoveryTest {
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, MockNetwork.getBorderRouterAddresses());
-      InetSocketAddress src =
-          idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
+      InetSocketAddress src = idf.getSourceAddress(path, isdAs, channel);
       assertEquals(local, src);
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
     }
@@ -109,8 +107,7 @@ class InterfaceAddressDiscoveryTest {
       Path path = createPath(firstHop);
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, brs);
-      InetSocketAddress src =
-          idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
+      InetSocketAddress src = idf.getSourceAddress(path, isdAs, channel);
       assertNull(src); // TODO assertThrows()?
     }
   }
@@ -157,11 +154,10 @@ class InterfaceAddressDiscoveryTest {
       throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(bind);
-      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, brs);
-      return idf.getSourceAddress(path, local.getAddress(), local.getPort(), isdAs, channel);
+      return idf.getSourceAddress(path, isdAs, channel);
     }
   }
 

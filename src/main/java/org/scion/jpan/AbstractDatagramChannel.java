@@ -449,12 +449,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     if (overrideExternalAddress != null) {
       return overrideExternalAddress;
     }
-    try {
-      InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
-      return getService().getSourceAddress(path, local.getAddress(), local.getPort(), channel);
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
-    }
+    return getService().getSourceAddress(path, channel);
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
