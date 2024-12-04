@@ -134,23 +134,23 @@ class InterfaceAddressDiscoveryTest {
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains(prefix + "\"nonsense\""), e.getMessage());
+    assertEquals(prefix + "\"nonsense\"", e.getMessage());
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains(prefix + "\"nonsense:12345\""));
+    assertEquals(prefix + "\"nonsense:12345\"", e.getMessage());
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains(prefix + "\"nonsense:1234567\""));
+    assertEquals(prefix + "\"nonsense:1234567\"", e.getMessage());
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.1:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains(prefix + "\"127.0.0.1:1234567\""));
+    assertEquals(prefix + "\"127.0.0.1:1234567\"", e.getMessage());
 
     System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.0.1:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
-    assertTrue(e.getMessage().contains(prefix + "\"127.0.0.0.1:12345\""));
+    assertEquals(prefix + "\"127.0.0.0.1:12345\"", e.getMessage());
   }
 
   private InetSocketAddress tryIFD(Path path, InetSocketAddress bind, List<String> brs)
@@ -212,7 +212,7 @@ class InterfaceAddressDiscoveryTest {
   }
 
   @Test
-  void testAUTO_noCUSTOM_noBR_PUBLIC() { // TODO
+  void testAUTO_noCUSTOM_noBR_noPUBLIC() {
     System.setProperty(Constants.PROPERTY_STUN, "AUTO");
 
     MockNetwork.startTiny();
@@ -221,21 +221,8 @@ class InterfaceAddressDiscoveryTest {
     List<String> brs = MockNetwork.getBorderRouterAddresses();
     Path path = createPath(MockNetwork.getBorderRouterAddress1());
 
-    // This is not nice, we assume this fails because the PUBLIC servers are not reachable from
-    // the loopback interface
-    Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local, brs));
-    assertEquals("Could not find a STUN/NAT solution for the border router.", e.getMessage());
-  }
-
-  @Test
-  void testAUTO_noCUSTOM_noBR_noPUBLIC() { // TODO
-    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
-
-    MockNetwork.startTiny();
-
-    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
-    List<String> brs = MockNetwork.getBorderRouterAddresses();
-    Path path = createPath(MockNetwork.getBorderRouterAddress1());
+    // Stop BR
+    MockNetwork.stopTiny();
 
     // This is not nice, we assume this fails because the PUBLIC servers are not reachable from
     // the loopback interface
