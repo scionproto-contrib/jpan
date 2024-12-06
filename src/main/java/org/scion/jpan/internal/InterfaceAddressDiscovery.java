@@ -164,7 +164,7 @@ public class InterfaceAddressDiscovery {
   }
 
   private ConfigMode getConfig() {
-    String v = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_STUN, Constants.ENV_STUN, "OFF");
+    String v = ScionUtil.getPropertyOrEnv(PROPERTY_STUN, ENV_STUN, DEFAULT_STUN);
     v = v.toUpperCase();
     switch (v) {
       case "OFF":
@@ -353,10 +353,8 @@ public class InterfaceAddressDiscovery {
   }
 
   private InetSocketAddress tryCustomServer(DatagramChannel channel, boolean useDefault) {
-    String defaultSrv = useDefault ? Constants.DEFAULT_STUN_SERVER : null;
-    String custom =
-        ScionUtil.getPropertyOrEnv(
-            Constants.PROPERTY_STUN_SERVER, Constants.ENV_STUN_SERVER, defaultSrv);
+    String defaultSrv = useDefault ? DEFAULT_STUN_SERVER : null;
+    String custom = ScionUtil.getPropertyOrEnv(PROPERTY_STUN_SERVER, ENV_STUN_SERVER, defaultSrv);
     if (!useDefault && (custom == null || custom.isEmpty())) {
       // Ignore empty sever address if we don't rely on it
       return null;
