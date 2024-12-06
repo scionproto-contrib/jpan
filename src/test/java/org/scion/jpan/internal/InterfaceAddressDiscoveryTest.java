@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockNetwork;
 
 class InterfaceAddressDiscoveryTest {
@@ -242,6 +244,51 @@ class InterfaceAddressDiscoveryTest {
     // the loopback interface
     Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local, brs));
     assertEquals("Could not find a STUN/NAT solution for the border router.", e.getMessage());
+  }
+
+  @Test
+  void testPrefetch_receive() throws IOException {
+    System.setProperty(Constants.PROPERTY_STUN, "BR");
+    MockNetwork.startTiny();
+    ManagedThread receiver = ManagedThread.newBuilder().build();
+    System.out.println("FC 1: " + MockNetwork.getForwardCount()); // TODO
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      System.out.println("FC 2: " + MockNetwork.getForwardCount()); // TODO
+      channel.configureBlocking(true);
+      System.out.println("FC 3: " + MockNetwork.getForwardCount()); // TODO
+
+      //      receiver.submit(
+      //          news -> {
+      //            news.reportStarted();
+      //            ByteBuffer buffer = ByteBuffer.allocate(1000);
+      //            System.out.println("FC 4: " + MockNetwork.getForwardCount()); // TODO
+      //            channel.receive(buffer);
+      //            news.reportException(new IllegalStateException("This should never be
+      // reached."));
+      //          });
+
+      // TODO test jpan with DEFAULT=AUTO
+
+      System.out.println("FC 5: " + MockNetwork.getForwardCount()); // TODO
+      Path path = createPath(MockNetwork.getBorderRouterAddress1());
+      ByteBuffer sendBuffer = ByteBuffer.allocate(1000);
+      channel.send(sendBuffer, path);
+      System.out.println("FC 6: " + MockNetwork.getForwardCount()); // TODO
+
+      //      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+      //      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
+      //      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      //      Path path = createPath(MockNetwork.getBorderRouterAddress1());
+      //      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
+      //      idf.prefetchMappings(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+      //      InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
+      //      assertEquals(local, src);
+      //      assertFalse(src.getAddress().isAnyLocalAddress());
+      //      assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
+      receiver.stopNow();
+    } finally {
+      receiver.stopNow();
+    }
   }
 
   private RequestPath createPath(InetSocketAddress firstHop) {

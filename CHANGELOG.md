@@ -35,6 +35,39 @@ Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaratio
 
 TODO
 - SRC IP mapping: All links on a BR share the same internally visible port!
+  - CHeck how we get the BorderRouter addresses 
+
+TODO :
+- Mapping: timeout reset (touch()) on receive() -> See step 4. below
+- Mapping: after timeout: check that we reset the correct type (ASInfo vs Entry).
+- Make sure that we don´t rely on successful SCMP to report "success".
+- TODO, after stale connection timeout (Mapping timeout), how can we ensure that
+  we can send/receive on the stale channel? 
+  -> We can interrupt any blocking receiver and reinstantiate it ofter prefetch()....
+  -> How can we interrupt that? Run it in a separate thread?????
+     Or we don´t interrupt it and really use a callback in receive()
+    (and stop changing isBlocking()). But what about timeout? -> Can be done on receiver callback...
+    --> But that imposes an RTT that may affect timing in the application layer...
+    --> To avoid interference, we can have a time to do prefetch in in parallel
+        without requiring the main thread to Stop. That sounds good:
+  1. Initially, do prefetch before receive/send()
+  2. STart timer threads that re-triggers prefetch() periodically if required
+     The timer can just check after 300 secs whether prefetch is required or reset the timer. 
+     TODO rethink do we really need a timer and periodic keepalives? 
+        Should we instead reinitialize everything upon next use? That causes timing interference, 
+        but may actually be tolerable... -> Make it configurable! 
+  3. If required, install callback (or use fixed callback) to handle prefetch()
+  4. There should anyway be a fixed callback to call touch() when receiving any packet.
+
+TODO rethink Interfaces: De we really need to support two interfaces on the same AS?
+Usually, e.g. LAN+WiFi, we switch between the two, but they are never active at the same time...
+-> Activating one disables the other. How do we learn of activation. Simple timeout (how???), or is 
+   there an OS callback? We can try to abuse getLocalAddress(), it may report something different if
+   the interface changes....? Android? 
+   If we cannot detect switches, then we don't need to support them, that would simplify a lot
+   of things...
+   Android has: WifiManager.WIFI_STATE_CHANGED_ACTION and ConnectivityManager.CONNECTIVITY_ACTION
+
 
 - Optimizations: Store meta info about NATs: 
   - Do we have different subnets for all BRs?

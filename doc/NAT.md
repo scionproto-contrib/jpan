@@ -33,3 +33,9 @@ several ways to work around this problem:
         2. Try STUN on the border router. JPAN will wait 10ms for an answer.
         3. Try SCMP on the border router. This may succeed if no NAT is present.
         4. Try public stun server.
+- STUN response timeout in milliseconds (`org.scion.stun.timeout` or `SCION_STUN_TIMEOUT`):
+  This is the time (in milliseconds) that the JPAN client will wait for a response from the 
+  border router or STUN server before timing out. 
+- STUN mapping timeout in seconds (`org.scion.stun.mapping.timeout` or `SCION_STUN_MAPPING_TIMEOUT`):  
+  This is the time (in seconds) that the JPAN client will allow to pass after the last 
+  `send()`/`receive()` before requiring a rediscovery pof the mapping.

@@ -130,6 +130,15 @@ public final class Constants {
   public static final int DEFAULT_STUN_TIMEOUT_MS = 10;
 
   /**
+   * Timeout of the NAT before we expect it to forget a mapping, i.e. the time before JPAN initiates
+   * a new STUN detection when reusing a stale connection.
+   */
+  public static final String PROPERTY_STUN_MAPPING_TIMEOUT = "org.scion.stun.mapping.timeout";
+
+  public static final String ENV_STUN_MAPPING_TIMEOUT = "SCION_STUN_MAPPING_TIMEOUT";
+  public static final int DEFAULT_STUN_MAPPING_TIMEOUT = 240;
+
+  /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
    * entries: server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
    */

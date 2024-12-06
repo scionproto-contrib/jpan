@@ -45,7 +45,11 @@ public class InterfaceAddressDiscovery {
 
   private static final AtomicReference<InterfaceAddressDiscovery> singleton =
       new AtomicReference<>();
-  private static final int NAT_UDP_MAPPING_TIMEOUT = 300; // seconds
+  private static final int NAT_UDP_MAPPING_TIMEOUT =
+      ScionUtil.getPropertyOrEnv(
+          PROPERTY_STUN_MAPPING_TIMEOUT,
+          ENV_STUN_MAPPING_TIMEOUT,
+          DEFAULT_STUN_MAPPING_TIMEOUT); // seconds
   private static final Logger log = LoggerFactory.getLogger(InterfaceAddressDiscovery.class);
 
   private final int stunTimeoutMs =
@@ -112,18 +116,16 @@ public class InterfaceAddressDiscovery {
     private AsMode mode;
     private final List<String> borderRouters;
     private long lastUsed;
-    private final InetSocketAddress localAddress;
     private InetSocketAddress commonAddress;
 
-    ASInfo(InetSocketAddress localAddress, List<String> borderRouters) {
-      this.localAddress = localAddress;
+    ASInfo(List<String> borderRouters) {
       this.borderRouters = Collections.unmodifiableList(borderRouters);
       this.mode = AsMode.NOT_INITIALIZED;
     }
 
     public boolean isExpired() {
       return mode != AsMode.NO_NAT
-          && (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000);
+          && (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000L);
     }
 
     public void touch() {
@@ -145,10 +147,6 @@ public class InterfaceAddressDiscovery {
 
     public AsMode getMode() {
       return mode;
-    }
-
-    public InetSocketAddress getLocalAddress() {
-      return localAddress;
     }
   }
 
@@ -238,8 +236,8 @@ public class InterfaceAddressDiscovery {
     }
     int localPort = localAddress.getPort();
 
-    final InetSocketAddress finalLA = localAddress;
-    ASInfo asInfo = asInfoMap.computeIfAbsent(localIsdAs, k -> new ASInfo(finalLA, borderRouters));
+    // ASInfo entry
+    ASInfo asInfo = asInfoMap.computeIfAbsent(localIsdAs, k -> new ASInfo(borderRouters));
     asInfo.touch();
 
     // prepare entries
