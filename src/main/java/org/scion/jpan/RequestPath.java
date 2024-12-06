@@ -16,7 +16,6 @@ package org.scion.jpan;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import org.scion.jpan.proto.daemon.Daemon;
 
 /**
@@ -48,7 +47,7 @@ public class RequestPath extends Path {
   }
 
   @Override
-  public InetSocketAddress getFirstHopAddress() throws UnknownHostException {
+  public InetSocketAddress getFirstHopAddress() {
     return metadata.getFirstHopAddress();
   }
 

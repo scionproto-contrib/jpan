@@ -26,6 +26,7 @@ import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.MockNetwork;
 
 /**
  * Helper class to access package private methods in org.scion.ScionService and ScionPacketHelper.
@@ -60,6 +61,22 @@ public class PackageVisibilityHelper {
 
   public static ResponsePath getResponsePath(ByteBuffer packet, InetSocketAddress firstHop) {
     return ScionHeaderParser.extractResponsePath(packet, firstHop);
+  }
+
+  /**
+   * @param firstHop Can be 'null'. If 'null': uses MockNetwork.getBorderRouterAddress1().
+   * @return RequestPath
+   */
+  public static RequestPath createMockRequestPath(InetSocketAddress firstHop) {
+    if (firstHop == null) {
+      firstHop = MockNetwork.getBorderRouterAddress1();
+    }
+    return PackageVisibilityHelper.createDummyPath(
+        ScionUtil.parseIA("1-ff00:0:112"),
+        new byte[] {127, 0, 0, 1},
+        54321,
+        ExamplePacket.PATH_RAW_TINY_110_112,
+        firstHop);
   }
 
   public static RequestPath createDummyPath() {

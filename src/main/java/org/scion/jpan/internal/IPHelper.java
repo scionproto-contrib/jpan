@@ -74,14 +74,23 @@ public class IPHelper {
     return InetAddress.getByAddress(bytes);
   }
 
+  /**
+   * @param s IP and port, e.g. 127.0.0.1:8080 or localhost:8080
+   * @return InetSocketAddress
+   */
   public static InetSocketAddress toInetSocketAddress(String s) {
     int posPort = s.lastIndexOf(":");
-    int port = Integer.parseInt(s.substring(posPort + 1));
-    byte[] bytes = toByteArray(s.substring(0, posPort));
     try {
+      int port = Integer.parseInt(s.substring(posPort + 1));
+      byte[] bytes = toByteArray(s.substring(0, posPort));
+      if (bytes == null) {
+        InetAddress inet = InetAddress.getByName(s.substring(0, posPort));
+        return new InetSocketAddress(inet, port);
+      }
       return new InetSocketAddress(InetAddress.getByAddress(bytes), port);
-    } catch (UnknownHostException e) {
-      throw new IllegalArgumentException(e);
+    } catch (IllegalArgumentException | UnknownHostException e) {
+      // We nest everything into an IllegalArgumentException with a useful error message:
+      throw new IllegalArgumentException("Could not resolve address:port: \"" + s + "\"", e);
     }
   }
 

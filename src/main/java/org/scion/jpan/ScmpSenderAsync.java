@@ -226,10 +226,10 @@ public class ScmpSenderAsync implements AutoCloseable {
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
-        buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP);
-        int localPort = getLocalPortForSend();
+        ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
+        buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP, srcPort);
         ScmpParser.buildScmpPing(
-            buffer, Scmp.Type.INFO_128, localPort, request.getSequenceNumber(), request.getData());
+            buffer, Scmp.Type.INFO_128, srcPort.v, request.getSequenceNumber(), request.getData());
         buffer.flip();
         request.setSizeSent(buffer.remaining());
 
@@ -247,10 +247,10 @@ public class ScmpSenderAsync implements AutoCloseable {
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
         int len = 24;
-        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP);
+        ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
+        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP, srcPort);
         int interfaceNumber = request.getSequenceNumber();
-        int localPort = getLocalPortForSend();
-        ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, localPort, interfaceNumber);
+        ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, srcPort.get(), interfaceNumber);
         buffer.flip();
 
         // Set flags for border routers to return SCMP packet

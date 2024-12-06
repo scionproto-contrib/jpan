@@ -45,6 +45,9 @@ import org.slf4j.LoggerFactory;
  */
 public class MockNetwork {
 
+  // Number of calls that the service calls the daemon during initialization:
+  // port-range, local AS, border routers
+  public static final int SERVICE_TO_DAEMON_INIT_CALLS = 3;
   private static final String TINY_SRV_ADDR_1 = "127.0.0.112";
   private static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
   private static final int TINY_SRV_PORT_1 = 22233;
@@ -231,6 +234,14 @@ public class MockNetwork {
 
   public static InetSocketAddress getBorderRouterAddress1() {
     return mock.localAddress[0];
+  }
+
+  public static List<String> getBorderRouterAddresses() {
+    ArrayList<String> ret = new ArrayList<>();
+    for (InetSocketAddress isa : mock.localAddress) {
+      ret.add(isa.getAddress().getHostAddress() + ":" + isa.getPort());
+    }
+    return ret;
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {

@@ -24,10 +24,7 @@ import java.nio.channels.Selector;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.scion.jpan.internal.InternalConstants;
-import org.scion.jpan.internal.ScionHeaderParser;
-import org.scion.jpan.internal.ScmpParser;
-import org.scion.jpan.internal.Shim;
+import org.scion.jpan.internal.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,10 +169,10 @@ public class ScmpResponder implements AutoCloseable {
 
             // EchoHeader = 8 + data
             int len = 8 + msg.getData().length;
-            buildHeader(buffer, msg.getPath(), len, InternalConstants.HdrTypes.SCMP);
-            int srcPort = msg.getIdentifier();
+            ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
+            buildHeader(buffer, msg.getPath(), len, InternalConstants.HdrTypes.SCMP, srcPort);
             ScmpParser.buildScmpPing(
-                buffer, Scmp.Type.INFO_129, srcPort, msg.getSequenceNumber(), msg.getData());
+                buffer, Scmp.Type.INFO_129, srcPort.get(), msg.getSequenceNumber(), msg.getData());
             buffer.flip();
             msg.setSizeSent(buffer.remaining());
             sendRaw(buffer, path);
