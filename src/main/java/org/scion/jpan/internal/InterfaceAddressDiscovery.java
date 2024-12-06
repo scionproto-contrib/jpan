@@ -61,7 +61,7 @@ public class InterfaceAddressDiscovery {
   private final Map<String, InetAddress> externalIPs = new HashMap<>();
   private final Map<String, Entry> sourceIPs = new HashMap<>();
   private final ConfigMode configMode;
-  private final Map<Long, ASInfo> asInfoMap = new HashMap<>();
+  private final Map<String, ASInfo> asInfoMap = new HashMap<>();
 
   // TODO use SimpleCache
 
@@ -237,7 +237,8 @@ public class InterfaceAddressDiscovery {
     int localPort = localAddress.getPort();
 
     // ASInfo entry
-    ASInfo asInfo = asInfoMap.computeIfAbsent(localIsdAs, k -> new ASInfo(borderRouters));
+    String asInfoKey = toKeyIsdAsInfo(localIsdAs, localAddress.getAddress(), localPort);
+    ASInfo asInfo = asInfoMap.computeIfAbsent(asInfoKey, k -> new ASInfo(borderRouters));
     asInfo.touch();
 
     // prepare entries
@@ -312,7 +313,8 @@ public class InterfaceAddressDiscovery {
       }
 
       // NAT mapping expired?
-      ASInfo asInfo = asInfoMap.get(localIsdAs);
+      String asInfoKey = toKeyIsdAsInfo(localIsdAs, localIP, local.getPort());
+      ASInfo asInfo = asInfoMap.get(asInfoKey);
       if (asInfo == null) {
         throw new IllegalStateException("Unknown AS: " + ScionUtil.toStringIA(localIsdAs));
       }
@@ -324,10 +326,13 @@ public class InterfaceAddressDiscovery {
       //      System.out.println("LA: " + local + "  " + local2);
       // TODO prefetch before receive()?
       // TODO SCMP on BR works?
-      // TODO SCMP on BR ay send back to underlay address!
+      // TODO SCMP on BR may send back to underlay address!
       asInfo.touch();
       if (asInfo.getMode() == AsMode.NO_NAT) {
-        return new InetSocketAddress(localIP, local.getPort()); // TODO cache or bind(), see above
+        if (asInfo.commonAddress.getAddress().isAnyLocalAddress()) {
+          asInfo.setCommonAddress(new InetSocketAddress(localIP, local.getPort()));
+        }
+        return asInfo.commonAddress;
       } else if (asInfo.getMode() == AsMode.STUN_SERVER) {
         return asInfo.commonAddress;
       } else if (asInfo.getMode() == AsMode.NOT_INITIALIZED) {
@@ -341,7 +346,7 @@ public class InterfaceAddressDiscovery {
       Entry entry = sourceIPs.get(key);
       if (entry == null) {
         // This is not a known border router, the destination is presumably in the local AS
-        if (path.getRemoteIsdAs() == localIsdAs || configMode == ConfigMode.STUN_OFF) {
+        if (path.getRemoteIsdAs() == localIsdAs) {
           return new InetSocketAddress(localIP, local.getPort());
         }
         throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
@@ -386,7 +391,7 @@ public class InterfaceAddressDiscovery {
     int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
     source = new InetSocketAddress(getExternalIP(firstHops.get(0).firstHop, localIsdAs), localPort);
     if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
-      asInfo.setMode(AsMode.NO_NAT);
+      asInfo.setMode(AsMode.NO_NAT); // TODO this is wrong. We cannot exclude a NAT by SCMP...
       asInfo.setCommonAddress(source);
       return;
     }
@@ -638,6 +643,15 @@ public class InterfaceAddressDiscovery {
     // - the AS we are connected to (a different local AS may have the same ports/IPs
     // - the border router port/IP
     return localIsdAs + "_" + localAddress.getHostAddress() + "_" + localPort + "_" + brAddress;
+  }
+
+  private String toKeyIsdAsInfo(long localIsdAs, InetAddress localAddress, int localPort) {
+    // The NAT mapped address depends on:
+    // - the local port
+    // - the local IP (local interface we are using)
+    // - the AS we are connected to (a different local AS may have the same ports/IPs
+    // - the border router port/IP
+    return localIsdAs + "_" + localAddress.getHostAddress() + "_" + localPort;
   }
 
   private String toKeyExternalIP(InetSocketAddress firstHop, long localIsdAs) {

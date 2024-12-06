@@ -37,7 +37,26 @@ TODO
 - SRC IP mapping: All links on a BR share the same internally visible port!
   - CHeck how we get the BorderRouter addresses 
 
+Cases to consider: -> ***** Move to design doc ******
+- Interface switching is probably not necessary to support.
+  - Test: Presumably, switching from LAN to Wifi, any LAN socket stops working (and does not switch)
+    If the JDK doesnt support this then neither should we.
+- AS switching on single interface?
+  - In theory, we can have multiple AS in the same subnet. Do we need to support that?
+    THis is apparently a realistic Scenario for an ISP with ASes in multiple ISDs.
+    However, this seems like an unrealistic edge case for endhosts...? 
+- Path switching. Path switching is not relevant except for different BRs to be used
+- Multipath:
+  - Multipath using different BRs -> Yes, should be doable and is required
+  - Multipath using different AS on same Interface,,,,???? We could use multiple channels...
+    See next point. 
+  - Multipath using different Interfaces. Should probably require multiple sockets/channels.
+    Should we provide a facility to simplify this? 
+    Something like a meta-socket that doesn't have a define local address but can send 
+    over multiple interfaces in parallel? Yes!
+
 TODO :
+- ************** Consider: Instead of IP/port, simply use channel-ID as key?
 - Mapping: timeout reset (touch()) on receive() -> See step 4. below
 - Mapping: after timeout: check that we reset the correct type (ASInfo vs Entry).
 - Make sure that we don´t rely on successful SCMP to report "success".
