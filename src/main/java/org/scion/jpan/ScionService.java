@@ -605,7 +605,7 @@ public class ScionService {
    *
    * @param path Path
    * @return External address
-   * @see #getSourceAddress(Path, InetAddress, int, DatagramChannel)
+   * @see #getMappedAddress(Path, DatagramChannel)
    */
   InetAddress getExternalIP(Path path) {
     return InterfaceAddressDiscovery.getInstance().getExternalIP(path, getLocalIsdAs());
@@ -673,8 +673,8 @@ public class ScionService {
 
   private List<String> getBorderRouterAddresses() {
     if (daemonStub != null) {
-      return getInterfaces().entrySet().stream()
-          .map(e -> e.getValue().getAddress().getAddress())
+      return getInterfaces().values().stream()
+          .map(anInterface -> anInterface.getAddress().getAddress())
           .collect(Collectors.toList());
     } else {
       return bootstrapper.getLocalTopology().getBorderRouters().stream()

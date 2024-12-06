@@ -104,7 +104,6 @@ class InterfaceAddressDiscoveryTest {
     System.setProperty(Constants.PROPERTY_STUN, "BR");
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
-      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(firstHop);
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
