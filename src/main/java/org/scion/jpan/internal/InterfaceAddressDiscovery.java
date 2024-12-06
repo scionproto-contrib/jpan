@@ -392,6 +392,8 @@ public class InterfaceAddressDiscovery {
     source = new InetSocketAddress(getExternalIP(firstHops.get(0).firstHop, localIsdAs), localPort);
     if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
       asInfo.setMode(AsMode.NO_NAT); // TODO this is wrong. We cannot exclude a NAT by SCMP...
+      // TODO this is wrong if the BR responds to the underlay i.o. SRC
+      // TODO however, if it responds to SRC, this is actually correct
       asInfo.setCommonAddress(source);
       return;
     }
@@ -399,6 +401,8 @@ public class InterfaceAddressDiscovery {
     // Check DEFAULT servers
     // Check CUSTOM
     source = tryCustomServer(channel, true);
+    // TODO we should try default servers only if the assumed loacl IP is from the "public" range
+    //   TODO ask: or may global STUN servers be located in ISP's local subnets?????
     if (source != null) {
       // - Verify with tr/ping BR -> fail if not reachable
       if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
