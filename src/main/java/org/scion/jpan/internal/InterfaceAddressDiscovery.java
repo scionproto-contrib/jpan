@@ -14,6 +14,8 @@
 
 package org.scion.jpan.internal;
 
+import static org.scion.jpan.Constants.*;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -273,7 +275,10 @@ public class InterfaceAddressDiscovery {
         InetSocketAddress addr = tryCustomServer(channel, true);
         asInfo.setMode(AsMode.STUN_SERVER);
         if (addr == null) {
-          throw new ScionRuntimeException("Failed to connect to any STUN servers.");
+          String custom =
+              ScionUtil.getPropertyOrEnv(
+                  PROPERTY_STUN_SERVER, ENV_STUN_SERVER, DEFAULT_STUN_SERVER);
+          throw new ScionRuntimeException("Failed to connect to STUN servers: " + custom);
         }
         asInfo.setCommonAddress(addr);
         break;

@@ -114,7 +114,21 @@ class InterfaceAddressDiscoveryTest {
   }
 
   @Test
-  void testCUSTOM_fails() {
+  void testCUSTOM_fails_STUN_router_problem() {
+    System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
+    List<String> brs = new ArrayList<>();
+    brs.add("127.0.0.1:55555");
+
+    Path path = ExamplePacket.PATH_IPV4;
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+
+    System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.1:34343");
+    Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local, brs));
+    assertEquals("Failed to connect to STUN servers: 127.0.0.1:34343", e.getMessage());
+  }
+
+  @Test
+  void testCUSTOM_fails_syntax_problem() {
     System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
     List<String> brs = new ArrayList<>();
     brs.add("127.0.0.1:55555");
