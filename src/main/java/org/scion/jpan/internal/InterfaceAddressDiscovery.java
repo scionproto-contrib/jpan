@@ -43,10 +43,14 @@ public class InterfaceAddressDiscovery {
 
   private static final AtomicReference<InterfaceAddressDiscovery> singleton =
       new AtomicReference<>();
-  private static final int TIMEOUT_MS = 10; // milliseconds // TODO configurable!
   private static final int NAT_UDP_MAPPING_TIMEOUT = 300; // seconds
   private static final Logger log = LoggerFactory.getLogger(InterfaceAddressDiscovery.class);
 
+  private final int stunTimeoutMs =
+      ScionUtil.getPropertyOrEnv(
+          Constants.PROPERTY_STUN_TIMEOUT_MS,
+          Constants.ENV_STUN_TIMEOUT_MS,
+          Constants.DEFAULT_STUN_TIMEOUT_MS);
   private java.nio.channels.DatagramChannel ifDiscoveryChannel = null;
   private final Map<String, InetAddress> externalIPs = new HashMap<>();
   private final Map<String, Entry> sourceIPs = new HashMap<>();
@@ -85,33 +89,19 @@ public class InterfaceAddressDiscovery {
   }
 
   private static class Entry {
-    InetSocketAddress source;
-    final InetSocketAddress firstHop;
-    long lastUsed; // TODO remove
-    String brAddress; // TODO remove? Use?
+    private InetSocketAddress source;
+    private final InetSocketAddress firstHop;
 
     Entry(InetSocketAddress source, InetSocketAddress firstHop) {
       this.source = source;
       this.firstHop = firstHop;
-      lastUsed = System.currentTimeMillis();
     }
 
     InetSocketAddress getSource() {
-      lastUsed = System.currentTimeMillis();
       return source;
     }
 
-    public boolean isExpired() {
-      return (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000);
-    }
-
     public void updateSource(InetSocketAddress source) {
-      lastUsed = System.currentTimeMillis();
-      this.source = source;
-    }
-
-    public void setFixedSource(InetSocketAddress source) {
-      lastUsed = Long.MAX_VALUE;
       this.source = source;
     }
   }
@@ -148,6 +138,7 @@ public class InterfaceAddressDiscovery {
 
     public void setCommonAddress(InetSocketAddress address) {
       this.commonAddress = address;
+      touch();
     }
 
     public AsMode getMode() {
@@ -202,11 +193,8 @@ public class InterfaceAddressDiscovery {
   }
 
   private InetAddress getExternalIP(InetSocketAddress firstHop, long localIsdAs) {
-    // We currently keep a map with BR->externalIP. This may be overkill, probably all BR in
+    // We currently keep a map with BR+ISD/AS->externalIP. This may be overkill, probably all BR in
     // a given AS are reachable via the same interface.
-    // TODO
-    // Moreover, it DOES NOT WORK with multiple AS, because BR IPs are not unique across ASes.
-    // However, switching ASes is not currently implemented...
     return externalIPs.computeIfAbsent(
         toKeyExternalIP(firstHop, localIsdAs),
         key -> {
@@ -275,11 +263,6 @@ public class InterfaceAddressDiscovery {
       throws IOException {
     switch (configMode) {
       case STUN_OFF:
-        int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-        for (Entry e : entries) {
-          // TODO remove this, we use ASINfo instead
-          e.setFixedSource(new InetSocketAddress(getExternalIP(e.firstHop, localIsdAs), localPort));
-        }
         asInfo.setMode(AsMode.NO_NAT);
         asInfo.setCommonAddress(((InetSocketAddress) channel.getLocalAddress()));
         break;
@@ -288,14 +271,11 @@ public class InterfaceAddressDiscovery {
         break;
       case STUN_CUSTOM:
         InetSocketAddress addr = tryCustomServer(channel, true);
-        if (addr != null) {
-          asInfo.setMode(AsMode.STUN_SERVER);
-          asInfo.setCommonAddress(addr);
-          for (Entry e : entries) {
-            // TODO remove this -> we use AsInfo address
-            e.updateSource(addr);
-          }
-        } // TODO else error? -> BR not available, block from usage in path? Could be temporary...
+        asInfo.setMode(AsMode.STUN_SERVER);
+        if (addr == null) {
+          throw new ScionRuntimeException("Failed to connect to any STUN servers.");
+        }
+        asInfo.setCommonAddress(addr);
         break;
       case STUN_BR:
         tryStunBorderRouter(entries, channel);
@@ -342,6 +322,7 @@ public class InterfaceAddressDiscovery {
       // TODO prefetch before receive()?
       // TODO SCMP on BR works?
       // TODO SCMP on BR ay send back to underlay address!
+      asInfo.touch();
       if (asInfo.getMode() == AsMode.NO_NAT) {
         return new InetSocketAddress(localIP, local.getPort()); // TODO cache or bind(), see above
       } else if (asInfo.getMode() == AsMode.STUN_SERVER) {
@@ -483,7 +464,7 @@ public class InterfaceAddressDiscovery {
 
     // Wait
     ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
-    while (selector.select(TIMEOUT_MS) > 0) {
+    while (selector.select(stunTimeoutMs) > 0) {
       Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
       while (iter.hasNext()) {
         SelectionKey key = iter.next();
@@ -535,7 +516,7 @@ public class InterfaceAddressDiscovery {
 
     // Wait
     try {
-      while (selector.select(TIMEOUT_MS) > 0) {
+      while (selector.select(stunTimeoutMs) > 0) {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {
           SelectionKey key = iter.next();
@@ -617,7 +598,7 @@ public class InterfaceAddressDiscovery {
     // Receiver
     int nReceived = 0;
     while (true) {
-      int i = selector.select(TIMEOUT_MS);
+      int i = selector.select(stunTimeoutMs);
       if (i == 0) {
         return nReceived;
       }

@@ -101,9 +101,10 @@ public final class Constants {
    * <p>Possible values:<br>
    * - "OFF": No STUN discovery <br>
    * - "BR": Discovery using STUN interface of border routers <br>
-   * - "PUBLIC": Discovery using known public STUN servers<br>
-   * - "CUSTOM": Discovery using custom STUN server<br>
+   * - "CUSTOM": Discovery using custom STUN server. This uses public known STUN servers unless
+   * {@link #PROPERTY_STUN_SERVER} or {@link #ENV_STUN_SERVER} is set.<br>
    * - "AUTO": Use auto detection.<br>
+   * // TODO is this still correct: ????
    *
    * <p>"AUTO" works as follows: <br>
    * 1) Check for custom STUN server and use if possible<br>
@@ -121,6 +122,12 @@ public final class Constants {
   public static final String ENV_STUN_SERVER = "SCION_STUN_SERVER";
   public static final String DEFAULT_STUN_SERVER =
       "stun.cloudflare.com:3478;stun.l.google.com:19302";
+
+  /** Timeout for STUN requests to border routers or STUN servers. */
+  public static final String PROPERTY_STUN_TIMEOUT_MS = "org.scion.stun.timeout";
+
+  public static final String ENV_STUN_TIMEOUT_MS = "SCION_STUN_TIMEOUT_MS";
+  public static final int DEFAULT_STUN_TIMEOUT_MS = 10;
 
   /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two

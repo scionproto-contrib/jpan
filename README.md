@@ -330,7 +330,8 @@ while the other options are skipped if no property or environment variable is de
 | Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
 | List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`    |                 |
 | STUN policy, see [here](doc/NAT.md)           | `org.scion.stun`                    | `SCION_STUN`                  | off             |
-| STUN server                                   | `org.scion.stun.server`             | `SCION_STUN_SERVER `          |                 |
+| STUN server                                   | `org.scion.stun.server`             | `SCION_STUN_SERVER`           |                 |
+| STUN timeout in miliseconds                   | `org.scion.stun.timeout`            | `SCION_STUN_TIMEOUT`          | 10              |
 | Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            |
 
 

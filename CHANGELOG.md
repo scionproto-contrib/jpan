@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Selector support
   - Inherit DatagramChannel 
 - Authenticate SCMP with DR-key
-- Bootstrap with DHCP
+- Bootstrap with DHCP - Check Book page 327, chapter 13.2
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
@@ -34,15 +34,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaration. 
 
 TODO
-- TODO implement ISD/AS map
-   - enum BR: consult sourceIP map (rename it)
-   - enum STUN_SERVER: same IP for all addresses, can also be used for dst-AS==src-AS
-   - enum NO_NAT: just use local IP
-   - store expiration date here, only once for all BRs in a given AS
+- SRC IP mapping: All links on a BR share the same internally visible port!
 
-- COnfigure 
-  - SEPARATE: ENFORCE use of XOR?
-  - Timeout
+- Optimizations: Store meta info about NATs: 
+  - Do we have different subnets for all BRs?
+  - Does the NAT use different mappings per BR port/IP? -> If not, in future: query only one BR
+  - Does the NAT use different mappings per source port? -> If not, use previously found mapping for all channels/sockets
+
+- Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
+  from a NAT. Unfortunately this is not 100% accurate because the NAT may have incidentally
+  the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
+
+- Configure 
+  - SEPARATE: ENFORCE use of XOR? -> Check scionproto-impl
 - Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
 - Implement keep alive?
 - Implement: 
@@ -67,6 +71,22 @@ TODO
       SCION channel can stay with localAddress = null....
   --> For now: Let's do the prefetch. It seems easier. We can do on-demand later if we want.
       KNOWN problem: make take a while with large ASes...
+
+Mappings:
+1. Endpoint-Independent Mapping: The same public port is reused for
+   subsequent packets from the same (internal address, port) pair for all
+   external hosts, regardless of the destination address or port.
+2. Address-Dependent Mapping: The same public port is reused for subse-
+   quent packets from the same (internal address, port) pair only to the
+   same destination address (but regardless of destination port). If the internal
+   client uses the same socket to send packets to a destination with a different
+   address, a new, separate mapping is created.
+3. Address and Port-Dependent Mapping: The same public port is reused for
+   subsequent packets from the same (internal address, port) pair only
+   to the same destination address and port. If the internal client uses the
+   same socket to send packets to a different destination socket, a new, separate
+   mapping is created (even if the destination has the same address).
+
 
 ### Changed
 
