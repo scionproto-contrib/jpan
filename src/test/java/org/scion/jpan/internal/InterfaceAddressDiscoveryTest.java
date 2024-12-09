@@ -110,8 +110,7 @@ class InterfaceAddressDiscoveryTest {
       Path path = createPath(firstHop);
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       idf.prefetchMappings(isdAs, channel, brs);
-      InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
-      assertNull(src); // TODO assertThrows()?
+      assertThrows(IllegalStateException.class, () -> idf.getMappedAddress(path, isdAs, channel));
     }
   }
 

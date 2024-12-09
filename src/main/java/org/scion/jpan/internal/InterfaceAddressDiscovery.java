@@ -24,7 +24,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.spi.AbstractSelector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -351,6 +350,9 @@ public class InterfaceAddressDiscovery {
         }
         throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
       }
+      if (entry.getSource() == null) {
+        throw new IllegalStateException("No mapped source for: " + key); // TODO remobve???
+      }
       return entry.getSource();
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
@@ -448,7 +450,7 @@ public class InterfaceAddressDiscovery {
       throws IOException {
     boolean isBlocking = channel.isBlocking();
     // TODO is this creating a new selector????
-    try (AbstractSelector selector = channel.provider().openSelector()) {
+    try (Selector selector = channel.provider().openSelector()) {
       channel.configureBlocking(false);
       // start receiver
       channel.register(selector, SelectionKey.OP_READ, channel);
@@ -516,8 +518,7 @@ public class InterfaceAddressDiscovery {
     // start receiver
     ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
     boolean isBlocking = channel.isBlocking();
-    AbstractSelector selector =
-        channel.provider().openSelector(); // TODO is this creating a new selector????
+    Selector selector = channel.provider().openSelector(); // TODO is this creating a new selector??
     channel.configureBlocking(false);
     channel.register(selector, SelectionKey.OP_READ, channel);
 
@@ -567,7 +568,7 @@ public class InterfaceAddressDiscovery {
       throws IOException {
     boolean isBlocking = channel.isBlocking();
     // TODO is this creating a new selector????
-    try (AbstractSelector selector = channel.provider().openSelector()) {
+    try (Selector selector = channel.provider().openSelector()) {
       channel.configureBlocking(false);
       // start receiver
       channel.register(selector, SelectionKey.OP_READ, channel);
