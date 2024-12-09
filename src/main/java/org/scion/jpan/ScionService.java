@@ -624,6 +624,11 @@ public class ScionService {
     return InterfaceAddressDiscovery.getInstance().getMappedAddress(path, getLocalIsdAs(), channel);
   }
 
+  InterfaceAddressDiscovery.ASInfo getNatMapping(DatagramChannel channel) {
+    return InterfaceAddressDiscovery.getInstance()
+        .detectMapping(getLocalIsdAs(), channel, getBorderRouterAddresses());
+  }
+
   void prefetchSourceAddresses(DatagramChannel channel) {
     InterfaceAddressDiscovery.getInstance()
         .prefetchMappings(getLocalIsdAs(), channel, getBorderRouterAddresses());
