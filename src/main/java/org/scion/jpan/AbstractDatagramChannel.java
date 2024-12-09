@@ -454,7 +454,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
     // TODO we should have a variable that caches getExtrnalIP() or, better
     //   just bind() to getExternal()_after/during getExternbalIP()
-    return natMapping.getMappedAddress(path, channel);
+    return natMapping.getMappedAddress(path);
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {

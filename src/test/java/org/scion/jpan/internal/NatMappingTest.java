@@ -76,7 +76,7 @@ class NatMappingTest {
       Path path = ExamplePacket.PATH_IPV4;
       NatMapping natMapping =
           NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
-      InetSocketAddress src = natMapping.getMappedAddress(path, channel);
+      InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), ExternalIpDiscovery.getExternalIP(path, isdAs));
@@ -94,7 +94,7 @@ class NatMappingTest {
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       NatMapping natMapping =
           NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
-      InetSocketAddress src = natMapping.getMappedAddress(path, channel);
+      InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), ExternalIpDiscovery.getExternalIP(path, isdAs));
@@ -114,7 +114,7 @@ class NatMappingTest {
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(firstHop);
       NatMapping natMapping = NatMapping.createMapping(isdAs, channel, brs);
-      assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path, channel));
+      assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path));
     }
   }
 
@@ -176,7 +176,7 @@ class NatMappingTest {
       channel.bind(bind);
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
       NatMapping natMapping = NatMapping.createMapping(isdAs, channel, brs);
-      return natMapping.getMappedAddress(path, channel);
+      return natMapping.getMappedAddress(path);
     }
   }
 

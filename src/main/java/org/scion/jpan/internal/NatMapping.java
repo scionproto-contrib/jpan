@@ -59,11 +59,17 @@ public class NatMapping {
   private long lastUsed;
   private InetSocketAddress commonAddress;
   private final Map<InetSocketAddress, Entry> sourceIPs = new HashMap<>();
+  // TODO attack: send SCMP (error?) or STUN with > 100 byte length
+  private final ByteBuffer buffer = ByteBuffer.allocateDirect(100);
+  private final DatagramChannel channel;
 
-  private NatMapping(long localIsdAs, List<InetSocketAddress> borderRouters) {
+  private NatMapping(
+      DatagramChannel channel, long localIsdAs, List<InetSocketAddress> borderRouters) {
+    this.channel = channel;
     this.localIsdAs = localIsdAs;
     this.mode = NatMode.NOT_INITIALIZED;
     for (InetSocketAddress brAddress : borderRouters) {
+      // Note: All links on a BR share the same internally visible port.
       sourceIPs.computeIfAbsent(brAddress, k -> new Entry(null, brAddress));
     }
     touch();
@@ -84,8 +90,7 @@ public class NatMapping {
     touch();
   }
 
-  // TODO synchronize other methods? Remove sync?
-  public synchronized InetSocketAddress getMappedAddress(Path path, DatagramChannel channel) {
+  public synchronized InetSocketAddress getMappedAddress(Path path) {
     // NAT mapping expired?
     if (isExpired()) {
       // We have to rediscover ALL border routers because we don't know whether they are all
@@ -93,13 +98,11 @@ public class NatMapping {
       // the same NAT or in the same subnet.
       try {
         // refresh
-        // TODO avoid passing in sourceIP + this
-        detectSourceAddress(this, sourceIPs.values(), localIsdAs, channel);
+        detectSourceAddress();
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
     }
-    // TODO prefetch before receive()?
     // TODO SCMP on BR works?
     // TODO SCMP on BR may send back to underlay address!
     touch();
@@ -151,113 +154,109 @@ public class NatMapping {
     }
 
     // ASInfo entry
-    NatMapping natMapping = new NatMapping(localIsdAs, borderRouters);
+    NatMapping natMapping = new NatMapping(channel, localIsdAs, borderRouters);
 
     // detect addresses
     try {
-      detectSourceAddress(natMapping, natMapping.sourceIPs.values(), localIsdAs, channel);
+      natMapping.detectSourceAddress();
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
     return natMapping;
   }
 
-  private static void detectSourceAddress(
-      NatMapping natMapping, Collection<Entry> entries, long localIsdAs, DatagramChannel channel)
-      throws IOException {
+  private void detectSourceAddress() throws IOException {
     ConfigMode configMode =
         getConfig(); // TODO use AsInfoMode instead of ConfigMode... or merge modes?
     switch (configMode) {
       case STUN_OFF:
-        natMapping.update(NatMode.NO_NAT, getLocalAddress(channel, localIsdAs, entries));
+        update(NatMode.NO_NAT, getLocalAddress());
         break;
       case STUN_AUTO:
-        autoDetect(natMapping, entries, localIsdAs, channel);
+        autoDetect();
         break;
       case STUN_CUSTOM:
-        InetSocketAddress addr = tryCustomServer(channel, true);
+        InetSocketAddress addr = tryCustomServer(true);
         if (addr == null) {
           String custom =
               ScionUtil.getPropertyOrEnv(
                   PROPERTY_STUN_SERVER, ENV_STUN_SERVER, DEFAULT_STUN_SERVER);
           throw new ScionRuntimeException("Failed to connect to STUN servers: " + custom);
         }
-        natMapping.update(NatMode.STUN_SERVER, addr);
+        update(NatMode.STUN_SERVER, addr);
         break;
       case STUN_BR:
-        tryStunBorderRouter(entries, channel);
+        tryStunBorderRouter();
         // The common address is used for communication within the local AS. In this case we
         // we don't have a mapped address so we rely on the remote host to reply to the
         // underlay address (which may be NATed or not) and ignore the SRC address,
-        natMapping.update(NatMode.BR_STUN, getLocalAddress(channel, localIsdAs, entries));
+        update(NatMode.BR_STUN, getLocalAddress());
         break;
       default:
         throw new UnsupportedOperationException("Unknown config mode: " + configMode);
     }
   }
 
-  private static InetSocketAddress getLocalAddress(
-      DatagramChannel channel, long localIsdAs, Collection<Entry> entries) throws IOException {
+  private InetSocketAddress getLocalAddress() throws IOException {
     InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
     InetAddress localIP = local.getAddress();
     if (localIP.isAnyLocalAddress()) {
+      Collection<Entry> entries = sourceIPs.values();
       localIP = ExternalIpDiscovery.getExternalIP(entries.iterator().next().firstHop, localIsdAs);
       local = new InetSocketAddress(localIP, local.getPort());
     }
     return local;
   }
 
-  private static InetSocketAddress tryCustomServer(DatagramChannel channel, boolean useDefault) {
+  private InetSocketAddress tryCustomServer(boolean useDefault) {
     String defaultSrv = useDefault ? DEFAULT_STUN_SERVER : null;
     String custom = ScionUtil.getPropertyOrEnv(PROPERTY_STUN_SERVER, ENV_STUN_SERVER, defaultSrv);
     if (!useDefault && (custom == null || custom.isEmpty())) {
       // Ignore empty sever address if we don't rely on it
       return null;
     }
-    return tryStunServer(custom, channel);
+    return tryStunServer(custom);
   }
 
-  private static void autoDetect(
-      NatMapping natMapping, Collection<Entry> firstHops, long localIsdAs, DatagramChannel channel)
-      throws IOException {
+  private void autoDetect() throws IOException {
     // Check CUSTOM
-    InetSocketAddress source = tryCustomServer(channel, false);
+    InetSocketAddress source = tryCustomServer(false);
     if (source != null) {
-      natMapping.update(NatMode.STUN_SERVER, source);
+      update(NatMode.STUN_SERVER, source);
       return;
     }
 
     // Check BR
     // - Check if BR is NAT enabled (gives correct address)
     // Try first with STUN, this should eventually be available everywhere
-    if (tryStunBorderRouter(firstHops, channel)) {
-      natMapping.update(NatMode.BR_STUN, getLocalAddress(channel, localIsdAs, firstHops));
+    if (tryStunBorderRouter()) {
+      update(NatMode.BR_STUN, getLocalAddress());
       return;
     }
 
     // - Check if BR responds to tr/ping (is reachable)
     // At this point we should have a local address with port.
     int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-    InetAddress sourceIP =
-        ExternalIpDiscovery.getExternalIP(firstHops.iterator().next().firstHop, localIsdAs);
+    InetSocketAddress firstHop = sourceIPs.values().iterator().next().firstHop;
+    InetAddress sourceIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
     source = new InetSocketAddress(sourceIP, localPort);
-    if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
+    if (isBorderRouterReachable(source)) {
       // TODO this is wrong. We cannot exclude a NAT by SCMP...
       // TODO this is wrong if the BR responds to the underlay i.o. SRC
       // TODO however, if it responds to SRC, this is actually correct
-      natMapping.update(NatMode.NO_NAT, source);
+      update(NatMode.NO_NAT, source);
       return;
     }
 
     // Check DEFAULT servers
     // Check CUSTOM
-    source = tryCustomServer(channel, true);
+    source = tryCustomServer(true);
     // TODO we should try default servers only if the assumed loacl IP is from the "public" range
     //   TODO ask: or may global STUN servers be located in ISP's local subnets?????
     if (source != null) {
       // - Verify with tr/ping BR -> fail if not reachable
-      if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
-        natMapping.update(NatMode.STUN_SERVER, source);
+      if (isBorderRouterReachable(source)) {
+        update(NatMode.STUN_SERVER, source);
         return;
       }
     }
@@ -265,7 +264,7 @@ public class NatMapping {
     throw new ScionRuntimeException("Could not find a STUN/NAT solution for the border router.");
   }
 
-  private static InetSocketAddress tryStunServer(String stunAddress, DatagramChannel channel) {
+  private InetSocketAddress tryStunServer(String stunAddress) {
     String[] servers = stunAddress.split(";");
     for (String server : servers) {
       InetSocketAddress stunServer;
@@ -282,48 +281,39 @@ public class NatMapping {
       }
 
       // contact STUN server
-      try {
-        InetSocketAddress address = doStunRequest(stunServer, channel);
-        if (address != null) {
-          return address;
-        }
-      } catch (IOException e) {
-        log.warn("Could not connect to STUN_SERVER: \"{}\"", server);
+      InetSocketAddress address = doStunRequest(stunServer, channel);
+      if (address != null) {
+        return address;
       }
     }
     return null;
   }
 
-  private static boolean tryStunBorderRouter(Collection<Entry> entries, DatagramChannel channel)
-      throws IOException {
+  private boolean tryStunBorderRouter() throws IOException {
     boolean isBlocking = channel.isBlocking();
-    // TODO is this creating a new selector????
     try (Selector selector = channel.provider().openSelector()) {
       channel.configureBlocking(false);
       // start receiver
       channel.register(selector, SelectionKey.OP_READ, channel);
-      return doStunRequest(entries, channel, selector);
+      return doStunRequest(selector);
     } finally {
       channel.configureBlocking(isBlocking);
     }
   }
 
-  private static boolean doStunRequest(
-      Collection<Entry> servers, DatagramChannel channel, Selector selector) throws IOException {
+  private boolean doStunRequest(Selector selector) throws IOException {
     final HashMap<STUN.TransactionID, Entry> ids = new HashMap<>();
 
     // Start sending
-    ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
-    for (Entry e : servers) {
-      out.clear();
-      STUN.TransactionID id = STUN.writeRequest(out);
+    for (Entry e : sourceIPs.values()) {
+      buffer.clear();
+      STUN.TransactionID id = STUN.writeRequest(buffer);
       ids.put(id, e);
-      out.flip();
-      channel.send(out, e.firstHop);
+      buffer.flip();
+      channel.send(buffer, e.firstHop);
     }
 
     // Wait
-    ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
     while (selector.select(stunTimeoutMs) > 0) {
       Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
       while (iter.hasNext()) {
@@ -351,30 +341,31 @@ public class NatMapping {
     return false;
   }
 
-  private static InetSocketAddress doStunRequest(InetSocketAddress server, DatagramChannel channel)
-      throws IOException {
+  private InetSocketAddress doStunRequest(InetSocketAddress server, DatagramChannel channel) {
     // prepare receiver
     final ConcurrentLinkedQueue<InetSocketAddress> queue = new ConcurrentLinkedQueue<>();
     final ConcurrentHashMap<STUN.TransactionID, Object> ids = new ConcurrentHashMap<>();
 
     // prepare send
-    ByteBuffer out = ByteBuffer.allocate(1000); // TODO reuse?
-    STUN.TransactionID id = STUN.writeRequest(out);
+    buffer.clear();
+    STUN.TransactionID id = STUN.writeRequest(buffer);
     ids.put(id, id);
-    out.flip();
+    buffer.flip();
 
     // start receiver
-    ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO reuse
     boolean isBlocking = channel.isBlocking();
-    Selector selector = channel.provider().openSelector(); // TODO is this creating a new selector??
-    channel.configureBlocking(false);
-    channel.register(selector, SelectionKey.OP_READ, channel);
+    try (Selector selector = channel.provider().openSelector()) {
+      channel.configureBlocking(false);
+      channel.register(selector, SelectionKey.OP_READ, channel);
 
-    // Start sending
-    channel.send(out, server);
+      // Start sending
+      try {
+        channel.send(buffer, server);
+      } catch (IOException e) {
+        log.warn("Could not connect to STUN_SERVER: \"{}\"", server);
+      }
 
-    // Wait
-    try {
+      // Wait
       while (selector.select(stunTimeoutMs) > 0) {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {
@@ -401,42 +392,37 @@ public class NatMapping {
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     } finally {
-      selector.close(); // TODO remove this?!?!?!
       try {
         channel.configureBlocking(isBlocking);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new ScionRuntimeException(e);
       }
     }
     return null;
   }
 
-  private static boolean isBorderRouterReachable(
-      InetSocketAddress src, Collection<Entry> entries, long localIsdAs, DatagramChannel channel)
-      throws IOException {
+  private boolean isBorderRouterReachable(InetSocketAddress src) throws IOException {
     boolean isBlocking = channel.isBlocking();
-    // TODO is this creating a new selector????
     try (Selector selector = channel.provider().openSelector()) {
       channel.configureBlocking(false);
       // start receiver
       channel.register(selector, SelectionKey.OP_READ, channel);
       // For now, ew report success if at least one BE is reachable.
       // We should not simply enforce all BR to be reachable, BRs may be temporarily unreachable.
-      return checkBorderRoutersReachable(src, entries, localIsdAs, channel, selector) > 0;
+      return checkBorderRoutersReachable(src, selector) > 0;
     } finally {
       channel.configureBlocking(isBlocking);
     }
   }
 
-  private static int checkBorderRoutersReachable(
-      InetSocketAddress src,
-      Collection<Entry> entries,
-      long localIsdAs,
-      DatagramChannel channel,
-      Selector selector)
+  private int checkBorderRoutersReachable(InetSocketAddress src, Selector selector)
       throws IOException {
-    // send
-    ByteBuffer buffer = ByteBuffer.allocate(1000); // TODO -> class field?
+    Collection<Entry> entries = sourceIPs.values();
+    sendSCMPs(entries, src);
+    return receiveSCMPs(entries, selector);
+  }
+
+  private void sendSCMPs(Collection<Entry> entries, InetSocketAddress src) throws IOException {
     for (Entry e : entries) {
       buffer.clear();
       ScionHeaderParser.write(
@@ -453,8 +439,9 @@ public class NatMapping {
       buffer.flip();
       channel.send(buffer, e.firstHop);
     }
+  }
 
-    // Receiver
+  private int receiveSCMPs(Collection<Entry> entries, Selector selector) throws IOException {
     int nReceived = 0;
     while (true) {
       int i = selector.select(stunTimeoutMs);

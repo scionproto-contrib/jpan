@@ -35,9 +35,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaration. 
 
 TODO
-- SRC IP mapping: All links on a BR share the same internally visible port!
-  - CHeck how we get the BorderRouter addresses 
-
 - Make sure that we don´t rely on successful SCMP to report "success".
 - Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
   from a NAT. Unfortunately this is not 100% accurate because the NAT may have incidentally
@@ -47,43 +44,11 @@ TODO
   - SEPARATE: ENFORCE use of XOR? -> Check scionproto-impl
 - Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
 - Implement keep alive?
-- Implement: 
-  - Avoid double prefetching()
-  - SHIM uses a ScionDatagramSocket, that should be unnecessary, avoid it? Avoid prefetch()?
 - Implement and document handling in local AS, e.g. responder should respond
   to UDP underlay instead of SCION source address(?).
   - We cannot use BR as STUN.
   - We could use public STUN, but that would just complicate things....?
 - Check TODO in AbstractChannel.updateConnection()
-
-TODO
-- 2 reasons for detecting STUN on startup:
-  1. Detection while the channel is active is hard, because the receiver() may be blocked
-  2. Detection may take time (DNS lookup for PUBLIC, BR timeout, BR roundtrip...)
-     This may be weird for users, e.g. SCMP measurements.
-- However, during channel startup we don´t know where we want to connect to, so we don't
-  know which interface we are using / we don't know the local IP yet.
-  --> However, Depending on the settings (BR, etc) we can probe all BRs.
-  --> This is still slightly inconsistent because the underlayChannel gets an IP
-      assigned before the first send() happens. But is that really a problem? The 
-      SCION channel can stay with localAddress = null....
-  --> For now: Let's do the prefetch. It seems easier. We can do on-demand later if we want.
-      KNOWN problem: make take a while with large ASes...
-
-Mappings:
-1. Endpoint-Independent Mapping: The same public port is reused for
-   subsequent packets from the same (internal address, port) pair for all
-   external hosts, regardless of the destination address or port.
-2. Address-Dependent Mapping: The same public port is reused for subse-
-   quent packets from the same (internal address, port) pair only to the
-   same destination address (but regardless of destination port). If the internal
-   client uses the same socket to send packets to a destination with a different
-   address, a new, separate mapping is created.
-3. Address and Port-Dependent Mapping: The same public port is reused for
-   subsequent packets from the same (internal address, port) pair only
-   to the same destination address and port. If the internal client uses the
-   same socket to send packets to a different destination socket, a new, separate
-   mapping is created (even if the destination has the same address).
 
 
 ### Changed
