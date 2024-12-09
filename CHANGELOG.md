@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added Path construction tests for tiny4. 
   [#146](https://github.com/scionproto-contrib/jpan/pull/146)
 - Added experimental support for STUN [#142](https://github.com/scionproto-contrib/jpan/pull/142)
+  This also reduces network calls by starting SHIM w/o service.
 
 ** BREAKING CHANGE **
 Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaration. 

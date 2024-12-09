@@ -91,7 +91,7 @@ class ShimTest {
 
   private void testShim() throws IOException {
     assertFalse(Shim.isInstalled());
-    ScionService service = Scion.defaultService();
+    Scion.defaultService();
     assertTrue(Shim.isInstalled());
 
     // test that SCMP echo requests are answered
@@ -99,9 +99,9 @@ class ShimTest {
     testScmpEchoReflect();
 
     // check double install doesn't fail
-    Shim.install(null);
+    Shim.install();
     assertTrue(Shim.isInstalled());
-    Shim.install(service);
+    Shim.install();
     assertTrue(Shim.isInstalled());
 
     // This shouldn't be called normally, but we test it anyway
