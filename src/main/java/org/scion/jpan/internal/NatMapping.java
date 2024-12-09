@@ -66,6 +66,7 @@ public class NatMapping {
     for (InetSocketAddress brAddress : borderRouters) {
       sourceIPs.computeIfAbsent(brAddress, k -> new Entry(null, brAddress));
     }
+    touch();
   }
 
   private boolean isExpired() {
@@ -77,17 +78,10 @@ public class NatMapping {
     lastUsed = System.currentTimeMillis();
   }
 
-  private void setMode(NatMode mode) {
+  private void update(NatMode mode, InetSocketAddress address) {
     this.mode = mode;
-  }
-
-  private void setCommonAddress(InetSocketAddress address) {
     this.commonAddress = address;
     touch();
-  }
-
-  private NatMode getMode() {
-    return mode;
   }
 
   // TODO synchronize other methods? Remove sync?
@@ -109,11 +103,11 @@ public class NatMapping {
     // TODO SCMP on BR works?
     // TODO SCMP on BR may send back to underlay address!
     touch();
-    if (getMode() == NatMode.NO_NAT) {
+    if (mode == NatMode.NO_NAT) {
       return commonAddress;
-    } else if (getMode() == NatMode.STUN_SERVER) {
+    } else if (mode == NatMode.STUN_SERVER) {
       return commonAddress;
-    } else if (getMode() == NatMode.NOT_INITIALIZED) {
+    } else if (mode == NatMode.NOT_INITIALIZED) {
       throw new IllegalStateException();
     }
 
@@ -158,7 +152,6 @@ public class NatMapping {
 
     // ASInfo entry
     NatMapping natMapping = new NatMapping(localIsdAs, borderRouters);
-    natMapping.touch();
 
     // detect addresses
     try {
@@ -176,30 +169,27 @@ public class NatMapping {
         getConfig(); // TODO use AsInfoMode instead of ConfigMode... or merge modes?
     switch (configMode) {
       case STUN_OFF:
-        natMapping.setMode(NatMode.NO_NAT);
-        natMapping.setCommonAddress(getLocalAddress(channel, localIsdAs, entries));
+        natMapping.update(NatMode.NO_NAT, getLocalAddress(channel, localIsdAs, entries));
         break;
       case STUN_AUTO:
         autoDetect(natMapping, entries, localIsdAs, channel);
         break;
       case STUN_CUSTOM:
         InetSocketAddress addr = tryCustomServer(channel, true);
-        natMapping.setMode(NatMode.STUN_SERVER);
         if (addr == null) {
           String custom =
               ScionUtil.getPropertyOrEnv(
                   PROPERTY_STUN_SERVER, ENV_STUN_SERVER, DEFAULT_STUN_SERVER);
           throw new ScionRuntimeException("Failed to connect to STUN servers: " + custom);
         }
-        natMapping.setCommonAddress(addr);
+        natMapping.update(NatMode.STUN_SERVER, addr);
         break;
       case STUN_BR:
         tryStunBorderRouter(entries, channel);
-        natMapping.setMode(NatMode.BR_STUN);
         // The common address is used for communication within the local AS. In this case we
         // we don't have a mapped address so we rely on the remote host to reply to the
         // underlay address (which may be NATed or not) and ignore the SRC address,
-        natMapping.setCommonAddress(getLocalAddress(channel, localIsdAs, entries));
+        natMapping.update(NatMode.BR_STUN, getLocalAddress(channel, localIsdAs, entries));
         break;
       default:
         throw new UnsupportedOperationException("Unknown config mode: " + configMode);
@@ -233,8 +223,7 @@ public class NatMapping {
     // Check CUSTOM
     InetSocketAddress source = tryCustomServer(channel, false);
     if (source != null) {
-      natMapping.setMode(NatMode.STUN_SERVER);
-      natMapping.setCommonAddress(source);
+      natMapping.update(NatMode.STUN_SERVER, source);
       return;
     }
 
@@ -242,7 +231,7 @@ public class NatMapping {
     // - Check if BR is NAT enabled (gives correct address)
     // Try first with STUN, this should eventually be available everywhere
     if (tryStunBorderRouter(firstHops, channel)) {
-      natMapping.setMode(NatMode.BR_STUN);
+      natMapping.update(NatMode.BR_STUN, getLocalAddress(channel, localIsdAs, firstHops));
       return;
     }
 
@@ -253,10 +242,10 @@ public class NatMapping {
         ExternalIpDiscovery.getExternalIP(firstHops.iterator().next().firstHop, localIsdAs);
     source = new InetSocketAddress(sourceIP, localPort);
     if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
-      natMapping.setMode(NatMode.NO_NAT); // TODO this is wrong. We cannot exclude a NAT by SCMP...
+      // TODO this is wrong. We cannot exclude a NAT by SCMP...
       // TODO this is wrong if the BR responds to the underlay i.o. SRC
       // TODO however, if it responds to SRC, this is actually correct
-      natMapping.setCommonAddress(source);
+      natMapping.update(NatMode.NO_NAT, source);
       return;
     }
 
@@ -268,8 +257,7 @@ public class NatMapping {
     if (source != null) {
       // - Verify with tr/ping BR -> fail if not reachable
       if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
-        natMapping.setMode(NatMode.STUN_SERVER);
-        natMapping.setCommonAddress(source);
+        natMapping.update(NatMode.STUN_SERVER, source);
         return;
       }
     }
