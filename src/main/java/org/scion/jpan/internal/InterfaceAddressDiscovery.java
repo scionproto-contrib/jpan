@@ -59,7 +59,6 @@ public class InterfaceAddressDiscovery {
   private java.nio.channels.DatagramChannel ifDiscoveryChannel = null;
   private final Map<String, InetAddress> externalIPs = new HashMap<>();
   private final ConfigMode configMode;
-  private final Map<String, ASInfo> asInfoMap = new HashMap<>();
 
   // TODO use SimpleCache
 
@@ -69,7 +68,7 @@ public class InterfaceAddressDiscovery {
     STUN_OFF,
     /** Discovery using STUN interface of border routers */
     STUN_BR,
-    /** Discovery using custom STUN servaer */
+    /** Discovery using custom STUN server */
     STUN_CUSTOM,
     /**
      * Use auto detection.<br>
@@ -110,100 +109,75 @@ public class InterfaceAddressDiscovery {
     }
   }
 
-  public static class ASInfo {
+  public static class NatMapping {
     private final long localIsdAs;
     private AsMode mode;
-    private final List<String> borderRouters;
     private long lastUsed;
     private InetSocketAddress commonAddress;
     private final Map<InetSocketAddress, Entry> sourceIPs = new HashMap<>();
 
-    ASInfo(long localIsdAs, List<String> borderRouters) {
+    private NatMapping(long localIsdAs, List<InetSocketAddress> borderRouters) {
       this.localIsdAs = localIsdAs;
-      this.borderRouters = Collections.unmodifiableList(borderRouters);
       this.mode = AsMode.NOT_INITIALIZED;
+      for (InetSocketAddress brAddress : borderRouters) {
+        sourceIPs.computeIfAbsent(brAddress, k -> new Entry(null, brAddress));
+      }
     }
 
-    public boolean isExpired() {
+    private boolean isExpired() {
       return mode != AsMode.NO_NAT
           && (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000L);
     }
 
-    public void touch() {
+    private void touch() {
       lastUsed = System.currentTimeMillis();
     }
 
-    public List<String> getBorderRouters() {
-      return borderRouters;
-    }
-
-    public void setMode(AsMode mode) {
+    private void setMode(AsMode mode) {
       this.mode = mode;
     }
 
-    public void setCommonAddress(InetSocketAddress address) {
+    private void setCommonAddress(InetSocketAddress address) {
       this.commonAddress = address;
       touch();
     }
 
-    public AsMode getMode() {
+    private AsMode getMode() {
       return mode;
     }
 
     // TODO synchronize other methods? Remove sync?
-    public synchronized InetSocketAddress getMapping(Path path, DatagramChannel channel) {
-      try {
-        InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
-        InetAddress localIP = local.getAddress();
-        if (localIP.isAnyLocalAddress()) {
-          // TODO report this back to the channel so we don't call it all the time (even though it
-          // is
-          // TODO == cache it in Channel, or maybe even do channel.bind(localIP)?
-          // just a map lookup)
-          localIP = getInstance().getExternalIP(path, localIsdAs);
-        }
-
-        // NAT mapping expired?
-        if (isExpired()) {
-          getInstance().refreshMapping(this, localIsdAs, channel, getBorderRouters());
-        }
-        //      InetSocketAddress local = asInfo.getLocalAddress();
-        //      InetAddress localIP = local.getAddress();
-        //      System.out.println("LA: " + local + "  " + local2);
-        // TODO prefetch before receive()?
-        // TODO SCMP on BR works?
-        // TODO SCMP on BR may send back to underlay address!
-        touch();
-        if (getMode() == AsMode.NO_NAT) {
-          if (commonAddress.getAddress().isAnyLocalAddress()) {
-            setCommonAddress(new InetSocketAddress(localIP, local.getPort()));
-          }
-          return commonAddress;
-        } else if (getMode() == AsMode.STUN_SERVER) {
-          return commonAddress;
-        } else if (getMode() == AsMode.NOT_INITIALIZED) {
-          throw new IllegalStateException();
-        }
-
-        // Find mapping
-        // TODO remove localIP from mapping? Store in ASInfo? Avoids the lookup (getExternal() )
-        //   we do above...
-        Entry entry = sourceIPs.get(path.getFirstHopAddress());
-        if (entry == null) {
-          // This is not a known border router, the destination is presumably in the local AS
-          if (path.getRemoteIsdAs() == localIsdAs) {
-            return new InetSocketAddress(localIP, local.getPort());
-          }
-          throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
-        }
-        if (entry.getSource() == null) {
-          throw new IllegalStateException(
-              "No mapped source for: " + path.getFirstHopAddress()); // TODO remobve???
-        }
-        return entry.getSource();
-      } catch (IOException e) {
-        throw new ScionRuntimeException(e);
+    public synchronized InetSocketAddress getMappedAddress(Path path, DatagramChannel channel) {
+      // NAT mapping expired?
+      if (isExpired()) {
+        getInstance().refreshMapping(this, localIsdAs, channel);
       }
+      // TODO prefetch before receive()?
+      // TODO SCMP on BR works?
+      // TODO SCMP on BR may send back to underlay address!
+      touch();
+      if (getMode() == AsMode.NO_NAT) {
+        return commonAddress;
+      } else if (getMode() == AsMode.STUN_SERVER) {
+        return commonAddress;
+      } else if (getMode() == AsMode.NOT_INITIALIZED) {
+        throw new IllegalStateException();
+      }
+
+      // Find mapping
+      Entry entry = sourceIPs.get(path.getFirstHopAddress());
+      if (entry == null) {
+        // This is not a known border router, the destination is presumably in the local AS
+        if (path.getRemoteIsdAs() == localIsdAs) {
+          return commonAddress;
+        }
+        throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
+      }
+      if (entry.getSource() == null) {
+        throw new IllegalStateException(
+            "No mapped source for: " + path.getFirstHopAddress()); // TODO remobve???
+      }
+      return entry.getSource();
     }
   }
 
@@ -243,13 +217,13 @@ public class InterfaceAddressDiscovery {
    * @param path Path
    * @param localIsdAs Local ISD/AS
    * @return External IP address
-   * @see #getMappedAddress(Path, long, DatagramChannel)
+   * @see #detectMapping(long, DatagramChannel, List)
    */
   public synchronized InetAddress getExternalIP(Path path, long localIsdAs) {
     return getExternalIP(path.getFirstHopAddress(), localIsdAs);
   }
 
-  private InetAddress getExternalIP(InetSocketAddress firstHop, long localIsdAs) {
+  private synchronized InetAddress getExternalIP(InetSocketAddress firstHop, long localIsdAs) {
     // We currently keep a map with BR+ISD/AS->externalIP. This may be overkill, probably all BR in
     // a given AS are reachable via the same interface.
     return externalIPs.computeIfAbsent(
@@ -269,231 +243,84 @@ public class InterfaceAddressDiscovery {
         });
   }
 
-  public synchronized ASInfo detectMapping(
-      long localIsdAs, DatagramChannel channel, List<String> borderRouters) {
+  public synchronized NatMapping detectMapping(
+      long localIsdAs, DatagramChannel channel, List<InetSocketAddress> borderRouters) {
     if (borderRouters.isEmpty()) {
       log.warn("No border routers found in local topology information.");
       return null;
     }
 
-    // determine local address
-    InetSocketAddress localAddress;
-    try {
-      localAddress = (InetSocketAddress) channel.getLocalAddress();
-      if (localAddress.getAddress().isAnyLocalAddress()) {
-        InetSocketAddress firstHop = IPHelper.toInetSocketAddress(borderRouters.get(0));
-        localAddress =
-            new InetSocketAddress(getExternalIP(firstHop, localIsdAs), localAddress.getPort());
-        if (localAddress.getAddress().isAnyLocalAddress()) {
-          throw new IllegalStateException();
-        }
-      }
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
-    }
-    int localPort = localAddress.getPort();
-
     // ASInfo entry
-    String asInfoKey = toKeyIsdAsInfo(localIsdAs, localAddress.getAddress(), localPort);
-    ASInfo asInfo =
-        asInfoMap.computeIfAbsent(asInfoKey, k -> new ASInfo(localIsdAs, borderRouters));
-    asInfo.touch();
-
-    // prepare entries
-    List<Entry> newEntries = new ArrayList<>();
-    for (String brAddress : borderRouters) {
-      InetSocketAddress key = toKeySourceAddress(brAddress);
-      Entry entry =
-          asInfo.sourceIPs.computeIfAbsent(
-              key, k -> new Entry(null, IPHelper.toInetSocketAddress(brAddress)));
-      newEntries.add(entry);
-    }
+    NatMapping natMapping = new NatMapping(localIsdAs, borderRouters);
+    natMapping.touch();
 
     // detect addresses
     try {
-      detectSourceAddress(asInfo, newEntries, localIsdAs, channel);
+      detectSourceAddress(natMapping, natMapping.sourceIPs.values(), localIsdAs, channel);
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
-    return asInfo;
+    return natMapping;
   }
 
-  public synchronized void refreshMapping(
-      ASInfo asInfo, long localIsdAs, DatagramChannel channel, List<String> borderRouters) {
-    if (borderRouters.isEmpty()) {
-      log.warn("No border routers found in local topology information.");
-      return;
-    }
-
+  synchronized void refreshMapping(
+      NatMapping natMapping, long localIsdAs, DatagramChannel channel) {
     // update timestamp
-    asInfo.touch();
+    natMapping.touch();
 
-    //    // prepare entries
-    //    List<Entry> newEntries = new ArrayList<>();
-    //    for (String brAddress : borderRouters) {
-    //      InetSocketAddress key = toKeySourceAddress(brAddress);
-    //      Entry entry =
-    //              asInfo.sourceIPs.computeIfAbsent(
-    //                      key, k -> new Entry(null, IPHelper.toInetSocketAddress(brAddress)));
-    //      newEntries.add(entry);
-    //    }
-    // TODO reset if border router list changes????
-
-    // detect addresses
+    // We have to rediscover ALL border routers because we don't know whether they are all behind
+    // the same NAT or in the same subnet.
     try {
-      detectSourceAddress(asInfo, asInfo.sourceIPs.values(), localIsdAs, channel);
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
-    }
-  }
-
-  public synchronized void prefetchMappings(
-      long localIsdAs, DatagramChannel channel, List<String> borderRouters) {
-    if (borderRouters.isEmpty()) {
-      log.warn("No border routers found in local topology information.");
-      return;
-    }
-
-    // determine local address
-    InetSocketAddress localAddress;
-    try {
-      localAddress = (InetSocketAddress) channel.getLocalAddress();
-      if (localAddress.getAddress().isAnyLocalAddress()) {
-        InetSocketAddress firstHop = IPHelper.toInetSocketAddress(borderRouters.get(0));
-        localAddress =
-            new InetSocketAddress(getExternalIP(firstHop, localIsdAs), localAddress.getPort());
-        if (localAddress.getAddress().isAnyLocalAddress()) {
-          throw new IllegalStateException();
-        }
-      }
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
-    }
-    int localPort = localAddress.getPort();
-
-    // ASInfo entry
-    String asInfoKey = toKeyIsdAsInfo(localIsdAs, localAddress.getAddress(), localPort);
-    ASInfo asInfo =
-        asInfoMap.computeIfAbsent(asInfoKey, k -> new ASInfo(localIsdAs, borderRouters));
-    asInfo.touch();
-
-    // prepare entries
-    List<Entry> newEntries = new ArrayList<>();
-    for (String brAddress : borderRouters) {
-      InetSocketAddress key = toKeySourceAddress(brAddress);
-      Entry entry =
-          asInfo.sourceIPs.computeIfAbsent(
-              key, k -> new Entry(null, IPHelper.toInetSocketAddress(brAddress)));
-      newEntries.add(entry);
-    }
-
-    // detect addresses
-    try {
-      detectSourceAddress(asInfo, newEntries, localIsdAs, channel);
+      detectSourceAddress(natMapping, natMapping.sourceIPs.values(), localIsdAs, channel);
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
   }
 
   private void detectSourceAddress(
-      ASInfo asInfo, Collection<Entry> entries, long localIsdAs, DatagramChannel channel)
+      NatMapping natMapping, Collection<Entry> entries, long localIsdAs, DatagramChannel channel)
       throws IOException {
     switch (configMode) {
       case STUN_OFF:
-        asInfo.setMode(AsMode.NO_NAT);
-        asInfo.setCommonAddress(((InetSocketAddress) channel.getLocalAddress()));
+        natMapping.setMode(AsMode.NO_NAT);
+        natMapping.setCommonAddress(getLocalAddress(channel, localIsdAs, entries));
         break;
       case STUN_AUTO:
-        autoDetect(asInfo, entries, localIsdAs, channel);
+        autoDetect(natMapping, entries, localIsdAs, channel);
         break;
       case STUN_CUSTOM:
         InetSocketAddress addr = tryCustomServer(channel, true);
-        asInfo.setMode(AsMode.STUN_SERVER);
+        natMapping.setMode(AsMode.STUN_SERVER);
         if (addr == null) {
           String custom =
               ScionUtil.getPropertyOrEnv(
                   PROPERTY_STUN_SERVER, ENV_STUN_SERVER, DEFAULT_STUN_SERVER);
           throw new ScionRuntimeException("Failed to connect to STUN servers: " + custom);
         }
-        asInfo.setCommonAddress(addr);
+        natMapping.setCommonAddress(addr);
         break;
       case STUN_BR:
         tryStunBorderRouter(entries, channel);
-        asInfo.setMode(AsMode.BR_STUN);
+        natMapping.setMode(AsMode.BR_STUN);
+        // The common address is used for communication within the local AS. In this case we
+        // we don't have a mapped address so we rely on the remote host to reply to the
+        // underlay address (which may be NATed or not) and ignore the SRC address,
+        natMapping.setCommonAddress(getLocalAddress(channel, localIsdAs, entries));
         break;
       default:
         throw new UnsupportedOperationException("Unknown config mode: " + configMode);
     }
   }
 
-  /**
-   * Determine the IP that should be your as SRC address in a SCION header. This may differ from the
-   * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
-   *
-   * @param path Path
-   * @param localIsdAs Local ISD/AS
-   * @param channel Underlying DatagramChannel
-   * @return External address or NAT mapped address
-   * @see #getExternalIP(Path, long)
-   */
-  public synchronized InetSocketAddress getMappedAddress(
-      Path path, long localIsdAs, DatagramChannel channel) {
-    try {
-      InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
-      InetAddress localIP = local.getAddress();
-      if (localIP.isAnyLocalAddress()) {
-        // TODO report this back to the channel so we don't call it all the time (even though it is
-        // TODO == cache it in Channel, or maybe even do channel.bind(localIP)?
-        // just a map lookup)
-        localIP = getExternalIP(path.getFirstHopAddress(), localIsdAs);
-      }
-
-      // NAT mapping expired?
-      String asInfoKey = toKeyIsdAsInfo(localIsdAs, localIP, local.getPort());
-      ASInfo asInfo = asInfoMap.get(asInfoKey);
-      if (asInfo == null) {
-        throw new IllegalStateException("Unknown AS: " + ScionUtil.toStringIA(localIsdAs));
-      }
-      if (asInfo.isExpired()) {
-        prefetchMappings(localIsdAs, channel, asInfo.getBorderRouters());
-      }
-      //      InetSocketAddress local = asInfo.getLocalAddress();
-      //      InetAddress localIP = local.getAddress();
-      //      System.out.println("LA: " + local + "  " + local2);
-      // TODO prefetch before receive()?
-      // TODO SCMP on BR works?
-      // TODO SCMP on BR may send back to underlay address!
-      asInfo.touch();
-      if (asInfo.getMode() == AsMode.NO_NAT) {
-        if (asInfo.commonAddress.getAddress().isAnyLocalAddress()) {
-          asInfo.setCommonAddress(new InetSocketAddress(localIP, local.getPort()));
-        }
-        return asInfo.commonAddress;
-      } else if (asInfo.getMode() == AsMode.STUN_SERVER) {
-        return asInfo.commonAddress;
-      } else if (asInfo.getMode() == AsMode.NOT_INITIALIZED) {
-        throw new IllegalStateException();
-      }
-
-      // Find mapping
-      // TODO remove localIP from mapping? Store in ASInfo? Avoids the lookup (getExternal() )
-      //   we do above...
-      InetSocketAddress key = toKeySourceAddress(path);
-      Entry entry = asInfo.sourceIPs.get(key);
-      if (entry == null) {
-        // This is not a known border router, the destination is presumably in the local AS
-        if (path.getRemoteIsdAs() == localIsdAs) {
-          return new InetSocketAddress(localIP, local.getPort());
-        }
-        throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
-      }
-      if (entry.getSource() == null) {
-        throw new IllegalStateException("No mapped source for: " + key); // TODO remobve???
-      }
-      return entry.getSource();
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
+  private InetSocketAddress getLocalAddress(
+      DatagramChannel channel, long localIsdAs, Collection<Entry> entries) throws IOException {
+    InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
+    InetAddress localIP = local.getAddress();
+    if (localIP.isAnyLocalAddress()) {
+      localIP = getInstance().getExternalIP(entries.iterator().next().firstHop, localIsdAs);
+      local = new InetSocketAddress(localIP, local.getPort());
     }
+    return local;
   }
 
   private InetSocketAddress tryCustomServer(DatagramChannel channel, boolean useDefault) {
@@ -507,13 +334,13 @@ public class InterfaceAddressDiscovery {
   }
 
   private void autoDetect(
-      ASInfo asInfo, Collection<Entry> firstHops, long localIsdAs, DatagramChannel channel)
+      NatMapping natMapping, Collection<Entry> firstHops, long localIsdAs, DatagramChannel channel)
       throws IOException {
     // Check CUSTOM
     InetSocketAddress source = tryCustomServer(channel, false);
     if (source != null) {
-      asInfo.setMode(AsMode.STUN_SERVER);
-      asInfo.setCommonAddress(source);
+      natMapping.setMode(AsMode.STUN_SERVER);
+      natMapping.setCommonAddress(source);
       return;
     }
 
@@ -521,7 +348,7 @@ public class InterfaceAddressDiscovery {
     // - Check if BR is NAT enabled (gives correct address)
     // Try first with STUN, this should eventually be available everywhere
     if (tryStunBorderRouter(firstHops, channel)) {
-      asInfo.setMode(AsMode.BR_STUN);
+      natMapping.setMode(AsMode.BR_STUN);
       return;
     }
 
@@ -532,10 +359,10 @@ public class InterfaceAddressDiscovery {
         new InetSocketAddress(
             getExternalIP(firstHops.iterator().next().firstHop, localIsdAs), localPort);
     if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
-      asInfo.setMode(AsMode.NO_NAT); // TODO this is wrong. We cannot exclude a NAT by SCMP...
+      natMapping.setMode(AsMode.NO_NAT); // TODO this is wrong. We cannot exclude a NAT by SCMP...
       // TODO this is wrong if the BR responds to the underlay i.o. SRC
       // TODO however, if it responds to SRC, this is actually correct
-      asInfo.setCommonAddress(source);
+      natMapping.setCommonAddress(source);
       return;
     }
 
@@ -547,8 +374,8 @@ public class InterfaceAddressDiscovery {
     if (source != null) {
       // - Verify with tr/ping BR -> fail if not reachable
       if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
-        asInfo.setMode(AsMode.STUN_SERVER);
-        asInfo.setCommonAddress(source);
+        natMapping.setMode(AsMode.STUN_SERVER);
+        natMapping.setCommonAddress(source);
         return;
       }
     }
@@ -772,33 +599,6 @@ public class InterfaceAddressDiscovery {
     }
   }
 
-  private InetSocketAddress toKeySourceAddress(Path path) {
-    // remove leading "/"
-    String firstHop = path.getFirstHopAddress().toString().substring(1);
-    // return toKeySourceAddress(firstHop);
-    return path.getFirstHopAddress();
-  }
-
-  private InetSocketAddress toKeySourceAddress(String brAddress) {
-    // TODO : long + cleanup
-    // The NAT mapped address depends on:
-    // - the local port
-    // - the local IP (local interface we are using)
-    // - the AS we are connected to (a different local AS may have the same ports/IPs
-    // - the border router port/IP
-    // return brAddress;
-    return IPHelper.toInetSocketAddress(brAddress);
-  }
-
-  private String toKeyIsdAsInfo(long localIsdAs, InetAddress localAddress, int localPort) {
-    // The NAT mapped address depends on:
-    // - the local port
-    // - the local IP (local interface we are using)
-    // - the AS we are connected to (a different local AS may have the same ports/IPs
-    // - the border router port/IP
-    return localIsdAs + "_" + localAddress.getHostAddress() + "_" + localPort;
-  }
-
   private String toKeyExternalIP(InetSocketAddress firstHop, long localIsdAs) {
     // The external IP depends on:
     // - the border router port/IP
@@ -814,7 +614,6 @@ public class InterfaceAddressDiscovery {
         }
         ifDiscoveryChannel = null;
         externalIPs.clear();
-        asInfoMap.clear();
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }

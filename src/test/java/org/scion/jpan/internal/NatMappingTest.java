@@ -70,9 +70,9 @@ class NatMappingTest {
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = ExamplePacket.PATH_IPV4;
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      InterfaceAddressDiscovery.ASInfo asInfo =
+      InterfaceAddressDiscovery.NatMapping natMapping =
           idf.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
-      InetSocketAddress src = asInfo.getMapping(path, channel);
+      InetSocketAddress src = natMapping.getMappedAddress(path, channel);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
@@ -89,9 +89,9 @@ class NatMappingTest {
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      InterfaceAddressDiscovery.ASInfo asInfo =
+      InterfaceAddressDiscovery.NatMapping natMapping =
           idf.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
-      InetSocketAddress src = asInfo.getMapping(path, channel);
+      InetSocketAddress src = natMapping.getMappedAddress(path, channel);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
@@ -102,7 +102,7 @@ class NatMappingTest {
   void testBR_notRunning() throws IOException {
     MockNetwork.startTiny();
     InetSocketAddress firstHop = MockNetwork.getBorderRouterAddress1();
-    List<String> brs = MockNetwork.getBorderRouterAddresses();
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
     MockNetwork.stopTiny();
 
     System.setProperty(Constants.PROPERTY_STUN, "BR");
@@ -111,16 +111,16 @@ class NatMappingTest {
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(firstHop);
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      InterfaceAddressDiscovery.ASInfo asInfo = idf.detectMapping(isdAs, channel, brs);
-      assertThrows(IllegalStateException.class, () -> asInfo.getMapping(path, channel));
+      InterfaceAddressDiscovery.NatMapping natMapping = idf.detectMapping(isdAs, channel, brs);
+      assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path, channel));
     }
   }
 
   @Test
   void testCUSTOM_fails_STUN_router_problem() {
     System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
-    List<String> brs = new ArrayList<>();
-    brs.add("127.0.0.1:55555");
+    List<InetSocketAddress> brs = new ArrayList<>();
+    brs.add(new InetSocketAddress("127.0.0.1", 55555));
 
     Path path = ExamplePacket.PATH_IPV4;
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -133,8 +133,8 @@ class NatMappingTest {
   @Test
   void testCUSTOM_fails_syntax_problem() {
     System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
-    List<String> brs = new ArrayList<>();
-    brs.add("127.0.0.1:55555");
+    List<InetSocketAddress> brs = new ArrayList<>();
+    brs.add(new InetSocketAddress("127.0.0.1", 55555));
 
     Path path = ExamplePacket.PATH_IPV4;
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -168,14 +168,14 @@ class NatMappingTest {
     assertEquals(prefix + "\"127.0.0.0.1:12345\"", e.getMessage());
   }
 
-  private InetSocketAddress tryIFD(Path path, InetSocketAddress bind, List<String> brs)
+  private InetSocketAddress tryIFD(Path path, InetSocketAddress bind, List<InetSocketAddress> brs)
       throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(bind);
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
       InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      InterfaceAddressDiscovery.ASInfo asInfo = idf.detectMapping(isdAs, channel, brs);
-      return asInfo.getMapping(path, channel);
+      InterfaceAddressDiscovery.NatMapping natMapping = idf.detectMapping(isdAs, channel, brs);
+      return natMapping.getMappedAddress(path, channel);
     }
   }
 
@@ -189,7 +189,7 @@ class NatMappingTest {
 
     Path path = createPath(br);
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12444);
-    List<String> brs = MockNetwork.getBorderRouterAddresses();
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
 
     InetSocketAddress src = tryIFD(path, local, brs);
     assertEquals(local, src);
@@ -206,7 +206,7 @@ class NatMappingTest {
 
     Path path = createPath(br);
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12333);
-    List<String> brs = MockNetwork.getBorderRouterAddresses();
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
 
     InetSocketAddress src = tryIFD(path, local, brs);
     assertEquals(local, src);
@@ -221,7 +221,7 @@ class NatMappingTest {
 
     Path path = createPath(MockNetwork.getBorderRouterAddress1());
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12777);
-    List<String> brs = MockNetwork.getBorderRouterAddresses();
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
 
     InetSocketAddress src = tryIFD(path, local, brs);
     assertEquals(local, src);
@@ -235,7 +235,7 @@ class NatMappingTest {
     MockNetwork.startTiny();
 
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
-    List<String> brs = MockNetwork.getBorderRouterAddresses();
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
     Path path = createPath(MockNetwork.getBorderRouterAddress1());
 
     // Stop BR

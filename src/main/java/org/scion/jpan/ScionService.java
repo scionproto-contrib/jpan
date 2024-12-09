@@ -605,33 +605,24 @@ public class ScionService {
    *
    * @param path Path
    * @return External address
-   * @see #getMappedAddress(Path, DatagramChannel)
+   * @see #getNatMapping(DatagramChannel)
    */
   InetAddress getExternalIP(Path path) {
     return InterfaceAddressDiscovery.getInstance().getExternalIP(path, getLocalIsdAs());
   }
 
   /**
-   * Determine the IP that should be your as SRC address in a SCION header. This may differ from the
-   * external IP in case we are behind a NAT. The source address should be the NAT mapped address.
+   * Determine the IPs that should be used as SRC address in a SCION header. These may differ from
+   * the external IP in case we are behind a NAT. The source address should be the NAT mapped
+   * address.
    *
-   * @param path Path
    * @param channel channel
-   * @return External address or NAT mapped address
+   * @return Mapping of external addresses, potentially one for each border router.
    * @see #getExternalIP(Path)
    */
-  InetSocketAddress getMappedAddress(Path path, DatagramChannel channel) {
-    return InterfaceAddressDiscovery.getInstance().getMappedAddress(path, getLocalIsdAs(), channel);
-  }
-
-  InterfaceAddressDiscovery.ASInfo getNatMapping(DatagramChannel channel) {
+  InterfaceAddressDiscovery.NatMapping getNatMapping(DatagramChannel channel) {
     return InterfaceAddressDiscovery.getInstance()
         .detectMapping(getLocalIsdAs(), channel, getBorderRouterAddresses());
-  }
-
-  void prefetchSourceAddresses(DatagramChannel channel) {
-    InterfaceAddressDiscovery.getInstance()
-        .prefetchMappings(getLocalIsdAs(), channel, getBorderRouterAddresses());
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {
@@ -676,14 +667,16 @@ public class ScionService {
     }
   }
 
-  private List<String> getBorderRouterAddresses() {
+  private List<InetSocketAddress> getBorderRouterAddresses() {
     if (daemonStub != null) {
       return getInterfaces().values().stream()
           .map(anInterface -> anInterface.getAddress().getAddress())
+          .map(IPHelper::toInetSocketAddress)
           .collect(Collectors.toList());
     } else {
       return bootstrapper.getLocalTopology().getBorderRouters().stream()
           .map(LocalTopology.BorderRouter::getInternalAddress)
+          .map(IPHelper::toInetSocketAddress)
           .collect(Collectors.toList());
     }
   }

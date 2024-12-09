@@ -55,7 +55,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.ErrorMessage> errorListener;
   private boolean cfgRemoteDispatcher = false;
   private InetSocketAddress overrideExternalAddress = null;
-  private InterfaceAddressDiscovery.ASInfo natMapping = null;
+  private InterfaceAddressDiscovery.NatMapping natMapping = null;
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel) {
@@ -454,7 +454,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
     // TODO we should have a variable that caches getExtrnalIP() or, better
     //   just bind() to getExternal()_after/during getExternbalIP()
-    return natMapping.getMapping(path, channel);
+    return natMapping.getMappedAddress(path, channel);
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {

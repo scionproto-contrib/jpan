@@ -19,6 +19,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -236,12 +237,8 @@ public class MockNetwork {
     return mock.localAddress[0];
   }
 
-  public static List<String> getBorderRouterAddresses() {
-    ArrayList<String> ret = new ArrayList<>();
-    for (InetSocketAddress isa : mock.localAddress) {
-      ret.add(isa.getAddress().getHostAddress() + ":" + isa.getPort());
-    }
-    return ret;
+  public static List<InetSocketAddress> getBorderRouterAddresses() {
+    return Arrays.asList(mock.localAddress);
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {
