@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ class NatMappingTest {
   void beforeEach() {
     System.clearProperty(Constants.PROPERTY_STUN);
     System.clearProperty(Constants.PROPERTY_STUN_SERVER);
-    InterfaceAddressDiscovery.uninstall();
+    ExternalIpDiscovery.uninstall();
     MockNetwork.stopTiny();
   }
 
@@ -45,7 +46,7 @@ class NatMappingTest {
   static void afterAll() {
     System.clearProperty(Constants.PROPERTY_STUN);
     System.clearProperty(Constants.PROPERTY_STUN_SERVER);
-    InterfaceAddressDiscovery.uninstall();
+    ExternalIpDiscovery.uninstall();
     MockNetwork.stopTiny();
   }
 
@@ -54,8 +55,11 @@ class NatMappingTest {
     System.setProperty(Constants.PROPERTY_STUN, "Hello!");
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      List<InetSocketAddress> brs = new ArrayList<>();
+      brs.add(new InetSocketAddress("127.0.0.1", 55555));
       Exception e =
-          assertThrows(IllegalArgumentException.class, InterfaceAddressDiscovery::getInstance);
+          assertThrows(IllegalArgumentException.class, () -> InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs));
       assertTrue(e.getMessage().startsWith("Illegal value for STUN config: "));
     }
   }
@@ -69,13 +73,12 @@ class NatMappingTest {
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = ExamplePacket.PATH_IPV4;
-      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       InterfaceAddressDiscovery.NatMapping natMapping =
-          idf.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          InterfaceAddressDiscovery.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = natMapping.getMappedAddress(path, channel);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
-      assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
+      assertEquals(local.getAddress(), ExternalIpDiscovery.getExternalIP(path, isdAs));
     }
   }
 
@@ -88,13 +91,12 @@ class NatMappingTest {
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
-      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
       InterfaceAddressDiscovery.NatMapping natMapping =
-          idf.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          InterfaceAddressDiscovery.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = natMapping.getMappedAddress(path, channel);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
-      assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
+      assertEquals(local.getAddress(), ExternalIpDiscovery.getExternalIP(path, isdAs));
     }
   }
 
@@ -110,8 +112,7 @@ class NatMappingTest {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(firstHop);
-      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      InterfaceAddressDiscovery.NatMapping natMapping = idf.detectMapping(isdAs, channel, brs);
+      InterfaceAddressDiscovery.NatMapping natMapping = InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs);
       assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path, channel));
     }
   }
@@ -173,8 +174,7 @@ class NatMappingTest {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(bind);
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      InterfaceAddressDiscovery.NatMapping natMapping = idf.detectMapping(isdAs, channel, brs);
+      InterfaceAddressDiscovery.NatMapping natMapping = InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs);
       return natMapping.getMappedAddress(path, channel);
     }
   }

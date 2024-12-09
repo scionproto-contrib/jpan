@@ -608,7 +608,7 @@ public class ScionService {
    * @see #getNatMapping(DatagramChannel)
    */
   InetAddress getExternalIP(Path path) {
-    return InterfaceAddressDiscovery.getInstance().getExternalIP(path, getLocalIsdAs());
+    return ExternalIpDiscovery.getExternalIP(path, getLocalIsdAs());
   }
 
   /**
@@ -621,7 +621,7 @@ public class ScionService {
    * @see #getExternalIP(Path)
    */
   InterfaceAddressDiscovery.NatMapping getNatMapping(DatagramChannel channel) {
-    return InterfaceAddressDiscovery.getInstance()
+    return InterfaceAddressDiscovery
         .detectMapping(getLocalIsdAs(), channel, getBorderRouterAddresses());
   }
 
