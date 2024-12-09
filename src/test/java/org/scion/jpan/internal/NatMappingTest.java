@@ -266,7 +266,6 @@ class NatMappingTest {
           news -> {
             news.reportStarted();
             ByteBuffer buffer = ByteBuffer.allocate(1000);
-            System.out.println("FC 4: " + MockNetwork.getForwardCount()); // TODO
             channel.receive(buffer);
             news.reportException(new IllegalStateException("This should never be reached."));
           });
@@ -277,17 +276,14 @@ class NatMappingTest {
       ByteBuffer sendBuffer = ByteBuffer.allocate(1000);
       channel.send(sendBuffer, path);
 
-      //      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-      //      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-      //      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
-      //      Path path = createPath(MockNetwork.getBorderRouterAddress1());
-      //      InterfaceAddressDiscovery idf = InterfaceAddressDiscovery.getInstance();
-      //      idf.prefetchMappings(isdAs, channel, MockNetwork.getBorderRouterAddresses());
-      //      InetSocketAddress src = idf.getMappedAddress(path, isdAs, channel);
-      //      assertEquals(local, src);
-      //      assertFalse(src.getAddress().isAnyLocalAddress());
-      //      assertEquals(local.getAddress(), idf.getExternalIP(path, isdAs));
-      receiver.stopNow();
+      receiver.join(10);
+
+      assertTrue(channel.isBlocking());
+
+      // 1 normal packet
+      assertEquals(1, MockNetwork.getAndResetForwardCount());
+      // 2 STUN packets
+      assertEquals(2, MockNetwork.getAndResetStunCount());
     } finally {
       receiver.stopNow();
     }

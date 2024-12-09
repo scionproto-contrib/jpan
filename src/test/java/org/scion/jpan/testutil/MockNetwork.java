@@ -63,6 +63,7 @@ public class MockNetwork {
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
+  static final AtomicInteger nStunRequests = new AtomicInteger();
   static CountDownLatch barrier = null;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
@@ -255,6 +256,10 @@ public class MockNetwork {
 
   public static int getForwardCount() {
     return nForwardTotal.get();
+  }
+
+  public static int getAndResetStunCount() {
+    return nStunRequests.getAndSet(0);
   }
 
   /**
