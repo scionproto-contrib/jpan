@@ -55,7 +55,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.ErrorMessage> errorListener;
   private boolean cfgRemoteDispatcher = false;
   private InetSocketAddress overrideExternalAddress = null;
-  private InterfaceAddressDiscovery.NatMapping natMapping = null;
+  private NatMapping natMapping = null;
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel) {

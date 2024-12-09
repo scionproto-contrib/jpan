@@ -37,14 +37,14 @@ import org.slf4j.LoggerFactory;
  * <p>TODO: - We may leave an AS and reenter it on a different NAT (Wifi access point??), we somehow
  * need to detect that case and deal with it.
  */
-public class InterfaceAddressDiscovery {
+public class NatMapping {
 
   private static final int NAT_UDP_MAPPING_TIMEOUT =
       ScionUtil.getPropertyOrEnv(
           PROPERTY_STUN_MAPPING_TIMEOUT,
           ENV_STUN_MAPPING_TIMEOUT,
           DEFAULT_STUN_MAPPING_TIMEOUT); // seconds
-  private static final Logger log = LoggerFactory.getLogger(InterfaceAddressDiscovery.class);
+  private static final Logger log = LoggerFactory.getLogger(NatMapping.class);
 
   private static final int stunTimeoutMs =
       ScionUtil.getPropertyOrEnv(
@@ -54,135 +54,84 @@ public class InterfaceAddressDiscovery {
 
   // TODO use SimpleCache
 
-  /** See {@link Constants#PROPERTY_STUN} for details. */
-  private enum ConfigMode {
-    /** No STUN discovery */
-    STUN_OFF,
-    /** Discovery using STUN interface of border routers */
-    STUN_BR,
-    /** Discovery using custom STUN server */
-    STUN_CUSTOM,
-    /**
-     * Use auto detection.<br>
-     * 1) Check for custom STUN setting and use if possible<br>
-     * 2) Check border routers if they support STUN (timeout = 10ms)<br>
-     * 3) If border router responds to traceroute/ping, do not use STUN at all<br>
-     * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails)<br>
-     */
-    STUN_AUTO
-  }
+  private final long localIsdAs;
+  private NatMode mode;
+  private long lastUsed;
+  private InetSocketAddress commonAddress;
+  private final Map<InetSocketAddress, Entry> sourceIPs = new HashMap<>();
 
-  private enum NatMode {
-    /** Not initialized. */
-    NOT_INITIALIZED,
-    /** Border routers support STUN. */
-    BR_STUN,
-    /** No NAT detected, just use local channel address. */
-    NO_NAT,
-    /** Custom or public STUN server used, same local address for all border routers. */
-    STUN_SERVER
-  }
-
-  private static class Entry {
-    private InetSocketAddress source;
-    private final InetSocketAddress firstHop;
-
-    Entry(InetSocketAddress source, InetSocketAddress firstHop) {
-      this.source = source;
-      this.firstHop = firstHop;
-    }
-
-    InetSocketAddress getSource() {
-      return source;
-    }
-
-    public void updateSource(InetSocketAddress source) {
-      this.source = source;
+  private NatMapping(long localIsdAs, List<InetSocketAddress> borderRouters) {
+    this.localIsdAs = localIsdAs;
+    this.mode = NatMode.NOT_INITIALIZED;
+    for (InetSocketAddress brAddress : borderRouters) {
+      sourceIPs.computeIfAbsent(brAddress, k -> new Entry(null, brAddress));
     }
   }
 
-  public static class NatMapping {
-    private final long localIsdAs;
-    private NatMode mode;
-    private long lastUsed;
-    private InetSocketAddress commonAddress;
-    private final Map<InetSocketAddress, Entry> sourceIPs = new HashMap<>();
+  private boolean isExpired() {
+    return mode != NatMode.NO_NAT
+        && (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000L);
+  }
 
-    private NatMapping(long localIsdAs, List<InetSocketAddress> borderRouters) {
-      this.localIsdAs = localIsdAs;
-      this.mode = NatMode.NOT_INITIALIZED;
-      for (InetSocketAddress brAddress : borderRouters) {
-        sourceIPs.computeIfAbsent(brAddress, k -> new Entry(null, brAddress));
+  private void touch() {
+    lastUsed = System.currentTimeMillis();
+  }
+
+  private void setMode(NatMode mode) {
+    this.mode = mode;
+  }
+
+  private void setCommonAddress(InetSocketAddress address) {
+    this.commonAddress = address;
+    touch();
+  }
+
+  private NatMode getMode() {
+    return mode;
+  }
+
+  // TODO synchronize other methods? Remove sync?
+  public synchronized InetSocketAddress getMappedAddress(Path path, DatagramChannel channel) {
+    // NAT mapping expired?
+    if (isExpired()) {
+      // We have to rediscover ALL border routers because we don't know whether they are all
+      // behind
+      // the same NAT or in the same subnet.
+      try {
+        // refresh
+        // TODO avoid passing in sourceIP + this
+        detectSourceAddress(this, sourceIPs.values(), localIsdAs, channel);
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
       }
     }
-
-    private boolean isExpired() {
-      return mode != NatMode.NO_NAT
-          && (System.currentTimeMillis() - lastUsed) > (NAT_UDP_MAPPING_TIMEOUT * 1000L);
+    // TODO prefetch before receive()?
+    // TODO SCMP on BR works?
+    // TODO SCMP on BR may send back to underlay address!
+    touch();
+    if (getMode() == NatMode.NO_NAT) {
+      return commonAddress;
+    } else if (getMode() == NatMode.STUN_SERVER) {
+      return commonAddress;
+    } else if (getMode() == NatMode.NOT_INITIALIZED) {
+      throw new IllegalStateException();
     }
 
-    private void touch() {
-      lastUsed = System.currentTimeMillis();
-    }
-
-    private void setMode(NatMode mode) {
-      this.mode = mode;
-    }
-
-    private void setCommonAddress(InetSocketAddress address) {
-      this.commonAddress = address;
-      touch();
-    }
-
-    private NatMode getMode() {
-      return mode;
-    }
-
-    // TODO synchronize other methods? Remove sync?
-    public synchronized InetSocketAddress getMappedAddress(Path path, DatagramChannel channel) {
-      // NAT mapping expired?
-      if (isExpired()) {
-        // We have to rediscover ALL border routers because we don't know whether they are all
-        // behind
-        // the same NAT or in the same subnet.
-        try {
-          // refresh
-          // TODO avoid passing in sourceIP + this
-          detectSourceAddress(this, sourceIPs.values(), localIsdAs, channel);
-        } catch (IOException e) {
-          throw new ScionRuntimeException(e);
-        }
-      }
-      // TODO prefetch before receive()?
-      // TODO SCMP on BR works?
-      // TODO SCMP on BR may send back to underlay address!
-      touch();
-      if (getMode() == NatMode.NO_NAT) {
+    // Find mapping
+    Entry entry = sourceIPs.get(path.getFirstHopAddress());
+    if (entry == null) {
+      // This is not a known border router, the destination is presumably in the local AS
+      if (path.getRemoteIsdAs() == localIsdAs) {
         return commonAddress;
-      } else if (getMode() == NatMode.STUN_SERVER) {
-        return commonAddress;
-      } else if (getMode() == NatMode.NOT_INITIALIZED) {
-        throw new IllegalStateException();
       }
-
-      // Find mapping
-      Entry entry = sourceIPs.get(path.getFirstHopAddress());
-      if (entry == null) {
-        // This is not a known border router, the destination is presumably in the local AS
-        if (path.getRemoteIsdAs() == localIsdAs) {
-          return commonAddress;
-        }
-        throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
-      }
-      if (entry.getSource() == null) {
-        throw new IllegalStateException(
-            "No mapped source for: " + path.getFirstHopAddress()); // TODO remobve???
-      }
-      return entry.getSource();
+      throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
     }
+    if (entry.getSource() == null) {
+      throw new IllegalStateException(
+          "No mapped source for: " + path.getFirstHopAddress()); // TODO remobve???
+    }
+    return entry.getSource();
   }
-
-  private InterfaceAddressDiscovery() {}
 
   private static ConfigMode getConfig() {
     String v = ScionUtil.getPropertyOrEnv(PROPERTY_STUN, ENV_STUN, DEFAULT_STUN);
@@ -201,7 +150,7 @@ public class InterfaceAddressDiscovery {
     }
   }
 
-  public static NatMapping detectMapping(
+  public static NatMapping createMapping(
       long localIsdAs, DatagramChannel channel, List<InetSocketAddress> borderRouters) {
     if (borderRouters.isEmpty()) {
       log.warn("No border routers found in local topology information.");
@@ -541,6 +490,53 @@ public class InterfaceAddressDiscovery {
           }
         }
       }
+    }
+  }
+
+  /** See {@link Constants#PROPERTY_STUN} for details. */
+  private enum ConfigMode {
+    /** No STUN discovery */
+    STUN_OFF,
+    /** Discovery using STUN interface of border routers */
+    STUN_BR,
+    /** Discovery using custom STUN server */
+    STUN_CUSTOM,
+    /**
+     * Use auto detection.<br>
+     * 1) Check for custom STUN setting and use if possible<br>
+     * 2) Check border routers if they support STUN (timeout = 10ms)<br>
+     * 3) If border router responds to traceroute/ping, do not use STUN at all<br>
+     * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails)<br>
+     */
+    STUN_AUTO
+  }
+
+  private enum NatMode {
+    /** Not initialized. */
+    NOT_INITIALIZED,
+    /** Border routers support STUN. */
+    BR_STUN,
+    /** No NAT detected, just use local channel address. */
+    NO_NAT,
+    /** Custom or public STUN server used, same local address for all border routers. */
+    STUN_SERVER
+  }
+
+  private static class Entry {
+    private InetSocketAddress source;
+    private final InetSocketAddress firstHop;
+
+    Entry(InetSocketAddress source, InetSocketAddress firstHop) {
+      this.source = source;
+      this.firstHop = firstHop;
+    }
+
+    InetSocketAddress getSource() {
+      return source;
+    }
+
+    public void updateSource(InetSocketAddress source) {
+      this.source = source;
     }
   }
 }

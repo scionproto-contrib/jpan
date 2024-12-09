@@ -620,9 +620,8 @@ public class ScionService {
    * @return Mapping of external addresses, potentially one for each border router.
    * @see #getExternalIP(Path)
    */
-  InterfaceAddressDiscovery.NatMapping getNatMapping(DatagramChannel channel) {
-    return InterfaceAddressDiscovery.detectMapping(
-        getLocalIsdAs(), channel, getBorderRouterAddresses());
+  NatMapping getNatMapping(DatagramChannel channel) {
+    return NatMapping.createMapping(getLocalIsdAs(), channel, getBorderRouterAddresses());
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {
