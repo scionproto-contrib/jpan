@@ -181,7 +181,7 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void receive_timeout() throws IOException, InterruptedException {
+  void receive_timeout() throws IOException {
     int timeOutMs = 50;
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
@@ -190,7 +190,8 @@ class DatagramSocketApiTest {
       socket.setSoTimeout(timeOutMs);
       socket.connect(address);
       // Running a separate thread prevents this from halting infinitely.
-      ManagedThread t = ManagedThread.newBuilder().expectException(true).build();
+      ManagedThread t =
+          ManagedThread.newBuilder().expectThrows(SocketTimeoutException.class).build();
       t.submit(
           mtn -> {
             mtn.reportStarted();

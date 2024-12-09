@@ -26,14 +26,13 @@ import java.nio.channels.Selector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.scion.jpan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class provides utility functions to detect:
- * the external IP address of a potential NAT between the device and a border router.
+ * This class provides utility functions to detect: the external IP address of a potential NAT
+ * between the device and a border router.
  *
  * <p>TODO: - We may leave an AS and reenter it on a different NAT (Wifi access point??), we somehow
  * need to detect that case and deal with it.
@@ -143,7 +142,8 @@ public class InterfaceAddressDiscovery {
     public synchronized InetSocketAddress getMappedAddress(Path path, DatagramChannel channel) {
       // NAT mapping expired?
       if (isExpired()) {
-        // We have to rediscover ALL border routers because we don't know whether they are all behind
+        // We have to rediscover ALL border routers because we don't know whether they are all
+        // behind
         // the same NAT or in the same subnet.
         try {
           // refresh
@@ -182,9 +182,7 @@ public class InterfaceAddressDiscovery {
     }
   }
 
-  private InterfaceAddressDiscovery() {
-
-  }
+  private InterfaceAddressDiscovery() {}
 
   private static ConfigMode getConfig() {
     String v = ScionUtil.getPropertyOrEnv(PROPERTY_STUN, ENV_STUN, DEFAULT_STUN);
@@ -207,7 +205,6 @@ public class InterfaceAddressDiscovery {
       long localIsdAs, DatagramChannel channel, List<InetSocketAddress> borderRouters) {
     if (borderRouters.isEmpty()) {
       log.warn("No border routers found in local topology information.");
-      return null;
     }
 
     // ASInfo entry
@@ -226,7 +223,8 @@ public class InterfaceAddressDiscovery {
   private static void detectSourceAddress(
       NatMapping natMapping, Collection<Entry> entries, long localIsdAs, DatagramChannel channel)
       throws IOException {
-    ConfigMode configMode = getConfig(); // TODO use AsInfoMode instead of ConfigMode... or merge modes?
+    ConfigMode configMode =
+        getConfig(); // TODO use AsInfoMode instead of ConfigMode... or merge modes?
     switch (configMode) {
       case STUN_OFF:
         natMapping.setMode(NatMode.NO_NAT);
@@ -302,7 +300,8 @@ public class InterfaceAddressDiscovery {
     // - Check if BR responds to tr/ping (is reachable)
     // At this point we should have a local address with port.
     int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-    InetAddress sourceIP = ExternalIpDiscovery.getExternalIP(firstHops.iterator().next().firstHop, localIsdAs);
+    InetAddress sourceIP =
+        ExternalIpDiscovery.getExternalIP(firstHops.iterator().next().firstHop, localIsdAs);
     source = new InetSocketAddress(sourceIP, localPort);
     if (isBorderRouterReachable(source, firstHops, localIsdAs, channel)) {
       natMapping.setMode(NatMode.NO_NAT); // TODO this is wrong. We cannot exclude a NAT by SCMP...

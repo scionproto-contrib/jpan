@@ -57,7 +57,7 @@ public class ExternalIpDiscovery {
    * @see InterfaceAddressDiscovery#detectMapping(long, DatagramChannel, List)
    */
   public static synchronized InetAddress getExternalIP(Path path, long localIsdAs) {
-      return getInstance().getIp(path.getFirstHopAddress(), localIsdAs);
+    return getInstance().getIp(path.getFirstHopAddress(), localIsdAs);
   }
 
   public static synchronized InetAddress getExternalIP(

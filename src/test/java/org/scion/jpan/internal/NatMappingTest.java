@@ -20,9 +20,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +59,9 @@ class NatMappingTest {
       List<InetSocketAddress> brs = new ArrayList<>();
       brs.add(new InetSocketAddress("127.0.0.1", 55555));
       Exception e =
-          assertThrows(IllegalArgumentException.class, () -> InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs));
+          assertThrows(
+              IllegalArgumentException.class,
+              () -> InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs));
       assertTrue(e.getMessage().startsWith("Illegal value for STUN config: "));
     }
   }
@@ -74,7 +76,8 @@ class NatMappingTest {
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = ExamplePacket.PATH_IPV4;
       InterfaceAddressDiscovery.NatMapping natMapping =
-          InterfaceAddressDiscovery.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          InterfaceAddressDiscovery.detectMapping(
+              isdAs, channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = natMapping.getMappedAddress(path, channel);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
@@ -92,7 +95,8 @@ class NatMappingTest {
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       InterfaceAddressDiscovery.NatMapping natMapping =
-          InterfaceAddressDiscovery.detectMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          InterfaceAddressDiscovery.detectMapping(
+              isdAs, channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = natMapping.getMappedAddress(path, channel);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
@@ -112,7 +116,8 @@ class NatMappingTest {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(firstHop);
-      InterfaceAddressDiscovery.NatMapping natMapping = InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs);
+      InterfaceAddressDiscovery.NatMapping natMapping =
+          InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs);
       assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path, channel));
     }
   }
@@ -174,7 +179,8 @@ class NatMappingTest {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(bind);
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      InterfaceAddressDiscovery.NatMapping natMapping = InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs);
+      InterfaceAddressDiscovery.NatMapping natMapping =
+          InterfaceAddressDiscovery.detectMapping(isdAs, channel, brs);
       return natMapping.getMappedAddress(path, channel);
     }
   }
@@ -251,30 +257,25 @@ class NatMappingTest {
   void testPrefetch_receive() throws IOException {
     System.setProperty(Constants.PROPERTY_STUN, "BR");
     MockNetwork.startTiny();
-    ManagedThread receiver = ManagedThread.newBuilder().build();
-    System.out.println("FC 1: " + MockNetwork.getForwardCount()); // TODO
+    ManagedThread receiver =
+        ManagedThread.newBuilder().expectThrows(ClosedByInterruptException.class).build();
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      System.out.println("FC 2: " + MockNetwork.getForwardCount()); // TODO
       channel.configureBlocking(true);
-      System.out.println("FC 3: " + MockNetwork.getForwardCount()); // TODO
 
-      //      receiver.submit(
-      //          news -> {
-      //            news.reportStarted();
-      //            ByteBuffer buffer = ByteBuffer.allocate(1000);
-      //            System.out.println("FC 4: " + MockNetwork.getForwardCount()); // TODO
-      //            channel.receive(buffer);
-      //            news.reportException(new IllegalStateException("This should never be
-      // reached."));
-      //          });
+      receiver.submit(
+          news -> {
+            news.reportStarted();
+            ByteBuffer buffer = ByteBuffer.allocate(1000);
+            System.out.println("FC 4: " + MockNetwork.getForwardCount()); // TODO
+            channel.receive(buffer);
+            news.reportException(new IllegalStateException("This should never be reached."));
+          });
 
       // TODO test jpan with DEFAULT=AUTO
 
-      System.out.println("FC 5: " + MockNetwork.getForwardCount()); // TODO
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       ByteBuffer sendBuffer = ByteBuffer.allocate(1000);
       channel.send(sendBuffer, path);
-      System.out.println("FC 6: " + MockNetwork.getForwardCount()); // TODO
 
       //      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       //      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
