@@ -181,7 +181,7 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void receive_timeout() throws IOException, InterruptedException {
+  void receive_timeout() throws IOException {
     int timeOutMs = 50;
     MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
     InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
@@ -190,7 +190,8 @@ class DatagramSocketApiTest {
       socket.setSoTimeout(timeOutMs);
       socket.connect(address);
       // Running a separate thread prevents this from halting infinitely.
-      ManagedThread t = ManagedThread.newBuilder().expectException(true).build();
+      ManagedThread t =
+          ManagedThread.newBuilder().expectThrows(SocketTimeoutException.class).build();
       t.submit(
           mtn -> {
             mtn.reportStarted();
@@ -622,7 +623,7 @@ class DatagramSocketApiTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private Path createExpiredPath(Path basePath) throws UnknownHostException {
+  private Path createExpiredPath(Path basePath) {
     long now = Instant.now().getEpochSecond();
     Timestamp timestamp = Timestamp.newBuilder().setSeconds(now - 10).build();
     Daemon.Path.Builder builder = Daemon.Path.newBuilder().setExpiration(timestamp);
@@ -643,7 +644,8 @@ class DatagramSocketApiTest {
 
   @Test
   void getConnectionPath() throws IOException {
-    Path path = ExamplePacket.PATH;
+    // Build fails on MacOS on internal channel.connect("::1") so we use "127.0.0.1"
+    Path path = ExamplePacket.PATH_IPV4;
     DatagramPacket packet = new DatagramPacket(new byte[50], 50, toAddress(path));
     try (ScionDatagramSocket channel = new ScionDatagramSocket()) {
       assertNull(channel.getConnectionPath());
@@ -747,14 +749,16 @@ class DatagramSocketApiTest {
 
       DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
       server.receive(packet1);
-      assertEquals(clientAddress1, packet1.getSocketAddress());
+      // We only compare the port. Depending on the OS, the IP may have changed to 127.0.0.1 or not.
+      assertEquals(
+          clientAddress1.getPort(), ((InetSocketAddress) packet1.getSocketAddress()).getPort());
 
       Path path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1, toAddress(path1));
+      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
 
       // 2nd client
       try (ScionDatagramSocket client =
-          new ScionDatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 22}))) {
+          new ScionDatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 12}))) {
         client.connect(serverAddress);
         assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
         clientAddress2 = (InetSocketAddress) client.getLocalSocketAddress();
@@ -767,14 +771,15 @@ class DatagramSocketApiTest {
 
       DatagramPacket packet2 = new DatagramPacket(new byte[size], size, serverAddress);
       server.receive(packet2);
-      assertEquals(clientAddress2, packet2.getSocketAddress());
+      assertEquals(
+          clientAddress2.getPort(), ((InetSocketAddress) packet2.getSocketAddress()).getPort());
 
       // path 1 should still be there
       path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1, toAddress(path1));
+      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
       // path 2 should also be there
       Path path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2, toAddress(path2));
+      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
 
       // reduce capacity
       server.setPathCacheCapacity(1);
@@ -784,7 +789,7 @@ class DatagramSocketApiTest {
       assertNull(server.getCachedPath((InetSocketAddress) packet1.getSocketAddress()));
       // path 2 should be there
       path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2, toAddress(path2));
+      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
     }
   }
 

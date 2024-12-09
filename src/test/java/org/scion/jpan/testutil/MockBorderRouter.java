@@ -26,6 +26,7 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scmp;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
+import org.scion.jpan.internal.ByteUtil;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.internal.ScmpParser;
 import org.slf4j.Logger;
@@ -75,25 +76,29 @@ public class MockBorderRouter implements Runnable {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {
           SelectionKey key = iter.next();
+          iter.remove();
           if (key.isReadable()) {
             DatagramChannel incoming = (DatagramChannel) key.channel();
             DatagramChannel outgoing = (DatagramChannel) key.attachment();
+            buffer.clear();
             SocketAddress srcAddress = incoming.receive(buffer);
             if (srcAddress == null) {
               throw new IllegalStateException();
             }
             buffer.flip();
 
+            if (checkStun(buffer, srcAddress, incoming)) {
+              continue;
+            }
+
             if (MockNetwork.dropNextPackets.get() > 0) {
               MockNetwork.dropNextPackets.decrementAndGet();
-              iter.remove();
               continue;
             }
 
             Scmp.TypeCode errorCode = MockNetwork.scmpErrorOnNextPacket.getAndSet(null);
             if (errorCode != null) {
               sendScmp(errorCode, buffer, srcAddress, incoming);
-              iter.remove();
               continue;
             }
 
@@ -110,7 +115,6 @@ public class MockBorderRouter implements Runnable {
                 throw new UnsupportedOperationException();
             }
           }
-          iter.remove();
         }
       }
     } catch (IOException e) {
@@ -198,5 +202,45 @@ public class MockBorderRouter implements Runnable {
 
   public int getInterfaceId2() {
     return interfaceId2;
+  }
+
+  private boolean checkStun(ByteBuffer in, SocketAddress srcAddress, DatagramChannel incoming)
+      throws IOException {
+    if (in.getInt(4) != 0x42A41221) {
+      return false;
+    }
+    MockNetwork.nStunRequests.incrementAndGet();
+    // Let's assume this is a valid STUN packet.
+    ByteBuffer out = ByteBuffer.allocate(1000);
+    out.putShort(ByteUtil.toShort(0x0101));
+    // length
+    out.putShort((short) 0);
+
+    // Tx ID
+    out.putInt(in.getInt(4));
+    out.putInt(in.getInt(8));
+    out.putInt(in.getInt(12));
+    out.putInt(in.getInt(16));
+
+    // Mapped address attribute
+    // type
+    out.putShort(ByteUtil.toShort(0x0001));
+    byte[] addrBytes = ((InetSocketAddress) srcAddress).getAddress().getAddress();
+    // length
+    out.putShort(ByteUtil.toShort(addrBytes.length + 4));
+    // 0, family, port
+    out.put((byte) 0);
+    out.put((byte) (addrBytes.length == 4 ? 0x01 : 0x02));
+    out.putShort(ByteUtil.toShort(((InetSocketAddress) srcAddress).getPort()));
+
+    // address bytes
+    out.put(addrBytes);
+
+    // update packet length
+    out.putShort(2, ByteUtil.toShort(out.position() - 20));
+
+    out.flip();
+    incoming.send(out, srcAddress);
+    return true;
   }
 }

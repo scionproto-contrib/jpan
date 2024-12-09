@@ -75,8 +75,8 @@ public class ScionServiceTest {
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
       Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
-      // port-range + local AS + path
-      assertEquals(3, MockDaemon.getAndResetCallCount());
+      // service init + path
+      assertEquals(MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -91,8 +91,8 @@ public class ScionServiceTest {
     try (Scion.CloseableService client = Scion.newServiceWithDaemon(daemonAddr)) {
       Path path = client.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
-      // port-range + local AS + path
-      assertEquals(3, MockDaemon.getAndResetCallCount());
+      // service init + path
+      assertEquals(MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -125,8 +125,8 @@ public class ScionServiceTest {
       assertEquals("127.0.0.10:31004", path.getMetadata().getInterface().getAddress());
       assertEquals(2, path.getMetadata().getInterfacesList().size());
 
-      // port-range + local AS + path
-      assertEquals(3, MockDaemon.getAndResetCallCount());
+      // service init + path
+      assertEquals(MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -158,8 +158,8 @@ public class ScionServiceTest {
         assertEquals(dstIA, path.getRemoteIsdAs());
       }
 
-      // port-range + local AS + path
-      assertEquals(3, MockDaemon.getAndResetCallCount());
+      // service init + path
+      assertEquals(MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }
@@ -191,8 +191,8 @@ public class ScionServiceTest {
       assertEquals(sAddr, path.getFirstHopAddress());
       assertEquals(dstIA, path.getRemoteIsdAs());
 
-      // get port-range + local AS + path
-      assertEquals(3, MockDaemon.getAndResetCallCount());
+      // service init + path
+      assertEquals(MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1, MockDaemon.getAndResetCallCount());
     } finally {
       MockDaemon.closeDefault();
     }

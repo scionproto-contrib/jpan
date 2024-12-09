@@ -32,7 +32,7 @@ public class ManagedThread implements ManagedThreadNews {
   private final CountDownLatch barrier = new CountDownLatch(1);
   private final String name;
   private final int startUpWaitMillis;
-  private final boolean expectException;
+  private final Class<? extends Exception> expectThrows;
 
   public interface MTRunnable {
     void run(ManagedThreadNews news) throws Exception;
@@ -42,10 +42,11 @@ public class ManagedThread implements ManagedThreadNews {
     return new ManagedThread.Builder();
   }
 
-  private ManagedThread(int nThreads, int startUpWaitMillis, String name, boolean expectException) {
+  private ManagedThread(
+      int nThreads, int startUpWaitMillis, String name, Class<? extends Exception> expectThrows) {
     this.name = name;
     this.startUpWaitMillis = startUpWaitMillis;
-    this.expectException = expectException;
+    this.expectThrows = expectThrows;
     if (nThreads == 1) {
       executor = Executors.newSingleThreadExecutor();
     } else {
@@ -107,7 +108,7 @@ public class ManagedThread implements ManagedThreadNews {
   }
 
   public Throwable getException() {
-    if (!expectException) {
+    if (expectThrows == null) {
       throw new IllegalStateException();
     }
     if (exceptions.size() != 1) {
@@ -127,14 +128,17 @@ public class ManagedThread implements ManagedThreadNews {
   }
 
   private void checkExceptions() {
-    if (expectException) {
-      return; // ignore any exceptions
+    for (Exception t : exceptions) {
+      // Print all unexpected exceptions
+      if (expectThrows == null || !expectThrows.isInstance(t)) {
+        t.printStackTrace();
+      }
     }
     for (Exception t : exceptions) {
-      t.printStackTrace();
-    }
-    if (!exceptions.isEmpty()) {
-      throw new IllegalStateException("Exception in managed thread: " + name, exceptions.get(0));
+      if (expectThrows == null || !expectThrows.isInstance(t)) {
+        // just throw the first unexpected exception
+        throw new IllegalStateException("Exception in managed thread: " + name, t);
+      }
     }
   }
 
@@ -142,14 +146,14 @@ public class ManagedThread implements ManagedThreadNews {
     private final int startUpWaitMillis = 50;
     private final String name = "ManagedThread-" + System.identityHashCode(this);
     private final int nThreads = 1;
-    private boolean expectException = false;
+    private Class<? extends Exception> expectThrows = null;
 
     public ManagedThread build() {
-      return new ManagedThread(nThreads, startUpWaitMillis, name, expectException);
+      return new ManagedThread(nThreads, startUpWaitMillis, name, expectThrows);
     }
 
-    public Builder expectException(boolean flag) {
-      this.expectException = flag;
+    public Builder expectThrows(Class<? extends Exception> exClass) {
+      this.expectThrows = exClass;
       return this;
     }
   }

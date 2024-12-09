@@ -27,10 +27,10 @@ The following artifact contains the complete SCION Java implementation:
 - UDP over SCION via `ScionDatagramChannel` or `ScionDatagramSocket`
 - [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html) (ICMP for SCION)
 - Works stand-alone or with a local SCION daemon (without dispatcher, see below) 
+- NAT support, see [here](doc/NAT.md) for details and restrictions.
 
 ### Planned features
 - API: `Selector` for `ScionDatagramChannel`
-- Autodetection of NAT external IP
 - Paths with peering routes
 - Improve docs, demos and testing
 - Many more
@@ -57,17 +57,6 @@ JPAN can be used in one of the following ways:
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding
   to forward incoming data to your Java application port. The application port must not be 30041.
-
-### WARNING - NAT
-JPAN does not work well when using a local NAT.
-The problem is that the SCION header must contain the external IP address (i.e. the IP visible to 
-first border router) of the end host. When using a NAT, this needs to be the external IP of the NAT.
-
-JPAN cannot currently auto-detect this IP.
-To work with a NAT, please use `setOverrideSourceAddress(externalAddress)` (new experimental feature) 
-to force JPAN to use the specified external address instead of the eternal IP of the end-host.
-
-Note that this solution only works for NATs, there is currently no solution for proxies.
 
 ## API
 
@@ -145,7 +134,7 @@ can install it with `sudo apt install maven` (Ubuntu etc) or download it
 [here](https://maven.apache.org/index.html).
 
 To install it locally:
-```bash 
+```shell 
 git clone https://github.com/scionproto-contrib/jpan.git
 cd jpan
 mvn clean install
@@ -240,7 +229,7 @@ Create a file `/etc/scion/hosts` to assign ISD/AS ans SCION IP to host names:
 #### Specify ISD/AS in program
 
 We can use the ISD/AS directly to request a path:
-```
+```java
 long isdAs = ScionUtil.parseIA("64-2:0:9");
 InetSocketAddress serverAddress = new InetSocketAddress("129.x.x.x", 80);
 Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
@@ -340,6 +329,10 @@ while the other options are skipped if no property or environment variable is de
 | Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`        |                 |
 | Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
 | List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`    |                 |
+| STUN policy, see [here](doc/NAT.md)           | `org.scion.stun`                    | `SCION_STUN`                  | off             |
+| STUN server                                   | `org.scion.stun.server`             | `SCION_STUN_SERVER`           |                 |
+| STUN response timeout in milliseconds         | `org.scion.stun.timeout`            | `SCION_STUN_TIMEOUT`          | 10              |
+| STUN mapping timeout in seconds               | `org.scion.stun.mapping.timeout`    | `SCION_STUN_MAPPING_TIMEOUT`  | 240             |
 | Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            |
 
 

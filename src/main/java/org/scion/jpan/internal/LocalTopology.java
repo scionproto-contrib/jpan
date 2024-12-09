@@ -190,6 +190,10 @@ public class LocalTopology {
       this.interfaces = interfaces;
     }
 
+    public String getInternalAddress() {
+      return internalAddress;
+    }
+
     public Iterable<BorderRouterInterface> getInterfaces() {
       return interfaces;
     }
