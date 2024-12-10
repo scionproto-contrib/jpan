@@ -30,8 +30,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#146](https://github.com/scionproto-contrib/jpan/pull/146)
 
 ### Changed
-- 
+ 
 - Cleaned up test topologies.  [#145](https://github.com/scionproto-contrib/jpan/pull/145)
+
+### Fixed
+
+- SHIM should not crash when receiving unparseable packet (e.g. dstPort = -1).
+  Also, SHIM should parse SCMP error packets correctly.
+  Cleaned up test topologies.  [#148](https://github.com/scionproto-contrib/jpan/pull/148)
 
 ## [0.4.1] - 2024-11-22
 

@@ -89,7 +89,7 @@ public class Shim implements AutoCloseable {
   }
 
   private void start() {
-    forwarder = new Thread(this::forwardStarter, "Shim-forwarder");
+    forwarder = new Thread(this::forwardStarter, "Shim-Dispatcher");
     forwarder.setDaemon(true);
     forwarder.start();
     try {
@@ -142,9 +142,13 @@ public class Shim implements AutoCloseable {
     try {
       if (forwardCallback == null || forwardCallback.test(buf)) {
         InetSocketAddress dst = ScionHeaderParser.extractDestinationSocketAddress(buf);
+        if (dst == null) {
+          log.error("SCMP error with truncated UDP header");
+          return;
+        }
         channel.send(buf, dst);
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
       log.info("ERROR while forwarding packet: {}", e.getMessage());
     }
   }

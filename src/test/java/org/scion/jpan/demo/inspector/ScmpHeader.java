@@ -26,7 +26,7 @@ public class ScmpHeader {
   private int checksum;
   private int short1;
   private int short2;
-  private byte[] echoUserData;
+  private byte[] echoUserData = new byte[0];
   private long traceIsdAs;
   private long traceIfID;
 
@@ -127,6 +127,10 @@ public class ScmpHeader {
   public void setTraceData(long isdAs, int ifID) {
     this.traceIsdAs = isdAs;
     this.traceIfID = ifID;
+  }
+
+  public void setIdentifier(int identifier) {
+    this.short1 = identifier;
   }
 
   public int getSequenceId() {
