@@ -105,6 +105,7 @@ class HeaderParseAndReplyTest {
   void extractDstPort_SCMP_129() throws UnknownHostException {
     ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_129, false);
     InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
+    assertNotNull(addr);
     assertEquals(12345, addr.getPort());
   }
 
@@ -112,6 +113,7 @@ class HeaderParseAndReplyTest {
   void extractDstPort_SCMP_131() throws UnknownHostException {
     ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_131, false);
     InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
+    assertNotNull(addr);
     assertEquals(12345, addr.getPort());
   }
 
@@ -119,6 +121,7 @@ class HeaderParseAndReplyTest {
   void extractDstPort_SCMP_5() throws UnknownHostException {
     ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, false);
     InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
+    assertNotNull(addr);
     assertEquals(44444, addr.getPort());
   }
 
