@@ -176,7 +176,7 @@ public class MockBorderRouter implements Runnable {
     spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
     scmpHeader.setCode(type);
-    spi.setPayLoad(payload);
+    scmpHeader.setErrorPayload(payload);
     ByteBuffer out = ByteBuffer.allocate(1232); // 1232 limit, see spec
     spi.writePacketSCMP(out);
     out.flip();

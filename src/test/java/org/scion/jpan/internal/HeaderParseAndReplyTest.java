@@ -181,9 +181,9 @@ class HeaderParseAndReplyTest {
       scmpHeader.setIdentifier(dstPort);
     } else if (type == Scmp.TypeCode.TYPE_5) {
       if (truncatePayload) {
-        spi.setPayLoad(Arrays.copyOf(payload, payload.length - 1));
+        scmpHeader.setErrorPayload(Arrays.copyOf(payload, payload.length - 1));
       } else {
-        spi.setPayLoad(payload);
+        scmpHeader.setErrorPayload(payload);
       }
     } else {
       throw new UnsupportedOperationException();

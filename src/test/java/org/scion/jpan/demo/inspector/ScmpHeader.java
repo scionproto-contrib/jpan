@@ -27,6 +27,7 @@ public class ScmpHeader {
   private int short1;
   private int short2;
   private byte[] echoUserData = new byte[0];
+  private byte[] errorPayload = new byte[0];
   private long traceIsdAs;
   private long traceIfID;
 
@@ -52,6 +53,26 @@ public class ScmpHeader {
         break;
       default:
         // SCMP error
+    }
+  }
+
+  public void write(ByteBuffer buffer) {
+    Scmp.Type typeEnum = getType();
+    switch (typeEnum) {
+      case INFO_128:
+      case INFO_129:
+        writeEcho(buffer);
+        break;
+      case INFO_130:
+      case INFO_131:
+        writeTraceroute(buffer);
+        break;
+      default:
+        if (getCode().isError()) {
+          writeError(buffer);
+        } else {
+          throw new UnsupportedOperationException();
+        }
     }
   }
 
@@ -116,6 +137,9 @@ public class ScmpHeader {
       default:
         throw new UnsupportedOperationException();
     }
+    // max: 1232
+    int payloadLen = Math.min(buffer.position() + errorPayload.length, 1232) - buffer.position();
+    buffer.put(errorPayload, 0, payloadLen);
   }
 
   @Override
@@ -147,5 +171,16 @@ public class ScmpHeader {
 
   public void setIdentifier(int identifier) {
     this.short1 = identifier;
+  }
+
+  public void setErrorPayload(byte[] payload) {
+    this.errorPayload = payload;
+  }
+
+  public int getLength() {
+    if (echoUserData.length != 0 && errorPayload.length != 0) {
+      throw new IllegalStateException();
+    }
+    return Scmp.Type.parse(type).getHeaderLength() + echoUserData.length + errorPayload.length;
   }
 }
