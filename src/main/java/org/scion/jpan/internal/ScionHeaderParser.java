@@ -220,7 +220,8 @@ public class ScionHeaderParser {
         Scmp.TypeCode tc = Scmp.TypeCode.parse(type, code);
         if (tc.isError()) {
           // try extracting port from attached packet (may be UDP or SCMP)
-          return extractPortFromPayload(data, hdrOffset + 8);
+          Scmp.Type typeEnum = Scmp.Type.parse(type);
+          return extractPortFromPayload(data, hdrOffset + typeEnum.getHeaderLength());
         }
         throw new UnsupportedOperationException(hdrType.name() + " " + tc.getText());
       }
@@ -256,10 +257,11 @@ public class ScionHeaderParser {
     return dstPort;
   }
 
-  private static int extractPortFromPayload(ByteBuffer data, int hdrOffset) {
-    int start = data.position();
+  private static int extractPortFromPayload(ByteBuffer fullData, int hdrOffset) {
+    int start = fullData.position();
     try {
-      data.position(hdrOffset);
+      fullData.position(hdrOffset);
+      ByteBuffer data = fullData.slice();
       int expectedLength = extractPacketLength(data);
       int hdrLenBytes = extractHeaderLength(data);
       if (expectedLength != data.remaining()) {
@@ -267,11 +269,11 @@ public class ScionHeaderParser {
         return -1;
       }
       InternalConstants.HdrTypes hdrType = extractNextHeader(data);
-      return extractSrcPort(data, hdrOffset + hdrLenBytes, hdrType);
+      return extractSrcPort(data, hdrLenBytes, hdrType);
     } catch (Exception e) {
       return -1;
     } finally {
-      data.position(start);
+      fullData.position(start);
     }
   }
 

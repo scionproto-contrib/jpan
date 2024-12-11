@@ -175,6 +175,7 @@ public class ScionPacketInspector {
 
   public void writePacketSCMP(ByteBuffer newData) {
     Scmp.Type type = scmpHeader.getType();
+    // TODO use switch!
     EnumSet<Scmp.Type> errors =
         EnumSet.of(
             Scmp.Type.ERROR_1,
@@ -186,7 +187,7 @@ public class ScionPacketInspector {
     if (type == Scmp.Type.INFO_128 || type == Scmp.Type.INFO_129) {
       scionHeader.write(
           newData,
-          scmpHeader.getUserData().length + 8,
+          scmpHeader.getUserData().length + type.getHeaderLength(),
           pathHeaderScion.length(),
           Constants.PathTypes.SCION,
           InternalConstants.HdrTypes.SCMP);
@@ -195,7 +196,7 @@ public class ScionPacketInspector {
     } else if (type == Scmp.Type.INFO_130 || type == Scmp.Type.INFO_131) {
       scionHeader.write(
           newData,
-          24,
+          type.getHeaderLength(),
           pathHeaderScion.length(),
           Constants.PathTypes.SCION,
           InternalConstants.HdrTypes.SCMP);
@@ -204,7 +205,7 @@ public class ScionPacketInspector {
     } else if (errors.contains(type)) {
       scionHeader.write(
           newData,
-          8 + payload.length,
+          type.getHeaderLength() + payload.length,
           pathHeaderScion.length(),
           Constants.PathTypes.SCION,
           InternalConstants.HdrTypes.SCMP);

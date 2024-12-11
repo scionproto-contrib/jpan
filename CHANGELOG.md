@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
+  Adhere to https://docs.scion.org/en/latest/protocols/scmp.html#processing-rules
 - remove ScionAddress?
 - ScionDatagramChannel
   - GatheringByteChannel, ScatteringByteChannel

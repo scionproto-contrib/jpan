@@ -36,31 +36,33 @@ public class Scmp {
 
   public enum Type implements ParseEnum {
     // SCMP error messages:
-    ERROR_1(1, "Destination Unreachable"),
-    ERROR_2(2, "Packet Too Big"),
-    ERROR_3(3, "(not assigned)"),
-    ERROR_4(4, "Parameter Problem"),
-    ERROR_5(5, "External Interface Down"),
-    ERROR_6(6, "Internal Connectivity Down"),
-    ERROR_100(100, "Private Experimentation"),
-    ERROR_101(101, "Private Experimentation"),
-    ERROR_127(127, "Reserved for expansion of SCMP error messages"),
+    ERROR_1(1, "Destination Unreachable", 8),
+    ERROR_2(2, "Packet Too Big", 8),
+    ERROR_3(3, "(not assigned)", 0),
+    ERROR_4(4, "Parameter Problem", 8),
+    ERROR_5(5, "External Interface Down", 20),
+    ERROR_6(6, "Internal Connectivity Down", 28),
+    ERROR_100(100, "Private Experimentation", 0),
+    ERROR_101(101, "Private Experimentation", 0),
+    ERROR_127(127, "Reserved for expansion of SCMP error messages", 0),
 
     // SCMP informational messages:
-    INFO_128(128, "Echo Request"),
-    INFO_129(129, "Echo Reply"),
-    INFO_130(130, "Traceroute Request"),
-    INFO_131(131, "Traceroute Reply"),
-    INFO_200(200, "Private Experimentation"),
-    INFO_201(201, "Private Experimentation"),
-    INFO_255(255, "Reserved for expansion of SCMP informational messages");
+    INFO_128(128, "Echo Request", 8),
+    INFO_129(129, "Echo Reply", 8),
+    INFO_130(130, "Traceroute Request", 24),
+    INFO_131(131, "Traceroute Reply", 24),
+    INFO_200(200, "Private Experimentation", 0),
+    INFO_201(201, "Private Experimentation", 0),
+    INFO_255(255, "Reserved for expansion of SCMP informational messages", 0);
 
     final int id;
     final String text;
+    final int headerLength;
 
-    Type(int id, String text) {
+    Type(int id, String text, int headerLength) {
       this.id = id;
       this.text = text;
+      this.headerLength = headerLength;
     }
 
     public static Type parse(int id) {
@@ -74,6 +76,10 @@ public class Scmp {
 
     public String getText() {
       return text;
+    }
+
+    public int getHeaderLength() {
+      return headerLength;
     }
 
     @Override

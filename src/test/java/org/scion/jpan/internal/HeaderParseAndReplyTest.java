@@ -74,8 +74,8 @@ class HeaderParseAndReplyTest {
     }
   }
 
-  // 0/300
-  byte[] baError5 = {
+  // 300 bytes SCMP error 5 with UDP payload
+  private static final byte[] baError5 = {
     0, 0, 0, 1, -54, 32, 0, -84, 1, 0, 0, 0, 0, 64, 0, 2, 0, 0, 0, 9, 0, 64, 0, 0, 0, 0, 26, 74,
     -127, -124, -26, 73, 10, -60, 8, 67, 69, 0, 64, -128, 1, 0, -118, 102, 103, 88, 25, 99, 1, 0,
     -71, -86, 103, 88, 54, -103, 0, 63, 0, 0, 0, 20, -80, 106, 76, -30, -66, -86, 0, 63, 0, 12, 0,
@@ -90,12 +90,19 @@ class HeaderParseAndReplyTest {
     -30, -66, -86, -126, 0, 0, 0, 121, 24, 1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   };
 
+  private static final byte[] PAYLOAD_UDP = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
+  // We just use the SCMP error message as payload for another SCMP error
+  private static final byte[] PAYLOAD_SCMP_ERROR = baError5;
+  private static final byte[] PAYLOAD_BAD = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16};
+
   @Test
   void extractDestination_SCMP_error_5() {
     // Example with actual error from the PRODUCTION network
     ByteBuffer bb = ByteBuffer.wrap(baError5);
     try {
-      assertNull(ScionHeaderParser.extractDestinationSocketAddress(bb));
+      InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(bb);
+      assertNotNull(addr);
+      assertEquals(31000, addr.getPort());
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
@@ -103,7 +110,7 @@ class HeaderParseAndReplyTest {
 
   @Test
   void extractDstPort_SCMP_129() throws UnknownHostException {
-    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_129, false);
+    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_129);
     InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
     assertNotNull(addr);
     assertEquals(12345, addr.getPort());
@@ -111,27 +118,52 @@ class HeaderParseAndReplyTest {
 
   @Test
   void extractDstPort_SCMP_131() throws UnknownHostException {
-    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_131, false);
+    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_131);
     InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
     assertNotNull(addr);
     assertEquals(12345, addr.getPort());
   }
 
   @Test
-  void extractDstPort_SCMP_5() throws UnknownHostException {
-    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, false);
+  void extractDstPort_SCMP_5_payload_UDP() throws UnknownHostException {
+    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, PAYLOAD_UDP, false);
     InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
     assertNotNull(addr);
     assertEquals(44444, addr.getPort());
   }
 
   @Test
-  void extractDstPort_SCMP_5_truncated() throws UnknownHostException {
-    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, true);
+  void extractDstPort_SCMP_5_payload_UDP_truncated() throws UnknownHostException {
+    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, PAYLOAD_UDP, true);
     assertNull(ScionHeaderParser.extractDestinationSocketAddress(data));
   }
 
-  private ByteBuffer createScmpResponse(int dstPort, Scmp.TypeCode type, boolean truncatePayload) {
+  @Test
+  void extractDstPort_SCMP_5_payload_SCMP() throws UnknownHostException {
+    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, PAYLOAD_SCMP_ERROR, false);
+    InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
+    assertNotNull(addr);
+    assertEquals(30041, addr.getPort());
+  }
+
+  @Test
+  void extractDstPort_SCMP_5_payload_SCMP_truncated() throws UnknownHostException {
+    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, PAYLOAD_SCMP_ERROR, true);
+    assertNull(ScionHeaderParser.extractDestinationSocketAddress(data));
+  }
+
+  @Test
+  void extractDstPort_SCMP_5_payload_BAD() throws UnknownHostException {
+    ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, PAYLOAD_BAD, false);
+    assertNull(ScionHeaderParser.extractDestinationSocketAddress(data));
+  }
+
+  private ByteBuffer createScmpResponse(int dstPort, Scmp.TypeCode type) {
+    return createScmpResponse(dstPort, type, null, false);
+  }
+
+  private ByteBuffer createScmpResponse(
+      int dstPort, Scmp.TypeCode type, byte[] payload, boolean truncatePayload) {
     ScionPacketInspector spi = ScionPacketInspector.createEmpty();
     ScionHeader scionHeader = spi.getScionHeader();
     scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 1});
@@ -148,11 +180,11 @@ class HeaderParseAndReplyTest {
     if (type == Scmp.TypeCode.TYPE_131 || type == Scmp.TypeCode.TYPE_129) {
       scmpHeader.setIdentifier(dstPort);
     } else if (type == Scmp.TypeCode.TYPE_5) {
-      byte[] payload = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
       if (truncatePayload) {
-        payload = Arrays.copyOf(payload, payload.length - 1);
+        spi.setPayLoad(Arrays.copyOf(payload, payload.length - 1));
+      } else {
+        spi.setPayLoad(payload);
       }
-      spi.setPayLoad(payload);
     } else {
       throw new UnsupportedOperationException();
     }
@@ -161,5 +193,50 @@ class HeaderParseAndReplyTest {
     spi.writePacketSCMP(data);
     data.flip();
     return data;
+  }
+
+  private byte[] createScmpPacket(int dstPort, Scmp.TypeCode type) {
+    ScionPacketInspector spi = ScionPacketInspector.createEmpty();
+    ScionHeader scionHeader = spi.getScionHeader();
+    scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 1});
+    scionHeader.setDstHostAddress(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1});
+    scionHeader.setSrcIA(ScionUtil.parseIA("1-ff00:0:110"));
+    scionHeader.setDstIA(ScionUtil.parseIA("1-ff00:0:112"));
+
+    byte[] path = ExamplePacket.PATH_RAW_TINY_110_112;
+    PathHeaderScion pathHeader = spi.getPathHeaderScion();
+    pathHeader.read(ByteBuffer.wrap(path)); // Initialize path
+
+    ScmpHeader scmpHeader = spi.getScmpHeader();
+    scmpHeader.setCode(type);
+    switch (type) {
+      case TYPE_128:
+      case TYPE_129:
+      case TYPE_130:
+      case TYPE_131:
+        scmpHeader.setIdentifier(dstPort);
+        break;
+      case TYPE_1_CODE_0:
+        break;
+      case TYPE_2:
+        break;
+      case TYPE_3:
+        break;
+      case TYPE_4_CODE_0:
+        break;
+      case TYPE_5:
+        break;
+      case TYPE_6:
+        break;
+      default:
+        throw new UnsupportedOperationException();
+    }
+
+    ByteBuffer data = ByteBuffer.allocate(1000);
+    spi.writePacketSCMP(data);
+    data.flip();
+    byte[] result = new byte[data.remaining()];
+    data.get(result);
+    return result;
   }
 }

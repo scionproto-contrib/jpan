@@ -53,9 +53,6 @@ public class ScmpHeader {
       default:
         // SCMP error
     }
-
-    // System.out.println("Found SCMP: " + getType() + " -> " + getCode());
-    // System.out.println("To read:" + data.remaining());
   }
 
   public void writeEcho(ByteBuffer buffer) {
@@ -64,7 +61,7 @@ public class ScmpHeader {
     }
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) 0); // checksum
     buffer.putShort((short) short1); // unsigned identifier
     buffer.putShort((short) short2); // unsigned sequenceNumber
     buffer.put(echoUserData);
@@ -76,7 +73,7 @@ public class ScmpHeader {
     }
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) 0); // checksum
     buffer.putShort((short) short1); // unsigned identifier
     buffer.putShort((short) short2); // unsigned sequenceNumber
 
@@ -97,9 +94,28 @@ public class ScmpHeader {
   public void writeError(ByteBuffer buffer) {
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // TODO checksum
-    buffer.putShort((short) short1); // unsigned identifier
-    buffer.putShort((short) short2); // unsigned sequenceNumber
+    buffer.putShort((short) 0); // checksum
+    switch (type) {
+      case 1:
+        buffer.putInt(0); // unused
+        break;
+      case 2:
+      case 4:
+        buffer.putShort((short) 0); // reserved
+        buffer.putShort((short) short2); // 2: MTU; 4: pointer
+        break;
+      case 5:
+        buffer.putLong(0); // ISD/AS
+        buffer.putLong(0); // Interface ID
+        break;
+      case 6:
+        buffer.putLong(0); // ISD/AS
+        buffer.putLong(0); // Ingress Interface ID
+        buffer.putLong(0); // Egress Interface ID
+        break;
+      default:
+        throw new UnsupportedOperationException();
+    }
   }
 
   @Override
@@ -131,9 +147,5 @@ public class ScmpHeader {
 
   public void setIdentifier(int identifier) {
     this.short1 = identifier;
-  }
-
-  public int getSequenceId() {
-    return short2;
   }
 }

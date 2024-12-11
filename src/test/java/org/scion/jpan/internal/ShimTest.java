@@ -190,8 +190,9 @@ class ShimTest {
           });
 
       sendScmpResponse(port, scmpTypeCode, expectError);
-    } finally {
       receiver.join(10);
+    } finally {
+      receiver.stopNow();
     }
     assertEquals(expectError ? 0 : 1, counter.get());
   }
