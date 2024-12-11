@@ -297,6 +297,13 @@ public class LocalTopology {
       return new InetSocketAddress(address.getAddress(), Constants.DISPATCHER_PORT);
     }
 
+    public int mapToLocalPort(int port) {
+      if (port == Constants.SCMP_PORT || (port >= portMin && port <= portMax)) {
+        return port;
+      }
+      return Constants.DISPATCHER_PORT;
+    }
+
     public int getPortMin() {
       return portMin;
     }

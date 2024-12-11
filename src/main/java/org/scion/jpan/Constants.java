@@ -127,8 +127,8 @@ public final class Constants {
   public static final int DEFAULT_NAT_MAPPING_TIMEOUT = 110;
 
   /**
-   * Controls whether JPAN should send regular keep alive packets through the NAT to prevent
-   * losing the mapping. Packets are only sent if no other activity is recorded. Default is "false".
+   * Controls whether JPAN should send regular keep alive packets through the NAT to prevent losing
+   * the mapping. Packets are only sent if no other activity is recorded. Default is "false".
    */
   public static final String PROPERTY_NAT_MAPPING_KEEPALIVE = "org.scion.nat.mapping.timeout";
 

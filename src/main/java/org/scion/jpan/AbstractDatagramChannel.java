@@ -461,6 +461,15 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     // For inter-AS connections we need to send directly to the destination address.
     // We also need to respect the port range and use 30041 when applicable.
     if (getService() != null && path.getRawPath().length == 0) {
+      // TODO why do we look at the firstHop?
+      //  -> This is very non-intuitive!!!
+      //  -> Maybe even remove the automatic assisgnment in PathMetadata constructor?
+      // TODO InetSocketAddress remoteHostIP = path.getFirstHopAddress();
+      //      int remotePort =
+      // getService().getLocalPortRange().mapToLocalPort(path.getRemotePort());
+      //      InetSocketAddress remoteHostIP = new InetSocketAddress(path.getRemoteAddress(),
+      // remotePort);
+      // TODO clean up LocalTopology.mapToLocalPort()
       InetSocketAddress remoteHostIP = path.getFirstHopAddress();
       remoteHostIP = getService().getLocalPortRange().mapToLocalPort(remoteHostIP);
       return channel.send(buffer, remoteHostIP);

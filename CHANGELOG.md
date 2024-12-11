@@ -40,6 +40,8 @@ TODO
   from a NAT or BR? Unfortunately this is not 100% accurate because the NAT may have incidentally
   the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
 
+- FIX (maybe separate PR): AbstractChannel.sendRaw()
+
 - Make sure that we don´t rely on successful SCMP to report "success".
 
 - Configure 
@@ -50,6 +52,7 @@ TODO
   to UDP underlay instead of SCION source address(?).
   Check TODO in AbstractChannel.updateConnection()
 - Check how PAN/snet behaves wrt responding to underlay address when in local AS.
+
 
 
 ### Changed

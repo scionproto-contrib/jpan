@@ -41,9 +41,9 @@ public class NatMapping {
 
   private static final int NAT_UDP_MAPPING_TIMEOUT =
       ScionUtil.getPropertyOrEnv(
-              PROPERTY_NAT_MAPPING_TIMEOUT,
-              ENV_NAT_MAPPING_TIMEOUT,
-              DEFAULT_NAT_MAPPING_TIMEOUT); // seconds
+          PROPERTY_NAT_MAPPING_TIMEOUT,
+          ENV_NAT_MAPPING_TIMEOUT,
+          DEFAULT_NAT_MAPPING_TIMEOUT); // seconds
   private static final Logger log = LoggerFactory.getLogger(NatMapping.class);
 
   private static final int stunTimeoutMs =
@@ -180,7 +180,7 @@ public class NatMapping {
         if (addr == null) {
           String custom =
               ScionUtil.getPropertyOrEnv(
-                      PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, DEFAULT_NAT_STUN_SERVER);
+                  PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, DEFAULT_NAT_STUN_SERVER);
           throw new ScionRuntimeException("Failed to connect to STUN servers: " + custom);
         }
         update(NatMode.STUN_SERVER, addr);
@@ -210,7 +210,8 @@ public class NatMapping {
 
   private InetSocketAddress tryCustomServer(boolean useDefault) {
     String defaultSrv = useDefault ? DEFAULT_NAT_STUN_SERVER : null;
-    String custom = ScionUtil.getPropertyOrEnv(PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, defaultSrv);
+    String custom =
+        ScionUtil.getPropertyOrEnv(PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, defaultSrv);
     if (!useDefault && (custom == null || custom.isEmpty())) {
       // Ignore empty sever address if we don't rely on it
       return null;
