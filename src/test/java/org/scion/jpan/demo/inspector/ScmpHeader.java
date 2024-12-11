@@ -26,7 +26,8 @@ public class ScmpHeader {
   private int checksum;
   private int short1;
   private int short2;
-  private byte[] echoUserData;
+  private byte[] echoUserData = new byte[0];
+  private byte[] errorPayload = new byte[0];
   private long traceIsdAs;
   private long traceIfID;
 
@@ -53,9 +54,26 @@ public class ScmpHeader {
       default:
         // SCMP error
     }
+  }
 
-    // System.out.println("Found SCMP: " + getType() + " -> " + getCode());
-    // System.out.println("To read:" + data.remaining());
+  public void write(ByteBuffer buffer) {
+    Scmp.Type typeEnum = getType();
+    switch (typeEnum) {
+      case INFO_128:
+      case INFO_129:
+        writeEcho(buffer);
+        break;
+      case INFO_130:
+      case INFO_131:
+        writeTraceroute(buffer);
+        break;
+      default:
+        if (getCode().isError()) {
+          writeError(buffer);
+        } else {
+          throw new UnsupportedOperationException();
+        }
+    }
   }
 
   public void writeEcho(ByteBuffer buffer) {
@@ -64,7 +82,7 @@ public class ScmpHeader {
     }
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) 0); // checksum
     buffer.putShort((short) short1); // unsigned identifier
     buffer.putShort((short) short2); // unsigned sequenceNumber
     buffer.put(echoUserData);
@@ -76,7 +94,7 @@ public class ScmpHeader {
     }
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // TODO checksum
+    buffer.putShort((short) 0); // checksum
     buffer.putShort((short) short1); // unsigned identifier
     buffer.putShort((short) short2); // unsigned sequenceNumber
 
@@ -97,9 +115,31 @@ public class ScmpHeader {
   public void writeError(ByteBuffer buffer) {
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
     buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // TODO checksum
-    buffer.putShort((short) short1); // unsigned identifier
-    buffer.putShort((short) short2); // unsigned sequenceNumber
+    buffer.putShort((short) 0); // checksum
+    switch (type) {
+      case 1:
+        buffer.putInt(0); // unused
+        break;
+      case 2:
+      case 4:
+        buffer.putShort((short) 0); // reserved
+        buffer.putShort((short) short2); // 2: MTU; 4: pointer
+        break;
+      case 5:
+        buffer.putLong(0); // ISD/AS
+        buffer.putLong(0); // Interface ID
+        break;
+      case 6:
+        buffer.putLong(0); // ISD/AS
+        buffer.putLong(0); // Ingress Interface ID
+        buffer.putLong(0); // Egress Interface ID
+        break;
+      default:
+        throw new UnsupportedOperationException();
+    }
+    // max: 1232
+    int payloadLen = Math.min(buffer.position() + errorPayload.length, 1232) - buffer.position();
+    buffer.put(errorPayload, 0, payloadLen);
   }
 
   @Override
@@ -129,7 +169,18 @@ public class ScmpHeader {
     this.traceIfID = ifID;
   }
 
-  public int getSequenceId() {
-    return short2;
+  public void setIdentifier(int identifier) {
+    this.short1 = identifier;
+  }
+
+  public void setErrorPayload(byte[] payload) {
+    this.errorPayload = payload;
+  }
+
+  public int getLength() {
+    if (echoUserData.length != 0 && errorPayload.length != 0) {
+      throw new IllegalStateException();
+    }
+    return Scmp.Type.parse(type).getHeaderLength() + echoUserData.length + errorPayload.length;
   }
 }

@@ -148,7 +148,7 @@ public class MockBorderRouter implements Runnable {
 
     // Forward packet to DST unless it is meant for us (us=bind1).
     InetSocketAddress dstIP = ScionHeaderParser.extractDestinationSocketAddress(buffer);
-    if (type0 == Scmp.Type.INFO_128 && dstIP.getAddress() != bind1.getAddress()) {
+    if (dstIP != null && type0 == Scmp.Type.INFO_128 && dstIP.getAddress() != bind1.getAddress()) {
       buffer.rewind();
       forwardPacket(buffer, srcAddress, outgoing);
       return;
@@ -176,7 +176,7 @@ public class MockBorderRouter implements Runnable {
     spi.reversePath();
     ScmpHeader scmpHeader = spi.getScmpHeader();
     scmpHeader.setCode(type);
-    spi.setPayLoad(payload);
+    scmpHeader.setErrorPayload(payload);
     ByteBuffer out = ByteBuffer.allocate(1232); // 1232 limit, see spec
     spi.writePacketSCMP(out);
     out.flip();

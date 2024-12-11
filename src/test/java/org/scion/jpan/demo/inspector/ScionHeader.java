@@ -140,6 +140,11 @@ public class ScionHeader {
     write(data, userPacketLength + 8, pathHeaderLength, pathType, InternalConstants.HdrTypes.UDP);
   }
 
+  public void adjustPayloadLength(ByteBuffer data, int payloadLength) {
+    payLoadLen = payloadLength;
+    data.putShort(6, (short) payloadLength);
+  }
+
   public void write(
       ByteBuffer data,
       int userPacketLength,

@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.EnumSet;
 import org.scion.jpan.Scmp;
 import org.scion.jpan.internal.InternalConstants;
 
@@ -175,45 +174,23 @@ public class ScionPacketInspector {
 
   public void writePacketSCMP(ByteBuffer newData) {
     Scmp.Type type = scmpHeader.getType();
-    EnumSet<Scmp.Type> errors =
-        EnumSet.of(
-            Scmp.Type.ERROR_1,
-            Scmp.Type.ERROR_2,
-            Scmp.Type.ERROR_3,
-            Scmp.Type.ERROR_4,
-            Scmp.Type.ERROR_5,
-            Scmp.Type.ERROR_6);
-    if (type == Scmp.Type.INFO_128 || type == Scmp.Type.INFO_129) {
+    boolean isError = scmpHeader.getCode().isError();
+    if (type == Scmp.Type.INFO_128
+        || type == Scmp.Type.INFO_129
+        || type == Scmp.Type.INFO_130
+        || type == Scmp.Type.INFO_131
+        || isError) {
       scionHeader.write(
           newData,
-          scmpHeader.getUserData().length + 8,
+          scmpHeader.getLength(),
           pathHeaderScion.length(),
           Constants.PathTypes.SCION,
           InternalConstants.HdrTypes.SCMP);
-      pathHeaderScion.write(newData);
-      scmpHeader.writeEcho(newData);
-    } else if (type == Scmp.Type.INFO_130 || type == Scmp.Type.INFO_131) {
-      scionHeader.write(
-          newData,
-          24,
-          pathHeaderScion.length(),
-          Constants.PathTypes.SCION,
-          InternalConstants.HdrTypes.SCMP);
-      pathHeaderScion.write(newData);
-      scmpHeader.writeTraceroute(newData);
-    } else if (errors.contains(type)) {
-      scionHeader.write(
-          newData,
-          8 + payload.length,
-          pathHeaderScion.length(),
-          Constants.PathTypes.SCION,
-          InternalConstants.HdrTypes.SCMP);
-      pathHeaderScion.write(newData);
-      scmpHeader.writeError(newData);
-      newData.put(payload);
     } else {
       throw new UnsupportedOperationException();
     }
+    pathHeaderScion.write(newData);
+    scmpHeader.write(newData);
   }
 
   public ScmpHeader getScmpHeader() {

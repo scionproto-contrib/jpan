@@ -155,6 +155,12 @@ public class ScionHeaderParser {
     return InternalConstants.HdrTypes.parse(nextHeader);
   }
 
+  /**
+   * Extract the destination socket address without changing the buffer's position.
+   *
+   * @param data The datagram to read from.
+   * @return The destination address or 'null' if no address is available (e.g. SCMP error)
+   */
   public static InetSocketAddress extractDestinationSocketAddress(ByteBuffer data)
       throws UnknownHostException {
     int start = data.position();
@@ -180,6 +186,10 @@ public class ScionHeaderParser {
     data.get(bytesDst);
     InetAddress dstIP = InetAddress.getByAddress(bytesDst);
     int dstPort = extractDstPort(data, start + hdrLenBytes, hdrType);
+    if (dstPort < 0) {
+      // return null, e.g. for truncated SCMP packets
+      return null;
+    }
 
     // rewind to original offset
     data.position(start);
@@ -187,15 +197,15 @@ public class ScionHeaderParser {
   }
 
   private static int extractDstPort(
-      ByteBuffer data, int scmpHdrOffset, InternalConstants.HdrTypes hdrType) {
+      ByteBuffer data, int hdrOffset, InternalConstants.HdrTypes hdrType) {
     int dstPort;
     if (hdrType == InternalConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
-      data.position(scmpHdrOffset + 2);
+      data.position(hdrOffset + 2);
       dstPort = Short.toUnsignedInt(data.getShort());
     } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
       // get remote port from SCMP header
-      data.position(scmpHdrOffset);
+      data.position(hdrOffset);
       int type = ByteUtil.toUnsigned(data.get());
       Scmp.Type t = Scmp.Type.parse(type);
       if (t == Scmp.Type.INFO_128 || t == Scmp.Type.INFO_130) {
@@ -203,14 +213,15 @@ public class ScionHeaderParser {
         dstPort = Constants.SCMP_PORT;
       } else if (t == Scmp.Type.INFO_129 || t == Scmp.Type.INFO_131) {
         // response -> get port from SCMP identifier
-        data.position(scmpHdrOffset + 4);
+        data.position(hdrOffset + 4);
         dstPort = Short.toUnsignedInt(data.getShort());
       } else {
         int code = ByteUtil.toUnsigned(data.get());
         Scmp.TypeCode tc = Scmp.TypeCode.parse(type, code);
         if (tc.isError()) {
-          // TODO try extracting port from attached packet (may be UDP or SCMP)
-          return -1;
+          // try extracting port from attached packet (may be UDP or SCMP)
+          Scmp.Type typeEnum = Scmp.Type.parse(type);
+          return extractPortFromPayload(data, hdrOffset + typeEnum.getHeaderLength());
         }
         throw new UnsupportedOperationException(hdrType.name() + " " + tc.getText());
       }
@@ -218,6 +229,52 @@ public class ScionHeaderParser {
       throw new UnsupportedOperationException();
     }
     return dstPort;
+  }
+
+  private static int extractSrcPort(
+      ByteBuffer data, int hdrOffset, InternalConstants.HdrTypes hdrType) {
+    int dstPort;
+    if (hdrType == InternalConstants.HdrTypes.UDP) {
+      // get remote port from UDP overlay
+      data.position(hdrOffset);
+      dstPort = Short.toUnsignedInt(data.getShort());
+    } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+      // get remote port from SCMP header
+      data.position(hdrOffset);
+      int type = ByteUtil.toUnsigned(data.get());
+      Scmp.Type t = Scmp.Type.parse(type);
+      if (t == Scmp.Type.INFO_128 || t == Scmp.Type.INFO_130) {
+        // request -> get port from SCMP identifier
+        data.position(hdrOffset + 4);
+        dstPort = Short.toUnsignedInt(data.getShort());
+      } else {
+        // request or error -> port is 30041
+        dstPort = Constants.SCMP_PORT;
+      }
+    } else {
+      throw new UnsupportedOperationException();
+    }
+    return dstPort;
+  }
+
+  private static int extractPortFromPayload(ByteBuffer fullData, int hdrOffset) {
+    int start = fullData.position();
+    try {
+      fullData.position(hdrOffset);
+      ByteBuffer data = fullData.slice();
+      int expectedLength = extractPacketLength(data);
+      int hdrLenBytes = extractHeaderLength(data);
+      if (expectedLength != data.remaining()) {
+        // truncated payload
+        return -1;
+      }
+      InternalConstants.HdrTypes hdrType = extractNextHeader(data);
+      return extractSrcPort(data, hdrLenBytes, hdrType);
+    } catch (Exception e) {
+      return -1;
+    } finally {
+      fullData.position(start);
+    }
   }
 
   /**

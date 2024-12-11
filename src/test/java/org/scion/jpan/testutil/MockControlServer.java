@@ -20,13 +20,11 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
@@ -34,24 +32,16 @@ import org.scion.jpan.proto.crypto.Signed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MockControlServer implements AutoCloseable {
+public class MockControlServer {
 
   private static final Logger logger = LoggerFactory.getLogger(MockControlServer.class.getName());
   private final AtomicInteger callCount = new AtomicInteger();
   private final InetSocketAddress address;
-  // TODO remove or use
-  private final List<InetSocketAddress> borderRouters;
   private Server server;
   private ControlServiceImpl controlServer;
 
   private MockControlServer(InetSocketAddress address) {
     this.address = address;
-    this.borderRouters = new ArrayList<>();
-  }
-
-  private MockControlServer(InetSocketAddress address, List<InetSocketAddress> borderRouters) {
-    this.address = address;
-    this.borderRouters = borderRouters;
   }
 
   public static MockControlServer start(int port) {
@@ -68,10 +58,8 @@ public class MockControlServer implements AutoCloseable {
   }
 
   private MockControlServer startInternal() throws IOException {
-    List<String> brStr =
-        borderRouters.stream().map(br -> br.toString().substring(1)).collect(Collectors.toList());
     int port = address.getPort();
-    controlServer = new MockControlServer.ControlServiceImpl(brStr);
+    controlServer = new MockControlServer.ControlServiceImpl();
     server =
         Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
             .addService(controlServer)
@@ -92,7 +80,6 @@ public class MockControlServer implements AutoCloseable {
     return this;
   }
 
-  @Override
   public void close() {
     server.shutdown();
     try {
@@ -119,12 +106,9 @@ public class MockControlServer implements AutoCloseable {
   }
 
   private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
-    final List<String> borderRouters;
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
 
-    ControlServiceImpl(List<String> borderRouters) {
-      this.borderRouters = borderRouters;
-    }
+    ControlServiceImpl() {}
 
     @Override
     public void segments(

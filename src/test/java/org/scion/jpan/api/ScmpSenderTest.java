@@ -343,7 +343,7 @@ public class ScmpSenderTest {
           spi.reversePath();
           ScmpHeader scmpHeader = spi.getScmpHeader();
           scmpHeader.setCode(Scmp.TypeCode.TYPE_1_CODE_0);
-          spi.setPayLoad(payload);
+          scmpHeader.setErrorPayload(payload);
           return payload.length;
         });
     errorChannel.setReceiveCallback(
