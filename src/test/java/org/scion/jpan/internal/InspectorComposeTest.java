@@ -32,6 +32,7 @@ import org.scion.jpan.demo.inspector.PathHeaderScion;
 import org.scion.jpan.demo.inspector.ScionHeader;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDaemon;
+import org.scion.jpan.testutil.MockNetwork;
 
 class InspectorComposeTest {
 
@@ -129,7 +130,7 @@ class InspectorComposeTest {
       }
       assertEquals(packetBytes[i], data.get(i), "Mismatch at position " + i);
     }
-    // port-range + local AS + path
-    assertEquals(3, MockDaemon.getAndResetCallCount());
+    // service init + path
+    assertEquals(MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1, MockDaemon.getAndResetCallCount());
   }
 }

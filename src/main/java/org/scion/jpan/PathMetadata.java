@@ -73,7 +73,7 @@ public class PathMetadata {
     return pathProtoc;
   }
 
-  public InetSocketAddress getFirstHopAddress() throws UnknownHostException {
+  public InetSocketAddress getFirstHopAddress() {
     return firstHop;
   }
 
