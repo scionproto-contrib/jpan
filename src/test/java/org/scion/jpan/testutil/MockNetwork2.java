@@ -62,6 +62,7 @@ public class MockNetwork2 implements AutoCloseable {
     controlServer.getAndResetCallCount();
   }
 
+  @Override
   public void close() {
     controlServer.close();
     topoServer.close();

@@ -194,49 +194,4 @@ class HeaderParseAndReplyTest {
     data.flip();
     return data;
   }
-
-  private byte[] createScmpPacket(int dstPort, Scmp.TypeCode type) {
-    ScionPacketInspector spi = ScionPacketInspector.createEmpty();
-    ScionHeader scionHeader = spi.getScionHeader();
-    scionHeader.setSrcHostAddress(new byte[] {127, 0, 0, 1});
-    scionHeader.setDstHostAddress(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1});
-    scionHeader.setSrcIA(ScionUtil.parseIA("1-ff00:0:110"));
-    scionHeader.setDstIA(ScionUtil.parseIA("1-ff00:0:112"));
-
-    byte[] path = ExamplePacket.PATH_RAW_TINY_110_112;
-    PathHeaderScion pathHeader = spi.getPathHeaderScion();
-    pathHeader.read(ByteBuffer.wrap(path)); // Initialize path
-
-    ScmpHeader scmpHeader = spi.getScmpHeader();
-    scmpHeader.setCode(type);
-    switch (type) {
-      case TYPE_128:
-      case TYPE_129:
-      case TYPE_130:
-      case TYPE_131:
-        scmpHeader.setIdentifier(dstPort);
-        break;
-      case TYPE_1_CODE_0:
-        break;
-      case TYPE_2:
-        break;
-      case TYPE_3:
-        break;
-      case TYPE_4_CODE_0:
-        break;
-      case TYPE_5:
-        break;
-      case TYPE_6:
-        break;
-      default:
-        throw new UnsupportedOperationException();
-    }
-
-    ByteBuffer data = ByteBuffer.allocate(1000);
-    spi.writePacketSCMP(data);
-    data.flip();
-    byte[] result = new byte[data.remaining()];
-    data.get(result);
-    return result;
-  }
 }
