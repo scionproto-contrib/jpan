@@ -322,18 +322,19 @@ attempt to get network information in the following order until it succeeds:
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
 
-| Option                                        | Java property                       | Environment variable          | Default value   |
-|-----------------------------------------------|-------------------------------------|-------------------------------|-----------------|
-| Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                | localhost:30255 | 
-| Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
-| Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`        |                 |
-| Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
-| List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`    |                 |
-| STUN policy, see [here](doc/NAT.md)           | `org.scion.stun`                    | `SCION_STUN`                  | off             |
-| STUN server                                   | `org.scion.stun.server`             | `SCION_STUN_SERVER`           |                 |
-| STUN response timeout in milliseconds         | `org.scion.stun.timeout`            | `SCION_STUN_TIMEOUT`          | 10              |
-| STUN mapping timeout in seconds               | `org.scion.stun.mapping.timeout`    | `SCION_STUN_MAPPING_TIMEOUT`  | 240             |
-| Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            |
+| Option                                        | Java property                       | Environment variable           | Default value   |
+|-----------------------------------------------|-------------------------------------|--------------------------------|-----------------|
+| Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                 | localhost:30255 | 
+| Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`    |                 | 
+| Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`         |                 |
+| Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`   |                 | 
+| List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`     |                 |
+| NAT/STUN policy, see [here](doc/NAT.md)       | `org.scion.nat`                     | `SCION_NAT`                    | off             |
+| NAT mapping timeout in seconds                | `org.scion.nat.mapping.timeout`     | `SCION_NAT_MAPPING_TIMEOUT`    | 110             |
+| Send NAT mapping keep-alive packets           | `org.scion.nat.mapping.keepalive`   | `SCION_NAT_MAPPING_KEEPALIVE`  | false           |
+| STUN server                                   | `org.scion.nat.stun.server`         | `SCION_NAT_STUN_SERVER`        |                 |
+| STUN response timeout in milliseconds         | `org.scion.nat.stun.timeout`        | `SCION_NAT_STUN_TIMEOUT`       | 10              |
+| Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS`  | true            |
 
 
 ### DNS

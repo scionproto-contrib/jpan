@@ -231,31 +231,36 @@ Cases to consider:
       Something like a meta-socket that doesn't have a defined local address but can send
       over multiple interfaces in parallel? Yes! -> Later!
 
-### Timeout
+### Mapping Timeout
 
-- Mapping: timeout reset (touch()) on receive() -> See step 4. below
-- Mapping: after timeout: check that we reset the correct type (ASInfo vs Entry).
+NATs usually time out and drop unused mappings after after a few minutes (minimum 2 minutes,
+recommended 5 minutes, see [RFC 4787](https://datatracker.ietf.org/doc/html/rfc4787#section-4.3)).
 
-After stale connection timeout (Mapping timeout), how can we ensure that
-we can send/receive on the stale channel?
+To handle this we have two options:
 
-Dilemma:
+- Detect and create new mapping
+- Prevent timeouts with keep-alive messages
 
-- send()/write() is fine, we can just block them
-- non-blocking receive()/read() is fine, we can just block these
-- blocking receive()/read() is a problem
-    - Interrupting the receiver and restarting is not possible.
-    - We can install a callback. That would mostly work, but in theory the user could interrupt the
-      receiver() while we are waiting. We could try to detect that and then retry with our own
-      receiver...
-- Alternative: We do not check for timeouts but let the application layer handle this.
-  --> Probably the simplest solution!
+In both cases we keep track of activity by monitoring incoming and outgoing packets.
 
-Another problem with timeout: when is it triggered?
+**Detection and reestablish**
 
-- If triggered by send() or similar: causes a small delay (not desirable)
-- If triggered by timer: May cause unnecessary keep-alive messages...
-  --> Configurable?
+On a call to `send()`. if the last activity is too long ago, we trigger a new round
+of NAT detection.
+Disadvantage: Unexpected additional time (1-5ms) when a user sends a packet.
+
+**Keep-alive message**
+
+We regularly send keep-alive packets to all border routers to prev ent the NAT from
+timing out. These packets can be anything, plain UDP, UDP/SCION or SCMP echo.
+We don't actually need to wait for incoming responses.
+Disadvantage: Keep-alive message can be annoying and eat energy on mobile devices.
+
+**Conclusion**
+
+We implement both options. They are configurable via `SCION_NAT_KEEPALIVE` or
+`org.scion.nat.keepalive`. The default value is `false`, indicating that no keep
+alive messages are sent and instead we rely on "detection and reestablish".
 
 # TODO
 

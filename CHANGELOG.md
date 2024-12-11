@@ -50,6 +50,7 @@ TODO
   - We cannot use BR as STUN.
   - We could use public STUN, but that would just complicate things....?
 - Check TODO in AbstractChannel.updateConnection()
+- Naming: CONFIG should indicate NAT i.o. STUN!!!!
 
 
 ### Changed

@@ -36,23 +36,23 @@ class NatMappingTest {
 
   @BeforeEach
   void beforeEach() {
-    System.clearProperty(Constants.PROPERTY_STUN);
-    System.clearProperty(Constants.PROPERTY_STUN_SERVER);
+    System.clearProperty(Constants.PROPERTY_NAT);
+    System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
     ExternalIpDiscovery.uninstall();
     MockNetwork.stopTiny();
   }
 
   @AfterAll
   static void afterAll() {
-    System.clearProperty(Constants.PROPERTY_STUN);
-    System.clearProperty(Constants.PROPERTY_STUN_SERVER);
+    System.clearProperty(Constants.PROPERTY_NAT);
+    System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
     ExternalIpDiscovery.uninstall();
     MockNetwork.stopTiny();
   }
 
   @Test
   void test_wrongSetting() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "Hello!");
+    System.setProperty(Constants.PROPERTY_NAT, "Hello!");
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
@@ -67,7 +67,7 @@ class NatMappingTest {
 
   @Test
   void testOFF() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "OFF");
+    System.setProperty(Constants.PROPERTY_NAT, "OFF");
     MockNetwork.startTiny();
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
@@ -85,7 +85,7 @@ class NatMappingTest {
 
   @Test
   void testBR() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "BR");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
     MockNetwork.startTiny();
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
@@ -108,7 +108,7 @@ class NatMappingTest {
     List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
     MockNetwork.stopTiny();
 
-    System.setProperty(Constants.PROPERTY_STUN, "BR");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
       long isdAs = ScionUtil.parseIA("1-ff00:0:110");
@@ -120,21 +120,21 @@ class NatMappingTest {
 
   @Test
   void testCUSTOM_fails_STUN_router_problem() {
-    System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
+    System.setProperty(Constants.PROPERTY_NAT, "CUSTOM");
     List<InetSocketAddress> brs = new ArrayList<>();
     brs.add(new InetSocketAddress("127.0.0.1", 55555));
 
     Path path = ExamplePacket.PATH_IPV4;
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.1:34343");
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "127.0.0.1:34343");
     Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local, brs));
     assertEquals("Failed to connect to STUN servers: 127.0.0.1:34343", e.getMessage());
   }
 
   @Test
   void testCUSTOM_fails_syntax_problem() {
-    System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
+    System.setProperty(Constants.PROPERTY_NAT, "CUSTOM");
     List<InetSocketAddress> brs = new ArrayList<>();
     brs.add(new InetSocketAddress("127.0.0.1", 55555));
 
@@ -145,27 +145,27 @@ class NatMappingTest {
         "Please provide a valid STUN server address as 'address:port' in "
             + "SCION_STUN_SERVER or org.scion.stun.server, was: ";
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "");
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "");
     Exception e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
     assertEquals(prefix + "\"\"", e.getMessage());
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense");
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "nonsense");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
     assertEquals(prefix + "\"nonsense\"", e.getMessage());
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:12345");
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "nonsense:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
     assertEquals(prefix + "\"nonsense:12345\"", e.getMessage());
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "nonsense:1234567");
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "nonsense:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
     assertEquals(prefix + "\"nonsense:1234567\"", e.getMessage());
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.1:1234567");
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "127.0.0.1:1234567");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
     assertEquals(prefix + "\"127.0.0.1:1234567\"", e.getMessage());
 
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, "127.0.0.0.1:12345");
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "127.0.0.0.1:12345");
     e = assertThrows(IllegalArgumentException.class, () -> tryIFD(path, local, brs));
     assertEquals(prefix + "\"127.0.0.0.1:12345\"", e.getMessage());
   }
@@ -182,11 +182,11 @@ class NatMappingTest {
 
   @Test
   void testCUSTOM() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "CUSTOM");
+    System.setProperty(Constants.PROPERTY_NAT, "CUSTOM");
 
     MockNetwork.startTiny();
     InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, br.getHostString() + ":" + br.getPort());
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, br.getHostString() + ":" + br.getPort());
 
     Path path = createPath(br);
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12444);
@@ -199,11 +199,11 @@ class NatMappingTest {
 
   @Test
   void testAUTO_CUSTOM() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
+    System.setProperty(Constants.PROPERTY_NAT, "AUTO");
 
     MockNetwork.startTiny();
     InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
-    System.setProperty(Constants.PROPERTY_STUN_SERVER, br.getHostString() + ":" + br.getPort());
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, br.getHostString() + ":" + br.getPort());
 
     Path path = createPath(br);
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12333);
@@ -216,7 +216,7 @@ class NatMappingTest {
 
   @Test
   void testAUTO_noCUSTOM_BR() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
+    System.setProperty(Constants.PROPERTY_NAT, "AUTO");
 
     MockNetwork.startTiny();
 
@@ -231,7 +231,7 @@ class NatMappingTest {
 
   @Test
   void testAUTO_noCUSTOM_noBR_noPUBLIC() {
-    System.setProperty(Constants.PROPERTY_STUN, "AUTO");
+    System.setProperty(Constants.PROPERTY_NAT, "AUTO");
 
     MockNetwork.startTiny();
 
@@ -250,7 +250,7 @@ class NatMappingTest {
 
   @Test
   void testPrefetch_receive() throws IOException {
-    System.setProperty(Constants.PROPERTY_STUN, "BR");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
     MockNetwork.startTiny();
     ManagedThread receiver =
         ManagedThread.newBuilder().expectThrows(ClosedByInterruptException.class).build();

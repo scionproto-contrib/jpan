@@ -41,16 +41,16 @@ public class NatMapping {
 
   private static final int NAT_UDP_MAPPING_TIMEOUT =
       ScionUtil.getPropertyOrEnv(
-          PROPERTY_STUN_MAPPING_TIMEOUT,
-          ENV_STUN_MAPPING_TIMEOUT,
-          DEFAULT_STUN_MAPPING_TIMEOUT); // seconds
+              PROPERTY_NAT_MAPPING_TIMEOUT,
+              ENV_NAT_MAPPING_TIMEOUT,
+              DEFAULT_NAT_MAPPING_TIMEOUT); // seconds
   private static final Logger log = LoggerFactory.getLogger(NatMapping.class);
 
   private static final int stunTimeoutMs =
       ScionUtil.getPropertyOrEnv(
-          Constants.PROPERTY_STUN_TIMEOUT_MS,
-          Constants.ENV_STUN_TIMEOUT_MS,
-          Constants.DEFAULT_STUN_TIMEOUT_MS);
+          Constants.PROPERTY_NAT_STUN_TIMEOUT_MS,
+          Constants.ENV_NAT_STUN_TIMEOUT_MS,
+          Constants.DEFAULT_NAT_STUN_TIMEOUT_MS);
 
   // TODO use SimpleCache
 
@@ -131,7 +131,7 @@ public class NatMapping {
   }
 
   private static ConfigMode getConfig() {
-    String v = ScionUtil.getPropertyOrEnv(PROPERTY_STUN, ENV_STUN, DEFAULT_STUN);
+    String v = ScionUtil.getPropertyOrEnv(PROPERTY_NAT, ENV_NAT, DEFAULT_NAT);
     v = v.toUpperCase();
     switch (v) {
       case "OFF":
@@ -180,7 +180,7 @@ public class NatMapping {
         if (addr == null) {
           String custom =
               ScionUtil.getPropertyOrEnv(
-                  PROPERTY_STUN_SERVER, ENV_STUN_SERVER, DEFAULT_STUN_SERVER);
+                      PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, DEFAULT_NAT_STUN_SERVER);
           throw new ScionRuntimeException("Failed to connect to STUN servers: " + custom);
         }
         update(NatMode.STUN_SERVER, addr);
@@ -209,8 +209,8 @@ public class NatMapping {
   }
 
   private InetSocketAddress tryCustomServer(boolean useDefault) {
-    String defaultSrv = useDefault ? DEFAULT_STUN_SERVER : null;
-    String custom = ScionUtil.getPropertyOrEnv(PROPERTY_STUN_SERVER, ENV_STUN_SERVER, defaultSrv);
+    String defaultSrv = useDefault ? DEFAULT_NAT_STUN_SERVER : null;
+    String custom = ScionUtil.getPropertyOrEnv(PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, defaultSrv);
     if (!useDefault && (custom == null || custom.isEmpty())) {
       // Ignore empty sever address if we don't rely on it
       return null;
@@ -478,7 +478,7 @@ public class NatMapping {
     }
   }
 
-  /** See {@link Constants#PROPERTY_STUN} for details. */
+  /** See {@link Constants#PROPERTY_NAT} for details. */
   private enum ConfigMode {
     /** No STUN discovery */
     STUN_OFF,
