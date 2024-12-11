@@ -39,6 +39,7 @@ import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockDatagramChannel;
+import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 class DatagramChannelApiTest {
@@ -57,13 +58,13 @@ class DatagramChannelApiTest {
   }
 
   @BeforeEach
-  public void beforeEach() throws IOException {
-    MockDaemon.createAndStartDefault();
+  public void beforeEach() {
+    MockNetwork.startTiny();
   }
 
   @AfterEach
-  public void afterEach() throws IOException {
-    MockDaemon.closeDefault();
+  public void afterEach() {
+    MockNetwork.stopTiny();
     MockDNS.clear();
   }
 
@@ -117,7 +118,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getLocalAddress_withSendRequestPath() throws IOException {
-    Path path = PackageVisibilityHelper.createDummyPath();
+    Path path = PackageVisibilityHelper.createMockRequestPath(null);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.send(ByteBuffer.allocate(100), path);
       InetSocketAddress local = channel.getLocalAddress();
@@ -346,7 +347,7 @@ class DatagramChannelApiTest {
       assertEquals(service1, channel.getService());
 
       // trigger service initialization in channel
-      Path path = PackageVisibilityHelper.createDummyPath();
+      Path path = PackageVisibilityHelper.createMockRequestPath(null);
       channel.send(ByteBuffer.allocate(0), path);
       assertNotEquals(service2, channel.getService());
       assertEquals(service1, channel.getService());
@@ -385,22 +386,23 @@ class DatagramChannelApiTest {
 
   @Test
   void send_bufferSize() throws IOException {
+    Path path = PackageVisibilityHelper.createMockRequestPath(null);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      int size0 = channel.send(ByteBuffer.allocate(0), ExamplePacket.PATH);
+      int size0 = channel.send(ByteBuffer.allocate(0), path);
       assertEquals(0, size0);
 
-      int size100 = channel.send(ByteBuffer.wrap(new byte[100]), ExamplePacket.PATH);
+      int size100 = channel.send(ByteBuffer.wrap(new byte[100]), path);
       assertEquals(100, size100);
     }
   }
 
   @Test
   void send_bufferTooLarge() {
-    Path addr = ExamplePacket.PATH;
+    Path path = PackageVisibilityHelper.createMockRequestPath(null);
     ByteBuffer buffer = ByteBuffer.allocate(65440);
     buffer.limit(buffer.capacity());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, addr));
+      Exception ex = assertThrows(IOException.class, () -> channel.send(buffer, path));
       String msg = ex.getMessage();
       // Linux vs Windows(?)
       assertTrue(msg.contains("too long") || msg.contains("larger than"), ex.getMessage());
@@ -411,11 +413,11 @@ class DatagramChannelApiTest {
 
   @Test
   void write_bufferTooLarge() throws IOException {
-    Path addr = ExamplePacket.PATH;
+    Path path = PackageVisibilityHelper.createMockRequestPath(null);
     ByteBuffer buffer = ByteBuffer.allocate(100_000);
     buffer.limit(buffer.capacity());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      channel.connect(addr);
+      channel.connect(path);
       Exception ex = assertThrows(IOException.class, () -> channel.write(buffer));
       String msg = ex.getMessage();
       // Linux vs Windows(?)
@@ -458,7 +460,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void send_disconnected_expiredRequestPath() throws IOException {
+  void send_disconnected_expiredRequestPath() {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiringPath) -> {
@@ -481,7 +483,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void send_connected_expiredRequestPath() throws IOException {
+  void send_connected_expiredRequestPath() {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiringPath) -> {
@@ -502,7 +504,7 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void write_expiredRequestPath() throws IOException {
+  void write_expiredRequestPath() {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (channel, expiredPath) -> {
@@ -520,9 +522,8 @@ class DatagramChannelApiTest {
         true);
   }
 
-  private void testExpired(BiConsumer<ScionDatagramChannel, Path> sendMethod, boolean connect)
-      throws IOException {
-    MockDaemon.closeDefault(); // We don't need the daemon here
+  private void testExpired(BiConsumer<ScionDatagramChannel, Path> sendMethod, boolean connect) {
+    MockNetwork.stopTiny(); // We don't need the daemon here
     PingPongChannelHelper.Server serverFn = PingPongChannelHelper::defaultServer;
     PingPongChannelHelper.Client clientFn =
         (channel, basePath, id) -> {
@@ -541,7 +542,7 @@ class DatagramChannelApiTest {
     pph.runPingPong(serverFn, clientFn);
   }
 
-  private Path createExpiredPath(Path basePath) throws UnknownHostException {
+  private Path createExpiredPath(Path basePath) {
     long now = Instant.now().getEpochSecond();
     Daemon.Path.Builder builder =
         Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
@@ -558,16 +559,16 @@ class DatagramChannelApiTest {
 
   @Test
   void getConnectionPath() throws IOException {
-    Path addr = ExamplePacket.PATH;
+    Path path = PackageVisibilityHelper.createMockRequestPath(null);
     ByteBuffer buffer = ByteBuffer.allocate(50);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertNull(channel.getConnectionPath());
       // send should NOT set a path
-      channel.send(buffer, addr);
+      channel.send(buffer, path);
       assertNull(channel.getConnectionPath());
 
       // connect should set a path
-      channel.connect(addr);
+      channel.connect(path);
       assertNotNull(channel.getConnectionPath());
       channel.disconnect();
       assertNull(channel.getConnectionPath());
@@ -575,7 +576,7 @@ class DatagramChannelApiTest {
       // send should NOT set a path
       if (Util.getJavaMajorVersion() >= 14) {
         // This fails because of disconnect(), see https://bugs.openjdk.org/browse/JDK-8231880
-        channel.send(buffer, addr);
+        channel.send(buffer, path);
         assertNull(channel.getConnectionPath());
       }
     }
