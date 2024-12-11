@@ -190,6 +190,10 @@ public class LocalTopology {
       this.interfaces = interfaces;
     }
 
+    public String getInternalAddress() {
+      return internalAddress;
+    }
+
     public Iterable<BorderRouterInterface> getInterfaces() {
       return interfaces;
     }
@@ -291,6 +295,13 @@ public class LocalTopology {
         return address;
       }
       return new InetSocketAddress(address.getAddress(), Constants.DISPATCHER_PORT);
+    }
+
+    public int mapToLocalPort(int port) {
+      if (port == Constants.SCMP_PORT || (port >= portMin && port <= portMax)) {
+        return port;
+      }
+      return Constants.DISPATCHER_PORT;
     }
 
     public int getPortMin() {
