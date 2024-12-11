@@ -36,10 +36,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaration. 
 
 TODO
-- Make sure that we don´t rely on successful SCMP to report "success".
 - Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
-  from a NAT. Unfortunately this is not 100% accurate because the NAT may have incidentally
+  from a NAT or BR? Unfortunately this is not 100% accurate because the NAT may have incidentally
   the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
+
+- Make sure that we don´t rely on successful SCMP to report "success".
 
 - Configure 
   - SEPARATE: ENFORCE use of XOR? -> Check scionproto-impl
@@ -47,10 +48,8 @@ TODO
 - Implement keep alive?
 - Implement and document handling in local AS, e.g. responder should respond
   to UDP underlay instead of SCION source address(?).
-  - We cannot use BR as STUN.
-  - We could use public STUN, but that would just complicate things....?
-- Check TODO in AbstractChannel.updateConnection()
-- Naming: CONFIG should indicate NAT i.o. STUN!!!!
+  Check TODO in AbstractChannel.updateConnection()
+- Check how PAN/snet behaves wrt responding to underlay address when in local AS.
 
 
 ### Changed
