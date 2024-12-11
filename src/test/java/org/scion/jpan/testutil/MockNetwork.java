@@ -19,6 +19,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -62,6 +63,7 @@ public class MockNetwork {
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
+  static final AtomicInteger nStunRequests = new AtomicInteger();
   static CountDownLatch barrier = null;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
@@ -177,6 +179,7 @@ public class MockNetwork {
     dropNextPackets.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
     getAndResetForwardCount();
+    getAndResetStunCount();
   }
 
   public static synchronized void stopTiny() {
@@ -236,6 +239,10 @@ public class MockNetwork {
     return mock.localAddress[0];
   }
 
+  public static List<InetSocketAddress> getBorderRouterAddresses() {
+    return Arrays.asList(mock.localAddress);
+  }
+
   public static InetSocketAddress getTinyServerAddress() throws IOException {
     return new InetSocketAddress(
         InetAddress.getByAddress(TINY_SRV_NAME_1, TINY_SRV_ADDR_BYTES_1), TINY_SRV_PORT_1);
@@ -250,6 +257,10 @@ public class MockNetwork {
 
   public static int getForwardCount() {
     return nForwardTotal.get();
+  }
+
+  public static int getAndResetStunCount() {
+    return nStunRequests.getAndSet(0);
   }
 
   /**

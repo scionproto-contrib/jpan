@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
-- Add LICENSE to generated jar. Why doesn´t that happen automatically?
+- Add LICENSE to generated jar. Why doesn't that happen automatically?
   Do we need the assembly plugin?
 - Cache paths
 - Fix @Disabled tests
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Selector support
   - Inherit DatagramChannel 
 - Authenticate SCMP with DR-key
-- Bootstrap with DHCP
+- Bootstrap with DHCP - Check Book page 327, chapter 13.2
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
@@ -29,6 +29,28 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Added Path construction tests for tiny4. 
   [#146](https://github.com/scionproto-contrib/jpan/pull/146)
+- Added experimental support for STUN [#142](https://github.com/scionproto-contrib/jpan/pull/142)
+  This also reduces network calls by starting SHIM w/o service.
+
+** BREAKING CHANGE **
+Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaration. 
+
+TODO
+- Make sure that we don´t rely on successful SCMP to report "success".
+- Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
+  from a NAT. Unfortunately this is not 100% accurate because the NAT may have incidentally
+  the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
+
+- Configure 
+  - SEPARATE: ENFORCE use of XOR? -> Check scionproto-impl
+- Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
+- Implement keep alive?
+- Implement and document handling in local AS, e.g. responder should respond
+  to UDP underlay instead of SCION source address(?).
+  - We cannot use BR as STUN.
+  - We could use public STUN, but that would just complicate things....?
+- Check TODO in AbstractChannel.updateConnection()
+
 
 ### Changed
  

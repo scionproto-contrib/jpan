@@ -166,7 +166,7 @@ We use this interface IP as return address in the SCION path.
     * or open s separate channel/socket and connect() to the first hop.
 3) Selection of the return IP must be done every time the path changes:
     * Path expires
-    * First hop becomes unreachable or interfaces appear dynamically due to topology changes 
+    * First hop becomes unreachable or interfaces appear dynamically due to topology changes
       (e.g. mobile WiFi or 5G)
     * Explicit path change requested by user.
 
@@ -176,6 +176,86 @@ be ignored. If the first hop is reachable via these addresse
 We used to use `connnect(firstHop)` to ensure a valid external IP. However,
 `connect()` blocks when used concurrently while a `receive()` is in progress.
 -> Solution: Use separate channel/socket with `connect()` to find external IP.
+
+## STUN / Interface Discovery
+
+### Main goals and approach
+
+1) We want to detect STUN for all BR as soon as possible.
+   Otherwise it would interfere with normal network operation.
+   However, we need to wait until a local address is known (`bind()`) or about
+   to be known (`bind()` called by `send()`). What about `receive()`?
+    - We call STUN detection in `bind()` call. This works also for the SCMP
+      classes which do `bind()` *before* measuring latency.
+    - We don't need to know our external address for `receive()` or a subsequent `send()`.
+      **However**: If a *client* defensively starts `receive()` before `send()`, we have a problem.
+      Running STUN detection requires `send()` + `receive()` on the same channel. While `send()`
+      can be done concurrently, `receive()` is exclusive. How do we solve that?
+        - We can do STUN detection before `receive()` starts -> may be a waste on servers
+        - We can create a callback in `receive()` that intercepts packets meant for the STUN
+          detector
+          -> We may have to do this anyway to facilitate keep-alive messages.
+2) Sequence for AUTO:
+    - Check for CUSTOM server setting
+    - Check if border router supports STUN -> 1st NW call, 1 per BR
+    - Check if border router responds to SCMP (means: no NAT) -> 2nd NW call, one per BR
+    - Check public STUN servers and try again with new IP -> 3rd + 4th NW call, one per BR
+      (Don't do 4th call if returned IP equals known local IP)
+
+As can be seen from above, in an AS with `n` border routers (BR), we have at least `n` network calls
+even if all BRs support STUN. If they don't, we get up to `3n+1` network calls, possibly more if
+multiple public STUN servers are used.
+To speed up the detection, we send out `n` packets at once before checking for answers.
+However, following the approach above, we still get 3 rounds of `n` plus a single request to the
+public STUN server, resulting in a worst case of 4*TIMEOUT (default = 10ms) before giving up.
+In the best case the timeout is never reached, i.e. STUN detection may take less than 10ms.
+
+### Multipath, Multi-AS, AS-switching, ...
+
+Cases to consider:
+
+- Interface switching is probably not necessary to support.
+    - Test: Presumably, switching from LAN to Wifi, any LAN socket stops working
+      (and does not switch) If the JDK doesnt support this then neither should we.
+    - Android has: WifiManager.WIFI_STATE_CHANGED_ACTION and ConnectivityManager.CONNECTIVITY_ACTION
+- AS switching on single interface?
+    - In theory, we can have multiple AS in the same subnet. Do we need to support that?
+      This is apparently a realistic Scenario for an ISP with ASes in multiple ISDs.
+      However, this seems like an unrealistic edge case for endhosts...?
+- Multipath (MP) and Path switching (PS):
+    - MP & PS using different BRs -> Yes, should be doable and is required
+    - MP & PS using different AS on same Interface?? We could use multiple channels...
+      See next point.
+    - MP & PS using different Interfaces. Should probably require multiple sockets/channels.
+      Should we provide a facility to simplify this?
+      Something like a meta-socket that doesn't have a defined local address but can send
+      over multiple interfaces in parallel? Yes! -> Later!
+
+### Timeout
+
+- Mapping: timeout reset (touch()) on receive() -> See step 4. below
+- Mapping: after timeout: check that we reset the correct type (ASInfo vs Entry).
+
+After stale connection timeout (Mapping timeout), how can we ensure that
+we can send/receive on the stale channel?
+
+Dilemma:
+
+- send()/write() is fine, we can just block them
+- non-blocking receive()/read() is fine, we can just block these
+- blocking receive()/read() is a problem
+    - Interrupting the receiver and restarting is not possible.
+    - We can install a callback. That would mostly work, but in theory the user could interrupt the
+      receiver() while we are waiting. We could try to detect that and then retry with our own
+      receiver...
+- Alternative: We do not check for timeouts but let the application layer handle this.
+  --> Probably the simplest solution!
+
+Another problem with timeout: when is it triggered?
+
+- If triggered by send() or similar: causes a small delay (not desirable)
+- If triggered by timer: May cause unnecessary keep-alive messages...
+  --> Configurable?
 
 # TODO
 

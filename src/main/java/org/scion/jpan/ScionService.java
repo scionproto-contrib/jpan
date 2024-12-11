@@ -35,11 +35,12 @@ import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.nio.channels.DatagramChannel;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -82,8 +83,6 @@ public class ScionService {
   private static final long ISD_AS_NOT_SET = -1;
   private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
   private Thread shutdownHook;
-  private java.nio.channels.DatagramChannel ifDiscoveryChannel = null;
-  private final Map<InetAddress, InetAddress> ifDiscoveryMap = new HashMap<>();
   private final HostsFileParser hostsFile = new HostsFileParser();
   private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
 
@@ -257,17 +256,6 @@ public class ScionService {
       if (!channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
           && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
         LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-      }
-      synchronized (ifDiscoveryMap) {
-        try {
-          if (ifDiscoveryChannel != null) {
-            ifDiscoveryChannel.close();
-          }
-          ifDiscoveryChannel = null;
-          ifDiscoveryMap.clear();
-        } catch (IOException e) {
-          throw new ScionRuntimeException(e);
-        }
       }
       if (shutdownHook != null) {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
@@ -615,31 +603,25 @@ public class ScionService {
   /**
    * Determine the network interface and external IP used for connecting to the specified address.
    *
-   * @param firstHopAddress Reachable address.
+   * @param path Path
+   * @return External address
+   * @see #getNatMapping(DatagramChannel)
    */
-  InetAddress getExternalIP(InetSocketAddress firstHopAddress) {
-    // We currently keep a map with BR->externalIP. This may be overkill, probably all BR in
-    // a given AS are reachable via the same interface.
-    // TODO
-    // Moreover, it DOES NOT WORK with multiple AS, because BR IPs are not unique across ASes.
-    // However, switching ASes is not currently implemented...
-    synchronized (ifDiscoveryMap) {
-      return ifDiscoveryMap.computeIfAbsent(
-          firstHopAddress.getAddress(),
-          firstHop -> {
-            try {
-              if (ifDiscoveryChannel == null) {
-                ifDiscoveryChannel = java.nio.channels.DatagramChannel.open();
-              }
-              ifDiscoveryChannel.connect(firstHopAddress);
-              SocketAddress address = ifDiscoveryChannel.getLocalAddress();
-              ifDiscoveryChannel.disconnect();
-              return ((InetSocketAddress) address).getAddress();
-            } catch (IOException e) {
-              throw new ScionRuntimeException(e);
-            }
-          });
-    }
+  InetAddress getExternalIP(Path path) {
+    return ExternalIpDiscovery.getExternalIP(path, getLocalIsdAs());
+  }
+
+  /**
+   * Determine the IPs that should be used as SRC address in a SCION header. These may differ from
+   * the external IP in case we are behind a NAT. The source address should be the NAT mapped
+   * address.
+   *
+   * @param channel channel
+   * @return Mapping of external addresses, potentially one for each border router.
+   * @see #getExternalIP(Path)
+   */
+  NatMapping getNatMapping(DatagramChannel channel) {
+    return NatMapping.createMapping(getLocalIsdAs(), channel, getBorderRouterAddresses());
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {
@@ -681,6 +663,20 @@ public class ScionService {
     } else {
       String address = bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
       return IPHelper.toInetSocketAddress(address);
+    }
+  }
+
+  private List<InetSocketAddress> getBorderRouterAddresses() {
+    if (daemonStub != null) {
+      return getInterfaces().values().stream()
+          .map(anInterface -> anInterface.getAddress().getAddress())
+          .map(IPHelper::toInetSocketAddress)
+          .collect(Collectors.toList());
+    } else {
+      return bootstrapper.getLocalTopology().getBorderRouters().stream()
+          .map(LocalTopology.BorderRouter::getInternalAddress)
+          .map(IPHelper::toInetSocketAddress)
+          .collect(Collectors.toList());
     }
   }
 }
