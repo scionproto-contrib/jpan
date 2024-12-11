@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.DatagramChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -100,31 +101,32 @@ class ShimTest {
 
   private void testShim() throws IOException {
     assertFalse(Shim.isInstalled());
-    ScionService service = Scion.defaultService();
+    Scion.defaultService();
     assertTrue(Shim.isInstalled());
 
     // test that SCMP echo requests are answered
-    //    testScmpEchoReflect();
-    //    testScmpEchoReflect();
-    //
-    //    testScmpEchoResponse();
-    //
-    //    testScmpResponse(Scmp.TypeCode.TYPE_129);
-    //    testScmpResponse(Scmp.TypeCode.TYPE_129);
-    //    // test traceroute response
-    //    testScmpResponse(Scmp.TypeCode.TYPE_131);
-    //    testScmpResponse(Scmp.TypeCode.TYPE_131);
-    //    // test SCMP error with truncated payload
-    //    testScmpResponse(Scmp.TypeCode.TYPE_5, true);
-    //    testScmpResponse(Scmp.TypeCode.TYPE_5, true);
+    testScmpEchoReflect();
+    testScmpEchoReflect();
+
+    testScmpEchoResponse();
+    testScmpEchoResponse();
+
+    testScmpResponse(Scmp.TypeCode.TYPE_129);
+    testScmpResponse(Scmp.TypeCode.TYPE_129);
+    // test traceroute response
+    testScmpResponse(Scmp.TypeCode.TYPE_131);
+    testScmpResponse(Scmp.TypeCode.TYPE_131);
+    // test SCMP error with truncated payload
+    testScmpResponse(Scmp.TypeCode.TYPE_5, true);
+    testScmpResponse(Scmp.TypeCode.TYPE_5, true);
     // test SCMP error
     testScmpResponse(Scmp.TypeCode.TYPE_5);
     testScmpResponse(Scmp.TypeCode.TYPE_5);
 
     // check double install doesn't fail
-    Shim.install(null);
+    Shim.install();
     assertTrue(Shim.isInstalled());
-    Shim.install(service);
+    Shim.install();
     assertTrue(Shim.isInstalled());
 
     // This shouldn't be called normally, but we test it anyway
@@ -173,7 +175,8 @@ class ShimTest {
   private void testScmpResponse(Scmp.TypeCode scmpTypeCode, boolean expectError) {
     // This should happen e.g. for SCMP errors with truncated payload where the SHIM cannot
     // extract the original port.
-    ManagedThread receiver = ManagedThread.newBuilder().expectException(expectError).build();
+    Class<? extends Exception> ex = expectError ? ClosedByInterruptException.class : null;
+    ManagedThread receiver = ManagedThread.newBuilder().expectThrows(ex).build();
     AtomicInteger counter = new AtomicInteger();
     int port = 44444; // Use a port from the dispatcher mapped range
     InetSocketAddress senderAddr = IPHelper.toInetSocketAddress("[::1]:" + port);

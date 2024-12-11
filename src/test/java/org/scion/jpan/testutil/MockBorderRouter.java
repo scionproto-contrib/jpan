@@ -75,9 +75,11 @@ public class MockBorderRouter implements Runnable {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         while (iter.hasNext()) {
           SelectionKey key = iter.next();
+          iter.remove();
           if (key.isReadable()) {
             DatagramChannel incoming = (DatagramChannel) key.channel();
             DatagramChannel outgoing = (DatagramChannel) key.attachment();
+            buffer.clear();
             SocketAddress srcAddress = incoming.receive(buffer);
             if (srcAddress == null) {
               throw new IllegalStateException();
@@ -86,14 +88,12 @@ public class MockBorderRouter implements Runnable {
 
             if (MockNetwork.dropNextPackets.get() > 0) {
               MockNetwork.dropNextPackets.decrementAndGet();
-              iter.remove();
               continue;
             }
 
             Scmp.TypeCode errorCode = MockNetwork.scmpErrorOnNextPacket.getAndSet(null);
             if (errorCode != null) {
               sendScmp(errorCode, buffer, srcAddress, incoming);
-              iter.remove();
               continue;
             }
 
@@ -110,7 +110,6 @@ public class MockBorderRouter implements Runnable {
                 throw new UnsupportedOperationException();
             }
           }
-          iter.remove();
         }
       }
     } catch (IOException e) {

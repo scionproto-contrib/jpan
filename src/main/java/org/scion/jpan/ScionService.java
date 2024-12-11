@@ -148,7 +148,7 @@ public class ScionService {
     boolean hasAllPorts = getLocalPortRange().hasPortRangeALL();
     boolean start = config != null ? Boolean.parseBoolean(config) : !hasAllPorts;
     if (start) {
-      Shim.install(this);
+      Shim.install();
     }
   }
 

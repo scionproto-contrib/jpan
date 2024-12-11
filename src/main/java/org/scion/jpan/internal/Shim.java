@@ -45,16 +45,16 @@ public class Shim implements AutoCloseable {
   private Predicate<ByteBuffer> forwardCallback = null;
   private final CountDownLatch scmpResponderBarrier = new CountDownLatch(1);
 
-  private Shim(ScionService service, int port) {
+  private Shim(int port) {
     this.scmpResponder =
-        Scmp.newResponderBuilder().setService(service).setLocalPort(port).setShim(this).build();
+        Scmp.newResponderBuilder().setService(null).setLocalPort(port).setShim(this).build();
   }
 
   /** Start the SHIM. The SHIM also provides an SCMP echo responder. */
-  public static void install(ScionService service) {
+  public static void install() {
     synchronized (singleton) {
       if (singleton.get() == null) {
-        singleton.set(Shim.newBuilder(service).build());
+        singleton.set(Shim.newBuilder().build());
         singleton.get().start();
       }
     }
@@ -80,8 +80,8 @@ public class Shim implements AutoCloseable {
     }
   }
 
-  private static Builder newBuilder(ScionService service) {
-    return new Builder(service);
+  private static Builder newBuilder() {
+    return new Builder();
   }
 
   public static boolean isInstalled() {
@@ -154,16 +154,10 @@ public class Shim implements AutoCloseable {
   }
 
   public static class Builder {
-    private final ScionService service;
-
-    Builder(ScionService service) {
-      this.service = service;
-    }
+    Builder() {}
 
     public Shim build() {
-      ScionService service2 = service == null ? Scion.defaultService() : service;
-      int port = Constants.SCMP_PORT;
-      return new Shim(service2, port);
+      return new Shim(Constants.SCMP_PORT);
     }
   }
 }

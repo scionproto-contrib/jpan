@@ -44,7 +44,7 @@ public abstract class Path {
     return pathRaw;
   }
 
-  public abstract InetSocketAddress getFirstHopAddress() throws UnknownHostException;
+  public abstract InetSocketAddress getFirstHopAddress();
 
   public int getRemotePort() {
     return dstAddress.getPort();
@@ -66,17 +66,13 @@ public abstract class Path {
 
   @Override
   public String toString() {
-    try {
-      return "Path{"
-          + "rmtAddress="
-          + dstAddress
-          + ", firstHop="
-          + getFirstHopAddress()
-          + ", pathRaw="
-          + Arrays.toString(getRawPath())
-          + '}';
-    } catch (UnknownHostException e) {
-      throw new ScionRuntimeException(e);
-    }
+    return "Path{"
+        + "rmtAddress="
+        + dstAddress
+        + ", firstHop="
+        + getFirstHopAddress()
+        + ", pathRaw="
+        + Arrays.toString(getRawPath())
+        + '}';
   }
 }

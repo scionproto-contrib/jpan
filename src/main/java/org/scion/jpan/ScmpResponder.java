@@ -224,6 +224,7 @@ public class ScmpResponder implements AutoCloseable {
 
   public static class Builder {
     private ScionService service;
+    private boolean serviceIsSet = false;
     private int port = Constants.SCMP_PORT;
     private DatagramChannel channel;
     private Shim shim;
@@ -235,11 +236,12 @@ public class ScmpResponder implements AutoCloseable {
 
     public Builder setService(ScionService service) {
       this.service = service;
+      this.serviceIsSet = true;
       return this;
     }
 
     public ScmpResponder build() {
-      ScionService service2 = service == null ? ScionService.defaultService() : service;
+      ScionService service2 = serviceIsSet ? service : ScionService.defaultService();
       try {
         channel = channel == null ? DatagramChannel.open() : channel;
       } catch (IOException e) {
