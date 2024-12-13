@@ -33,14 +33,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   This also reduces network calls by starting SHIM w/o service.
 
 ** BREAKING CHANGE **
-Minor: Path.getFirstHopAddress() has "throw IOException" removed from declaration. 
+Minor: Some methods have "throw IOException" removed from their declaration.
+For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 
 TODO
 - Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
   from a NAT or BR? Unfortunately this is not 100% accurate because the NAT may have incidentally
   the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
-
-- FIX (maybe separate PR): AbstractChannel.sendRaw()
 
 - Make sure that we don´t rely on successful SCMP to report "success".
 
