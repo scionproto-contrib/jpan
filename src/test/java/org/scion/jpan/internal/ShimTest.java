@@ -106,24 +106,22 @@ class ShimTest {
 
     // test that SCMP echo requests are answered
     testScmpEchoReflect();
-    testScmpEchoReflect();
 
-    testScmpEchoResponse();
+    // test that SCMP echo responses are forwarded
     testScmpEchoResponse();
 
-    testScmpResponse(Scmp.TypeCode.TYPE_129);
     testScmpResponse(Scmp.TypeCode.TYPE_129);
     // test traceroute response
     testScmpResponse(Scmp.TypeCode.TYPE_131);
-    testScmpResponse(Scmp.TypeCode.TYPE_131);
     // test SCMP error with truncated payload
-    testScmpResponse(Scmp.TypeCode.TYPE_5, true);
     testScmpResponse(Scmp.TypeCode.TYPE_5, true);
     // test SCMP error
     testScmpResponse(Scmp.TypeCode.TYPE_5);
-    testScmpResponse(Scmp.TypeCode.TYPE_5);
 
-    // check double install doesn't fail
+    // Check again -> verify nothing crashed, internal state is good.
+    testScmpEchoReflect();
+
+    // check that double install doesn't fail
     Shim.install();
     assertTrue(Shim.isInstalled());
     Shim.install();
