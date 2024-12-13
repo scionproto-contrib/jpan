@@ -62,6 +62,7 @@ public class NatMapping {
   // TODO attack: send SCMP (error?) or STUN with > 100 byte length
   private final ByteBuffer buffer = ByteBuffer.allocateDirect(100);
   private final DatagramChannel channel;
+  private InetAddress externalIP;
 
   private NatMapping(
       DatagramChannel channel, long localIsdAs, List<InetSocketAddress> borderRouters) {
@@ -128,6 +129,24 @@ public class NatMapping {
           "No mapped source for: " + path.getFirstHopAddress()); // TODO remobve???
     }
     return entry.getSource();
+  }
+
+  /**
+   * Determine the network interface and external IP used for connecting to the specified address.
+   *
+   * @param firstHop First address on the path
+   * @return External address
+   */
+  public synchronized InetAddress getExternalIP(InetSocketAddress firstHop) {
+    if (externalIP == null) {
+      externalIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
+    }
+    return externalIP;
+  }
+
+  public synchronized InetAddress refreshExternalIP(InetSocketAddress firstHop) {
+    externalIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
+    return externalIP;
   }
 
   private static ConfigMode getConfig() {

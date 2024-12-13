@@ -601,24 +601,12 @@ public class ScionService {
   }
 
   /**
-   * Determine the network interface and external IP used for connecting to the specified address.
-   *
-   * @param path Path
-   * @return External address
-   * @see #getNatMapping(DatagramChannel)
-   */
-  InetAddress getExternalIP(Path path) {
-    return ExternalIpDiscovery.getExternalIP(path, getLocalIsdAs());
-  }
-
-  /**
    * Determine the IPs that should be used as SRC address in a SCION header. These may differ from
    * the external IP in case we are behind a NAT. The source address should be the NAT mapped
    * address.
    *
    * @param channel channel
    * @return Mapping of external addresses, potentially one for each border router.
-   * @see #getExternalIP(Path)
    */
   NatMapping getNatMapping(DatagramChannel channel) {
     return NatMapping.createMapping(getLocalIsdAs(), channel, getBorderRouterAddresses());

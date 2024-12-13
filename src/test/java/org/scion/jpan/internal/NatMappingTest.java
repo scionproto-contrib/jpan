@@ -79,7 +79,8 @@ class NatMappingTest {
       InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
-      assertEquals(local.getAddress(), ExternalIpDiscovery.getExternalIP(path, isdAs));
+      assertEquals(
+          local.getAddress(), ExternalIpDiscovery.getExternalIP(path.getFirstHopAddress(), isdAs));
     }
   }
 
@@ -97,7 +98,8 @@ class NatMappingTest {
       InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
-      assertEquals(local.getAddress(), ExternalIpDiscovery.getExternalIP(path, isdAs));
+      assertEquals(
+          local.getAddress(), ExternalIpDiscovery.getExternalIP(path.getFirstHopAddress(), isdAs));
     }
   }
 

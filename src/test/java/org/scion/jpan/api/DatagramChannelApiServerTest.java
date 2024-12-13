@@ -233,4 +233,18 @@ class DatagramChannelApiServerTest {
       }
     }
   }
+
+  @Test
+  void errorOnNullService() throws IOException {
+    // check that operations that require a ScionService fail adequately.
+    // E.g. sending with a RequestPath.
+    ScionService.closeDefault();
+    RequestPath clientPath = (RequestPath) ExamplePacket.PATH;
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
+      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
+      ByteBuffer bb = ByteBuffer.allocate(0);
+      Exception e = assertThrows(IllegalStateException.class, () -> channel.send(bb, clientPath));
+      assertEquals("This operation requires a ScionService.", e.getMessage());
+    }
+  }
 }

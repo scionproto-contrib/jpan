@@ -129,12 +129,18 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       isBoundToAddress = address != null;
       localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
       if (service != null) {
-        if (natMapping == null) {
-          natMapping = getService().getNatMapping(channel);
-        }
+        getNatMapping();
       }
       return (C) this;
     }
+  }
+
+  private NatMapping getNatMapping() {
+    checkService();
+    if (natMapping == null) {
+      natMapping = getService().getNatMapping(channel);
+    }
+    return natMapping;
   }
 
   protected void ensureBound() throws IOException {
@@ -313,7 +319,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   this is what connect() should do.
         // - It allows us to have an ANY address underneath which could help with interface
         //   switching.
-        localAddress = getService().getExternalIP(path);
+        localAddress = getNatMapping().getExternalIP(path.getFirstHopAddress());
         System.err.println(
             "Connect() " + path.getFirstHopAddress() + "  -> " + localAddress); // TODO
       }
@@ -454,9 +460,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     if (overrideExternalAddress != null) {
       return overrideExternalAddress;
     }
-    // TODO we should have a variable that caches getExtrnalIP() or, better
-    //   just bind() to getExternal()_after/during getExternbalIP()
-    return natMapping.getMappedAddress(path);
+    return getNatMapping().getMappedAddress(path);
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
@@ -487,6 +491,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       Consumer<Scmp.ErrorMessage> old = errorListener;
       errorListener = listener;
       return old;
+    }
+  }
+
+  protected void checkService() throws IllegalStateException {
+    synchronized (stateLock) {
+      if (service == null) {
+        throw new IllegalStateException("This operation requires a ScionService.");
+      }
     }
   }
 
@@ -638,6 +650,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         srcAddress = rPath.getLocalAddress();
         port.set(rPath.getLocalPort());
       } else {
+        checkService();
         srcIsdAs = getService().getLocalIsdAs();
         InetSocketAddress src = getSourceAddress(path);
         srcAddress = src.getAddress();
@@ -667,12 +680,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     connectionPath = newPath;
     // update local address except if bind() was called with an explicit address!
     if (!isBoundToAddress) {
+      // This allows us to dynamically switch interfaces if we get a path that prefers a different
+      // interface.
+      //
       // API: returning the localAddress should return non-ANY if we have a connection
       //     I.e. getExternalIP() is fine if we have a connection.
       //     It is NOT fine if we are bound to an explicit IP/port
       InetAddress oldLocalAddress = localAddress;
-      // TODO should we do this only if localAddress = null || ANY? Should we set isBound=true?
-      localAddress = getService().getExternalIP(newPath);
+      localAddress = getNatMapping().refreshExternalIP(newPath.getFirstHopAddress());
       if (!Objects.equals(localAddress, oldLocalAddress)) {
         // TODO check CS / bootstrapping
         throw new UnsupportedOperationException();
