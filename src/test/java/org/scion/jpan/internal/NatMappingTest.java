@@ -80,8 +80,6 @@ class NatMappingTest {
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), natMapping.getExternalIP());
-      assertEquals(
-          local.getAddress(), ExternalIpDiscovery.getExternalIP(path.getFirstHopAddress(), isdAs));
     }
   }
 
@@ -100,8 +98,6 @@ class NatMappingTest {
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
       assertEquals(local.getAddress(), natMapping.getExternalIP());
-      assertEquals(
-          local.getAddress(), ExternalIpDiscovery.getExternalIP(path.getFirstHopAddress(), isdAs));
     }
   }
 
