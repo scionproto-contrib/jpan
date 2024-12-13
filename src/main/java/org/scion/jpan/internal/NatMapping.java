@@ -132,14 +132,27 @@ public class NatMapping {
   }
 
   /**
-   * Determine the network interface and external IP used for connecting to the specified address.
+   * Determine the network interface and external IP used for this AS.
    *
-   * @param firstHop First address on the path
    * @return External address
    */
-  public synchronized InetAddress getExternalIP(InetSocketAddress firstHop) {
+  public synchronized InetAddress getExternalIP() {
     if (externalIP == null) {
-      externalIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
+      try {
+        InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
+        externalIP = local.getAddress();
+        if (externalIP.isAnyLocalAddress()) {
+          InetSocketAddress firstHop = sourceIPs.values().iterator().next().firstHop;
+          externalIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
+          Collection<Entry> entries = sourceIPs.values();
+          log.error(
+              "Detected E-IP: {} by connecting to {}",
+              externalIP,
+              entries.iterator().next().firstHop);
+        }
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      }
     }
     return externalIP;
   }
@@ -220,10 +233,7 @@ public class NatMapping {
     InetSocketAddress local = ((InetSocketAddress) channel.getLocalAddress());
     InetAddress localIP = local.getAddress();
     if (localIP.isAnyLocalAddress()) {
-      Collection<Entry> entries = sourceIPs.values();
-      localIP = ExternalIpDiscovery.getExternalIP(entries.iterator().next().firstHop, localIsdAs);
-      log.error(
-          "Detected E-IP: {} by connecting to {}", localIP, entries.iterator().next().firstHop);
+      localIP = getExternalIP();
       local = new InetSocketAddress(localIP, local.getPort());
     }
     return local;
@@ -259,8 +269,7 @@ public class NatMapping {
     // - Check if BR responds to tr/ping (is reachable)
     // At this point we should have a local address with port.
     int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
-    InetSocketAddress firstHop = sourceIPs.values().iterator().next().firstHop;
-    InetAddress sourceIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
+    InetAddress sourceIP = getExternalIP();
     source = new InetSocketAddress(sourceIP, localPort);
     if (isBorderRouterReachable(source)) {
       // TODO this is wrong. We cannot exclude a NAT by SCMP...

@@ -319,7 +319,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   this is what connect() should do.
         // - It allows us to have an ANY address underneath which could help with interface
         //   switching.
-        localAddress = getNatMapping().getExternalIP(path.getFirstHopAddress());
+        localAddress = getNatMapping().getExternalIP();
         System.err.println(
             "Connect() " + path.getFirstHopAddress() + "  -> " + localAddress); // TODO
       }
