@@ -104,13 +104,12 @@ public final class Constants {
    * - "CUSTOM": Discovery using custom STUN server. This uses public known STUN servers unless
    * {@link #PROPERTY_NAT_STUN_SERVER} or {@link #ENV_NAT_STUN_SERVER} is set.<br>
    * - "AUTO": Use auto detection.<br>
-   * // TODO is this still correct: ????
    *
    * <p>"AUTO" works as follows: <br>
-   * 1) Check for custom STUN server and use if possible<br>
-   * 2) Check border routers if they support STUN (timeout = 10ms)<br>
-   * 3) If border router responds to traceroute/ping, do not use STUN at all<br>
-   * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails)<br>
+   * 1) Check for custom STUN server and use if provided.<br>
+   * 2) Check border routers if they support STUN (timeout = 10ms).<br>
+   * 3) If border router responds to traceroute/ping, do not use STUN at all.<br>
+   * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails).<br>
    */
   public static final String PROPERTY_NAT = "org.scion.nat";
 

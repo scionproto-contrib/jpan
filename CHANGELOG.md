@@ -47,6 +47,10 @@ TODO
 
 - Configure 
   - SEPARATE: ENFORCE use of XOR? -> Check scionproto-impl
+- Reset on disconnect()? 
+- Does setBlocking=false unblock a blocking receiver?
+  Ensure we do never do it once the receiver is running....
+
 - Check how PAN/snet behaves wrt responding to underlay address when in local AS.
 
 ### Changed
