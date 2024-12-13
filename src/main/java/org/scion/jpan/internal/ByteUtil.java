@@ -62,10 +62,6 @@ public class ByteUtil {
       this.v = null;
     }
 
-    public MutRef(T v) {
-      this.v = v;
-    }
-
     public T get() {
       return v;
     }

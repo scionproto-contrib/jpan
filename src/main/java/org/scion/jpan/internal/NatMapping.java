@@ -145,20 +145,11 @@ public class NatMapping {
           InetSocketAddress firstHop = sourceIPs.values().iterator().next().firstHop;
           externalIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
           Collection<Entry> entries = sourceIPs.values();
-          log.error(
-              "Detected E-IP: {} by connecting to {}",
-              externalIP,
-              entries.iterator().next().firstHop);
         }
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
     }
-    return externalIP;
-  }
-
-  public synchronized InetAddress refreshExternalIP(InetSocketAddress firstHop) {
-    externalIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
     return externalIP;
   }
 

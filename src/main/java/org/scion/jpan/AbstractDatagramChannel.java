@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
@@ -320,8 +319,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         // - It allows us to have an ANY address underneath which could help with interface
         //   switching.
         localAddress = getNatMapping().getExternalIP();
-        System.err.println(
-            "Connect() " + path.getFirstHopAddress() + "  -> " + localAddress); // TODO
       }
       updateConnection((RequestPath) path, false);
       return (C) this;
@@ -686,12 +683,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       // API: returning the localAddress should return non-ANY if we have a connection
       //     I.e. getExternalIP() is fine if we have a connection.
       //     It is NOT fine if we are bound to an explicit IP/port
-      InetAddress oldLocalAddress = localAddress;
-      localAddress = getNatMapping().refreshExternalIP(newPath.getFirstHopAddress());
-      if (!Objects.equals(localAddress, oldLocalAddress)) {
-        // TODO check CS / bootstrapping
-        throw new UnsupportedOperationException();
-      }
+      // TODO consider supporting dynamic interface switching
     }
   }
 
