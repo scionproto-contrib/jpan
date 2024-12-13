@@ -203,6 +203,8 @@ public class NatMapping {
     if (localIP.isAnyLocalAddress()) {
       Collection<Entry> entries = sourceIPs.values();
       localIP = ExternalIpDiscovery.getExternalIP(entries.iterator().next().firstHop, localIsdAs);
+      log.error(
+          "Detected E-IP: {} by connecting to {}", localIP, entries.iterator().next().firstHop);
       local = new InetSocketAddress(localIP, local.getPort());
     }
     return local;

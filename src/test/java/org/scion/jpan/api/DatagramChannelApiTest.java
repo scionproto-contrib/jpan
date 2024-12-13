@@ -717,8 +717,7 @@ class DatagramChannelApiTest {
       // initialize local address
       InetSocketAddress localAddress;
       if (bind) {
-        InetAddress localIP = InetAddress.getLocalHost();
-        localAddress = new InetSocketAddress(localIP, 12345);
+        localAddress = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
         channel.bind(localAddress);
       } else if (connect) {
         channel.connect(dummyAddress);

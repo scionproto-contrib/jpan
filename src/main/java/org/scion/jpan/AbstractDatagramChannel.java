@@ -314,6 +314,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         // - It allows us to have an ANY address underneath which could help with interface
         //   switching.
         localAddress = getService().getExternalIP(path);
+        System.err.println(
+            "Connect() " + path.getFirstHopAddress() + "  -> " + localAddress); // TODO
       }
       updateConnection((RequestPath) path, false);
       return (C) this;
