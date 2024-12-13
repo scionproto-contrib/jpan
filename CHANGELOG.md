@@ -53,6 +53,8 @@ TODO
 
 - Check how PAN/snet behaves wrt responding to underlay address when in local AS.
 
+- Some STUN/NAT tests are disabled -> But STUN with Jan's impl works!
+
 ### Changed
  
 - Cleaned up test topologies.  [#145](https://github.com/scionproto-contrib/jpan/pull/145)

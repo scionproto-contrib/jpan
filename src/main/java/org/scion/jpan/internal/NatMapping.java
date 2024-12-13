@@ -31,9 +31,6 @@ import org.slf4j.LoggerFactory;
 /**
  * This class provides utility functions to detect: the external IP address of a potential NAT
  * between the device and a border router.
- *
- * <p>TODO: - We may leave an AS and reenter it on a different NAT (Wifi access point??), we somehow
- * need to detect that case and deal with it.
  */
 public class NatMapping {
 
@@ -102,8 +99,6 @@ public class NatMapping {
         throw new ScionRuntimeException(e);
       }
     }
-    // TODO SCMP on BR works?
-    // TODO SCMP on BR may send back to underlay address!
     touch();
     if (mode == NatMode.NO_NAT) {
       return commonAddress;

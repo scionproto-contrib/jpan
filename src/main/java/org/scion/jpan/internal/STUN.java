@@ -33,7 +33,8 @@ public class STUN {
 
   private static final SecureRandom rnd = new SecureRandom();
 
-  private static final int MAGIC_COOKIE = 0x42A41221;
+  // TODO private static final int MAGIC_COOKIE = 0x42A41221;
+  private static final int MAGIC_COOKIE = 0x2112A442;
   // This must be UTF-8
   private static final String SOFTWARE_ID = "jpan.scion.org v0.4.0";
 
@@ -76,6 +77,7 @@ public class STUN {
       ByteUtil.MutRef<TransactionID> txIdOut,
       ByteUtil.MutRef<String> error) {
     if (in.remaining() < 20) {
+      error.set("STUN validation error, packet too short.");
       return null;
     }
     in.get();
@@ -167,7 +169,7 @@ public class STUN {
       log.error("Mismatch: {} <-> {}", mappedAddress, mappedAddressXor);
       // We ignore this for now, because 3 out of 41 XOR responses return bogus addresses...
     }
-    return mappedAddress;
+    return mappedAddress != null ? mappedAddress : mappedAddressXor; // TODO reverse this!
   }
 
   private static boolean readFINGERPRINT(ByteBuffer in) {
@@ -242,7 +244,8 @@ public class STUN {
     byte b0 = in.get();
     byte family = in.get();
     int port = ByteUtil.toUnsigned(in.getShort());
-    port ^= 0x42A4;
+    // port ^= 0x42A4;
+    port ^= 0x2112; // TODO golang
     byte[] bytes;
     if (family == 0x01) {
       bytes = new byte[4];
@@ -440,7 +443,7 @@ public class STUN {
     buffer.putShort((short) 0);
 
     // 0x2112A442
-    buffer.putInt(0x42A41221);
+    buffer.putInt(MAGIC_COOKIE);
 
     // Transaction ID
     TransactionID id = createTxID();
