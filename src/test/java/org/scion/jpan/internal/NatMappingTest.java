@@ -38,7 +38,6 @@ class NatMappingTest {
   void beforeEach() {
     System.clearProperty(Constants.PROPERTY_NAT);
     System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
-    ExternalIpDiscovery.uninstall();
     MockNetwork.stopTiny();
   }
 
@@ -46,7 +45,6 @@ class NatMappingTest {
   static void afterAll() {
     System.clearProperty(Constants.PROPERTY_NAT);
     System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
-    ExternalIpDiscovery.uninstall();
     MockNetwork.stopTiny();
   }
 

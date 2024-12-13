@@ -726,8 +726,7 @@ class DatagramChannelApiTest {
         mock.setSendCallback((buffer, address) -> 0);
         channel.send(buf, dummyAddress);
         InetSocketAddress firstHop = MockNetwork.getBorderRouterAddress1();
-        InetAddress localIP =
-            ExternalIpDiscovery.getExternalIP(firstHop, channel.getService().getLocalIsdAs());
+        InetAddress localIP = ExternalIpDiscovery.getExternalIP(firstHop);
         localAddress = new InetSocketAddress(localIP, channel.getLocalAddress().getPort());
       }
 

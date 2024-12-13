@@ -143,8 +143,7 @@ public class NatMapping {
         externalIP = local.getAddress();
         if (externalIP.isAnyLocalAddress()) {
           InetSocketAddress firstHop = sourceIPs.values().iterator().next().firstHop;
-          externalIP = ExternalIpDiscovery.getExternalIP(firstHop, localIsdAs);
-          Collection<Entry> entries = sourceIPs.values();
+          externalIP = ExternalIpDiscovery.getExternalIP(firstHop);
         }
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
