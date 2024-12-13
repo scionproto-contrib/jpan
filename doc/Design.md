@@ -210,6 +210,14 @@ However, following the approach above, we still get 3 rounds of `n` plus a singl
 public STUN server, resulting in a worst case of 4*TIMEOUT (default = 10ms) before giving up.
 In the best case the timeout is never reached, i.e. STUN detection may take less than 10ms.
 
+### Intra-AS communication
+
+For packets sent within an AS, cannot reliable use border router STUN (border routers
+may be in different subnets). The better and easier solution is to omit STUN detection.
+Instead, any client receiving a packet from inside the local AS should always respond to the
+**underlay** address instead of the SCION source address.
+This should always work, regardless of NAT or no NAT.
+
 ### Multipath, Multi-AS, AS-switching, ...
 
 Cases to consider:

@@ -130,9 +130,9 @@ public final class Constants {
    * Controls whether JPAN should send regular keep alive packets through the NAT to prevent losing
    * the mapping. Packets are only sent if no other activity is recorded. Default is "false".
    */
-  public static final String PROPERTY_NAT_MAPPING_KEEPALIVE = "org.scion.nat.mapping.timeout";
+  public static final String PROPERTY_NAT_MAPPING_KEEPALIVE = "org.scion.nat.mapping.keepalive";
 
-  public static final String ENV_NAT_MAPPING_KEEPALIVE = "SCION_NAT_MAPPING_TIMEOUT";
+  public static final String ENV_NAT_MAPPING_KEEPALIVE = "SCION_NAT_MAPPING_KEEPALIVE";
   public static final boolean DEFAULT_NAT_MAPPING_KEEPALIVE = false;
 
   /** Define a custom SUN server, such as "192.168.0.42:3478" */

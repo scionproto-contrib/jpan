@@ -37,22 +37,17 @@ Minor: Some methods have "throw IOException" removed from their declaration.
 For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 
 TODO
-- Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
-  from a NAT or BR? Unfortunately this is not 100% accurate because the NAT may have incidentally
-  the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
+- Separate PR: implement keep alive
 
-- Make sure that we don´t rely on successful SCMP to report "success".
+- AUTO mode:
+  - Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
+    from a NAT or BR? Unfortunately this is not 100% accurate because the NAT may have incidentally
+    the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
+  - Make sure that we don´t rely on successful SCMP to report "success".
 
 - Configure 
   - SEPARATE: ENFORCE use of XOR? -> Check scionproto-impl
-- Implement: cache result (do not cache for NONE or if STUN returns identical mapping)
-- Implement keep alive?
-- Implement and document handling in local AS, e.g. responder should respond
-  to UDP underlay instead of SCION source address(?).
-  Check TODO in AbstractChannel.updateConnection()
 - Check how PAN/snet behaves wrt responding to underlay address when in local AS.
-
-
 
 ### Changed
  
