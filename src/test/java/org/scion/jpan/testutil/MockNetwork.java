@@ -17,6 +17,7 @@ package org.scion.jpan.testutil;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
 import org.slf4j.Logger;
@@ -66,6 +68,7 @@ public class MockNetwork {
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
   static final AtomicInteger nStunRequests = new AtomicInteger();
   static final AtomicBoolean enableStun = new AtomicBoolean(true);
+  static final AtomicReference<Predicate<ByteBuffer>> stunCallback = new AtomicReference<>();
   static CountDownLatch barrier = null;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
@@ -293,6 +296,10 @@ public class MockNetwork {
 
   public static void disableStun() {
     enableStun.set(false);
+  }
+
+  public static void setStunCallback(Predicate<ByteBuffer> stunCallback) {
+    MockNetwork.stunCallback.set(stunCallback);
   }
 
   public enum Mode {
