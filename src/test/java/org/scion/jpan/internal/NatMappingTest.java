@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,6 +93,42 @@ class NatMappingTest {
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       NatMapping natMapping =
           NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+      InetSocketAddress src = natMapping.getMappedAddress(path);
+      assertEquals(local, src);
+      assertFalse(src.getAddress().isAnyLocalAddress());
+      assertEquals(local.getAddress(), natMapping.getExternalIP());
+    }
+  }
+
+  @Test
+  void testBR_pathToHostInLocalAS() throws IOException {
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    MockNetwork.startTiny();
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      InetSocketAddress remoteHost = IPHelper.toInetSocketAddress("127.0.0.1:23456");
+      Path path = createLocalPath(remoteHost);
+      NatMapping natMapping =
+          NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+      InetSocketAddress src = natMapping.getMappedAddress(path);
+      assertEquals(local, src);
+      assertFalse(src.getAddress().isAnyLocalAddress());
+      assertEquals(local.getAddress(), natMapping.getExternalIP());
+    }
+  }
+
+  @Test
+  void testBR_pathToHostInLocalAS_notBRsInLocalAs() throws IOException {
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
+      InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      InetSocketAddress remoteHost = IPHelper.toInetSocketAddress("127.0.0.1:23456");
+      Path path = createLocalPath(remoteHost);
+      NatMapping natMapping = NatMapping.createMapping(isdAs, channel, Collections.emptyList());
       InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
@@ -246,15 +283,15 @@ class NatMappingTest {
 
   @Test
   void testAUTO_noCUSTOM_noBR() throws IOException {
-    testAUTO_noCUSTOM_noBR_noPUBLIC(MockNetwork::stopTiny);
+    testAUTO_noCUSTOM_noBR(MockNetwork::stopTiny);
   }
 
   @Test
   void testAUTO_noCUSTOM_BRnoSTUN() throws IOException {
-    testAUTO_noCUSTOM_noBR_noPUBLIC(MockNetwork::disableStun);
+    testAUTO_noCUSTOM_noBR(MockNetwork::disableStun);
   }
 
-  void testAUTO_noCUSTOM_noBR_noPUBLIC(Runnable breakBR) throws IOException {
+  void testAUTO_noCUSTOM_noBR(Runnable breakBR) throws IOException {
     System.setProperty(Constants.PROPERTY_NAT, "AUTO");
 
     MockNetwork.startTiny();
@@ -308,12 +345,15 @@ class NatMappingTest {
     }
   }
 
-  private RequestPath createPath(InetSocketAddress firstHop) {
+  private RequestPath createLocalPath(InetSocketAddress remoteHost) {
+    long isdAs = ScionUtil.parseIA("1-ff00:0:110");
     return PackageVisibilityHelper.createDummyPath(
-        ScionUtil.parseIA("1-ff00:0:112"),
-        new byte[] {127, 0, 0, 1},
-        54321,
-        ExamplePacket.PATH_RAW_TINY_110_112,
-        firstHop);
+        isdAs, new byte[] {127, 0, 0, 1}, 54321, new byte[] {}, remoteHost);
+  }
+
+  private RequestPath createPath(InetSocketAddress firstHop) {
+    long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+    return PackageVisibilityHelper.createDummyPath(
+        isdAs, new byte[] {127, 0, 0, 1}, 54321, ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
   }
 }
