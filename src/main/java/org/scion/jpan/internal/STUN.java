@@ -33,8 +33,9 @@ public class STUN {
 
   private static final SecureRandom rnd = new SecureRandom();
 
-  // TODO private static final int MAGIC_COOKIE = 0x42A41221;
   private static final int MAGIC_COOKIE = 0x2112A442;
+  private static final int FINGERPRINT_XOR = 0x5354554e;
+
   // This must be UTF-8
   private static final String SOFTWARE_ID = "jpan.scion.org v0.4.0";
 
@@ -151,10 +152,18 @@ public class STUN {
           break;
         case FINGERPRINT:
           boolean match = readFINGERPRINT(in);
-          log.warn("FINGERPRINT: match = {}", match);
-          if (!match) {
+          if (match) {
+            log.info("FINGERPRINT: match = {}", match);
+          } else {
+            log.error("FINGERPRINT: match = {}", match);
             return null;
           }
+          break;
+        case RESPONSE_ORIGIN:
+          log.info("RESPONSE_ORIGIN: {}", readMAPPED_ADDRESS(in));
+          break;
+        case OTHER_ADDRESS:
+          log.info("OTHER_ADDRESS: {}", readMAPPED_ADDRESS(in));
           break;
         default:
           byte[] data = new byte[len];
@@ -184,13 +193,14 @@ public class STUN {
     crc32.update(in);
     in.limit(fpPos + 8);
 
-    long fingerprint = crc32.getValue() ^ 0x5354554e;
+    long fingerprintLong = crc32.getValue() ^ FINGERPRINT_XOR;
+    int fingerPrint32 = ByteUtil.toInt(fingerprintLong);
 
     // check fingerprint
     in.position(fpPos + 8);
 
-    if (packetCRC != fingerprint) {
-      log.error("FINGERPRINT mismatch: packet = {} vs calculated = {}", packetCRC, fingerprint);
+    if (packetCRC != fingerPrint32) {
+      log.error("FINGERPRINT mismatch: packet = {} vs calculated = {}", packetCRC, fingerPrint32);
       return false;
     }
     return true;
@@ -211,7 +221,7 @@ public class STUN {
   }
 
   private static InetSocketAddress readMAPPED_ADDRESS(ByteBuffer in) {
-    byte b0 = in.get();
+    in.get(); // MUST be ignored
     byte family = in.get();
     int port = ByteUtil.toUnsigned(in.getShort());
     byte[] bytes;
@@ -241,11 +251,10 @@ public class STUN {
   }
 
   private static InetSocketAddress readXOR_MAPPED_ADDRESS(ByteBuffer in, byte[] id) {
-    byte b0 = in.get();
+    in.get(); // MUST be ignored
     byte family = in.get();
     int port = ByteUtil.toUnsigned(in.getShort());
-    // port ^= 0x42A4;
-    port ^= 0x2112; // TODO golang
+    port ^= 0x2112;
     byte[] bytes;
     if (family == 0x01) {
       bytes = new byte[4];
@@ -350,7 +359,9 @@ public class STUN {
     OLD_XOR_MAPPED_ADDRESS(0x8020, "XOR-MAPPED-ADDRESS"),
     SOFTWARE(0x8022, "SOFTWARE"),
     ALTERNATE_SERVER(0x8023, "ALTERNATE-SERVER"),
-    FINGERPRINT(0x8028, "FINGERPRINT");
+    FINGERPRINT(0x8028, "FINGERPRINT"),
+    RESPONSE_ORIGIN(0x802B, "RESPONSE-ORIGIN"),
+    OTHER_ADDRESS(0x802C, "OTHER-ADDRESS");
 
     final int id;
     final String text;
@@ -483,7 +494,7 @@ public class STUN {
       buffer.limit(fpPos + 8);
       // write fingerprint
       buffer.position(fpPos + 4);
-      long fingerprint = crc32.getValue() ^ 0x5354554e;
+      long fingerprint = crc32.getValue() ^ FINGERPRINT_XOR;
       buffer.putInt(ByteUtil.toInt(fingerprint));
     }
 

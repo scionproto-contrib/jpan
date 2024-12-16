@@ -206,7 +206,7 @@ public class MockBorderRouter implements Runnable {
 
   private boolean checkStun(ByteBuffer in, SocketAddress srcAddress, DatagramChannel incoming)
       throws IOException {
-    if (in.getInt(4) != 0x42A41221) {
+    if (in.getInt(4) != 0x2112A442) {
       return false;
     }
     MockNetwork.nStunRequests.incrementAndGet();

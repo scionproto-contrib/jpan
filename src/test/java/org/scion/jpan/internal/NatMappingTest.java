@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -247,7 +246,6 @@ class NatMappingTest {
     assertEquals("Could not find a STUN/NAT solution for the border router.", e.getMessage());
   }
 
-  @Disabled
   @Test
   void testPrefetch_receive() throws IOException {
     System.setProperty(Constants.PROPERTY_NAT, "BR");
