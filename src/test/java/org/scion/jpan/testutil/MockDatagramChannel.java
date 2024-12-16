@@ -26,8 +26,10 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
+import java.nio.channels.spi.AbstractSelectionKey;
 import java.nio.channels.spi.AbstractSelector;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -249,7 +251,8 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   }
 
   public static class MockSelector extends AbstractSelector {
-    private final ConcurrentHashMap<SelectionKey, Object> keys = new ConcurrentHashMap<>();
+    private final Set<SelectionKey> keys = ConcurrentHashMap.newKeySet();
+    private final Set<SelectionKey> selectedKeys = ConcurrentHashMap.newKeySet();
 
     private Callable<Integer> connectCallback = () -> 1;
 
@@ -272,8 +275,10 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
     @Override
     protected void implCloseSelector() throws IOException {
-      for (SelectionKey key : keys.keySet()) {
+      for (SelectionKey key : keys) {
         key.cancel();
+        //key.invalidate()
+        deregister((AbstractSelectionKey) key);
       }
     }
 
@@ -281,18 +286,19 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     protected SelectionKey register(AbstractSelectableChannel ch, int ops, Object att) {
       MockSelectionKey key = new MockSelectionKey(ch, ops, this);
       key.attach(att);
-      keys.put(key, new Object());
+      key.interestOps(ops);
+      keys.add(key);
       return key;
     }
 
     @Override
     public Set<SelectionKey> keys() {
-      return keys.keySet();
+      return Collections.unmodifiableSet(keys);
     }
 
     @Override
     public Set<SelectionKey> selectedKeys() {
-      return keys.keySet();
+      return Collections.unmodifiableSet(selectedKeys);
     }
 
     @Override
@@ -313,7 +319,12 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     @Override
     public int select() throws IOException {
       try {
-        return connectCallback.call();
+        if (connectCallback != null) {
+          connectCallback.call();
+        }
+        // TODO mark them somehow?
+        selectedKeys.addAll(keys);
+        return selectedKeys.size();
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -372,10 +383,9 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     }
   }
 
-  public static class MockSelectionKey extends SelectionKey {
+  public static class MockSelectionKey extends AbstractSelectionKey {
     private final AbstractSelectableChannel channel;
     private int ops;
-    private boolean isValid = true;
     private Selector selector;
 
     MockSelectionKey(AbstractSelectableChannel ch, int ops, Selector selector) {
@@ -393,16 +403,6 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     @Override
     public Selector selector() {
       return selector;
-    }
-
-    @Override
-    public boolean isValid() {
-      return isValid;
-    }
-
-    @Override
-    public void cancel() {
-      isValid = false;
     }
 
     @Override
