@@ -27,10 +27,12 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
+import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 
 class NatMappingTest {
@@ -342,6 +344,31 @@ class NatMappingTest {
       assertEquals(2, MockNetwork.getAndResetStunCount());
     } finally {
       receiver.stopNow();
+    }
+  }
+
+  @Disabled // TODO
+  @Test
+  void testBadStunPacket() throws IOException {
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    MockNetwork.startTiny();
+    MockNetwork.disableStun();
+    try (MockDatagramChannel channel = MockDatagramChannel.open()) {
+      channel.setSendCallback((byteBuffer,socketAddress) -> byteBuffer.limit());
+      channel.setReceiveCallback(byteBuffer -> {
+        // We add a request
+        STUN.writeRequest(byteBuffer);
+        return null;
+      });
+
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      Path path = createPath(MockNetwork.getBorderRouterAddress1());
+      NatMapping natMapping =
+              NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+      Exception e =
+              assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path));
+      assertEquals("No mapped source for: " + path.getFirstHopAddress(), e.getMessage());
     }
   }
 
