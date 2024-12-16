@@ -45,9 +45,11 @@ class StunTest {
       in.flip();
 
       // check
+      ByteUtil.MutRef<STUN.TransactionID> txId = new ByteUtil.MutRef<>();
       ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
-      InetSocketAddress external = STUN.parseResponse(in, id::equals, error);
+      InetSocketAddress external = STUN.parseResponse(in, id::equals, txId, error);
       assertNull(error.get(), error.get());
+      assertNotNull(external);
 
       // We compare only the port, the IP may differ ("any" vs localhost, etc...)
       assertEquals(((InetSocketAddress) channel.getLocalAddress()).getPort(), external.getPort());
@@ -121,7 +123,6 @@ class StunTest {
   }
 
   void test(int[] ia, STUN.TransactionID id) throws UnknownHostException {
-
     ByteBuffer bb = ByteBuffer.allocate(100);
     for (int i : ia) {
       bb.put(ByteUtil.toByte(i));

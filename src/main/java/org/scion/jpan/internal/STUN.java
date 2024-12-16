@@ -35,6 +35,7 @@ public class STUN {
 
   private static final int MAGIC_COOKIE = 0x2112A442;
   private static final int FINGERPRINT_XOR = 0x5354554e;
+  private static final boolean ADD_FINGERPRINT = true;
 
   // This must be UTF-8
   private static final String SOFTWARE_ID = "jpan.scion.org v0.4.0";
@@ -77,21 +78,33 @@ public class STUN {
       Predicate<TransactionID> idHandler,
       ByteUtil.MutRef<TransactionID> txIdOut,
       ByteUtil.MutRef<String> error) {
+    parseHeader(in, idHandler, txIdOut, error);
+    if (error.get() != null) {
+      return null;
+    }
+    return parseBody(in);
+  }
+
+  private static void parseHeader(
+      ByteBuffer in,
+      Predicate<TransactionID> idHandler,
+      ByteUtil.MutRef<TransactionID> txIdOut,
+      ByteUtil.MutRef<String> error) {
     if (in.remaining() < 20) {
       error.set("STUN validation error, packet too short.");
-      return null;
+      return;
     }
     in.get();
     in.get();
     int dataLength = in.getShort();
     if (in.remaining() - 16 != dataLength) {
       error.set("STUN validation error, invalid length.");
-      return null;
+      return;
     }
     int magic = in.getInt();
     if (magic != MAGIC_COOKIE) {
       error.set("STUN validation error, invalid MAGIC_COOKIE.");
-      return null;
+      return;
     }
 
     int txId1 = in.getInt();
@@ -101,16 +114,17 @@ public class STUN {
     txIdOut.set(id);
     if (!idHandler.test(id)) {
       error.set("STUN validation error, TxID validation failed.");
-      return null;
     }
+  }
+
+  private static InetSocketAddress parseBody(ByteBuffer in) {
+    InetSocketAddress mappedAddress = null;
+    InetSocketAddress mappedAddressXor = null;
 
     // read again as byte[]
     in.position(in.position() - 16);
-    byte[] fullTxId = new byte[16];
-    in.get(fullTxId);
-
-    InetSocketAddress mappedAddress = null;
-    InetSocketAddress mappedAddressXor = null;
+    byte[] txId = new byte[16];
+    in.get(txId);
 
     // Attributes
     while (in.remaining() > 0) {
@@ -119,51 +133,47 @@ public class STUN {
       Type typeEnum = Type.parse(typeInt);
       switch (typeEnum) {
         case MAPPED_ADDRESS:
-          mappedAddress = readMAPPED_ADDRESS(in);
+          mappedAddress = readMappedAddress(in);
           log.info("MAPPED_ADDRESS: {}", mappedAddress);
           break;
         case WAS_SOURCE_ADDRESS:
-          log.info("SOURCE_ADDRESS: {}", readMAPPED_ADDRESS(in));
+          log.info("SOURCE_ADDRESS: {}", readMappedAddress(in));
           break;
         case WAS_CHANGED_ADDRESS:
-          log.info("CHANGED_ADDRESS: {}", readMAPPED_ADDRESS(in));
+          log.info("CHANGED_ADDRESS: {}", readMappedAddress(in));
           break;
         case XOR_MAPPED_ADDRESS:
-          InetSocketAddress xor = readXOR_MAPPED_ADDRESS(in, fullTxId);
-          mappedAddressXor = xor;
-          log.info("XOR_MAPPED_ADDRESS: {}", xor);
+          mappedAddressXor = readXorMappedAddress(in, txId);
+          log.info("XOR_MAPPED_ADDRESS: {}", mappedAddressXor);
           break;
         case OLD_XOR_MAPPED_ADDRESS:
-          InetSocketAddress xor_old = readXOR_MAPPED_ADDRESS(in, fullTxId);
-          mappedAddressXor = xor_old;
-          log.info("OLD_XOR_MAPPED_ADDRESS: {}", xor_old);
+          mappedAddressXor = readXorMappedAddress(in, txId);
+          log.info("OLD_XOR_MAPPED_ADDRESS: {}", mappedAddressXor);
           break;
         case SOFTWARE:
-          String software = readSOFTWARE(in, len);
+          String software = readSoftware(in, len);
           log.info("SOFTWARE: {}", software);
           break;
         case XXX_RESERVATION_TOKEN:
-          in.position(in.position() + len);
           // ignore
+          in.position(in.position() + len);
           break;
         case ERROR_CODE:
-          String errorMsg = readERROR_CODE(in);
-          log.error(errorMsg);
+          String errorMessage = readErrorCode(in);
+          log.error(errorMessage);
           break;
         case FINGERPRINT:
-          boolean match = readFINGERPRINT(in);
-          if (match) {
-            log.info("FINGERPRINT: match = {}", match);
-          } else {
-            log.error("FINGERPRINT: match = {}", match);
+          boolean match = readFingerprint(in);
+          log.info("FINGERPRINT: match = {}", match);
+          if (!match) {
             return null;
           }
           break;
         case RESPONSE_ORIGIN:
-          log.info("RESPONSE_ORIGIN: {}", readMAPPED_ADDRESS(in));
+          log.info("RESPONSE_ORIGIN: {}", readMappedAddress(in));
           break;
         case OTHER_ADDRESS:
-          log.info("OTHER_ADDRESS: {}", readMAPPED_ADDRESS(in));
+          log.info("OTHER_ADDRESS: {}", readMappedAddress(in));
           break;
         default:
           byte[] data = new byte[len];
@@ -178,10 +188,10 @@ public class STUN {
       log.error("Mismatch: {} <-> {}", mappedAddress, mappedAddressXor);
       // We ignore this for now, because 3 out of 41 XOR responses return bogus addresses...
     }
-    return mappedAddress != null ? mappedAddress : mappedAddressXor; // TODO reverse this!
+    return mappedAddressXor != null ? mappedAddressXor : mappedAddress;
   }
 
-  private static boolean readFINGERPRINT(ByteBuffer in) {
+  private static boolean readFingerprint(ByteBuffer in) {
     int fpPos = in.position() - 4;
     int packetCRC = in.getInt();
 
@@ -206,7 +216,7 @@ public class STUN {
     return true;
   }
 
-  private static String readERROR_CODE(ByteBuffer in) {
+  private static String readErrorCode(ByteBuffer in) {
     int i0 = in.getInt();
     int errorClass = ByteUtil.readInt(i0, 21, 3);
     int errorNumber = ByteUtil.readInt(i0, 24, 8);
@@ -220,7 +230,7 @@ public class STUN {
     return errorCode + ": " + msg;
   }
 
-  private static InetSocketAddress readMAPPED_ADDRESS(ByteBuffer in) {
+  private static InetSocketAddress readMappedAddress(ByteBuffer in) {
     in.get(); // MUST be ignored
     byte family = in.get();
     int port = ByteUtil.toUnsigned(in.getShort());
@@ -230,7 +240,7 @@ public class STUN {
     } else if (family == 0x02) {
       bytes = new byte[16];
     } else {
-      log.error("Unknown address family: {}", family);
+      log.error("Unknown address family for MAPPED_ADDRESS: {}", family);
       return null;
     }
     in.get(bytes);
@@ -243,14 +253,14 @@ public class STUN {
     }
   }
 
-  private static String readSOFTWARE(ByteBuffer in, int length) {
+  private static String readSoftware(ByteBuffer in, int length) {
     length = (length + 3) & 0xfffc;
     byte[] bytes = new byte[length];
     in.get(bytes);
     return new String(bytes);
   }
 
-  private static InetSocketAddress readXOR_MAPPED_ADDRESS(ByteBuffer in, byte[] id) {
+  private static InetSocketAddress readXorMappedAddress(ByteBuffer in, byte[] id) {
     in.get(); // MUST be ignored
     byte family = in.get();
     int port = ByteUtil.toUnsigned(in.getShort());
@@ -261,7 +271,7 @@ public class STUN {
     } else if (family == 0x02) {
       bytes = new byte[16];
     } else {
-      log.error("Unknown address family: {}", family);
+      log.error("Unknown address family for XOR_MAPPED_ADDRESS: {}", family);
       return null;
     }
     in.get(bytes);
@@ -433,10 +443,6 @@ public class STUN {
   }
 
   public static TransactionID writeRequest(ByteBuffer buffer) {
-    // TODO disabled, 2 out of 112 return Error 400 when using this method.
-    //   Note, the implementation is probably correct, flipping som bits causes another
-    //   4 servers to simply time out.
-    boolean addFingerprint = true;
     //    0                   1                   2                   3
     //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -474,7 +480,7 @@ public class STUN {
 
     // FINGERPRINT
     int fpPos = buffer.position();
-    if (addFingerprint) {
+    if (ADD_FINGERPRINT) {
       buffer.putShort(ByteUtil.toShort(Type.FINGERPRINT.code()));
       buffer.putShort(ByteUtil.toShort(4));
       buffer.putInt(0); // dummy
@@ -485,7 +491,7 @@ public class STUN {
     buffer.putShort(2, (short) (buffer.position() - 20));
 
     // calculate fingerprint
-    if (addFingerprint) {
+    if (ADD_FINGERPRINT) {
       CRC32 crc32 = new CRC32();
       buffer.flip();
       buffer.position(0);
