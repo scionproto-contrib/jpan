@@ -197,18 +197,17 @@ We used to use `connnect(firstHop)` to ensure a valid external IP. However,
           -> We may have to do this anyway to facilitate keep-alive messages.
 2) Sequence for AUTO:
     - Check for CUSTOM server setting
-    - Check if border router supports STUN -> 1st NW call, 1 per BR
-    - Check if border router responds to SCMP (means: no NAT) -> 2nd NW call, one per BR
-    - Check public STUN servers and try again with new IP -> 3rd + 4th NW call, one per BR
-      (Don't do 4th call if returned IP equals known local IP)
+    - Check if border router supports STUN -> 1 NW call per BR
 
 As can be seen from above, in an AS with `n` border routers (BR), we have at least `n` network calls
-even if all BRs support STUN. If they don't, we get up to `3n+1` network calls, possibly more if
-multiple public STUN servers are used.
-To speed up the detection, we send out `n` packets at once before checking for answers.
-However, following the approach above, we still get 3 rounds of `n` plus a single request to the
-public STUN server, resulting in a worst case of 4*TIMEOUT (default = 10ms) before giving up.
-In the best case the timeout is never reached, i.e. STUN detection may take less than 10ms.
+even if all BRs support STUN. To speed up the detection, we send out `n` packets at once before
+checking for answers.
+
+Note: The initial design considered using SCMP as an additional tool to detect NAT (which doesn't 
+really work because border routers answer SCMP to the underlay, which makes it impossible to
+detect NATs) and provided default public STUN servers (which only would have helped in cases
+where a public IP is visible to, and ideally on the path to, the border routers).
+In the end we decided that these features cause more complexity and confusion than being helpful.
 
 ### Intra-AS communication
 

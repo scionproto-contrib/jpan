@@ -144,7 +144,7 @@ class NatMappingTest {
 
     System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, "127.0.0.1:34343");
     Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local, brs));
-    assertEquals("Failed to connect to STUN servers: 127.0.0.1:34343", e.getMessage());
+    assertEquals("Failed to connect to STUN servers: \"127.0.0.1:34343\"", e.getMessage());
   }
 
   @Test
@@ -245,16 +245,16 @@ class NatMappingTest {
   }
 
   @Test
-  void testAUTO_noCUSTOM_noBR_noPUBLIC() {
+  void testAUTO_noCUSTOM_noBR() throws IOException {
     testAUTO_noCUSTOM_noBR_noPUBLIC(MockNetwork::stopTiny);
   }
 
   @Test
-  void testAUTO_noCUSTOM_BRnoSTUN_noPUBLIC() {
+  void testAUTO_noCUSTOM_BRnoSTUN() throws IOException {
     testAUTO_noCUSTOM_noBR_noPUBLIC(MockNetwork::disableStun);
   }
 
-  void testAUTO_noCUSTOM_noBR_noPUBLIC(Runnable breakBR) {
+  void testAUTO_noCUSTOM_noBR_noPUBLIC(Runnable breakBR) throws IOException {
     System.setProperty(Constants.PROPERTY_NAT, "AUTO");
 
     MockNetwork.startTiny();
@@ -266,10 +266,10 @@ class NatMappingTest {
     // Stop BR
     breakBR.run();
 
-    // This is not nice, we assume this fails because the PUBLIC servers are not reachable from
-    // the loopback interface
-    Exception e = assertThrows(ScionRuntimeException.class, () -> tryIFD(path, local, brs));
-    assertEquals("Could not find a STUN/NAT solution for the border router.", e.getMessage());
+    // We now should have NO_NAT policy.
+    InetSocketAddress src = tryIFD(path, local, brs);
+    assertEquals(local, src);
+    assertFalse(src.getAddress().isAnyLocalAddress());
   }
 
   @Test

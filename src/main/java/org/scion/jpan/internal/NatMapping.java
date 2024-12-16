@@ -54,7 +54,7 @@ public class NatMapping {
   private long lastUsed;
   private InetSocketAddress commonAddress;
   private final Map<InetSocketAddress, Entry> sourceIPs = new HashMap<>();
-  // TODO attack: send SCMP (error?) or STUN with > 100 byte length
+  // TODO attack: send STUN with > 100 byte length
   private final ByteBuffer buffer = ByteBuffer.allocateDirect(100);
   private final DatagramChannel channel;
   private InetAddress externalIP;
@@ -197,14 +197,12 @@ public class NatMapping {
         autoDetect();
         break;
       case STUN_CUSTOM:
-        InetSocketAddress addr = tryCustomServer(true);
-        if (addr == null) {
-          String custom =
-              ScionUtil.getPropertyOrEnv(
-                  PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, DEFAULT_NAT_STUN_SERVER);
-          throw new ScionRuntimeException("Failed to connect to STUN servers: " + custom);
+        InetSocketAddress address = tryCustomServer(true);
+        if (address == null) {
+          String custom = ScionUtil.getPropertyOrEnv(PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER);
+          throw new ScionRuntimeException("Failed to connect to STUN servers: \"" + custom + "\"");
         }
-        update(NatMode.STUN_SERVER, addr);
+        update(NatMode.STUN_SERVER, address);
         break;
       case STUN_BR:
         tryStunBorderRouter();
@@ -228,11 +226,9 @@ public class NatMapping {
     return local;
   }
 
-  private InetSocketAddress tryCustomServer(boolean useDefault) {
-    String defaultSrv = useDefault ? DEFAULT_NAT_STUN_SERVER : null;
-    String custom =
-        ScionUtil.getPropertyOrEnv(PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER, defaultSrv);
-    if (!useDefault && (custom == null || custom.isEmpty())) {
+  private InetSocketAddress tryCustomServer(boolean throwOnFailure) {
+    String custom = ScionUtil.getPropertyOrEnv(PROPERTY_NAT_STUN_SERVER, ENV_NAT_STUN_SERVER);
+    if (!throwOnFailure && (custom == null || custom.isEmpty())) {
       // Ignore empty sever address if we don't rely on it
       return null;
     }
@@ -244,43 +240,23 @@ public class NatMapping {
     InetSocketAddress source = tryCustomServer(false);
     if (source != null) {
       update(NatMode.STUN_SERVER, source);
+      log.info("NAT AUTO: Found custom STUN server.");
       return;
     }
 
-    // Check BR
-    // - Check if BR is NAT enabled (gives correct address)
-    // Try first with STUN, this should eventually be available everywhere
+    // Check if BR is STUN enabled (gives correct address)
     if (tryStunBorderRouter()) {
       update(NatMode.BR_STUN, getLocalAddress());
+      log.info("NAT AUTO: Found STUN enabled border routers.");
       return;
     }
 
-    // - Check if BR responds to tr/ping (is reachable)
-    // At this point we should have a local address with port.
+    // At this point we can only hop that there is no NAT.
     int localPort = ((InetSocketAddress) channel.getLocalAddress()).getPort();
     InetAddress sourceIP = getExternalIP();
     source = new InetSocketAddress(sourceIP, localPort);
-    if (isBorderRouterReachable(source)) {
-      // TODO this is wrong because the BR responds to the underlay i.o. SRC.
-      // However, this may really mean that there is no NAT. SInce we can't tell,
-      // we just assume there is none and return.
-      update(NatMode.NO_NAT, source);
-      return;
-    }
-
-    // Check DEFAULT servers
-    // Check CUSTOM
-    source = tryCustomServer(true);
-    // TODO we should try default servers only if the assumed loacl IP is from the "public" range
-    if (source != null) {
-      // - Verify with tr/ping BR -> fail if not reachable
-      if (isBorderRouterReachable(source)) {
-        update(NatMode.STUN_SERVER, source);
-        return;
-      }
-    }
-    log.error("Could not find a STUN/NAT solution for any border routers.");
-    throw new ScionRuntimeException("Could not find a STUN/NAT solution for the border router.");
+    update(NatMode.NO_NAT, source);
+    log.info("Could not find custom STUN server or NAT enabled border routers. Hoping for no NAT.");
   }
 
   private InetSocketAddress tryStunServer(String stunAddress) {
@@ -370,78 +346,13 @@ public class NatMapping {
           InetSocketAddress external = STUN.parseResponse(buffer, ids::containsKey, id, error);
           Entry e = ids.remove(id.get());
           e.updateSource(external);
-          if (external != null && error.get() == null) {
-            if (ids.isEmpty()) {
-              return true;
-            }
+          if (external != null && error.get() == null && ids.isEmpty()) {
+            return true;
           }
         }
       }
     }
     return false;
-  }
-
-  private boolean isBorderRouterReachable(InetSocketAddress src) throws IOException {
-    boolean isBlocking = channel.isBlocking();
-    try (Selector selector = channel.provider().openSelector()) {
-      channel.configureBlocking(false);
-      // start receiver
-      channel.register(selector, SelectionKey.OP_READ, channel);
-
-      Collection<Entry> entries = sourceIPs.values();
-      sendSCMPs(entries, src);
-      // For now, ew report success if at least one BE is reachable.
-      // We should not simply enforce all BR to be reachable, BRs may be temporarily unreachable.
-      return receiveSCMPs(entries, selector) > 0;
-    } finally {
-      channel.configureBlocking(isBlocking);
-    }
-  }
-
-  private void sendSCMPs(Collection<Entry> entries, InetSocketAddress src) throws IOException {
-    for (Entry e : entries) {
-      buffer.clear();
-      ScionHeaderParser.write(
-          buffer,
-          8,
-          0,
-          localIsdAs,
-          src.getAddress().getAddress(),
-          localIsdAs,
-          e.firstHop.getAddress().getAddress(),
-          InternalConstants.HdrTypes.SCMP,
-          0); // correct?
-      ScmpParser.buildScmpPing(buffer, Scmp.Type.INFO_128, src.getPort(), 0, new byte[0]);
-      buffer.flip();
-      channel.send(buffer, e.firstHop);
-    }
-  }
-
-  private int receiveSCMPs(Collection<Entry> entries, Selector selector) throws IOException {
-    int nReceived = 0;
-    while (true) {
-      int i = selector.select(stunTimeoutMs);
-      if (i == 0) {
-        return nReceived;
-      }
-      Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-      while (iter.hasNext()) {
-        SelectionKey key = iter.next();
-        if (key.isReadable()) {
-          DatagramChannel channelIn = (DatagramChannel) key.channel();
-          channelIn.receive(buffer);
-          buffer.flip();
-          if (ScionHeaderParser.extractNextHeader(buffer) == InternalConstants.HdrTypes.SCMP
-              && ScmpParser.extractType(buffer) == Scmp.Type.INFO_129) {
-            // TODO check sequence number????
-            nReceived++;
-            if (nReceived == entries.size()) {
-              return nReceived;
-            }
-          }
-        }
-      }
-    }
   }
 
   /** See {@link Constants#PROPERTY_NAT} for details. */
