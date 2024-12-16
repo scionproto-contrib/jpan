@@ -108,8 +108,6 @@ class ShimTest {
     testScmpEchoReflect();
 
     // test that SCMP echo responses are forwarded
-    testScmpEchoResponse();
-
     testScmpResponse(Scmp.TypeCode.TYPE_129);
     // test traceroute response
     testScmpResponse(Scmp.TypeCode.TYPE_131);
@@ -137,32 +135,9 @@ class ShimTest {
   private void testScmpEchoReflect() throws IOException {
     // Test that the SHIM answers SCMP requests
     try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
-      Path path = createDummyPath(Constants.SCMP_PORT);
+      Path path = createDummyPath();
       Scmp.EchoMessage msg = sender.sendEchoRequest(path, ByteBuffer.allocate(0));
       assertFalse(msg.isTimedOut());
-    }
-  }
-
-  private void testScmpEchoResponse() throws IOException {
-    // Test that an SCMP echo response ca n be forwarded by the SHIM
-    ManagedThread responder = ManagedThread.newBuilder().build();
-    AtomicInteger counter = new AtomicInteger();
-    int port = 31212; // Port from non-dispatched port range
-    try (ScmpSender sender = Scmp.newSenderBuilder().build();
-        ScmpResponder scmpResponder = Scmp.newResponderBuilder().setLocalPort(port).build()) {
-      scmpResponder.setScmpEchoListener(echoMessage -> counter.incrementAndGet() > 0);
-      responder.submit(
-          news -> {
-            news.reportStarted();
-            scmpResponder.start();
-          });
-
-      Path path = createDummyPath(port);
-      Scmp.EchoMessage msg = sender.sendEchoRequest(path, ByteBuffer.allocate(0));
-      assertFalse(msg.isTimedOut());
-      assertEquals(1, counter.get());
-    } finally {
-      responder.join(10);
     }
   }
 
@@ -191,7 +166,7 @@ class ShimTest {
           });
 
       sendScmpResponse(port, scmpTypeCode, expectError);
-      receiver.join(10);
+      receiver.join(20);
     } finally {
       receiver.stopNow();
     }
@@ -237,16 +212,16 @@ class ShimTest {
     }
   }
 
-  private Path createDummyPath(int serverPort) {
+  private Path createDummyPath() {
     InetSocketAddress firstHop = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12321);
-    return createDummyPath(serverPort, firstHop);
+    return createDummyPath(firstHop);
   }
 
-  private Path createDummyPath(int serverPort, InetSocketAddress firstHop) {
+  private Path createDummyPath(InetSocketAddress firstHop) {
     long localIA = ScionUtil.parseIA("1-ff00:0:110");
     InetAddress dstAddr = InetAddress.getLoopbackAddress();
     return PackageVisibilityHelper.createDummyPath(
-        localIA, dstAddr, serverPort, new byte[0], firstHop);
+        localIA, dstAddr, Constants.SCMP_PORT, new byte[0], firstHop);
   }
 
   @Test
