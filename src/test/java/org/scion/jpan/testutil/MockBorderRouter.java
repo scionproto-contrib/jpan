@@ -209,6 +209,10 @@ public class MockBorderRouter implements Runnable {
     if (in.getInt(4) != 0x2112A442) {
       return false;
     }
+    if (!MockNetwork.enableStun.get()) {
+      // read, but do not respond.
+      return true;
+    }
     MockNetwork.nStunRequests.incrementAndGet();
     // Let's assume this is a valid STUN packet.
     ByteBuffer out = ByteBuffer.allocate(1000);

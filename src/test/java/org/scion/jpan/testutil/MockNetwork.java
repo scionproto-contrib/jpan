@@ -25,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
@@ -64,6 +65,7 @@ public class MockNetwork {
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
   static final AtomicInteger nStunRequests = new AtomicInteger();
+  static final AtomicBoolean enableStun = new AtomicBoolean(true);
   static CountDownLatch barrier = null;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
@@ -219,6 +221,7 @@ public class MockNetwork {
 
     dropNextPackets.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
+    enableStun.set(true);
     asInfo = null;
     mock = null;
   }
@@ -286,6 +289,10 @@ public class MockNetwork {
 
   public static MockControlServer getControlServer() {
     return controlServer;
+  }
+
+  public static void disableStun() {
+    enableStun.set(false);
   }
 
   public enum Mode {

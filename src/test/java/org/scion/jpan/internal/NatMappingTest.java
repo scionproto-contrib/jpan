@@ -100,6 +100,23 @@ class NatMappingTest {
   }
 
   @Test
+  void testBR_noSTUN() throws IOException {
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    MockNetwork.startTiny();
+    MockNetwork.disableStun();
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+      Path path = createPath(MockNetwork.getBorderRouterAddress1());
+      NatMapping natMapping =
+          NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+      Exception e =
+          assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path));
+      assertEquals("No mapped source for: " + path.getFirstHopAddress(), e.getMessage());
+    }
+  }
+
+  @Test
   void testBR_notRunning() throws IOException {
     MockNetwork.startTiny();
     InetSocketAddress firstHop = MockNetwork.getBorderRouterAddress1();
@@ -229,6 +246,15 @@ class NatMappingTest {
 
   @Test
   void testAUTO_noCUSTOM_noBR_noPUBLIC() {
+    testAUTO_noCUSTOM_noBR_noPUBLIC(MockNetwork::stopTiny);
+  }
+
+  @Test
+  void testAUTO_noCUSTOM_BRnoSTUN_noPUBLIC() {
+    testAUTO_noCUSTOM_noBR_noPUBLIC(MockNetwork::disableStun);
+  }
+
+  void testAUTO_noCUSTOM_noBR_noPUBLIC(Runnable breakBR) {
     System.setProperty(Constants.PROPERTY_NAT, "AUTO");
 
     MockNetwork.startTiny();
@@ -238,7 +264,7 @@ class NatMappingTest {
     Path path = createPath(MockNetwork.getBorderRouterAddress1());
 
     // Stop BR
-    MockNetwork.stopTiny();
+    breakBR.run();
 
     // This is not nice, we assume this fails because the PUBLIC servers are not reachable from
     // the loopback interface
