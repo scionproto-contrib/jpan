@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Does setBlocking=false unblock a blocking receiver?
     Ensure we do never do it once the receiver is running (e.g. via a timer...)....
     --> We only need to send(), not to receive() packets for keepalive! 
+- TEST all(default) with AUTO??? BR????
+  - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
+    e.g. configureBlocking() 
 - Check how PAN/snet behaves wrt responding to underlay address when in local AS.
 - Ensure that we parse /etc/hosts and /etc/scion/hosts and that dnsjava doesn't
   print warning in the Java example! 
@@ -33,19 +36,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
+** BREAKING CHANGE **
+Minor: Some methods have "throw IOException" removed from their declaration.
+For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
+
 ### Added
 
 - Added Path construction tests for tiny4. 
   [#146](https://github.com/scionproto-contrib/jpan/pull/146)
 - Added experimental support for STUN [#142](https://github.com/scionproto-contrib/jpan/pull/142)
   This also reduces network calls by starting SHIM w/o service.
-
-** BREAKING CHANGE **
-Minor: Some methods have "throw IOException" removed from their declaration.
-For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
-
-TODO
-- TEST all(default) with AUTO??? BR????
 
 ### Changed
  
