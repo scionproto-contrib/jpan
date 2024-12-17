@@ -345,9 +345,11 @@ public class NatMapping {
           final ByteUtil.MutRef<STUN.TransactionID> id = new ByteUtil.MutRef<>();
           InetSocketAddress external = STUN.parseResponse(buffer, ids::containsKey, id, error);
           Entry e = ids.remove(id.get());
-          e.updateSource(external);
-          if (external != null && error.get() == null && ids.isEmpty()) {
-            return true;
+          if (e != null) {
+            e.updateSource(external);
+            if (external != null && error.get() == null && ids.isEmpty()) {
+              return true;
+            }
           }
         }
       }

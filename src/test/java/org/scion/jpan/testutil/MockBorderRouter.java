@@ -215,7 +215,7 @@ public class MockBorderRouter implements Runnable {
     }
     MockNetwork.nStunRequests.incrementAndGet();
     // Let's assume this is a valid STUN packet.
-    ByteBuffer out = ByteBuffer.allocate(1000);
+    ByteBuffer out = ByteBuffer.allocate(60000);
     out.putShort(ByteUtil.toShort(0x0101));
     // length
     out.putShort((short) 0);
@@ -242,6 +242,13 @@ public class MockBorderRouter implements Runnable {
 
     // update packet length
     out.putShort(2, ByteUtil.toShort(out.position() - 20));
+
+    if (MockNetwork.stunCallback.get() != null) {
+      // If callback returns true we send the packet (which may have been altered)
+      if (!MockNetwork.stunCallback.get().test(out)) {
+        return true;
+      }
+    }
 
     out.flip();
     incoming.send(out, srcAddress);

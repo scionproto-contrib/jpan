@@ -225,6 +225,7 @@ public class MockNetwork {
     dropNextPackets.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
     enableStun.set(true);
+    stunCallback.set(null);
     asInfo = null;
     mock = null;
   }

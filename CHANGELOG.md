@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
+- Implement keepalive for NAT (separate timer for each BR, or at least each mapping)
+  (in theory, 2 NATs could provide the same external address...!) 
+- Ensure that we parse /etc/hosts and /etc/scion/hosts and that dnsjava doesn't
+  print warning in the Java example! 
 - Add LICENSE to generated jar. Why doesn't that happen automatically?
   Do we need the assembly plugin?
 - Cache paths
@@ -38,22 +42,12 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 
 TODO
 - Separate PR: implement keep alive
-
-- AUTO mode:
-  - Look at underlay IP of any returned packet (SCMP?) to see whether it comes from a BR or
-    from a NAT or BR? Unfortunately this is not 100% accurate because the NAT may have incidentally
-    the same IP (even port???) as one of the BRs -> Can be resolved with mutliple BRs.
-  - Make sure that we don´t rely on successful SCMP to report "success".
-
-- Configure 
-  - SEPARATE: ENFORCE use of XOR? -> Check scionproto-impl
+- 
 - Reset on disconnect()? 
 - Does setBlocking=false unblock a blocking receiver?
   Ensure we do never do it once the receiver is running....
 
 - Check how PAN/snet behaves wrt responding to underlay address when in local AS.
-
-- Some STUN/NAT tests are disabled -> But STUN with Jan's impl works!
 
 ### Changed
  
