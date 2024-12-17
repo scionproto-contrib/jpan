@@ -25,7 +25,6 @@ import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -347,33 +346,24 @@ class NatMappingTest {
   }
 
   @Test
-  void testDisconnect() throws IOException {
+  void testDisconnectWithSend() throws IOException {
+    testDisconnectWithSend(false);
+  }
+
+  @Test
+  void testDisconnectWithReceive() throws IOException {
+    // Verify that receive() triggers a STUN before blocking.
+    testDisconnectWithSend(true);
+  }
+
+  void testDisconnectWithSend(boolean testReceive) throws IOException {
     // Disconnect should reset the NAT mapping.
     // Being on localhost and having no actual NAT, we can only count the number of STUN messages.
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     MockNetwork.startTiny();
     ManagedThread receiver =
         ManagedThread.newBuilder().expectThrows(ClosedByInterruptException.class).build();
-    AtomicInteger receiveCount = new AtomicInteger();
-    InetSocketAddress srv =
-        new InetSocketAddress(InetAddress.getByAddress(new byte[] {127, 0, 0, 1}), 54321);
     try (ScionDatagramChannel channelSend = ScionDatagramChannel.open()) {
-      channelSend.configureBlocking(true);
-
-      receiver.submit(
-          news -> {
-            try (DatagramChannel channelRcv = DatagramChannel.open()) {
-              channelRcv.bind(srv);
-              channelRcv.configureBlocking(true);
-              news.reportStarted();
-              for (int i = 0; i < 2; i++) {
-                ByteBuffer buffer = ByteBuffer.allocate(100);
-                channelRcv.receive(buffer);
-                receiveCount.incrementAndGet();
-              }
-            }
-          });
-
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       ByteBuffer sendBuffer = ByteBuffer.allocate(100);
       channelSend.send(sendBuffer, path);
@@ -383,15 +373,18 @@ class NatMappingTest {
       channelSend.disconnect();
 
       // send again
-      sendBuffer.flip();
-      channelSend.send(sendBuffer, path);
+      if (testReceive) {
+        channelSend.configureBlocking(false);
+        channelSend.receive(sendBuffer);
+      } else {
+        sendBuffer.flip();
+        channelSend.send(sendBuffer, path);
+      }
       // Now there should have bee two more STUN packets
       assertEquals(2, MockNetwork.getAndResetStunCount());
 
       // finish
       receiver.join(10);
-
-      assertEquals(2, receiveCount.get());
     } finally {
       receiver.stopNow();
     }

@@ -45,7 +45,6 @@ Minor: Some methods have "throw IOException" removed from their declaration.
 For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 
 TODO
-- Reset on disconnect()? 
 - TEST all(default) with AUTO??? BR????
 
 ### Changed

@@ -142,6 +142,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return natMapping;
   }
 
+  private void ensureNatMapping() {
+    if (service != null) {
+      getNatMapping();
+    }
+  }
+
   protected void ensureBound() throws IOException {
     synchronized (stateLock) {
       if (localAddress == null) {
@@ -341,6 +347,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected ResponsePath receiveFromChannel(
       ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
     ensureBound();
+    ensureNatMapping(); // This can be necessary after having called disconnect()
     while (true) {
       buffer.clear();
       InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
