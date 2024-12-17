@@ -117,12 +117,12 @@ class StunTest {
       0xcf, 0x6b, 0x28, 0x56, 0x00, 0x20, 0x00, 0x08,
       0x00, 0x01, 0x58, 0x0b, 0x5e, 0x12, 0xa4, 0x43
     };
-    test(ia, id0);
-    test(in2, id1);
-    test(in3, id2);
+    testRecordedResponse(ia, id0);
+    testRecordedResponse(in2, id1);
+    testRecordedResponse(in3, id2);
   }
 
-  void test(int[] ia, STUN.TransactionID id) throws UnknownHostException {
+  void testRecordedResponse(int[] ia, STUN.TransactionID id) throws UnknownHostException {
     ByteBuffer bb = ByteBuffer.allocate(100);
     for (int i : ia) {
       bb.put(ByteUtil.toByte(i));
@@ -150,4 +150,155 @@ class StunTest {
     assertEquals(id, txIdOut.get());
     assertEquals(1, handled.get());
   }
+
+  void testRecordedResponseNoCheck(int[] ia) {
+    ByteBuffer bb = ByteBuffer.allocate(200);
+    for (int i : ia) {
+      bb.put(ByteUtil.toByte(i));
+    }
+    bb.flip();
+
+    STUN.TransactionID id = STUN.TransactionID.from(bb.getInt(8), bb.getInt(12), bb.getInt(16));
+
+    assertTrue(STUN.isStunPacket(bb, id));
+    assertTrue(STUN.isStunResponse(bb, id));
+
+    ByteUtil.MutInt handled = new ByteUtil.MutInt(0);
+    Predicate<STUN.TransactionID> idHandler =
+        txID -> {
+          assertEquals(txID, id);
+          handled.set(1);
+          return true;
+        };
+    ByteUtil.MutRef<STUN.TransactionID> txIdOut = new ByteUtil.MutRef<>();
+    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+    InetSocketAddress addr = STUN.parseResponse(bb, idHandler, txIdOut, error);
+    assertNotNull(addr);
+    assertTrue(addr.getPort() > 32000);
+
+    assertNull(error.get());
+    assertEquals(id, txIdOut.get());
+    assertEquals(1, handled.get());
+  }
+
+  void testRecordedErrorNoCheck(int[] ia) {
+    ByteBuffer bb = ByteBuffer.allocate(200);
+    for (int i : ia) {
+      bb.put(ByteUtil.toByte(i));
+    }
+    bb.flip();
+
+    STUN.TransactionID id = STUN.TransactionID.from(bb.getInt(8), bb.getInt(12), bb.getInt(16));
+
+    assertTrue(STUN.isStunPacket(bb, id));
+
+    ByteUtil.MutInt handled = new ByteUtil.MutInt(0);
+    Predicate<STUN.TransactionID> idHandler =
+        txID -> {
+          assertEquals(txID, id);
+          handled.set(1);
+          return true;
+        };
+    ByteUtil.MutRef<STUN.TransactionID> txIdOut = new ByteUtil.MutRef<>();
+    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+    InetSocketAddress addr = STUN.parseResponse(bb, idHandler, txIdOut, error);
+    assertNull(addr);
+
+    assertNull(error.get());
+    assertEquals(id, txIdOut.get());
+    assertEquals(1, handled.get());
+  }
+
+  @Test
+  void testResponsesFromPublicServers() {
+    int[] ba = {
+      0x1, 0x1, 0x0, 0x44, 0x21, 0x12, 0xa4, 0x42,
+      0x28, 0xd2, 0x66, 0x9c, 0x7e, 0xdb, 0x56, 0xf,
+      0x36, 0xc9, 0x31, 0xb1, 0x0, 0x1, 0x0, 0x8,
+      0x0, 0x1, 0x82, 0x75, 0x81, 0x84, 0xe6, 0x49,
+      0x0, 0x4, 0x0, 0x8, 0x0, 0x1, 0xd, 0x96,
+      0x42, 0x33, 0x80, 0xb, 0x0, 0x5, 0x0, 0x8,
+      0x0, 0x1, 0xd, 0x97, 0x42, 0x33, 0x80, 0xc,
+      0x80, 0x20, 0x0, 0x8, 0x0, 0x1, 0xa3, 0x67,
+      0xa0, 0x96, 0x42, 0xb, 0x80, 0x22, 0x0, 0x10,
+      0x56, 0x6f, 0x76, 0x69, 0x64, 0x61, 0x2e, 0x6f,
+      0x72, 0x67, 0x20, 0x30, 0x2e, 0x39, 0x36, 0x0,
+    };
+    //  [main] INFO org.scion.jpan.internal.STUN - MAPPED_ADDRESS: /129.132.230.73:33397
+    //  [main] INFO org.scion.jpan.internal.STUN - SOURCE_ADDRESS: /66.51.128.11:3478
+    //  [main] INFO org.scion.jpan.internal.STUN - CHANGED_ADDRESS: /66.51.128.12:3479
+    //  [main] INFO org.scion.jpan.internal.STUN - OLD_XOR_MAPPED_ADDRESS: /129.132.230.73:33397
+    //  [main] INFO org.scion.jpan.internal.STUN - SOFTWARE: Vovida.org 0.96
+    testRecordedResponseNoCheck(ba);
+  }
+
+  @Test
+  void testResponseFromPublicServers2() {
+    int[] ba = {
+      0x1, 0x1, 0x0, 0x58, 0x21, 0x12, 0xa4, 0x42,
+      0x87, 0x16, 0xbe, 0x65, 0x8c, 0xec, 0x16, 0xaf,
+      0xa8, 0x24, 0x50, 0x45, 0x0, 0x20, 0x0, 0x8,
+      0x0, 0x1, 0x94, 0xe4, 0xa0, 0x96, 0x42, 0xb,
+      0x0, 0x1, 0x0, 0x8, 0x0, 0x1, 0xb5, 0xf6,
+      0x81, 0x84, 0xe6, 0x49, 0x80, 0x2b, 0x0, 0x8,
+      0x0, 0x1, 0xd, 0x96, 0xb9, 0x7d, 0xb4, 0x46,
+      0x80, 0x2c, 0x0, 0x8, 0x0, 0x1, 0xd, 0x97,
+      0xb9, 0x7d, 0xb4, 0x47, 0x80, 0x22, 0x0, 0x1a,
+      0x43, 0x6f, 0x74, 0x75, 0x72, 0x6e, 0x2d, 0x34,
+      0x2e, 0x35, 0x2e, 0x31, 0x2e, 0x31, 0x20, 0x27,
+      0x64, 0x61, 0x6e, 0x20, 0x45, 0x69, 0x64, 0x65,
+      0x72, 0x27, 0x0, 0x0, 0x80, 0x28, 0x0, 0x4,
+      0x80, 0x4b, 0xc2, 0x43,
+    };
+    //  [main] INFO org.scion.jpan.internal.STUN - XOR_MAPPED_ADDRESS: /129.132.230.73:46582
+    //  [main] INFO org.scion.jpan.internal.STUN - MAPPED_ADDRESS: /129.132.230.73:46582
+    //  [main] INFO org.scion.jpan.internal.STUN - RESPONSE_ORIGIN: /185.125.180.70:3478
+    //  [main] INFO org.scion.jpan.internal.STUN - OTHER_ADDRESS: /185.125.180.71:3479
+    //  [main] INFO org.scion.jpan.internal.STUN - SOFTWARE: Coturn-4.5.1.1 'dan Eider'
+    //  [main] INFO org.scion.jpan.internal.STUN - FINGERPRINT: match = true
+    testRecordedResponseNoCheck(ba);
+  }
+
+  @Test
+  void testResponseFromPublicServers3() {
+    int[] ba = {
+      0x1, 0x11, 0x0, 0x14, 0x21, 0x12, 0xa4, 0x42,
+      0xfa, 0x62, 0xc1, 0xd8, 0x2a, 0x7, 0xd2, 0xbb,
+      0x13, 0x16, 0x97, 0xa6, 0x0, 0x9, 0x0, 0x10,
+      0x0, 0x0, 0x4, 0x0, 0x42, 0x61, 0x64, 0x20,
+      0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x20,
+    };
+    //  [main] ERROR org.scion.jpan.internal.STUN - 400: Bad Request
+    //  Bad Request: The request was malformed.  The client SHOULD NOT
+    //  retry the request without modification from the previous
+    //  attempt.  The server may not be able to generate a valid
+    //  MESSAGE-INTEGRITY for this error, so the client MUST NOT expect
+    //  a valid MESSAGE-INTEGRITY attribute on this response.
+    testRecordedErrorNoCheck(ba);
+  }
+
+  //  @Test
+  //  void testResponseFromPublicServers4() {
+  //    testRecordedResponseNoCheck(ba);
+  //  }
+  //
+  //  @Test
+  //  void testResponseFromPublicServers5() {
+  //    testRecordedResponseNoCheck(ba);
+  //  }
+  //
+  //  @Test
+  //  void testResponseFromPublicServers6() {
+  //    testRecordedResponseNoCheck(ba);
+  //  }
+  //
+  //  @Test
+  //  void testResponseFromPublicServers7() {
+  //    testRecordedResponseNoCheck(ba);
+  //  }
+  //
+  //  @Test
+  //  void testResponseFromPublicServers8() {
+  //    testRecordedResponseNoCheck(ba);
+  //  }
 }
