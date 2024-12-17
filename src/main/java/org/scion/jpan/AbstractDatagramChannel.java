@@ -204,6 +204,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public void disconnect() throws IOException {
     synchronized (stateLock) {
       connectionPath = null;
+      natMapping = null;
     }
   }
 

@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.5.0
 - Implement keepalive for NAT (separate timer for each BR, or at least each mapping)
   (in theory, 2 NATs could provide the same external address...!) 
+  - Does setBlocking=false unblock a blocking receiver?
+    Ensure we do never do it once the receiver is running (e.g. via a timer...)....
+    --> We only need to send(), not to receive() packets for keepalive! 
+- Check how PAN/snet behaves wrt responding to underlay address when in local AS.
 - Ensure that we parse /etc/hosts and /etc/scion/hosts and that dnsjava doesn't
   print warning in the Java example! 
 - Add LICENSE to generated jar. Why doesn't that happen automatically?
@@ -41,13 +45,8 @@ Minor: Some methods have "throw IOException" removed from their declaration.
 For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 
 TODO
-- Separate PR: implement keep alive
-- 
 - Reset on disconnect()? 
-- Does setBlocking=false unblock a blocking receiver?
-  Ensure we do never do it once the receiver is running....
-
-- Check how PAN/snet behaves wrt responding to underlay address when in local AS.
+- TEST all(default) with AUTO??? BR????
 
 ### Changed
  

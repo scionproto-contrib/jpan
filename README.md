@@ -52,7 +52,7 @@ JPAN can be used in one of the following ways:
   outgoing packet is sent to port 30041 on the remote machine. The flag has no effect on traffic 
   sent to a remote AS.~~
   JPAN uses the topo file's port range to detect which ports need to be mapped to 30041.
-  JPAN will run it's own SHIM dispatcher if none is running. 
+  JPAN will run its own SHIM dispatcher if none is running. 
 - If you need a local SCION installation on your machine (Go implementation),
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding
