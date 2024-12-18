@@ -20,11 +20,20 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.Arrays;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.testutil.MockNetwork;
 
 class StunTest {
+
+  private static final int[] error400 = {
+    0x1, 0x11, 0x0, 0x14, 0x21, 0x12, 0xa4, 0x42,
+    0xfa, 0x62, 0xc1, 0xd8, 0x2a, 0x7, 0xd2, 0xbb,
+    0x13, 0x16, 0x97, 0xa6, 0x0, 0x9, 0x0, 0x10,
+    0x0, 0x0, 0x4, 0x0, 0x42, 0x61, 0x64, 0x20,
+    0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x20,
+  };
 
   @Test
   void testBorderRouter_Old() throws IOException {
@@ -80,7 +89,13 @@ class StunTest {
       boolean isSTUN = STUN.isStunPacket(in, id);
       assertTrue(isSTUN);
 
-      InetSocketAddress external = STUN.parseResponse(in, id);
+      // parse
+      ByteUtil.MutRef<STUN.TransactionID> txId = new ByteUtil.MutRef<>();
+      ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+      InetSocketAddress external = STUN.parseResponse(in, id::equals, txId, error);
+      assertNull(error.get(), error.get());
+      assertNotNull(external);
+
       // We compare only the port, the IP may differ ("any" vs localhost, etc...)
       assertEquals(((InetSocketAddress) channel.getLocalAddress()).getPort(), external.getPort());
     } finally {
@@ -181,7 +196,7 @@ class StunTest {
     assertEquals(1, handled.get());
   }
 
-  void testRecordedErrorNoCheck(int[] ia) {
+  void testRecordedErrorNoCheck(int[] ia, String errorMsg) {
     ByteBuffer bb = ByteBuffer.allocate(200);
     for (int i : ia) {
       bb.put(ByteUtil.toByte(i));
@@ -204,7 +219,8 @@ class StunTest {
     InetSocketAddress addr = STUN.parseResponse(bb, idHandler, txIdOut, error);
     assertNull(addr);
 
-    assertNull(error.get());
+    assertNotNull(error.get());
+    assertTrue(error.get().contains(errorMsg));
     assertEquals(id, txIdOut.get());
     assertEquals(1, handled.get());
   }
@@ -260,28 +276,56 @@ class StunTest {
   }
 
   @Test
-  void testResponseFromPublicServers3() {
-    int[] ba = {
-      0x1, 0x11, 0x0, 0x14, 0x21, 0x12, 0xa4, 0x42,
-      0xfa, 0x62, 0xc1, 0xd8, 0x2a, 0x7, 0xd2, 0xbb,
-      0x13, 0x16, 0x97, 0xa6, 0x0, 0x9, 0x0, 0x10,
-      0x0, 0x0, 0x4, 0x0, 0x42, 0x61, 0x64, 0x20,
-      0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x20,
-    };
+  void testResponseFromPublicServers_Error300() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ba[26] = 3;
+    ba[27] = 0;
+    testRecordedErrorNoCheck(ba, "Try Alternate");
+  }
+
+  @Test
+  void testResponseFromPublicServers_Error400() {
     //  [main] ERROR org.scion.jpan.internal.STUN - 400: Bad Request
     //  Bad Request: The request was malformed.  The client SHOULD NOT
     //  retry the request without modification from the previous
     //  attempt.  The server may not be able to generate a valid
     //  MESSAGE-INTEGRITY for this error, so the client MUST NOT expect
     //  a valid MESSAGE-INTEGRITY attribute on this response.
-    testRecordedErrorNoCheck(ba);
+    testRecordedErrorNoCheck(error400, "Bad Request");
   }
 
-  //  @Test
-  //  void testResponseFromPublicServers4() {
-  //    testRecordedResponseNoCheck(ba);
-  //  }
-  //
+  @Test
+  void testResponseFromPublicServers_Error401() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ba[26] = 4;
+    ba[27] = 1;
+    testRecordedErrorNoCheck(ba, "Unauthorized");
+  }
+
+  @Test
+  void testResponseFromPublicServers_Error420() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ba[26] = 4;
+    ba[27] = 20;
+    testRecordedErrorNoCheck(ba, "Unknown Attribute");
+  }
+
+  @Test
+  void testResponseFromPublicServers_Error438() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ba[26] = 4;
+    ba[27] = 38;
+    testRecordedErrorNoCheck(ba, "Stale Nonce");
+  }
+
+  @Test
+  void testResponseFromPublicServers_Error500() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ba[26] = 5;
+    ba[27] = 0;
+    testRecordedErrorNoCheck(ba, "Server Error");
+  }
+
   //  @Test
   //  void testResponseFromPublicServers5() {
   //    testRecordedResponseNoCheck(ba);

@@ -59,20 +59,6 @@ public class STUN {
     return isStunPacket(buf, id) && b0 == 0x1 && b1 == 0x1;
   }
 
-  public static InetSocketAddress parseResponse(ByteBuffer in, TransactionID id) {
-    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
-    InetSocketAddress address = parseResponse(in, id::equals, error);
-    if (error.get() != null) {
-      throw new IllegalArgumentException(error.get());
-    }
-    return address;
-  }
-
-  public static InetSocketAddress parseResponse(
-      ByteBuffer in, Predicate<TransactionID> idHandler, ByteUtil.MutRef<String> error) {
-    return parseResponse(in, idHandler, new ByteUtil.MutRef<>(), error);
-  }
-
   public static InetSocketAddress parseResponse(
       ByteBuffer in,
       Predicate<TransactionID> idHandler,
@@ -82,7 +68,7 @@ public class STUN {
     if (error.get() != null) {
       return null;
     }
-    return parseBody(in);
+    return parseBody(in, error);
   }
 
   private static void parseHeader(
@@ -117,7 +103,7 @@ public class STUN {
     }
   }
 
-  private static InetSocketAddress parseBody(ByteBuffer in) {
+  private static InetSocketAddress parseBody(ByteBuffer in, ByteUtil.MutRef<String> error) {
     InetSocketAddress mappedAddress = null;
     InetSocketAddress mappedAddressXor = null;
 
@@ -160,6 +146,7 @@ public class STUN {
           break;
         case ERROR_CODE:
           String errorMessage = readErrorCode(in);
+          error.set(errorMessage);
           log.error(errorMessage);
           break;
         case FINGERPRINT:
@@ -227,7 +214,7 @@ public class STUN {
     if (!processError(errorCode).isEmpty()) {
       msg = msg + "\n" + processError(errorCode);
     }
-    return errorCode + ": " + msg;
+    return "Remote error " + errorCode + ": " + msg;
   }
 
   private static InetSocketAddress readMappedAddress(ByteBuffer in) {
