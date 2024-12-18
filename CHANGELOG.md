@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
+- Checkstyle:
+-         <module name="HiddenField">
+            <property name="tokens" value="VARIABLE_DEF"/>
+        </module>
+        <module name="MissingOverride"/>
+        <module name="NeedBraces"/>
+        <module name="OneTopLevelClass"/>
 - Implement keepalive for NAT (separate timer for each BR, or at least each mapping)
   (in theory, 2 NATs could provide the same external address...!) 
   - Does setBlocking=false unblock a blocking receiver?
@@ -17,10 +24,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
     e.g. configureBlocking() 
 - Check how PAN/snet behaves wrt responding to underlay address when in local AS.
-- Ensure that we parse /etc/hosts and /etc/scion/hosts and that dnsjava doesn't
-  print warning in the Java example! 
-- Add LICENSE to generated jar. Why doesn't that happen automatically?
-  Do we need the assembly plugin?
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -47,6 +50,7 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 - Added experimental support for STUN / NAT traversal.
   This also reduces network calls by starting SHIM w/o service.
   [#142](https://github.com/scionproto-contrib/jpan/pull/142)
+- Added LICENCE file to packaged jar. [#152](https://github.com/scionproto-contrib/jpan/pull/152)
   
 ### Changed
  
