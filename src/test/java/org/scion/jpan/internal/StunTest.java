@@ -285,10 +285,7 @@ class StunTest {
 
   @Test
   void testResponseFromPublicServers_Error300() {
-    int[] ba = Arrays.copyOf(error400, error400.length);
-    ba[26] = 3;
-    ba[27] = 0;
-    testRecordedErrorNoCheck(ba, "Try Alternate");
+    testErrorMessage(3, 0, "Try Alternate");
   }
 
   @Test
@@ -304,42 +301,34 @@ class StunTest {
 
   @Test
   void testResponseFromPublicServers_Error401() {
-    int[] ba = Arrays.copyOf(error400, error400.length);
-    ba[26] = 4;
-    ba[27] = 1;
-    testRecordedErrorNoCheck(ba, "Unauthorized");
+    testErrorMessage(4, 1, "Unauthorized");
   }
 
   @Test
   void testResponseFromPublicServers_Error420() {
-    int[] ba = Arrays.copyOf(error400, error400.length);
-    ba[26] = 4;
-    ba[27] = 20;
-    testRecordedErrorNoCheck(ba, "Unknown Attribute");
+    testErrorMessage(4, 20, "Unknown Attribute");
   }
 
   @Test
   void testResponseFromPublicServers_Error438() {
-    int[] ba = Arrays.copyOf(error400, error400.length);
-    ba[26] = 4;
-    ba[27] = 38;
-    testRecordedErrorNoCheck(ba, "Stale Nonce");
+    testErrorMessage(4, 38, "Stale Nonce");
   }
 
   @Test
   void testResponseFromPublicServers_Error500() {
-    int[] ba = Arrays.copyOf(error400, error400.length);
-    ba[26] = 5;
-    ba[27] = 0;
-    testRecordedErrorNoCheck(ba, "Server Error");
+    testErrorMessage(5, 0, "Server Error");
   }
 
   @Test
   void testResponseFromPublicServers_Errorxxx() {
+    testErrorMessage(2, 42, "Unknown error 242");
+  }
+
+  private void testErrorMessage(int id1, int id2, String expected) {
     int[] ba = Arrays.copyOf(error400, error400.length);
-    ba[26] = 2;
-    ba[27] = 42;
-    testRecordedErrorNoCheck(ba, "Unknown error 242");
+    ba[26] = id1;
+    ba[27] = id2;
+    testRecordedErrorNoCheck(ba, expected);
   }
 
   @Test
