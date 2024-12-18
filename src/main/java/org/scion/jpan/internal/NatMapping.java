@@ -47,14 +47,11 @@ public class NatMapping {
           Constants.ENV_NAT_STUN_TIMEOUT_MS,
           Constants.DEFAULT_NAT_STUN_TIMEOUT_MS);
 
-  // TODO use SimpleCache
-
   private final long localIsdAs;
   private NatMode mode;
   private long lastUsed;
   private InetSocketAddress commonAddress;
   private final Map<InetSocketAddress, Entry> sourceIPs = new HashMap<>();
-  // TODO attack: send STUN with > 100 byte length
   private final ByteBuffer buffer = ByteBuffer.allocateDirect(100);
   private final DatagramChannel channel;
   private InetAddress externalIP;

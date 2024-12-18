@@ -44,9 +44,10 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 
 - Added Path construction tests for tiny4. 
   [#146](https://github.com/scionproto-contrib/jpan/pull/146)
-- Added experimental support for STUN [#142](https://github.com/scionproto-contrib/jpan/pull/142)
+- Added experimental support for STUN / NAT traversal.
   This also reduces network calls by starting SHIM w/o service.
-
+  [#142](https://github.com/scionproto-contrib/jpan/pull/142)
+  
 ### Changed
  
 - Cleaned up test topologies.  [#145](https://github.com/scionproto-contrib/jpan/pull/145)
