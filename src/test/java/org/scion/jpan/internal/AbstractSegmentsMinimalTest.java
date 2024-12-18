@@ -53,6 +53,10 @@ public abstract class AbstractSegmentsMinimalTest {
   /** ISD 1 - core AS */
   protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
 
+  protected static final long AS_130 = ScionUtil.parseIA("1-ff00:0:130");
+  protected static final long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
+  protected static final long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
+
   /** ISD 1 - non-core AS */
   protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");
 
@@ -172,10 +176,6 @@ public abstract class AbstractSegmentsMinimalTest {
   }
 
   protected void addResponsesScionprotoDefault() {
-    long AS_130 = ScionUtil.parseIA("1-ff00:0:130");
-    long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
-    long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
-
     addUpDown(AS_111, AS_130);
     addUpDown(AS_111, AS_120);
 
@@ -190,10 +190,6 @@ public abstract class AbstractSegmentsMinimalTest {
   }
 
   protected void addResponsesScionprotoTiny4() {
-    long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
-    long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
-    long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
-
     addUpDown(AS_111, AS_110);
     addUpDown(AS_112, AS_110);
   }
@@ -229,13 +225,6 @@ public abstract class AbstractSegmentsMinimalTest {
     //      AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
     //        HopEntry: true mtu=1472
     //          HopField: exp=63 ingress=111 egress=0
-
-    //    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 2));
-    //    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_111, 1472, he00);
-    //    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 111, 0));
-    //    Seg.ASEntry ase01 = buildASEntry(AS_111, ZERO, 1472, he01);
-    //    Seg.PathSegment path0 = buildPath(18215, ase00, ase01);
-
     Seg.PathSegment path0 = scenario.getSegments(AS_111, AS_110).get(0);
     controlServer.addResponse(
         AS_111, false, AS_110, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));

@@ -132,7 +132,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     try {
       start();
       run(
-          (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds, serverAddress),
+          (id, nRounds) -> new ServerEndpoint(serverFn, id, nRounds, serverAddressOrNull),
           (id, path, nRounds) -> new ClientEndpoint(clientFn, id, path, nRounds, connectClients));
     } finally {
       close();

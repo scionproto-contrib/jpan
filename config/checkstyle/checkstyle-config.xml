@@ -8,16 +8,19 @@
         <module name="AvoidStarImport">
             <property name="allowStaticMemberImports" value="true"/>
             <property name="excludes" value="java.io,java.util,java.net,io.grpc,org.junit.jupiter.api,org.scion.jpan.internal,org.scion.jpan,org.xbill.DNS"/>
-<!--            <property name="severity" value="warning" />-->
         </module>
+        <module name="HiddenField">
+            <property name="tokens" value="VARIABLE_DEF"/>
+        </module>
+        <module name="MissingOverride"/>
         <module name="NeedBraces"/>
+        <module name="OneTopLevelClass"/>
     </module>
 <!--    <module name="RegexpHeader">-->
 <!--        <property name="headerFile" value="checkstyle/java.header.txt"/>-->
 <!--        <property name="fileExtensions" value="java"/>-->
 <!--    </module>-->
     <module name="Header">
-<!--        <property name="headerFile" value="java.header.txt"/>-->
         <property name="headerFile" value="${base_dir}/config/checkstyle/java.header.txt"/>
         <property name="fileExtensions" value="java"/>
         <property name="ignoreLines" value="1"/>
