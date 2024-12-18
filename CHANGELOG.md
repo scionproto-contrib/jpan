@@ -59,6 +59,7 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   Cleaned up test topologies.  [#148](https://github.com/scionproto-contrib/jpan/pull/148)
 - Fixed disabled SHIM tests and general test cleanup.  
   [#149](https://github.com/scionproto-contrib/jpan/pull/149)
+- Fixed parsing of /etc/hosts [#151](https://github.com/scionproto-contrib/jpan/pull/151)
 
 ## [0.4.1] - 2024-11-22
 
