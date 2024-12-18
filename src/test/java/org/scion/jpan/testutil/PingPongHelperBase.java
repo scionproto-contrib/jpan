@@ -207,7 +207,7 @@ public class PingPongHelperBase {
     protected final int nClients;
     protected final int nServers;
     protected final int nRounds;
-    protected boolean connectClients = true;
+    protected boolean connectClients;
     protected boolean checkCounters = true;
     protected String serverIsdAs = SERVER_ISD_AS;
     protected ScionService serverService = null;

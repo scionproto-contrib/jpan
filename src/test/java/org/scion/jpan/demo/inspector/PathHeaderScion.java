@@ -53,7 +53,6 @@ public class PathHeaderScion {
 
   public void read(ByteBuffer data) {
     reset();
-    int start = data.position();
     // 2 bit : (C)urrINF : 2-bits index (0-based) pointing to the current info field (see offset
     // calculations below).
     // 6 bit : CurrHF :    6-bits index (0-based) pointing to the current hop field (see offset

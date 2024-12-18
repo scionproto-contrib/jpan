@@ -225,13 +225,6 @@ public abstract class AbstractSegmentsMinimalTest {
     //      AS Body: IA=1-ff00:0:111 nextIA=0-0:0:0  mtu=1472
     //        HopEntry: true mtu=1472
     //          HopField: exp=63 ingress=111 egress=0
-
-    //    Seg.HopEntry he00 = buildHopEntry(0, buildHopField(63, 0, 2));
-    //    Seg.ASEntry ase00 = buildASEntry(AS_110, AS_111, 1472, he00);
-    //    Seg.HopEntry he01 = buildHopEntry(1472, buildHopField(63, 111, 0));
-    //    Seg.ASEntry ase01 = buildASEntry(AS_111, ZERO, 1472, he01);
-    //    Seg.PathSegment path0 = buildPath(18215, ase00, ase01);
-
     Seg.PathSegment path0 = scenario.getSegments(AS_111, AS_110).get(0);
     controlServer.addResponse(
         AS_111, false, AS_110, true, buildResponse(Seg.SegmentType.SEGMENT_TYPE_UP, path0));
