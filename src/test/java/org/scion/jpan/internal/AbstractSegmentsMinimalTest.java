@@ -53,6 +53,10 @@ public abstract class AbstractSegmentsMinimalTest {
   /** ISD 1 - core AS */
   protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
 
+  protected static final long AS_130 = ScionUtil.parseIA("1-ff00:0:130");
+  protected static final long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
+  protected static final long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
+
   /** ISD 1 - non-core AS */
   protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");
 
@@ -172,10 +176,6 @@ public abstract class AbstractSegmentsMinimalTest {
   }
 
   protected void addResponsesScionprotoDefault() {
-    long AS_130 = ScionUtil.parseIA("1-ff00:0:130");
-    long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
-    long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
-
     addUpDown(AS_111, AS_130);
     addUpDown(AS_111, AS_120);
 
@@ -190,10 +190,6 @@ public abstract class AbstractSegmentsMinimalTest {
   }
 
   protected void addResponsesScionprotoTiny4() {
-    long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
-    long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
-    long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
-
     addUpDown(AS_111, AS_110);
     addUpDown(AS_112, AS_110);
   }

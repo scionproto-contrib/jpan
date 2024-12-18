@@ -44,8 +44,6 @@ public class PathHeaderScion {
   private final HopField[] hops = new HopField[64];
   private int nHops;
 
-  private int len;
-
   public PathHeaderScion() {
     this.info0 = new InfoField();
     this.info1 = new InfoField();
@@ -94,8 +92,6 @@ public class PathHeaderScion {
       hops[i].read(data);
       hops[i].length();
     }
-
-    len = data.position() - start;
   }
 
   public void write(ByteBuffer data) {
@@ -155,43 +151,36 @@ public class PathHeaderScion {
 
   @Override
   public String toString() {
-    String s =
-        "Path header: "
-            + "  currINF="
-            + currINF
-            + "  currHP="
-            + currHF
-            + "  reserved="
-            + reserved
-            + "  seg0Len="
-            + seg0Len
-            + "  seg1Len="
-            + seg1Len
-            + "  seg2Len="
-            + seg2Len;
+    StringBuilder s = new StringBuilder("Path header: ");
+    s.append("  currINF=").append(currINF);
+    s.append("  currHP=").append(currHF);
+    s.append("  reserved=").append(reserved);
+    s.append("  seg0Len=").append(seg0Len);
+    s.append("  seg1Len=").append(seg1Len);
+    s.append("  seg2Len=").append(seg2Len);
     if (seg0Len > 0) {
-      s += "\n  info0=" + info0;
+      s.append("\n  info0=").append(info0);
     }
     if (seg1Len > 0) {
-      s += "\n  info1=" + info1;
+      s.append("\n  info1=").append(info1);
     }
     if (seg2Len > 0) {
-      s += "\n  info2=" + info2;
+      s.append("\n  info2=").append(info2);
     }
     for (int i = 0; i < nHops; i++) {
-      s += "\n    hop=" + hops[i];
+      s.append("\n    hop=").append(hops[i]);
     }
-    return s;
+    return s.toString();
   }
 
   public int length() {
-    int len = 0;
-    len += 4;
-    len += getSegLen(0) > 0 ? 8 : 0;
-    len += getSegLen(1) > 0 ? 8 : 0;
-    len += getSegLen(2) > 0 ? 8 : 0;
-    len += 12 * (getSegLen(0) + getSegLen(1) + getSegLen(2));
-    return len > 4 ? len : 0; // Return 0 if there are no segments
+    int bytes = 0;
+    bytes += 4;
+    bytes += getSegLen(0) > 0 ? 8 : 0;
+    bytes += getSegLen(1) > 0 ? 8 : 0;
+    bytes += getSegLen(2) > 0 ? 8 : 0;
+    bytes += 12 * (getSegLen(0) + getSegLen(1) + getSegLen(2));
+    return bytes > 4 ? bytes : 0; // Return 0 if there are no segments
   }
 
   public void reset() {
