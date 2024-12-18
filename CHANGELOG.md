@@ -44,7 +44,7 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   This also reduces network calls by starting SHIM w/o service.
   [#142](https://github.com/scionproto-contrib/jpan/pull/142)
 - Added LICENCE file to packaged jar. [#152](https://github.com/scionproto-contrib/jpan/pull/152)
-- Added keep-alive protocol for NAT. [#150](https://github.com/scionproto-contrib/jpan/pull/150)
+- Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
   
 ### Changed
  
