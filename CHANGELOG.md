@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - TEST all(default) with AUTO??? BR????
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
     e.g. configureBlocking() 
-- Check how PAN/snet behaves wrt responding to underlay address when in local AS.
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
