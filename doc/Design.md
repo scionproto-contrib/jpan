@@ -166,7 +166,7 @@ We use this interface IP as return address in the SCION path.
     * or open s separate channel/socket and connect() to the first hop.
 3) Selection of the return IP must be done every time the path changes:
     * Path expires
-    * First hop becomes unreachable or interfaces appear dynamically due to topology changes 
+    * First hop becomes unreachable or interfaces appear dynamically due to topology changes
       (e.g. mobile WiFi or 5G)
     * Explicit path change requested by user.
 
@@ -176,6 +176,98 @@ be ignored. If the first hop is reachable via these addresse
 We used to use `connnect(firstHop)` to ensure a valid external IP. However,
 `connect()` blocks when used concurrently while a `receive()` is in progress.
 -> Solution: Use separate channel/socket with `connect()` to find external IP.
+
+## STUN / Interface Discovery
+
+### Main goals and approach
+
+1) We want to detect STUN for all BR as soon as possible.
+   Otherwise it would interfere with normal network operation.
+   However, we need to wait until a local address is known (`bind()`) or about
+   to be known (`bind()` called by `send()`). What about `receive()`?
+    - We call STUN detection in `bind()` call. This works also for the SCMP
+      classes which do `bind()` *before* measuring latency.
+    - We don't need to know our external address for `receive()` or a subsequent `send()`.
+      **However**: If a *client* defensively starts `receive()` before `send()`, we have a problem.
+      Running STUN detection requires `send()` + `receive()` on the same channel. While `send()`
+      can be done concurrently, `receive()` is exclusive. How do we solve that?
+        - We can do STUN detection before `receive()` starts -> may be a waste on servers
+        - We can create a callback in `receive()` that intercepts packets meant for the STUN
+          detector
+          -> We may have to do this anyway to facilitate keep-alive messages.
+2) Sequence for AUTO:
+    - Check for CUSTOM server setting
+    - Check if border router supports STUN -> 1 NW call per BR
+
+As can be seen from above, in an AS with `n` border routers (BR), we have at least `n` network calls
+even if all BRs support STUN. To speed up the detection, we send out `n` packets at once before
+checking for answers.
+
+Note: The initial design considered using SCMP as an additional tool to detect NAT (which doesn't 
+really work because border routers answer SCMP to the underlay, which makes it impossible to
+detect NATs) and provided default public STUN servers (which only would have helped in cases
+where a public IP is visible to, and ideally on the path to, the border routers).
+In the end we decided that these features cause more complexity and confusion than being helpful.
+
+### Intra-AS communication
+
+For packets sent within an AS, cannot reliable use border router STUN (border routers
+may be in different subnets). The better and easier solution is to omit STUN detection.
+Instead, any client receiving a packet from inside the local AS should always respond to the
+**underlay** address instead of the SCION source address.
+This should always work, regardless of NAT or no NAT.
+
+### Multipath, Multi-AS, AS-switching, ...
+
+Cases to consider:
+
+- Interface switching is probably not necessary to support.
+    - Test: Presumably, switching from LAN to Wifi, any LAN socket stops working
+      (and does not switch) If the JDK doesnt support this then neither should we.
+    - Android has: WifiManager.WIFI_STATE_CHANGED_ACTION and ConnectivityManager.CONNECTIVITY_ACTION
+- AS switching on single interface?
+    - In theory, we can have multiple AS in the same subnet. Do we need to support that?
+      This is apparently a realistic Scenario for an ISP with ASes in multiple ISDs.
+      However, this seems like an unrealistic edge case for endhosts...?
+- Multipath (MP) and Path switching (PS):
+    - MP & PS using different BRs -> Yes, should be doable and is required
+    - MP & PS using different AS on same Interface?? We could use multiple channels...
+      See next point.
+    - MP & PS using different Interfaces. Should probably require multiple sockets/channels.
+      Should we provide a facility to simplify this?
+      Something like a meta-socket that doesn't have a defined local address but can send
+      over multiple interfaces in parallel? Yes! -> Later!
+
+### Mapping Timeout
+
+NATs usually time out and drop unused mappings after after a few minutes (minimum 2 minutes,
+recommended 5 minutes, see [RFC 4787](https://datatracker.ietf.org/doc/html/rfc4787#section-4.3)).
+
+To handle this we have two options:
+
+- Detect and create new mapping
+- Prevent timeouts with keep-alive messages
+
+In both cases we keep track of activity by monitoring incoming and outgoing packets.
+
+**Detection and reestablish**
+
+On a call to `send()`. if the last activity is too long ago, we trigger a new round
+of NAT detection.
+Disadvantage: Unexpected additional time (1-5ms) when a user sends a packet.
+
+**Keep-alive message**
+
+We regularly send keep-alive packets to all border routers to prev ent the NAT from
+timing out. These packets can be anything, plain UDP, UDP/SCION or SCMP echo.
+We don't actually need to wait for incoming responses.
+Disadvantage: Keep-alive message can be annoying and eat energy on mobile devices.
+
+**Conclusion**
+
+We implement both options. They are configurable via `SCION_NAT_KEEPALIVE` or
+`org.scion.nat.keepalive`. The default value is `false`, indicating that no keep
+alive messages are sent and instead we rely on "detection and reestablish".
 
 # TODO
 

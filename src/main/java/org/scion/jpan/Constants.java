@@ -96,6 +96,56 @@ public final class Constants {
   public static final String ENV_SHIM = "SCION_SHIM";
 
   /**
+   * Use STUN to detect external IP addresses.
+   *
+   * <p>Possible values:<br>
+   * - "OFF": No STUN discovery <br>
+   * - "BR": Discovery using STUN interface of border routers <br>
+   * - "CUSTOM": Discovery using custom STUN server. This uses public known STUN servers unless
+   * {@link #PROPERTY_NAT_STUN_SERVER} or {@link #ENV_NAT_STUN_SERVER} is set.<br>
+   * - "AUTO": Use auto detection.<br>
+   *
+   * <p>"AUTO" works as follows: <br>
+   * 1) Check for custom STUN server and use if provided.<br>
+   * 2) Check border routers if they support STUN (timeout = 10ms).<br>
+   * 3) If border router responds to traceroute/ping, do not use STUN at all.<br>
+   * 4) Try public stun server (optional: recheck with tr/ping, bail out if it fails).<br>
+   */
+  public static final String PROPERTY_NAT = "org.scion.nat";
+
+  public static final String ENV_NAT = "SCION_NAT";
+  public static final String DEFAULT_NAT = "OFF";
+
+  /**
+   * Timeout of the NAT before we expect it to forget a mapping, i.e. the time before JPAN initiates
+   * a new STUN detection when reusing a stale connection.
+   */
+  public static final String PROPERTY_NAT_MAPPING_TIMEOUT = "org.scion.nat.mapping.timeout";
+
+  public static final String ENV_NAT_MAPPING_TIMEOUT = "SCION_NAT_MAPPING_TIMEOUT";
+  public static final int DEFAULT_NAT_MAPPING_TIMEOUT = 110;
+
+  /**
+   * Controls whether JPAN should send regular keep alive packets through the NAT to prevent losing
+   * the mapping. Packets are only sent if no other activity is recorded. Default is "false".
+   */
+  public static final String PROPERTY_NAT_MAPPING_KEEPALIVE = "org.scion.nat.mapping.keepalive";
+
+  public static final String ENV_NAT_MAPPING_KEEPALIVE = "SCION_NAT_MAPPING_KEEPALIVE";
+  public static final boolean DEFAULT_NAT_MAPPING_KEEPALIVE = false;
+
+  /** Define a custom SUN server, such as "192.168.0.42:3478" */
+  public static final String PROPERTY_NAT_STUN_SERVER = "org.scion.nat.stun.server";
+
+  public static final String ENV_NAT_STUN_SERVER = "SCION_NAT_STUN_SERVER";
+
+  /** Timeout for STUN requests to border routers or STUN servers. */
+  public static final String PROPERTY_NAT_STUN_TIMEOUT_MS = "org.scion.nat.stun.timeout";
+
+  public static final String ENV_NAT_STUN_TIMEOUT_MS = "SCION_NAT_STUN_TIMEOUT_MS";
+  public static final int DEFAULT_NAT_STUN_TIMEOUT_MS = 10;
+
+  /**
    * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
    * entries: server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
    */

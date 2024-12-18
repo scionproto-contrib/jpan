@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
+import org.scion.jpan.internal.ExternalIpDiscovery;
 import org.scion.jpan.internal.Shim;
 
 public class JUnitSetUp
@@ -78,6 +79,7 @@ public class JUnitSetUp
   public void afterEach(ExtensionContext context) {
     Scion.closeDefault();
     Shim.uninstall();
+    ExternalIpDiscovery.uninstall();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);

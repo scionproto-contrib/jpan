@@ -17,16 +17,20 @@ package org.scion.jpan.testutil;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
 import org.slf4j.Logger;
@@ -62,6 +66,9 @@ public class MockNetwork {
   static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
+  static final AtomicInteger nStunRequests = new AtomicInteger();
+  static final AtomicBoolean enableStun = new AtomicBoolean(true);
+  static final AtomicReference<Predicate<ByteBuffer>> stunCallback = new AtomicReference<>();
   static CountDownLatch barrier = null;
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
@@ -177,6 +184,7 @@ public class MockNetwork {
     dropNextPackets.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
     getAndResetForwardCount();
+    getAndResetStunCount();
   }
 
   public static synchronized void stopTiny() {
@@ -216,6 +224,8 @@ public class MockNetwork {
 
     dropNextPackets.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
+    enableStun.set(true);
+    stunCallback.set(null);
     asInfo = null;
     mock = null;
   }
@@ -236,6 +246,10 @@ public class MockNetwork {
     return mock.localAddress[0];
   }
 
+  public static List<InetSocketAddress> getBorderRouterAddresses() {
+    return Arrays.asList(mock.localAddress);
+  }
+
   public static InetSocketAddress getTinyServerAddress() throws IOException {
     return new InetSocketAddress(
         InetAddress.getByAddress(TINY_SRV_NAME_1, TINY_SRV_ADDR_BYTES_1), TINY_SRV_PORT_1);
@@ -250,6 +264,10 @@ public class MockNetwork {
 
   public static int getForwardCount() {
     return nForwardTotal.get();
+  }
+
+  public static int getAndResetStunCount() {
+    return nStunRequests.getAndSet(0);
   }
 
   /**
@@ -275,6 +293,14 @@ public class MockNetwork {
 
   public static MockControlServer getControlServer() {
     return controlServer;
+  }
+
+  public static void disableStun() {
+    enableStun.set(false);
+  }
+
+  public static void setStunCallback(Predicate<ByteBuffer> stunCallback) {
+    MockNetwork.stunCallback.set(stunCallback);
   }
 
   public enum Mode {

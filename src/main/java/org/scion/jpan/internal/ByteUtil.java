@@ -16,11 +16,32 @@ package org.scion.jpan.internal;
 
 public class ByteUtil {
 
+  private ByteUtil() {
+    // empty
+  }
+
+  /** Mutable integer. */
+  public static class MutInt {
+    public int v;
+
+    public MutInt(int v) {
+      this.v = v;
+    }
+
+    public int get() {
+      return v;
+    }
+
+    public void set(int i) {
+      this.v = i;
+    }
+  }
+
   /** Mutable long integer. */
   public static class MutLong {
     public long v;
 
-    MutLong(long v) {
+    public MutLong(long v) {
       this.v = v;
     }
 
@@ -30,6 +51,23 @@ public class ByteUtil {
 
     public void set(long l) {
       this.v = l;
+    }
+  }
+
+  /** Mutable reference. */
+  public static class MutRef<T> {
+    private T v;
+
+    public MutRef() {
+      this.v = null;
+    }
+
+    public T get() {
+      return v;
+    }
+
+    public void set(T v) {
+      this.v = v;
     }
   }
 
@@ -104,10 +142,10 @@ public class ByteUtil {
   }
 
   public static int toUnsigned(byte code) {
-    return code >= 0 ? code : ((int) code) + (1 << 8);
+    return code >= 0 ? code : (code + (1 << 8));
   }
 
   public static int toUnsigned(short code) {
-    return code >= 0 ? code : ((int) code) + (1 << 16);
+    return code >= 0 ? code : (code + (1 << 16));
   }
 }

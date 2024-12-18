@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
@@ -55,6 +54,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.ErrorMessage> errorListener;
   private boolean cfgRemoteDispatcher = false;
   private InetSocketAddress overrideExternalAddress = null;
+  private NatMapping natMapping = null;
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel) {
@@ -92,7 +92,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @param pathPolicy the new path policy
    * @see PathPolicy#DEFAULT
    */
-  public void setPathPolicy(PathPolicy pathPolicy) throws IOException {
+  public void setPathPolicy(PathPolicy pathPolicy) {
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
@@ -127,7 +127,24 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       channel.bind(address);
       isBoundToAddress = address != null;
       localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
+      if (service != null) {
+        getNatMapping();
+      }
       return (C) this;
+    }
+  }
+
+  private NatMapping getNatMapping() {
+    checkService();
+    if (natMapping == null) {
+      natMapping = getService().getNatMapping(channel);
+    }
+    return natMapping;
+  }
+
+  private void ensureNatMapping() {
+    if (service != null) {
+      getNatMapping();
     }
   }
 
@@ -193,6 +210,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public void disconnect() throws IOException {
     synchronized (stateLock) {
       connectionPath = null;
+      natMapping = null;
     }
   }
 
@@ -307,7 +325,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   this is what connect() should do.
         // - It allows us to have an ANY address underneath which could help with interface
         //   switching.
-        localAddress = getService().getExternalIP(path.getFirstHopAddress());
+        localAddress = getNatMapping().getExternalIP();
       }
       updateConnection((RequestPath) path, false);
       return (C) this;
@@ -329,6 +347,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   protected ResponsePath receiveFromChannel(
       ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
     ensureBound();
+    ensureNatMapping(); // This can be necessary after having called disconnect()
     while (true) {
       buffer.clear();
       InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
@@ -441,33 +460,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return this.overrideExternalAddress;
   }
 
-  protected InetAddress getLocalAddressForSend(Path path) throws IOException {
+  private InetSocketAddress getSourceAddress(Path path) {
+    // Externally visible address
     if (overrideExternalAddress != null) {
-      return overrideExternalAddress.getAddress();
+      return overrideExternalAddress;
     }
-    // Get external host address. This must be done *after* refreshing the path!
-    if (localAddress.isAnyLocalAddress()) {
-      // For sending request path we need to have a valid local external address.
-      // If the local address is a wildcard address then we get the external IP
-      // elsewhere (from the service).
-      return getService().getExternalIP(path.getFirstHopAddress());
-    } else {
-      return localAddress;
-    }
-  }
-
-  protected int getLocalPortForSend() throws IOException {
-    if (overrideExternalAddress != null) {
-      return overrideExternalAddress.getPort();
-    }
-    return ((InetSocketAddress) channel.getLocalAddress()).getPort();
+    return getNatMapping().getMappedAddress(path);
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
-    // For inter-AS connections we need to send directly to the destination address.
-    // We also need to respect the port range and use 30041 when applicable.
     if (getService() != null && path.getRawPath().length == 0) {
+      // For inter-AS connections we need to send directly to the underlay address.
+      // The underlay address is stored as "first-hop".
       InetSocketAddress remoteHostIP = path.getFirstHopAddress();
+      // We also need to respect the port range and use 30041 when applicable (the remote host
+      // may be running a dispatcher).
       remoteHostIP = getService().getLocalPortRange().mapToLocalPort(remoteHostIP);
       return channel.send(buffer, remoteHostIP);
     }
@@ -489,6 +496,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       Consumer<Scmp.ErrorMessage> old = errorListener;
       errorListener = listener;
       return old;
+    }
+  }
+
+  protected void checkService() throws IllegalStateException {
+    synchronized (stateLock) {
+      if (service == null) {
+        throw new IllegalStateException("This operation requires a ScionService.");
+      }
     }
   }
 
@@ -618,21 +633,33 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @throws IOException in case of IOException.
    */
   protected void buildHeader(
-      ByteBuffer buffer, Path path, int payloadLength, InternalConstants.HdrTypes hdrType)
+      ByteBuffer buffer,
+      Path path,
+      int payloadLength,
+      InternalConstants.HdrTypes hdrType,
+      ByteUtil.MutInt port)
       throws IOException {
     synchronized (stateLock) {
+      // We need to be bound to a local port in order to have a valid local address.
+      // This may be necessary for getSourceAddress(), but it is definitely necessary for
+      // consistent API behavior that getLocalAddress() should return an address after send().
       ensureBound();
       buffer.clear();
       long srcIsdAs;
       InetAddress srcAddress;
       if (path instanceof ResponsePath) {
         // We get the source ISD/AS and IP from the path because ScionService may be null.
+        // Also, we may be behind a NAT, so the path's address is known to be correct.
         ResponsePath rPath = (ResponsePath) path;
         srcIsdAs = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
+        port.set(rPath.getLocalPort());
       } else {
+        checkService();
         srcIsdAs = getService().getLocalIsdAs();
-        srcAddress = getLocalAddressForSend(path);
+        InetSocketAddress src = getSourceAddress(path);
+        srcAddress = src.getAddress();
+        port.set(src.getPort());
       }
 
       byte[] rawPath = path.getRawPath();
@@ -650,7 +677,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected void updateConnection(RequestPath newPath, boolean mustBeConnected) throws IOException {
+  protected void updateConnection(RequestPath newPath, boolean mustBeConnected) {
     if (mustBeConnected && !isConnected()) {
       return;
     }
@@ -658,15 +685,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     connectionPath = newPath;
     // update local address except if bind() was called with an explicit address!
     if (!isBoundToAddress) {
+      // This allows us to dynamically switch interfaces if we get a path that prefers a different
+      // interface.
+      //
       // API: returning the localAddress should return non-ANY if we have a connection
       //     I.e. getExternalIP() is fine if we have a connection.
       //     It is NOT fine if we are bound to an explicit IP/port
-      InetAddress oldLocalAddress = localAddress;
-      localAddress = getService().getExternalIP(newPath.getFirstHopAddress());
-      if (!Objects.equals(localAddress, oldLocalAddress)) {
-        // TODO check CS / bootstrapping
-        throw new UnsupportedOperationException();
-      }
+      // TODO consider supporting dynamic interface switching
     }
   }
 

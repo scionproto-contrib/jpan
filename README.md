@@ -27,10 +27,10 @@ The following artifact contains the complete SCION Java implementation:
 - UDP over SCION via `ScionDatagramChannel` or `ScionDatagramSocket`
 - [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html) (ICMP for SCION)
 - Works stand-alone or with a local SCION daemon (without dispatcher, see below) 
+- NAT support, see [here](doc/NAT.md) for details and restrictions.
 
 ### Planned features
 - API: `Selector` for `ScionDatagramChannel`
-- Autodetection of NAT external IP
 - Paths with peering routes
 - Improve docs, demos and testing
 - Many more
@@ -52,22 +52,11 @@ JPAN can be used in one of the following ways:
   outgoing packet is sent to port 30041 on the remote machine. The flag has no effect on traffic 
   sent to a remote AS.~~
   JPAN uses the topo file's port range to detect which ports need to be mapped to 30041.
-  JPAN will run it's own SHIM dispatcher if none is running. 
+  JPAN will run its own SHIM dispatcher if none is running. 
 - If you need a local SCION installation on your machine (Go implementation),
   consider using the dispatch-off branch/PR.
 - When you need to run a local system with dispatcher, you can try to use port forwarding
   to forward incoming data to your Java application port. The application port must not be 30041.
-
-### WARNING - NAT
-JPAN does not work well when using a local NAT.
-The problem is that the SCION header must contain the external IP address (i.e. the IP visible to 
-first border router) of the end host. When using a NAT, this needs to be the external IP of the NAT.
-
-JPAN cannot currently auto-detect this IP.
-To work with a NAT, please use `setOverrideSourceAddress(externalAddress)` (new experimental feature) 
-to force JPAN to use the specified external address instead of the eternal IP of the end-host.
-
-Note that this solution only works for NATs, there is currently no solution for proxies.
 
 ## API
 
@@ -145,7 +134,7 @@ can install it with `sudo apt install maven` (Ubuntu etc) or download it
 [here](https://maven.apache.org/index.html).
 
 To install it locally:
-```bash 
+```shell 
 git clone https://github.com/scionproto-contrib/jpan.git
 cd jpan
 mvn clean install
@@ -240,7 +229,7 @@ Create a file `/etc/scion/hosts` to assign ISD/AS ans SCION IP to host names:
 #### Specify ISD/AS in program
 
 We can use the ISD/AS directly to request a path:
-```
+```java
 long isdAs = ScionUtil.parseIA("64-2:0:9");
 InetSocketAddress serverAddress = new InetSocketAddress("129.x.x.x", 80);
 Path path = Scion.defaultService().getPaths(isdAs, serverAddress).get(0);
@@ -333,14 +322,19 @@ attempt to get network information in the following order until it succeeds:
 The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
 while the other options are skipped if no property or environment variable is defined. 
 
-| Option                                        | Java property                       | Environment variable          | Default value   |
-|-----------------------------------------------|-------------------------------------|-------------------------------|-----------------|
-| Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                | localhost:30255 | 
-| Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`   |                 | 
-| Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`        |                 |
-| Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`  |                 | 
-| List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`    |                 |
-| Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS` | true            |
+| Option                                        | Java property                       | Environment variable           | Default value   |
+|-----------------------------------------------|-------------------------------------|--------------------------------|-----------------|
+| Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                 | localhost:30255 | 
+| Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`    |                 | 
+| Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`         |                 |
+| Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`   |                 | 
+| List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`     |                 |
+| NAT/STUN policy, see [here](doc/NAT.md)       | `org.scion.nat`                     | `SCION_NAT`                    | off             |
+| NAT mapping timeout in seconds                | `org.scion.nat.mapping.timeout`     | `SCION_NAT_MAPPING_TIMEOUT`    | 110             |
+| Send NAT mapping keep-alive packets           | `org.scion.nat.mapping.keepalive`   | `SCION_NAT_MAPPING_KEEPALIVE`  | false           |
+| STUN server                                   | `org.scion.nat.stun.server`         | `SCION_NAT_STUN_SERVER`        |                 |
+| STUN response timeout in milliseconds         | `org.scion.nat.stun.timeout`        | `SCION_NAT_STUN_TIMEOUT`       | 10              |
+| Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS`  | true            |
 
 
 ### DNS

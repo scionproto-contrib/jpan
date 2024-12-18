@@ -24,6 +24,7 @@ import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
 import java.util.List;
 import java.util.WeakHashMap;
+import org.scion.jpan.internal.ByteUtil;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
 
@@ -253,10 +254,10 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         }
       }
       // + 8 for UDP overlay header length
-      buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP);
+      ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
+      buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP, srcPort);
       int dstPort = path.getRemotePort();
-      int srcPort = getLocalPortForSend();
-      ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort, dstPort);
+      ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort.get(), dstPort);
     }
   }
 

@@ -146,6 +146,7 @@ public class Shim implements AutoCloseable {
           log.error("SCMP error with truncated UDP header");
           return;
         }
+        log.info("Forwarding packet to {}", dst);
         channel.send(buf, dst);
       }
     } catch (Exception e) {

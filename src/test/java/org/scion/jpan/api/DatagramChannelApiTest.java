@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
+import org.scion.jpan.internal.ExternalIpDiscovery;
 import org.scion.jpan.internal.Util;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -690,21 +691,46 @@ class DatagramChannelApiTest {
 
   @Test
   void setOverrideSourceAddress() throws IOException {
+    setOverrideSourceAddress(false, false);
+  }
+
+  @Test
+  void setOverrideSourceAddress_withBind() throws IOException {
+    setOverrideSourceAddress(true, false);
+  }
+
+  @Test
+  void setOverrideSourceAddress_withConnect() throws IOException {
+    setOverrideSourceAddress(false, true);
+  }
+
+  void setOverrideSourceAddress(boolean bind, boolean connect) throws IOException {
+    assertFalse(bind && connect);
     ByteBuffer buf = ByteBuffer.wrap("Hello".getBytes());
     InetAddress overrideSrcIP = InetAddress.getByAddress(new byte[] {42, 42, 42, 42});
     int overrideSrcPort = 4242;
     InetSocketAddress overrideSrc = new InetSocketAddress(overrideSrcIP, overrideSrcPort);
+
     try (MockDatagramChannel mock = MockDatagramChannel.open();
         ScionDatagramChannel channel = ScionDatagramChannel.open(Scion.defaultService(), mock)) {
 
       // initialize local address
-      mock.setSendCallback((buffer, address) -> 0);
-      channel.send(buf, dummyAddress);
+      InetSocketAddress localAddress;
+      if (bind) {
+        localAddress = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
+        channel.bind(localAddress);
+      } else if (connect) {
+        channel.connect(dummyAddress);
+        localAddress = channel.getLocalAddress();
+      } else {
+        mock.setSendCallback((buffer, address) -> 0);
+        channel.send(buf, dummyAddress);
+        InetSocketAddress firstHop = MockNetwork.getBorderRouterAddress1();
+        InetAddress localIP = ExternalIpDiscovery.getExternalIP(firstHop);
+        localAddress = new InetSocketAddress(localIP, channel.getLocalAddress().getPort());
+      }
 
       // src should be 127.0.0.1
-      int localPort = channel.getLocalAddress().getPort();
-      InetAddress localIP = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-      InetSocketAddress localAddress = new InetSocketAddress(localIP, localPort);
       mock.setSendCallback((buffer, address) -> checkAddress(buffer, localAddress));
       channel.send(buf, dummyAddress);
 
