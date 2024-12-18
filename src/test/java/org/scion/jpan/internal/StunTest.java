@@ -220,7 +220,7 @@ class StunTest {
     assertNull(addr);
 
     assertNotNull(error.get());
-    assertTrue(error.get().contains(errorMsg));
+    assertTrue(error.get().contains(errorMsg), error.get());
     assertEquals(id, txIdOut.get());
     assertEquals(1, handled.get());
   }
@@ -326,23 +326,21 @@ class StunTest {
     testRecordedErrorNoCheck(ba, "Server Error");
   }
 
-  //  @Test
-  //  void testResponseFromPublicServers5() {
-  //    testRecordedResponseNoCheck(ba);
-  //  }
-  //
-  //  @Test
-  //  void testResponseFromPublicServers6() {
-  //    testRecordedResponseNoCheck(ba);
-  //  }
-  //
-  //  @Test
-  //  void testResponseFromPublicServers7() {
-  //    testRecordedResponseNoCheck(ba);
-  //  }
-  //
-  //  @Test
-  //  void testResponseFromPublicServers8() {
-  //    testRecordedResponseNoCheck(ba);
-  //  }
+  @Test
+  void testResponseFromPublicServers_Errorxxx() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ba[26] = 2;
+    ba[27] = 42;
+    testRecordedErrorNoCheck(ba, "Unknown error 242");
+  }
+
+  @Test
+  void testResponseFromPublicServers_Corrupted_Type0000() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    // RESERVED_0
+    ba[21] = 0;
+    ba[22] = 0;
+    Exception e = assertThrows(IllegalStateException.class, () -> testRecordedErrorNoCheck(ba, ""));
+    assertTrue(e.getMessage().contains("(Reserved)"));
+  }
 }

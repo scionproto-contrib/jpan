@@ -321,7 +321,7 @@ public class STUN {
         return "Server Error: The server has suffered a temporary error.  The\n"
             + "client should try again.";
       default:
-        return "";
+        return "Unknown error " + errorCode;
     }
   }
 
@@ -383,7 +383,7 @@ public class STUN {
 
     @Override
     public String toString() {
-      return id + ":'" + text + '\'';
+      return "0x" + Integer.toHexString(code()) + ":'" + getText() + '\'';
     }
   }
 
