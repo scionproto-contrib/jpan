@@ -138,11 +138,7 @@ class StunTest {
   }
 
   void testRecordedResponse(int[] ia, STUN.TransactionID id) throws UnknownHostException {
-    ByteBuffer bb = ByteBuffer.allocate(100);
-    for (int i : ia) {
-      bb.put(ByteUtil.toByte(i));
-    }
-    bb.flip();
+    ByteBuffer bb = toByteBuffer(ia);
 
     assertTrue(STUN.isStunPacket(bb, id));
     assertTrue(STUN.isStunResponse(bb, id));
@@ -167,11 +163,7 @@ class StunTest {
   }
 
   void testRecordedResponseNoCheck(int[] ia) {
-    ByteBuffer bb = ByteBuffer.allocate(200);
-    for (int i : ia) {
-      bb.put(ByteUtil.toByte(i));
-    }
-    bb.flip();
+    ByteBuffer bb = toByteBuffer(ia);
 
     STUN.TransactionID id = STUN.TransactionID.from(bb.getInt(8), bb.getInt(12), bb.getInt(16));
 
@@ -197,11 +189,7 @@ class StunTest {
   }
 
   void testRecordedErrorNoCheck(int[] ia, String errorMsg) {
-    ByteBuffer bb = ByteBuffer.allocate(200);
-    for (int i : ia) {
-      bb.put(ByteUtil.toByte(i));
-    }
-    bb.flip();
+    ByteBuffer bb = toByteBuffer(ia);
 
     STUN.TransactionID id = STUN.TransactionID.from(bb.getInt(8), bb.getInt(12), bb.getInt(16));
 
@@ -223,6 +211,26 @@ class StunTest {
     assertTrue(error.get().contains(errorMsg), error.get());
     assertEquals(id, txIdOut.get());
     assertEquals(1, handled.get());
+  }
+
+  void testErrorSimple(int[] ia, String errorMsg) {
+    ByteBuffer bb = toByteBuffer(ia);
+
+    ByteUtil.MutRef<STUN.TransactionID> txIdOut = new ByteUtil.MutRef<>();
+    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+    assertNull(STUN.parseResponse(bb, x -> true, txIdOut, error));
+
+    assertNotNull(error.get());
+    assertTrue(error.get().contains(errorMsg), error.get());
+  }
+
+  private static ByteBuffer toByteBuffer(int[] ia) {
+    ByteBuffer bb = ByteBuffer.allocate(200);
+    for (int i : ia) {
+      bb.put(ByteUtil.toByte(i));
+    }
+    bb.flip();
+    return bb;
   }
 
   @Test
@@ -335,12 +343,49 @@ class StunTest {
   }
 
   @Test
-  void testResponseFromPublicServers_Corrupted_Type0000() {
+  void testCorrupted_Type0000() {
     int[] ba = Arrays.copyOf(error400, error400.length);
     // RESERVED_0
     ba[21] = 0;
     ba[22] = 0;
     Exception e = assertThrows(IllegalStateException.class, () -> testRecordedErrorNoCheck(ba, ""));
     assertTrue(e.getMessage().contains("(Reserved)"));
+  }
+
+  @Test
+  void testCorrupted_length_noHeader() {
+    int[] ba = Arrays.copyOf(error400, 11);
+    testErrorSimple(ba, "packet too short");
+  }
+
+  @Test
+  void testCorrupted_length_too_short() {
+    int[] ba = Arrays.copyOf(error400, 21);
+    testErrorSimple(ba, "invalid length");
+  }
+
+  @Test
+  void testCorrupted_length_too_long() {
+    int[] ba = Arrays.copyOf(error400, 199);
+    testErrorSimple(ba, "invalid length");
+  }
+
+  @Test
+  void testCorrupted_MagicNumber() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ba[4] = 123;
+    testErrorSimple(ba, "invalid MAGIC_COOKIE");
+  }
+
+  @Test
+  void testCorrupted_TxID() {
+    int[] ba = Arrays.copyOf(error400, error400.length);
+    ByteBuffer bb = toByteBuffer(ba);
+
+    ByteUtil.MutRef<STUN.TransactionID> txIdOut = new ByteUtil.MutRef<>();
+    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+    assertNull(STUN.parseResponse(bb, x -> false, txIdOut, error));
+    assertNotNull(error.get());
+    assertTrue(error.get().contains("TxID validation failed"), error.get());
   }
 }
