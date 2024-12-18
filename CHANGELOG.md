@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
+- Checkstyle:
+-         <module name="HiddenField">
+            <property name="tokens" value="VARIABLE_DEF"/>
+        </module>
+        <module name="MissingOverride"/>
+        <module name="NeedBraces"/>
+        <module name="OneTopLevelClass"/>
 - Implement keepalive for NAT (separate timer for each BR, or at least each mapping)
   (in theory, 2 NATs could provide the same external address...!) 
   - Does setBlocking=false unblock a blocking receiver?
