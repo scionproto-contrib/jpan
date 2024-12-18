@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 public class HostsFileParser {
 
   private static final Logger LOG = LoggerFactory.getLogger(HostsFileParser.class);
-  private static final String PATH_LINUX = "/etc/scion/hosts";
+  private static final String PATH_LINUX = "/etc/scion/hosts;/etc/hosts";
   private final String propHostsFiles =
       ScionUtil.getPropertyOrEnv(Constants.PROPERTY_HOSTS_FILES, Constants.ENV_HOSTS_FILES);
 
