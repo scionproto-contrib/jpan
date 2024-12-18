@@ -165,7 +165,9 @@ public class STUN {
         default:
           byte[] data = new byte[len];
           in.get(data);
-          throw new IllegalStateException(typeEnum.getText());
+          error.set("ERROR: Type not implemented: " + typeEnum);
+          log.error(error.get());
+          return null;
       }
     }
 
@@ -383,7 +385,7 @@ public class STUN {
 
     @Override
     public String toString() {
-      return "0x" + Integer.toHexString(code()) + ":'" + getText() + '\'';
+      return "0x" + Integer.toHexString(code()) + ": '" + getText() + '\'';
     }
   }
 

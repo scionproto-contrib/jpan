@@ -337,8 +337,7 @@ class StunTest {
     // RESERVED_0
     ba[21] = 0;
     ba[22] = 0;
-    Exception e = assertThrows(IllegalStateException.class, () -> testRecordedErrorNoCheck(ba, ""));
-    assertTrue(e.getMessage().contains("(Reserved)"));
+    testErrorSimple(ba, "not implemented");
   }
 
   @Test
