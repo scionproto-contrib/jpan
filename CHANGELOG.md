@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - TEST all(default) with AUTO??? BR????
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
     e.g. configureBlocking() 
-- Check how PAN/snet behaves wrt responding to underlay address when in local AS.
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -44,7 +43,25 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   This also reduces network calls by starting SHIM w/o service.
   [#142](https://github.com/scionproto-contrib/jpan/pull/142)
 - Added LICENCE file to packaged jar. [#152](https://github.com/scionproto-contrib/jpan/pull/152)
-  
+- Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
+# ----TODO----
+- Implement different policies?!
+  1) Keep alive: send STUN messages to all BRs at lease every 2 minutes
+     This can handle symmetric NATs and distributes ASes (Geant FfM/Paris)
+     Timing is counted separately for each BR
+  2) Keep alive simple: Assume non-symmetric NAT and all BRs in same subnet:
+     keep single timer for all BRs
+     - Not really a big advantage over option 1), reduces STUN messages a little bit but
+       adds complexity. 
+  3) On-demand: Once timer is exceeded, send STUNs to currently active path's BR.
+     --> Doesn't really work, we need to process the STUN answer and the receive() may be blocking
+         the receive channel. 
+     - We could insert a receiver below the receive() method that works in a different thread and
+       intercepts STUN responses.  
+     This could work but adds extra thread... 
+  4) OFF: Do not send STUNs ever (after the initial STUN request do not do anything)
+      --> Why would this be useful? 
+
 ### Changed
  
 - Cleaned up test topologies. [#145](https://github.com/scionproto-contrib/jpan/pull/145)
