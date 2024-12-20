@@ -469,20 +469,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
-    if (getService() != null && path.getRawPath().length == 0) {
-      // For inter-AS connections we need to send directly to the underlay address.
-      // The underlay address is stored as "first-hop".
-      InetSocketAddress remoteHostIP = path.getFirstHopAddress();
-      // We also need to respect the port range and use 30041 when applicable (the remote host
-      // may be running a dispatcher).
-      remoteHostIP = getService().getLocalPortRange().mapToLocalPort(remoteHostIP);
-      return channel.send(buffer, remoteHostIP);
-    }
+    InetSocketAddress remoteHost = path.getFirstHopAddress();
+    // TODO remove this for 0.5.0
     if (cfgRemoteDispatcher && path.getRawPath().length == 0) {
-      InetAddress remoteHostIP = path.getFirstHopAddress().getAddress();
+      InetAddress remoteHostIP = remoteHost.getAddress();
       return channel.send(buffer, new InetSocketAddress(remoteHostIP, Constants.DISPATCHER_PORT));
     }
-    return channel.send(buffer, path.getFirstHopAddress());
+    if (getService() != null && path.getRawPath().length == 0) {
+      // For intra-AS traffic the can send directly to the destination address which is stored
+      // as "first-hop".
+      // TODO wouldn't it be clearer to use the DST address here? If not, why? TEST!
+      // For intra-AS traffic we also need to respect the port range and use 30041 when applicable
+      // (the remote host may be running a dispatcher).
+      remoteHost = getService().getLocalPortRange().mapToLocalPort(remoteHost);
+    }
+    return channel.send(buffer, remoteHost);
   }
 
   /**
