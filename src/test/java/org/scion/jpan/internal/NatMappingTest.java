@@ -37,15 +37,15 @@ class NatMappingTest {
 
   @BeforeEach
   void beforeEach() {
-    System.clearProperty(Constants.PROPERTY_NAT);
-    System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
-    MockNetwork.stopTiny();
+    afterAll();
   }
 
   @AfterAll
   static void afterAll() {
     System.clearProperty(Constants.PROPERTY_NAT);
     System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
+    System.clearProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE);
+    System.clearProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT);
     MockNetwork.stopTiny();
   }
 
@@ -60,7 +60,7 @@ class NatMappingTest {
       Exception e =
           assertThrows(
               IllegalArgumentException.class, () -> NatMapping.createMapping(isdAs, channel, brs));
-      assertTrue(e.getMessage().startsWith("Illegal value for STUN config: "));
+      assertTrue(e.getMessage().startsWith("Illegal value for NAT config: "));
     }
   }
 
@@ -342,6 +342,34 @@ class NatMappingTest {
       assertEquals(2, MockNetwork.getAndResetStunCount());
     } finally {
       receiver.stopNow();
+    }
+  }
+
+  @Test
+  void testKeepAlive() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests // TODO should be only one per IP!!
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+      Thread.sleep(1010);
+      // One keep alive per IP
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
     }
   }
 

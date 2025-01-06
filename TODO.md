@@ -33,21 +33,18 @@
   - Implement interfaces from nio.DatagramChannel
   - Look into Selectors:  https://www.baeldung.com/java-nio-selector
 - Consider subclassing DatagramChannel directly.
-- Consider SHIM support. SHIM is a compatibility component that supports
-  old border-router software (requiring a fixed port on the client, unless
-  the client is listening on this very port).  When SHIM is used, we cannot 
-  get the return address (server mode) from the received packet because we receive it 
-  from the SHIM i.o. the BR. Fix: Either have server use daemon of topofile to find
-  first hop, OR extend SHIM to accept and forward packets to the correct BR.
+- Extend NAT support with on-demand feature: Instead of sending keep-alives, we send
+  STUN packets only during send() and only when the NAT is assumed to have expired.
+  Downsides:
+  - Small delay before sending a packet
+  - Quite hard to implement, the receive() may be blocked, and may be unblocked() at any time
+  - Works only for the sender, not for the receiver
 - AS switching: handle localIsdAs code per Interface or IP
 - Path expiry: request new path asynchronously when old path is close to expiry
   Reconsider handling of expired path on server side. Try requesting a new path?
   Throw exception? Callback?
 - DNS with other options, see book p328ff, Section 13.2.3
-- UDP checksum validation + creation
-- SCMP checksum validation + creation
 - Fuzzing -> e.g. validate()
-- remove "internals" package?
 - For stand-alone path query, we should cache localAS->localCore paths.
 - For stand-alone, fill meta/proto properly
 - Consider removing DEFAULT ScionService?

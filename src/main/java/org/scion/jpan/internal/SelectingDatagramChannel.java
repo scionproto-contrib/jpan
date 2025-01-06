@@ -115,7 +115,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
 
   @Override
   public void close() throws IOException {
-    super.close();
     selector.close();
+    super.close();
   }
 }

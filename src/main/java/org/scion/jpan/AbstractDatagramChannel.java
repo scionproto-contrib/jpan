@@ -223,6 +223,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   @Override
   public void close() throws IOException {
     synchronized (stateLock) {
+      if (natMapping != null) {
+        natMapping.close();
+      }
       channel.disconnect();
       channel.close();
       connectionPath = null;
