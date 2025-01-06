@@ -8,14 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
-- Implement keepalive for NAT (separate timer for each BR, or at least each mapping)
-  (in theory, 2 NATs could provide the same external address...!) 
-  - Does setBlocking=false unblock a blocking receiver?
-    Ensure we do never do it once the receiver is running (e.g. via a timer...)....
-    --> We only need to send(), not to receive() packets for keepalive! 
 - TEST all(default) with AUTO??? BR????
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
-    e.g. configureBlocking() 
+    e.g. configureBlocking()
+- Config-ify PROPERTIES etc 
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?

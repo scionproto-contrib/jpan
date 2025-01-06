@@ -360,6 +360,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       }
       buffer.flip();
 
+      // Update NAT mapping timer. We do this before validating the packet because _any_ packet
+      // is sufficient to keep the mapping alive.
+      if (natMapping != null) {
+        natMapping.touch(srcAddress);
+      }
+
       if (!validate(buffer.asReadOnlyBuffer())) {
         continue;
       }
