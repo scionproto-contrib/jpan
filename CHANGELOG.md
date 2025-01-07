@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
+
+- TODO implement STUN responder in client. Store mapping in map and maintain with keepalive.
+
 - TEST all(default) with AUTO??? BR????
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
     e.g. configureBlocking()
