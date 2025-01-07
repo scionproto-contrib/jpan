@@ -42,6 +42,7 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 - Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
 # ----TODO----
 DOES lastUsed get updated on receive()?
+Why isExpired()? Test with blocking receive()! Why not isAboutToExpire()->sendOnly(without receive) 
 
 ### Changed
  

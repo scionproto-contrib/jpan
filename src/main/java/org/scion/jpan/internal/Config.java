@@ -21,6 +21,8 @@ import org.scion.jpan.ScionUtil;
 
 public class Config {
 
+  private Config() {}
+
   public static String getNat() {
     return ScionUtil.getPropertyOrEnv(PROPERTY_NAT, ENV_NAT, DEFAULT_NAT).toUpperCase();
   }
