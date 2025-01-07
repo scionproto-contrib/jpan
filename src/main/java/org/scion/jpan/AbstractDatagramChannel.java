@@ -366,6 +366,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         natMapping.touch(srcAddress);
       }
 
+      if (STUN.isStunRequest(buffer)) {
+        sendStunResponse(buffer, srcAddress);
+        continue;
+      }
+
       if (!validate(buffer.asReadOnlyBuffer())) {
         continue;
       }
@@ -435,6 +440,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (errorListener != null && scmpMsg.getTypeCode().isError()) {
         errorListener.accept((Scmp.ErrorMessage) scmpMsg);
       }
+    }
+  }
+
+  private void sendStunResponse(ByteBuffer request, InetSocketAddress src) throws IOException {
+    try {
+      writeLock().lock();
+      ByteBuffer response = getBufferSend(100);
+      response.clear();
+      STUN.TransactionID txId = STUN.parseRequest(request);
+      STUN.writeResponse(response, txId, src);
+      response.flip();
+      channel.send(response, src);
+      response.clear();
+    } finally {
+      writeLock().unlock();
     }
   }
 
