@@ -349,7 +349,7 @@ class NatMappingTest {
   void testExpiredCUSTOM() throws IOException, InterruptedException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
     System.setProperty(Constants.PROPERTY_NAT, "CUSTOM");
-    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
 
     MockNetwork.startTiny();
     InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
@@ -366,7 +366,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(1, MockNetwork.getAndResetStunCount());
-      Thread.sleep(1050);
+      Thread.sleep(150);
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Trigger isExpired() detection
@@ -383,7 +383,7 @@ class NatMappingTest {
   void testExpiredBR() throws IOException, InterruptedException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
-    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
 
     MockNetwork.startTiny();
 
@@ -398,7 +398,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
-      Thread.sleep(1050);
+      Thread.sleep(150);
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Trigger isExpired() detection
@@ -415,7 +415,7 @@ class NatMappingTest {
   void testKeepAliveBR() throws IOException, InterruptedException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
-    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
 
     MockNetwork.startTiny();
 
@@ -429,7 +429,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
-      Thread.sleep(1050);
+      Thread.sleep(150);
       // One keep alive per IP
       assertEquals(2, MockNetwork.getAndResetStunCount());
     } finally {

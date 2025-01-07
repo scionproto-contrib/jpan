@@ -123,7 +123,7 @@ public final class Constants {
   public static final String PROPERTY_NAT_MAPPING_TIMEOUT = "org.scion.nat.mapping.timeout";
 
   public static final String ENV_NAT_MAPPING_TIMEOUT = "SCION_NAT_MAPPING_TIMEOUT";
-  public static final int DEFAULT_NAT_MAPPING_TIMEOUT = 119;
+  public static final double DEFAULT_NAT_MAPPING_TIMEOUT = 119.0;
 
   /**
    * Controls whether JPAN should send regular keep alive packets through the NAT to prevent losing

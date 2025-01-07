@@ -32,9 +32,11 @@ public class Config {
         PROPERTY_NAT_MAPPING_KEEPALIVE, ENV_NAT_MAPPING_KEEPALIVE, DEFAULT_NAT_MAPPING_KEEPALIVE);
   }
 
-  public static int getNatMappingTimeout() {
-    return ScionUtil.getPropertyOrEnv(
-        PROPERTY_NAT_MAPPING_TIMEOUT, ENV_NAT_MAPPING_TIMEOUT, DEFAULT_NAT_MAPPING_TIMEOUT);
+  public static int getNatMappingTimeoutMs() {
+    double seconds =
+        ScionUtil.getPropertyOrEnv(
+            PROPERTY_NAT_MAPPING_TIMEOUT, ENV_NAT_MAPPING_TIMEOUT, DEFAULT_NAT_MAPPING_TIMEOUT);
+    return (int) (seconds * 1000.);
   }
 
   public static String getNatStunServer() {

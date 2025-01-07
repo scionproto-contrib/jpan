@@ -42,7 +42,7 @@ public class NatMapping {
   private final DatagramChannel channel;
   private InetAddress externalIP;
   private final Timer timer;
-  private final int natMappingTimeoutSeconds = Config.getNatMappingTimeout(); // seconds
+  private final int natMappingTimeoutMs = Config.getNatMappingTimeoutMs(); // seconds
   private final int stunTimeoutMs = Config.getStunTimeoutMs();
 
   private NatMapping(
@@ -60,7 +60,7 @@ public class NatMapping {
           k -> {
             Entry e = new Entry(null, brAddress);
             if (useTimer) {
-              timer.schedule(new NatMappingTimerTask(e), natMappingTimeoutSeconds * 1000L);
+              timer.schedule(new NatMappingTimerTask(e), natMappingTimeoutMs);
             }
             return e;
           });
@@ -91,12 +91,11 @@ public class NatMapping {
       case NO_NAT:
         return commonAddress.getMappedSource();
       case STUN_SERVER:
-        if (commonAddress.isExpired(mode, natMappingTimeoutSeconds)) {
+        if (commonAddress.isExpired(mode, natMappingTimeoutMs)) {
           InetSocketAddress address = tryCustomServer(true);
           if (address == null) {
-            String custom = Config.getNatStunServer();
             throw new ScionRuntimeException(
-                "Failed to connect to STUN servers: \"" + custom + "\"");
+                "Failed to connect to STUN servers: \"" + Config.getNatStunServer() + "\"");
           }
           commonAddress.updateSource(address);
         }
@@ -118,7 +117,7 @@ public class NatMapping {
       }
       throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
     }
-    if (entry.getSource() == null || entry.isExpired(mode, natMappingTimeoutSeconds)) {
+    if (entry.getSource() == null || entry.isExpired(mode, natMappingTimeoutMs)) {
       // null: try detection again, border router may have been unresponsive earlier on.
       try {
         entry.updateSource(tryStunAddress(entry.firstHop));
@@ -424,9 +423,9 @@ public class NatMapping {
       lastUsed = System.currentTimeMillis();
     }
 
-    private boolean isExpired(NatMode mode, long natMappingTimeoutSeconds) {
+    private boolean isExpired(NatMode mode, int natMappingTimeoutMs) {
       return mode != NatMode.NO_NAT
-          && (System.currentTimeMillis() - lastUsed) > (natMappingTimeoutSeconds * 1000L);
+          && (System.currentTimeMillis() - lastUsed) > natMappingTimeoutMs;
     }
   }
 
@@ -446,8 +445,9 @@ public class NatMapping {
 
     @Override
     public void run() {
-      long nextRequiredUse = e.lastUsed + natMappingTimeoutSeconds * 1000L - 1;
-      if (System.currentTimeMillis() >= nextRequiredUse) {
+      long nextRequiredUse = e.lastUsed + natMappingTimeoutMs;
+      long delay = nextRequiredUse - System.currentTimeMillis();
+      if (delay <= 0) {
         e.touch();
         // Send a simple message to the desired BR. Do not wait for an answer.
         ByteBuffer buf = ByteBuffer.allocate(100);
@@ -458,9 +458,9 @@ public class NatMapping {
         } catch (IOException ex) {
           log.error("Error while sending keep alive to {}", e.firstHop, ex);
         }
+        delay = natMappingTimeoutMs;
       }
-      // reset timer -> assert >= 1
-      long delay = Math.max(nextRequiredUse - System.currentTimeMillis(), 1);
+      // reset timer
       timer.schedule(new NatMappingTimerTask(e, e2), delay);
     }
   }
