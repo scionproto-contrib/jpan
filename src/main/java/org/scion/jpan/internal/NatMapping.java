@@ -68,8 +68,10 @@ public class NatMapping {
   }
 
   public synchronized void touch(InetSocketAddress borderRouterAddress) {
+    log.error("TOUCHed {} " + borderRouterAddress); // TODO remove
     Entry e = sourceIPs.get(borderRouterAddress);
     if (e == null) {
+      log.error("TOUCHed -error {} " + borderRouterAddress); // TODO remove
       log.info("No border router found for {}", borderRouterAddress);
       // TODO instead we could check the path for "empty"
       return;
@@ -127,6 +129,8 @@ public class NatMapping {
       if (entry.getSource() == null) {
         throw new IllegalStateException("No mapped source for: " + path.getFirstHopAddress());
       }
+    } else {
+      entry.touch();
     }
     return entry.getSource();
   }

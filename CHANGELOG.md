@@ -43,9 +43,6 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   [#142](https://github.com/scionproto-contrib/jpan/pull/142)
 - Added LICENCE file to packaged jar. [#152](https://github.com/scionproto-contrib/jpan/pull/152)
 - Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
-# ----TODO----
-DOES lastUsed get updated on receive()?
-Why isExpired()? Test with blocking receive()! Why not isAboutToExpire()->sendOnly(without receive) 
 
 ### Changed
  
