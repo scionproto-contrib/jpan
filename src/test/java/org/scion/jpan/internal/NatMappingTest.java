@@ -363,7 +363,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
-      Thread.sleep(1010);
+      Thread.sleep(1050);
       // One keep alive per IP
       assertEquals(2, MockNetwork.getAndResetStunCount());
     } finally {
@@ -397,11 +397,11 @@ class NatMappingTest {
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Wait for 1st IP to expire
-      Thread.sleep(510);
+      Thread.sleep(550);
       assertEquals(1, MockNetwork.getAndResetStunCount());
 
       // Wait for 2nd IP to expire
-      Thread.sleep(510);
+      Thread.sleep(550);
       // One keep alive per IP
       assertEquals(1, MockNetwork.getAndResetStunCount());
     } finally {
