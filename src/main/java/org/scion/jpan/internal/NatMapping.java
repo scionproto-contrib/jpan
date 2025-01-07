@@ -448,6 +448,7 @@ public class NatMapping {
     public void run() {
       long nextRequiredUse = e.lastUsed + natMappingTimeoutSeconds * 1000L - 1;
       if (System.currentTimeMillis() >= nextRequiredUse) {
+        e.touch();
         // Send a simple message to the desired BR. Do not wait for an answer.
         ByteBuffer buf = ByteBuffer.allocate(100);
         STUN.writeRequest(buf);
@@ -457,8 +458,6 @@ public class NatMapping {
         } catch (IOException ex) {
           log.error("Error while sending keep alive to {}", e.firstHop, ex);
         }
-
-        e.touch();
       }
       // reset timer -> assert >= 1
       long delay = Math.max(nextRequiredUse - System.currentTimeMillis(), 1);

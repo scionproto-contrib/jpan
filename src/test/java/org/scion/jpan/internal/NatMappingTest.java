@@ -346,7 +346,73 @@ class NatMappingTest {
   }
 
   @Test
-  void testKeepAlive() throws IOException, InterruptedException {
+  void testExpiredCUSTOM() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
+    System.setProperty(Constants.PROPERTY_NAT, "CUSTOM");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+
+    MockNetwork.startTiny();
+    InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, br.getHostString() + ":" + br.getPort());
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+    Path path = createPath(MockNetwork.getBorderRouterAddress1());
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+      Thread.sleep(1050);
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Trigger isExpired() detection
+      natMapping.getMappedAddress(path);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
+    }
+  }
+
+  @Test
+  void testExpiredBR() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+    Path path = createPath(MockNetwork.getBorderRouterAddress1());
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+      Thread.sleep(1050);
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Trigger isExpired() detection
+      natMapping.getMappedAddress(path);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
+    }
+  }
+
+  @Test
+  void testKeepAliveBR() throws IOException, InterruptedException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
@@ -374,7 +440,7 @@ class NatMappingTest {
   }
 
   @Test
-  void testKeepAlive_Reset() throws IOException, InterruptedException {
+  void testKeepAliveBR_ResetTimerAfterUse() throws IOException, InterruptedException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
