@@ -361,9 +361,47 @@ class NatMappingTest {
       channel.bind(local);
       long isdAs = ScionUtil.parseIA("1-ff00:0:123");
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
-      // Two initial requests // TODO should be only one per IP!!
+      // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
       Thread.sleep(1010);
+      // One keep alive per IP
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
+    }
+  }
+
+  @Test
+  void testKeepAlive_Reset() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+      // Reset timer after 500ms
+      Thread.sleep(500);
+      natMapping.touch(brs.get(0));
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Wait for 1st IP to expire
+      Thread.sleep(510);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+
+      // Wait for 2nd IP to expire
+      Thread.sleep(510);
       // One keep alive per IP
       assertEquals(1, MockNetwork.getAndResetStunCount());
     } finally {

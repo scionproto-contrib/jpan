@@ -87,41 +87,29 @@ public class NatMapping {
   }
 
   public synchronized InetSocketAddress getMappedAddress(Path path) {
-    // TODO rewite this method
-    //    1a) NO_NAT: -> Just return commonENtry, do nothing
-    //    1b) STUN_SERVER -> refresh and return commonEntry
-    //    2) Check if it is a BR (or even known address)
-    //       2a) Unknown Address: STUN the remote and return that. Maybe create Entry?
-    //       2b) BR: check expiration. Refresh if necessary, return data from entry
-
-    // NAT mapping expired?
-//    if (commonAddress != null && commonAddress.isExpired(mode, natMappingTimeoutSeconds)) {
-//      // We have to rediscover ALL border routers because we don't know whether they are all
-//      // behind the same NAT or in the same subnet.
-//      try {
-//        // refresh
-//        detectSourceAddress();
-//      } catch (IOException e) {
-//        throw new ScionRuntimeException(e);
-//      }
-//    }
-    if (mode == NatMode.NO_NAT) {
-      return commonAddress.getMappedSource();
-    } else if (mode == NatMode.STUN_SERVER) {
-      if (commonAddress.isExpired(mode, natMappingTimeoutSeconds)) {
-        InetSocketAddress address = tryCustomServer(true);
-        if (address == null) {
-          String custom = Config.getNatStunServer();
-          throw new ScionRuntimeException("Failed to connect to STUN servers: \"" + custom + "\"");
+    switch (mode) {
+      case NO_NAT:
+        return commonAddress.getMappedSource();
+      case STUN_SERVER:
+        if (commonAddress.isExpired(mode, natMappingTimeoutSeconds)) {
+          InetSocketAddress address = tryCustomServer(true);
+          if (address == null) {
+            String custom = Config.getNatStunServer();
+            throw new ScionRuntimeException(
+                "Failed to connect to STUN servers: \"" + custom + "\"");
+          }
+          commonAddress.updateSource(address);
         }
-        commonAddress.updateSource(address);
-      }
-      return commonAddress.getMappedSource();
-    } else if (mode == NatMode.NOT_INITIALIZED) {
-      throw new IllegalStateException();
+        return commonAddress.getMappedSource();
+      case BR_STUN:
+        return getMappedAddressFromBR(path);
+      case NOT_INITIALIZED:
+      default:
+        throw new IllegalStateException();
     }
+  }
 
-    // Find mapping
+  public InetSocketAddress getMappedAddressFromBR(Path path) {
     Entry entry = sourceIPs.get(path.getFirstHopAddress());
     if (entry == null) {
       // This is not a known border router, the destination is presumably in the local AS
@@ -133,20 +121,7 @@ public class NatMapping {
     if (entry.getSource() == null || entry.isExpired(mode, natMappingTimeoutSeconds)) {
       // null: try detection again, border router may have been unresponsive earlier on.
       try {
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        // TODO test this!! THis requires sending something, or at least calling getMappedAddress()
-        log.error("***** UPDATING: {} {}", entry.getSource(), entry.firstHop);
-        // TODO rename customServer to customRemote or similar.
-        entry.updateSource(tryStunCustomServer(entry.firstHop));
+        entry.updateSource(tryStunAddress(entry.firstHop));
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
@@ -230,7 +205,7 @@ public class NatMapping {
         update(NatMode.STUN_SERVER, address);
         break;
       case STUN_BR:
-        tryStunBorderRouter();
+        tryStunBorderRouters();
         // The common address is used for communication within the local AS. In this case we
         // we don't have a mapped address so we rely on the remote host to reply to the
         // underlay address (which may be NATed or not) and ignore the SRC address,
@@ -271,7 +246,7 @@ public class NatMapping {
     }
 
     // Check if BR is STUN enabled (gives correct address)
-    if (tryStunBorderRouter()) {
+    if (tryStunBorderRouters()) {
       update(NatMode.BR_STUN, getLocalAddress());
       log.info("NAT AUTO: Found STUN enabled border routers.");
       return;
@@ -303,7 +278,7 @@ public class NatMapping {
 
       // contact STUN server
       try {
-        InetSocketAddress address = tryStunCustomServer(stunServer);
+        InetSocketAddress address = tryStunAddress(stunServer);
         if (address != null) {
           return address;
         }
@@ -314,7 +289,7 @@ public class NatMapping {
     return null;
   }
 
-  private boolean tryStunBorderRouter() throws IOException {
+  private boolean tryStunBorderRouters() throws IOException {
     boolean isBlocking = channel.isBlocking();
     try (Selector selector = channel.provider().openSelector()) {
       channel.configureBlocking(false);
@@ -326,7 +301,7 @@ public class NatMapping {
     }
   }
 
-  private InetSocketAddress tryStunCustomServer(InetSocketAddress server) throws IOException {
+  private InetSocketAddress tryStunAddress(InetSocketAddress server) throws IOException {
     boolean isBlocking = channel.isBlocking();
     try (Selector selector = channel.provider().openSelector()) {
       channel.configureBlocking(false);
@@ -451,7 +426,7 @@ public class NatMapping {
 
     private boolean isExpired(NatMode mode, long natMappingTimeoutSeconds) {
       return mode != NatMode.NO_NAT
-              && (System.currentTimeMillis() - lastUsed) > (natMappingTimeoutSeconds * 1000L);
+          && (System.currentTimeMillis() - lastUsed) > (natMappingTimeoutSeconds * 1000L);
     }
   }
 
@@ -481,7 +456,6 @@ public class NatMapping {
           channel.send(buf, e.firstHop);
         } catch (IOException ex) {
           log.error("Error while sending keep alive to {}", e.firstHop, ex);
-          e2.printStackTrace();
         }
 
         e.touch();
