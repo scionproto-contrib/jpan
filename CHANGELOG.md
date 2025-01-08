@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.5.0
 
 - TODO implement STUN responder in client. Store mapping in map and maintain with keepalive.
+- Move StringUtil to testutil.Util; add Thread.sleep()
+  - Change MockControlService to return parsed Segments i.o. hardcoded segments. 
 
 - TEST all(default) with AUTO??? BR????
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
