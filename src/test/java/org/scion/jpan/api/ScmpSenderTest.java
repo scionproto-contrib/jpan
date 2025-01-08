@@ -33,6 +33,7 @@ import org.scion.jpan.internal.Shim;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
+import org.scion.jpan.testutil.TestUtil;
 
 public class ScmpSenderTest {
   private static final ConcurrentLinkedQueue<String> errors = new ConcurrentLinkedQueue<>();
@@ -349,11 +350,7 @@ public class ScmpSenderTest {
     errorChannel.setReceiveCallback(
         buffer -> {
           while (spis.isEmpty() || socketAddresses.isEmpty()) {
-            try {
-              Thread.sleep(10);
-            } catch (InterruptedException e) {
-              throw new RuntimeException(e);
-            }
+            TestUtil.sleep(10);
           }
           ScionPacketInspector spi = spis.remove();
           spi.writePacketSCMP(buffer);

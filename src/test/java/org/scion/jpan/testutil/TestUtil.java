@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.demo.util;
+package org.scion.jpan.testutil;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -23,7 +23,7 @@ import org.scion.jpan.demo.inspector.HopField;
 import org.scion.jpan.demo.inspector.InfoField;
 import org.scion.jpan.demo.inspector.PathHeaderScion;
 
-public class ToStringUtil {
+public class TestUtil {
 
   public static String toStringIP(byte[] b) {
     try {
@@ -134,5 +134,13 @@ public class ToStringUtil {
       host = address.toString().substring(1);
     }
     return host;
+  }
+
+  public static void sleep(int millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

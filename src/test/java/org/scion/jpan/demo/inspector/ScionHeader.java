@@ -18,8 +18,8 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.demo.util.ToStringUtil;
 import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.testutil.TestUtil;
 
 /** Class for reading, writing and storing the Common Header and Address Header. */
 public class ScionHeader {
@@ -232,15 +232,15 @@ public class ScionHeader {
     sb.append("  srcIsdAs=").append(ScionUtil.toStringIA(srcIsdAs));
     sb.append("  dstHost=").append(dt).append("/");
     if (dl == 0 || dl == 3) {
-      sb.append(ToStringUtil.toStringIP(dstHost));
+      sb.append(TestUtil.toStringIP(dstHost));
     } else {
-      sb.append("Format not recognized: ").append(ToStringUtil.toStringByte(dstHost));
+      sb.append("Format not recognized: ").append(TestUtil.toStringByte(dstHost));
     }
     sb.append("  srcHost=").append(st).append("/");
     if (sl == 0 || sl == 3) {
-      sb.append(ToStringUtil.toStringIP(srcHost));
+      sb.append(TestUtil.toStringIP(srcHost));
     } else {
-      sb.append("Format not recognized: ").append(ToStringUtil.toStringByte(srcHost));
+      sb.append("Format not recognized: ").append(TestUtil.toStringByte(srcHost));
     }
     return sb.toString();
   }
@@ -267,9 +267,9 @@ public class ScionHeader {
 
   public String getSrcHostString() {
     if (sl == 0 && (st == 0 || st == 1)) {
-      return ToStringUtil.toStringIP(srcHost);
+      return TestUtil.toStringIP(srcHost);
     } else if (sl == 3 && st == 0) {
-      return ToStringUtil.toStringIP(srcHost);
+      return TestUtil.toStringIP(srcHost);
     } else {
       throw new UnsupportedOperationException("Src address not supported: ST/SL=" + st + "/" + sl);
     }
