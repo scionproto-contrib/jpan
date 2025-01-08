@@ -68,10 +68,8 @@ public class NatMapping {
   }
 
   public synchronized void touch(InetSocketAddress borderRouterAddress) {
-    log.error("TOUCHed {} " + borderRouterAddress); // TODO remove
     Entry e = sourceIPs.get(borderRouterAddress);
     if (e == null) {
-      log.error("TOUCHed -error {} " + borderRouterAddress); // TODO remove
       log.info("No border router found for {}", borderRouterAddress);
       // TODO instead we could check the path for "empty"
       return;
@@ -115,7 +113,7 @@ public class NatMapping {
     if (entry == null) {
       // This is not a known border router, the destination is presumably in the local AS
       if (path.getRemoteIsdAs() == localIsdAs) {
-        return commonAddress.getMappedSource();
+        return commonAddress.getMappedSource(); // TODO this is weird.
       }
       throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
     }

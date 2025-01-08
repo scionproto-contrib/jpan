@@ -508,42 +508,42 @@ class NatMappingTest {
     }
   }
 
+  /** Test that receive() resets the time and that receive() does not block STUN. */
   @Test
   void testKeepAliveBR_ResetTimerAfterReceive() throws IOException, InterruptedException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
 
-    MockNetwork.startTiny();
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
 
     InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 31111);
-    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
     ManagedThread receiver = ManagedThread.newBuilder().build();
 
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+    ScionService svc110 =
+        Scion.newServiceWithTopologyFile(MockNetwork.TINY_CLIENT_TOPO_V4 + "/topology.json");
+    ScionService svc112 =
+        Scion.newServiceWithTopologyFile(MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json");
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(svc112)) {
       channel.bind(local);
       receiver.submit(
           news -> {
             news.reportStarted();
-            ByteBuffer buf = ByteBuffer.allocate(1000);
-            channel.receive(buf);
-            buf.flip();
-             // TODO channel.receive(ByteBuffer.allocate(1000));
-            System.err.println("RECEIVED " + buf.getInt());
+            channel.receive(ByteBuffer.allocate(1000));
           });
 
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
+
       // Reset timer after 500ms
       Thread.sleep(500);
-      try (ScionDatagramChannel sender = ScionDatagramChannel.open()) {
+      try (ScionDatagramChannel sender = ScionDatagramChannel.open(svc110)) {
+        sender.bind(null);
+        assertEquals(2, MockNetwork.getAndResetStunCount());
+
+        Path path = svc110.getPaths(ScionUtil.parseIA("1-ff00:0:112"), local).get(0);
         // Send a packet to the receiver.
-        ByteBuffer send = ByteBuffer.allocate(100);
-        send.putInt(42);
-        send.flip();
-        sender.send(send, createPath(local));
-        System.err.println("SENT from " + sender.getLocalAddress());
-        // sender.send(ByteBuffer.allocate(100), createLocalPath(local)); // TODO
+        sender.send(ByteBuffer.allocate(100), path);
       } catch (Exception e) {
         e.printStackTrace();
         receiver.stopNow();
@@ -561,6 +561,8 @@ class NatMappingTest {
       assertEquals(1, MockNetwork.getAndResetStunCount());
     } finally {
       receiver.stopNow();
+      svc110.close();
+      svc112.close();
     }
   }
 
@@ -669,5 +671,12 @@ class NatMappingTest {
     long isdAs = ScionUtil.parseIA("1-ff00:0:112");
     return PackageVisibilityHelper.createDummyPath(
         isdAs, new byte[] {127, 0, 0, 1}, 54321, ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
+  }
+
+  private RequestPath createPath(InetSocketAddress firstHop, InetSocketAddress dst) {
+    long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+    byte[] dstIP = dst.getAddress().getAddress();
+    return PackageVisibilityHelper.createDummyPath(
+        isdAs, dstIP, dst.getPort(), ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
   }
 }
