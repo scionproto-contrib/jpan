@@ -415,7 +415,7 @@ class NatMappingTest {
   void testKeepAliveBR() throws IOException, InterruptedException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
-    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.2"); // 200ms
 
     MockNetwork.startTiny();
 
@@ -429,7 +429,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
-      Thread.sleep(150);
+      Thread.sleep(250);
       // One keep alive per IP
       assertEquals(2, MockNetwork.getAndResetStunCount());
     } finally {
