@@ -117,13 +117,13 @@ public final class Constants {
   public static final String DEFAULT_NAT = "OFF";
 
   /**
-   * Timeout of the NAT before we expect it to forget a mapping, i.e. the time before JPAN initiates
-   * a new STUN detection when reusing a stale connection.
+   * Timeout (in seconds) of the NAT before we expect it to forget a mapping, i.e. the time before
+   * JPAN initiates a new STUN detection when reusing a stale connection.
    */
   public static final String PROPERTY_NAT_MAPPING_TIMEOUT = "org.scion.nat.mapping.timeout";
 
   public static final String ENV_NAT_MAPPING_TIMEOUT = "SCION_NAT_MAPPING_TIMEOUT";
-  public static final int DEFAULT_NAT_MAPPING_TIMEOUT = 110;
+  public static final double DEFAULT_NAT_MAPPING_TIMEOUT = 119.0;
 
   /**
    * Controls whether JPAN should send regular keep alive packets through the NAT to prevent losing

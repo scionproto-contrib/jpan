@@ -185,6 +185,11 @@ public class ScionUtil {
     return value != null ? Integer.parseInt(value) : defaultValue;
   }
 
+  public static double getPropertyOrEnv(String propertyName, String envName, double defaultValue) {
+    String value = getPropertyOrEnv(propertyName, envName);
+    return value != null ? Double.parseDouble(value) : defaultValue;
+  }
+
   public static int extractIsd(long isdAs) {
     return (int) (isdAs >>> AS_BITS);
   }

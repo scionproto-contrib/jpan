@@ -204,7 +204,7 @@ public class MockControlServer {
     Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
 
     ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hop1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(5).setEgress(3).build();
+    Seg.HopField hop1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(1).setEgress(0).build();
     Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hop1).build();
     Seg.ASEntrySignedBody asSigneBody1 =
         Seg.ASEntrySignedBody.newBuilder().setIsdAs(dstIA).setHopEntry(hopEntry1).build();

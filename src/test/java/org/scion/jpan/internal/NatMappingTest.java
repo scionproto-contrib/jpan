@@ -37,15 +37,15 @@ class NatMappingTest {
 
   @BeforeEach
   void beforeEach() {
-    System.clearProperty(Constants.PROPERTY_NAT);
-    System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
-    MockNetwork.stopTiny();
+    afterAll();
   }
 
   @AfterAll
   static void afterAll() {
     System.clearProperty(Constants.PROPERTY_NAT);
     System.clearProperty(Constants.PROPERTY_NAT_STUN_SERVER);
+    System.clearProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE);
+    System.clearProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT);
     MockNetwork.stopTiny();
   }
 
@@ -60,7 +60,7 @@ class NatMappingTest {
       Exception e =
           assertThrows(
               IllegalArgumentException.class, () -> NatMapping.createMapping(isdAs, channel, brs));
-      assertTrue(e.getMessage().startsWith("Illegal value for STUN config: "));
+      assertTrue(e.getMessage().startsWith("Illegal value for NAT config: "));
     }
   }
 
@@ -346,6 +346,227 @@ class NatMappingTest {
   }
 
   @Test
+  void testExpiredCUSTOM() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
+    System.setProperty(Constants.PROPERTY_NAT, "CUSTOM");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
+
+    MockNetwork.startTiny();
+    InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
+    System.setProperty(Constants.PROPERTY_NAT_STUN_SERVER, br.getHostString() + ":" + br.getPort());
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+    Path path = createPath(MockNetwork.getBorderRouterAddress1());
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+      Thread.sleep(150);
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Trigger isExpired() detection
+      natMapping.getMappedAddress(path);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
+    }
+  }
+
+  @Test
+  void testExpiredBR() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+    Path path = createPath(MockNetwork.getBorderRouterAddress1());
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+      Thread.sleep(150);
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Trigger isExpired() detection
+      natMapping.getMappedAddress(path);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
+    }
+  }
+
+  @Test
+  void testKeepAliveBR() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.2"); // 200ms
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+      Thread.sleep(250);
+      // One keep alive per IP
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
+    }
+  }
+
+  @Test
+  void testKeepAliveBR_ResetTimerAfterUse() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+
+    NatMapping natMapping = null;
+    try (DatagramChannel channel = DatagramChannel.open()) {
+      channel.bind(local);
+      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
+      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      // Two initial requests
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+      // Reset timer after 500ms
+      Thread.sleep(500);
+      natMapping.touch(brs.get(0));
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Wait for 1st IP to expire
+      Thread.sleep(550);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+
+      // Wait for 2nd IP to expire
+      Thread.sleep(550);
+      // One keep alive per IP
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    } finally {
+      if (natMapping != null) {
+        natMapping.close();
+      }
+    }
+  }
+
+  @Test
+  void testKeepAliveBR_ResetTimerAfterSend() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+
+    MockNetwork.startTiny();
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12666);
+    List<InetSocketAddress> brs = MockNetwork.getBorderRouterAddresses();
+
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.bind(local);
+      // Two initial requests
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+      // Reset timer after 500ms
+      Thread.sleep(500);
+      channel.send(ByteBuffer.allocate(0), createPath(brs.get(0)));
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Wait for 1st IP to expire
+      Thread.sleep(550);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+
+      // Wait for 2nd IP to expire
+      Thread.sleep(550);
+      // One keep alive per IP
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    }
+  }
+
+  /** Test that receive() resets the time and that receive() does not block STUN. */
+  @Test
+  void testKeepAliveBR_ResetTimerAfterReceive() throws IOException, InterruptedException {
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
+    System.setProperty(Constants.PROPERTY_NAT, "BR");
+    System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
+
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+
+    InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 31111);
+    ManagedThread receiver = ManagedThread.newBuilder().build();
+
+    ScionService svc110 =
+        Scion.newServiceWithTopologyFile(MockNetwork.TINY_CLIENT_TOPO_V4 + "/topology.json");
+    ScionService svc112 =
+        Scion.newServiceWithTopologyFile(MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json");
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(svc112)) {
+      channel.bind(local);
+      receiver.submit(
+          news -> {
+            news.reportStarted();
+            channel.receive(ByteBuffer.allocate(1000));
+          });
+
+      // Two initial requests
+      assertEquals(2, MockNetwork.getAndResetStunCount());
+
+      // Reset timer after 500ms
+      Thread.sleep(500);
+      try (ScionDatagramChannel sender = ScionDatagramChannel.open(svc110)) {
+        sender.bind(null);
+        assertEquals(2, MockNetwork.getAndResetStunCount());
+
+        Path path = svc110.getPaths(ScionUtil.parseIA("1-ff00:0:112"), local).get(0);
+        // Send a packet to the receiver.
+        sender.send(ByteBuffer.allocate(100), path);
+      } catch (Exception e) {
+        e.printStackTrace();
+        receiver.stopNow();
+      }
+      receiver.join(50);
+      assertEquals(0, MockNetwork.getAndResetStunCount());
+
+      // Wait for 1st IP to expire
+      Thread.sleep(550);
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+
+      // Wait for 2nd IP to expire
+      Thread.sleep(550);
+      // One keep alive per IP
+      assertEquals(1, MockNetwork.getAndResetStunCount());
+    } finally {
+      receiver.stopNow();
+      svc110.close();
+      svc112.close();
+    }
+  }
+
+  @Test
   void testDisconnectWithSend() throws IOException {
     testDisconnectWithSend(false);
   }
@@ -441,13 +662,21 @@ class NatMappingTest {
 
   private RequestPath createLocalPath(InetSocketAddress remoteHost) {
     long isdAs = ScionUtil.parseIA("1-ff00:0:110");
+    byte[] remoteIP = remoteHost.getAddress().getAddress();
     return PackageVisibilityHelper.createDummyPath(
-        isdAs, new byte[] {127, 0, 0, 1}, 54321, new byte[] {}, remoteHost);
+        isdAs, remoteIP, remoteHost.getPort(), new byte[] {}, remoteHost);
   }
 
   private RequestPath createPath(InetSocketAddress firstHop) {
     long isdAs = ScionUtil.parseIA("1-ff00:0:112");
     return PackageVisibilityHelper.createDummyPath(
         isdAs, new byte[] {127, 0, 0, 1}, 54321, ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
+  }
+
+  private RequestPath createPath(InetSocketAddress firstHop, InetSocketAddress dst) {
+    long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+    byte[] dstIP = dst.getAddress().getAddress();
+    return PackageVisibilityHelper.createDummyPath(
+        isdAs, dstIP, dst.getPort(), ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
   }
 }

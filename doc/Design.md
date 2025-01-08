@@ -267,7 +267,7 @@ Disadvantage: Keep-alive message can be annoying and eat energy on mobile device
 
 We implement both options. They are configurable via `SCION_NAT_KEEPALIVE` or
 `org.scion.nat.keepalive`. The default value is `false`, indicating that no keep
-alive messages are sent and instead we rely on "detection and reestablish".
+alive messages are sent, and instead we rely on "detection and reestablish".
 
 # TODO
 

@@ -8,15 +8,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
-- Implement keepalive for NAT (separate timer for each BR, or at least each mapping)
-  (in theory, 2 NATs could provide the same external address...!) 
-  - Does setBlocking=false unblock a blocking receiver?
-    Ensure we do never do it once the receiver is running (e.g. via a timer...)....
-    --> We only need to send(), not to receive() packets for keepalive! 
+
+- TODO implement STUN responder in client. Store mapping in map and maintain with keepalive.
+- Move StringUtil to testutil.Util; add Thread.sleep()
+  - Change MockControlService to return parsed Segments i.o. hardcoded segments. 
+
 - TEST all(default) with AUTO??? BR????
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
-    e.g. configureBlocking() 
-- Check how PAN/snet behaves wrt responding to underlay address when in local AS.
+    e.g. configureBlocking()
+- Config-ify PROPERTIES etc 
 - Cache paths
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
@@ -44,7 +44,8 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   This also reduces network calls by starting SHIM w/o service.
   [#142](https://github.com/scionproto-contrib/jpan/pull/142)
 - Added LICENCE file to packaged jar. [#152](https://github.com/scionproto-contrib/jpan/pull/152)
-  
+- Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
+
 ### Changed
  
 - Cleaned up test topologies. [#145](https://github.com/scionproto-contrib/jpan/pull/145)
