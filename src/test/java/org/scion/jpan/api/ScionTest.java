@@ -34,10 +34,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.demo.util.ToStringUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.TestUtil;
 
 public class ScionTest {
 
@@ -145,7 +145,7 @@ public class ScionTest {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
       InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
-      String host = ToStringUtil.toString(discoveryAddress.getAddress());
+      String host = TestUtil.toString(discoveryAddress.getAddress());
       host += ":" + discoveryAddress.getPort();
 
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
@@ -163,7 +163,7 @@ public class ScionTest {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
       InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
-      String host = ToStringUtil.toString(discoveryAddress.getAddress());
+      String host = TestUtil.toString(discoveryAddress.getAddress());
       // We do _not_ add a port here.
 
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
@@ -474,7 +474,7 @@ public class ScionTest {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     InetSocketAddress topoAddr = MockNetwork.getTopoServer().getAddress();
     try (Scion.CloseableService ss =
-        Scion.newServiceWithBootstrapServer(ToStringUtil.toAddressPort(topoAddr))) {
+        Scion.newServiceWithBootstrapServer(TestUtil.toAddressPort(topoAddr))) {
       // destination address = 123.123.123.123 because we don´t care for getting a path
       InetAddress ip123 = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
       List<Path> paths = ss.getPaths(iaDst, ip123, 12345);

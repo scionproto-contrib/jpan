@@ -34,6 +34,7 @@ import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
+import org.scion.jpan.testutil.TestUtil;
 
 class DatagramChannelPacketValidationTest {
 
@@ -157,7 +158,7 @@ class DatagramChannelPacketValidationTest {
             assertNotNull(channel.receive(response));
           } else {
             while (channel.receive(response) == null) {
-              Thread.sleep(10);
+              TestUtil.sleep(10);
             }
           }
         } catch (Exception e) {

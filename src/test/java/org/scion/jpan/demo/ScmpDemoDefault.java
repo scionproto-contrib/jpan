@@ -21,6 +21,7 @@ import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.PathRawParser;
 import org.scion.jpan.testutil.Scenario;
+import org.scion.jpan.testutil.TestUtil;
 
 /**
  * This demo tests various scenarios on the scionproto "default" topology.
@@ -123,12 +124,8 @@ public class ScmpDemoDefault {
         }
         echoMsgStr += " time=" + millis + "ms";
         println(echoMsgStr);
-        try {
-          if (i < REPEAT - 1) {
-            Thread.sleep(1000);
-          }
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+        if (i < REPEAT - 1) {
+          TestUtil.sleep(1000);
         }
       }
     }

@@ -19,8 +19,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.scion.jpan.demo.DemoConstants;
-import org.scion.jpan.demo.util.ToStringUtil;
 import org.scion.jpan.proto.daemon.Daemon;
+import org.scion.jpan.testutil.TestUtil;
 
 /**
  * Small demo that requests and prints information from the path service daemon. The arguments are
@@ -104,8 +104,8 @@ public class ProtobufPathDemo {
                 + " "
                 + linkType.getValueDescriptor().getName());
       }
-      System.out.println("    raw: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
-      System.out.println("    raw: " + ToStringUtil.toStringByte(path.getRaw().toByteArray()));
+      System.out.println("    raw: " + TestUtil.toStringHex(path.getRaw().toByteArray()));
+      System.out.println("    raw: " + TestUtil.toStringByte(path.getRaw().toByteArray()));
     }
   }
 
@@ -137,7 +137,7 @@ public class ProtobufPathDemo {
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
       }
-      System.out.println("    raw: " + ToStringUtil.toStringHex(path.getRaw().toByteArray()));
+      System.out.println("    raw: " + TestUtil.toStringHex(path.getRaw().toByteArray()));
     }
   }
 

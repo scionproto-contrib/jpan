@@ -32,6 +32,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.TestUtil;
 
 class NatMappingTest {
 
@@ -346,7 +347,7 @@ class NatMappingTest {
   }
 
   @Test
-  void testExpiredCUSTOM() throws IOException, InterruptedException {
+  void testExpiredCUSTOM() throws IOException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
     System.setProperty(Constants.PROPERTY_NAT, "CUSTOM");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
@@ -366,7 +367,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(1, MockNetwork.getAndResetStunCount());
-      Thread.sleep(150);
+      TestUtil.sleep(150);
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Trigger isExpired() detection
@@ -380,7 +381,7 @@ class NatMappingTest {
   }
 
   @Test
-  void testExpiredBR() throws IOException, InterruptedException {
+  void testExpiredBR() throws IOException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "false");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.1"); // 100ms
@@ -398,7 +399,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
-      Thread.sleep(150);
+      TestUtil.sleep(150);
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Trigger isExpired() detection
@@ -412,7 +413,7 @@ class NatMappingTest {
   }
 
   @Test
-  void testKeepAliveBR() throws IOException, InterruptedException {
+  void testKeepAliveBR() throws IOException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "0.2"); // 200ms
@@ -429,7 +430,7 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
-      Thread.sleep(250);
+      TestUtil.sleep(250);
       // One keep alive per IP
       assertEquals(2, MockNetwork.getAndResetStunCount());
     } finally {
@@ -440,7 +441,7 @@ class NatMappingTest {
   }
 
   @Test
-  void testKeepAliveBR_ResetTimerAfterUse() throws IOException, InterruptedException {
+  void testKeepAliveBR_ResetTimerAfterUse() throws IOException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
@@ -458,16 +459,16 @@ class NatMappingTest {
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
       // Reset timer after 500ms
-      Thread.sleep(500);
+      TestUtil.sleep(500);
       natMapping.touch(brs.get(0));
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Wait for 1st IP to expire
-      Thread.sleep(550);
+      TestUtil.sleep(550);
       assertEquals(1, MockNetwork.getAndResetStunCount());
 
       // Wait for 2nd IP to expire
-      Thread.sleep(550);
+      TestUtil.sleep(550);
       // One keep alive per IP
       assertEquals(1, MockNetwork.getAndResetStunCount());
     } finally {
@@ -478,7 +479,7 @@ class NatMappingTest {
   }
 
   @Test
-  void testKeepAliveBR_ResetTimerAfterSend() throws IOException, InterruptedException {
+  void testKeepAliveBR_ResetTimerAfterSend() throws IOException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
@@ -493,16 +494,16 @@ class NatMappingTest {
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
       // Reset timer after 500ms
-      Thread.sleep(500);
+      TestUtil.sleep(500);
       channel.send(ByteBuffer.allocate(0), createPath(brs.get(0)));
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Wait for 1st IP to expire
-      Thread.sleep(550);
+      TestUtil.sleep(550);
       assertEquals(1, MockNetwork.getAndResetStunCount());
 
       // Wait for 2nd IP to expire
-      Thread.sleep(550);
+      TestUtil.sleep(550);
       // One keep alive per IP
       assertEquals(1, MockNetwork.getAndResetStunCount());
     }
@@ -510,7 +511,7 @@ class NatMappingTest {
 
   /** Test that receive() resets the time and that receive() does not block STUN. */
   @Test
-  void testKeepAliveBR_ResetTimerAfterReceive() throws IOException, InterruptedException {
+  void testKeepAliveBR_ResetTimerAfterReceive() throws IOException {
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_KEEPALIVE, "true");
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     System.setProperty(Constants.PROPERTY_NAT_MAPPING_TIMEOUT, "1");
@@ -536,7 +537,7 @@ class NatMappingTest {
       assertEquals(2, MockNetwork.getAndResetStunCount());
 
       // Reset timer after 500ms
-      Thread.sleep(500);
+      TestUtil.sleep(500);
       try (ScionDatagramChannel sender = ScionDatagramChannel.open(svc110)) {
         sender.bind(null);
         assertEquals(2, MockNetwork.getAndResetStunCount());
@@ -552,11 +553,11 @@ class NatMappingTest {
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Wait for 1st IP to expire
-      Thread.sleep(550);
+      TestUtil.sleep(550);
       assertEquals(1, MockNetwork.getAndResetStunCount());
 
       // Wait for 2nd IP to expire
-      Thread.sleep(550);
+      TestUtil.sleep(550);
       // One keep alive per IP
       assertEquals(1, MockNetwork.getAndResetStunCount());
     } finally {

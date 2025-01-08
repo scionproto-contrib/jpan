@@ -21,6 +21,7 @@ import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.Scenario;
+import org.scion.jpan.testutil.TestUtil;
 
 /**
  * This demo mimics the "scion ping" command available in scionproto (<a
@@ -154,12 +155,8 @@ public class ScmpEchoDemo {
         }
         echoMsgStr += " time=" + millis + "ms";
         println(echoMsgStr);
-        try {
-          if (i < REPEAT - 1) {
-            Thread.sleep(1000);
-          }
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+        if (i < REPEAT - 1) {
+          TestUtil.sleep(1000);
         }
       }
     }

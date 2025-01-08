@@ -29,6 +29,7 @@ import org.scion.jpan.demo.DemoTopology;
 import org.scion.jpan.demo.PingPongSocketClient;
 import org.scion.jpan.demo.PingPongSocketServer;
 import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.TestUtil;
 
 public class PingPongSocketDemoTest {
 
@@ -65,7 +66,7 @@ public class PingPongSocketDemoTest {
     server.start();
     // Yes this is bad, the barrier is counted down before the server socket starts listening.
     // But it is the best we can easily do here.
-    Thread.sleep(100);
+    TestUtil.sleep(100);
     if (!barrier.await(100, TimeUnit.MILLISECONDS)) {
       fail();
     }
