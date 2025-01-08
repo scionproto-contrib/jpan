@@ -62,7 +62,7 @@ public class DNSHelper {
   }
 
   public static <R> R queryTXT(Name name, String key, Function<String, R> valueParser) {
-    org.xbill.DNS.Record[] records = new Lookup(name, Type.TXT).run();
+    org.xbill.DNS.Record[] records = newLookup(name, Type.TXT).run();
     if (records == null) {
       return null;
     }
@@ -84,7 +84,7 @@ public class DNSHelper {
   }
 
   public static InetAddress queryA(Name hostName) {
-    org.xbill.DNS.Record[] recordsA = new Lookup(hostName, Type.A).run();
+    org.xbill.DNS.Record[] recordsA = newLookup(hostName, Type.A).run();
     if (recordsA == null) {
       throw new ScionRuntimeException("No DNS A entry found for host: " + hostName);
     }
@@ -93,7 +93,7 @@ public class DNSHelper {
   }
 
   public static InetAddress queryAAAA(Name hostName) {
-    org.xbill.DNS.Record[] recordsA = new Lookup(hostName, Type.AAAA).run();
+    org.xbill.DNS.Record[] recordsA = newLookup(hostName, Type.AAAA).run();
     if (recordsA == null) {
       throw new ScionRuntimeException("No DNS AAAA entry found for host: " + hostName);
     }
@@ -147,7 +147,7 @@ public class DNSHelper {
   }
 
   private static String getScionDiscoveryAddress(Name hostName) {
-    org.xbill.DNS.Record[] records = new Lookup(hostName, Type.NAPTR).run();
+    org.xbill.DNS.Record[] records = newLookup(hostName, Type.NAPTR).run();
     if (records == null) {
       LOG.debug("Checking discovery service NAPTR: no records found");
       return null;
@@ -211,7 +211,7 @@ public class DNSHelper {
       Resolver resolver = new SimpleResolver("zh.akamaitech.net");
 
       // IPv4
-      Lookup lookup4 = new Lookup(reverseLookupHost, Type.A);
+      Lookup lookup4 = newLookup(reverseLookupHost, Type.A);
       lookup4.setResolver(resolver);
       org.xbill.DNS.Record[] records4 = lookup4.run();
       for (org.xbill.DNS.Record record4 : records4) {
@@ -223,7 +223,7 @@ public class DNSHelper {
         }
       }
 
-      Lookup lookup6 = new Lookup(reverseLookupHost, Type.AAAA);
+      Lookup lookup6 = newLookup(reverseLookupHost, Type.AAAA);
       lookup6.setResolver(resolver);
       org.xbill.DNS.Record[] records6 = lookup6.run();
       for (org.xbill.DNS.Record record6 : records6) {
@@ -243,7 +243,7 @@ public class DNSHelper {
   private static Name findSearchDomainViaReverseLookup(InetAddress address)
       throws TextParseException {
     Name name = Name.fromString(reverseAddressForARPA(address));
-    org.xbill.DNS.Record[] records = new Lookup(name, Type.PTR).run();
+    org.xbill.DNS.Record[] records = newLookup(name, Type.PTR).run();
     if (records == null) {
       return null;
     }
@@ -251,7 +251,7 @@ public class DNSHelper {
       PTRRecord ptrRecord = (PTRRecord) record2;
       Name domain = ptrRecord.getTarget();
       while (true) {
-        if (new Lookup(domain, Type.NAPTR).run() != null) {
+        if (newLookup(domain, Type.NAPTR).run() != null) {
           return domain;
         }
 
@@ -287,5 +287,13 @@ public class DNSHelper {
       sb.append("ip6.arpa.");
     }
     return sb.toString();
+  }
+
+  private static Lookup newLookup(Name name, int type) {
+    Lookup lookup = new Lookup(name, type);
+    // Avoid parsing /etc/hosts because this would print a WARNING, see
+    // https://github.com/dnsjava/dnsjava/issues/361
+    lookup.setHostsFileParser(null);
+    return lookup;
   }
 }
