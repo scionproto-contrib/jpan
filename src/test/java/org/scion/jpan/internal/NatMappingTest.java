@@ -602,7 +602,7 @@ class NatMappingTest {
         sendBuffer.flip();
         channelSend.send(sendBuffer, path);
       }
-      // Now there should have bee two more STUN packets
+      // Now there should have been two more STUN packets
       assertEquals(2, MockNetwork.getAndResetStunCount());
 
       // finish

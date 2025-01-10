@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,17 +43,27 @@ public class ScionBootstrapper {
   private final String topologyResource;
   private final LocalTopology localAS;
   private final GlobalTopology world;
+  private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
 
   protected ScionBootstrapper(String topologyServiceAddress) {
     this.topologyResource = IPHelper.ensurePortOrDefault(topologyServiceAddress, 8041);
+    this.daemonStub = null;
     this.localAS = initLocal();
     this.world = initGlobal();
   }
 
   protected ScionBootstrapper(java.nio.file.Path file) {
     this.topologyResource = file.toString();
+    this.daemonStub = null;
     this.localAS = this.init(file);
     this.world = GlobalTopology.createEmpty();
+  }
+
+  protected ScionBootstrapper(DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    this.topologyResource = null;
+    this.daemonStub = daemonStub;
+    this.localAS = LocalTopology.create(daemonStub);
+    this.world = GlobalTopology.createEmpty(); // TODO ?
   }
 
   /**
@@ -71,6 +82,11 @@ public class ScionBootstrapper {
 
   public static synchronized ScionBootstrapper createViaTopoFile(java.nio.file.Path file) {
     return new ScionBootstrapper(file);
+  }
+
+  public static synchronized ScionBootstrapper createViaDaemon(
+      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    return new ScionBootstrapper(daemonStub);
   }
 
   public LocalTopology getLocalTopology() {

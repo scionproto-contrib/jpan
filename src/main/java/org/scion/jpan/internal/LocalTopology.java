@@ -17,22 +17,29 @@ package org.scion.jpan.internal;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.protobuf.Empty;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.proto.daemon.Daemon;
+import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Parse a topology file into a local topology. */
 public class LocalTopology {
 
+  private static final Logger LOG = LoggerFactory.getLogger(LocalTopology.class.getName());
+
   private final List<ServiceNode> controlServices = new ArrayList<>();
   private final List<ServiceNode> discoveryServices = new ArrayList<>();
   private final List<BorderRouter> borderRouters = new ArrayList<>();
-  private String localIsdAs;
+  private final Map<Integer, BorderRouter> interfaceIDs = new HashMap<>();
+  private long localIsdAs;
   private boolean isCoreAs;
   private int localMtu;
   private DispatcherPortRange portRange;
@@ -40,6 +47,15 @@ public class LocalTopology {
   public static synchronized LocalTopology create(String topologyFile) {
     LocalTopology topo = new LocalTopology();
     topo.parseTopologyFile(topologyFile);
+    topo.initInterfaceIDs();
+    return topo;
+  }
+
+  public static synchronized LocalTopology create(
+      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    LocalTopology topo = new LocalTopology();
+    topo.interrogateDaemon(daemonStub);
+    topo.initInterfaceIDs();
     return topo;
   }
 
@@ -60,18 +76,23 @@ public class LocalTopology {
   }
 
   public long getIsdAs() {
-    return ScionUtil.parseIA(localIsdAs);
+    return localIsdAs;
   }
 
-  public String getBorderRouterAddress(int interfaceId) {
-    for (BorderRouter br : borderRouters) {
-      for (BorderRouterInterface brif : br.interfaces) {
-        if (brif.id == interfaceId) {
-          return br.internalAddress;
-        }
-      }
+  public String getBorderRouterAddressString(int interfaceId) {
+    BorderRouter br = interfaceIDs.get(interfaceId);
+    if (br == null) {
+      throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
     }
-    throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
+    return br.internalAddressString;
+  }
+
+  public InetSocketAddress getBorderRouterAddress(int interfaceId) {
+    BorderRouter br = interfaceIDs.get(interfaceId);
+    if (br == null) {
+      throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
+    }
+    return br.internalAddress;
   }
 
   public int getMtu() {
@@ -82,7 +103,7 @@ public class LocalTopology {
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(topologyFile);
     if (jsonTree.isJsonObject()) {
       JsonObject o = jsonTree.getAsJsonObject();
-      localIsdAs = safeGet(o, "isd_as").getAsString();
+      localIsdAs = ScionUtil.parseIA(safeGet(o, "isd_as").getAsString());
       localMtu = safeGet(o, "mtu").getAsInt();
       JsonObject brs = safeGet(o, "border_routers").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : brs.entrySet()) {
@@ -100,9 +121,10 @@ public class LocalTopology {
           long isdAs = ScionUtil.parseIA(ife.get("isd_as").getAsString());
           int mtu = ife.get("mtu").getAsInt();
           String linkTo = ife.get("link_to").getAsString();
+          int ifId = Integer.parseInt(ifEntry.getKey());
           interfaces.add(
               new BorderRouterInterface(
-                  ifEntry.getKey(), local.getAsString(), remote.getAsString(), isdAs, mtu, linkTo));
+                  ifId, local.getAsString(), remote.getAsString(), isdAs, mtu, linkTo));
         }
         borderRouters.add(new BorderRouter(e.getKey(), addr, interfaces));
       }
@@ -152,6 +174,80 @@ public class LocalTopology {
     }
   }
 
+  private void initInterfaceIDs() {
+    for (BorderRouter br : borderRouters) {
+      for (BorderRouterInterface brif : br.interfaces) {
+        interfaceIDs.put(brif.id, br);
+      }
+    }
+  }
+
+  private void interrogateDaemon(DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    Daemon.ASResponse as = readASInfo(daemonStub);
+    this.localIsdAs = as.getIsdAs();
+    this.localMtu = as.getMtu();
+    this.isCoreAs = as.getCore();
+    this.portRange = readLocalPortRange(daemonStub);
+    this.borderRouters.addAll(readBorderRouterAddresses(daemonStub));
+  }
+
+  private static DispatcherPortRange readLocalPortRange(
+      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    Daemon.PortRangeResponse response;
+    try {
+      response = daemonStub.portRange(Empty.getDefaultInstance());
+      return DispatcherPortRange.create(
+          response.getDispatchedPortStart(), response.getDispatchedPortEnd());
+    } catch (StatusRuntimeException e) {
+      LOG.warn("ERROR getting dispatched_ports range from daemon: {}", e.getMessage());
+      // Daemon doesn't support port range.
+      return DispatcherPortRange.createEmpty();
+    }
+  }
+
+  private static Collection<BorderRouter> readBorderRouterAddresses(
+      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    Map<String, BorderRouter> borderRouters = new HashMap<>();
+    for (Map.Entry<Long, Daemon.Interface> e : readInterfaces(daemonStub).entrySet()) {
+      String addr = e.getValue().getAddress().getAddress();
+      int id = (int) (long) e.getKey();
+      BorderRouter br =
+          borderRouters.computeIfAbsent(
+              addr,
+              s ->
+                  new BorderRouter("UnknownName-" + borderRouters.size(), addr, new ArrayList<>()));
+      br.interfaces.add(new BorderRouterInterface(id, addr, null, 0, 0, null));
+    }
+    return borderRouters.values();
+  }
+
+  private static Daemon.ASResponse readASInfo(
+      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
+    Daemon.ASResponse response;
+    try {
+      response = daemonStub.aS(request);
+    } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode() == Status.Code.UNAVAILABLE) {
+        throw new ScionRuntimeException("Could not connect to SCION daemon: " + e.getMessage(), e);
+      }
+      throw new ScionRuntimeException("Error while getting AS info: " + e.getMessage(), e);
+    }
+    return response;
+  }
+
+  private static Map<Long, Daemon.Interface> readInterfaces(
+      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+    Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
+    Daemon.InterfacesResponse response;
+    try {
+      response = daemonStub.interfaces(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionRuntimeException(e);
+    }
+    return response.getInterfacesMap();
+  }
+
   public DispatcherPortRange getPortRange() {
     return portRange;
   }
@@ -181,16 +277,18 @@ public class LocalTopology {
 
   public static class BorderRouter {
     private final String name;
-    private final String internalAddress;
+    private final String internalAddressString;
+    private final InetSocketAddress internalAddress;
     private final List<BorderRouterInterface> interfaces;
 
     BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
       this.name = name;
-      this.internalAddress = addr;
+      this.internalAddressString = addr;
+      this.internalAddress = IPHelper.toInetSocketAddress(addr);
       this.interfaces = interfaces;
     }
 
-    public String getInternalAddress() {
+    public InetSocketAddress getInternalAddress() {
       return internalAddress;
     }
 
@@ -211,8 +309,8 @@ public class LocalTopology {
     final String linkTo;
 
     BorderRouterInterface(
-        String id, String publicU, String remoteU, long isdAs, int mtu, String linkTo) {
-      this.id = Integer.parseInt(id);
+        int id, String publicU, String remoteU, long isdAs, int mtu, String linkTo) {
+      this.id = id;
       this.publicUnderlay = publicU;
       this.remoteUnderlay = remoteU;
       this.isdAs = isdAs;

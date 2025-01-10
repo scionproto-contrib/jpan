@@ -398,7 +398,7 @@ public class Segments {
     //    path.setInternalHops();
     //    path.setNotes();
     // First hop
-    String firstHop = localAS.getBorderRouterAddress((int) path.getInterfaces(0).getId());
+    String firstHop = localAS.getBorderRouterAddressString((int) path.getInterfaces(0).getId());
     Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
