@@ -346,9 +346,22 @@ public class STUN {
     }
   }
 
+  private static void writeAttribute(ByteBuffer out, Type type, Runnable writer) {
+    // write header
+    out.putShort(ByteUtil.toShort(type.code())); // code
+    int posLength = out.position();
+    out.putShort((short) 0); // space holder
+    int posBegin = out.position();
+    // write content
+    writer.run();
+    // update length
+    int posEnd = out.position();
+    out.putShort(posLength, ByteUtil.toShort(posEnd - posBegin)); // length
+  }
+
   private static void writeMappedAddress(ByteBuffer out, InetSocketAddress address) {
-    out.put((byte) 0); // MUST be ignored
     byte[] addrBytes = address.getAddress().getAddress();
+    out.put((byte) 0); // MUST be ignored
     out.put((byte) (addrBytes.length == 4 ? 0x01 : 0x02)); // family
     out.putShort(ByteUtil.toShort(address.getPort()));
     out.put(addrBytes);
@@ -357,8 +370,6 @@ public class STUN {
   private static void writeSoftware(ByteBuffer out) {
     byte[] softwareBytes = SOFTWARE_ID.getBytes();
     int softwareLength = (softwareBytes.length + 3) & 0xfffc;
-    out.putShort(ByteUtil.toShort(0x8022));
-    out.putShort(ByteUtil.toShort(softwareLength));
     out.put(softwareBytes);
     for (int i = softwareBytes.length; i < softwareLength; i++) {
       out.put((byte) 0);
@@ -569,22 +580,18 @@ public class STUN {
     buffer.putInt(txId.id2);
 
     // MAPPED_ADDRESS
-    writeMappedAddress(buffer, src);
+    writeAttribute(buffer, Type.MAPPED_ADDRESS, () -> writeMappedAddress(buffer, src));
 
     // XOR_MAPPED_ADDRESS
-    // TODO !!!
-    //  writeXorMappedAddress(buffer, txId, src);
+    byte[] id = new byte[16];
+    int pos = buffer.position();
+    buffer.position(4);
+    buffer.get(id);
+    buffer.position(pos);
+    writeAttribute(buffer, Type.XOR_MAPPED_ADDRESS, () -> writeXorMappedAddress(buffer, id, src));
 
     // SOFTWARE attribute
-    writeSoftware(buffer);
-    //    byte[] softwareBytes = SOFTWARE_ID.getBytes();
-    //    int softwareLength = (softwareBytes.length + 3) & 0xfffc;
-    //    buffer.putShort(ByteUtil.toShort(0x8022));
-    //    buffer.putShort(ByteUtil.toShort(softwareLength));
-    //    buffer.put(softwareBytes);
-    //    for (int i = softwareBytes.length; i < softwareLength; i++) {
-    //      buffer.put((byte) 0);
-    //    }
+    writeAttribute(buffer, Type.SOFTWARE, () -> writeSoftware(buffer));
 
     // FINGERPRINT
     int fpPos = buffer.position();
