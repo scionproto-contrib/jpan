@@ -1,5 +1,18 @@
 # NAT
 
+**WARNING** *The current NAT solution does not work in all cases. These problems will disappear
+if an AS becomes fully dispatcher-less with `"dispatched_ports": "ALL"`:
+
+* For a client/server to communicate intra AS (with aclient behind a NAT), the server MUST listen on
+  a port that is in the
+  `"dispatched_ports": "31000-32767"` range. Otherwise, the packet will go through a SHIM or
+  dispatcher and the server cannot learn the required underlay address.*
+* For inter-AS the problem is that the NATed address may not be in the `"dispatched_ports"` range.
+  If it is not, then the border router will send any packets to the NAT's 30041 port and the packets
+  will be dropped.
+
+## Introduction
+
 Scion clients need to be able to discover potential NATs and the public mapped address.
 The public address needs to be put into the SCION header so that the border router can
 correctly route packets from outside the AS to the correct NAT IP/port.

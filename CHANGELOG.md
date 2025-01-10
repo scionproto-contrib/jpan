@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
-- TODO implement STUN responder in client. Store mapping in map and maintain with keepalive.
+- ScionService.getBorderRouterAddress() needs to cache border routers!
+  -> Best: Implement a 2nd version of LocalTopology based on Daemon information! 
+- Confirm that SCMP uses random IDs (see spec, e.g. https://docs.scion.org/en/latest/dev/design/router-port-dispatch.html)
+
+- Ensure (+ more tests???) that client responds on underlay address 
 - Change MockControlService to return parsed Segments i.o. hardcoded segments. 
 - Consider refactoring: separate Datagram classes for STUN/SCMP/UDP handling 
 
@@ -45,6 +49,8 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   [#142](https://github.com/scionproto-contrib/jpan/pull/142)
 - Added LICENCE file to packaged jar. [#152](https://github.com/scionproto-contrib/jpan/pull/152)
 - Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
+- Added implementation of STUN responder (currently not needed)
+  [#154](https://github.com/scionproto-contrib/jpan/pull/154)
 
 ### Changed
  

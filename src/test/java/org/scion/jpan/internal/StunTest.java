@@ -36,35 +36,29 @@ class StunTest {
   };
 
   @Test
-  void testBorderRouter_Old() throws IOException {
-    try (DatagramChannel channel = DatagramChannel.open()) {
-      MockNetwork.startTiny();
+  void smokeTest() throws UnknownHostException {
+    ByteBuffer request = ByteBuffer.allocate(1000);
+    STUN.TransactionID id = STUN.writeRequest(request);
+    request.flip();
+    assertTrue(STUN.isStunRequest(request));
 
-      // send
-      InetSocketAddress br = MockNetwork.getBorderRouterAddress1();
-      ByteBuffer out = ByteBuffer.allocate(1000);
-      STUN.TransactionID id = STUN.writeRequest(out);
-      out.flip();
-      channel.send(out, br);
+    STUN.TransactionID id2 = STUN.parseRequest(request);
+    assertNotNull(id2);
+    assertEquals(id, id2);
+    InetSocketAddress src =
+        new InetSocketAddress(InetAddress.getByAddress(new byte[] {123, 12, 13, 23}), 54321);
+    ByteBuffer response = ByteBuffer.allocate(1000);
+    STUN.writeResponse(response, id2, src);
+    response.flip();
 
-      // receive
-      ByteBuffer in = ByteBuffer.allocate(1000);
-      InetSocketAddress server = (InetSocketAddress) channel.receive(in);
-      assertEquals(br, server);
-      in.flip();
-
-      // check
-      ByteUtil.MutRef<STUN.TransactionID> txId = new ByteUtil.MutRef<>();
-      ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
-      InetSocketAddress external = STUN.parseResponse(in, id::equals, txId, error);
-      assertNull(error.get(), error.get());
-      assertNotNull(external);
-
-      // We compare only the port, the IP may differ ("any" vs localhost, etc...)
-      assertEquals(((InetSocketAddress) channel.getLocalAddress()).getPort(), external.getPort());
-    } finally {
-      MockNetwork.stopTiny();
-    }
+    assertTrue(STUN.isStunResponse(response, id));
+    ByteUtil.MutRef<STUN.TransactionID> receivedID = new ByteUtil.MutRef<>();
+    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+    InetSocketAddress src2 =
+        STUN.parseResponse(response, txID -> txID.equals(id), receivedID, error);
+    assertNull(error.get());
+    assertEquals(id, receivedID.get());
+    assertEquals(src, src2);
   }
 
   @Test

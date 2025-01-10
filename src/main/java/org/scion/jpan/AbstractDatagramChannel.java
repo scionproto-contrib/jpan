@@ -485,9 +485,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       return channel.send(buffer, new InetSocketAddress(remoteHostIP, Constants.DISPATCHER_PORT));
     }
     if (getService() != null && path.getRawPath().length == 0) {
-      // For intra-AS traffic the can send directly to the destination address which is stored
-      // as "first-hop".
-      // TODO wouldn't it be clearer to use the DST address here? If not, why? TEST!
+      // For intra-AS traffic we need to send packets directly to the originating underlay address.
+      // This is necessary to work handle NAT.
+      // Unfortunately this does not work if:
+      // - We received the original packet via SHIM // TODO remove this once we remove SHIM
+      // - we don't have a ScionService
+
       // For intra-AS traffic we also need to respect the port range and use 30041 when applicable
       // (the remote host may be running a dispatcher).
       remoteHost = getService().getLocalPortRange().mapToLocalPort(remoteHost);

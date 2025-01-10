@@ -59,6 +59,13 @@ public class STUN {
     return isStunPacket(buf, id) && b0 == 0x1 && b1 == 0x1;
   }
 
+  public static boolean isStunRequest(ByteBuffer buf) {
+    return buf.get(0) == 0x0
+        && buf.get(1) == 0x1
+        && buf.getShort(2) + 20 == buf.remaining()
+        && buf.getInt(4) == MAGIC_COOKIE;
+  }
+
   public static InetSocketAddress parseResponse(
       ByteBuffer in,
       Predicate<TransactionID> idHandler,
@@ -69,6 +76,18 @@ public class STUN {
       return null;
     }
     return parseBody(in, error);
+  }
+
+  public static TransactionID parseRequest(ByteBuffer in) {
+    ByteUtil.MutRef<String> error = new ByteUtil.MutRef<>();
+    ByteUtil.MutRef<TransactionID> txIdOut = new ByteUtil.MutRef<>();
+    parseHeader(in, transactionID -> true, txIdOut, error);
+    if (error.get() != null) {
+      return null;
+    }
+    // TODO ?
+    //   parseBody(in, error);
+    return txIdOut.get();
   }
 
   private static void parseHeader(
@@ -327,6 +346,45 @@ public class STUN {
     }
   }
 
+  private static void writeAttribute(ByteBuffer out, Type type, Runnable writer) {
+    // write header
+    out.putShort(ByteUtil.toShort(type.code())); // code
+    int posLength = out.position();
+    out.putShort((short) 0); // space holder
+    int posBegin = out.position();
+    // write content
+    writer.run();
+    // update length
+    int posEnd = out.position();
+    out.putShort(posLength, ByteUtil.toShort(posEnd - posBegin)); // length
+  }
+
+  private static void writeMappedAddress(ByteBuffer out, InetSocketAddress address) {
+    byte[] addrBytes = address.getAddress().getAddress();
+    out.put((byte) 0); // MUST be ignored
+    out.put((byte) (addrBytes.length == 4 ? 0x01 : 0x02)); // family
+    out.putShort(ByteUtil.toShort(address.getPort()));
+    out.put(addrBytes);
+  }
+
+  private static void writeSoftware(ByteBuffer out) {
+    byte[] softwareBytes = SOFTWARE_ID.getBytes();
+    int softwareLength = (softwareBytes.length + 3) & 0xfffc;
+    out.put(softwareBytes);
+    for (int i = softwareBytes.length; i < softwareLength; i++) {
+      out.put((byte) 0);
+    }
+  }
+
+  private static void writeXorMappedAddress(ByteBuffer out, byte[] id, InetSocketAddress address) {
+    out.put((byte) 0); // MUST be ignored
+    byte[] addrBytes = address.getAddress().getAddress();
+    out.put((byte) (addrBytes.length == 4 ? 0x01 : 0x02)); // family
+    out.putShort(ByteUtil.toShort(address.getPort() ^ 0x2112));
+    xorBytes(addrBytes, id);
+    out.put(addrBytes);
+  }
+
   enum Type implements InternalConstants.ParseEnum {
     // https://datatracker.ietf.org/doc/html/rfc3489#section-11.2
     // https://datatracker.ietf.org/doc/html/rfc5389#section-15
@@ -494,5 +552,71 @@ public class STUN {
     }
 
     return id;
+  }
+
+  public static void writeResponse(ByteBuffer buffer, TransactionID txId, InetSocketAddress src) {
+    //    0                   1                   2                   3
+    //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |0 0|     STUN Message Type     |         Message Length        |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |                         Magic Cookie                          |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |                                                               |
+    //    |                     Transaction ID (96 bits)                  |
+    //    |                                                               |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    buffer.put(ByteUtil.toByte(0x01));
+    buffer.put(ByteUtil.toByte(0x01));
+    // length is written later
+    buffer.putShort((short) 0);
+
+    // 0x2112A442
+    buffer.putInt(MAGIC_COOKIE);
+
+    // Transaction ID
+    buffer.putInt(txId.id0);
+    buffer.putInt(txId.id1);
+    buffer.putInt(txId.id2);
+
+    // MAPPED_ADDRESS
+    writeAttribute(buffer, Type.MAPPED_ADDRESS, () -> writeMappedAddress(buffer, src));
+
+    // XOR_MAPPED_ADDRESS
+    byte[] id = new byte[16];
+    int pos = buffer.position();
+    buffer.position(4);
+    buffer.get(id);
+    buffer.position(pos);
+    writeAttribute(buffer, Type.XOR_MAPPED_ADDRESS, () -> writeXorMappedAddress(buffer, id, src));
+
+    // SOFTWARE attribute
+    writeAttribute(buffer, Type.SOFTWARE, () -> writeSoftware(buffer));
+
+    // FINGERPRINT
+    int fpPos = buffer.position();
+    if (ADD_FINGERPRINT) {
+      buffer.putShort(ByteUtil.toShort(Type.FINGERPRINT.code()));
+      buffer.putShort(ByteUtil.toShort(4));
+      buffer.putInt(0); // dummy
+    }
+
+    // post processing
+    // adjust length, excluding the 20 byte header
+    buffer.putShort(2, (short) (buffer.position() - 20));
+
+    // calculate fingerprint
+    if (ADD_FINGERPRINT) {
+      CRC32 crc32 = new CRC32();
+      buffer.flip();
+      buffer.position(0);
+      buffer.limit(fpPos);
+      crc32.update(buffer);
+      buffer.limit(fpPos + 8);
+      // write fingerprint
+      buffer.position(fpPos + 4);
+      long fingerprint = crc32.getValue() ^ FINGERPRINT_XOR;
+      buffer.putInt(ByteUtil.toInt(fingerprint));
+    }
   }
 }
