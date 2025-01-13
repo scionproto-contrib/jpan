@@ -673,11 +673,4 @@ class NatMappingTest {
     return PackageVisibilityHelper.createDummyPath(
         isdAs, new byte[] {127, 0, 0, 1}, 54321, ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
   }
-
-  private RequestPath createPath(InetSocketAddress firstHop, InetSocketAddress dst) {
-    long isdAs = ScionUtil.parseIA("1-ff00:0:112");
-    byte[] dstIP = dst.getAddress().getAddress();
-    return PackageVisibilityHelper.createDummyPath(
-        isdAs, dstIP, dst.getPort(), ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
-  }
 }

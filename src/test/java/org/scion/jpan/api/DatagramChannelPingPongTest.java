@@ -37,7 +37,7 @@ class DatagramChannelPingPongTest {
   @Test
   void testWithServerDefault() {
     MockDaemon.getAndResetCallCount();
-    PingPongChannelHelper.Server serverFn = (socket) -> server(socket, false);
+    PingPongChannelHelper.Server serverFn = socket -> server(socket, false);
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 10, 10).build();
     pph.runPingPong(serverFn, clientFn);
@@ -50,7 +50,7 @@ class DatagramChannelPingPongTest {
   @Test
   void testWithServerNoService() {
     MockDaemon.getAndResetCallCount();
-    PingPongChannelHelper.Server serverFn = (socket) -> server(socket, true);
+    PingPongChannelHelper.Server serverFn = socket -> server(socket, true);
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph =
         PingPongChannelHelper.newBuilder(1, 10, 10)

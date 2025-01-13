@@ -43,25 +43,21 @@ public class ScionBootstrapper {
   private final String topologyResource;
   private final LocalTopology localAS;
   private final GlobalTopology world;
-  private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
 
   protected ScionBootstrapper(String topologyServiceAddress) {
     this.topologyResource = IPHelper.ensurePortOrDefault(topologyServiceAddress, 8041);
-    this.daemonStub = null;
     this.localAS = initLocal();
     this.world = initGlobal();
   }
 
   protected ScionBootstrapper(java.nio.file.Path file) {
     this.topologyResource = file.toString();
-    this.daemonStub = null;
     this.localAS = this.init(file);
     this.world = GlobalTopology.createEmpty();
   }
 
   protected ScionBootstrapper(DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
     this.topologyResource = null;
-    this.daemonStub = daemonStub;
     this.localAS = LocalTopology.create(daemonStub);
     this.world = GlobalTopology.createEmpty(); // TODO ?
   }

@@ -412,7 +412,7 @@ public class Segments {
     byte[] fix = new byte[2];
 
     // We remove all MACs from start of the segment to start of the range that is actually used.
-    int startRange = range[2] == +1 ? range[0] : range[1] + 1;
+    int startRange = range[2] == 1 ? range[0] : range[1] + 1;
     for (int pos = 0; pos < startRange; pos++) {
       ByteString mac = segment.getAsEntriesList().get(pos).getHopEntry().getHopField().getMac();
       fix[0] ^= mac.byteAt(0);
@@ -729,10 +729,6 @@ public class Segments {
 
     public int getAsEntriesCount() {
       return bodies.size();
-    }
-
-    public ByteString getSegmentInfo() {
-      return segment.getSegmentInfo();
     }
 
     public boolean isCore() {

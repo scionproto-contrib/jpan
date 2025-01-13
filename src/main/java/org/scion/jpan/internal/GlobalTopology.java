@@ -23,18 +23,17 @@ import java.util.*;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 
-/** Parse a topology file into a local topology. */
 public class GlobalTopology {
 
   private final Map<Integer, Isd> world = new HashMap<>();
 
   /**
-   * The topology is "empty" if it wasn't initialized with TRC file (or TRC metadata). THis can
+   * The topology is "empty" if it wasn't initialized with TRC file (or TRC metadata). This can
    * happen when it is initialized from a local topology file without bootstrap server.
    */
   private final boolean isEmpty;
 
-  public GlobalTopology(ScionBootstrapper server) {
+  private GlobalTopology(ScionBootstrapper server) {
     if (server == null) {
       this.isEmpty = true;
     } else {
