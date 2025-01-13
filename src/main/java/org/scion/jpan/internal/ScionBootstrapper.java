@@ -59,7 +59,7 @@ public class ScionBootstrapper {
   protected ScionBootstrapper(DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
     this.topologyResource = null;
     this.localAS = LocalTopology.create(daemonStub);
-    this.world = GlobalTopology.createEmpty(); // TODO ?
+    this.world = GlobalTopology.createEmpty();
   }
 
   /**

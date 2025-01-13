@@ -69,9 +69,6 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   [#156](https://github.com/scionproto-contrib/jpan/pull/156)
 - Stop contacting daemon of every received packet
   [#157](https://github.com/scionproto-contrib/jpan/pull/157)
-TODO fix 
-- getLocalIsdAs() in ScionService
-- TODO in ScionBootStrapper -> global
 
 ## [0.4.1] - 2024-11-22
 

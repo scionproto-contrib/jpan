@@ -38,7 +38,6 @@ import java.nio.channels.DatagramChannel;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
@@ -78,8 +77,6 @@ public class ScionService {
 
   private final boolean minimizeRequests;
   private final ManagedChannel channel;
-  private static final long ISD_AS_NOT_SET = -1;
-  private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
   private Thread shutdownHook;
   private final HostsFileParser hostsFile = new HostsFileParser();
   private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
@@ -128,7 +125,6 @@ public class ScionService {
       }
       String csHost = bootstrapper.getLocalTopology().getControlServerAddress();
       LOG.info("Bootstrapping with control service: {}", csHost);
-      localIsdAs.set(bootstrapper.getLocalTopology().getIsdAs());
       // TODO InsecureChannelCredentials: Implement authentication!
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
@@ -136,7 +132,6 @@ public class ScionService {
     }
     shutdownHook = addShutdownHook();
     try {
-      getLocalIsdAs(); // Init
       checkStartShim();
     } catch (RuntimeException e) {
       // If this fails for whatever reason we want to make sure that the channel is closed.
@@ -393,13 +388,7 @@ public class ScionService {
   }
 
   public long getLocalIsdAs() {
-    if (localIsdAs.get() == ISD_AS_NOT_SET) {
-      // Yes, this may be called multiple time by different threads, but it should be
-      // faster than `synchronize`.
-      // localIsdAs.set(getASInfo().getIsdAs()); //TODO remove + simplify
-      localIsdAs.set(bootstrapper.getLocalTopology().getIsdAs());
-    }
-    return localIsdAs.get();
+    return bootstrapper.getLocalTopology().getIsdAs();
   }
 
   /**
