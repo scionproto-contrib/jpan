@@ -9,13 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
-- ScionService.getBorderRouterAddress() needs to cache border routers!
-  -> Best: Implement a 2nd version of LocalTopology based on Daemon information! 
-- Confirm that SCMP uses random IDs (see spec, e.g. https://docs.scion.org/en/latest/dev/design/router-port-dispatch.html)
 
-- Ensure (+ more tests???) that client responds on underlay address 
-- Change MockControlService to return parsed Segments i.o. hardcoded segments. 
-- Consider refactoring: separate Datagram classes for STUN/SCMP/UDP handling 
+- TODO implement PathPolicy https://docs.scion.org/en/latest/dev/design/PathPolicy.html
+
+- Change MockControlService to return parsed Segments i.o. hardcoded segments.
+- Consider refactoring: separate Datagram classes for STUN/SCMP/UDP handling
 
 - TEST all(default) with AUTO??? BR????
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
@@ -67,8 +65,10 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 - Fixed parsing of /etc/hosts [#150](https://github.com/scionproto-contrib/jpan/pull/150)
 - Fixed warning when dnsjava parses /etc/hosts with SCION adresses
   [#155](https://github.com/scionproto-contrib/jpan/pull/155)
-- Cleanup: `TestUtil` class for string output and slepp()
+- Cleanup: `TestUtil` class for string output and sleep()
   [#156](https://github.com/scionproto-contrib/jpan/pull/156)
+- Stop contacting daemon of every received packet
+  [#157](https://github.com/scionproto-contrib/jpan/pull/157)
 
 ## [0.4.1] - 2024-11-22
 

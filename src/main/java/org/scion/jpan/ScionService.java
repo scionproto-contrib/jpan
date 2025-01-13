@@ -30,7 +30,6 @@ import static org.scion.jpan.Constants.PROPERTY_DAEMON;
 import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_USE_OS_SEARCH_DOMAINS;
 
-import com.google.protobuf.Empty;
 import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -39,7 +38,6 @@ import java.nio.channels.DatagramChannel;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
@@ -76,12 +74,9 @@ public class ScionService {
   private final ScionBootstrapper bootstrapper;
   private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
-  private LocalTopology.DispatcherPortRange portRange;
 
   private final boolean minimizeRequests;
   private final ManagedChannel channel;
-  private static final long ISD_AS_NOT_SET = -1;
-  private final AtomicLong localIsdAs = new AtomicLong(ISD_AS_NOT_SET);
   private Thread shutdownHook;
   private final HostsFileParser hostsFile = new HostsFileParser();
   private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
@@ -105,7 +100,17 @@ public class ScionService {
       channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
-      bootstrapper = null;
+      try {
+        bootstrapper = ScionBootstrapper.createViaDaemon(daemonStub);
+      } catch (RuntimeException e) {
+        // If this fails for whatever reason we want to make sure that the channel is closed.
+        try {
+          close();
+        } catch (IOException ex) {
+          // Ignore, we just want to get out.
+        }
+        throw e;
+      }
     } else {
       LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
@@ -120,7 +125,6 @@ public class ScionService {
       }
       String csHost = bootstrapper.getLocalTopology().getControlServerAddress();
       LOG.info("Bootstrapping with control service: {}", csHost);
-      localIsdAs.set(bootstrapper.getLocalTopology().getIsdAs());
       // TODO InsecureChannelCredentials: Implement authentication!
       channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
       daemonStub = null;
@@ -128,7 +132,6 @@ public class ScionService {
     }
     shutdownHook = addShutdownHook();
     try {
-      getLocalIsdAs(); // Init
       checkStartShim();
     } catch (RuntimeException e) {
       // If this fails for whatever reason we want to make sure that the channel is closed.
@@ -275,31 +278,6 @@ public class ScionService {
     return ScionDatagramChannel.open(this, channel);
   }
 
-  Daemon.ASResponse getASInfo() {
-    Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
-    Daemon.ASResponse response;
-    try {
-      response = daemonStub.aS(request);
-    } catch (StatusRuntimeException e) {
-      if (e.getStatus().getCode() == Status.Code.UNAVAILABLE) {
-        throw new ScionRuntimeException("Could not connect to SCION daemon: " + e.getMessage(), e);
-      }
-      throw new ScionRuntimeException("Error while getting AS info: " + e.getMessage(), e);
-    }
-    return response;
-  }
-
-  Map<Long, Daemon.Interface> getInterfaces() {
-    Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
-    Daemon.InterfacesResponse response;
-    try {
-      response = daemonStub.interfaces(request);
-    } catch (StatusRuntimeException e) {
-      throw new ScionRuntimeException(e);
-    }
-    return response.getInterfacesMap();
-  }
-
   private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
     if (daemonStub != null) {
       return getPathListDaemon(srcIsdAs, dstIsdAs);
@@ -409,24 +387,8 @@ public class ScionService {
     return scionPaths;
   }
 
-  Map<String, Daemon.ListService> getServices() throws ScionException {
-    Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
-    Daemon.ServicesResponse response;
-    try {
-      response = daemonStub.services(request);
-    } catch (StatusRuntimeException e) {
-      throw new ScionException(e);
-    }
-    return response.getServicesMap();
-  }
-
   public long getLocalIsdAs() {
-    if (localIsdAs.get() == ISD_AS_NOT_SET) {
-      // Yes, this may be called multiple time by different threads, but it should be
-      // faster than `synchronize`.
-      localIsdAs.set(getASInfo().getIsdAs());
-    }
-    return localIsdAs.get();
+    return bootstrapper.getLocalTopology().getIsdAs();
   }
 
   /**
@@ -609,62 +571,22 @@ public class ScionService {
    * @return Mapping of external addresses, potentially one for each border router.
    */
   NatMapping getNatMapping(DatagramChannel channel) {
-    return NatMapping.createMapping(getLocalIsdAs(), channel, getBorderRouterAddresses());
+    List<InetSocketAddress> interfaces =
+        bootstrapper.getLocalTopology().getBorderRouters().stream()
+            .map(LocalTopology.BorderRouter::getInternalAddress)
+            .collect(Collectors.toList());
+    return NatMapping.createMapping(getLocalIsdAs(), channel, interfaces);
   }
 
   LocalTopology.DispatcherPortRange getLocalPortRange() {
-    if (portRange == null) {
-      if (bootstrapper != null) {
-        portRange = bootstrapper.getLocalTopology().getPortRange();
-      } else if (daemonStub != null) {
-        // try daemon
-        Daemon.PortRangeResponse response;
-        try {
-          response = daemonStub.portRange(Empty.getDefaultInstance());
-          portRange =
-              LocalTopology.DispatcherPortRange.create(
-                  response.getDispatchedPortStart(), response.getDispatchedPortEnd());
-        } catch (StatusRuntimeException e) {
-          LOG.warn("ERROR getting port range from daemon: {}", e.getMessage());
-          // Daemon doesn't support port range.
-          portRange = LocalTopology.DispatcherPortRange.createEmpty();
-        }
-      } else {
-        portRange = LocalTopology.DispatcherPortRange.createAll();
-      }
-    }
-    return portRange;
+    return bootstrapper.getLocalTopology().getPortRange();
   }
 
   InetSocketAddress getBorderRouterAddress(int interfaceID) {
-    if (daemonStub != null) {
-      final String MSG = "No border router found for interfaceID: ";
-      String address =
-          getInterfaces().entrySet().stream()
-              .filter(entry -> entry.getKey() == interfaceID)
-              .findAny()
-              .orElseThrow(() -> new ScionRuntimeException(MSG + interfaceID))
-              .getValue()
-              .getAddress()
-              .getAddress();
-      return IPHelper.toInetSocketAddress(address);
-    } else {
-      String address = bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
-      return IPHelper.toInetSocketAddress(address);
-    }
+    return bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
   }
 
-  private List<InetSocketAddress> getBorderRouterAddresses() {
-    if (daemonStub != null) {
-      return getInterfaces().values().stream()
-          .map(anInterface -> anInterface.getAddress().getAddress())
-          .map(IPHelper::toInetSocketAddress)
-          .collect(Collectors.toList());
-    } else {
-      return bootstrapper.getLocalTopology().getBorderRouters().stream()
-          .map(LocalTopology.BorderRouter::getInternalAddress)
-          .map(IPHelper::toInetSocketAddress)
-          .collect(Collectors.toList());
-    }
+  DaemonServiceGrpc.DaemonServiceBlockingStub getDaemonConnection() {
+    return daemonStub;
   }
 }

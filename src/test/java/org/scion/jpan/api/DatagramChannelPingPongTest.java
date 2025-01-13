@@ -18,11 +18,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.scion.jpan.testutil.PingPongHelperBase.MSG;
 
 import java.io.IOException;
-import java.net.*;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
@@ -36,16 +36,21 @@ class DatagramChannelPingPongTest {
 
   @Test
   void testWithServerDefault() {
-    PingPongChannelHelper.Server serverFn = (socket) -> server(socket, false);
+    MockDaemon.getAndResetCallCount();
+    PingPongChannelHelper.Server serverFn = socket -> server(socket, false);
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 10, 10).build();
     pph.runPingPong(serverFn, clientFn);
     assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
+    // 10 path + base init for common ScionService
+    int nExpectedDaemonCalls = 10 + (MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1);
+    assertEquals(nExpectedDaemonCalls, MockDaemon.getAndResetCallCount());
   }
 
   @Test
   void testWithServerNoService() {
-    PingPongChannelHelper.Server serverFn = (socket) -> server(socket, true);
+    MockDaemon.getAndResetCallCount();
+    PingPongChannelHelper.Server serverFn = socket -> server(socket, true);
     PingPongChannelHelper.Client clientFn = this::client;
     PingPongChannelHelper pph =
         PingPongChannelHelper.newBuilder(1, 10, 10)
@@ -59,6 +64,9 @@ class DatagramChannelPingPongTest {
     // who sends it to directly to the client without going through the BR.
     // This is of course wrong, but it doesn't affect the test.
     assertEquals(1 * 10 * 10, MockNetwork.getAndResetForwardCount());
+    // 10 path + base init for common ScionService
+    int nExpectedDaemonCalls = 10 + (MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1);
+    assertEquals(nExpectedDaemonCalls, MockDaemon.getAndResetCallCount());
   }
 
   private void client(ScionDatagramChannel channel, Path requestPath, int id) throws IOException {

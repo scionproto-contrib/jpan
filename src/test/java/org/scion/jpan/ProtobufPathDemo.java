@@ -14,6 +14,8 @@
 
 package org.scion.jpan;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -48,7 +50,7 @@ public class ProtobufPathDemo {
   }
 
   private void testAsInfo() {
-    Daemon.ASResponse asInfo = service.getASInfo();
+    Daemon.ASResponse asInfo = getASInfo();
     System.out.println(
         "ASInfo found: "
             + asInfo.getIsdAs()
@@ -61,7 +63,7 @@ public class ProtobufPathDemo {
   }
 
   private void testInterfaces() {
-    Map<Long, Daemon.Interface> interfaces = service.getInterfaces();
+    Map<Long, Daemon.Interface> interfaces = getInterfaces();
     System.out.println("Interfaces found: " + interfaces.size());
     for (Map.Entry<Long, Daemon.Interface> entry : interfaces.entrySet()) {
       System.out.print("    Interface: " + entry.getKey() + " -> " + entry.getValue().getAddress());
@@ -111,9 +113,6 @@ public class ProtobufPathDemo {
 
   private void testPathsControlService(long srcIA, long dstIA) {
     System.out.println("testPathsControlService()");
-    String addr110 = "127.0.0.11:31000";
-    String addr111 = "127.0.0.18:31006";
-    // ScionService csSercice = Scion.newServiceWithBootstrapServerIP(addr111);
     ScionService csSercice =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
     List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(csSercice, srcIA, dstIA);
@@ -142,7 +141,7 @@ public class ProtobufPathDemo {
   }
 
   private void testServices() throws ScionException {
-    Map<String, Daemon.ListService> services = service.getServices();
+    Map<String, Daemon.ListService> services = getServices();
     System.out.println("Services found: " + services.size());
     for (Map.Entry<String, Daemon.ListService> entry : services.entrySet()) {
       System.out.println("ListService: " + entry.getKey());
@@ -150,5 +149,41 @@ public class ProtobufPathDemo {
         System.out.println("    Service: " + daemonService.getUri());
       }
     }
+  }
+
+  private Daemon.ASResponse getASInfo() {
+    Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
+    Daemon.ASResponse response;
+    try {
+      response = service.getDaemonConnection().aS(request);
+    } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode() == Status.Code.UNAVAILABLE) {
+        throw new ScionRuntimeException("Could not connect to SCION daemon: " + e.getMessage(), e);
+      }
+      throw new ScionRuntimeException("Error while getting AS info: " + e.getMessage(), e);
+    }
+    return response;
+  }
+
+  private Map<Long, Daemon.Interface> getInterfaces() {
+    Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
+    Daemon.InterfacesResponse response;
+    try {
+      response = service.getDaemonConnection().interfaces(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionRuntimeException(e);
+    }
+    return response.getInterfacesMap();
+  }
+
+  private Map<String, Daemon.ListService> getServices() throws ScionException {
+    Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
+    Daemon.ServicesResponse response;
+    try {
+      response = service.getDaemonConnection().services(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionException(e);
+    }
+    return response.getServicesMap();
   }
 }

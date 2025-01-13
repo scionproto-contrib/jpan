@@ -602,7 +602,7 @@ class NatMappingTest {
         sendBuffer.flip();
         channelSend.send(sendBuffer, path);
       }
-      // Now there should have bee two more STUN packets
+      // Now there should have been two more STUN packets
       assertEquals(2, MockNetwork.getAndResetStunCount());
 
       // finish
@@ -672,12 +672,5 @@ class NatMappingTest {
     long isdAs = ScionUtil.parseIA("1-ff00:0:112");
     return PackageVisibilityHelper.createDummyPath(
         isdAs, new byte[] {127, 0, 0, 1}, 54321, ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
-  }
-
-  private RequestPath createPath(InetSocketAddress firstHop, InetSocketAddress dst) {
-    long isdAs = ScionUtil.parseIA("1-ff00:0:112");
-    byte[] dstIP = dst.getAddress().getAddress();
-    return PackageVisibilityHelper.createDummyPath(
-        isdAs, dstIP, dst.getPort(), ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
   }
 }
