@@ -202,7 +202,7 @@ public class Sequence {
         // X is used as a substitute for the token during recovery from parsing errors.
         result = "X";
       } else {
-        result = stack.removeLast();
+        result = stack.remove(stack.size() - 1);
       }
       return result;
     }
