@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2024 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.List;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathMetadata;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class ACL {
 
   /** ErrNoDefault indicates that there is no default acl entry. */

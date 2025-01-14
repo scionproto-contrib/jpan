@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2024 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import java.util.Arrays;
 import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class HopPredicate {
 
   // A HopPredicate specifies a hop in the ACL or Sequence of the path policy,

@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2024 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import org.scion.jpan.PathPolicy;
  *
  * <p>Policy is a compiled path policy object, all extended policies have been merged.
  */
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class PplPolicy implements PathPolicy {
 
   /** ExtPolicy is an extending policy, it may have a list of policies it extends. */

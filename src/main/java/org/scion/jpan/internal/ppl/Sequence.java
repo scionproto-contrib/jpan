@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2024 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import org.scion.jpan.antlr.SequenceParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class Sequence {
 
   private static final Logger LOG = LoggerFactory.getLogger(Sequence.class.getName());

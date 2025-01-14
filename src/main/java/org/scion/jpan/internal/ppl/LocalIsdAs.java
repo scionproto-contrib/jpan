@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2024 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.List;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class LocalIsdAs {
   // LocalISDAS is a path policy that checks whether the first hop in the path (local AS) belongs
   // to the specified set.
