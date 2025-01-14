@@ -47,9 +47,9 @@ public class Sequence {
   private static final String asWildcard = "(([0-9]+)|([0-9a-fA-F]+:[0-9a-fA-F]+:[0-9a-fA-F]+))";
   private static final String ifWildcard = "([0-9]+)";
 
-  private Pattern re;
-  private String srcstr;
-  private String restr;
+  private final Pattern re;
+  private final String srcstr;
+  private final String restr;
 
   private Sequence(Pattern re, String srcstr, String restr) {
     this.re = re;
@@ -58,35 +58,40 @@ public class Sequence {
   }
 
   // NewSequence creates a new sequence from a string
-  public static Sequence create(String s) throws IOException {
-    // fmt.Printf("COMPILE: %s\n", s)
-    if ("".equals(s)) {
-      return new Sequence(null, null, null);
-    }
-    ANTLRInputStream istream = new ANTLRInputStream(new StringReader(s));
-    SequenceLexer lexer = new SequenceLexer(istream);
-    lexer.removeErrorListeners();
-    ErrorListener errListener = new ErrorListener();
-    lexer.addErrorListener(errListener);
-    TokenStream tstream = new CommonTokenStream(lexer, Token.DEFAULT_CHANNEL);
-    SequenceParser parser = new SequenceParser(tstream);
-    parser.removeErrorListeners();
-    parser.addErrorListener(errListener);
-    MySequenceListener listener = new MySequenceListener();
-    new ParseTreeWalker().walk((ParseTreeListener) listener, parser.start());
-    if (errListener.msg != "") {
-      throw new PPLException(
-          "Failed to parse a sequence: " + "sequence=" + s + " ;msg=" + errListener.msg);
-    }
-    String restr = String.format("^%s$", listener.stack.get(0));
-    Pattern re;
+  public static Sequence create(String s) {
     try {
-      re = Pattern.compile(restr);
-    } catch (Exception e) {
-      // This should never happen. Sequence parser should produce a valid regexp.
-      throw new PPLException("Error while parsing sequence regexp: " + "regexp=" + restr);
+      LOG.info("COMPILING: {}", s);
+      if ("".equals(s)) {
+        return new Sequence(null, null, null);
+      }
+      ANTLRInputStream istream = new ANTLRInputStream(new StringReader(s));
+      SequenceLexer lexer = new SequenceLexer(istream);
+      lexer.removeErrorListeners();
+      ErrorListener errListener = new ErrorListener();
+      lexer.addErrorListener(errListener);
+      TokenStream tstream = new CommonTokenStream(lexer, Token.DEFAULT_CHANNEL);
+      SequenceParser parser = new SequenceParser(tstream);
+      parser.removeErrorListeners();
+      parser.addErrorListener(errListener);
+      MySequenceListener listener = new MySequenceListener();
+      new ParseTreeWalker().walk(listener, parser.start());
+      if (errListener.msg != null) {
+        throw new PplException(
+            "Failed to parse a sequence: " + "sequence=" + s + " ;msg=" + errListener.msg);
+      }
+      String restr = String.format("^%s$", listener.stack.get(0));
+      Pattern re;
+      try {
+        re = Pattern.compile(restr);
+      } catch (Exception e) {
+        // This should never happen. Sequence parser should produce a valid regexp.
+        throw new PplException("Error while parsing sequence regexp: " + "regexp=" + restr);
+      }
+      return new Sequence(re, s, restr);
+    } catch (IOException e) {
+      LOG.error("Error while compiling path policy from: {}", s);
+      throw new PplException(e);
     }
-    return new Sequence(re, s, restr);
   }
 
   // Eval evaluates the interface sequence list and returns the set of paths that match the list
@@ -351,7 +356,7 @@ public class Sequence {
       // Path should contain even number of interfaces. 1 for source AS,
       // 1 for destination AS and 2 per each intermediate AS. Invalid paths should
       // not occur but if they do let's ignore them.
-      throw new PPLException("Invalid path with odd number of hops: " + "path=" + path);
+      throw new PplException("Invalid path with odd number of hops: " + "path=" + path);
     }
 
     if (ifaces.isEmpty()) {

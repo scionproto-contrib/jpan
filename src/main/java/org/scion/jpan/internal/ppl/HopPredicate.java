@@ -59,7 +59,7 @@ public class HopPredicate {
     try {
       isd = ScionUtil.parseISD(dashParts[0]);
     } catch (Exception e) {
-      throw new PPLException("Failed to parse ISD: " + "value=" + str, e);
+      throw new PplException("Failed to parse ISD: " + "value=" + str, e);
     }
     if (dashParts.length == 1) {
       return new HopPredicate(isd, ifIDs);
@@ -70,7 +70,7 @@ public class HopPredicate {
     try {
       as = ScionUtil.parseAS(hashParts[0]);
     } catch (Exception e) {
-      throw new PPLException("Failed to parse AS: " + "value=" + str, e);
+      throw new PplException("Failed to parse AS: " + "value=" + str, e);
     }
     if (hashParts.length == 1) {
       return new HopPredicate(isd, as, ifIDs);
@@ -80,7 +80,7 @@ public class HopPredicate {
     try {
       ifIDs[0] = parseIfID(commaParts[0]);
     } catch (Exception e) {
-      throw new PPLException("Failed to parse ifIDs: " + "value=" + str, e);
+      throw new PplException("Failed to parse ifIDs: " + "value=" + str, e);
     }
     if (commaParts.length == 2) {
       try {
@@ -88,12 +88,12 @@ public class HopPredicate {
         ifIDs = Arrays.copyOf(ifIDs, ifIDs.length + 1);
         ifIDs[ifIDs.length - 1] = ifID;
       } catch (Exception e) {
-        throw new PPLException("Failed to parse ifIDs: " + "value=" + str, e);
+        throw new PplException("Failed to parse ifIDs: " + "value=" + str, e);
       }
     }
     // IfID cannot be set when the AS is a wildcard
     if (as == 0 && (ifIDs[0] != 0 || (ifIDs.length > 1 && ifIDs[1] != 0))) {
-      throw new PPLException("Failed to parse hop predicate, IfIDs must be 0: " + "value=" + str);
+      throw new PplException("Failed to parse hop predicate, IfIDs must be 0: " + "value=" + str);
     }
     return new HopPredicate(isd, as, ifIDs);
   }
@@ -158,7 +158,7 @@ public class HopPredicate {
     int hashes = count(str, '#');
     int commas = count(str, ',');
     if (dashes > 1 || hashes > 1 || commas > 1) {
-      throw new PPLException(
+      throw new PplException(
           "Failed to parse hop predicate, found delimiter too often: "
               + "dashes="
               + dashes
@@ -168,7 +168,7 @@ public class HopPredicate {
               + commas);
     }
     if (dashes == 0 && (hashes > 0 || commas > 0)) {
-      throw new PPLException("Can't specify IFIDs without AS");
+      throw new PplException("Can't specify IFIDs without AS");
     }
   }
 

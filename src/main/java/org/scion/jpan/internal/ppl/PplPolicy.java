@@ -20,12 +20,23 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathMetadata;
+import org.scion.jpan.PathPolicy;
 
-public class Policy {
+/**
+ * A path policy based onj Path Policy Language:
+ * <a href="https://docs.scion.org/en/latest/dev/design/PathPolicy.html">...</a>
+ * <p>
+ * Policy is a compiled path policy object, all extended policies have been merged.
+ */
+ public class PplPolicy implements PathPolicy {
 
-  // ExtPolicy is an extending policy, it may have a list of policies it extends
-  private static class ExtPolicy extends Policy {
-    String[] extensions; // []string `json:"extends,omitempty"`
+  /** ExtPolicy is an extending policy, it may have a list of policies it extends. */
+  public static class ExtPolicy extends PplPolicy {
+    private final String[] extensions; // []string `json:"extends,omitempty"`
+    public ExtPolicy(String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
+      super(name, acl, sequence, options);
+      this.extensions = extensions;
+    }
   }
 
   // PolicyMap is a container for Policies, keyed by their unique name. PolicyMap
@@ -34,44 +45,45 @@ public class Policy {
   // type PolicyMap map[string]*ExtPolicy
   // TODO
 
-  // FilterOptions contains options for filtering.
+  /** FilterOptions contains options for filtering. */
   private static class FilterOptions {
     // IgnoreSequence can be used to ignore the sequence part of policies.
-    boolean IgnoreSequence;
+    private boolean ignoreSequence;
   }
 
-  // Policy is a compiled path policy object, all extended policies have been merged.
   final String name; //       `json:"-"`
-  ACL acl; //         `json:"acl,omitempty"`
-  Sequence sequence; //    `json:"sequence,omitempty"`
-  LocalIsdAs lLocalIsdAs; //  `json:"local_isd_ases,omitempty"`
-  RemoteIsdAs remoteIsdAs; // `json:"remote_isd_ases,omitempty"`
-  Option[] options; //     `json:"options,omitempty"`
+  private ACL acl; //         `json:"acl,omitempty"`
+  private Sequence sequence; //    `json:"sequence,omitempty"`
+  private LocalIsdAs lLocalIsdAs; //  `json:"local_isd_ases,omitempty"`
+  private RemoteIsdAs remoteIsdAs; // `json:"remote_isd_ases,omitempty"`
+  private Option[] options; //     `json:"options,omitempty"`
 
-  private Policy(String name, ACL acl, Sequence sequence, Option... options) {
+  private PplPolicy(String name, ACL acl, Sequence sequence, Option... options) {
     this.name = name;
     this.acl = acl;
     this.sequence = sequence;
     this.options = options;
+    // Sort Options by weight, descending
+    Arrays.sort(options, (o1, o2) -> -Integer.compare(o1.weight, o2.weight));
   }
 
-  private Policy() {
-    this.name = null;
-    this.acl = null;
-    this.sequence = null;
-    this.options = null;
+  private PplPolicy() {
+    this(null, null, null);
   }
 
   // NewPolicy creates a Policy and sorts its Options
-  public static Policy newPolicy(String name, ACL acl, Sequence sequence, Option... options) {
-    Policy policy = new Policy(name, acl, sequence, options);
-    // Sort Options by weight, descending
-    Arrays.sort(policy.options, (o1, o2) -> -Integer.compare(o1.weight, o2.weight));
-    return policy;
+  public static PplPolicy create(String name, ACL acl, Sequence sequence, Option... options) {
+    return new PplPolicy(name, acl, sequence, options);
+  }
+
+  @Override
+  public Path filter(List<Path> paths) {
+    List<Path> filtered = filterAll(paths);
+    return filtered.isEmpty() ? null : filtered.get(0);
   }
 
   // Filter filters the paths according to the policy.
-  List<Path> filter(List<Path> paths) {
+  List<Path> filterAll(List<Path> paths) {
     return filterOpt(paths, new FilterOptions());
   }
 
@@ -88,7 +100,7 @@ public class Policy {
       paths = remoteIsdAs.eval(paths);
     }
     paths = acl.eval(paths);
-    if (sequence != null && !opts.IgnoreSequence) {
+    if (sequence != null && !opts.ignoreSequence) {
       paths = sequence.eval(paths);
     }
     // Filter on sub policies
@@ -99,15 +111,15 @@ public class Policy {
   }
 
   // PolicyFromExtPolicy creates a Policy from an extending Policy and the extended policies
-  Policy policyFromExtPolicy(ExtPolicy extPolicy, ExtPolicy[] extended) {
-    Policy policy = extPolicy;
+  PplPolicy policyFromExtPolicy(ExtPolicy extPolicy, ExtPolicy[] extended) {
+    PplPolicy policy = extPolicy;
     if (policy == null) {
-      policy = new Policy();
+      policy = new PplPolicy();
     }
     // Apply all extended policies
     try {
       policy.applyExtended(extPolicy.extensions, extended);
-    } catch (PPLException e) {
+    } catch (PplException e) {
       return null;
     }
     return policy;
@@ -115,11 +127,11 @@ public class Policy {
 
   // applyExtended adds attributes of extended policies to the extending policy if they are not
   // already set
-  void applyExtended(String[] extensions, ExtPolicy[] exPolicies) {
+  private void applyExtended(String[] extensions, ExtPolicy[] exPolicies) {
     // TODO(worxli): Prevent circular policies.
     // traverse in reverse s.t. last entry of the list has precedence
     for (int i = extensions.length - 1; i >= 0; i--) {
-      Policy policy = null;
+      PplPolicy policy = null;
       // Find extended policy
       for (ExtPolicy exPol : exPolicies) {
         if (Objects.equals(exPol.name, extensions[i])) {
@@ -127,7 +139,7 @@ public class Policy {
         }
       }
       if (policy == null) {
-        throw new PPLException("Extended policy could not be found" + extensions[i]);
+        throw new PplException("Extended policy could not be found" + extensions[i]);
       }
       // Replace ACL
       if (acl == null && policy.acl != null) {
@@ -154,7 +166,7 @@ public class Policy {
 
   // evalOptions evaluates the options of a policy and returns the pathSet that matches the option
   // with the highest weight
-  List<Path> evalOptions(List<Path> paths, FilterOptions opts) {
+  private List<Path> evalOptions(List<Path> paths, FilterOptions opts) {
     Set<String> subPolicySet = new HashSet<>();
     int currWeight = options[0].weight;
     // Go through sub policies
@@ -178,9 +190,13 @@ public class Policy {
   }
 
   // Option contains a weight and a policy and is used as a list item in Policy.Options
-  static class Option {
-    int weight; //        `json:"weight"`
-    ExtPolicy policy; // `json:"policy"`
+  public static class Option {
+    private int weight; //        `json:"weight"`
+    private ExtPolicy policy; // `json:"policy"`
+    public Option(int weight, ExtPolicy policy) {
+      this.weight = weight;
+      this.policy = policy;
+    }
   }
 
   // Fingerprint uniquely identifies the path based on the sequence of
@@ -200,7 +216,17 @@ public class Policy {
       }
       return String.valueOf(h.digest()); // TODO check result
     } catch (NoSuchAlgorithmException e) {
-      throw new PPLException(e);
+      throw new PplException(e);
+    }
+  }
+
+  public static class HopParseException extends IllegalArgumentException {
+    public HopParseException(String str) {
+      super(str);
+    }
+
+    public HopParseException(String str, Throwable t) {
+      super(str, t);
     }
   }
 }

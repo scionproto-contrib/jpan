@@ -16,6 +16,7 @@ package org.scion.jpan.internal.ppl;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.scion.jpan.Path;
 import org.scion.jpan.PathMetadata;
 
@@ -27,12 +28,21 @@ public class ACL {
   private static final String ErrExtraEntries =
       "ACL has unused extra entries after a default entry";
 
-  private AclEntry[] entries;
+  private final AclEntry[] entries;
 
   // NewACL creates a new entry and checks for the presence of a default action
-  static ACL newACL(AclEntry... entries) {
+  public static ACL create(AclEntry... entries) {
     validateACL(entries);
     return new ACL(entries);
+  }
+
+  public static ACL create(String... entries) {
+    AclEntry[] eArray = new AclEntry[entries.length];
+    for (int i = 0; i < entries.length; i++) {
+      eArray[i] = AclEntry.create(entries[i]);
+    }
+    validateACL(eArray);
+    return new ACL(eArray);
   }
 
   private ACL(AclEntry... entries) {
@@ -92,49 +102,55 @@ public class ACL {
         return aclEntry.action;
       }
     }
-    throw new PPLException("Default ACL action missing");
+    throw new PplException("Default ACL action missing");
   }
 
   private static void validateACL(AclEntry[] entries) {
     if (entries.length == 0) {
-      throw new PPLException(ErrNoDefault);
+      throw new PplException(ErrNoDefault);
     }
 
     int foundAt = -1;
     for (int i = 0; i < entries.length; i++) {
-      if (entries[i].rule.matchesAll()) {
+      if (entries[i].rule == null || entries[i].rule.matchesAll()) {
         foundAt = i;
         break;
       }
     }
 
     if (foundAt < 0) {
-      throw new PPLException(ErrNoDefault);
+      throw new PplException(ErrNoDefault);
     }
 
     if (foundAt != entries.length - 1) {
-      throw new PPLException(ErrExtraEntries);
+      throw new PplException(ErrExtraEntries);
     }
   }
 
-  static class AclEntry {
-    AclAction action;
-    HopPredicate rule;
+  public static class AclEntry {
+    private AclAction action;
+    private HopPredicate rule;
 
-    void loadFromString(String str) {
+    public static AclEntry create(String str) {
+      AclEntry e =  new AclEntry();
+      e.loadFromString(str);
+      return e;
+    }
+
+    private void loadFromString(String str) {
       String[] parts = str.split(" ");
       if (parts.length == 1) {
         action = getAction(parts[0]);
         return;
       } else if (parts.length == 2) {
         action = getAction(parts[0]);
-        rule = HopPredicate.create().HopPredicateFromString(parts[1]);
+        rule = HopPredicate.HopPredicateFromString(parts[1]);
         return;
       }
-      throw new PPLException("ACLEntry has too many parts: " + str);
+      throw new PplException("ACLEntry has too many parts: " + str);
     }
 
-    String String() {
+    String string() {
       String str = denySymbol;
       if (action == Allow) {
         str = allowSymbol;
@@ -169,20 +185,19 @@ public class ACL {
     //        return ae.LoadFromString(str)
     //    }
 
-  }
-
-  private static AclAction getAction(String symbol) {
-    if (allowSymbol.equals(symbol)) {
-      return AclAction.Allow;
-    } else if (denySymbol.equals(denySymbol)) {
-      return AclAction.Deny;
-    } else {
-      throw new PPLException("Bad action symbol: " + "action=" + symbol);
+    private static AclAction getAction(String symbol) {
+      if (allowSymbol.equals(symbol)) {
+        return AclAction.Allow;
+      } else if (denySymbol.equals(symbol)) {
+        return AclAction.Deny;
+      } else {
+        throw new PplException("Bad action symbol: " + "action=" + symbol);
+      }
     }
   }
 
   // ACLAction has two options: Deny and Allow
-  enum AclAction {
+  private enum AclAction {
     Deny,
     Allow
   }

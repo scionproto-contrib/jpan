@@ -51,6 +51,11 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
 - `PathPolicy` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
+TODO
+- Move Sequence.g4 to correct subfolder
+- Try outputFOlder/path option to fix IntelliJ problems
+- What is local/remoteISD? How to configure?
+- Parse JSON -> postpone?
 
 ### Changed
  

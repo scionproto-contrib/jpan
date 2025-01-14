@@ -14,21 +14,20 @@
 
 package org.scion.jpan.internal.ppl;
 
-public class PpldPathPolicy {
+/**
+ * Path Policy Language exception.
+ */
+public class PplException extends RuntimeException {
 
-  public static class HopParseException extends IllegalArgumentException {
-    public HopParseException(String str) {
-      super(str);
-    }
-
-    public HopParseException(String str, Throwable t) {
-      super(str, t);
-    }
+  public PplException(String str) {
+    super(str);
   }
 
-  // NewPolicy creates a Policy and sorts its Options
-  public static Policy newPolicy(
-      String name, ACL acl, Sequence sequence, Policy.Option... options) {
-    return Policy.newPolicy(name, acl, sequence, options);
+  public PplException(Throwable t) {
+    super(t);
+  }
+
+  public PplException(String str, Throwable t) {
+    super(str, t);
   }
 }
