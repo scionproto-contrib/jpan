@@ -30,12 +30,13 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.scion.jpan.*;
-import org.scion.jpan.SequenceBaseListener;
-import org.scion.jpan.SequenceLexer;
-import org.scion.jpan.SequenceParser;
+import org.scion.jpan.Path;
+import org.scion.jpan.PathMetadata;
+import org.scion.jpan.ScionUtil;
+import org.scion.jpan.antlr.SequenceBaseListener;
+import org.scion.jpan.antlr.SequenceLexer;
+import org.scion.jpan.antlr.SequenceParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +44,9 @@ public class Sequence {
 
   private static final Logger LOG = LoggerFactory.getLogger(Sequence.class.getName());
 
-  private static final String isdWildcard = "([0-9]+)";
-  private static final String asWildcard = "(([0-9]+)|([0-9a-fA-F]+:[0-9a-fA-F]+:[0-9a-fA-F]+))";
-  private static final String ifWildcard = "([0-9]+)";
+  private static final String ISD_WILDCARD = "([0-9]+)";
+  private static final String AS_WILDCARD = "(([0-9]+)|([0-9a-fA-F]+:[0-9a-fA-F]+:[0-9a-fA-F]+))";
+  private static final String IF_WILDCARD = "([0-9]+)";
 
   private final Pattern re;
   private final String srcstr;
@@ -165,7 +166,7 @@ public class Sequence {
         int column,
         String msg,
         RecognitionException e) {
-      this.msg += String.format("%d:%d %s\n", line, column, msg);
+      this.msg += String.format("%d:%d %s%n", line, column, msg);
     }
 
     @Override
@@ -212,30 +213,35 @@ public class Sequence {
       return result;
     }
 
+    @Override
     public void exitStart(SequenceParser.StartContext c) {
       String re = pop();
       // fmt.Printf("Start: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitQuestionMark(SequenceParser.QuestionMarkContext c) {
       String re = String.format("(%s)?", pop());
       // fmt.Printf("QuestionMark: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitPlus(SequenceParser.PlusContext c) {
       String re = String.format("(%s)+", pop());
       // fmt.Printf("Plus: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitAsterisk(SequenceParser.AsteriskContext c) {
       String re = String.format("(%s)*", pop());
       // fmt.Printf("Asterisk: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitOr(SequenceParser.OrContext c) {
       String right = pop();
       String left = pop();
@@ -244,6 +250,7 @@ public class Sequence {
       push(re);
     }
 
+    @Override
     public void exitConcatenation(SequenceParser.ConcatenationContext c) {
       String right = pop();
       String left = pop();
@@ -252,43 +259,50 @@ public class Sequence {
       push(re);
     }
 
+    @Override
     public void exitParentheses(SequenceParser.ParenthesesContext c) {
       String re = pop();
       // fmt.Printf("Parentheses: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitHop(SequenceParser.HopContext c) {
       String re = String.format("(%s +)", pop());
       // fmt.Printf("Hop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitISDHop(SequenceParser.ISDHopContext c) {
       String isd = pop();
-      String re = String.format("(%s-%s#%s,%s)", isd, asWildcard, ifWildcard, ifWildcard);
+      String re = String.format("(%s-%s#%s,%s)", isd, AS_WILDCARD, IF_WILDCARD, IF_WILDCARD);
       // fmt.Printf("ISDHop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitISDASHop(SequenceParser.ISDASHopContext c) {
       String as = pop();
       String isd = pop();
-      String re = String.format("(%s-%s#%s,%s)", isd, as, ifWildcard, ifWildcard);
+      String re = String.format("(%s-%s#%s,%s)", isd, as, IF_WILDCARD, IF_WILDCARD);
       // fmt.Printf("ISDASHop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitISDASIFHop(SequenceParser.ISDASIFHopContext c) {
       String iface = pop();
       String as = pop();
       String isd = pop();
       String re =
-          String.format("(%s-%s#((%s,%s)|(%s,%s)))", isd, as, ifWildcard, iface, iface, ifWildcard);
+          String.format(
+              "(%s-%s#((%s,%s)|(%s,%s)))", isd, as, IF_WILDCARD, iface, iface, IF_WILDCARD);
       // fmt.Printf("ISDASIFHop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitISDASIFIFHop(SequenceParser.ISDASIFIFHopContext c) {
       String ifout = pop();
       String ifin = pop();
@@ -299,42 +313,49 @@ public class Sequence {
       push(re);
     }
 
+    @Override
     public void exitWildcardISD(SequenceParser.WildcardISDContext c) {
-      String re = isdWildcard;
+      String re = ISD_WILDCARD;
       // fmt.Printf("WildcardISD: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitISD(SequenceParser.ISDContext c) {
       String re = c.getText();
       // fmt.Printf("ISD: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitWildcardAS(SequenceParser.WildcardASContext c) {
-      String re = asWildcard;
+      String re = AS_WILDCARD;
       // fmt.Printf("WildcardAS: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitLegacyAS(SequenceParser.LegacyASContext c) {
       String re = c.getText().substring(1);
       // fmt.Printf("LegacyAS: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitAS(SequenceParser.ASContext c) {
       String re = c.getText().substring(1);
       // fmt.Printf("AS: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitWildcardIFace(SequenceParser.WildcardIFaceContext c) {
-      String re = ifWildcard;
+      String re = IF_WILDCARD;
       // fmt.Printf("WildcardIFace: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
+    @Override
     public void exitIFace(SequenceParser.IFaceContext c) {
       String re = c.getText();
       // fmt.Printf("IFace: %s RE: %s\n", c.GetText(), re)
@@ -369,7 +390,6 @@ public class Sequence {
     // e.g. 64-ff00:0:112#3,5. For the source AS, the inbound interface will be
     // zero. For destination AS, outbound interface will be zero.
     StringBuilder hops = new StringBuilder();
-    // hops := make([]string, 0, len(ifaces)/2+1);
     hops.append(hop(ifaces.get(0).getIsdAs(), 0, ifaces.get(0).getId()));
     hops.append(" ");
     for (int i = 1; i < ifaces.size() - 1; i += 2) {

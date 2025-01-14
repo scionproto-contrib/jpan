@@ -14,6 +14,10 @@
 
 package org.scion.jpan.internal;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.internal.ppl.ACL;
@@ -22,12 +26,7 @@ import org.scion.jpan.internal.ppl.PplPolicy;
 import org.scion.jpan.internal.ppl.Sequence;
 import org.scion.jpan.testutil.ExamplePacket;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-public class PathPolicyLanguageTest {
+class PathPolicyLanguageTest {
 
   @Test
   void smokeTest() {

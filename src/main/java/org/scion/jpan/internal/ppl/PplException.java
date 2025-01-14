@@ -14,9 +14,7 @@
 
 package org.scion.jpan.internal.ppl;
 
-/**
- * Path Policy Language exception.
- */
+/** Path Policy Language exception. */
 public class PplException extends RuntimeException {
 
   public PplException(String str) {

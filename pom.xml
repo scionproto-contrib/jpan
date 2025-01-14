@@ -341,6 +341,9 @@
                         <goals>
                             <goal>antlr4</goal>
                         </goals>
+                        <configuration>
+                            <outputDirectory>target/generated-sources</outputDirectory>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

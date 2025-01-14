@@ -16,26 +16,27 @@ package org.scion.jpan.internal.ppl;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.scion.jpan.Path;
 import org.scion.jpan.PathMetadata;
 
 public class ACL {
 
-  // ErrNoDefault indicates that there is no default acl entry.
-  private static final String ErrNoDefault = "ACL does not have a default";
-  // ErrExtraEntries indicates that there extra entries after the default entry.
-  private static final String ErrExtraEntries =
+  /** ErrNoDefault indicates that there is no default acl entry. */
+  private static final String ERR_NO_DEFAULT = "ACL does not have a default";
+
+  /** ErrExtraEntries indicates that there extra entries after the default entry. */
+  private static final String ERR_EXTRA_ENTRIES =
       "ACL has unused extra entries after a default entry";
 
   private final AclEntry[] entries;
 
-  // NewACL creates a new entry and checks for the presence of a default action
+  /** Creates a new entry and checks for the presence of a default action. */
   public static ACL create(AclEntry... entries) {
     validateACL(entries);
     return new ACL(entries);
   }
 
+  /** Creates a new entry and checks for the presence of a default action. */
   public static ACL create(String... entries) {
     AclEntry[] eArray = new AclEntry[entries.length];
     for (int i = 0; i < entries.length; i++) {
@@ -57,7 +58,7 @@ public class ACL {
     List<Path> result = new ArrayList<>();
     for (Path path : paths) {
       // Check ACL
-      if (evalPath(path.getMetadata()) == AclAction.Allow) {
+      if (evalPath(path.getMetadata()) == AclAction.ALLOW) {
         result.add(path);
       }
     }
@@ -89,11 +90,11 @@ public class ACL {
   AclAction evalPath(PathMetadata pm) {
     for (int i = 0; i < pm.getInterfacesList().size(); i++) {
       PathMetadata.PathInterface iface = pm.getInterfacesList().get(i);
-      if (evalInterface(iface, i % 2 != 0) == Deny) {
-        return Deny;
+      if (evalInterface(iface, i % 2 != 0) == AclAction.DENY) {
+        return AclAction.DENY;
       }
     }
-    return Allow;
+    return AclAction.ALLOW;
   }
 
   AclAction evalInterface(PathMetadata.PathInterface iface, boolean ingress) {
@@ -107,7 +108,7 @@ public class ACL {
 
   private static void validateACL(AclEntry[] entries) {
     if (entries.length == 0) {
-      throw new PplException(ErrNoDefault);
+      throw new PplException(ERR_NO_DEFAULT);
     }
 
     int foundAt = -1;
@@ -119,11 +120,11 @@ public class ACL {
     }
 
     if (foundAt < 0) {
-      throw new PplException(ErrNoDefault);
+      throw new PplException(ERR_NO_DEFAULT);
     }
 
     if (foundAt != entries.length - 1) {
-      throw new PplException(ErrExtraEntries);
+      throw new PplException(ERR_EXTRA_ENTRIES);
     }
   }
 
@@ -132,7 +133,7 @@ public class ACL {
     private HopPredicate rule;
 
     public static AclEntry create(String str) {
-      AclEntry e =  new AclEntry();
+      AclEntry e = new AclEntry();
       e.loadFromString(str);
       return e;
     }
@@ -151,9 +152,9 @@ public class ACL {
     }
 
     String string() {
-      String str = denySymbol;
-      if (action == Allow) {
-        str = allowSymbol;
+      String str = DENY_SYMBOL;
+      if (action == AclAction.ALLOW) {
+        str = ALLOW_SYMBOL;
       }
       if (rule != null) {
         str = str + " " + rule.string();
@@ -186,10 +187,10 @@ public class ACL {
     //    }
 
     private static AclAction getAction(String symbol) {
-      if (allowSymbol.equals(symbol)) {
-        return AclAction.Allow;
-      } else if (denySymbol.equals(symbol)) {
-        return AclAction.Deny;
+      if (ALLOW_SYMBOL.equals(symbol)) {
+        return AclAction.ALLOW;
+      } else if (DENY_SYMBOL.equals(symbol)) {
+        return AclAction.DENY;
       } else {
         throw new PplException("Bad action symbol: " + "action=" + symbol);
       }
@@ -198,12 +199,10 @@ public class ACL {
 
   // ACLAction has two options: Deny and Allow
   private enum AclAction {
-    Deny,
-    Allow
+    DENY,
+    ALLOW
   }
 
-  private static final AclAction Deny = AclAction.Deny;
-  private static final AclAction Allow = AclAction.Allow;
-  private static final String denySymbol = "-";
-  private static final String allowSymbol = "+";
+  private static final String DENY_SYMBOL = "-";
+  private static final String ALLOW_SYMBOL = "+";
 }

@@ -23,17 +23,19 @@ import org.scion.jpan.PathMetadata;
 import org.scion.jpan.PathPolicy;
 
 /**
- * A path policy based onj Path Policy Language:
- * <a href="https://docs.scion.org/en/latest/dev/design/PathPolicy.html">...</a>
- * <p>
- * Policy is a compiled path policy object, all extended policies have been merged.
+ * A path policy based onj Path Policy Language: <a
+ * href="https://docs.scion.org/en/latest/dev/design/PathPolicy.html">...</a>
+ *
+ * <p>Policy is a compiled path policy object, all extended policies have been merged.
  */
- public class PplPolicy implements PathPolicy {
+public class PplPolicy implements PathPolicy {
 
   /** ExtPolicy is an extending policy, it may have a list of policies it extends. */
   public static class ExtPolicy extends PplPolicy {
     private final String[] extensions; // []string `json:"extends,omitempty"`
-    public ExtPolicy(String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
+
+    public ExtPolicy(
+        String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
       super(name, acl, sequence, options);
       this.extensions = extensions;
     }
@@ -193,6 +195,7 @@ import org.scion.jpan.PathPolicy;
   public static class Option {
     private int weight; //        `json:"weight"`
     private ExtPolicy policy; // `json:"policy"`
+
     public Option(int weight, ExtPolicy policy) {
       this.weight = weight;
       this.policy = policy;
