@@ -23,11 +23,10 @@ import org.scion.jpan.PathMetadata;
 public class ACL {
 
   /** ErrNoDefault indicates that there is no default acl entry. */
-  private static final String ERR_NO_DEFAULT = "ACL does not have a default";
+  static final String ERR_NO_DEFAULT = "ACL does not have a default";
 
   /** ErrExtraEntries indicates that there extra entries after the default entry. */
-  private static final String ERR_EXTRA_ENTRIES =
-      "ACL has unused extra entries after a default entry";
+  static final String ERR_EXTRA_ENTRIES = "ACL has unused extra entries after a default entry";
 
   private final AclEntry[] entries;
 
@@ -136,6 +135,13 @@ public class ACL {
     public static AclEntry create(String str) {
       AclEntry e = new AclEntry();
       e.loadFromString(str);
+      return e;
+    }
+
+    public static AclEntry create(boolean allow, String hopFieldPredicate) {
+      AclEntry e = new AclEntry();
+      e.action = allow ? AclAction.ALLOW : AclAction.DENY;
+      e.rule = HopPredicate.HopPredicateFromString(hopFieldPredicate);
       return e;
     }
 

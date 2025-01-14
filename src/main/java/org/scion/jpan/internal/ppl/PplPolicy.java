@@ -54,7 +54,7 @@ public class PplPolicy implements PathPolicy {
     private boolean ignoreSequence;
   }
 
-  final String name; //       `json:"-"`
+  private final String name; //       `json:"-"`
   private ACL acl; //         `json:"acl,omitempty"`
   private Sequence sequence; //    `json:"sequence,omitempty"`
   private LocalIsdAs lLocalIsdAs; //  `json:"local_isd_ases,omitempty"`
@@ -74,7 +74,7 @@ public class PplPolicy implements PathPolicy {
     this(null, null, null);
   }
 
-  // NewPolicy creates a Policy and sorts its Options
+  // creates a Policy and sorts its Options
   public static PplPolicy create(String name, ACL acl, Sequence sequence, Option... options) {
     return new PplPolicy(name, acl, sequence, options);
   }
@@ -131,13 +131,13 @@ public class PplPolicy implements PathPolicy {
   // applyExtended adds attributes of extended policies to the extending policy if they are not
   // already set
   private void applyExtended(String[] extensions, ExtPolicy[] exPolicies) {
-    // TODO(worxli): Prevent circular policies.
+    // TODO: Prevent circular policies.
     // traverse in reverse s.t. last entry of the list has precedence
     for (int i = extensions.length - 1; i >= 0; i--) {
       PplPolicy policy = null;
       // Find extended policy
       for (ExtPolicy exPol : exPolicies) {
-        if (Objects.equals(exPol.name, extensions[i])) {
+        if (Objects.equals(exPol.getName(), extensions[i])) {
           policy = policyFromExtPolicy(exPol, exPolicies);
         }
       }
@@ -232,5 +232,9 @@ public class PplPolicy implements PathPolicy {
     public HopParseException(String str, Throwable t) {
       super(str, t);
     }
+  }
+
+  public String getName() {
+    return name;
   }
 }

@@ -131,9 +131,12 @@ public class HopPredicate {
   String string() {
     StringBuilder sb = new StringBuilder();
     for (int ifID : ifIDs) {
-      sb.append(ifID).append(","); // TODO " "?
+      if (sb.length() > 0) {
+        sb.append(",");
+      }
+      sb.append(ifID);
     }
-    return String.format("%d-%s#%s", isd, as, sb.append(","));
+    return String.format("%d-%s#%s", isd, as, sb);
   }
 
   //    JsonWriter MarshalJSON(JsonWriter json) {

@@ -31,8 +31,7 @@ public class LocalIsdAs {
   List<Path> eval(List<Path> paths) {
     List<Path> result = new ArrayList<>();
     for (Path path : paths) {
-      long pathSource = Scion.defaultService().getLocalIsdAs();
-      // RequestPath path2 = (RequestPath) path; // TODO
+      long pathSource = Scion.defaultService().getLocalIsdAs(); // TODO ?!?
       if (pathSource == path.getRemoteIsdAs()) {
         continue;
       }
