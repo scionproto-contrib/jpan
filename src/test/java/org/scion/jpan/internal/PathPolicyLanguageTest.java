@@ -40,11 +40,11 @@ class PathPolicyLanguageTest {
     String[] extensions = {"hello", "you"}; // TODO ???
     // TODO implement create()
     PplPolicy.ExtPolicy ext =
-        new PplPolicy.ExtPolicy("myExtPolicy", extAcl, extSequence, extensions);
+        PplPolicy.ExtPolicy.createExt("myExtPolicy", extAcl, extSequence, extensions);
 
     ACL acl = ACL.create("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+");
     Sequence sequence = Sequence.create("1-ff00:0:133#1 1+ 2-ff00:0:1? 2-ff00:0:233#1");
-    PplPolicy.Option option = new PplPolicy.Option(15, ext);
+    PplPolicy.Option option = PplPolicy.Option.create(15, ext);
 
     PplPolicy ppl = PplPolicy.create("My policy", acl, sequence, option);
     List<Path> paths = new ArrayList<>();

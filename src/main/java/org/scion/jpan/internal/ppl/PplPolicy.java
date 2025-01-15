@@ -35,10 +35,14 @@ public class PplPolicy implements PathPolicy {
   public static class ExtPolicy extends PplPolicy {
     private final String[] extensions; // []string `json:"extends,omitempty"`
 
-    public ExtPolicy(
+    private ExtPolicy(
         String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
       super(name, acl, sequence, options);
       this.extensions = extensions;
+    }
+
+    public static ExtPolicy createExt(String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
+      return new ExtPolicy(name, acl, sequence, extensions, options);
     }
   }
 
@@ -49,9 +53,15 @@ public class PplPolicy implements PathPolicy {
   // TODO
 
   /** FilterOptions contains options for filtering. */
-  private static class FilterOptions {
+  public static class FilterOptions {
     // IgnoreSequence can be used to ignore the sequence part of policies.
-    private boolean ignoreSequence;
+    private final boolean ignoreSequence;
+    FilterOptions(boolean ignoreSequence) {
+      this.ignoreSequence = ignoreSequence;
+    }
+    public static FilterOptions create(boolean ignoreSequence) {
+      return new FilterOptions(ignoreSequence);
+    }
   }
 
   private final String name; //       `json:"-"`
@@ -87,7 +97,7 @@ public class PplPolicy implements PathPolicy {
 
   // Filter filters the paths according to the policy.
   List<Path> filterAll(List<Path> paths) {
-    return filterOpt(paths, new FilterOptions());
+    return filterOpt(paths, new FilterOptions(false));
   }
 
   // FilterOpt filters the path set according to the policy with the given
@@ -102,7 +112,7 @@ public class PplPolicy implements PathPolicy {
     if (remoteIsdAs != null) {
       paths = remoteIsdAs.eval(paths);
     }
-    paths = acl.eval(paths);
+    paths = acl == null ? paths : acl.eval(paths);
     if (sequence != null && !opts.ignoreSequence) {
       paths = sequence.eval(paths);
     }
@@ -197,9 +207,13 @@ public class PplPolicy implements PathPolicy {
     private int weight; //        `json:"weight"`
     private ExtPolicy policy; // `json:"policy"`
 
-    public Option(int weight, ExtPolicy policy) {
+    private Option(int weight, ExtPolicy policy) {
       this.weight = weight;
       this.policy = policy;
+    }
+
+    public static Option create(int weight, ExtPolicy policy) {
+      return new Option(weight, policy);
     }
   }
 
