@@ -59,11 +59,11 @@ public class Sequence {
     this.restr = restr;
   }
 
-  // NewSequence creates a new sequence from a string
+  // creates a new sequence from a string
   public static Sequence create(String s) {
     try {
       LOG.info("COMPILING: {}", s);
-      if ("".equals(s)) {
+      if (s == null || s.isEmpty()) {
         return new Sequence(null, null, null);
       }
       ANTLRInputStream istream = new ANTLRInputStream(new StringReader(s));
@@ -98,7 +98,7 @@ public class Sequence {
 
   // Eval evaluates the interface sequence list and returns the set of paths that match the list
   List<Path> eval(List<Path> paths) {
-    if (this == null || "".equals(srcstr)) {
+    if (re == null || "".equals(srcstr)) {
       return paths;
     }
     List<Path> result = new ArrayList<>();
@@ -106,7 +106,7 @@ public class Sequence {
       String desc;
       try {
         desc = getSequence(path);
-        if (!"".equals(desc)) {
+        if (!desc.isEmpty()) {
           desc = desc + " ";
         }
       } catch (Exception e) {
