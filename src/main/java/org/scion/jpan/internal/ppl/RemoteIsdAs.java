@@ -28,9 +28,30 @@ public class RemoteIsdAs {
   private IsdAsRule[] rules;
 
   // TODO rename to Rule?
-  private static class IsdAsRule {
+  static class IsdAsRule {
     long isdAs; //     addr.IA `json:"isd_as,omitempty"`
     boolean reject; //    `json:"reject,omitempty"`
+
+    private IsdAsRule(long isdAs, boolean reject) {
+      this.isdAs = isdAs;
+      this.reject = reject;
+    }
+
+    static IsdAsRule create(long isdAs) {
+      return new IsdAsRule(isdAs, false);
+    }
+
+    static IsdAsRule create(long isdAs, boolean reject) {
+      return new IsdAsRule(isdAs, reject);
+    }
+  }
+
+  private RemoteIsdAs(IsdAsRule[] rules) {
+    this.rules = rules == null ? new IsdAsRule[0] : rules;
+  }
+
+  public static RemoteIsdAs create(IsdAsRule... rules) {
+    return new RemoteIsdAs(rules);
   }
 
   List<Path> eval(List<Path> paths) {

@@ -14,11 +14,14 @@
 
 package org.scion.jpan.internal.ppl;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
+import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.daemon.Daemon;
 
 public class PathProvider {
@@ -81,6 +84,16 @@ public class PathProvider {
       result.add(new SnetPath(srcIA, dstIA, pathIntfs));
     }
     return result;
+  }
+
+  public List<Path> getPaths(String srcIsdAs, String dstIsdAs) {
+    try {
+      InetAddress addr = InetAddress.getByAddress(new byte[] {123, 123, 123, 123});
+      InetSocketAddress dst = new InetSocketAddress(addr, 12321);
+      return getPaths(dst, ScionUtil.parseIA(srcIsdAs), ScionUtil.parseIA(dstIsdAs));
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   public List<Path> getPaths(InetSocketAddress dst, long srcIsdAs, long dstIsdAs) {
