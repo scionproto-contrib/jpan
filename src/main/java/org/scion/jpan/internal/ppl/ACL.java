@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich, Anapaya Systems
+// Copyright 2025 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,6 +33,10 @@ public class ACL {
   /** Creates a new entry and checks for the presence of a default action. */
   public static ACL create(AclEntry... entries) {
     validateACL(entries);
+    return new ACL(entries);
+  }
+
+  static ACL createNoValidate(AclEntry... entries) {
     return new ACL(entries);
   }
 
@@ -129,33 +133,28 @@ public class ACL {
   }
 
   public static class AclEntry {
-    private AclAction action;
-    private HopPredicate rule;
+    private final AclAction action;
+    private final HopPredicate rule;
+
+    private AclEntry(AclAction action, HopPredicate rule) {
+      this.action = action;
+      this.rule = rule;
+    }
 
     public static AclEntry create(String str) {
-      AclEntry e = new AclEntry();
-      e.loadFromString(str);
-      return e;
+      String[] parts = str.split(" ");
+      if (parts.length == 1) {
+        return new AclEntry(getAction(parts[0]), null);
+      } else if (parts.length == 2) {
+        return new AclEntry(getAction(parts[0]), HopPredicate.HopPredicateFromString(parts[1]));
+      }
+      throw new PplException("ACLEntry has too many parts: " + str);
     }
 
     public static AclEntry create(boolean allow, String hopFieldPredicate) {
-      AclEntry e = new AclEntry();
-      e.action = allow ? AclAction.ALLOW : AclAction.DENY;
-      e.rule = HopPredicate.HopPredicateFromString(hopFieldPredicate);
-      return e;
-    }
-
-    private void loadFromString(String str) {
-      String[] parts = str.split(" ");
-      if (parts.length == 1) {
-        action = getAction(parts[0]);
-        return;
-      } else if (parts.length == 2) {
-        action = getAction(parts[0]);
-        rule = HopPredicate.HopPredicateFromString(parts[1]);
-        return;
-      }
-      throw new PplException("ACLEntry has too many parts: " + str);
+      HopPredicate hp =
+          hopFieldPredicate == null ? null : HopPredicate.HopPredicateFromString(hopFieldPredicate);
+      return new AclEntry(allow ? AclAction.ALLOW : AclAction.DENY, hp);
     }
 
     String string() {

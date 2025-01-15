@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich, Anapaya Systems
+// Copyright 2025 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package org.scion.jpan.internal.ppl;
 
 import java.util.Arrays;
+import java.util.Objects;
 import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
 
@@ -29,6 +30,10 @@ public class HopPredicate {
 
   public static HopPredicate create() {
     return new HopPredicate(new int[1]);
+  }
+
+  static HopPredicate create(int isd, long as, int[] ifIDs) {
+    return new HopPredicate(isd, as, ifIDs);
   }
 
   private HopPredicate(int[] ifIDs) {
@@ -102,12 +107,10 @@ public class HopPredicate {
   // pathIFMatch takes a PathInterface and a bool indicating if the ingress
   // interface needs to be matching. It returns true if the HopPredicate matches the PathInterface
   boolean pathIFMatch(PathMetadata.PathInterface pi, boolean in) {
-    int hpISD = ScionUtil.extractIsd(isd);
-    if (hpISD != 0 && ScionUtil.extractIsd(pi.getIsdAs()) != hpISD) {
+    if (isd != 0 && ScionUtil.extractIsd(pi.getIsdAs()) != isd) {
       return false;
     }
-    long hpAS = ScionUtil.extractAs(as);
-    if (hpAS != 0 && ScionUtil.extractAs(pi.getIsdAs()) != hpAS) {
+    if (as != 0 && ScionUtil.extractAs(pi.getIsdAs()) != as) {
       return false;
     }
     int ifInd = 0;
@@ -182,5 +185,19 @@ public class HopPredicate {
       n += str.charAt(i) == c ? 1 : 0;
     }
     return n;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    HopPredicate that = (HopPredicate) o;
+    return isd == that.isd && as == that.as && Objects.deepEquals(ifIDs, that.ifIDs);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(isd, as, Arrays.hashCode(ifIDs));
   }
 }

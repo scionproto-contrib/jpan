@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2025 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,12 @@ package org.scion.jpan.internal.ppl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.jupiter.api.Disabled;
+import java.net.InetSocketAddress;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionUtil;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.scion.jpan.testutil.ExamplePacket;
 
 class AclTest {
 
@@ -98,7 +97,7 @@ class AclTest {
   //    }
 
   @Test
-  void TestACLEntryLoadFromString() {
+  void testACLEntryLoadFromString() {
     // "Allow all"
     assertEquals("+ 0-0#0", ACL.AclEntry.create("+ 0").string());
     // "Allow 1-2#3"
@@ -125,172 +124,97 @@ class AclTest {
   private static final ACL.AclEntry allowEntry = ACL.AclEntry.create(true, "0");
   private static final ACL.AclEntry denyEntry = ACL.AclEntry.create(false, "0");
 
-  @Disabled
   @Test
   void testAclEval() {
-    List<Path> input = null;
-    List<Path> result = null;
+    List<Path> input;
+    PathProvider pp = new PathProvider();
+    ACL acl;
 
     // "allow everything"
-    ACL acl = ACL.create(ACL.AclEntry.create(true, "0-0#0"), denyEntry);
-    input = getPaths("2-ff00:0:212", "2-ff00:0:211");
+    acl = ACL.createNoValidate(ACL.AclEntry.create(true, "0-0#0"), denyEntry);
+    input = getPaths(pp, "2-ff00:0:212", "2-ff00:0:211");
     assertEquals(2, acl.eval(input).size());
 
+    // "allow 2-0#0, deny rest"
+    acl = ACL.create(ACL.AclEntry.create(true, "2-0#0"), denyEntry);
+    input = getPaths(pp, "2-ff00:0:212", "2-ff00:0:211");
+    assertEquals(2, acl.eval(input).size());
 
+    // "allow 2-ff00:0:212#0 and 2-ff00:0:211, deny rest"
+    acl =
+        ACL.create(
+            ACL.AclEntry.create(true, "2-ff00:0:212#0"),
+            ACL.AclEntry.create(true, "2-ff00:0:211"),
+            denyEntry);
+    input = getPaths(pp, "2-ff00:0:212", "2-ff00:0:211");
+    assertEquals(2, acl.eval(input).size());
+
+    // "allow 2-ff00:0:212#0, deny rest"
+    acl = ACL.createNoValidate(ACL.AclEntry.create(true, "2-ff00:0:212#0"), denyEntry);
+    input = getPaths(pp, "2-ff00:0:212", "2-ff00:0:211");
+    assertEquals(0, acl.eval(input).size());
+
+    // "deny 1-ff00:0:110#0, 1-ff00:0:120#0, allow rest"
+    acl =
+        ACL.create(
+            ACL.AclEntry.create(false, "1-ff00:0:110#0"),
+            ACL.AclEntry.create(false, "1-ff00:0:120#0"),
+            allowEntry);
+    input = getPaths(pp, "1-ff00:0:133", "2-ff00:0:222");
+    assertEquals(2, acl.eval(input).size());
+
+    // "deny 1-ff00:0:110#0, 1-ff00:0:120#0 and 1-ff00:0:111#2823, allow rest"
+    acl =
+        ACL.create(
+            ACL.AclEntry.create(false, "1-ff00:0:110#0"),
+            ACL.AclEntry.create(false, "1-ff00:0:120#0"),
+            ACL.AclEntry.create(false, "1-ff00:0:111#2823"),
+            allowEntry);
+    input = getPaths(pp, "1-ff00:0:133", "2-ff00:0:222");
+    assertEquals(1, acl.eval(input).size());
+
+    // "deny ISD1, allow certain ASes"
+    acl =
+        ACL.create(
+            ACL.AclEntry.create(true, "1-ff00:0:120#0"),
+            ACL.AclEntry.create(true, "1-ff00:0:130#0"),
+            ACL.AclEntry.create(false, "1-0#0"),
+            allowEntry);
+    input = getPaths(pp, "1-ff00:0:130", "2-ff00:0:220");
+    assertEquals(2, acl.eval(input).size());
+
+    // "deny ISD1, allow certain ASes - wrong oder"
+    acl =
+        ACL.create(
+            ACL.AclEntry.create(false, "1-0#0"),
+            ACL.AclEntry.create(true, "1-ff00:0:130#0"),
+            ACL.AclEntry.create(true, "1-ff00:0:120#0"),
+            allowEntry);
+    input = getPaths(pp, "1-ff00:0:130", "2-ff00:0:220");
+    assertEquals(0, acl.eval(input).size());
+
+    // "nil rule should match all the paths"
+    acl = ACL.createNoValidate(ACL.AclEntry.create(false, null), allowEntry);
+    input = getPaths(pp, "1-ff00:0:130", "2-ff00:0:220");
+    assertEquals(0, acl.eval(input).size());
   }
 
-  //    @Test
-  //    void TestACLEval() {
-  //        tests := map[string]struct {
-  //            ACL        *ACL
-  //            Src        addr.IA
-  //            Dst        addr.IA
-  //            ExpPathNum int
-  //        }{
-  //            "allow everything": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "0-0#0")},
-  //                        denyEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("2-ff00:0:212"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:211"),
-  //                        ExpPathNum: 2,
-  //            },
-  //            "allow 2-0#0, deny rest": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "2-0#0")},
-  //                        denyEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("2-ff00:0:212"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:211"),
-  //                        ExpPathNum: 2,
-  //            },
-  //            "allow 2-ff00:0:212#0 and 2-ff00:0:211, deny rest": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "2-ff00:0:212#0")},
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "2-ff00:0:211#0")},
-  //                        denyEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("2-ff00:0:212"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:211"),
-  //                        ExpPathNum: 2,
-  //            },
-  //            "allow 2-ff00:0:212#0, deny rest": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "2-ff00:0:212#0")},
-  //                        denyEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("2-ff00:0:212"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:211"),
-  //                        ExpPathNum: 0,
-  //            },
-  //            "deny 1-ff00:0:110#0, 1-ff00:0:120#0, allow rest": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Deny, Rule: mustHopPredicate(t, "1-ff00:0:110#0")},
-  //                        {Action: Deny, Rule: mustHopPredicate(t, "1-ff00:0:120#0")},
-  //                        allowEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("1-ff00:0:133"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:222"),
-  //                        ExpPathNum: 2,
-  //            },
-  //            "deny 1-ff00:0:110#0, 1-ff00:0:120#0 and 1-ff00:0:111#2823, allow rest": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Deny, Rule: mustHopPredicate(t, "1-ff00:0:110#0")},
-  //                        {Action: Deny, Rule: mustHopPredicate(t, "1-ff00:0:120#0")},
-  //                        {Action: Deny, Rule: mustHopPredicate(t, "1-ff00:0:111#2823")},
-  //                        allowEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("1-ff00:0:133"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:222"),
-  //                        ExpPathNum: 1,
-  //            },
-  //            "deny ISD1, allow certain ASes": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "1-ff00:0:120#0")},
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "1-ff00:0:130#0")},
-  //                        {Action: Deny, Rule: mustHopPredicate(t, "1-0#0")},
-  //                        allowEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("1-ff00:0:130"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:220"),
-  //                        ExpPathNum: 2,
-  //            },
-  //            "deny ISD1, allow certain ASes - wrong oder": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Deny, Rule: mustHopPredicate(t, "1-0#0")},
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "1-ff00:0:130#0")},
-  //                        {Action: Allow, Rule: mustHopPredicate(t, "1-ff00:0:120#0")},
-  //                        allowEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("1-ff00:0:130"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:220"),
-  //                        ExpPathNum: 0,
-  //            },
-  //            "nil rule should match all the paths": {
-  //                ACL: &ACL{
-  //                    Entries: []*ACLEntry{
-  //                        {Action: Deny, Rule: nil},
-  //                        allowEntry,
-  //                    },
-  //                },
-  //                Src:        addr.MustParseIA("1-ff00:0:130"),
-  //                        Dst:        addr.MustParseIA("2-ff00:0:220"),
-  //                        ExpPathNum: 0,
-  //            },
-  //        }
-  //        ctrl := gomock.NewController(t)
-  //        defer ctrl.Finish()
-  //        pp := NewPathProvider(ctrl)
-  //        for name, test := range tests {
-  //            t.Run(name, func(t *testing.T) {
-  //                paths := pp.GetPaths(test.Src, test.Dst)
-  //                outPaths := test.ACL.Eval(paths)
-  //                assert.Equal(t, test.ExpPathNum, len(outPaths))
-  //            })
-  //        }
-  //    }
-  //
-  //    @Test
-  //    void TestACLPanic(t *testing.T) {
-  //        acl := &ACL{
-  //            Entries: []*ACLEntry{
-  //                {Action: Allow, Rule: mustHopPredicate(t, "1-0#0")},
-  //            },
-  //        }
-  //
-  //        ctrl := gomock.NewController(t)
-  //        defer ctrl.Finish()
-  //        pp := NewPathProvider(ctrl)
-  //        paths := pp.GetPaths(addr.MustParseIA("2-ff00:0:212"), addr.MustParseIA("2-ff00:0:211"))
-  //        assert.Panics(t, func() { acl.Eval(paths) })
-  //    }
+  @Test
+  void testACLPanic() {
+    PathProvider pp = new PathProvider();
 
-  private static List<Path> getPaths(String src, String dst) {
+    // Default ACL action missing
+    ACL acl = ACL.createNoValidate(ACL.AclEntry.create(true, "1-0#0"));
+    List<Path> input = getPaths(pp, "2-ff00:0:212", "2-ff00:0:211");
+    Exception e = assertThrows(PplException.class, () -> acl.eval(input).size());
+    assertEquals("Default ACL action missing", e.getMessage());
+  }
+
+  private static List<Path> getPaths(PathProvider pp, String src, String dst) {
     long srcIA = ScionUtil.parseIA(src);
     long dstIA = ScionUtil.parseIA(dst);
-    List<Path> paths = new ArrayList<>();
-            // TODO
-    return paths;
-  }
-
-  private static HopPredicate mustHopPredicate(String str) {
-    return HopPredicate.HopPredicateFromString(str);
+    // just use a random address
+    InetSocketAddress dstAddress = ExamplePacket.FIRST_HOP;
+    return pp.getPaths(dstAddress, srcIA, dstIA);
   }
 }

@@ -51,7 +51,9 @@ public class ScionUtil {
   }
 
   public static int parseISD(String isd) {
-    return Integer.parseUnsignedInt(isd, 10);
+    int parsed = Integer.parseUnsignedInt(isd, 10);
+    checkLimits(parsed, 0);
+    return parsed;
   }
 
   /**
@@ -73,6 +75,7 @@ public class ScionUtil {
       parsed <<= AS_PART_BITS;
       parsed |= Long.parseUnsignedLong(parts[i], AS_PART_BASE) & 0xFFFF;
     }
+    checkLimits(0, parsed);
     return parsed;
   }
 
