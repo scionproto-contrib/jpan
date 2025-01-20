@@ -49,6 +49,13 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
 - Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
 - Added implementation of STUN responder (currently not needed)
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
+- `PathPolicy` created from Path Policy Language
+  [#158](https://github.com/scionproto-contrib/jpan/pull/158)
+TODO
+- Move Sequence.g4 to correct subfolder
+- Try outputFOlder/path option to fix IntelliJ problems
+- What is local/remoteISD? How to configure?
+- Parse JSON -> postpone?
 
 ### Changed
  
