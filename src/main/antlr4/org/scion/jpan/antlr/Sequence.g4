@@ -7,7 +7,7 @@ ZERO: '0';
 NUM: [1-9][0-9]*;
 WILDCARDAS: '-' '0';
 LEGACYAS: '-' NUM;
-ASX: '-' HEXA ':' HEXA ':' HEXA;
+ASCODE: '-' HEXA ':' HEXA ':' HEXA;
 HASH: '#';
 COMMA: ',';
 QUESTIONMARK: '?';
@@ -30,24 +30,24 @@ sequence
     ;
 
 onehop
-    : isdx                            # ISDHop
-    | isdx asx                         # ISDASHop
-    | isdx asx HASH intface              # ISDASIFHop
-    | isdx asx HASH intface COMMA intface  # ISDASIFIFHop
+    : isdcode                            # ISDHop
+    | isdcode ascode                         # ISDASHop
+    | isdcode ascode HASH ifaceid              # ISDASIFHop
+    | isdcode ascode HASH ifaceid COMMA ifaceid  # ISDASIFIFHop
     ;
 
-isdx
+isdcode
     : ZERO # WildcardISD
     | NUM  # ISD
     ;
 
-asx
+ascode
     : WILDCARDAS # WildcardAS
     | LEGACYAS   # LegacyAS
-    | ASX        # AS
+    | ASCODE        # AS
     ;
 
-intface
+ifaceid
     : ZERO # WildcardIFace
     | NUM  # IFace
     ;

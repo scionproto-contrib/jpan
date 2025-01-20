@@ -41,7 +41,8 @@ public class PplPolicy implements PathPolicy {
       this.extensions = extensions;
     }
 
-    public static ExtPolicy createExt(String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
+    public static ExtPolicy createExt(
+        String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
       return new ExtPolicy(name, acl, sequence, extensions, options);
     }
   }
@@ -56,9 +57,11 @@ public class PplPolicy implements PathPolicy {
   public static class FilterOptions {
     // IgnoreSequence can be used to ignore the sequence part of policies.
     private final boolean ignoreSequence;
+
     FilterOptions(boolean ignoreSequence) {
       this.ignoreSequence = ignoreSequence;
     }
+
     public static FilterOptions create(boolean ignoreSequence) {
       return new FilterOptions(ignoreSequence);
     }
