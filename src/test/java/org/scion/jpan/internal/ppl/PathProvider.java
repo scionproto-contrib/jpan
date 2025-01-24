@@ -14,11 +14,13 @@
 
 package org.scion.jpan.internal.ppl;
 
+import com.google.protobuf.Duration;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionUtil;
@@ -65,7 +67,7 @@ public class PathProvider {
     }
   }
 
-  private List<SnetPath> GetPaths(long src, long dst) {
+  private List<SnetPath> getPaths(long src, long dst) {
     List<SnetPath> result = new ArrayList<>();
     List<List<Integer>> paths = g.GetPaths(src, dst);
     for (List<Integer> ifIDs : paths) {
@@ -98,7 +100,7 @@ public class PathProvider {
 
   public List<Path> getPaths(InetSocketAddress dst, long srcIsdAs, long dstIsdAs) {
     List<Path> paths = new ArrayList<>();
-    for (SnetPath snetPath : GetPaths(srcIsdAs, dstIsdAs)) {
+    for (SnetPath snetPath : getPaths(srcIsdAs, dstIsdAs)) {
       Daemon.Path path = protoPathFrom(snetPath);
       paths.add(PackageVisibilityHelper.createRequestPath(path, dstIsdAs, dst));
     }
@@ -107,12 +109,22 @@ public class PathProvider {
 
   private Daemon.Path protoPathFrom(SnetPath snetPath) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
+    Random rnd = new Random();
     // path.setExpiration(0);
     path.setMtu(0);
     // path.setInterface(Daemon.PathInterface.newBuilder().setAddress(Daemon.Address.getDefaultInstance()));
     for (PathInterface pathIntf : snetPath.pathIntfs) {
       path.addInterfaces(
           Daemon.PathInterface.newBuilder().setId(pathIntf.ID).setIsdAs(pathIntf.IA));
+      if (rnd.nextInt(20) > 2) {
+        // We should add them per AS, not per interface....!!!
+        path.addLatency(Duration.newBuilder().setNanos(rnd.nextInt(100_000_000)).build());
+        // We should add them per AS, not per interface....!!!
+        path.addBandwidth(rnd.nextInt(1_000_000_000));
+      } else {
+        path.addLatency(Duration.newBuilder().setNanos(-1).build());
+        path.addBandwidth(0);
+      }
     }
     return path.build();
   }

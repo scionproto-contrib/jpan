@@ -86,9 +86,9 @@ public class PplPolicy implements PathPolicy {
   }
 
   @Override
-  public Path filter(List<Path> paths) {
+  public List<Path> filter(List<Path> paths) {
     List<Path> filtered = filterAll(paths);
-    return filtered.isEmpty() ? null : filtered.get(0);
+    return PathPolicy.assertNotEmpty(filtered);
   }
 
   // Filter filters the paths according to the policy.

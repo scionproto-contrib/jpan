@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.internal.ppl.ACL;
@@ -48,8 +49,7 @@ class PathPolicyLanguageTest {
     PplPolicy ppl = PplPolicy.create("My policy", acl, sequence, option);
     List<Path> paths = new ArrayList<>();
     paths.add(ExamplePacket.PATH_IPV4);
-    Path p = ppl.filter(paths);
-    assertNull(p);
+    assertThrows(NoSuchElementException.class, () -> ppl.filter(paths));
 
     String str = Sequence.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
     assertEquals("", str);
@@ -78,8 +78,7 @@ class PathPolicyLanguageTest {
 
     List<Path> paths = new ArrayList<>();
     paths.add(ExamplePacket.PATH_IPV4);
-    Path p = ppl.filter(paths);
-    assertNull(p);
+    assertThrows(NoSuchElementException.class, () -> ppl.filter(paths));
 
     String str = Sequence.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
     assertEquals("", str);
@@ -152,7 +151,7 @@ class PathPolicyLanguageTest {
   private void testPath(PplPolicy ppl) {
     List<Path> paths = new ArrayList<>();
     paths.add(ExamplePacket.PATH_IPV4);
-    Path p = ppl.filter(paths);
+    Path p = ppl.filter(paths).get(0);
     assertEquals(ExamplePacket.PATH_IPV4, p);
   }
 }
