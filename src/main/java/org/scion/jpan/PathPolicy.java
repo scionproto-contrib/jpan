@@ -15,7 +15,20 @@
 package org.scion.jpan;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
+/**
+ * Path policy interface.
+ *
+ * <p>Contract:<br>
+ * - The filter method must return a non-empty list of paths or throw a NoSuchElementException.<br>
+ * - The list of paths returned by filter must be ordered by preference (most preferred first).<br>
+ * - The filter method must not modify the input list of paths (TBD).<br>
+ * - The filter method must not keep a reference to the returned list. The returned list may be
+ * modified by the caller.<br>
+ * - The filter method must not return a list containing paths with null metadata.<br>
+ * -
+ */
 public interface PathPolicy {
   String NO_PATH = "No path found to destination.";
   PathPolicy FIRST = new First();
@@ -25,39 +38,46 @@ public interface PathPolicy {
   PathPolicy DEFAULT = MIN_HOPS;
 
   class First implements PathPolicy {
-    public Path filter(List<Path> paths) {
-      return paths.stream().findFirst().orElseThrow(() -> new NoSuchElementException(NO_PATH));
+    public List<Path> filter(List<Path> paths) {
+      return assertNotEmpty(paths);
     }
   }
 
   class MaxBandwith implements PathPolicy {
-    public Path filter(List<Path> paths) {
-      return paths.stream()
-          .max(Comparator.comparing(path -> Collections.min(path.getMetadata().getBandwidthList())))
-          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
+    public List<Path> filter(List<Path> paths) {
+      List<Path> result = new ArrayList<>(paths);
+      result.sort(
+          (p1, p2) -> {
+            int bw1 = Collections.min(p1.getMetadata().getBandwidthList()).intValue();
+            int bw2 = Collections.min(p2.getMetadata().getBandwidthList()).intValue();
+            return Integer.compare(bw2, bw1);
+          });
+      return assertNotEmpty(result);
     }
   }
 
   class MinLatency implements PathPolicy {
-    public Path filter(List<Path> paths) {
+    public List<Path> filter(List<Path> paths) {
       // A 0-value indicates that the AS did not announce a latency for this hop.
       // We use Integer.MAX_VALUE for comparison of these ASes.
-      return paths.stream()
-          .min(
-              Comparator.comparing(
-                  path ->
-                      path.getMetadata().getLatencyList().stream()
-                          .mapToLong(l -> l > 0 ? l : Integer.MAX_VALUE)
-                          .reduce(0, Long::sum)))
-          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
+      return assertNotEmpty(
+          paths.stream()
+              .sorted(
+                  Comparator.comparing(
+                      path ->
+                          path.getMetadata().getLatencyList().stream()
+                              .mapToLong(l -> l > 0 ? l : Integer.MAX_VALUE)
+                              .reduce(0, Long::sum)))
+              .collect(Collectors.toList()));
     }
   }
 
   class MinHopCount implements PathPolicy {
-    public Path filter(List<Path> paths) {
-      return paths.stream()
-          .min(Comparator.comparing(path -> path.getMetadata().getInternalHopsList().size()))
-          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
+    public List<Path> filter(List<Path> paths) {
+      return assertNotEmpty(
+          paths.stream()
+              .sorted(Comparator.comparing(path -> path.getMetadata().getInternalHopsList().size()))
+              .collect(Collectors.toList()));
     }
   }
 
@@ -69,11 +89,8 @@ public interface PathPolicy {
     }
 
     @Override
-    public Path filter(List<Path> paths) {
-      return paths.stream()
-          .filter(this::checkPath)
-          .findAny()
-          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
+    public List<Path> filter(List<Path> paths) {
+      return assertNotEmpty(paths.stream().filter(this::checkPath).collect(Collectors.toList()));
     }
 
     private boolean checkPath(Path path) {
@@ -95,11 +112,8 @@ public interface PathPolicy {
     }
 
     @Override
-    public Path filter(List<Path> paths) {
-      return paths.stream()
-          .filter(this::checkPath)
-          .findAny()
-          .orElseThrow(() -> new NoSuchElementException(NO_PATH));
+    public List<Path> filter(List<Path> paths) {
+      return assertNotEmpty(paths.stream().filter(this::checkPath).collect(Collectors.toList()));
     }
 
     private boolean checkPath(Path path) {
@@ -113,10 +127,17 @@ public interface PathPolicy {
     }
   }
 
+  static List<Path> assertNotEmpty(List<Path> paths) {
+    if (paths.isEmpty()) {
+      throw new NoSuchElementException(NO_PATH);
+    }
+    return paths;
+  }
+
   /**
    * @param paths A list of candidate paths
-   * @return The "best" path according to the filter's policy.
+   * @return A list of path ordered by preference (most preferec first).
    * @throws NoSuchElementException if no matching path could be found.
    */
-  Path filter(List<Path> paths);
+  List<Path> filter(List<Path> paths);
 }

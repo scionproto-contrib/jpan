@@ -100,7 +100,7 @@ public class ScmpDemoDefault {
 
       // Get paths
       List<Path> paths = Scion.defaultService().getPaths(dstIsdAs, ip, Constants.SCMP_PORT);
-      Path path = PathPolicy.MIN_HOPS.filter(paths);
+      Path path = PathPolicy.MIN_HOPS.filter(paths).get(0);
       runDemo(path);
       new HopValidator(nHops).validate(path);
     } finally {

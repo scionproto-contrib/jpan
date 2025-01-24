@@ -134,7 +134,7 @@ public class PingPongHelperBase {
       }
       InetSocketAddress serverAddress = servers[0].getLocalAddress();
       MockDNS.install(serverIsdAs, serverAddress.getAddress());
-      Path requestPath = Scion.defaultService().lookupAndGetPath(serverAddress, null);
+      Path requestPath = Scion.defaultService().lookupPaths(serverAddress).get(0);
 
       Thread[] clients = new Thread[nClients];
       for (int i = 0; i < clients.length; i++) {

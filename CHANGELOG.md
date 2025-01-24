@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
     e.g. configureBlocking()
 - Config-ify PROPERTIES etc 
-- Cache paths
+- Cache paths --> We already do some caching with ScionDatagramChannel::resolvedDetinations
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
@@ -34,9 +34,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
-** BREAKING CHANGE **
-Minor: Some methods have "throw IOException" removed from their declaration.
-For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
+** BREAKING CHANGES **
+- Minor: Some methods have `throw IOException` removed from their declaration.
+For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
+- Medium: `PathPolicy.filter(...)` now returns `List<Path>` instead of `Path`.
 
 ### Added
 
@@ -54,6 +55,8 @@ For example: Path.getFirstHopAddress(), DatagramChannel.setPathPolicy()
  
 - Cleaned up test topologies. [#145](https://github.com/scionproto-contrib/jpan/pull/145)
 - Changed checkstyle rules. [#153](https://github.com/scionproto-contrib/jpan/pull/143)
+- **BREAKING CHANGE** `PathPolicy.filter(..)` to return a `List` of paths. 
+  [#159](https://github.com/scionproto-contrib/jpan/pull/159)
 
 ### Fixed
 

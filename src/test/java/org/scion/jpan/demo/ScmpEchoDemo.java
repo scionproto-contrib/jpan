@@ -70,7 +70,7 @@ public class ScmpEchoDemo {
           System.setProperty(Constants.PROPERTY_SHIM, "false"); // disable SHIM
           DemoTopology.configureMockV4();
           InetSocketAddress dst = MockScmpHandler.getAddress();
-          int n = runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
+          int n = runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst));
           DemoTopology.shutDown();
           return n;
         }
@@ -81,7 +81,7 @@ public class ScmpEchoDemo {
           MockScmpHandler.stop();
           MockScmpHandler.start("[::1]"); // We need the SCMP handler running on IPv6
           InetSocketAddress dst = MockScmpHandler.getAddress();
-          int n = runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst).get(0));
+          int n = runDemo(Scion.defaultService().getPaths(DemoConstants.ia112, dst));
           DemoTopology.shutDown();
           MockScmpHandler.stop();
           return n;
@@ -115,13 +115,14 @@ public class ScmpEchoDemo {
       case PRODUCTION:
         {
           ScionService service = Scion.defaultService();
-          return runDemo(service.lookupAndGetPath("ethz.ch", Constants.SCMP_PORT, null));
+          return runDemo(service.lookupPaths("ethz.ch", Constants.SCMP_PORT));
         }
     }
     return -1;
   }
 
-  private static int runDemo(Path path) throws IOException {
+  private static int runDemo(List<Path> paths) throws IOException {
+    Path path = paths.get(0);
     ByteBuffer data = ByteBuffer.allocate(0);
 
     String localAddress;
