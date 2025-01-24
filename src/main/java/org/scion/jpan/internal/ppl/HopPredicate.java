@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2025 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,11 @@
 package org.scion.jpan.internal.ppl;
 
 import java.util.Arrays;
+import java.util.Objects;
 import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class HopPredicate {
 
   // A HopPredicate specifies a hop in the ACL or Sequence of the path policy,
@@ -28,6 +30,10 @@ public class HopPredicate {
 
   public static HopPredicate create() {
     return new HopPredicate(new int[1]);
+  }
+
+  static HopPredicate create(int isd, long as, int[] ifIDs) {
+    return new HopPredicate(isd, as, ifIDs);
   }
 
   private HopPredicate(int[] ifIDs) {
@@ -59,7 +65,7 @@ public class HopPredicate {
     try {
       isd = ScionUtil.parseISD(dashParts[0]);
     } catch (Exception e) {
-      throw new PPLException("Failed to parse ISD: " + "value=" + str, e);
+      throw new PplException("Failed to parse ISD: " + "value=" + str, e);
     }
     if (dashParts.length == 1) {
       return new HopPredicate(isd, ifIDs);
@@ -70,7 +76,7 @@ public class HopPredicate {
     try {
       as = ScionUtil.parseAS(hashParts[0]);
     } catch (Exception e) {
-      throw new PPLException("Failed to parse AS: " + "value=" + str, e);
+      throw new PplException("Failed to parse AS: " + "value=" + str, e);
     }
     if (hashParts.length == 1) {
       return new HopPredicate(isd, as, ifIDs);
@@ -80,7 +86,7 @@ public class HopPredicate {
     try {
       ifIDs[0] = parseIfID(commaParts[0]);
     } catch (Exception e) {
-      throw new PPLException("Failed to parse ifIDs: " + "value=" + str, e);
+      throw new PplException("Failed to parse ifIDs: " + "value=" + str, e);
     }
     if (commaParts.length == 2) {
       try {
@@ -88,12 +94,12 @@ public class HopPredicate {
         ifIDs = Arrays.copyOf(ifIDs, ifIDs.length + 1);
         ifIDs[ifIDs.length - 1] = ifID;
       } catch (Exception e) {
-        throw new PPLException("Failed to parse ifIDs: " + "value=" + str, e);
+        throw new PplException("Failed to parse ifIDs: " + "value=" + str, e);
       }
     }
     // IfID cannot be set when the AS is a wildcard
     if (as == 0 && (ifIDs[0] != 0 || (ifIDs.length > 1 && ifIDs[1] != 0))) {
-      throw new PPLException("Failed to parse hop predicate, IfIDs must be 0: " + "value=" + str);
+      throw new PplException("Failed to parse hop predicate, IfIDs must be 0: " + "value=" + str);
     }
     return new HopPredicate(isd, as, ifIDs);
   }
@@ -101,12 +107,10 @@ public class HopPredicate {
   // pathIFMatch takes a PathInterface and a bool indicating if the ingress
   // interface needs to be matching. It returns true if the HopPredicate matches the PathInterface
   boolean pathIFMatch(PathMetadata.PathInterface pi, boolean in) {
-    int hpISD = ScionUtil.extractIsd(isd);
-    if (hpISD != 0 && ScionUtil.extractIsd(pi.getIsdAs()) != hpISD) {
+    if (isd != 0 && ScionUtil.extractIsd(pi.getIsdAs()) != isd) {
       return false;
     }
-    long hpAS = ScionUtil.extractAs(as);
-    if (hpAS != 0 && ScionUtil.extractAs(pi.getIsdAs()) != hpAS) {
+    if (as != 0 && ScionUtil.extractAs(pi.getIsdAs()) != as) {
       return false;
     }
     int ifInd = 0;
@@ -130,9 +134,12 @@ public class HopPredicate {
   String string() {
     StringBuilder sb = new StringBuilder();
     for (int ifID : ifIDs) {
-      sb.append(ifID).append(","); // TODO " "?
+      if (sb.length() > 0) {
+        sb.append(",");
+      }
+      sb.append(ifID);
     }
-    return String.format("%d-%s#%s", isd, as, sb.append(","));
+    return String.format("%d-%s#%s", isd, as, sb);
   }
 
   //    JsonWriter MarshalJSON(JsonWriter json) {
@@ -158,7 +165,7 @@ public class HopPredicate {
     int hashes = count(str, '#');
     int commas = count(str, ',');
     if (dashes > 1 || hashes > 1 || commas > 1) {
-      throw new PPLException(
+      throw new PplException(
           "Failed to parse hop predicate, found delimiter too often: "
               + "dashes="
               + dashes
@@ -168,7 +175,7 @@ public class HopPredicate {
               + commas);
     }
     if (dashes == 0 && (hashes > 0 || commas > 0)) {
-      throw new PPLException("Can't specify IFIDs without AS");
+      throw new PplException("Can't specify IFIDs without AS");
     }
   }
 
@@ -178,5 +185,31 @@ public class HopPredicate {
       n += str.charAt(i) == c ? 1 : 0;
     }
     return n;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    HopPredicate that = (HopPredicate) o;
+    return isd == that.isd && as == that.as && Objects.deepEquals(ifIDs, that.ifIDs);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(isd, as, Arrays.hashCode(ifIDs));
+  }
+
+  @Override
+  public String toString() {
+    return "HopPredicate{"
+        + "isd="
+        + isd
+        + ", as="
+        + as
+        + ", ifIDs="
+        + Arrays.toString(ifIDs)
+        + '}';
   }
 }

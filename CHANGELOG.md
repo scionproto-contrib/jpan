@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
-
+- FABRID is currently in SCIONlab. WHen ported to scionproto, JPAN should show policies in
+  "showpaths" etc, see
+  https://github.com/netsec-ethz/scion/blob/b45a8ff2a753e95b647801577bca019c9c4a124a/private/app/path/path.go#L415
+  https://github.com/netsec-ethz/scion/blob/b45a8ff2a753e95b647801577bca019c9c4a124a/private/app/path/path.go#L327
+ 
+- implement "scion address" command
 - TODO implement PathPolicy https://docs.scion.org/en/latest/dev/design/PathPolicy.html
 
 - Change MockControlService to return parsed Segments i.o. hardcoded segments.
@@ -52,6 +57,17 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
 - `PathPolicy` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
+TODO
+- What is local/remoteISD? How to configure?
+- Parse JSON -> postpone?
+- Make PathPolicy return List<Path> or Stream<Path> instead of Path
+- add to README.md
+- move to or.scion.jpan.ppl (without internal)? Maybe not! 
+  -> Only move PplPolicy to main package!
+- Change ExtPolicy to be composite i.o. extending PathPolicy...?!!!
+- Why do they have the duplicate hopPredicate in almost every test?
+              .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
+  -> Find out and either remove duplicate or remove buildNoValidate() 
 
 ### Changed
  

@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2025 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,16 +22,24 @@ import java.util.List;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class LocalIsdAs {
   // LocalISDAS is a path policy that checks whether the first hop in the path (local AS) belongs
   // to the specified set.
-  long[] allowedIAs;
+  private long[] allowedIAs;
+
+  public static LocalIsdAs create(long... allowedIAs) {
+    return new LocalIsdAs(allowedIAs);
+  }
+
+  private LocalIsdAs(long... allowedIAs) {
+    this.allowedIAs = allowedIAs;
+  }
 
   List<Path> eval(List<Path> paths) {
     List<Path> result = new ArrayList<>();
     for (Path path : paths) {
-      long pathSource = Scion.defaultService().getLocalIsdAs();
-      // RequestPath path2 = (RequestPath) path; // TODO
+      long pathSource = Scion.defaultService().getLocalIsdAs(); // TODO ?!?
       if (pathSource == path.getRemoteIsdAs()) {
         continue;
       }

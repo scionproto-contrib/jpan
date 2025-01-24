@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2025 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,28 +15,49 @@
 package org.scion.jpan.internal.ppl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathMetadata;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class ACL {
 
-  // ErrNoDefault indicates that there is no default acl entry.
-  private static final String ErrNoDefault = "ACL does not have a default";
-  // ErrExtraEntries indicates that there extra entries after the default entry.
-  private static final String ErrExtraEntries =
-      "ACL has unused extra entries after a default entry";
+  /** ErrNoDefault indicates that there is no default acl entry. */
+  static final String ERR_NO_DEFAULT = "ACL does not have a default";
 
-  private AclEntry[] entries;
+  /** ErrExtraEntries indicates that there extra entries after the default entry. */
+  static final String ERR_EXTRA_ENTRIES = "ACL has unused extra entries after a default entry";
 
-  // NewACL creates a new entry and checks for the presence of a default action
-  static ACL newACL(AclEntry... entries) {
+  private final AclEntry[] entries;
+
+  /** Creates a new entry and checks for the presence of a default action. */
+  public static ACL create(AclEntry... entries) {
     validateACL(entries);
     return new ACL(entries);
   }
 
+  static ACL createNoValidate(AclEntry... entries) {
+    return new ACL(entries);
+  }
+
+  /** Creates a new entry and checks for the presence of a default action. */
+  public static ACL create(String... entries) {
+    AclEntry[] eArray = new AclEntry[entries.length];
+    for (int i = 0; i < entries.length; i++) {
+      eArray[i] = AclEntry.create(entries[i]);
+    }
+    validateACL(eArray);
+    return new ACL(eArray);
+  }
+
   private ACL(AclEntry... entries) {
     this.entries = entries;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   // Eval returns the set of paths that match the ACL.
@@ -47,7 +68,7 @@ public class ACL {
     List<Path> result = new ArrayList<>();
     for (Path path : paths) {
       // Check ACL
-      if (evalPath(path.getMetadata()) == AclAction.Allow) {
+      if (evalPath(path.getMetadata()) == AclAction.ALLOW) {
         result.add(path);
       }
     }
@@ -79,11 +100,11 @@ public class ACL {
   AclAction evalPath(PathMetadata pm) {
     for (int i = 0; i < pm.getInterfacesList().size(); i++) {
       PathMetadata.PathInterface iface = pm.getInterfacesList().get(i);
-      if (evalInterface(iface, i % 2 != 0) == Deny) {
-        return Deny;
+      if (evalInterface(iface, i % 2 != 0) == AclAction.DENY) {
+        return AclAction.DENY;
       }
     }
-    return Allow;
+    return AclAction.ALLOW;
   }
 
   AclAction evalInterface(PathMetadata.PathInterface iface, boolean ingress) {
@@ -92,57 +113,70 @@ public class ACL {
         return aclEntry.action;
       }
     }
-    throw new PPLException("Default ACL action missing");
+    throw new PplException("Default ACL action missing");
   }
 
   private static void validateACL(AclEntry[] entries) {
     if (entries.length == 0) {
-      throw new PPLException(ErrNoDefault);
+      throw new PplException(ERR_NO_DEFAULT);
     }
 
     int foundAt = -1;
     for (int i = 0; i < entries.length; i++) {
-      if (entries[i].rule.matchesAll()) {
+      if (entries[i].rule == null || entries[i].rule.matchesAll()) {
         foundAt = i;
         break;
       }
     }
 
     if (foundAt < 0) {
-      throw new PPLException(ErrNoDefault);
+      throw new PplException(ERR_NO_DEFAULT);
     }
 
     if (foundAt != entries.length - 1) {
-      throw new PPLException(ErrExtraEntries);
+      throw new PplException(ERR_EXTRA_ENTRIES);
     }
   }
 
-  static class AclEntry {
-    AclAction action;
-    HopPredicate rule;
+  public static class AclEntry {
+    private final AclAction action;
+    private final HopPredicate rule;
 
-    void loadFromString(String str) {
-      String[] parts = str.split(" ");
-      if (parts.length == 1) {
-        action = getAction(parts[0]);
-        return;
-      } else if (parts.length == 2) {
-        action = getAction(parts[0]);
-        rule = HopPredicate.create().HopPredicateFromString(parts[1]);
-        return;
-      }
-      throw new PPLException("ACLEntry has too many parts: " + str);
+    private AclEntry(AclAction action, HopPredicate rule) {
+      this.action = action;
+      this.rule = rule;
     }
 
-    String String() {
-      String str = denySymbol;
-      if (action == Allow) {
-        str = allowSymbol;
+    public static AclEntry create(String str) {
+      String[] parts = str.split(" ");
+      if (parts.length == 1) {
+        return new AclEntry(getAction(parts[0]), null);
+      } else if (parts.length == 2) {
+        return new AclEntry(getAction(parts[0]), HopPredicate.HopPredicateFromString(parts[1]));
+      }
+      throw new PplException("ACLEntry has too many parts: " + str);
+    }
+
+    public static AclEntry create(boolean allow, String hopFieldPredicate) {
+      HopPredicate hp =
+          hopFieldPredicate == null ? null : HopPredicate.HopPredicateFromString(hopFieldPredicate);
+      return new AclEntry(allow ? AclAction.ALLOW : AclAction.DENY, hp);
+    }
+
+    String string() {
+      String str = DENY_SYMBOL;
+      if (action == AclAction.ALLOW) {
+        str = ALLOW_SYMBOL;
       }
       if (rule != null) {
         str = str + " " + rule.string();
       }
       return str;
+    }
+
+    @Override
+    public String toString() {
+      return "AclEntry{" + "action=" + action + ", rule=" + rule + '}';
     }
 
     //    JsonWriter MarshalJSON(JsonWriter json) {
@@ -169,26 +203,79 @@ public class ACL {
     //        return ae.LoadFromString(str)
     //    }
 
-  }
+    private static AclAction getAction(String symbol) {
+      if (ALLOW_SYMBOL.equals(symbol)) {
+        return AclAction.ALLOW;
+      } else if (DENY_SYMBOL.equals(symbol)) {
+        return AclAction.DENY;
+      } else {
+        throw new PplException("Bad action symbol: " + "action=" + symbol);
+      }
+    }
 
-  private static AclAction getAction(String symbol) {
-    if (allowSymbol.equals(symbol)) {
-      return AclAction.Allow;
-    } else if (denySymbol.equals(denySymbol)) {
-      return AclAction.Deny;
-    } else {
-      throw new PPLException("Bad action symbol: " + "action=" + symbol);
+    @Override
+    public boolean equals(Object o) {
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      AclEntry aclEntry = (AclEntry) o;
+      return action == aclEntry.action && Objects.equals(rule, aclEntry.rule);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(action, rule);
     }
   }
 
   // ACLAction has two options: Deny and Allow
-  enum AclAction {
-    Deny,
-    Allow
+  private enum AclAction {
+    DENY,
+    ALLOW
   }
 
-  private static final AclAction Deny = AclAction.Deny;
-  private static final AclAction Allow = AclAction.Allow;
-  private static final String denySymbol = "-";
-  private static final String allowSymbol = "+";
+  private static final String DENY_SYMBOL = "-";
+  private static final String ALLOW_SYMBOL = "+";
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    ACL acl = (ACL) o;
+    return Objects.deepEquals(entries, acl.entries);
+  }
+
+  @Override
+  public int hashCode() {
+    return Arrays.hashCode(entries);
+  }
+
+  @Override
+  public String toString() {
+    return "ACL{" + "entries=" + Arrays.toString(entries) + '}';
+  }
+
+  public static class Builder {
+    private final List<AclEntry> entries = new ArrayList<>();
+
+    public Builder addEntry(String str) {
+      entries.add(AclEntry.create(str));
+      return this;
+    }
+
+    public Builder addEntry(boolean allow, String hopFieldPredicate) {
+      entries.add(AclEntry.create(allow, hopFieldPredicate));
+      return this;
+    }
+
+    public Builder addEntry(AclEntry entry) {
+      entries.add(entry);
+      return this;
+    }
+
+    public ACL build() {
+      return new ACL(entries.toArray(new AclEntry[0]));
+    }
+  }
 }

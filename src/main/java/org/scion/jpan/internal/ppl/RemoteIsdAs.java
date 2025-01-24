@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2025 ETH Zurich, Anapaya Systems
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.List;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionUtil;
 
+// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class RemoteIsdAs {
   // RemoteISDAS is a path policy that checks whether the last hop in the path (remote AS) satisfies
   // the supplied rules. Rules are evaluated in order and first that matches the remote ISD-AS wins.
@@ -27,9 +28,30 @@ public class RemoteIsdAs {
   private IsdAsRule[] rules;
 
   // TODO rename to Rule?
-  private static class IsdAsRule {
+  static class IsdAsRule {
     long isdAs; //     addr.IA `json:"isd_as,omitempty"`
     boolean reject; //    `json:"reject,omitempty"`
+
+    private IsdAsRule(long isdAs, boolean reject) {
+      this.isdAs = isdAs;
+      this.reject = reject;
+    }
+
+    static IsdAsRule create(long isdAs) {
+      return new IsdAsRule(isdAs, false);
+    }
+
+    static IsdAsRule create(long isdAs, boolean reject) {
+      return new IsdAsRule(isdAs, reject);
+    }
+  }
+
+  private RemoteIsdAs(IsdAsRule[] rules) {
+    this.rules = rules == null ? new IsdAsRule[0] : rules;
+  }
+
+  public static RemoteIsdAs create(IsdAsRule... rules) {
+    return new RemoteIsdAs(rules);
   }
 
   List<Path> eval(List<Path> paths) {
