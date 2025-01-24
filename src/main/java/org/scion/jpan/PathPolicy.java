@@ -66,7 +66,7 @@ public interface PathPolicy {
                   Comparator.comparing(
                       path ->
                           path.getMetadata().getLatencyList().stream()
-                              .mapToLong(l -> l > 0 ? l : Integer.MAX_VALUE)
+                              .mapToLong(l -> l >= 0 ? l : Integer.MAX_VALUE)
                               .reduce(0, Long::sum)))
               .collect(Collectors.toList()));
     }
@@ -76,7 +76,7 @@ public interface PathPolicy {
     public List<Path> filter(List<Path> paths) {
       return assertNotEmpty(
           paths.stream()
-              .sorted(Comparator.comparing(path -> path.getMetadata().getInternalHopsList().size()))
+              .sorted(Comparator.comparing(path -> path.getMetadata().getInterfacesList().size()))
               .collect(Collectors.toList()));
     }
   }

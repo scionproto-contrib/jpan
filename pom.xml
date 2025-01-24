@@ -139,6 +139,13 @@
             <artifactId>google-java-format</artifactId>
             <version>1.24.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4</artifactId>
+            <!-- Last version that runs on Java 8 https://github.com/antlr/antlr4/releases/tag/4.10 -->
+            <version>4.9.3</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -324,6 +331,21 @@
                         </Include-Resource>
                     </instructions>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>4.9.3</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/target/generated-sources</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
