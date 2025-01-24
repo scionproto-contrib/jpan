@@ -310,12 +310,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
         synchronized (pathCache) {
           path = pathCache.get(addr);
           if (path == null) {
-            path = channel.getService().lookupAndGetPath(addr, channel.getPathPolicy());
+            path = channel.getPathPolicy().filter(channel.getService().lookupPaths(addr)).get(0);
           } else if (path instanceof RequestPath
               && path.getMetadata().getExpiration() > Instant.now().getEpochSecond()) {
             // check expiration only for RequestPaths
             RequestPath request = (RequestPath) path;
-            path = channel.getPathPolicy().filter(channel.getService().getPaths(request));
+            path = channel.getPathPolicy().filter(channel.getService().getPaths(request)).get(0);
           }
           if (path == null) {
             throw new IOException("Address is not resolvable in SCION: " + packet.getAddress());

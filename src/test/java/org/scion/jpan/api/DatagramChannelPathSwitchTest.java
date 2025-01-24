@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,8 +38,8 @@ class DatagramChannelPathSwitchTest {
     private int count = 0;
 
     @Override
-    public Path filter(List<Path> paths) {
-      return paths.get(count++ % 2);
+    public List<Path> filter(List<Path> paths) {
+      return Collections.singletonList(paths.get(count++ % 2));
     }
   }
 
@@ -69,7 +70,7 @@ class DatagramChannelPathSwitchTest {
 
     // Use a path policy that alternates between 1st and 2nd path
     // -> setPathPolicy() sets a new path!
-    alternatingPolicy.computeIfAbsent(channel, (x) -> new AlternatingPolicy());
+    alternatingPolicy.computeIfAbsent(channel, x -> new AlternatingPolicy());
     channel.setPathPolicy(alternatingPolicy.get(channel));
     channel.write(sendBuf);
 

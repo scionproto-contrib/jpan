@@ -257,7 +257,7 @@ public class ScionServiceTest {
     try {
       ScionService pathService = Scion.defaultService();
       // TXT entry: "scion=64-2:0:9,129.x.x.x"
-      Path path = pathService.lookupAndGetPath(SCION_HOST, SCION_HOST_PORT, null);
+      Path path = pathService.lookupPaths(SCION_HOST, SCION_HOST_PORT).get(0);
       assertNotNull(path);
       ScionSocketAddress sAddr = path.getRemoteSocketAddress();
       assertNotNull(sAddr);
@@ -283,7 +283,7 @@ public class ScionServiceTest {
       // TXT entry: "scion=64-2:0:9,129.x.x.x"
       InetAddress ia = Inet4Address.getByAddress(SCION_HOST, new byte[] {127, 0, 0, 1});
       InetSocketAddress isa = new InetSocketAddress(ia, SCION_HOST_PORT);
-      Path path = pathService.lookupAndGetPath(isa, null);
+      Path path = pathService.lookupPaths(isa).get(0);
       assertNotNull(path);
       ScionSocketAddress sAddr = path.getRemoteSocketAddress();
       assertNotNull(sAddr);
@@ -307,7 +307,7 @@ public class ScionServiceTest {
     try {
       ScionService pathService = Scion.defaultService();
       // TXT entry: "scion=64-2:0:9,129.x.x.x"
-      Path path = pathService.lookupAndGetPath(SCION_HOST, SCION_HOST_PORT, null);
+      Path path = pathService.lookupPaths(SCION_HOST, SCION_HOST_PORT).get(0);
       assertNotNull(path);
       ScionSocketAddress sAddr = path.getRemoteSocketAddress();
       assertNotNull(sAddr);
@@ -403,6 +403,8 @@ public class ScionServiceTest {
       Exception ex =
           assertThrows(ScionException.class, () -> service.lookupAndGetPath(host, 123, null));
       assertTrue(ex.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
+      Exception ex2 = assertThrows(ScionException.class, () -> service.lookupPaths(host, 123));
+      assertTrue(ex2.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
       ScionService.closeDefault();

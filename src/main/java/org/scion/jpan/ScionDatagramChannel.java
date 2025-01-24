@@ -40,7 +40,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     POLICY
   }
 
-  // Store on path per (non-Scion-)destination address
+  // Store one path per (non-Scion-)destination address
   private final WeakHashMap<InetSocketAddress, RequestPath> resolvedDestinations =
       new WeakHashMap<>();
   // Store a refreshed paths for every path
@@ -112,8 +112,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   }
 
   /**
-   * Attempts to send the content of the buffer to the destinationAddress. This method will request
-   * a new path for each call.
+   * Attempts to send the content of the buffer to the destinationAddress.
    *
    * @param srcBuffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
@@ -137,7 +136,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     synchronized (stateLock()) {
       path = resolvedDestinations.get(dst);
       if (path == null) {
-        path = (RequestPath) getService().lookupAndGetPath(dst, getPathPolicy());
+        path = (RequestPath) getPathPolicy().filter(getService().lookupPaths(dst)).get(0);
         resolvedDestinations.put(dst, path);
       }
     }
@@ -283,7 +282,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         }
         throw new ScionRuntimeException("Path is expired");
       case POLICY:
-        return (RequestPath) getPathPolicy().filter(getService().getPaths(path));
+        return (RequestPath) getPathPolicy().filter(getService().getPaths(path)).get(0);
       case SAME_LINKS:
         return findPathSameLinks(paths, path);
       default:

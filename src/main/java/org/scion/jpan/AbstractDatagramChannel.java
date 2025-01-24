@@ -96,7 +96,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
-        connectionPath = (RequestPath) pathPolicy.filter(getService().getPaths(connectionPath));
+        connectionPath =
+            (RequestPath) pathPolicy.filter(getService().getPaths(connectionPath)).get(0);
         updateConnection(connectionPath, true);
       }
     }
@@ -259,7 +260,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (addr instanceof ScionSocketAddress) {
         return connect(((ScionSocketAddress) addr).getPath());
       }
-      Path path = getService().lookupAndGetPath((InetSocketAddress) addr, pathPolicy);
+      Path path = pathPolicy.filter(getService().lookupPaths((InetSocketAddress) addr)).get(0);
       return connect(path);
     }
   }
