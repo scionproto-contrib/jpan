@@ -20,7 +20,7 @@ import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
 
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
-public class HopPredicate {
+class HopPredicate {
 
   // A HopPredicate specifies a hop in the ACL or Sequence of the path policy,
   // see docs/PathPolicy.md.

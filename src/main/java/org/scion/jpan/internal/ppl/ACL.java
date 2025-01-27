@@ -22,7 +22,7 @@ import org.scion.jpan.Path;
 import org.scion.jpan.PathMetadata;
 
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
-public class ACL {
+class ACL {
 
   /** ErrNoDefault indicates that there is no default acl entry. */
   static final String ERR_NO_DEFAULT = "ACL does not have a default";
@@ -33,7 +33,7 @@ public class ACL {
   private final AclEntry[] entries;
 
   /** Creates a new entry and checks for the presence of a default action. */
-  public static ACL create(AclEntry... entries) {
+  static ACL create(AclEntry... entries) {
     validateACL(entries);
     return new ACL(entries);
   }
@@ -43,7 +43,7 @@ public class ACL {
   }
 
   /** Creates a new entry and checks for the presence of a default action. */
-  public static ACL create(String... entries) {
+  static ACL create(String... entries) {
     AclEntry[] eArray = new AclEntry[entries.length];
     for (int i = 0; i < entries.length; i++) {
       eArray[i] = AclEntry.create(entries[i]);
@@ -138,7 +138,7 @@ public class ACL {
     }
   }
 
-  public static class AclEntry {
+  static class AclEntry {
     private final AclAction action;
     private final HopPredicate rule;
 
@@ -147,7 +147,7 @@ public class ACL {
       this.rule = rule;
     }
 
-    public static AclEntry create(String str) {
+    static AclEntry create(String str) {
       String[] parts = str.split(" ");
       if (parts.length == 1) {
         return new AclEntry(getAction(parts[0]), null);

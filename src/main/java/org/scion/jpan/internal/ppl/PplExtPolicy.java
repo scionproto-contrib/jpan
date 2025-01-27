@@ -19,7 +19,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-/** ExtPolicy is an extending policy, it may have a list of policies it extends. */
+/**
+ * ExtPolicy is an extending policy, it may have a list of policies it extends.
+ *
+ * @deprecated Use with caution, this API is unstable. See <a
+ *     href="https://github.com/scionproto/scion/issues/4687">#4687</a>
+ */
+@Deprecated
 public class PplExtPolicy extends PplPolicy {
   private final String[] extensions; // []string `json:"extends,omitempty"`
 
@@ -29,7 +35,7 @@ public class PplExtPolicy extends PplPolicy {
     this.extensions = extensions;
   }
 
-  public static PplExtPolicy createExt(
+  static PplExtPolicy createExt(
       String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
     return new PplExtPolicy(name, acl, sequence, extensions, options);
   }

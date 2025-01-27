@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
-public class Sequence {
+class Sequence {
 
   private static final Logger LOG = LoggerFactory.getLogger(Sequence.class.getName());
 
@@ -61,7 +61,7 @@ public class Sequence {
   }
 
   // creates a new sequence from a string
-  public static Sequence create(String s) {
+  static Sequence create(String s) {
     try {
       LOG.info("COMPILING: {}", s);
       if (s == null || s.isEmpty()) {
@@ -373,7 +373,7 @@ public class Sequence {
   // output format:
   //
   //	1-ff00:0:133#42 1-ff00:0:120#2,1 1-ff00:0:110#21
-  public static String getSequence(Path path) {
+  static String getSequence(Path path) {
     List<PathMetadata.PathInterface> ifaces = path.getMetadata().getInterfacesList();
     if (ifaces.size() % 2 != 0) {
       // Path should contain even number of interfaces. 1 for source AS,

@@ -22,8 +22,13 @@ import java.util.List;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 
+/**
+ * @deprecated Use with caution, this API is unstable. See <a
+ *     href="https://github.com/scionproto/scion/issues/4687">#4687</a>
+ */
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
-public class LocalIsdAs {
+@Deprecated
+class LocalIsdAs {
   // LocalISDAS is a path policy that checks whether the first hop in the path (local AS) belongs
   // to the specified set.
   private long[] allowedIAs;

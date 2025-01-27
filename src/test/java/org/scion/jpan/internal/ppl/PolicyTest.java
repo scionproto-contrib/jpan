@@ -32,14 +32,16 @@ class PolicyTest {
 
     // "Empty policy"
     List<Path> paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
-    PplPolicy policy = PplPolicy.builder().build();
-
-    List<Path> outPaths = policy.filterAll(paths);
-    assertEquals(2, outPaths.size());
+    // Unlike the scionproto, we forbid empty policies.
+    assertThrows(PplException.class, () -> PplPolicy.builder().build());
+    //    PplPolicy policy = PplPolicy.builder().build();
+    //
+    //    List<Path> outPaths = policy.filterAll(paths);
+    //    assertEquals(2, outPaths.size());
   }
 
   @Test
-  void TestOptionsEval() {
+  void testOptionsEval() {
     PathProvider pp = new PathProvider();
     PplPolicy policy;
     List<Path> paths;

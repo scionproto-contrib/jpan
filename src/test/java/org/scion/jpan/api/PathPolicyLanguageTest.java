@@ -21,39 +21,12 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
-import org.scion.jpan.internal.ppl.ACL;
 import org.scion.jpan.internal.ppl.PplException;
 import org.scion.jpan.internal.ppl.PplExtPolicy;
 import org.scion.jpan.internal.ppl.PplPolicy;
-import org.scion.jpan.internal.ppl.Sequence;
 import org.scion.jpan.testutil.ExamplePacket;
 
 class PathPolicyLanguageTest {
-
-  @Test
-  void smokeTest() {
-    ACL extAcl =
-        ACL.create(
-            ACL.AclEntry.create("+ 1-ff00:0:133"),
-            ACL.AclEntry.create("+ 1-ff00:0:120"),
-            ACL.AclEntry.create("- 1"),
-            ACL.AclEntry.create("+"));
-    Sequence extSequence = Sequence.create("1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0");
-    String[] extensions = {"hello", "you"};
-    PplExtPolicy ext = PplExtPolicy.createExt("myExtPolicy", extAcl, extSequence, extensions);
-
-    ACL acl = ACL.create("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+");
-    Sequence sequence = Sequence.create("1-ff00:0:133#1 1+ 2-ff00:0:1? 2-ff00:0:233#1");
-    PplPolicy.Option option = PplPolicy.Option.create(15, ext);
-
-    PplPolicy ppl = PplPolicy.create("My policy", acl, sequence, option);
-    List<Path> paths = new ArrayList<>();
-    paths.add(ExamplePacket.PATH_IPV4);
-    assertThrows(NoSuchElementException.class, () -> ppl.filter(paths));
-
-    String str = Sequence.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
-    assertEquals("", str);
-  }
 
   @Test
   void smokeTestBuilder() {
@@ -80,28 +53,33 @@ class PathPolicyLanguageTest {
     paths.add(ExamplePacket.PATH_IPV4);
     assertThrows(NoSuchElementException.class, () -> ppl.filter(paths));
 
-    String str = Sequence.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
+    String str = PplPolicy.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
     assertEquals("", str);
   }
 
   @Test
   void aclFail_extraEntries() {
-    assertThrows(PplException.class, () -> ACL.create("ext-acl1-fsd", "ext-acl2-fsd dsf"));
+    PplPolicy.Builder builder = PplPolicy.builder();
+    assertThrows(
+        PplException.class, () -> builder.addAclEntries("ext-acl1-fsd", "ext-acl2-fsd dsf"));
   }
 
   @Test
   void aclFail_noDefault() {
-    assertThrows(PplException.class, () -> ACL.create(new String[0]));
+    PplPolicy.Builder builder = PplPolicy.builder();
+    assertThrows(PplException.class, () -> builder.addAclEntries(new String[0]));
   }
 
   @Test
   void aclFail_badISD() {
-    assertThrows(PplException.class, () -> ACL.create("ext-acl1-fsd sss"));
+    PplPolicy.Builder builder = PplPolicy.builder();
+    assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd sss"));
   }
 
   @Test
   void aclFail_badLast() {
-    assertThrows(PplException.class, () -> ACL.create("ext-acl1-fsd"));
+    PplPolicy.Builder builder = PplPolicy.builder();
+    assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd"));
   }
 
   @Test

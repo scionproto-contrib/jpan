@@ -39,7 +39,7 @@ public class PplPolicy implements PathPolicy {
   // TODO
 
   /** FilterOptions contains options for filtering. */
-  public static class FilterOptions {
+  static class FilterOptions {
     // IgnoreSequence can be used to ignore the sequence part of policies.
     private final boolean ignoreSequence;
 
@@ -73,7 +73,7 @@ public class PplPolicy implements PathPolicy {
   }
 
   // creates a Policy and sorts its Options
-  public static PplPolicy create(String name, ACL acl, Sequence sequence, Option... options) {
+  static PplPolicy create(String name, ACL acl, Sequence sequence, Option... options) {
     return new PplPolicy(name, acl, sequence, options);
   }
 
@@ -195,7 +195,8 @@ public class PplPolicy implements PathPolicy {
   }
 
   // Option contains a weight and a policy and is used as a list item in Policy.Options
-  public static class Option {
+  @Deprecated
+  static class Option {
     private final int weight; //        `json:"weight"`
     private final PplExtPolicy policy; // `json:"policy"`
 
@@ -204,7 +205,7 @@ public class PplPolicy implements PathPolicy {
       this.policy = policy;
     }
 
-    public static Option create(int weight, PplExtPolicy policy) {
+    static Option create(int weight, PplExtPolicy policy) {
       return new Option(weight, policy);
     }
 
@@ -251,6 +252,15 @@ public class PplPolicy implements PathPolicy {
     }
   }
 
+  /**
+   * getSequence constructs the sequence string from a Path. Output format:
+   *
+   * <p>{@code 1-ff00:0:133#42 1-ff00:0:120#2,1 1-ff00:0:110#21}
+   */
+  public static String getSequence(Path path) {
+    return Sequence.getSequence(path);
+  }
+
   public String getName() {
     return name;
   }
@@ -295,9 +305,9 @@ public class PplPolicy implements PathPolicy {
 
   public static class Builder {
     protected String name = "";
-    protected Sequence sequence = null;
-    protected final List<Option> options = new ArrayList<>();
-    protected final List<ACL.AclEntry> entries = new ArrayList<>();
+    Sequence sequence = null;
+    final List<Option> options = new ArrayList<>();
+    final List<ACL.AclEntry> entries = new ArrayList<>();
 
     public Builder setName(String name) {
       this.name = name;
@@ -313,6 +323,9 @@ public class PplPolicy implements PathPolicy {
       for (String str : strings) {
         entries.add(ACL.AclEntry.create(str));
       }
+      if (strings.length == 0) {
+        throw new PplException(ACL.ERR_NO_DEFAULT);
+      }
       return this;
     }
 
@@ -326,12 +339,22 @@ public class PplPolicy implements PathPolicy {
       return this;
     }
 
+    /**
+     * @param weight weight
+     * @param policy policy
+     * @return Builder
+     * @deprecated Please use with caution, API may change.
+     */
+    @Deprecated
     public Builder addOption(int weight, PplExtPolicy policy) {
       this.options.add(Option.create(weight, policy));
       return this;
     }
 
     public PplPolicy build() {
+      if (entries.isEmpty() && sequence == null && options.isEmpty()) {
+        throw new PplException(ACL.ERR_NO_DEFAULT);
+      }
       ACL acl = entries.isEmpty() ? null : ACL.create(entries.toArray(new ACL.AclEntry[0]));
       return new PplPolicy(name, acl, sequence, options.toArray(new Option[0]));
     }

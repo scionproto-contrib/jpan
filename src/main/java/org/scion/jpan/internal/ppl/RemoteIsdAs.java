@@ -19,8 +19,13 @@ import java.util.List;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionUtil;
 
+/**
+ * @deprecated Use with caution, this API is unstable. See <a
+ *     href="https://github.com/scionproto/scion/issues/4687">#4687</a>
+ */
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
-public class RemoteIsdAs {
+@Deprecated
+class RemoteIsdAs {
   // RemoteISDAS is a path policy that checks whether the last hop in the path (remote AS) satisfies
   // the supplied rules. Rules are evaluated in order and first that matches the remote ISD-AS wins.
   // If in the winnig rule Reject is set to true, then the path will rejected by the policy,
