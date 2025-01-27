@@ -206,7 +206,7 @@ class AclTest {
     // Default ACL action missing
     ACL acl = ACL.createNoValidate(ACL.AclEntry.create(true, "1-0#0"));
     List<Path> input = getPaths(pp, "2-ff00:0:212", "2-ff00:0:211");
-    Exception e = assertThrows(PplException.class, () -> acl.eval(input).size());
+    Exception e = assertThrows(PplException.class, () -> acl.eval(input));
     assertEquals("Default ACL action missing", e.getMessage());
   }
 

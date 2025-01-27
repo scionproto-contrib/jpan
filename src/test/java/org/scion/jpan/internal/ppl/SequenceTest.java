@@ -21,7 +21,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 
-public class SequenceTest {
+class SequenceTest {
 
   @Test
   void testNewSequence() {
@@ -39,22 +39,6 @@ public class SequenceTest {
 
   @Test
   void testSequenceEval() {
-    //        tests := map[string]struct {
-    //            Seq        *Sequence
-    //            Src        addr.IA
-    //            Dst        addr.IA
-    //            ExpPathNum int
-    //        }{
-
-    //        pp := NewPathProvider(ctrl)
-    //        for name, test := range tests {
-    //            t.Run(name, func(t *testing.T) {
-    //                paths := pp.GetPaths(test.Src, test.Dst)
-    //                outPaths := test.Seq.Eval(paths)
-    //                assert.Equal(t, test.ExpPathNum, len(outPaths))
-    //            })
-    //        }
-
     PathProvider pp = new PathProvider();
 
     // "Empty path":

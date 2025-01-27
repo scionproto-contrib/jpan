@@ -21,19 +21,20 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 
+@SuppressWarnings("deprecation")
 class PolicyTest {
 
-  private static final String allowStr = "+";
-  private static final String denyStr = "-";
+  private static final String ALLOW_STR = "+";
+  private static final String DENY_STR = "-";
 
   @Test
   void testBasicPolicy() {
     PathProvider pp = new PathProvider();
 
     // "Empty policy"
-    List<Path> paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
     // Unlike the scionproto, we forbid empty policies.
     assertThrows(PplException.class, () -> PplPolicy.builder().build());
+    //    List<Path> paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
     //    PplPolicy policy = PplPolicy.builder().build();
     //
     //    List<Path> outPaths = policy.filterAll(paths);
@@ -53,7 +54,7 @@ class PolicyTest {
                 0,
                 PplExtPolicy.builder()
                     .addAclEntry(true, "0-0#0")
-                    .addAclEntry(denyStr)
+                    .addAclEntry(DENY_STR)
                     .buildNoValidate())
             .build();
     paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
@@ -66,13 +67,13 @@ class PolicyTest {
                 0,
                 PplExtPolicy.builder()
                     .addAclEntry(true, "0-0#0")
-                    .addAclEntry(denyStr)
+                    .addAclEntry(DENY_STR)
                     .buildNoValidate())
             .addOption(
                 1,
                 PplExtPolicy.builder()
                     .addAclEntry(false, "0-0#0")
-                    .addAclEntry(denyStr)
+                    .addAclEntry(DENY_STR)
                     .buildNoValidate())
             .build();
     paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
@@ -86,7 +87,7 @@ class PolicyTest {
                 0,
                 PplExtPolicy.builder()
                     .addAclEntry(true, "0-0#0")
-                    .addAclEntry(denyStr)
+                    .addAclEntry(DENY_STR)
                     .buildNoValidate())
             .addOption(
                 1,
@@ -94,7 +95,7 @@ class PolicyTest {
                     .addAclEntry(false, "1-ff00:0:110#0")
                     .addAclEntry(false, "1-ff00:0:120#0")
                     .addAclEntry(false, "1-ff00:0:111#2823")
-                    .addAclEntry(allowStr)
+                    .addAclEntry(ALLOW_STR)
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:122", "2-ff00:0:222");
@@ -107,13 +108,13 @@ class PolicyTest {
                 0,
                 PplExtPolicy.builder()
                     .addAclEntry(false, "1-ff00:0:120#0")
-                    .addAclEntries(allowStr)
+                    .addAclEntries(ALLOW_STR)
                     .build())
             .addOption(
                 0,
                 PplExtPolicy.builder()
                     .addAclEntry(false, "2-ff00:0:210#0")
-                    .addAclEntry(allowStr)
+                    .addAclEntry(ALLOW_STR)
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");
@@ -126,13 +127,13 @@ class PolicyTest {
                 1,
                 PplExtPolicy.builder()
                     .addAclEntry(false, "1-ff00:0:120#0")
-                    .addAclEntries(allowStr)
+                    .addAclEntries(ALLOW_STR)
                     .build())
             .addOption(
                 0,
                 PplExtPolicy.builder()
                     .addAclEntry(false, "2-ff00:0:210#0")
-                    .addAclEntry(allowStr)
+                    .addAclEntry(ALLOW_STR)
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");
@@ -145,13 +146,13 @@ class PolicyTest {
                 1,
                 PplExtPolicy.builder()
                     .addAclEntry(false, "1-ff00:0:120#0")
-                    .addAclEntry(allowStr)
+                    .addAclEntry(ALLOW_STR)
                     .build())
             .addOption(
                 10,
                 PplExtPolicy.builder()
                     .addAclEntry(false, "2-ff00:0:210#0")
-                    .addAclEntry(allowStr)
+                    .addAclEntry(ALLOW_STR)
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");
@@ -172,11 +173,11 @@ class PolicyTest {
           PplExtPolicy.builder()
               .setName("policy1")
               .addAclEntry(true, "0-0#0")
-              .addAclEntry(denyStr)
+              .addAclEntry(DENY_STR)
               .buildNoValidate()
         };
     extendedPolicy =
-        PplPolicy.builder().addAclEntry(true, "0-0#0").addAclEntry(denyStr).buildNoValidate();
+        PplPolicy.builder().addAclEntry(true, "0-0#0").addAclEntry(DENY_STR).buildNoValidate();
 
     pol = PplPolicy.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
@@ -191,7 +192,7 @@ class PolicyTest {
                   1,
                   PplExtPolicy.builder()
                       .addAclEntry(true, "0-0#0")
-                      .addAclEntry(denyStr)
+                      .addAclEntry(DENY_STR)
                       .buildNoValidate())
               .buildNoValidate()
         };
@@ -201,7 +202,7 @@ class PolicyTest {
                 1,
                 PplExtPolicy.builder()
                     .addAclEntry(true, "0-0#0")
-                    .addAclEntry(denyStr)
+                    .addAclEntry(DENY_STR)
                     .buildNoValidate())
             .build();
     pol = PplPolicy.policyFromExtPolicy(policy, extended);
@@ -214,14 +215,14 @@ class PolicyTest {
           PplExtPolicy.builder()
               .setName("policy1")
               .addAclEntry(true, "0-0#0")
-              .addAclEntry(denyStr)
+              .addAclEntry(DENY_STR)
               .setSequence("1-ff00:0:133#1019 1-ff00:0:132#1910")
               .buildNoValidate()
         };
     extendedPolicy =
         PplPolicy.builder()
             .addAclEntry(true, "0-0#0")
-            .addAclEntry(denyStr)
+            .addAclEntry(DENY_STR)
             .setSequence("1-ff00:0:133#1019 1-ff00:0:132#1910")
             .buildNoValidate();
     pol = PplPolicy.policyFromExtPolicy(policy, extended);
@@ -238,7 +239,7 @@ class PolicyTest {
           PplExtPolicy.builder()
               .setName("policy2")
               .addAclEntry(true, "0-0#0")
-              .addAclEntry(denyStr)
+              .addAclEntry(DENY_STR)
               .buildNoValidate(),
           PplExtPolicy.builder()
               .setName("policy1")
@@ -248,7 +249,7 @@ class PolicyTest {
     extendedPolicy =
         PplPolicy.builder()
             .addAclEntry(true, "0-0#0")
-            .addAclEntry(denyStr)
+            .addAclEntry(DENY_STR)
             .setSequence("1-ff00:0:133#0 1-ff00:0:132#0")
             .buildNoValidate();
     pol = PplPolicy.policyFromExtPolicy(policy, extended);

@@ -47,22 +47,11 @@ public class PathProvider {
   private static class SnetPath {
     long Src;
     long Dst;
-    //        DataplanePath snet.DataplanePath;
-    //        NextHop       *net.UDPAddr;
-    //        Meta          snet.PathMetadata;
     List<PathInterface> pathIntfs;
 
-    SnetPath(
-        long Src,
-        long Dst,
-        List<PathInterface>
-            pathIntfs) { // DataplanePath snet.DataplanePath, NextHop *net.UDPAddr, Meta
-      // snet.PathMetadata) {
+    SnetPath(long Src, long Dst, List<PathInterface> pathIntfs) {
       this.Src = Src;
       this.Dst = Dst;
-      //            this.snet.DataplanePath = snet.DataplanePath;
-      //            this.net.UDPAddr = net.UDPAddr;
-      //            this.snet.PathMetadata = snet.PathMetadata;
       this.pathIntfs = pathIntfs;
     }
   }

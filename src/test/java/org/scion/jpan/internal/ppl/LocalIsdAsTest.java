@@ -25,6 +25,7 @@ import org.scion.jpan.Path;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.testutil.ExamplePacket;
 
+@SuppressWarnings("deprecation")
 class LocalIsdAsTest {
 
   @Disabled

@@ -27,34 +27,21 @@ import org.scion.jpan.ScionUtil;
  */
 public class Graph {
   // maps IfIDs to the other IfID of the edge
-  private final Map<Integer, Integer> links = new HashMap<>(); // uint16, uint16
+  private final Map<Integer, Integer> links = new HashMap<>();
   // specifies whether an IfID is on a peering link
-  private final Map<Integer, Boolean> isPeer = new HashMap<>(); // map[uint16]bool
+  private final Map<Integer, Boolean> isPeer = new HashMap<>();
   // maps IfIDs to the AS they belong to
-  private final Map<Integer, Long> parents = new HashMap<>(); // map[uint16]addr.IA
+  private final Map<Integer, Long> parents = new HashMap<>();
   // maps ASes to a structure containing a slice of their IfIDs
-  private final Map<Long, AS> ases = new HashMap<>(); // map[addr.IA]*AS
+  private final Map<Long, AS> ases = new HashMap<>();
 
-  private final Map<Long, Signer> signers = new HashMap<>(); // map[addr.IA]*Signer
-
-  // ctrl *gomock.Controller
-  // lock sync.Mutex;
+  private final Map<Long, Signer> signers = new HashMap<>();
 
   // New allocates a new empty graph.
-  public Graph() { // ctrl *gomock.Controller) *Graph {
-    //        return &Graph{
-    //            ctrl:    ctrl,
-    //                    links:   make(map[uint16]uint16),
-    //                    isPeer:  make(map[uint16]bool),
-    //                    parents: make(map[uint16]addr.IA),
-    //                    ases:    make(map[addr.IA]*AS),
-    //                    signers: make(map[addr.IA]*Signer),
-    //        }
-  }
+  private Graph() {}
 
   // NewFromDescription initializes a new graph from description desc.
-  public static Graph NewFromDescription(
-      DefaultGen.Description desc) { // ctrl *gomock.Controller, desc *Description) *Graph {
+  static Graph NewFromDescription(DefaultGen.Description desc) {
     Graph graph = new Graph();
     for (String node : desc.Nodes) {
       graph.Add(node);
@@ -68,8 +55,6 @@ public class Graph {
   // Add adds a new node to the graph. If ia is not a valid string representation
   // of an ISD-AS, Add panics.
   private void Add(String ia) {
-    // g.lock.Lock()
-    // defer g.lock.Unlock()
     long isdas = ScionUtil.parseIA(ia);
     ases.put(isdas, new AS());
     signers.put(
@@ -85,8 +70,6 @@ public class Graph {
 
   // GetSigner returns the signer for the ISD-AS.
   private Signer GetSigner(String ia) {
-    //        g.lock.Lock()
-    //        defer g.lock.Unlock()
     return signers.get(ScionUtil.parseIA(ia));
   }
 
@@ -94,9 +77,6 @@ public class Graph {
   // xIfID in xIA and yIfID in yIA. If xIA or yIA are not valid string
   // representations of an ISD-AS, AddLink panics.
   private void AddLink(String xIA, int xIfID, String yIA, int yIfID, boolean peer) {
-
-    // g.lock.Lock()
-    // defer g.lock.Unlock()
     long x = ScionUtil.parseIA(xIA);
     long y = ScionUtil.parseIA(yIA);
     if (!ases.containsKey(x)) {
@@ -117,14 +97,12 @@ public class Graph {
     isPeer.put(yIfID, peer);
     parents.put(xIfID, x);
     parents.put(yIfID, y);
-    ases.get(x).IfIDs.put(xIfID, new Object()); // struct{}{}
-    ases.get(y).IfIDs.put(yIfID, new Object()); // = struct{}{}
+    ases.get(x).IfIDs.put(xIfID, new Object());
+    ases.get(y).IfIDs.put(yIfID, new Object());
   }
 
   // RemoveLink deletes the edge containing ifID from the graph.
   private void RemoveLink(int ifID) {
-    // g.lock.Lock()
-    // defer g.lock.Unlock()
     long ia = parents.get(ifID);
     int neighborIfID = links.get(ifID);
     long neighborIA = parents.get(neighborIfID);
@@ -141,8 +119,6 @@ public class Graph {
 
   // GetParent returns the parent AS of ifID.
   long GetParent(int ifID) {
-    // g.lock.Lock()
-    // defer g.lock.Unlock()
     return parents.get(ifID);
   }
 
@@ -152,12 +128,7 @@ public class Graph {
   //
   // Note that this always returns shortest length paths, even if they might not
   // be valid SCION paths.
-  //    List<List<Integer>> GetPaths(String xIA, String yIA) {
   List<List<Integer>> GetPaths(long src, long dst) {
-    // g.lock.Lock()
-    // defer g.lock.Unlock() // TODO
-    //        long src = ScionUtil.parseIA(xIA);
-    //        long dst = ScionUtil.parseIA(yIA);
     int solutionLength = 1000; // Infinity
     Queue<Solution> queue = new ArrayDeque<>();
     queue.add(new Solution(src));
@@ -201,8 +172,7 @@ public class Graph {
   }
 
   // SignerOption allows customizing the generated Signer.
-  private static interface SignerOption extends Consumer<Signer> {
-    // func(o *Signer)
+  private interface SignerOption extends Consumer<Signer> {
 
     // WithPrivateKey customizes the private key for the Signer.
     //        static SignerOption WithPrivateKey(key crypto.Signer) {
@@ -317,7 +287,6 @@ public class Graph {
     // current AS in the exploration
     long CurrentIA;
     // whether the AS has already been visited by this path, to avoid loops
-    // visited map[addr.IA]struct{} // TODO
     final Map<Long, Object> visited = new HashMap<>();
     // the trail of IfIDs
     final List<Integer> trail = new ArrayList<>(); // uint16
@@ -328,16 +297,8 @@ public class Graph {
     }
 
     Solution Copy() {
-      if (this == null) {
-        return null;
-      }
       Solution newS = new Solution(CurrentIA);
-      // newS.CurrentIA = CurrentIA;
-      // newS.visited = make(map[addr.IA]struct{})
       newS.visited.putAll(visited);
-      //            for (long ia : visited.keySet()) {
-      //                newS.visited.put(ia, new Object());
-      //            }
       newS.trail.addAll(trail);
       return newS;
     }

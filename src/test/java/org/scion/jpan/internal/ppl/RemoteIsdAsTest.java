@@ -22,18 +22,19 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionUtil;
 
-public class RemoteIsdAsTest {
+@SuppressWarnings("deprecation")
+class RemoteIsdAsTest {
 
   @Test
   void TestRemoteISDASEval() {
     PathProvider pp = new PathProvider();
-    List<Path> paths1_110 = pp.getPaths("2-ff00:0:210", "1-ff00:0:110");
-    List<Path> paths2_212 = pp.getPaths("2-ff00:0:210", "2-ff00:0:212");
-    List<Path> paths2_220 = pp.getPaths("2-ff00:0:210", "2-ff00:0:220");
+    List<Path> paths1x110 = pp.getPaths("2-ff00:0:210", "1-ff00:0:110");
+    List<Path> paths2x212 = pp.getPaths("2-ff00:0:210", "2-ff00:0:212");
+    List<Path> paths2x220 = pp.getPaths("2-ff00:0:210", "2-ff00:0:220");
     List<Path> inPaths = new ArrayList<>();
-    inPaths.addAll(paths1_110);
-    inPaths.addAll(paths2_212);
-    inPaths.addAll(paths2_220);
+    inPaths.addAll(paths1x110);
+    inPaths.addAll(paths2x212);
+    inPaths.addAll(paths2x220);
 
     // "nil"
     RemoteIsdAs ri = RemoteIsdAs.create(null);
