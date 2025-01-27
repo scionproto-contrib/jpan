@@ -58,13 +58,6 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 - `PathPolicy` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 TODO
-- What is local/remoteISD? How to configure?
-- Parse JSON -> postpone?
-- Make PathPolicy return List<Path> or Stream<Path> instead of Path
-- add to README.md
-- move to or.scion.jpan.ppl (without internal)? Maybe not! 
-  -> Only move PplPolicy to main package!
-- Change ExtPolicy to be composite i.o. extending PathPolicy...?!!!
 - Why do they have the duplicate hopPredicate in almost every test?
               .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
   -> Find out and either remove duplicate or remove buildNoValidate() 

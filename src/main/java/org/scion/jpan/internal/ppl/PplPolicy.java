@@ -14,14 +14,14 @@
 
 package org.scion.jpan.internal.ppl;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import org.scion.jpan.Path;
-import org.scion.jpan.PathMetadata;
-import org.scion.jpan.PathPolicy;
+import org.scion.jpan.*;
 
 /**
  * A path policy based onj Path Policy Language: <a
@@ -83,6 +83,10 @@ public class PplPolicy implements PathPolicy {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public static PplPolicy fromJson(String json) {
+    return parseJsonFile(json).get(0); // TODO
   }
 
   @Override
@@ -301,6 +305,36 @@ public class PplPolicy implements PathPolicy {
         + ", options="
         + Arrays.toString(options)
         + '}';
+  }
+
+  private static List<PplPolicy> parseJsonFile(String jsonFile) {
+    List<PplPolicy> policies = new ArrayList<>();
+    JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
+    if (jsonTree.isJsonObject()) {
+      JsonObject o = jsonTree.getAsJsonObject();
+      for (Map.Entry<String, JsonElement> oo : o.entrySet()) {
+        Builder b = new Builder();
+        b.setName(oo.getKey());
+        System.out.println("name: " + oo.getKey()); // TODO
+        if (oo.getValue().isJsonObject()) {
+          JsonObject policy = oo.getValue().getAsJsonObject();
+          JsonElement aclElement = policy.get("acl");
+          if (aclElement != null) {
+            for (JsonElement e : aclElement.getAsJsonArray()) {
+              b.addAclEntry(e.getAsString());
+              System.out.println("  acl: " + e.getAsString()); // TODO
+            }
+          }
+          JsonElement sequence = policy.get("sequence");
+          if (sequence != null) {
+            b.setSequence(sequence.getAsString());
+            System.out.println("  sequence: " + sequence.getAsString()); // TODO
+          }
+        }
+        policies.add(b.build());
+      }
+    }
+    return policies;
   }
 
   public static class Builder {
