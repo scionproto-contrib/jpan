@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
+- Add scion-apps-PAN "Preferred" Path Policy
+ 
 - FABRID is currently in SCIONlab. WHen ported to scionproto, JPAN should show policies in
   "showpaths" etc, see
   https://github.com/netsec-ethz/scion/blob/b45a8ff2a753e95b647801577bca019c9c4a124a/private/app/path/path.go#L415
