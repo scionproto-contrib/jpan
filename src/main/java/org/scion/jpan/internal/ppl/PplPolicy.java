@@ -311,30 +311,31 @@ public class PplPolicy implements PathPolicy {
     List<PplPolicy> policies = new ArrayList<>();
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
     if (jsonTree.isJsonObject()) {
-      JsonObject o = jsonTree.getAsJsonObject();
-      for (Map.Entry<String, JsonElement> oo : o.entrySet()) {
-        Builder b = new Builder();
-        b.setName(oo.getKey());
-        System.out.println("name: " + oo.getKey()); // TODO
-        if (oo.getValue().isJsonObject()) {
-          JsonObject policy = oo.getValue().getAsJsonObject();
-          JsonElement aclElement = policy.get("acl");
-          if (aclElement != null) {
-            for (JsonElement e : aclElement.getAsJsonArray()) {
-              b.addAclEntry(e.getAsString());
-              System.out.println("  acl: " + e.getAsString()); // TODO
-            }
-          }
-          JsonElement sequence = policy.get("sequence");
-          if (sequence != null) {
-            b.setSequence(sequence.getAsString());
-            System.out.println("  sequence: " + sequence.getAsString()); // TODO
-          }
-        }
-        policies.add(b.build());
+      JsonObject parent = jsonTree.getAsJsonObject();
+      for (Map.Entry<String, JsonElement> oo : parent.entrySet()) {
+        policies.add(parseJsonPolicy(oo.getKey(), oo.getValue().getAsJsonObject()));
       }
     }
     return policies;
+  }
+
+  static PplPolicy parseJsonPolicy(String name, JsonObject policy) {
+    Builder b = new Builder();
+    b.setName(name);
+    System.out.println("name: " + name); // TODO
+    JsonElement aclElement = policy.get("acl");
+    if (aclElement != null) {
+      for (JsonElement e : aclElement.getAsJsonArray()) {
+        b.addAclEntry(e.getAsString());
+        System.out.println("  acl: " + e.getAsString()); // TODO
+      }
+    }
+    JsonElement sequence = policy.get("sequence");
+    if (sequence != null) {
+      b.setSequence(sequence.getAsString());
+      System.out.println("  sequence: " + sequence.getAsString()); // TODO
+    }
+    return b.build();
   }
 
   public static class Builder {
