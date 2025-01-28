@@ -1,0 +1,23 @@
+{
+  "options": [
+    {
+      "weight": 0,
+      "policy": {
+        "acl": [
+          "+ 42-0#0",
+          "- 0-0#0"
+        ],
+        "local_isd_ases": [
+          "64-123",
+          "70-ff00:102:304"
+        ],
+        "remote_isd_ases": [
+          {
+            "isd_as": "64-123",
+            "reject": true
+          }
+        ]
+      }
+    }
+  ]
+}
