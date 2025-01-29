@@ -28,7 +28,7 @@ import org.scion.jpan.proto.daemon.Daemon;
 
 public class PathProvider {
 
-  private final Graph g = Graph.NewFromDescription(DefaultGen.DefaultGraphDescription);
+  private final Graph g = Graph.fromDescription(DefaultGen.DefaultGraphDescription);
 
   // PathInterface is an interface of the path.
   private static class PathInterface {
@@ -45,25 +45,24 @@ public class PathProvider {
 
   // Path is an snet.Path with full metadata
   private static class SnetPath {
-    long Src;
-    long Dst;
+    long src;
+    long dst;
     List<PathInterface> pathIntfs;
 
-    SnetPath(long Src, long Dst, List<PathInterface> pathIntfs) {
-      this.Src = Src;
-      this.Dst = Dst;
+    SnetPath(long src, long dst, List<PathInterface> pathIntfs) {
+      this.src = src;
+      this.dst = dst;
       this.pathIntfs = pathIntfs;
     }
   }
 
   private List<SnetPath> getPaths(long src, long dst) {
     List<SnetPath> result = new ArrayList<>();
-    List<List<Integer>> paths = g.GetPaths(src, dst);
+    List<List<Integer>> paths = g.getPaths(src, dst);
     for (List<Integer> ifIDs : paths) {
-      List<PathInterface> pathIntfs =
-          new ArrayList<>(); // make([]snet.PathInterface, 0, len(ifIDs))
+      List<PathInterface> pathIntfs = new ArrayList<>();
       for (int ifID : ifIDs) {
-        long ia = g.GetParent(ifID);
+        long ia = g.getParent(ifID);
         pathIntfs.add(new PathInterface(ifID, ia));
       }
       long srcIA = 0;

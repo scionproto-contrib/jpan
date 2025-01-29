@@ -40,28 +40,28 @@ public class Graph {
   // New allocates a new empty graph.
   private Graph() {}
 
-  // NewFromDescription initializes a new graph from description desc.
-  static Graph NewFromDescription(DefaultGen.Description desc) {
+  // fromDescription initializes a new graph from description desc.
+  static Graph fromDescription(DefaultGen.Description desc) {
     Graph graph = new Graph();
-    for (String node : desc.Nodes) {
-      graph.Add(node);
+    for (String node : desc.nodes) {
+      graph.add(node);
     }
-    for (DefaultGen.EdgeDesc edge : desc.Edges) {
-      graph.AddLink(edge.Xia, edge.XifID, edge.Yia, edge.YifID, edge.Peer);
+    for (DefaultGen.EdgeDesc edge : desc.edges) {
+      graph.addLink(edge.xIA, edge.xIfID, edge.yIA, edge.yIfID, edge.peer);
     }
     return graph;
   }
 
   // Add adds a new node to the graph. If ia is not a valid string representation
   // of an ISD-AS, Add panics.
-  private void Add(String ia) {
+  private void add(String ia) {
     long isdas = ScionUtil.parseIA(ia);
     ases.put(isdas, new AS());
     signers.put(
         isdas,
         new Signer(
-            SignerOption.WithIA(isdas)
-            //                WithTRCID(cppki.TRCID(
+            SignerOption.withIA(isdas)
+            //                withTRCID(cppki.TRCID(
             //            ISD:    isdas.ISD(),
             //                    Serial: 1,
             //                    Base:   1,)
@@ -69,14 +69,14 @@ public class Graph {
   }
 
   // GetSigner returns the signer for the ISD-AS.
-  private Signer GetSigner(String ia) {
+  private Signer getSigner(String ia) {
     return signers.get(ScionUtil.parseIA(ia));
   }
 
   // AddLink adds a new edge between the ASes described by xIA and yIA, with
   // xIfID in xIA and yIfID in yIA. If xIA or yIA are not valid string
   // representations of an ISD-AS, AddLink panics.
-  private void AddLink(String xIA, int xIfID, String yIA, int yIfID, boolean peer) {
+  private void addLink(String xIA, int xIfID, String yIA, int yIfID, boolean peer) {
     long x = ScionUtil.parseIA(xIA);
     long y = ScionUtil.parseIA(yIA);
     if (!ases.containsKey(x)) {
@@ -97,12 +97,12 @@ public class Graph {
     isPeer.put(yIfID, peer);
     parents.put(xIfID, x);
     parents.put(yIfID, y);
-    ases.get(x).IfIDs.put(xIfID, new Object());
-    ases.get(y).IfIDs.put(yIfID, new Object());
+    ases.get(x).ifIDs.put(xIfID, new Object());
+    ases.get(y).ifIDs.put(yIfID, new Object());
   }
 
   // RemoveLink deletes the edge containing ifID from the graph.
-  private void RemoveLink(int ifID) {
+  private void removeLink(int ifID) {
     long ia = parents.get(ifID);
     int neighborIfID = links.get(ifID);
     long neighborIA = parents.get(neighborIfID);
@@ -113,12 +113,12 @@ public class Graph {
     isPeer.remove(neighborIfID);
     parents.remove(ifID);
     parents.remove(neighborIfID);
-    ases.get(ia).Delete(ifID);
-    ases.get(neighborIA).Delete(neighborIfID);
+    ases.get(ia).delete(ifID);
+    ases.get(neighborIA).delete(neighborIfID);
   }
 
   // GetParent returns the parent AS of ifID.
-  long GetParent(int ifID) {
+  long getParent(int ifID) {
     return parents.get(ifID);
   }
 
@@ -128,7 +128,7 @@ public class Graph {
   //
   // Note that this always returns shortest length paths, even if they might not
   // be valid SCION paths.
-  List<List<Integer>> GetPaths(long src, long dst) {
+  List<List<Integer>> getPaths(long src, long dst) {
     int solutionLength = 1000; // Infinity
     Queue<Solution> queue = new ArrayDeque<>();
     queue.add(new Solution(src));
@@ -142,29 +142,29 @@ public class Graph {
       // Explore the next element in the queue.
       Solution curSolution = queue.poll();
 
-      if (curSolution.Len() > solutionLength) {
+      if (curSolution.len() > solutionLength) {
         break;
       }
 
       // If we found the solution, save the length to stop exploring
       // longer paths.
-      if (curSolution.CurrentIA == dst) {
-        solutionLength = curSolution.Len();
+      if (curSolution.currentIA == dst) {
+        solutionLength = curSolution.len();
         solution.add(curSolution.trail);
         continue;
       }
 
       // Explore neighboring ASes, if not visited yet.
-      for (Integer ifID : ases.get(curSolution.CurrentIA).IfIDs.keySet()) {
+      for (int ifID : ases.get(curSolution.currentIA).ifIDs.keySet()) {
         int nextIfID = links.get(ifID);
         long nextIA = parents.get(nextIfID);
-        if (curSolution.Visited(nextIA)) {
+        if (curSolution.visited(nextIA)) {
           continue;
         }
         // Copy to avoid mutating the trails of other explorations.
-        Solution nextTrail = curSolution.Copy();
-        nextTrail.Add(ifID, nextIfID, nextIA);
-        nextTrail.CurrentIA = nextIA;
+        Solution nextTrail = curSolution.copy();
+        nextTrail.add(ifID, nextIfID, nextIA);
+        nextTrail.currentIA = nextIA;
         queue.add(nextTrail);
       }
     }
@@ -175,26 +175,26 @@ public class Graph {
   private interface SignerOption extends Consumer<Signer> {
 
     // WithPrivateKey customizes the private key for the Signer.
-    //        static SignerOption WithPrivateKey(key crypto.Signer) {
+    //        static SignerOption withPrivateKey(key crypto.Signer) {
     //            return func(o *Signer) {
     //                o.PrivateKey = key
     //            }
     //        }
 
     // WithIA customizes the ISD-AS for the Signer.
-    static SignerOption WithIA(long ia) {
-      return (o) -> o.IA = ia;
+    static SignerOption withIA(long ia) {
+      return o -> o.ia = ia;
     }
 
     // WithTRCID customizes the TRCID for the Signer.
-    //        static SignerOption WithTRCID(trcID cppki.TRCID) {
+    //        static SignerOption withTRCID(trcID cppki.TRCID) {
     //            return func(o *Signer) {
     //                o.TRCID = trcID
     //            }
     //        }
 
     // WithTimestamp customizes the signature timestamp for the Signer.
-    //        static SignerOption WithTimestamp(ts time.Time) {
+    //        static SignerOption withTimestamp(ts time.Time) {
     //            return func(o *Signer) {
     //                o.Timestamp = ts
     //            }
@@ -207,12 +207,12 @@ public class Graph {
     //        // all signatures are created with this timestamp. If it is not set, the
     //        // current time is used for the signature timestamp.
     //        Timestamp time.Time
-    long IA;
+    long ia;
 
     //        TRCID     cppki.TRCID
     //
     Signer(long ia) {
-      IA = ia;
+      this.ia = ia;
     }
 
     Signer(SignerOption... opts) {
@@ -271,11 +271,11 @@ public class Graph {
 
   // AS contains a list of all the IfIDs in an AS.
   private static class AS {
-    private final Map<Integer, Object> IfIDs = new HashMap<>(); // map[uint16]struct{}
+    private final Map<Integer, Object> ifIDs = new HashMap<>();
 
     // Delete removes ifID from as.
-    void Delete(int ifID) {
-      if (IfIDs.remove(ifID) == null) {
+    void delete(int ifID) {
+      if (ifIDs.remove(ifID) == null) {
         throw new IllegalArgumentException("ifID not found");
       }
     }
@@ -285,7 +285,7 @@ public class Graph {
   // exploration in graph.GetPaths.
   private static class Solution {
     // current AS in the exploration
-    long CurrentIA;
+    long currentIA;
     // whether the AS has already been visited by this path, to avoid loops
     final Map<Long, Object> visited = new HashMap<>();
     // the trail of IfIDs
@@ -293,28 +293,28 @@ public class Graph {
 
     Solution(long start) {
       visited.put(start, new Object());
-      CurrentIA = start;
+      currentIA = start;
     }
 
-    Solution Copy() {
-      Solution newS = new Solution(CurrentIA);
+    Solution copy() {
+      Solution newS = new Solution(currentIA);
       newS.visited.putAll(visited);
       newS.trail.addAll(trail);
       return newS;
     }
 
-    boolean Visited(long ia) {
+    boolean visited(long ia) {
       return visited.containsKey(ia);
     }
 
     // Add appends localIfID and nextIfID to the trail, and advances to nextIA.
-    void Add(int localIfID, int nextIfID, long nextIA) {
+    void add(int localIfID, int nextIfID, long nextIA) {
       visited.put(nextIA, new Object());
       trail.add(localIfID);
       trail.add(nextIfID);
     }
 
-    int Len() {
+    int len() {
       return trail.size() / 2;
     }
   }

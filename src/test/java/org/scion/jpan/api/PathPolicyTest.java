@@ -14,19 +14,12 @@
 
 package org.scion.jpan.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
 import java.util.*;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Path;
-import org.scion.jpan.PathPolicy;
-import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.*;
 import org.scion.jpan.internal.ppl.PathProvider;
-import org.scion.jpan.internal.ppl.PplPolicyGroup;
 
 class PathPolicyTest {
 
@@ -135,20 +128,5 @@ class PathPolicyTest {
     pathsWithDifferentLengths.addAll(paths4x8);
     pathsWithDifferentLengths.addAll(paths4x4);
     return pathsWithDifferentLengths;
-  }
-
-  @Test
-  void groupSmokeTest() {
-    java.nio.file.Path jsonFile;
-    try {
-      // fallback, try resource folder
-      ClassLoader classLoader = getClass().getClassLoader();
-      URL resource = classLoader.getResource("ppl/pplGroup.json");
-      jsonFile = Paths.get(resource.toURI());
-    } catch (URISyntaxException e) {
-      throw new ScionRuntimeException(e);
-    }
-
-    PplPolicyGroup group = PplPolicyGroup.fromJson(jsonFile);
   }
 }

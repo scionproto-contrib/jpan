@@ -1,0 +1,12 @@
+{
+  "group": {
+    "0": "default"
+  },
+  "policies": {
+    "default": {
+      "acl": [
+        "+"
+      ]
+    }
+  }
+}
