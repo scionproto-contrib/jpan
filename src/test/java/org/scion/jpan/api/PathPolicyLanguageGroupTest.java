@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
@@ -30,30 +31,97 @@ import org.scion.jpan.proto.daemon.Daemon;
 class PathPolicyLanguageGroupTest {
 
   @Test
-  void groupSmokeTest() {
+  void filter_smokeTest() {
     PplPolicyGroup group = PplPolicyGroup.fromJson(getPath("ppl/pplGroup.json"));
     // pp.getPaths(ScionUtil.parseIA("1-ff00:0:110"),
     List<Path> paths = new ArrayList<>();
     InetSocketAddress addr1 = IPHelper.toInetSocketAddress("192.186.0.5:12234");
-    paths.add(createRequestPath(addr1, "1-ff00:0:110", "1", "2", "1-ff00:0:111"));
+    paths.add(createPath(addr1, "1-ff00:0:112", "1", "2", "1-ff00:0:111"));
 
     List<Path> filteredPaths = group.filter(paths);
     assertEquals(1, filteredPaths.size());
   }
 
   @Test
-  void group_defaultOnly() {
+  void filter_defaultOnly() {
     PplPolicyGroup group = PplPolicyGroup.fromJson(getPath("ppl/pplGroup_trivial.json"));
-    // pp.getPaths(ScionUtil.parseIA("1-ff00:0:110"),
     List<Path> paths = new ArrayList<>();
     InetSocketAddress addr1 = IPHelper.toInetSocketAddress("192.186.0.5:12234");
-    paths.add(createRequestPath(addr1, "1-ff00:0:110", "1", "2", "1-ff00:0:111"));
+    paths.add(createPath(addr1, "1-ff00:0:110", "1", "2", "1-ff00:0:111"));
 
     List<Path> filteredPaths = group.filter(paths);
     assertEquals(1, filteredPaths.size());
   }
 
-  private RequestPath createRequestPath(InetSocketAddress addr, String... str) {
+  @Test
+  void filter_1() {
+    PplPolicyGroup group = PplPolicyGroup.fromJson(getPath("ppl/pplGroup.json"));
+    // pp.getPaths(ScionUtil.parseIA("1-ff00:0:110"),
+    final List<Path> paths = new ArrayList<>();
+    InetSocketAddress addr;
+
+    // policy_110a - address match
+    // This path matches the "sequence" (policy_110a) but not the "acl" in policy_110b
+    String[] path_133_110 = {
+      "1-ff00:0:133",
+      "0",
+      "2",
+      "1-ff00:0:120",
+      "1",
+      "0",
+      "1-ff00:0:130",
+      "0",
+      "0",
+      "1-ff00:0:131",
+      "0",
+      "0",
+      "1-ff00:0:110"
+    };
+    paths.add(createPath("10.0.0.2:12234", path_133_110));
+    System.out.println("path1: " + ScionUtil.toStringPath(paths.get(0).getMetadata()));
+    assertEquals(1, group.filter(paths).size());
+
+    // policy_110a: address does not match -> policy_110b fails
+    paths.clear();
+    paths.add(createPath("10.0.0.3:12235", path_133_110));
+    assertThrows(NoSuchElementException.class, () -> group.filter(paths).size());
+
+    // policy_110b - address match - no ISD match -> accept
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:110"));
+    assertEquals(1, group.filter(paths).size());
+
+    // policy_110b - address match - ISD match -> deny
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:130", "0", "2", "1-ff00:0:110"));
+    assertThrows(NoSuchElementException.class, () -> group.filter(paths).size());
+
+    // default match only (ISD 1-..210) -> specific 112 -> accept
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:112", "1", "2", "2-ff00:0:210"));
+    assertEquals(1, group.filter(paths).size());
+
+    // default match only (ISD 1-..210) -> specific 1 -> deny
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:113", "1", "2", "2-ff00:0:210"));
+    assertThrows(NoSuchElementException.class, () -> group.filter(paths).size());
+
+    // default match only  (ISD 1-..210) -> default ISD 2 -> accept
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "2-ff00:0:113", "1", "2", "2-ff00:0:210"));
+    assertEquals(1, group.filter(paths).size());
+  }
+
+  private RequestPath createPath(String addr, String... str) {
+    return createPath(IPHelper.toInetSocketAddress(addr), str);
+  }
+
+  private RequestPath createPath(InetSocketAddress addr, String... str) {
     Daemon.Path protoPath = createProtoPath(str);
     long dstIsdAs = ScionUtil.parseIA(str[str.length - 1]);
     return PackageVisibilityHelper.createRequestPath(protoPath, dstIsdAs, addr);
@@ -78,8 +146,8 @@ class PathPolicyLanguageGroupTest {
       }
 
       if (i < str.length) {
-        long id2 = Integer.parseInt(str[i++]);
-        path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(id2).build());
+        int id2 = Integer.parseInt(str[i++]);
+        path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(isdAs).setId(id2).build());
       }
     }
     return path.build();

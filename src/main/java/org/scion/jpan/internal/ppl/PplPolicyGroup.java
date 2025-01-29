@@ -123,8 +123,8 @@ public class PplPolicyGroup implements PathPolicy {
         this.dstPort = 0;
         return;
       }
-      this.dstAS = Long.parseLong(parts[0]);
       parts = parts[1].split(",");
+      this.dstAS = ScionUtil.parseAS(parts[0]);
       if (parts.length < 1 || parts.length > 2) {
         throw new IllegalArgumentException("Bad destination format: " + destination);
       }
