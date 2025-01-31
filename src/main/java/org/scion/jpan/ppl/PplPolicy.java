@@ -52,12 +52,10 @@ public class PplPolicy implements PathPolicy {
     }
   }
 
-  private final String name; //       `json:"-"`
-  private ACL acl; //         `json:"acl,omitempty"`
-  private Sequence sequence; //    `json:"sequence,omitempty"`
-  private LocalIsdAs lLocalIsdAs; //  `json:"local_isd_ases,omitempty"`
-  private RemoteIsdAs remoteIsdAs; // `json:"remote_isd_ases,omitempty"`
-  private Option[] options; //     `json:"options,omitempty"`
+  private final String name;
+  private ACL acl;
+  private Sequence sequence;
+  private Option[] options;
 
   protected PplPolicy(String name, ACL acl, Sequence sequence, Option... options) {
     this.name = name;
@@ -96,12 +94,6 @@ public class PplPolicy implements PathPolicy {
   List<Path> filterOpt(List<Path> paths, FilterOptions opts) {
     if (this == null) {
       return paths;
-    }
-    if (lLocalIsdAs != null) {
-      paths = lLocalIsdAs.eval(paths);
-    }
-    if (remoteIsdAs != null) {
-      paths = remoteIsdAs.eval(paths);
     }
     paths = acl == null ? paths : acl.eval(paths);
     if (sequence != null && !opts.ignoreSequence) {
@@ -149,14 +141,6 @@ public class PplPolicy implements PathPolicy {
       // Replace Sequence
       if (sequence == null) {
         sequence = policy.sequence;
-      }
-      // Replace local ISDAS filter.
-      if (lLocalIsdAs == null) {
-        lLocalIsdAs = policy.lLocalIsdAs;
-      }
-      // Replace remote ISDAS filter.
-      if (remoteIsdAs == null) {
-        remoteIsdAs = policy.remoteIsdAs;
       }
     }
   }
@@ -240,7 +224,7 @@ public class PplPolicy implements PathPolicy {
       byte[] digest = h.digest(bb.array());
       return new String(digest, StandardCharsets.UTF_8);
     } catch (NoSuchAlgorithmException e) {
-      throw new PplException(e);
+      throw new IllegalArgumentException(e);
     }
   }
 
@@ -266,14 +250,12 @@ public class PplPolicy implements PathPolicy {
     return Objects.equals(name, policy.name)
         && Objects.equals(acl, policy.acl)
         && Objects.equals(sequence, policy.sequence)
-        && Objects.equals(lLocalIsdAs, policy.lLocalIsdAs)
-        && Objects.equals(remoteIsdAs, policy.remoteIsdAs)
         && Objects.deepEquals(options, policy.options);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, acl, sequence, lLocalIsdAs, remoteIsdAs, Arrays.hashCode(options));
+    return Objects.hash(name, acl, sequence, Arrays.hashCode(options));
   }
 
   @Override
@@ -281,15 +263,10 @@ public class PplPolicy implements PathPolicy {
     return "PplPolicy{"
         + "name='"
         + name
-        + '\''
-        + ", acl="
+        + "', acl="
         + acl
         + ", sequence="
         + sequence
-        + ", lLocalIsdAs="
-        + lLocalIsdAs
-        + ", remoteIsdAs="
-        + remoteIsdAs
         + ", options="
         + Arrays.toString(options)
         + '}';

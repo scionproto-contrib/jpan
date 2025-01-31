@@ -21,10 +21,6 @@ public class PplException extends RuntimeException {
     super(str);
   }
 
-  public PplException(Throwable t) {
-    super(t);
-  }
-
   public PplException(String str, Throwable t) {
     super(str, t);
   }
