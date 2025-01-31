@@ -154,7 +154,7 @@ public class PplPolicyGroup implements PathPolicy {
         this.dstPort = 0;
         return;
       }
-      this.dstPort = Integer.parseInt(partsIP[1].substring(1)); // skip ":"
+      this.dstPort = Integer.parseInt(partsIPv6[1].substring(1)); // skip ":"
     }
 
     public boolean isMatch(ScionSocketAddress destination) {
