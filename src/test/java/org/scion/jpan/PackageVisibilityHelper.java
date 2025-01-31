@@ -159,4 +159,9 @@ public class PackageVisibilityHelper {
             .build();
     return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
   }
+
+  public static RequestPath createRequestPath(
+      Daemon.Path path, long dstIsdAs, InetSocketAddress dst) {
+    return RequestPath.create(path, dstIsdAs, dst.getAddress(), dst.getPort());
+  }
 }

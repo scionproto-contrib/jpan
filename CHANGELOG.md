@@ -9,7 +9,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
+TODO
+- Rethink Exception on empty path list. Remove?!!
+- Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
+- Add normal policy to PolicyGroup with "destination"
+- Add prefereince/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
+  - For MIN_LATENCY: Change it to add 10000 for each UNKNOWN -> Two unknowns are worse than 1...
+- Why do they have the duplicate hopPredicate in almost every test?
+  .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
+  -> Find out and either remove duplicate or remove buildNoValidate()
+- Add PPL JSON+YAML export. Fix JSON import of multiple policies
+- Add scion-apps-PAN "Preferred" Path Policy
 
+ 
+- FABRID is currently in SCIONlab. WHen ported to scionproto, JPAN should show policies in
+  "showpaths" etc, see
+  https://github.com/netsec-ethz/scion/blob/b45a8ff2a753e95b647801577bca019c9c4a124a/private/app/path/path.go#L415
+  https://github.com/netsec-ethz/scion/blob/b45a8ff2a753e95b647801577bca019c9c4a124a/private/app/path/path.go#L327
+ 
+- implement "scion address" command
 - TODO implement PathPolicy https://docs.scion.org/en/latest/dev/design/PathPolicy.html
 
 - Change MockControlService to return parsed Segments i.o. hardcoded segments.
@@ -50,6 +68,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 - Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
 - Added implementation of STUN responder (currently not needed)
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
+- Path policies `PplPolicy` and `PplPilicyGroup` created from Path Policy Language
+  [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 
 ### Changed
  

@@ -73,7 +73,9 @@ The central classes of the API are:
     (bandwidth, geo info, etc).
   - A path returned by `receive()` (as part of a `ScionSocketAddress`) has no meta information.
 - `PathPolicy` is an interface with several example implementations for:
-  first path returned by daemon (default), max bandwidth, min latency, min hops, ...
+  first path returned by daemon (default), max bandwidth, min latency, min hops, ... .
+  There is also `PplPolicy`, an implementation of the 
+  [path policy language (PPL)](https://docs.scion.org/en/latest/dev/design/PathPolicy.html#policy)
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
   `ScionService` instances can be created with the `Scion` class. The first instance that is created is subsequently
   returned by `Scion.defaultService()`.
@@ -89,7 +91,7 @@ The central classes of the API are:
 Supported:
 - DatagramChannel support: read(), write(), receive(), send(), bind(), connect(), ...
 - DatagramSocket support
-- Path selection policies
+- Path selection policies, including path policy language (PPL)
 - Path expiry/refresh
 - Packet validation
 - SCION address lookup via DNS/TXT entry or `/etc/scion/hosts` 

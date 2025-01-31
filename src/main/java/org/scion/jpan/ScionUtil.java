@@ -44,17 +44,23 @@ public class ScionUtil {
     if (parts.length != 2) {
       throw new IllegalArgumentException("invalid ISD-AS: value=" + ia);
     }
-    int isd = Integer.parseUnsignedInt(parts[0], 10);
+    int isd = parseISD(parts[0]);
     long as = parseAS(parts[1]);
     checkLimits(isd, as);
     return Integer.toUnsignedLong(isd) << AS_BITS | (as & MAX_AS);
+  }
+
+  public static int parseISD(String isd) {
+    int parsed = Integer.parseUnsignedInt(isd, 10);
+    checkLimits(parsed, 0);
+    return parsed;
   }
 
   /**
    * ParseAS parses an AS from a decimal (in the case of the 32bit BGP AS number space) or
    * ipv6-style hex (in the case of SCION-only AS numbers) string.
    */
-  private static long parseAS(String as) {
+  public static long parseAS(String as) {
     String[] parts = as.split(":");
     if (parts.length == 1) {
       // Must be a BGP AS, parse as 32-bit decimal number
@@ -69,6 +75,7 @@ public class ScionUtil {
       parsed <<= AS_PART_BITS;
       parsed |= Long.parseUnsignedLong(parts[i], AS_PART_BASE) & 0xFFFF;
     }
+    checkLimits(0, parsed);
     return parsed;
   }
 
