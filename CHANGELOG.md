@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.5.0
 
 TODO
+- Rethink Exception on empty path list. Remove?!!
 - Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
 - Add normal policy to PolicyGroup with "destination"
 - Add prefereince/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
@@ -69,8 +70,6 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
 - Path policies `PplPolicy` and `PplPilicyGroup` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
-TODO
-- Rethink Exception on empty path list. Remove? 
 
 ### Changed
  
