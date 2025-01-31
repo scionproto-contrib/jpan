@@ -13,7 +13,7 @@ TODO
 - Why do they have the duplicate hopPredicate in almost every test?
   .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
   -> Find out and either remove duplicate or remove buildNoValidate()
-- Add PPL JSON+YAML export
+- Add PPL JSON+YAML export. Fix JSON import of multiple policies
 - Add scion-apps-PAN "Preferred" Path Policy
 
  

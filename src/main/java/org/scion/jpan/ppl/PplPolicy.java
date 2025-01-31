@@ -68,15 +68,6 @@ public class PplPolicy implements PathPolicy {
     Arrays.sort(this.options, (o1, o2) -> -Integer.compare(o1.weight, o2.weight));
   }
 
-  private PplPolicy() {
-    this(null, null, null);
-  }
-
-  // creates a Policy and sorts its Options
-  static PplPolicy create(String name, ACL acl, Sequence sequence, Option... options) {
-    return new PplPolicy(name, acl, sequence, options);
-  }
-
   private static PplPolicy createCopy(PplPolicy policy) {
     return new PplPolicy(policy.name, policy.acl, policy.sequence, policy.options);
   }
@@ -126,9 +117,6 @@ public class PplPolicy implements PathPolicy {
   // PolicyFromExtPolicy creates a Policy from an extending Policy and the extended policies
   public static PplPolicy policyFromExtPolicy(PplExtPolicy extPolicy, PplExtPolicy[] extended) {
     PplPolicy policy = PplPolicy.createCopy(extPolicy);
-    if (policy == null) {
-      policy = new PplPolicy();
-    }
     // Apply all extended policies
     policy.applyExtended(extPolicy.getExtensions(), extended);
     return policy;

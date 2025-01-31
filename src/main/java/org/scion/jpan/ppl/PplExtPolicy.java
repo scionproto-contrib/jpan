@@ -35,11 +35,6 @@ public class PplExtPolicy extends PplPolicy {
     this.extensions = extensions;
   }
 
-  static PplExtPolicy createExt(
-      String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
-    return new PplExtPolicy(name, acl, sequence, extensions, options);
-  }
-
   public static Builder builder() {
     return new Builder();
   }

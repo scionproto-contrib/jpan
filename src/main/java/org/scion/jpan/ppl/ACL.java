@@ -42,27 +42,13 @@ class ACL {
     return new ACL(entries);
   }
 
-  /** Creates a new entry and checks for the presence of a default action. */
-  static ACL create(String... entries) {
-    AclEntry[] eArray = new AclEntry[entries.length];
-    for (int i = 0; i < entries.length; i++) {
-      eArray[i] = AclEntry.create(entries[i]);
-    }
-    validateACL(eArray);
-    return new ACL(eArray);
-  }
-
   private ACL(AclEntry... entries) {
     this.entries = entries;
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
   // Eval returns the set of paths that match the ACL.
   List<Path> eval(List<Path> paths) {
-    if (this == null || entries.length == 0) {
+    if (entries.length == 0) {
       return paths;
     }
     List<Path> result = new ArrayList<>();
@@ -254,28 +240,5 @@ class ACL {
   @Override
   public String toString() {
     return "ACL{" + "entries=" + Arrays.toString(entries) + '}';
-  }
-
-  public static class Builder {
-    private final List<AclEntry> entries = new ArrayList<>();
-
-    public Builder addEntry(String str) {
-      entries.add(AclEntry.create(str));
-      return this;
-    }
-
-    public Builder addEntry(boolean allow, String hopFieldPredicate) {
-      entries.add(AclEntry.create(allow, hopFieldPredicate));
-      return this;
-    }
-
-    public Builder addEntry(AclEntry entry) {
-      entries.add(entry);
-      return this;
-    }
-
-    public ACL build() {
-      return new ACL(entries.toArray(new AclEntry[0]));
-    }
   }
 }

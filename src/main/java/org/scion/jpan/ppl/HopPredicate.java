@@ -26,18 +26,10 @@ class HopPredicate {
   // see docs/PathPolicy.md.
   private int isd;
   private long as;
-  private int[] ifIDs = new int[1];
-
-  public static HopPredicate create() {
-    return new HopPredicate(new int[1]);
-  }
+  private int[] ifIDs;
 
   static HopPredicate create(int isd, long as, int[] ifIDs) {
     return new HopPredicate(isd, as, ifIDs);
-  }
-
-  private HopPredicate(int[] ifIDs) {
-    this.ifIDs = ifIDs;
   }
 
   private HopPredicate(int isd, int[] ifIDs) {
@@ -49,10 +41,6 @@ class HopPredicate {
     this.isd = isd;
     this.as = as;
     this.ifIDs = ifIDs;
-  }
-
-  static HopPredicate newHopPredicate() {
-    return new HopPredicate(new int[1]);
   }
 
   static HopPredicate HopPredicateFromString(String str) {

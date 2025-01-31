@@ -93,7 +93,7 @@ class Sequence {
       return new Sequence(re, s, restr);
     } catch (IOException e) {
       LOG.error("Error while compiling path policy from: {}", s);
-      throw new PplException(e);
+      throw new PplException("Error while compiling path policy from: " + s, e);
     }
   }
 
