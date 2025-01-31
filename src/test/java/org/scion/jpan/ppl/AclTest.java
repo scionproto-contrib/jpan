@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal.ppl;
+package org.scion.jpan.ppl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -30,7 +30,7 @@ class AclTest {
   void testNewACL() {
     // "No entry":
     {
-      PplException e = assertThrows(PplException.class, () -> ACL.create(new String[0]));
+      PplException e = assertThrows(PplException.class, () -> ACL.create(new ACL.AclEntry[0]));
       assertEquals(ACL.ERR_NO_DEFAULT, e.getMessage());
     }
     // "No default entry":

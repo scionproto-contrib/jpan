@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.ppl.PathProvider;
+import org.scion.jpan.ppl.PathProvider;
 
 class PathPolicyTest {
 
@@ -117,7 +117,7 @@ class PathPolicyTest {
     PathProvider pp = new PathProvider();
     List<Path> paths1x2 = pp.getPaths("2-ff00:0:210", "1-ff00:0:110");
     List<Path> paths4x4 = pp.getPaths("2-ff00:0:210", "2-ff00:0:212");
-    //  List<Path> paths3_4 = pp.getPaths("2-ff00:0:211", "2-ff00:0:220");
+    //  List<Path> paths3_4 = pp.getPaths("2-ff00:0:211", "2-ff00:0:220")
     List<Path> paths2x8 = pp.getPaths("1-ff00:0:122", "2-ff00:0:222");
     List<Path> paths4x8 = pp.getPaths("1-ff00:0:122", "2-ff00:0:221");
     List<Path> paths3x4 = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");

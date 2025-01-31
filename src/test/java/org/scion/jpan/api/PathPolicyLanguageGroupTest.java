@@ -23,11 +23,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
-import org.scion.jpan.internal.ppl.PplPolicyGroup;
+import org.scion.jpan.ppl.PplPolicyGroup;
 import org.scion.jpan.proto.daemon.Daemon;
 
 class PathPolicyLanguageGroupTest {
@@ -80,7 +79,6 @@ class PathPolicyLanguageGroupTest {
       "1-ff00:0:110"
     };
     paths.add(createPath("10.0.0.2:12234", path133x110));
-    System.out.println("path1: " + ScionUtil.toStringPath(paths.get(0).getMetadata()));
     assertEquals(1, group.filter(paths).size());
 
     // policy_110a: address does not match -> policy_110b fails

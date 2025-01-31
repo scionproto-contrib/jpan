@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal.ppl;
+package org.scion.jpan.ppl;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -322,18 +322,15 @@ public class PplPolicy implements PathPolicy {
   static PplPolicy parseJsonPolicy(String name, JsonObject policy) {
     Builder b = new Builder();
     b.setName(name);
-    System.out.println("name: " + name); // TODO
     JsonElement aclElement = policy.get("acl");
     if (aclElement != null) {
       for (JsonElement e : aclElement.getAsJsonArray()) {
         b.addAclEntry(e.getAsString());
-        System.out.println("  acl: " + e.getAsString()); // TODO
       }
     }
     JsonElement sequence = policy.get("sequence");
     if (sequence != null) {
       b.setSequence(sequence.getAsString());
-      System.out.println("  sequence: " + sequence.getAsString()); // TODO
     }
     return b.build();
   }

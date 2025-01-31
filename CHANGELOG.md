@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
+TODO
+- Why do they have the duplicate hopPredicate in almost every test?
+  .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
+  -> Find out and either remove duplicate or remove buildNoValidate()
+- Add PPL JSON+YAML export
 - Add scion-apps-PAN "Preferred" Path Policy
+
  
 - FABRID is currently in SCIONlab. WHen ported to scionproto, JPAN should show policies in
   "showpaths" etc, see
@@ -59,10 +65,6 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
 - `PathPolicy` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
-TODO
-- Why do they have the duplicate hopPredicate in almost every test?
-              .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
-  -> Find out and either remove duplicate or remove buildNoValidate() 
 
 ### Changed
  

@@ -21,9 +21,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.ppl.PplException;
-import org.scion.jpan.internal.ppl.PplExtPolicy;
-import org.scion.jpan.internal.ppl.PplPolicy;
+import org.scion.jpan.ppl.PplException;
+import org.scion.jpan.ppl.PplExtPolicy;
+import org.scion.jpan.ppl.PplPolicy;
 import org.scion.jpan.testutil.ExamplePacket;
 
 class PathPolicyLanguageTest {
