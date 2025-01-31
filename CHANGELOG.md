@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.5.0
 
 TODO
+- Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
 - Why do they have the duplicate hopPredicate in almost every test?
   .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
   -> Find out and either remove duplicate or remove buildNoValidate()
