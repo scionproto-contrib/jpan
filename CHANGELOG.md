@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 TODO
 - Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
+- Add normal policy to PolicyGroup with "destination"
+- Add prefereince/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
+  - For MIN_LATENCY: Change it to add 10000 for each UNKNOWN -> Two unknowns are worse than 1...
 - Why do they have the duplicate hopPredicate in almost every test?
   .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
   -> Find out and either remove duplicate or remove buildNoValidate()
@@ -67,7 +70,6 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 - Path policies `PplPolicy` and `PplPilicyGroup` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 TODO
-- document groups
 - Rethink Exception on empty path list. Remove? 
 
 ### Changed

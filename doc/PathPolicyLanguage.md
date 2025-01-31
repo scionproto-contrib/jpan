@@ -78,9 +78,15 @@ The following example specifies a path from interface `1-ff00:0:133#1` through m
 
 ## PPL Groups
 
-PPL groups (PPLG) are sets of PPLs. Each PPL has a filter assigned that determines for which
-destinations (ISD/AS/IP) the PPLs is applicable.
-There is also a `default` PPL that is applied if no other PPL matches.
+A PPL group (PPLG) i consists of a set of named PPLs and a set of filters that determine which
+policy is used. The filters consists of:
+
+- ISD or `0` for catch all
+- optional: AS number, `0` for catch all
+- optional if AS is given: IP address
+- optional if IP is given: port number
+
+There must be one `default` PPL with `0` that applies when no other PPL matches.
 
 PPLGs can be defined via API or via YAML or JSON files. For example:
 
