@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2025 ETH Zurich
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
@@ -81,7 +80,7 @@ class PathPolicyLanguageGroupTest {
     // policy_110a: address does not match -> policy_110b fails
     paths.clear();
     paths.add(createPath("10.0.0.3:12235", path133x110));
-    assertThrows(NoSuchElementException.class, () -> group.filter(paths));
+    assertTrue(group.filter(paths).isEmpty());
 
     // policy_110b - address match - no ISD match -> accept
     paths.clear();
@@ -93,7 +92,7 @@ class PathPolicyLanguageGroupTest {
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:130", "0", "2", "1-ff00:0:110"));
-    assertThrows(NoSuchElementException.class, () -> group.filter(paths));
+    assertTrue(group.filter(paths).isEmpty());
 
     // default match only (ISD 1-..210) -> specific 112 -> accept
     paths.clear();
@@ -105,7 +104,7 @@ class PathPolicyLanguageGroupTest {
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:113", "1", "2", "2-ff00:0:210"));
-    assertThrows(NoSuchElementException.class, () -> group.filter(paths));
+    assertTrue(group.filter(paths).isEmpty());
 
     // default match only  (ISD 1-..210) -> default ISD 2 -> accept
     paths.clear();
@@ -162,7 +161,7 @@ class PathPolicyLanguageGroupTest {
 
     // address+port do not match "deny"
     List<Path> pathsDeny = toList(createPath(addrAllow, path133x110));
-    assertThrows(NoSuchElementException.class, () -> group.filter(pathsDeny));
+    assertTrue(group.filter(pathsDeny).isEmpty());
   }
 
   /**

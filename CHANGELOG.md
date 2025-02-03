@@ -13,7 +13,7 @@ TODO
 - Rethink Exception on empty path list. Remove?!!
 - Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
 - Add normal policy to PolicyGroup with "destination"
-- Add prefereince/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
+- Add preference/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
   - For MIN_LATENCY: Change it to add 10000 for each UNKNOWN -> Two unknowns are worse than 1...
 - Why do they have the duplicate hopPredicate in almost every test?
   .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
@@ -77,6 +77,9 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 - Changed checkstyle rules. [#153](https://github.com/scionproto-contrib/jpan/pull/143)
 - **BREAKING CHANGE** `PathPolicy.filter(..)` to return a `List` of paths. 
   [#159](https://github.com/scionproto-contrib/jpan/pull/159)
+- Policy filters should not need to throw Exceptions when the path list is empty.
+  [#160](https://github.com/scionproto-contrib/jpan/pull/160)
+
 
 ### Fixed
 
