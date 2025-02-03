@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.5.0
 
 TODO
-- Rethink Exception on empty path list. Remove?!!
+- rename "group" to "mapping"
+- add "ordering": bw, hopcount, latency, asc, desc
 - Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
 - Add normal policy to PolicyGroup with "destination"
 - Add preference/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
@@ -19,7 +20,6 @@ TODO
   .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
   -> Find out and either remove duplicate or remove buildNoValidate()
 - Add PPL JSON+YAML export. Fix JSON import of multiple policies
-- Add scion-apps-PAN "Preferred" Path Policy
 
  
 - FABRID is currently in SCIONlab. WHen ported to scionproto, JPAN should show policies in
