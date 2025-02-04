@@ -15,6 +15,7 @@
 package org.scion.jpan.ppl;
 
 import com.google.protobuf.Duration;
+import com.google.protobuf.Timestamp;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -98,15 +99,15 @@ public class PathProvider {
   private Daemon.Path protoPathFrom(SnetPath snetPath) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     Random rnd = new Random();
-    // path.setExpiration(0);
-    path.setMtu(0);
+    path.setExpiration(Timestamp.newBuilder().setSeconds(rnd.nextInt()).build());
+    path.setMtu(1000 + rnd.nextInt(1000));
     // path.setInterface(Daemon.PathInterface.newBuilder().setAddress(Daemon.Address.getDefaultInstance()));
     for (PathInterface pathIntf : snetPath.pathIntfs) {
       path.addInterfaces(
           Daemon.PathInterface.newBuilder().setId(pathIntf.ID).setIsdAs(pathIntf.IA));
       if (rnd.nextInt(20) > 2) {
         // We should add them per AS, not per interface....!!!
-        path.addLatency(Duration.newBuilder().setNanos(rnd.nextInt(100_000_000)).build());
+        path.addLatency(Duration.newBuilder().setNanos(rnd.nextInt(1_000_000_000)).build());
         // We should add them per AS, not per interface....!!!
         path.addBandwidth(rnd.nextInt(1_000_000_000));
       } else {

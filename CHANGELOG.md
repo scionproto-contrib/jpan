@@ -68,7 +68,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 - Added keep-alive protocol for NAT. [#151](https://github.com/scionproto-contrib/jpan/pull/151)
 - Added implementation of STUN responder (currently not needed)
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
-- Path policies `PplPolicy` and `PplPilicyGroup` created from Path Policy Language
+- Path policies `PplPolicy` and `PplPolicyGroup` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 
 ### Changed
@@ -79,8 +79,12 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#159](https://github.com/scionproto-contrib/jpan/pull/159)
 - Policy filters should not need to throw Exceptions when the path list is empty.
   [#160](https://github.com/scionproto-contrib/jpan/pull/160)
-
-
+  - Remove isEmpty() in applyFilter
+  - Document contract -> no exception
+  - Ordering: expiration, MTU
+  - Filter: min MTU
+  - Selectors: PingLatency, ReversePath, ...
+  
 ### Fixed
 
 - SHIM should not crash when receiving unparseable packet (e.g. dstPort = -1).
