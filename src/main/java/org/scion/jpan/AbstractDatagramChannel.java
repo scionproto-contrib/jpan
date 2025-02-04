@@ -106,9 +106,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   protected List<Path> applyFilter(List<Path> paths, Object address) throws ScionRuntimeException {
-    if (paths.isEmpty()) {
-      throw new ScionRuntimeException("Address is not resolvable in SCION: " + address);
-    }
     List<Path> filtered = getPathPolicy().filter(paths);
     if (filtered.isEmpty()) {
       String isdAs = ScionUtil.toStringIA(paths.get(0).getRemoteIsdAs());

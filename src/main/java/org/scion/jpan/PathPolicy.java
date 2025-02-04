@@ -21,13 +21,11 @@ import java.util.stream.Collectors;
  * Path policy interface.
  *
  * <p>Contract:<br>
- * - The filter method must return a non-empty list of paths or throw a NoSuchElementException.<br>
- * - The list of paths returned by filter must be ordered by preference (most preferred first).<br>
+ * - The list of paths returned by filter may be ordered by preference (most preferred first).<br>
  * - The filter method must not modify the input list of paths (TBD).<br>
  * - The filter method must not keep a reference to the returned list. The returned list may be
  * modified by the caller.<br>
  * - The filter method must not return a list containing paths with null metadata.<br>
- * -
  */
 public interface PathPolicy {
   PathPolicy FIRST = new First();

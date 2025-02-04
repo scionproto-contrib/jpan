@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.5.0
 
 TODO
+- Ordering: expiration, MTU
+- Filter: min MTU
+- Selectors: PingLatency, ReversePath, ...
+- Fix PplPolicy.fromJson()
+
 - rename "group" to "mapping"
 - add "ordering": bw, hopcount, latency, asc, desc
 - Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
@@ -79,12 +84,6 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#159](https://github.com/scionproto-contrib/jpan/pull/159)
 - Policy filters should not need to throw Exceptions when the path list is empty.
   [#160](https://github.com/scionproto-contrib/jpan/pull/160)
-  - Remove isEmpty() in applyFilter
-  - Document contract -> no exception
-  - Ordering: expiration, MTU
-  - Filter: min MTU
-  - Selectors: PingLatency, ReversePath, ...
-  - Fix PplPolicy.fromJson()
   
 ### Fixed
 
