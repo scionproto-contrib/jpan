@@ -1,4 +1,4 @@
-// Copyright 2024 ETH Zurich
+// Copyright 2025 ETH Zurich
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ppl.PplException;
@@ -51,7 +50,7 @@ class PathPolicyLanguageTest {
 
     List<Path> paths = new ArrayList<>();
     paths.add(ExamplePacket.PATH_IPV4);
-    assertThrows(NoSuchElementException.class, () -> ppl.filter(paths));
+    assertTrue(ppl.filter(paths).isEmpty());
 
     String str = PplPolicy.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
     assertEquals("", str);

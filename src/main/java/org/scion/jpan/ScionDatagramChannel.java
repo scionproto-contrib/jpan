@@ -136,7 +136,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     synchronized (stateLock()) {
       path = resolvedDestinations.get(dst);
       if (path == null) {
-        path = (RequestPath) getPathPolicy().filter(getService().lookupPaths(dst)).get(0);
+        path = (RequestPath) applyFilter(getService().lookupPaths(dst), dst).get(0);
         resolvedDestinations.put(dst, path);
       }
     }
@@ -282,7 +282,8 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         }
         throw new ScionRuntimeException("Path is expired");
       case POLICY:
-        return (RequestPath) getPathPolicy().filter(getService().getPaths(path)).get(0);
+        return (RequestPath)
+            applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
       case SAME_LINKS:
         return findPathSameLinks(paths, path);
       default:

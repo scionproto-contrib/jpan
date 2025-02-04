@@ -32,12 +32,6 @@ import org.scion.jpan.*;
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class PplPolicy implements PathPolicy {
 
-  // PolicyMap is a container for Policies, keyed by their unique name. PolicyMap
-  // can be used to marshal Policies to JSON. Unmarshaling back to PolicyMap is
-  // guaranteed to yield an object that is identical to the initial one.
-  // type PolicyMap map[string]*ExtPolicy
-  // TODO
-
   /** FilterOptions contains options for filtering. */
   static class FilterOptions {
     // IgnoreSequence can be used to ignore the sequence part of policies.
@@ -78,23 +72,15 @@ public class PplPolicy implements PathPolicy {
     return parseJsonFile(json).get(0); // TODO
   }
 
+  // Filter filters the paths according to the policy.
   @Override
   public List<Path> filter(List<Path> paths) {
-    List<Path> filtered = filterAll(paths);
-    return PathPolicy.assertNotEmpty(filtered);
-  }
-
-  // Filter filters the paths according to the policy.
-  List<Path> filterAll(List<Path> paths) {
     return filterOpt(paths, new FilterOptions(false));
   }
 
   // FilterOpt filters the path set according to the policy with the given
   // options.
   List<Path> filterOpt(List<Path> paths, FilterOptions opts) {
-    if (this == null) {
-      return paths;
-    }
     paths = acl == null ? paths : acl.eval(paths);
     if (sequence != null && !opts.ignoreSequence) {
       paths = sequence.eval(paths);

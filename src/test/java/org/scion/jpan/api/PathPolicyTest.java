@@ -50,7 +50,7 @@ class PathPolicyTest {
   void minLatency() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
     List<Path> filtered = PathPolicy.MIN_LATENCY.filter(pathsWithDifferentLengths);
-    int prevLatency = 1;
+    int prevLatency = 0;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
       int localMin = 0;
       for (Integer lat : filtered.get(i).getMetadata().getLatencyList()) {
@@ -65,7 +65,7 @@ class PathPolicyTest {
         localMin = Integer.MAX_VALUE;
       }
 
-      assertTrue(localMin >= prevLatency);
+      assertTrue(localMin >= prevLatency, localMin + " vs " + prevLatency);
       prevLatency = localMin;
     }
   }

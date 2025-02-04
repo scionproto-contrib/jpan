@@ -21,16 +21,13 @@ import java.util.stream.Collectors;
  * Path policy interface.
  *
  * <p>Contract:<br>
- * - The filter method must return a non-empty list of paths or throw a NoSuchElementException.<br>
- * - The list of paths returned by filter must be ordered by preference (most preferred first).<br>
+ * - The list of paths returned by filter may be ordered by preference (most preferred first).<br>
  * - The filter method must not modify the input list of paths (TBD).<br>
  * - The filter method must not keep a reference to the returned list. The returned list may be
  * modified by the caller.<br>
  * - The filter method must not return a list containing paths with null metadata.<br>
- * -
  */
 public interface PathPolicy {
-  String NO_PATH = "No path found to destination.";
   PathPolicy FIRST = new First();
   PathPolicy MAX_BANDWIDTH = new MaxBandwith();
   PathPolicy MIN_LATENCY = new MinLatency();
@@ -39,7 +36,7 @@ public interface PathPolicy {
 
   class First implements PathPolicy {
     public List<Path> filter(List<Path> paths) {
-      return assertNotEmpty(paths);
+      return paths;
     }
   }
 
@@ -52,7 +49,7 @@ public interface PathPolicy {
             int bw2 = Collections.min(p2.getMetadata().getBandwidthList()).intValue();
             return Integer.compare(bw2, bw1);
           });
-      return assertNotEmpty(result);
+      return result;
     }
   }
 
@@ -60,24 +57,22 @@ public interface PathPolicy {
     public List<Path> filter(List<Path> paths) {
       // A 0-value indicates that the AS did not announce a latency for this hop.
       // We use Integer.MAX_VALUE for comparison of these ASes.
-      return assertNotEmpty(
-          paths.stream()
-              .sorted(
-                  Comparator.comparing(
-                      path ->
-                          path.getMetadata().getLatencyList().stream()
-                              .mapToLong(l -> l >= 0 ? l : Integer.MAX_VALUE)
-                              .reduce(0, Long::sum)))
-              .collect(Collectors.toList()));
+      return paths.stream()
+          .sorted(
+              Comparator.comparing(
+                  path ->
+                      path.getMetadata().getLatencyList().stream()
+                          .mapToLong(l -> l >= 0 ? l : Integer.MAX_VALUE)
+                          .reduce(0, Long::sum)))
+          .collect(Collectors.toList());
     }
   }
 
   class MinHopCount implements PathPolicy {
     public List<Path> filter(List<Path> paths) {
-      return assertNotEmpty(
-          paths.stream()
-              .sorted(Comparator.comparing(path -> path.getMetadata().getInterfacesList().size()))
-              .collect(Collectors.toList()));
+      return paths.stream()
+          .sorted(Comparator.comparing(path -> path.getMetadata().getInterfacesList().size()))
+          .collect(Collectors.toList());
     }
   }
 
@@ -90,7 +85,7 @@ public interface PathPolicy {
 
     @Override
     public List<Path> filter(List<Path> paths) {
-      return assertNotEmpty(paths.stream().filter(this::checkPath).collect(Collectors.toList()));
+      return paths.stream().filter(this::checkPath).collect(Collectors.toList());
     }
 
     private boolean checkPath(Path path) {
@@ -113,7 +108,7 @@ public interface PathPolicy {
 
     @Override
     public List<Path> filter(List<Path> paths) {
-      return assertNotEmpty(paths.stream().filter(this::checkPath).collect(Collectors.toList()));
+      return paths.stream().filter(this::checkPath).collect(Collectors.toList());
     }
 
     private boolean checkPath(Path path) {
@@ -125,13 +120,6 @@ public interface PathPolicy {
       }
       return true;
     }
-  }
-
-  static List<Path> assertNotEmpty(List<Path> paths) {
-    if (paths.isEmpty()) {
-      throw new NoSuchElementException(NO_PATH);
-    }
-    return paths;
   }
 
   /**

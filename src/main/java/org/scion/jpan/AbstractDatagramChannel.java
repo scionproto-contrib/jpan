@@ -22,6 +22,7 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
@@ -96,11 +97,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
+        ScionSocketAddress destination = connectionPath.getRemoteSocketAddress();
         connectionPath =
-            (RequestPath) pathPolicy.filter(getService().getPaths(connectionPath)).get(0);
+            (RequestPath) applyFilter(getService().getPaths(connectionPath), destination).get(0);
         updateConnection(connectionPath, true);
       }
     }
+  }
+
+  protected List<Path> applyFilter(List<Path> paths, Object address) throws ScionRuntimeException {
+    List<Path> filtered = getPathPolicy().filter(paths);
+    if (filtered.isEmpty()) {
+      String isdAs = ScionUtil.toStringIA(paths.get(0).getRemoteIsdAs());
+      throw new ScionRuntimeException("No path found to destination: " + isdAs + " --- " + address);
+    }
+    return filtered;
   }
 
   /**
@@ -203,7 +214,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public InetSocketAddress getRemoteAddress() throws IOException {
     Path path = getConnectionPath();
     if (path != null) {
-      return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
+      return path.getRemoteSocketAddress();
     }
     return null;
   }
@@ -260,7 +271,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (addr instanceof ScionSocketAddress) {
         return connect(((ScionSocketAddress) addr).getPath());
       }
-      Path path = pathPolicy.filter(getService().lookupPaths((InetSocketAddress) addr)).get(0);
+      InetSocketAddress destination = (InetSocketAddress) addr;
+      Path path = applyFilter(getService().lookupPaths(destination), destination).get(0);
       return connect(path);
     }
   }

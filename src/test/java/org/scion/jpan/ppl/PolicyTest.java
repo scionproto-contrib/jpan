@@ -58,7 +58,7 @@ class PolicyTest {
                     .buildNoValidate())
             .build();
     paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
-    assertEquals(2, policy.filterAll(paths).size());
+    assertEquals(2, policy.filter(paths).size());
 
     // "two options, deny everything"
     policy =
@@ -77,7 +77,7 @@ class PolicyTest {
                     .buildNoValidate())
             .build();
     paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
-    assertEquals(2, policy.filterAll(paths).size());
+    assertEquals(2, policy.filter(paths).size());
 
     // "two options, first: allow everything, second: allow one path"
     policy =
@@ -99,7 +99,7 @@ class PolicyTest {
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:122", "2-ff00:0:222");
-    assertEquals(1, policy.filterAll(paths).size());
+    assertEquals(1, policy.filter(paths).size());
 
     // "two options, combined"
     policy =
@@ -118,7 +118,7 @@ class PolicyTest {
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");
-    assertEquals(3, policy.filterAll(paths).size());
+    assertEquals(3, policy.filter(paths).size());
 
     // "two options, take first"
     policy =
@@ -137,7 +137,7 @@ class PolicyTest {
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");
-    assertEquals(1, policy.filterAll(paths).size());
+    assertEquals(1, policy.filter(paths).size());
 
     // "two options, take second"
     policy =
@@ -156,7 +156,7 @@ class PolicyTest {
                     .build())
             .build();
     paths = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");
-    assertEquals(2, policy.filterAll(paths).size());
+    assertEquals(2, policy.filter(paths).size());
   }
 
   @Test

@@ -24,6 +24,8 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.Charset;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterAll;
@@ -382,6 +384,17 @@ class DatagramChannelApiTest {
       channel.setPathPolicy(PathPolicy.MAX_BANDWIDTH);
       assertEquals(PathPolicy.MAX_BANDWIDTH, channel.getPathPolicy());
       // TODO test that path policy is actually used
+    }
+  }
+
+  @Test
+  void getPathPolicy_filterReturnsEmptyList() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
+      channel.connect(paths.get(0));
+      PathPolicy empty = paths1 -> Collections.emptyList();
+      Exception e = assertThrows(ScionRuntimeException.class, () -> channel.setPathPolicy(empty));
+      assertTrue(e.getMessage().startsWith("No path found to destination"));
     }
   }
 
