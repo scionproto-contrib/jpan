@@ -84,6 +84,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   - Ordering: expiration, MTU
   - Filter: min MTU
   - Selectors: PingLatency, ReversePath, ...
+  - Fix PplPolicy.fromJson()
   
 ### Fixed
 
