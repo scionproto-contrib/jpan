@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
+- Use grpc-netty instead of grpc-netty-shaded -> Android problems
+
 TODO
 - Ordering: expiration, MTU
-- Filter: min MTU
+- Filter: min MTU, min expiration, min bw, max latency (+/- ignore unknown)
 - Selectors: PingLatency, ReversePath, ...
 - Fix PplPolicy.fromJson()
 
