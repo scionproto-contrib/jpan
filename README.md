@@ -394,7 +394,7 @@ JPAN uses the slf4j logging library. To use it, you have to install a logger. Fo
 
 Then enable the logger by placing a [`simplelogger.properties`](src/test/resources/simplelogger.properties) 
 file into you resources folder, or enable logging programmatically with 
-`System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO");` 
+`System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO");` 
 before using *any* JPAN code. 
 
 ### No DNS search domain found. Please check your /etc/resolv.conf or similar. / No DNS record found for bootstrap server.
