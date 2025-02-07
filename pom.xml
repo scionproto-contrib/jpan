@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.scion</groupId>
@@ -117,7 +119,10 @@
 
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
+            <!-- TODO We are not using the shaded version because it causes problem with Android.
+             However, we have to look at this again because shading helps avoiding dependency
+              conflicts if the application is using netty somewhere. -->
+            <artifactId>grpc-netty</artifactId>
             <version>${scion.io-grpc.version}</version>
         </dependency>
 
@@ -324,7 +329,9 @@
                         <Export-Package>
                             org.scion.jpan.*
                         </Export-Package>
-                        <_removeheaders>Bnd-*, Tool, Require-Capability, Include-Resource, Private-Package</_removeheaders>
+                        <_removeheaders>Bnd-*, Tool, Require-Capability, Include-Resource,
+                            Private-Package
+                        </_removeheaders>
                         <Include-Resource>
                             {maven-resources},
                             META-INF/LICENSE=LICENSE
@@ -342,7 +349,8 @@
                             <goal>antlr4</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.basedir}/target/generated-sources</outputDirectory>
+                            <outputDirectory>${project.basedir}/target/generated-sources
+                            </outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
