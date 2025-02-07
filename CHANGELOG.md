@@ -101,6 +101,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#157](https://github.com/scionproto-contrib/jpan/pull/157)
 - Fixed troubleshooting documentation for slf4j
   [#161](https://github.com/scionproto-contrib/jpan/pull/161)
+- Fixed Android problems with grpc-netty-shaded jar.
+  [#165](https://github.com/scionproto-contrib/jpan/pull/165)
 
 ## [0.4.1] - 2024-11-22
 

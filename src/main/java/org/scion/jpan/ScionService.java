@@ -97,7 +97,11 @@ public class ScionService {
     if (mode == Mode.DAEMON) {
       addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
       LOG.info("Bootstrapping with daemon: target={}", addressOrHost);
-      channel = Grpc.newChannelBuilder(addressOrHost, InsecureChannelCredentials.create()).build();
+      // We are using OkHttp instead of Netty for Android compatibility
+      channel =
+          io.grpc.okhttp.OkHttpChannelBuilder.forTarget(
+                  addressOrHost, InsecureChannelCredentials.create())
+              .build();
       daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
       segmentStub = null;
       try {
@@ -109,7 +113,7 @@ public class ScionService {
         } catch (IOException ex) {
           // Ignore, we just want to get out.
         }
-        throw e;
+        throw new ScionRuntimeException("Could not connect to daemon at: " + addressOrHost, e);
       }
     } else {
       LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
