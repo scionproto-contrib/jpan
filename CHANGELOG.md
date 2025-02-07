@@ -99,6 +99,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#156](https://github.com/scionproto-contrib/jpan/pull/156)
 - Stop contacting daemon of every received packet
   [#157](https://github.com/scionproto-contrib/jpan/pull/157)
+- Fixed troubleshooting documentation for slf4j
+  [#161](https://github.com/scionproto-contrib/jpan/pull/161)
 
 ## [0.4.1] - 2024-11-22
 
