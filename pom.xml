@@ -119,10 +119,10 @@
 
         <dependency>
             <groupId>io.grpc</groupId>
-            <!-- TODO We are not using the shaded version because it causes problem with Android.
-             However, we have to look at this again because shading helps avoiding dependency
-              conflicts if the application is using netty somewhere. -->
-            <artifactId>grpc-netty</artifactId>
+            <!-- TODO We are not using the (netty) shaded version because it causes problem with
+            Android. However, we have to look at this again because shading helps avoiding
+            dependency conflicts if the application is using netty/okhttp elsewhere. -->
+            <artifactId>grpc-okhttp</artifactId>
             <version>${scion.io-grpc.version}</version>
         </dependency>
 
