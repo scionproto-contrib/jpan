@@ -103,6 +103,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#161](https://github.com/scionproto-contrib/jpan/pull/161)
 - Fixed Android problems with grpc-netty-shaded jar.
   [#165](https://github.com/scionproto-contrib/jpan/pull/165)
+- Stabilized some NAT unit tests that kept failing on MacOS
+  [#166](https://github.com/scionproto-contrib/jpan/pull/166)
 
 ## [0.4.1] - 2024-11-22
 

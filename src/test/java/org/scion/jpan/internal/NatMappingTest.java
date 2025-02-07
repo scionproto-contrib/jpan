@@ -430,9 +430,8 @@ class NatMappingTest {
       natMapping = NatMapping.createMapping(isdAs, channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
-      TestUtil.sleep(250);
       // One keep alive per IP
-      assertEquals(2, MockNetwork.getAndResetStunCount());
+      awaitStunCount(2, 350);
     } finally {
       if (natMapping != null) {
         natMapping.close();
@@ -672,5 +671,19 @@ class NatMappingTest {
     long isdAs = ScionUtil.parseIA("1-ff00:0:112");
     return PackageVisibilityHelper.createDummyPath(
         isdAs, new byte[] {127, 0, 0, 1}, 54321, ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
+  }
+
+  private void awaitStunCount(int nExpected, int timeoutMs) {
+    long startMs = System.currentTimeMillis();
+    int n = 0;
+    while (true) {
+      n += MockNetwork.getAndResetStunCount();
+      if (n == nExpected) {
+        return;
+      }
+      long now = System.currentTimeMillis();
+      assertTrue(now - startMs < timeoutMs);
+      TestUtil.sleep(20);
+    }
   }
 }
