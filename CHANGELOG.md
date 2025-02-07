@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.5.0
 
 - Use grpc-netty instead of grpc-netty-shaded -> Android problems
+- Issue #161
+- API do drop current path or even use most diverse one.
+  -> To be called if application detects interruption (but no SCMP errors arrive?)
+  -> Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
+     They may become valid/valuable again. Especially if the problem is actually the 
+     remote server and not the path itself.  
 
 TODO
 - Ordering: expiration, MTU
