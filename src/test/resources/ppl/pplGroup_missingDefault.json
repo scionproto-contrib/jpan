@@ -1,5 +1,5 @@
 {
-  "group": {
+  "destinations": {
     "1-0:0:110,10.0.0.2": "policy_110a",
     "1-0:0:110": "policy_110b"
   },

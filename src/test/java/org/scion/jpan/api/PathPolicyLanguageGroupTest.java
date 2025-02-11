@@ -194,7 +194,7 @@ class PathPolicyLanguageGroupTest {
   void fromJson_invalidFile_throwsException() {
     Class<IllegalArgumentException> ec = IllegalArgumentException.class;
     Exception e;
-    // missing default policy in "group"
+    // missing default policy in "destinations"
     e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: "), e.getMessage());
 
@@ -202,7 +202,7 @@ class PathPolicyLanguageGroupTest {
     e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicy.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: Policy not found:"), e.getMessage());
 
-    // missing policies in "group"
+    // missing policies in "destinations"
     e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicies.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No entries in group"));
 

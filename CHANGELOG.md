@@ -25,11 +25,11 @@ TODO
 - Filter: min MTU, min expiration, min bw, max latency (+/- ignore unknown)
 - Selectors: PingLatency, ReversePath, ...
 - Fix PplPolicy.fromJson()
+- PplPolicy.addPre()/post() to permanently add a filter (custom ordering e.g. with live latency) 
 
-- rename "group" to "mapping" or "destination-filter"
 - add "ordering": bw, hopcount, latency, asc, desc
 - Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
-- Add normal policy to PolicyGroup with "destination"
+- Add normal policy to PolicyGroup with "destinations"
 - Add preference/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
   - For MIN_LATENCY: Change it to add 10000 for each UNKNOWN -> Two unknowns are worse than 1...
 - Why do they have the duplicate hopPredicate in almost every test?
@@ -103,6 +103,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 - PplPolicy refactoring [#161](https://github.com/scionproto-contrib/jpan/pull/161)
   - renamed `PplPolicy` to `PplSubPolicy`
   - renamed `PplPolicyGroup` to `PplPolicy`
+  - renamed `"group"` to `"destinations"`
   
 ### Fixed
 

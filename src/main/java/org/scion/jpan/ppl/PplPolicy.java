@@ -79,7 +79,7 @@ public class PplPolicy implements PathPolicy {
 
       // Group
       Builder groupBuilder = new Builder();
-      JsonObject groupSet = parentSet.get("group").getAsJsonObject();
+      JsonObject groupSet = parentSet.get("destinations").getAsJsonObject();
       for (Map.Entry<String, JsonElement> entry : groupSet.entrySet()) {
         String destination = entry.getKey();
         String policyName = entry.getValue().getAsString();
