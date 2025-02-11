@@ -16,6 +16,7 @@ package org.scion.jpan;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Path policy interface.
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
  * modified by the caller.<br>
  * - The filter method must not return a list containing paths with null metadata.<br>
  */
+@FunctionalInterface
 public interface PathPolicy {
   PathPolicy FIRST = new First();
   PathPolicy MAX_BANDWIDTH = new MaxBandwith();
@@ -34,49 +36,51 @@ public interface PathPolicy {
   PathPolicy MIN_HOPS = new MinHopCount();
   PathPolicy DEFAULT = MIN_HOPS;
 
-  class First implements PathPolicy {
-    public List<Path> filter(List<Path> paths) {
+  interface PathPolicyStream extends PathPolicy {
+    default List<Path> filter(List<Path> paths) {
+      return filter(paths.stream()).collect(Collectors.toList());
+    }
+  }
+
+  class First implements PathPolicyStream {
+    public Stream<Path> filter(Stream<Path> paths) {
       return paths;
     }
   }
 
-  class MaxBandwith implements PathPolicy {
-    public List<Path> filter(List<Path> paths) {
-      List<Path> result = new ArrayList<>(paths);
-      result.sort(
+  class MaxBandwith implements PathPolicyStream {
+    public Stream<Path> filter(Stream<Path> paths) {
+      return paths.sorted(
           (p1, p2) -> {
             int bw1 = Collections.min(p1.getMetadata().getBandwidthList()).intValue();
             int bw2 = Collections.min(p2.getMetadata().getBandwidthList()).intValue();
             return Integer.compare(bw2, bw1);
           });
-      return result;
     }
   }
 
-  class MinLatency implements PathPolicy {
-    public List<Path> filter(List<Path> paths) {
+  class MinLatency implements PathPolicyStream {
+    public Stream<Path> filter(Stream<Path> paths) {
       // A 0-value indicates that the AS did not announce a latency for this hop.
       // We use Integer.MAX_VALUE for comparison of these ASes.
-      return paths.stream()
+      return paths
           .sorted(
               Comparator.comparing(
                   path ->
                       path.getMetadata().getLatencyList().stream()
                           .mapToLong(l -> l >= 0 ? l : Integer.MAX_VALUE)
-                          .reduce(0, Long::sum)))
-          .collect(Collectors.toList());
+                          .reduce(0, Long::sum)));
     }
   }
 
-  class MinHopCount implements PathPolicy {
-    public List<Path> filter(List<Path> paths) {
-      return paths.stream()
-          .sorted(Comparator.comparing(path -> path.getMetadata().getInterfacesList().size()))
-          .collect(Collectors.toList());
+  class MinHopCount implements PathPolicyStream {
+    public Stream<Path> filter(Stream<Path> paths) {
+      return paths
+          .sorted(Comparator.comparing(path -> path.getMetadata().getInterfacesList().size()));
     }
   }
 
-  class IsdAllow implements PathPolicy {
+  class IsdAllow implements PathPolicyStream {
     private final Set<Integer> allowedIsds;
 
     public IsdAllow(Set<Integer> allowedIsds) {
@@ -84,8 +88,8 @@ public interface PathPolicy {
     }
 
     @Override
-    public List<Path> filter(List<Path> paths) {
-      return paths.stream().filter(this::checkPath).collect(Collectors.toList());
+    public Stream<Path> filter(Stream<Path> paths) {
+      return paths.filter(this::checkPath);
     }
 
     private boolean checkPath(Path path) {
@@ -99,7 +103,7 @@ public interface PathPolicy {
     }
   }
 
-  class IsdDisallow implements PathPolicy {
+  class IsdDisallow implements PathPolicyStream {
     private final Set<Integer> disallowedIsds;
 
     public IsdDisallow(Set<Integer> disallowedIsds) {
@@ -107,8 +111,8 @@ public interface PathPolicy {
     }
 
     @Override
-    public List<Path> filter(List<Path> paths) {
-      return paths.stream().filter(this::checkPath).collect(Collectors.toList());
+    public Stream<Path> filter(Stream<Path> paths) {
+      return paths.filter(this::checkPath);
     }
 
     private boolean checkPath(Path path) {
@@ -128,4 +132,8 @@ public interface PathPolicy {
    * @throws NoSuchElementException if no matching path could be found.
    */
   List<Path> filter(List<Path> paths);
+
+  default Stream<Path> filter(Stream<Path> paths) {
+    return filter(paths.collect(Collectors.toList())).stream();
+  }
 }

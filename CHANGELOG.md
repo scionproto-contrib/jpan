@@ -9,16 +9,27 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 
+- API do drop current path or even use most diverse one.
+  -> To be called if application detects interruption (but no SCMP errors arrive?)
+  -> Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
+     They may become valid/valuable again. Especially if the problem is actually the 
+     remote server and not the path itself.  
+
+Post-0.5.0
+- Update:
+  - https://github.com/netsec-ethz/scion-java-packet-example
+  - https://scion-architecture.net/apps/
+
 TODO
 - Ordering: expiration, MTU
-- Filter: min MTU
+- Filter: min MTU, min expiration, min bw, max latency (+/- ignore unknown)
 - Selectors: PingLatency, ReversePath, ...
 - Fix PplPolicy.fromJson()
+- PplPolicy.addPre()/post() to permanently add a filter (custom ordering e.g. with live latency) 
 
-- rename "group" to "mapping"
 - add "ordering": bw, hopcount, latency, asc, desc
 - Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
-- Add normal policy to PolicyGroup with "destination"
+- Add normal policy to PolicyGroup with "destinations"
 - Add preference/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
   - For MIN_LATENCY: Change it to add 10000 for each UNKNOWN -> Two unknowns are worse than 1...
 - Why do they have the duplicate hopPredicate in almost every test?
@@ -26,7 +37,12 @@ TODO
   -> Find out and either remove duplicate or remove buildNoValidate()
 - Add PPL JSON+YAML export. Fix JSON import of multiple policies
 
+- We could also do reverso-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
+  -> is a SCION enabled IP; this gives us the ISD/AS.
  
+- topofiles + TRC server will be deprecated at some point.
+  -> migrate to new API (where possible).
+
 - FABRID is currently in SCIONlab. WHen ported to scionproto, JPAN should show policies in
   "showpaths" etc, see
   https://github.com/netsec-ethz/scion/blob/b45a8ff2a753e95b647801577bca019c9c4a124a/private/app/path/path.go#L415
@@ -84,6 +100,10 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#159](https://github.com/scionproto-contrib/jpan/pull/159)
 - Policy filters should not need to throw Exceptions when the path list is empty.
   [#160](https://github.com/scionproto-contrib/jpan/pull/160)
+- PplPolicy refactoring [#161](https://github.com/scionproto-contrib/jpan/pull/161)
+  - renamed `PplPolicy` to `PplSubPolicy`
+  - renamed `PplPolicyGroup` to `PplPolicy`
+  - renamed `"group"` to `"destinations"`
   
 ### Fixed
 
@@ -126,7 +146,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Added
 - Add a SHIM, required for #130 (topo file port range support).
   [#131](https://github.com/scionproto-contrib/jpan/pull/131)
-- ManagedThread test helper. [#136](https://github.com/scionproto-contrib/jpan/pull/136)
+- ManagedThread unit test helper. [#136](https://github.com/scionproto-contrib/jpan/pull/136)
 - Support for `dispatched_ports` in topo files. Deprecated `configureRemoteDispatcher()`.
   [#130](https://github.com/scionproto-contrib/jpan/pull/130)
 - Bootstrapping: use reverse domain lookup to find NAPTR records.
@@ -144,6 +164,13 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#139](https://github.com/scionproto-contrib/jpan/pull/139)
 - Cleanup and fixed SHIM tests and other tests
   [#140](https://github.com/scionproto-contrib/jpan/pull/140)
+- Cleanup in `AbstractDatagramChannel` [#137](https://github.com/scionproto-contrib/jpan/pull/137)
+  - `buildHeader()`
+  - undeprecate `SCION_TRAFFIC_CLASS`
+  - Cleanup `Selector.open()` usages
+  - Caching for `getExternalIP()`
+  - `ShowpathsDemo` output
+  - Spurious failures of SCMP exception handling tests
 
 ### Removed
 - Removed deprecated code, e.g. `ScmpChannel` and public `ScionAddress`
@@ -156,20 +183,10 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#127](https://github.com/scionproto-contrib/jpan/pull/127)
 - Auto-add port to discovery server setting + better error message.
   [#128](https://github.com/scionproto-contrib/jpan/pull/128)
-- ManagedThread unit test helper [#136](https://github.com/scionproto-contrib/jpan/pull/136)
-- Bootstrapping with recursive search domain resolution.
-  [#138](https://github.com/scionproto-contrib/jpan/pull/138)
 
 ### Fixed
 - Do not immediately fail if discovery server is missing in topo file. 
   [#126](https://github.com/scionproto-contrib/jpan/pull/126)
-- Cleanup in AbstractDatagramChannel [#137](https://github.com/scionproto-contrib/jpan/pull/137)
-  - buildHeader()
-  - undeprecate SCION_TRAFFIC_CLASS
-  - Cleanup Selector.open() usages
-  - Caching for getExternalIP()
-  - ShowpathsDemo output
-  - Spurious failures of SCMP exception handling tests
   
 ## [0.3.0] - 2024-10-09
 

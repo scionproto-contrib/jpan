@@ -92,7 +92,7 @@ PPLGs can be defined via API or via YAML or JSON files. For example:
 
 ```yaml
 ---
-group:
+destinations:
   - destination: "1-0:0:110,10.0.0.2"
     policy: policy_110a
   - destination: "1-0:0:110"
@@ -119,7 +119,7 @@ policies:
 
 ```json
 {
-  "group": {
+  "destinations": {
     "1-0:0:110,10.0.0.2": "policy_110a",
     "1-0:0:110": "policy_110b",
     "0": "default"

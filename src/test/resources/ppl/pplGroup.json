@@ -1,8 +1,13 @@
 {
-  "group": {
+  "destinations": {
     "1-ff00:0:110,10.0.0.2": "policy_110a",
     "1-ff00:0:110": "policy_110b",
     "0": "default"
+  },
+  "defaults": {
+    "min_mtu": 1340,
+    "min_validity_sec": 10,
+    "ordering": "hops_asc,meta_latency_asc"
   },
   "policies": {
     "default": {
