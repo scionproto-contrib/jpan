@@ -1,4 +1,4 @@
-// Copyright 2025 ETH Zurich, Anapaya Systems
+// Copyright 2025 ETH Zurich
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,336 +16,169 @@ package org.scion.jpan.ppl;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.nio.ByteBuffer;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.nio.file.Files;
 import java.util.*;
+import java.util.stream.Stream;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.IPHelper;
 
-/**
- * A path policy based onj Path Policy Language: <a
- * href="https://docs.scion.org/en/latest/dev/design/PathPolicy.html">...</a>
- *
- * <p>Policy is a compiled path policy object, all extended policies have been merged.
- */
-// Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class PplPolicy implements PathPolicy {
 
-  /** FilterOptions contains options for filtering. */
-  static class FilterOptions {
-    // IgnoreSequence can be used to ignore the sequence part of policies.
-    private final boolean ignoreSequence;
+  private final List<Entry> policies;
 
-    FilterOptions(boolean ignoreSequence) {
-      this.ignoreSequence = ignoreSequence;
-    }
-
-    public static FilterOptions create(boolean ignoreSequence) {
-      return new FilterOptions(ignoreSequence);
-    }
+  private PplPolicy(List<Entry> policies) {
+    this.policies = policies;
   }
 
-  private final String name;
-  private ACL acl;
-  private Sequence sequence;
-  private Option[] options;
-
-  protected PplPolicy(String name, ACL acl, Sequence sequence, Option... options) {
-    this.name = name;
-    this.acl = acl;
-    this.sequence = sequence;
-    this.options = options == null ? new Option[0] : options;
-    // Sort Options by weight, descending
-    Arrays.sort(this.options, (o1, o2) -> -Integer.compare(o1.weight, o2.weight));
-  }
-
-  private static PplPolicy createCopy(PplPolicy policy) {
-    return new PplPolicy(policy.name, policy.acl, policy.sequence, policy.options);
+  @Override
+  public List<Path> filter(List<Path> paths) {
+    if (paths.isEmpty()) {
+      return paths;
+    }
+    // We assume that all paths have the same destination
+    ScionSocketAddress destination = paths.get(0).getRemoteSocketAddress();
+    for (Entry entry : policies) {
+      if (entry.isMatch(destination)) {
+        return entry.policy.filter(paths);
+      }
+    }
+    throw new IllegalStateException("Default policy does not match!");
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public static PplPolicy fromJson(String json) {
-    return parseJsonFile(json).get(0); // TODO
-  }
-
-  // Filter filters the paths according to the policy.
-  @Override
-  public List<Path> filter(List<Path> paths) {
-    return filterOpt(paths, new FilterOptions(false));
-  }
-
-  // FilterOpt filters the path set according to the policy with the given
-  // options.
-  List<Path> filterOpt(List<Path> paths, FilterOptions opts) {
-    paths = acl == null ? paths : acl.eval(paths);
-    if (sequence != null && !opts.ignoreSequence) {
-      paths = sequence.eval(paths);
+  public static PplPolicy fromJson(java.nio.file.Path file) {
+    StringBuilder contentBuilder = new StringBuilder();
+    try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
+      stream.forEach(s -> contentBuilder.append(s).append("\n"));
+    } catch (IOException e) {
+      throw new ScionRuntimeException("Error reading topology file: " + file.toAbsolutePath(), e);
     }
-    // Filter on sub policies
-    if (options.length > 0) {
-      paths = evalOptions(paths, opts);
+    return fromJson(contentBuilder.toString());
+  }
+
+  public static PplPolicy fromJson(String jsonFile) {
+    try {
+      JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
+      if (!jsonTree.isJsonObject()) {
+        throw new IllegalArgumentException("Bad file format: " + jsonFile);
+      }
+      JsonObject parentSet = jsonTree.getAsJsonObject();
+
+      // Policies
+      Map<String, PplSubPolicy> policies = new HashMap<>();
+      JsonObject policySet = parentSet.get("policies").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> p : policySet.entrySet()) {
+        policies.put(
+            p.getKey(), PplSubPolicy.parseJsonPolicy(p.getKey(), p.getValue().getAsJsonObject()));
+      }
+
+      // Group
+      Builder groupBuilder = new Builder();
+      JsonObject groupSet = parentSet.get("group").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> entry : groupSet.entrySet()) {
+        String destination = entry.getKey();
+        String policyName = entry.getValue().getAsString();
+        PplSubPolicy policy = policies.get(policyName);
+        if (policy == null) {
+          throw new IllegalArgumentException("Policy not found: " + policyName);
+        }
+        groupBuilder.add(destination, policy);
+      }
+      if (groupBuilder.list.isEmpty()) {
+        throw new IllegalArgumentException("No entries in group");
+      }
+      PplSubPolicy defaultPolicy = policies.get("default");
+      Entry defaultEntry = groupBuilder.list.get(groupBuilder.list.size() - 1);
+      if (defaultPolicy == null || defaultEntry.dstISD != 0) {
+        throw new IllegalArgumentException("No default in group");
+      }
+      return groupBuilder.build();
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Error parsing JSON: " + e.getMessage(), e);
     }
-    return paths;
   }
 
-  // PolicyFromExtPolicy creates a Policy from an extending Policy and the extended policies
-  public static PplPolicy policyFromExtPolicy(PplExtPolicy extPolicy, PplExtPolicy[] extended) {
-    PplPolicy policy = PplPolicy.createCopy(extPolicy);
-    // Apply all extended policies
-    policy.applyExtended(extPolicy.getExtensions(), extended);
-    return policy;
-  }
+  private static class Entry {
+    private final int dstISD;
+    private final long dstAS;
+    private final byte[] dstIP;
+    private final int dstPort;
+    private final PplSubPolicy policy;
 
-  // applyExtended adds attributes of extended policies to the extending policy if they are not
-  // already set
-  private void applyExtended(String[] extensions, PplExtPolicy[] exPolicies) {
-    // TODO: Prevent circular policies.
-    // traverse in reverse s.t. last entry of the list has precedence
-    for (int i = extensions.length - 1; i >= 0; i--) {
-      PplPolicy policy = null;
-      // Find extended policy
-      for (PplExtPolicy exPol : exPolicies) {
-        if (Objects.equals(exPol.getName(), extensions[i])) {
-          policy = policyFromExtPolicy(exPol, exPolicies);
+    private Entry(String destination, PplSubPolicy policy) {
+      this.policy = policy;
+      String[] parts = destination.split("-");
+      if (parts.length < 1 || parts.length > 2) {
+        throw new IllegalArgumentException("Bad destination format: " + destination);
+      }
+      this.dstISD = Integer.parseInt(parts[0]);
+      if (parts.length == 1) {
+        this.dstAS = 0;
+        this.dstIP = null;
+        this.dstPort = 0;
+        return;
+      }
+      parts = parts[1].split(",");
+      this.dstAS = ScionUtil.parseAS(parts[0]);
+      if (parts.length < 1 || parts.length > 2) {
+        throw new IllegalArgumentException("Bad destination format: " + destination);
+      }
+      if (parts.length == 1) {
+        this.dstIP = null;
+        this.dstPort = 0;
+        return;
+      }
+      String[] partsIP = parts[1].split(":");
+      if (partsIP.length == 1) {
+        // IPv4 without port
+        this.dstIP = IPHelper.toByteArray(partsIP[0]);
+        this.dstPort = 0;
+        return;
+      }
+      if (partsIP.length == 2) {
+        // IPv4 with port
+        this.dstIP = IPHelper.toByteArray(partsIP[0]);
+        this.dstPort = Integer.parseInt(partsIP[1]);
+        return;
+      }
+      // IPv6 with or without port
+      String[] partsIPv6 = parts[1].split("]");
+      dstIP = IPHelper.toByteArray(partsIPv6[0].substring(1)); // skip "["
+      if (partsIPv6.length == 1) {
+        // IPv6 without port
+        this.dstPort = 0;
+        return;
+      }
+      this.dstPort = Integer.parseInt(partsIPv6[1].substring(1)); // skip ":"
+    }
+
+    public boolean isMatch(ScionSocketAddress destination) {
+      if (dstISD == 0 || dstISD == ScionUtil.extractIsd(destination.getIsdAs())) {
+        if (dstAS == 0 || dstAS == ScionUtil.extractAs(destination.getIsdAs())) {
+          if (dstIP == null || Arrays.equals(dstIP, destination.getAddress().getAddress())) {
+            return dstPort == 0 || dstPort == destination.getPort();
+          }
         }
       }
-      if (policy == null) {
-        throw new PplException("Extended policy could not be found: " + extensions[i]);
-      }
-      // Replace ACL
-      if (acl == null && policy.acl != null) {
-        acl = policy.acl;
-      }
-      // Replace Options
-      if (options.length == 0) {
-        options = policy.options;
-      }
-      // Replace Sequence
-      if (sequence == null) {
-        sequence = policy.sequence;
-      }
-    }
-  }
-
-  // evalOptions evaluates the options of a policy and returns the pathSet that matches the option
-  // with the highest weight
-  private List<Path> evalOptions(List<Path> paths, FilterOptions opts) {
-    Set<String> subPolicySet = new HashSet<>();
-    int currWeight = options[0].weight;
-    // Go through sub policies
-    for (Option option : options) {
-      if (currWeight > option.weight && !subPolicySet.isEmpty()) {
-        break;
-      }
-      currWeight = option.weight;
-      List<Path> subPaths = option.policy.filterOpt(paths, opts);
-      for (Path path : subPaths) {
-        subPolicySet.add(fingerprint(path));
-      }
-    }
-    List<Path> result = new ArrayList<>();
-    for (Path path : paths) {
-      if (subPolicySet.contains(fingerprint(path))) { // TODO correct?
-        result.add(path);
-      }
-    }
-    return result;
-  }
-
-  // Option contains a weight and a policy and is used as a list item in Policy.Options
-  @Deprecated
-  static class Option {
-    private final int weight; //        `json:"weight"`
-    private final PplExtPolicy policy; // `json:"policy"`
-
-    private Option(int weight, PplExtPolicy policy) {
-      this.weight = weight;
-      this.policy = policy;
-    }
-
-    static Option create(int weight, PplExtPolicy policy) {
-      return new Option(weight, policy);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Option option = (Option) o;
-      return weight == option.weight && Objects.equals(policy, option.policy);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(weight, policy);
-    }
-
-    @Override
-    public String toString() {
-      return "Option{" + "weight=" + weight + ", policy=" + policy + '}';
-    }
-  }
-
-  // Fingerprint uniquely identifies the path based on the sequence of
-  // ASes and BRs, i.e. by its PathInterfaces.
-  // Other metadata, such as MTU or NextHop have no effect on the fingerprint.
-  // Returns empty string for paths where the interfaces list is not available.
-  private static String fingerprint(Path path) {
-    PathMetadata meta = path.getMetadata();
-    if (meta == null || meta.getInterfacesList().isEmpty()) {
-      return "";
-    }
-    try {
-      MessageDigest h = MessageDigest.getInstance("SHA-256");
-      ByteBuffer bb = ByteBuffer.allocate(16 * meta.getInterfacesList().size());
-      for (PathMetadata.PathInterface intf : meta.getInterfacesList()) {
-        bb.putLong(intf.getIsdAs());
-        bb.putLong(intf.getId());
-      }
-      byte[] digest = h.digest(bb.array());
-      return new String(digest, StandardCharsets.UTF_8);
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalArgumentException(e);
-    }
-  }
-
-  /**
-   * getSequence constructs the sequence string from a Path. Output format:
-   *
-   * <p>{@code 1-ff00:0:133#42 1-ff00:0:120#2,1 1-ff00:0:110#21}
-   */
-  public static String getSequence(Path path) {
-    return Sequence.getSequence(path);
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    PplPolicy policy = (PplPolicy) o;
-    return Objects.equals(name, policy.name)
-        && Objects.equals(acl, policy.acl)
-        && Objects.equals(sequence, policy.sequence)
-        && Objects.deepEquals(options, policy.options);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(name, acl, sequence, Arrays.hashCode(options));
-  }
-
-  @Override
-  public String toString() {
-    return "PplPolicy{"
-        + "name='"
-        + name
-        + "', acl="
-        + acl
-        + ", sequence="
-        + sequence
-        + ", options="
-        + Arrays.toString(options)
-        + '}';
-  }
-
-  private static List<PplPolicy> parseJsonFile(String jsonFile) {
-    List<PplPolicy> policies = new ArrayList<>();
-    JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
-    if (jsonTree.isJsonObject()) {
-      JsonObject parent = jsonTree.getAsJsonObject();
-      for (Map.Entry<String, JsonElement> oo : parent.entrySet()) {
-        policies.add(parseJsonPolicy(oo.getKey(), oo.getValue().getAsJsonObject()));
-      }
-    }
-    return policies;
-  }
-
-  static PplPolicy parseJsonPolicy(String name, JsonObject policy) {
-    Builder b = new Builder();
-    b.setName(name);
-    JsonElement aclElement = policy.get("acl");
-    if (aclElement != null) {
-      for (JsonElement e : aclElement.getAsJsonArray()) {
-        b.addAclEntry(e.getAsString());
-      }
-    }
-    JsonElement sequence = policy.get("sequence");
-    if (sequence != null) {
-      b.setSequence(sequence.getAsString());
-    }
-    return b.build();
   }
 
   public static class Builder {
-    protected String name = "";
-    Sequence sequence = null;
-    final List<Option> options = new ArrayList<>();
-    final List<ACL.AclEntry> entries = new ArrayList<>();
+    private final List<Entry> list = new ArrayList<>();
 
-    public Builder setName(String name) {
-      this.name = name;
-      return this;
-    }
-
-    public Builder addAclEntry(String str) {
-      entries.add(ACL.AclEntry.create(str));
-      return this;
-    }
-
-    public Builder addAclEntries(String... strings) {
-      for (String str : strings) {
-        entries.add(ACL.AclEntry.create(str));
-      }
-      if (strings.length == 0) {
-        throw new PplException(ACL.ERR_NO_DEFAULT);
-      }
-      return this;
-    }
-
-    public Builder addAclEntry(boolean allow, String hopFieldPredicate) {
-      entries.add(ACL.AclEntry.create(allow, hopFieldPredicate));
-      return this;
-    }
-
-    public Builder setSequence(String sequence) {
-      this.sequence = Sequence.create(sequence);
-      return this;
-    }
-
-    /**
-     * @param weight weight
-     * @param policy policy
-     * @return Builder
-     * @deprecated Please use with caution, API may change.
-     */
-    @Deprecated
-    public Builder addOption(int weight, PplExtPolicy policy) {
-      this.options.add(Option.create(weight, policy));
+    public Builder add(String destination, PplSubPolicy policy) {
+      list.add(new Entry(destination, policy));
       return this;
     }
 
     public PplPolicy build() {
-      if (entries.isEmpty() && sequence == null && options.isEmpty()) {
-        throw new PplException(ACL.ERR_NO_DEFAULT);
-      }
-      ACL acl = entries.isEmpty() ? null : ACL.create(entries.toArray(new ACL.AclEntry[0]));
-      return new PplPolicy(name, acl, sequence, options.toArray(new Option[0]));
-    }
-
-    PplPolicy buildNoValidate() {
-      ACL acl =
-          entries.isEmpty() ? null : ACL.createNoValidate(entries.toArray(new ACL.AclEntry[0]));
-      return new PplPolicy(name, acl, sequence, options.toArray(new Option[0]));
+      return new PplPolicy(list);
     }
   }
 }

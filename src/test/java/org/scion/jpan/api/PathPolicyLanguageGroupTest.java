@@ -26,14 +26,14 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.ppl.PplPolicy;
-import org.scion.jpan.ppl.PplPolicyGroup;
+import org.scion.jpan.ppl.PplSubPolicy;
 import org.scion.jpan.proto.daemon.Daemon;
 
 class PathPolicyLanguageGroupTest {
 
   @Test
   void filter_smokeTest() {
-    PplPolicyGroup group = PplPolicyGroup.fromJson(getPath("ppl/pplGroup.json"));
+    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
     InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     List<Path> paths = toList(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:111"));
 
@@ -43,7 +43,7 @@ class PathPolicyLanguageGroupTest {
 
   @Test
   void filter_defaultOnly() {
-    PplPolicyGroup group = PplPolicyGroup.fromJson(getPath("ppl/pplGroup_trivial.json"));
+    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup_trivial.json"));
     InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     List<Path> paths = toList(createPath(addr, "1-ff00:0:110", "1", "2", "1-ff00:0:111"));
 
@@ -53,7 +53,7 @@ class PathPolicyLanguageGroupTest {
 
   @Test
   void filter_complex() {
-    PplPolicyGroup group = PplPolicyGroup.fromJson(getPath("ppl/pplGroup.json"));
+    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
     final List<Path> paths = new ArrayList<>();
     InetSocketAddress addr;
 
@@ -150,9 +150,9 @@ class PathPolicyLanguageGroupTest {
   }
 
   private void testDenyAllow(String destDeny, String addrDeny, String addrAllow) {
-    PplPolicy deny = PplPolicy.builder().addAclEntry("-").build();
-    PplPolicy allow = PplPolicy.builder().addAclEntry("+").build();
-    PplPolicyGroup group = PplPolicyGroup.builder().add(destDeny, deny).add("0", allow).build();
+    PplSubPolicy deny = PplSubPolicy.builder().addAclEntry("-").build();
+    PplSubPolicy allow = PplSubPolicy.builder().addAclEntry("+").build();
+    PplPolicy group = PplPolicy.builder().add(destDeny, deny).add("0", allow).build();
     String[] path133x110 = {"1-ff00:0:133", "0", "0", "1-ff00:0:110"};
 
     // address+port do not match "deny"
@@ -216,14 +216,14 @@ class PathPolicyLanguageGroupTest {
   }
 
   private void testJsonGroup(String file) {
-    PplPolicyGroup.fromJson(getPath(file));
+    PplPolicy.fromJson(getPath(file));
   }
 
   @Test
   void fromJson_invalidJsonFormat_throwsException() {
     String invalidJson = "{ invalid json }";
     Exception e =
-        assertThrows(IllegalArgumentException.class, () -> PplPolicyGroup.fromJson(invalidJson));
+        assertThrows(IllegalArgumentException.class, () -> PplPolicy.fromJson(invalidJson));
     assertTrue(e.getMessage().startsWith("Error parsing JSON:"), e.getMessage());
   }
 

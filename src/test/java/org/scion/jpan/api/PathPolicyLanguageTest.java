@@ -22,15 +22,15 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ppl.PplException;
 import org.scion.jpan.ppl.PplExtPolicy;
-import org.scion.jpan.ppl.PplPolicy;
+import org.scion.jpan.ppl.PplSubPolicy;
 import org.scion.jpan.testutil.ExamplePacket;
 
 class PathPolicyLanguageTest {
 
   @Test
   void smokeTestBuilder() {
-    PplPolicy ppl =
-        PplPolicy.builder()
+    PplSubPolicy ppl =
+        PplSubPolicy.builder()
             .setName("My policy")
             .addAclEntries("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+")
             .setSequence("1-ff00:0:133#1 1+ 2-ff00:0:1? 2-ff00:0:233#1")
@@ -52,38 +52,38 @@ class PathPolicyLanguageTest {
     paths.add(ExamplePacket.PATH_IPV4);
     assertTrue(ppl.filter(paths).isEmpty());
 
-    String str = PplPolicy.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
+    String str = PplSubPolicy.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
     assertEquals("", str);
   }
 
   @Test
   void aclFail_extraEntries() {
-    PplPolicy.Builder builder = PplPolicy.builder();
+    PplSubPolicy.Builder builder = PplSubPolicy.builder();
     assertThrows(
         PplException.class, () -> builder.addAclEntries("ext-acl1-fsd", "ext-acl2-fsd dsf"));
   }
 
   @Test
   void aclFail_noDefault() {
-    PplPolicy.Builder builder = PplPolicy.builder();
+    PplSubPolicy.Builder builder = PplSubPolicy.builder();
     assertThrows(PplException.class, () -> builder.addAclEntries(new String[0]));
   }
 
   @Test
   void aclFail_badISD() {
-    PplPolicy.Builder builder = PplPolicy.builder();
+    PplSubPolicy.Builder builder = PplSubPolicy.builder();
     assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd sss"));
   }
 
   @Test
   void aclFail_badLast() {
-    PplPolicy.Builder builder = PplPolicy.builder();
+    PplSubPolicy.Builder builder = PplSubPolicy.builder();
     assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd"));
   }
 
   @Test
   void aclFail_badPredicate() {
-    PplPolicy.Builder ppl = PplPolicy.builder();
+    PplSubPolicy.Builder ppl = PplSubPolicy.builder();
     // unnecessary "+"
     Exception e = assertThrows(PplException.class, () -> ppl.addAclEntry(true, "+ 1-ff00:0:133"));
     assertTrue(e.getMessage().startsWith("Failed to parse "));
@@ -91,8 +91,8 @@ class PathPolicyLanguageTest {
 
   @Test
   void acl1a() {
-    PplPolicy ppl =
-        PplPolicy.builder()
+    PplSubPolicy ppl =
+        PplSubPolicy.builder()
             .setName("My policy")
             .addAclEntries("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+")
             .build();
@@ -101,8 +101,8 @@ class PathPolicyLanguageTest {
 
   @Test
   void acl1b() {
-    PplPolicy ppl =
-        PplPolicy.builder()
+    PplSubPolicy ppl =
+        PplSubPolicy.builder()
             .setName("My policy")
             .addAclEntry("+ 1-ff00:0:133")
             .addAclEntry("+ 1-ff00:0:120")
@@ -114,8 +114,8 @@ class PathPolicyLanguageTest {
 
   @Test
   void acl1c() {
-    PplPolicy ppl =
-        PplPolicy.builder()
+    PplSubPolicy ppl =
+        PplSubPolicy.builder()
             .setName("My policy")
             .addAclEntry(true, "1-ff00:0:133")
             .addAclEntry(true, "1-ff00:0:120")
@@ -125,7 +125,7 @@ class PathPolicyLanguageTest {
     testPath(ppl);
   }
 
-  private void testPath(PplPolicy ppl) {
+  private void testPath(PplSubPolicy ppl) {
     List<Path> paths = new ArrayList<>();
     paths.add(ExamplePacket.PATH_IPV4);
     Path p = ppl.filter(paths).get(0);
@@ -156,7 +156,7 @@ class PathPolicyLanguageTest {
             + "      \"sequence\" : \"1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0\"\n"
             + "    }\n"
             + "}";
-    PplPolicy ppl = PplPolicy.fromJson(json);
+    PplSubPolicy ppl = PplSubPolicy.fromJson(json);
     // TODO
   }
 

@@ -37,9 +37,12 @@ TODO
   -> Find out and either remove duplicate or remove buildNoValidate()
 - Add PPL JSON+YAML export. Fix JSON import of multiple policies
 
-- We could also do reverso-lookup inside srvice.lookup() -> e.g. works for "129.132.175.104"
+- We could also do reverso-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
  
+- topofiles + TRC server will be deprecated at some point.
+  -> migrate to new API (where possible).
+
 - FABRID is currently in SCIONlab. WHen ported to scionproto, JPAN should show policies in
   "showpaths" etc, see
   https://github.com/netsec-ethz/scion/blob/b45a8ff2a753e95b647801577bca019c9c4a124a/private/app/path/path.go#L415
@@ -97,6 +100,9 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#159](https://github.com/scionproto-contrib/jpan/pull/159)
 - Policy filters should not need to throw Exceptions when the path list is empty.
   [#160](https://github.com/scionproto-contrib/jpan/pull/160)
+- PplPolicy refactoring [#161](https://github.com/scionproto-contrib/jpan/pull/161)
+  - renamed `PplPolicy` to `PplSubPolicy`
+  - renamed `PplPolicyGroup` to `PplPolicy`
   
 ### Fixed
 
