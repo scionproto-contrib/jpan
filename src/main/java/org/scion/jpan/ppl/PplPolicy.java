@@ -27,21 +27,34 @@ import org.scion.jpan.internal.IPHelper;
 public class PplPolicy implements PathPolicy {
 
   private final List<Entry> policies;
+  private final int minMtu;
+  private final int minValiditySec;
 
-  private PplPolicy(List<Entry> policies) {
+  private PplPolicy(List<Entry> policies, int minMtuBytes, int minValiditySeconds) {
     this.policies = policies;
+    this.minMtu = minMtuBytes;
+    this.minValiditySec = minValiditySeconds;
   }
 
   @Override
-  public List<Path> filter(List<Path> paths) {
-    if (paths.isEmpty()) {
-      return paths;
+  public List<Path> filter(List<Path> input) {
+    // filter
+    List<Path> filtered = new ArrayList<>();
+    long now = System.currentTimeMillis() / 1000; // unix epoch
+    for (Path path : input) {
+      PathMetadata meta = path.getMetadata();
+      if (meta.getMtu() >= minMtu && meta.getExpiration() >= now + minValiditySec) {
+        filtered.add(path);
+      }
+    }
+    if (filtered.isEmpty()) {
+      return Collections.emptyList();
     }
     // We assume that all paths have the same destination
-    ScionSocketAddress destination = paths.get(0).getRemoteSocketAddress();
+    ScionSocketAddress destination = filtered.get(0).getRemoteSocketAddress();
     for (Entry entry : policies) {
       if (entry.isMatch(destination)) {
-        return entry.policy.filter(paths);
+        return entry.policy.filter(filtered);
       }
     }
     throw new IllegalStateException("Default policy does not match!");
@@ -125,7 +138,7 @@ public class PplPolicy implements PathPolicy {
       }
       parts = parts[1].split(",");
       this.dstAS = ScionUtil.parseAS(parts[0]);
-      if (parts.length < 1 || parts.length > 2) {
+      if (parts.length > 2) {
         throw new IllegalArgumentException("Bad destination format: " + destination);
       }
       if (parts.length == 1) {
@@ -171,14 +184,36 @@ public class PplPolicy implements PathPolicy {
 
   public static class Builder {
     private final List<Entry> list = new ArrayList<>();
+    private int minMtuBytes = 0;
+    private int minValiditySeconds = 0;
 
     public Builder add(String destination, PplSubPolicy policy) {
       list.add(new Entry(destination, policy));
       return this;
     }
 
+    /**
+     * Minimum MTU requirement for paths. Default is 0.
+     * @param minMtuBytes Minimum MTU bytes required for a path to be accepted.
+     * @return this builder
+     */
+    public Builder minMtu(int minMtuBytes) {
+      this.minMtuBytes = minMtuBytes;
+      return this;
+    }
+
+    /**
+     * Minimum validity requirement for paths. Default is 0.
+     * @param minValiditySeconds Minimum seconds before a path expires.
+     * @return this Builder
+     */
+    public Builder minValidity(int minValiditySeconds) {
+      this.minValiditySeconds = minValiditySeconds;
+      return this;
+    }
+
     public PplPolicy build() {
-      return new PplPolicy(list);
+      return new PplPolicy(list, minMtuBytes, minValiditySeconds);
     }
   }
 }
