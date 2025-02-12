@@ -30,7 +30,7 @@ import org.scion.jpan.*;
  * <p>Policy is a compiled path policy object, all extended policies have been merged.
  */
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
-public class PplSubPolicy implements PathPolicy {
+public class PplRouteFilter implements PathPolicy {
 
   /** FilterOptions contains options for filtering. */
   static class FilterOptions {
@@ -51,7 +51,7 @@ public class PplSubPolicy implements PathPolicy {
   private Sequence sequence;
   private Option[] options;
 
-  protected PplSubPolicy(String name, ACL acl, Sequence sequence, Option... options) {
+  protected PplRouteFilter(String name, ACL acl, Sequence sequence, Option... options) {
     this.name = name;
     this.acl = acl;
     this.sequence = sequence;
@@ -60,15 +60,15 @@ public class PplSubPolicy implements PathPolicy {
     Arrays.sort(this.options, (o1, o2) -> -Integer.compare(o1.weight, o2.weight));
   }
 
-  private static PplSubPolicy createCopy(PplSubPolicy policy) {
-    return new PplSubPolicy(policy.name, policy.acl, policy.sequence, policy.options);
+  private static PplRouteFilter createCopy(PplRouteFilter policy) {
+    return new PplRouteFilter(policy.name, policy.acl, policy.sequence, policy.options);
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public static PplSubPolicy fromJson(String json) {
+  public static PplRouteFilter fromJson(String json) {
     return parseJsonFile(json).get(0); // TODO
   }
 
@@ -93,8 +93,8 @@ public class PplSubPolicy implements PathPolicy {
   }
 
   // PolicyFromExtPolicy creates a Policy from an extending Policy and the extended policies
-  public static PplSubPolicy policyFromExtPolicy(PplExtPolicy extPolicy, PplExtPolicy[] extended) {
-    PplSubPolicy policy = PplSubPolicy.createCopy(extPolicy);
+  public static PplRouteFilter policyFromExtPolicy(PplExtPolicy extPolicy, PplExtPolicy[] extended) {
+    PplRouteFilter policy = PplRouteFilter.createCopy(extPolicy);
     // Apply all extended policies
     policy.applyExtended(extPolicy.getExtensions(), extended);
     return policy;
@@ -106,7 +106,7 @@ public class PplSubPolicy implements PathPolicy {
     // TODO: Prevent circular policies.
     // traverse in reverse s.t. last entry of the list has precedence
     for (int i = extensions.length - 1; i >= 0; i--) {
-      PplSubPolicy policy = null;
+      PplRouteFilter policy = null;
       // Find extended policy
       for (PplExtPolicy exPol : exPolicies) {
         if (Objects.equals(exPol.getName(), extensions[i])) {
@@ -232,7 +232,7 @@ public class PplSubPolicy implements PathPolicy {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    PplSubPolicy policy = (PplSubPolicy) o;
+    PplRouteFilter policy = (PplRouteFilter) o;
     return Objects.equals(name, policy.name)
         && Objects.equals(acl, policy.acl)
         && Objects.equals(sequence, policy.sequence)
@@ -246,7 +246,7 @@ public class PplSubPolicy implements PathPolicy {
 
   @Override
   public String toString() {
-    return "PplSubPolicy{"
+    return "PplRouteFilter{"
         + "name='"
         + name
         + "', acl="
@@ -258,8 +258,8 @@ public class PplSubPolicy implements PathPolicy {
         + '}';
   }
 
-  private static List<PplSubPolicy> parseJsonFile(String jsonFile) {
-    List<PplSubPolicy> policies = new ArrayList<>();
+  private static List<PplRouteFilter> parseJsonFile(String jsonFile) {
+    List<PplRouteFilter> policies = new ArrayList<>();
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
     if (jsonTree.isJsonObject()) {
       JsonObject parent = jsonTree.getAsJsonObject();
@@ -270,7 +270,7 @@ public class PplSubPolicy implements PathPolicy {
     return policies;
   }
 
-  static PplSubPolicy parseJsonPolicy(String name, JsonObject policy) {
+  static PplRouteFilter parseJsonPolicy(String name, JsonObject policy) {
     Builder b = new Builder();
     b.setName(name);
     JsonElement aclElement = policy.get("acl");
@@ -334,18 +334,18 @@ public class PplSubPolicy implements PathPolicy {
       return this;
     }
 
-    public PplSubPolicy build() {
+    public PplRouteFilter build() {
       if (entries.isEmpty() && sequence == null && options.isEmpty()) {
         throw new PplException(ACL.ERR_NO_DEFAULT);
       }
       ACL acl = entries.isEmpty() ? null : ACL.create(entries.toArray(new ACL.AclEntry[0]));
-      return new PplSubPolicy(name, acl, sequence, options.toArray(new Option[0]));
+      return new PplRouteFilter(name, acl, sequence, options.toArray(new Option[0]));
     }
 
-    PplSubPolicy buildNoValidate() {
+    PplRouteFilter buildNoValidate() {
       ACL acl =
           entries.isEmpty() ? null : ACL.createNoValidate(entries.toArray(new ACL.AclEntry[0]));
-      return new PplSubPolicy(name, acl, sequence, options.toArray(new Option[0]));
+      return new PplRouteFilter(name, acl, sequence, options.toArray(new Option[0]));
     }
   }
 }

@@ -16,176 +16,223 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.ppl.PplException;
-import org.scion.jpan.ppl.PplExtPolicy;
-import org.scion.jpan.ppl.PplSubPolicy;
-import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.ppl.PplPolicy;
+import org.scion.jpan.ppl.PplRouteFilter;
+import org.scion.jpan.proto.daemon.Daemon;
 
 class PathPolicyLanguageTest {
 
   @Test
-  void smokeTestBuilder() {
-    PplSubPolicy ppl =
-        PplSubPolicy.builder()
-            .setName("My policy")
-            .addAclEntries("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+")
-            .setSequence("1-ff00:0:133#1 1+ 2-ff00:0:1? 2-ff00:0:233#1")
-            .addOption(
-                15,
-                PplExtPolicy.builder()
-                    .setName("myExtPolicy")
-                    .addAclEntry("+ 1-ff00:0:133")
-                    .addAclEntry(true, "1-ff00:0:120")
-                    .addAclEntry(false, "1")
-                    .addAclEntry("+")
-                    .setSequence("1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0")
-                    .addExtension("hello")
-                    .addExtension("you")
-                    .build())
-            .build();
+  void filter_smokeTest() {
+    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
+    InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    List<Path> paths = toList(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:111"));
 
+    List<Path> filteredPaths = group.filter(paths);
+    assertEquals(1, filteredPaths.size());
+  }
+
+  @Test
+  void filter_defaultOnly() {
+    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup_trivial.json"));
+    InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    List<Path> paths = toList(createPath(addr, "1-ff00:0:110", "1", "2", "1-ff00:0:111"));
+
+    List<Path> filteredPaths = group.filter(paths);
+    assertEquals(1, filteredPaths.size());
+  }
+
+  @Test
+  void filter_complex() {
+    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
+    final List<Path> paths = new ArrayList<>();
+    InetSocketAddress addr;
+
+    // policy_110a - address match
+    // This path matches the "sequence" (policy_110a) but not the "acl" in policy_110b
+    String[] path133x110 = {
+      "1-ff00:0:133",
+      "0",
+      "2",
+      "1-ff00:0:120",
+      "1",
+      "0",
+      "1-ff00:0:130",
+      "0",
+      "0",
+      "1-ff00:0:131",
+      "0",
+      "0",
+      "1-ff00:0:110"
+    };
+    paths.add(createPath("10.0.0.2:12234", path133x110));
+    assertEquals(1, group.filter(paths).size());
+
+    // policy_110a: address does not match -> policy_110b fails
+    paths.clear();
+    paths.add(createPath("10.0.0.3:12235", path133x110));
+    assertTrue(group.filter(paths).isEmpty());
+
+    // policy_110b - address match - no ISD match -> accept
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:110"));
+    assertEquals(1, group.filter(paths).size());
+
+    // policy_110b - address match - ISD match -> deny
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:130", "0", "2", "1-ff00:0:110"));
+    assertTrue(group.filter(paths).isEmpty());
+
+    // default match only (ISD 1-..210) -> specific 112 -> accept
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:112", "1", "2", "2-ff00:0:210"));
+    assertEquals(1, group.filter(paths).size());
+
+    // default match only (ISD 1-..210) -> specific 1 -> deny
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "1-ff00:0:113", "1", "2", "2-ff00:0:210"));
+    assertTrue(group.filter(paths).isEmpty());
+
+    // default match only  (ISD 1-..210) -> default ISD 2 -> accept
+    paths.clear();
+    addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
+    paths.add(createPath(addr, "2-ff00:0:113", "1", "2", "2-ff00:0:210"));
+    assertEquals(1, group.filter(paths).size());
+  }
+
+  private List<Path> toList(Path path) {
     List<Path> paths = new ArrayList<>();
-    paths.add(ExamplePacket.PATH_IPV4);
-    assertTrue(ppl.filter(paths).isEmpty());
+    paths.add(path);
+    return paths;
+  }
 
-    String str = PplSubPolicy.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
-    assertEquals("", str);
+  private RequestPath createPath(String addr, String... str) {
+    return createPath(IPHelper.toInetSocketAddress(addr), str);
+  }
+
+  private RequestPath createPath(InetSocketAddress addr, String... str) {
+    Daemon.Path protoPath = createProtoPath(str);
+    long dstIsdAs = ScionUtil.parseIA(str[str.length - 1]);
+    return PackageVisibilityHelper.createRequestPath(protoPath, dstIsdAs, addr);
   }
 
   @Test
-  void aclFail_extraEntries() {
-    PplSubPolicy.Builder builder = PplSubPolicy.builder();
-    assertThrows(
-        PplException.class, () -> builder.addAclEntries("ext-acl1-fsd", "ext-acl2-fsd dsf"));
+  void filter_IPv4() {
+    testDenyAllow("1-ff00:0:110,10.0.0.2", "10.0.0.3:12234", "10.0.0.2:22222");
   }
 
   @Test
-  void aclFail_noDefault() {
-    PplSubPolicy.Builder builder = PplSubPolicy.builder();
-    assertThrows(PplException.class, () -> builder.addAclEntries(new String[0]));
+  void filter_IPv4_port() {
+    testDenyAllow("1-ff00:0:110,10.0.0.2:22222", "10.0.0.2:12234", "10.0.0.2:22222");
   }
 
   @Test
-  void aclFail_badISD() {
-    PplSubPolicy.Builder builder = PplSubPolicy.builder();
-    assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd sss"));
+  void filter_IPv6() {
+    testDenyAllow("1-ff00:0:110,[1:2::3]", "[1:2::4]:12234", "[1:2::3]:22222");
   }
 
   @Test
-  void aclFail_badLast() {
-    PplSubPolicy.Builder builder = PplSubPolicy.builder();
-    assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd"));
+  void filter_IPv6_port() {
+    testDenyAllow("1-ff00:0:110,[1:2::3]:22222", "[1:2::3]:12234", "[1:2::3]:22222");
+  }
+
+  private void testDenyAllow(String destDeny, String addrDeny, String addrAllow) {
+    PplRouteFilter deny = PplRouteFilter.builder().addAclEntry("-").build();
+    PplRouteFilter allow = PplRouteFilter.builder().addAclEntry("+").build();
+    PplPolicy group = PplPolicy.builder().add(destDeny, deny).add("0", allow).build();
+    String[] path133x110 = {"1-ff00:0:133", "0", "0", "1-ff00:0:110"};
+
+    // address+port do not match "deny"
+    List<Path> pathsAllow = toList(createPath(addrDeny, path133x110));
+    assertEquals(1, group.filter(pathsAllow).size());
+
+    // address+port do not match "deny"
+    List<Path> pathsDeny = toList(createPath(addrAllow, path133x110));
+    assertTrue(group.filter(pathsDeny).isEmpty());
+  }
+
+  /**
+   * @param str E.g. "1-ff00:0:110", 1, 2, "1-ff00:0:111", 3, 4, "1-ff00:0:112"
+   * @return A path with Metadata but WITHOUT raw path
+   */
+  private Daemon.Path createProtoPath(String... str) {
+    Daemon.Path.Builder path = Daemon.Path.newBuilder();
+    int i = 0;
+    while (i < str.length) {
+      int id1 = -1;
+      if (i > 0) {
+        id1 = Integer.parseInt(str[i++]);
+      }
+      long isdAs = ScionUtil.parseIA(str[i++]);
+
+      if (id1 >= 0) {
+        path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(isdAs).setId(id1).build());
+      }
+
+      if (i < str.length) {
+        int id2 = Integer.parseInt(str[i++]);
+        path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(isdAs).setId(id2).build());
+      }
+    }
+    return path.build();
   }
 
   @Test
-  void aclFail_badPredicate() {
-    PplSubPolicy.Builder ppl = PplSubPolicy.builder();
-    // unnecessary "+"
-    Exception e = assertThrows(PplException.class, () -> ppl.addAclEntry(true, "+ 1-ff00:0:133"));
-    assertTrue(e.getMessage().startsWith("Failed to parse "));
+  void fromJson_invalidFile_throwsException() {
+    Class<IllegalArgumentException> ec = IllegalArgumentException.class;
+    Exception e;
+    // missing default policy in "destinations"
+    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingDefault.json"));
+    assertTrue(e.getMessage().startsWith("Error parsing JSON: "), e.getMessage());
+
+    // missing policy in "policies"
+    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicy.json"));
+    assertTrue(e.getMessage().startsWith("Error parsing JSON: Policy not found:"), e.getMessage());
+
+    // missing policies in "destinations"
+    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicies.json"));
+    assertTrue(e.getMessage().startsWith("Error parsing JSON: No entries in group"));
+
+    // missing default policy in "policies"
+    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingDefault.json"));
+    assertTrue(e.getMessage().startsWith("Error parsing JSON: No default in group"));
+
+    // bad default destination (not a catch-all)
+    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_badDefault.json"));
+    assertTrue(e.getMessage().startsWith("Error parsing JSON: No default in group"));
+  }
+
+  private void testJsonGroup(String file) {
+    PplPolicy.fromJson(getPath(file));
   }
 
   @Test
-  void acl1a() {
-    PplSubPolicy ppl =
-        PplSubPolicy.builder()
-            .setName("My policy")
-            .addAclEntries("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+")
-            .build();
-    testPath(ppl);
+  void fromJson_invalidJsonFormat_throwsException() {
+    String invalidJson = "{ invalid json }";
+    Exception e =
+        assertThrows(IllegalArgumentException.class, () -> PplPolicy.fromJson(invalidJson));
+    assertTrue(e.getMessage().startsWith("Error parsing JSON:"), e.getMessage());
   }
 
-  @Test
-  void acl1b() {
-    PplSubPolicy ppl =
-        PplSubPolicy.builder()
-            .setName("My policy")
-            .addAclEntry("+ 1-ff00:0:133")
-            .addAclEntry("+ 1-ff00:0:120")
-            .addAclEntry("- 1")
-            .addAclEntry("+")
-            .build();
-    testPath(ppl);
-  }
-
-  @Test
-  void acl1c() {
-    PplSubPolicy ppl =
-        PplSubPolicy.builder()
-            .setName("My policy")
-            .addAclEntry(true, "1-ff00:0:133")
-            .addAclEntry(true, "1-ff00:0:120")
-            .addAclEntry(false, "1")
-            .addAclEntry(true, null)
-            .build();
-    testPath(ppl);
-  }
-
-  private void testPath(PplSubPolicy ppl) {
-    List<Path> paths = new ArrayList<>();
-    paths.add(ExamplePacket.PATH_IPV4);
-    Path p = ppl.filter(paths).get(0);
-    assertEquals(ExamplePacket.PATH_IPV4, p);
-  }
-
-  @Test
-  void json() {
-    String json =
-        "{\n"
-            + "  \"global\": {\n"
-            + "    \"acl\": [\n"
-            + "      \"+ 1-ff00:0:111\",\n"
-            + "      \"+ 1-ff00:0:112\",\n"
-            + "      \"- 1\",\n"
-            + "      \"+\"\n"
-            + "    ]\n"
-            + "  },\n"
-            + "  \"1-110,10.0.0.1\": {\n"
-            + "    \"acl\": [\n"
-            + "      \"+ 1-ff00:0:133\",\n"
-            + "      \"+ 1-ff00:0:120\",\n"
-            + "      \"- 1\",\n"
-            + "      \"+\"\n"
-            + "    ]\n"
-            + "  },\n"
-            + "    \"1-110,10.0.0.2\": {\n"
-            + "      \"sequence\" : \"1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0\"\n"
-            + "    }\n"
-            + "}";
-    PplSubPolicy ppl = PplSubPolicy.fromJson(json);
-    // TODO
-  }
-
-  @Test
-  void jsonSingle() {
-    String json =
-        "{\n"
-            + "  \"options\": [\n"
-            + "    {\n"
-            + "      \"weight\":0,\n"
-            + "      \"policy\": {\n"
-            + "        \"acl\": [\n"
-            + "          \"+ 42-0#0\",\n"
-            + "          \"- 0-0#0\"\n"
-            + "        ],\n"
-            + "        \"local_isd_ases\": [\n"
-            + "          \"64-123\",\n"
-            + "          \"70-ff00:102:304\"\n"
-            + "        ],\n"
-            + "        \"remote_isd_ases\": [\n"
-            + "          {\n"
-            + "            \"isd_as\":\"64-123\",\n"
-            + "            \"reject\":true\n"
-            + "          }\n"
-            + "        ]\n"
-            + "      }\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}\n";
-    // TODO
+  private java.nio.file.Path getPath(String resource) {
+    try {
+      return Paths.get(
+          Objects.requireNonNull(getClass().getClassLoader().getResource(resource)).toURI());
+    } catch (URISyntaxException e) {
+      throw new ScionRuntimeException(e);
+    }
   }
 }

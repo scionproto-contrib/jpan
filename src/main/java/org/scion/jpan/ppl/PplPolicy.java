@@ -83,11 +83,11 @@ public class PplPolicy implements PathPolicy {
       JsonObject parentSet = jsonTree.getAsJsonObject();
 
       // Policies
-      Map<String, PplSubPolicy> policies = new HashMap<>();
+      Map<String, PplRouteFilter> policies = new HashMap<>();
       JsonObject policySet = parentSet.get("policies").getAsJsonObject();
       for (Map.Entry<String, JsonElement> p : policySet.entrySet()) {
         policies.put(
-            p.getKey(), PplSubPolicy.parseJsonPolicy(p.getKey(), p.getValue().getAsJsonObject()));
+            p.getKey(), PplRouteFilter.parseJsonPolicy(p.getKey(), p.getValue().getAsJsonObject()));
       }
 
       // Group
@@ -96,7 +96,7 @@ public class PplPolicy implements PathPolicy {
       for (Map.Entry<String, JsonElement> entry : groupSet.entrySet()) {
         String destination = entry.getKey();
         String policyName = entry.getValue().getAsString();
-        PplSubPolicy policy = policies.get(policyName);
+        PplRouteFilter policy = policies.get(policyName);
         if (policy == null) {
           throw new IllegalArgumentException("Policy not found: " + policyName);
         }
@@ -105,7 +105,7 @@ public class PplPolicy implements PathPolicy {
       if (groupBuilder.list.isEmpty()) {
         throw new IllegalArgumentException("No entries in group");
       }
-      PplSubPolicy defaultPolicy = policies.get("default");
+      PplRouteFilter defaultPolicy = policies.get("default");
       Entry defaultEntry = groupBuilder.list.get(groupBuilder.list.size() - 1);
       if (defaultPolicy == null || defaultEntry.dstISD != 0) {
         throw new IllegalArgumentException("No default in group");
@@ -121,9 +121,9 @@ public class PplPolicy implements PathPolicy {
     private final long dstAS;
     private final byte[] dstIP;
     private final int dstPort;
-    private final PplSubPolicy policy;
+    private final PplRouteFilter policy;
 
-    private Entry(String destination, PplSubPolicy policy) {
+    private Entry(String destination, PplRouteFilter policy) {
       this.policy = policy;
       String[] parts = destination.split("-");
       if (parts.length < 1 || parts.length > 2) {
@@ -187,7 +187,7 @@ public class PplPolicy implements PathPolicy {
     private int minMtuBytes = 0;
     private int minValiditySeconds = 0;
 
-    public Builder add(String destination, PplSubPolicy policy) {
+    public Builder add(String destination, PplRouteFilter policy) {
       list.add(new Entry(destination, policy));
       return this;
     }
