@@ -93,7 +93,8 @@ public class PplRouteFilter implements PathPolicy {
   }
 
   // PolicyFromExtPolicy creates a Policy from an extending Policy and the extended policies
-  public static PplRouteFilter policyFromExtPolicy(PplExtPolicy extPolicy, PplExtPolicy[] extended) {
+  public static PplRouteFilter policyFromExtPolicy(
+      PplExtPolicy extPolicy, PplExtPolicy[] extended) {
     PplRouteFilter policy = PplRouteFilter.createCopy(extPolicy);
     // Apply all extended policies
     policy.applyExtended(extPolicy.getExtensions(), extended);
@@ -159,8 +160,8 @@ public class PplRouteFilter implements PathPolicy {
   // Option contains a weight and a policy and is used as a list item in Policy.Options
   @Deprecated
   static class Option {
-    private final int weight; //        `json:"weight"`
-    private final PplExtPolicy policy; // `json:"policy"`
+    private final int weight;
+    private final PplExtPolicy policy;
 
     private Option(int weight, PplExtPolicy policy) {
       this.weight = weight;

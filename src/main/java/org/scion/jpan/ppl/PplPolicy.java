@@ -43,7 +43,8 @@ public class PplPolicy implements PathPolicy {
     long now = System.currentTimeMillis() / 1000; // unix epoch
     for (Path path : input) {
       PathMetadata meta = path.getMetadata();
-      if (meta.getMtu() >= minMtu && meta.getExpiration() >= now + minValiditySec) {
+      if ((minMtu <= 0 || meta.getMtu() >= minMtu)
+          && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)) {
         filtered.add(path);
       }
     }
@@ -194,6 +195,7 @@ public class PplPolicy implements PathPolicy {
 
     /**
      * Minimum MTU requirement for paths. Default is 0.
+     *
      * @param minMtuBytes Minimum MTU bytes required for a path to be accepted.
      * @return this builder
      */
@@ -204,6 +206,7 @@ public class PplPolicy implements PathPolicy {
 
     /**
      * Minimum validity requirement for paths. Default is 0.
+     *
      * @param minValiditySeconds Minimum seconds before a path expires.
      * @return this Builder
      */

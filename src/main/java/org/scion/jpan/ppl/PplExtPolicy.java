@@ -27,7 +27,7 @@ import java.util.Objects;
  */
 @Deprecated
 public class PplExtPolicy extends PplRouteFilter {
-  private final String[] extensions; // []string `json:"extends,omitempty"`
+  private final String[] extensions;
 
   private PplExtPolicy(
       String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
