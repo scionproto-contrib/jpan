@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 
@@ -30,26 +31,32 @@ class PolicyTest {
   @Test
   void testBasicPolicy() {
     PathProvider pp = new PathProvider();
+    List<Path> paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
 
     // "Empty policy"
     // Unlike the scionproto, we forbid empty policies.
-    assertThrows(PplException.class, () -> PplPolicy.builder().build());
-    //    List<Path> paths = pp.getPaths("2-ff00:0:212", "2-ff00:0:211");
-    //    PplPolicy policy = PplPolicy.builder().build();
-    //
-    //    List<Path> outPaths = policy.filterAll(paths);
-    //    assertEquals(2, outPaths.size());
+    assertThrows(PplException.class, () -> PplPathFilter.builder().build());
+
+    // "Empty policy" with "true"
+    PplPathFilter policyTrue = PplPathFilter.builder().addAclEntry(true, null).build();
+    List<Path> outPathsTrue = policyTrue.filter(paths);
+    assertEquals(2, outPathsTrue.size());
+
+    // "Empty policy" with "false"
+    PplPathFilter policyFalse = PplPathFilter.builder().addAclEntry(false, null).build();
+    List<Path> outPathsFalse = policyFalse.filter(paths);
+    assertEquals(0, outPathsFalse.size());
   }
 
   @Test
   void testOptionsEval() {
     PathProvider pp = new PathProvider();
-    PplPolicy policy;
+    PplPathFilter policy;
     List<Path> paths;
 
     // "one option, allow everything"
     policy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addOption(
                 0,
                 PplExtPolicy.builder()
@@ -62,7 +69,7 @@ class PolicyTest {
 
     // "two options, deny everything"
     policy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addOption(
                 0,
                 PplExtPolicy.builder()
@@ -81,7 +88,7 @@ class PolicyTest {
 
     // "two options, first: allow everything, second: allow one path"
     policy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .setName("")
             .addOption(
                 0,
@@ -103,7 +110,7 @@ class PolicyTest {
 
     // "two options, combined"
     policy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addOption(
                 0,
                 PplExtPolicy.builder()
@@ -122,7 +129,7 @@ class PolicyTest {
 
     // "two options, take first"
     policy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addOption(
                 1,
                 PplExtPolicy.builder()
@@ -141,7 +148,7 @@ class PolicyTest {
 
     // "two options, take second"
     policy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addOption(
                 1,
                 PplExtPolicy.builder()
@@ -163,8 +170,8 @@ class PolicyTest {
   void TestExtends() {
     PplExtPolicy policy;
     PplExtPolicy[] extended;
-    PplPolicy extendedPolicy;
-    PplPolicy pol;
+    PplPathFilter extendedPolicy;
+    PplPathFilter pol;
 
     // "one extends, use sub acl"
     policy = PplExtPolicy.builder().addExtension("policy1").buildNoValidate();
@@ -177,9 +184,9 @@ class PolicyTest {
               .buildNoValidate()
         };
     extendedPolicy =
-        PplPolicy.builder().addAclEntry(true, "0-0#0").addAclEntry(DENY_STR).buildNoValidate();
+        PplPathFilter.builder().addAclEntry(true, "0-0#0").addAclEntry(DENY_STR).buildNoValidate();
 
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "use option of extended policy"
@@ -197,7 +204,7 @@ class PolicyTest {
               .buildNoValidate()
         };
     extendedPolicy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addOption(
                 1,
                 PplExtPolicy.builder()
@@ -205,7 +212,7 @@ class PolicyTest {
                     .addAclEntry(DENY_STR)
                     .buildNoValidate())
             .build();
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "two extends, use sub acl and list"
@@ -220,12 +227,12 @@ class PolicyTest {
               .buildNoValidate()
         };
     extendedPolicy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addAclEntry(true, "0-0#0")
             .addAclEntry(DENY_STR)
             .setSequence("1-ff00:0:133#1019 1-ff00:0:132#1910")
             .buildNoValidate();
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "two extends, only use acl"
@@ -247,12 +254,12 @@ class PolicyTest {
               .buildNoValidate()
         };
     extendedPolicy =
-        PplPolicy.builder()
+        PplPathFilter.builder()
             .addAclEntry(true, "0-0#0")
             .addAclEntry(DENY_STR)
             .setSequence("1-ff00:0:133#0 1-ff00:0:132#0")
             .buildNoValidate();
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "three extends, use last list"
@@ -272,8 +279,9 @@ class PolicyTest {
               .setSequence("1-ff00:0:133#1013 1-ff00:0:132#1913")
               .build()
         };
-    extendedPolicy = PplPolicy.builder().setSequence("1-ff00:0:133#1013 1-ff00:0:132#1913").build();
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    extendedPolicy =
+        PplPathFilter.builder().setSequence("1-ff00:0:133#1013 1-ff00:0:132#1913").build();
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "nested extends"
@@ -287,8 +295,9 @@ class PolicyTest {
               .setSequence("1-ff00:0:133#1011 1-ff00:0:132#1911")
               .buildNoValidate()
         };
-    extendedPolicy = PplPolicy.builder().setSequence("1-ff00:0:133#1011 1-ff00:0:132#1911").build();
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    extendedPolicy =
+        PplPathFilter.builder().setSequence("1-ff00:0:133#1011 1-ff00:0:132#1911").build();
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "nested extends, evaluating order"
@@ -306,8 +315,9 @@ class PolicyTest {
               .setSequence("1-ff00:0:133#1011 1-ff00:0:132#1911")
               .build()
         };
-    extendedPolicy = PplPolicy.builder().setSequence("1-ff00:0:133#1010 1-ff00:0:132#1910").build();
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    extendedPolicy =
+        PplPathFilter.builder().setSequence("1-ff00:0:133#1010 1-ff00:0:132#1910").build();
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "different nested extends, evaluating order"
@@ -326,8 +336,9 @@ class PolicyTest {
               .setSequence("1-ff00:0:133#1011 1-ff00:0:132#1911")
               .build()
         };
-    extendedPolicy = PplPolicy.builder().setSequence("1-ff00:0:133#1010 1-ff00:0:132#1910").build();
-    pol = PplPolicy.policyFromExtPolicy(policy, extended);
+    extendedPolicy =
+        PplPathFilter.builder().setSequence("1-ff00:0:133#1010 1-ff00:0:132#1910").build();
+    pol = PplPathFilter.policyFromExtPolicy(policy, extended);
     assertEquals(extendedPolicy, pol);
 
     // "TestPolicy Extend not found"
@@ -341,7 +352,8 @@ class PolicyTest {
               .setSequence("1-ff00:0:133#1011 1-ff00:0:132#1911")
               .build()
         };
-    assertThrows(PplException.class, () -> PplPolicy.policyFromExtPolicy(errPolicy, errExtended));
+    assertThrows(
+        PplException.class, () -> PplPathFilter.policyFromExtPolicy(errPolicy, errExtended));
   }
 
   @Test
@@ -351,17 +363,18 @@ class PolicyTest {
 
     // "sequence in options is ignored"
     PplExtPolicy optPolicy = PplExtPolicy.builder().setSequence("0+ 1-ff00:0:111 0+").build();
-    PplPolicy policy = PplPolicy.builder().addOption(0, optPolicy).build();
-    List<Path> outPaths = policy.filterOpt(paths, PplPolicy.FilterOptions.create(true));
+    PplPathFilter policy = PplPathFilter.builder().addOption(0, optPolicy).build();
+    List<Path> outPaths = policy.filterOpt(paths, PplPathFilter.FilterOptions.create(true));
     assertEquals(3, outPaths.size());
 
     // "sequence is ignored"
-    policy = PplPolicy.builder().setSequence("0+ 1-ff00:0:111 0+").build();
-    outPaths = policy.filterOpt(paths, PplPolicy.FilterOptions.create(true));
+    policy = PplPathFilter.builder().setSequence("0+ 1-ff00:0:111 0+").build();
+    outPaths = policy.filterOpt(paths, PplPathFilter.FilterOptions.create(true));
     assertEquals(3, outPaths.size());
   }
 
   @Test
+  @Disabled
   void testPolicyJsonConversion() {
     //        acl, err := NewACL(
     //                &ACLEntry{Action: Allow, Rule: mustHopPredicate(t, "42-0#0")},

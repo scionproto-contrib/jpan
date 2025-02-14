@@ -61,28 +61,6 @@ class ACL {
     return result;
   }
 
-  //    JsonWriter MarshalJSON(JsonWriter json) {
-  //        return json.Marshal(entries);
-  //    }
-  //
-  //    JsonReader UnmarshalJSON(JsonReader json) {
-  //        json.Unmarshal(b, Entries);
-  //        validateACL(entries);
-  //        return json;
-  //    }
-
-  // TODO
-  //    func (a *ACL) MarshalYAML() (interface{}, error) {
-  //        return a.Entries, nil
-  //    }
-  //
-  //    func (a *ACL) UnmarshalYAML(unmarshal func(interface{}) error) error {
-  //        if err := unmarshal(&a.Entries); err != nil {
-  //            return err
-  //        }
-  //        return validateACL(a.Entries)
-  //    }
-
   AclAction evalPath(PathMetadata pm) {
     for (int i = 0; i < pm.getInterfacesList().size(); i++) {
       PathMetadata.PathInterface iface = pm.getInterfacesList().get(i);
@@ -138,14 +116,14 @@ class ACL {
       if (parts.length == 1) {
         return new AclEntry(getAction(parts[0]), null);
       } else if (parts.length == 2) {
-        return new AclEntry(getAction(parts[0]), HopPredicate.HopPredicateFromString(parts[1]));
+        return new AclEntry(getAction(parts[0]), HopPredicate.fromString(parts[1]));
       }
       throw new PplException("ACLEntry has too many parts: " + str);
     }
 
     public static AclEntry create(boolean allow, String hopFieldPredicate) {
       HopPredicate hp =
-          hopFieldPredicate == null ? null : HopPredicate.HopPredicateFromString(hopFieldPredicate);
+          hopFieldPredicate == null ? null : HopPredicate.fromString(hopFieldPredicate);
       return new AclEntry(allow ? AclAction.ALLOW : AclAction.DENY, hp);
     }
 
@@ -164,30 +142,6 @@ class ACL {
     public String toString() {
       return "AclEntry{" + "action=" + action + ", rule=" + rule + '}';
     }
-
-    //    JsonWriter MarshalJSON(JsonWriter json) {
-    //        return json.Marshal(String());
-    //    }
-    //
-    //    JsonReader UnmarshalJSON(JsonReader json) {
-    //        String str;
-    //        json.Unmarshal(b, str);
-    //        loadFromString(str);
-    //        return json;
-    //    }
-
-    //    func (ae *ACLEntry) MarshalYAML() (interface{}, error) {
-    //        return ae.String(), nil
-    //    }
-    //
-    //    func (ae *ACLEntry) UnmarshalYAML(unmarshal func(interface{}) error) error {
-    //        var str string
-    //        err := unmarshal(&str)
-    //        if err != nil {
-    //            return err
-    //        }
-    //        return ae.LoadFromString(str)
-    //    }
 
     private static AclAction getAction(String symbol) {
       if (ALLOW_SYMBOL.equals(symbol)) {

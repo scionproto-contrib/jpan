@@ -27,85 +27,84 @@ class HopPredicateTest {
     HopPredicate hpExp;
 
     // "ISD wildcard":
-    hp = HopPredicate.HopPredicateFromString("0");
+    hp = HopPredicate.fromString("0");
     hpExp = HopPredicate.create(0, 0, new int[] {0});
     assertEquals(hpExp, hp);
 
     // "AS, IF wildcard omitted"
-    hp = HopPredicate.HopPredicateFromString("1");
+    hp = HopPredicate.fromString("1");
     hpExp = HopPredicate.create(1, 0, new int[] {0});
     assertEquals(hpExp, hp);
 
     // "IF wildcard omitted"
-    hp = HopPredicate.HopPredicateFromString("1-0");
+    hp = HopPredicate.fromString("1-0");
     hpExp = HopPredicate.create(1, 0, new int[] {0});
     assertEquals(hpExp, hp);
 
     // "basic wildcard"
-    hp = HopPredicate.HopPredicateFromString("1-0#0");
+    hp = HopPredicate.fromString("1-0#0");
     hpExp = HopPredicate.create(1, 0, new int[] {0});
     assertEquals(hpExp, hp);
 
     // "AS wildcard, interface set"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1-0#1"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-0#1"));
 
     // "ISD wildcard, AS set"
-    hp = HopPredicate.HopPredicateFromString("0-1#0");
+    hp = HopPredicate.fromString("0-1#0");
     hpExp = HopPredicate.create(0, 1, new int[] {0});
     assertEquals(hpExp, hp);
 
     // "ISD wildcard, AS set, interface set"
-    hp = HopPredicate.HopPredicateFromString("0-1#2");
+    hp = HopPredicate.fromString("0-1#2");
     hpExp = HopPredicate.create(0, 1, new int[] {2});
     assertEquals(hpExp, hp);
 
     // "ISD wildcard, AS set and interface omitted"
-    hp = HopPredicate.HopPredicateFromString("0-1");
+    hp = HopPredicate.fromString("0-1");
     hpExp = HopPredicate.create(0, 1, new int[] {0});
     assertEquals(hpExp, hp);
 
     // "IF wildcard omitted, AS set"
-    hp = HopPredicate.HopPredicateFromString("1-2");
+    hp = HopPredicate.fromString("1-2");
     hpExp = HopPredicate.create(1, 2, new int[] {0});
     assertEquals(hpExp, hp);
 
     // "two IfIDs"
-    hp = HopPredicate.HopPredicateFromString("1-2#3,4");
+    hp = HopPredicate.fromString("1-2#3,4");
     hpExp = HopPredicate.create(1, 2, new int[] {3, 4});
     assertEquals(hpExp, hp);
 
     // "three IfIDs"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1-2#3,4,5"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-2#3,4,5"));
 
     // "bad -"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1-1-0"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-1-0"));
 
     // "missing AS"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1#2"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1#2"));
 
     // "bad #"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1-1#0#"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-1#0#"));
 
     // "bad IF"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1-1#e"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-1#e"));
 
     // "bad second IF"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1-2#1,3a"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-2#1,3a"));
 
     // "AS wildcard, second IF defined"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1-0#1,3"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-0#1,3"));
 
     // "bad AS"
-    assertThrows(
-        PplException.class, () -> HopPredicate.HopPredicateFromString("1-12323433243534#0"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1-12323433243534#0"));
 
     // "bad ISD"
-    assertThrows(PplException.class, () -> HopPredicate.HopPredicateFromString("1123212-23#0"));
+    assertThrows(PplException.class, () -> HopPredicate.fromString("1123212-23#0"));
   }
 
   @Test
   void TestHopPredicateString() {
-    HopPredicate hp = HopPredicate.HopPredicateFromString("1-2#3,4");
+    HopPredicate hp = HopPredicate.fromString("1-2#3,4");
     assertEquals("1-2#3,4", hp.string());
   }
 
