@@ -4,7 +4,7 @@
     "1-0:0:110": "policy_110b",
     "0": "default"
   },
-  "policies": {
+  "filters": {
     "default": {
       "acl": [
         "+ 1-ff00:0:111",

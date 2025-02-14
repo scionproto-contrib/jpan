@@ -5,40 +5,38 @@ exchange them via JSON files.
 
 A PPL script consists of :
 
-* `"destination_filters"`: ordered list of filters that determine per destination which
-  rout policy should be applied.
-  The algorithm goes through the list of destination filters from top to bottom
-  until it finds a destination that matches the path's destination. The route filter assigned to
-  that
-  destination is executed. All other destination filters are ignored.
+* `"destinations"`: ordered list that determines for each destination via pattern matching which
+  path filter should be applied.
+  The algorithm goes through the list of destination patterns from top to bottom
+  until it finds a destination that matches the path's destination. The path filter assigned to
+  that destination is executed. All other entries are ignored.
 * `"defaults"`: a list of path requirements and possible ordering. Every default is valid for every
-  route filter except if a route filter overrides a given requirement or ordering.
-* `"route_filters"`: named route filters. Each route filter can define its own requirements and
-  ordering
-  to override the defaults.
+  path filter except if a path filter overrides a given requirement or ordering.
+* `"filters"`: named path filters. Each filter can define its own requirements and
+  ordering to override the defaults.
 
-JPAN's route filters are based on the path policy language defined in the
+JPAN's path filters are based on the path policy language defined in the
 [Path Policy Language](https://docs.scion.org/en/latest/dev/design/PathPolicy.html).
-Specifically, route filters consist of `ACL`s and `Sequence`s as defined in
+Specifically, path filters consist of `ACL`s and `Sequence`s as defined in
 that document.
 
-## Destination Filters
+## Destination Matching
 
-Each destination filter consists of a pattern and an associated route filter. The pattern
-contains:
+Each entry consists of a pattern (that matches destinations) and an associated path filter. 
+The pattern contains:
 
 - ISD or `0` for catch all
 - optional: AS number, `0` for catch all
 - optional if AS is given: IP address
 - optional if IP is given: port number
 
-The last destination filter must be `"0"` (catch-all) that applies when no other filters matches.
+The last entry pattern must be `"0"` (catch-all) that applies when no other entry matches.
 
 For example:
 
 ```json
 {
-  "destination_filters": {
+  "destinations": {
     "1-0:0:110,10.0.0.2": "policy_110a",
     "1-0:0:110": "policy_110b",
     "0": "default"
@@ -50,9 +48,9 @@ In the example above, the destination `1-0:0:110,10.0.0.2:80` would be filtered 
 `policy_110a`, whereas `1-0:0:110,10.0.0.3:80` would be filtered by `policy_110b` and
 `1-0:0:120,10.0.0.2:80` would be filtered by `default`.
 
-## Route Filters
+## Path Filters
 
-Route filters are inspired by the
+Path filters are inspired by the
 [Path Policy Language](https://docs.scion.org/en/latest/dev/design/PathPolicy.html).
 Each filter has 0 or 1 ACLs and 0 or 1 Sequences.
 A path is denied if either the ACL or the Sequence denies the path. The ACL or Sequence being
@@ -135,7 +133,7 @@ destinations:
   - destination: "0"
     policy: default
 
-route_filters:
+filters:
   - name: default
     acl:
       - "+ 1-ff00:0:111",
@@ -154,12 +152,12 @@ route_filters:
 
 ```json
 {
-  "destination_filters": {
+  "destinations": {
     "1-0:0:110,10.0.0.2": "policy_110a",
     "1-0:0:110": "policy_110b",
     "0": "default"
   },
-  "route_filters": {
+  "filters": {
     "default": {
       "acl": [
         "+ 1-ff00:0:111",

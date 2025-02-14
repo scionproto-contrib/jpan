@@ -22,15 +22,15 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ppl.PplException;
 import org.scion.jpan.ppl.PplExtPolicy;
-import org.scion.jpan.ppl.PplRouteFilter;
+import org.scion.jpan.ppl.PplPathFilter;
 import org.scion.jpan.testutil.ExamplePacket;
 
-class PplRouteFilterTest {
+class PplPathFilterTest {
 
   @Test
   void smokeTestBuilder() {
-    PplRouteFilter ppl =
-        PplRouteFilter.builder()
+    PplPathFilter ppl =
+        PplPathFilter.builder()
             .setName("My policy")
             .addAclEntries("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+")
             .setSequence("1-ff00:0:133#1 1+ 2-ff00:0:1? 2-ff00:0:233#1")
@@ -52,38 +52,38 @@ class PplRouteFilterTest {
     paths.add(ExamplePacket.PATH_IPV4);
     assertTrue(ppl.filter(paths).isEmpty());
 
-    String str = PplRouteFilter.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
+    String str = PplPathFilter.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
     assertEquals("", str);
   }
 
   @Test
   void aclFail_extraEntries() {
-    PplRouteFilter.Builder builder = PplRouteFilter.builder();
+    PplPathFilter.Builder builder = PplPathFilter.builder();
     assertThrows(
         PplException.class, () -> builder.addAclEntries("ext-acl1-fsd", "ext-acl2-fsd dsf"));
   }
 
   @Test
   void aclFail_noDefault() {
-    PplRouteFilter.Builder builder = PplRouteFilter.builder();
+    PplPathFilter.Builder builder = PplPathFilter.builder();
     assertThrows(PplException.class, () -> builder.addAclEntries(new String[0]));
   }
 
   @Test
   void aclFail_badISD() {
-    PplRouteFilter.Builder builder = PplRouteFilter.builder();
+    PplPathFilter.Builder builder = PplPathFilter.builder();
     assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd sss"));
   }
 
   @Test
   void aclFail_badLast() {
-    PplRouteFilter.Builder builder = PplRouteFilter.builder();
+    PplPathFilter.Builder builder = PplPathFilter.builder();
     assertThrows(PplException.class, () -> builder.addAclEntry("ext-acl1-fsd"));
   }
 
   @Test
   void aclFail_badPredicate() {
-    PplRouteFilter.Builder ppl = PplRouteFilter.builder();
+    PplPathFilter.Builder ppl = PplPathFilter.builder();
     // unnecessary "+"
     Exception e = assertThrows(PplException.class, () -> ppl.addAclEntry(true, "+ 1-ff00:0:133"));
     assertTrue(e.getMessage().startsWith("Failed to parse "));
@@ -91,8 +91,8 @@ class PplRouteFilterTest {
 
   @Test
   void acl1a() {
-    PplRouteFilter ppl =
-        PplRouteFilter.builder()
+    PplPathFilter ppl =
+        PplPathFilter.builder()
             .setName("My policy")
             .addAclEntries("+ 1-ff00:0:133", "+ 1-ff00:0:120", "- 1", "+")
             .build();
@@ -101,8 +101,8 @@ class PplRouteFilterTest {
 
   @Test
   void acl1b() {
-    PplRouteFilter ppl =
-        PplRouteFilter.builder()
+    PplPathFilter ppl =
+        PplPathFilter.builder()
             .setName("My policy")
             .addAclEntry("+ 1-ff00:0:133")
             .addAclEntry("+ 1-ff00:0:120")
@@ -114,8 +114,8 @@ class PplRouteFilterTest {
 
   @Test
   void acl1c() {
-    PplRouteFilter ppl =
-        PplRouteFilter.builder()
+    PplPathFilter ppl =
+        PplPathFilter.builder()
             .setName("My policy")
             .addAclEntry(true, "1-ff00:0:133")
             .addAclEntry(true, "1-ff00:0:120")
@@ -125,7 +125,7 @@ class PplRouteFilterTest {
     testPath(ppl);
   }
 
-  private void testPath(PplRouteFilter ppl) {
+  private void testPath(PplPathFilter ppl) {
     List<Path> paths = new ArrayList<>();
     paths.add(ExamplePacket.PATH_IPV4);
     Path p = ppl.filter(paths).get(0);

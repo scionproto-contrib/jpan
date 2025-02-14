@@ -2,7 +2,7 @@
   "destinations": {
     "1": "default"
   },
-  "policies": {
+  "filters": {
     "default": {
       "acl": [
         "+ 1-ff00:0:111",

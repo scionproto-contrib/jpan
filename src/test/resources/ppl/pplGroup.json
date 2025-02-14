@@ -9,7 +9,7 @@
     "min_validity_sec": 10,
     "ordering": "hops_asc,meta_latency_asc"
   },
-  "policies": {
+  "filters": {
     "default": {
       "acl": [
         "+ 1-ff00:0:111",

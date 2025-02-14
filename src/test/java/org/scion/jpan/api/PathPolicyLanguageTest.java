@@ -25,8 +25,8 @@ import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.ppl.PplPathFilter;
 import org.scion.jpan.ppl.PplPolicy;
-import org.scion.jpan.ppl.PplRouteFilter;
 import org.scion.jpan.proto.daemon.Daemon;
 
 class PathPolicyLanguageTest {
@@ -150,8 +150,8 @@ class PathPolicyLanguageTest {
   }
 
   private void testDenyAllow(String destDeny, String addrDeny, String addrAllow) {
-    PplRouteFilter deny = PplRouteFilter.builder().addAclEntry("-").build();
-    PplRouteFilter allow = PplRouteFilter.builder().addAclEntry("+").build();
+    PplPathFilter deny = PplPathFilter.builder().addAclEntry("-").build();
+    PplPathFilter allow = PplPathFilter.builder().addAclEntry("+").build();
     PplPolicy group = PplPolicy.builder().add(destDeny, deny).add("0", allow).build();
     String[] path133x110 = {"1-ff00:0:133", "0", "0", "1-ff00:0:110"};
 
@@ -198,7 +198,7 @@ class PathPolicyLanguageTest {
     e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: "), e.getMessage());
 
-    // missing policy in "policies"
+    // missing policy in "filters"
     e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicy.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: Policy not found:"), e.getMessage());
 
@@ -206,7 +206,7 @@ class PathPolicyLanguageTest {
     e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicies.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No entries in group"));
 
-    // missing default policy in "policies"
+    // missing default policy in "filters"
     e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No default in group"));
 

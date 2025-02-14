@@ -26,7 +26,7 @@ import java.util.Objects;
  *     href="https://github.com/scionproto/scion/issues/4687">#4687</a>
  */
 @Deprecated
-public class PplExtPolicy extends PplRouteFilter {
+public class PplExtPolicy extends PplPathFilter {
   private final String[] extensions;
 
   private PplExtPolicy(
@@ -43,7 +43,7 @@ public class PplExtPolicy extends PplRouteFilter {
     return extensions;
   }
 
-  public static class Builder extends PplRouteFilter.Builder {
+  public static class Builder extends PplPathFilter.Builder {
     private final List<String> extensions = new ArrayList<>();
 
     public Builder addExtension(String extension) {
