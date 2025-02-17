@@ -57,8 +57,8 @@ class PathPolicyLanguageTest {
     final List<Path> paths = new ArrayList<>();
     InetSocketAddress addr;
 
-    // policy_110a - address match
-    // This path matches the "sequence" (policy_110a) but not the "acl" in policy_110b
+    // filter_110a - address match
+    // This path matches the "sequence" (filter_110a) but not the "acl" in filter_110b
     String[] path133x110 = {
       "1-ff00:0:133",
       "0",
@@ -77,18 +77,18 @@ class PathPolicyLanguageTest {
     paths.add(createPath("10.0.0.2:12234", path133x110));
     assertEquals(1, group.filter(paths).size());
 
-    // policy_110a: address does not match -> policy_110b fails
+    // filter_110a: address does not match -> filter_110b fails
     paths.clear();
     paths.add(createPath("10.0.0.3:12235", path133x110));
     assertTrue(group.filter(paths).isEmpty());
 
-    // policy_110b - address match - no ISD match -> accept
+    // filter_110b - address match - no ISD match -> accept
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:110"));
     assertEquals(1, group.filter(paths).size());
 
-    // policy_110b - address match - ISD match -> deny
+    // filter_110b - address match - ISD match -> deny
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:130", "0", "2", "1-ff00:0:110"));

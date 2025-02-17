@@ -37,15 +37,15 @@ For example:
 ```json
 {
   "destinations": {
-    "1-0:0:110,10.0.0.2": "policy_110a",
-    "1-0:0:110": "policy_110b",
+    "1-0:0:110,10.0.0.2": "filter_110a",
+    "1-0:0:110": "filter_110b",
     "0": "default"
   }
 }
 ```
 
 In the example above, the destination `1-0:0:110,10.0.0.2:80` would be filtered by
-`policy_110a`, whereas `1-0:0:110,10.0.0.3:80` would be filtered by `policy_110b` and
+`filter_110a`, whereas `1-0:0:110,10.0.0.3:80` would be filtered by `filter_110b` and
 `1-0:0:120,10.0.0.2:80` would be filtered by `default`.
 
 ## Path Filters
@@ -127,11 +127,11 @@ PPL scripts can be defined via API or via YAML or JSON files. For example:
 ---
 destinations:
   - destination: "1-0:0:110,10.0.0.2"
-    policy: policy_110a
+    filter: filter_110a
   - destination: "1-0:0:110"
-    policy: policy_110b
+    filter: filter_110b
   - destination: "0"
-    policy: default
+    filter: default
 
 filters:
   - name: default
@@ -140,9 +140,9 @@ filters:
       - "+ 1-ff00:0:112",
       - "- 1",
       - "+"
-  - name: policy_110a
+  - name: filter_110a
     "sequence": "1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0"
-  - name: policy_110b
+  - name: filter_110b
     acl:
       - "+ 1-ff00:0:133",
       - "+ 1-ff00:0:120",
@@ -153,8 +153,8 @@ filters:
 ```json
 {
   "destinations": {
-    "1-0:0:110,10.0.0.2": "policy_110a",
-    "1-0:0:110": "policy_110b",
+    "1-0:0:110,10.0.0.2": "filter_110a",
+    "1-0:0:110": "filter_110b",
     "0": "default"
   },
   "filters": {
@@ -166,10 +166,10 @@ filters:
         "+"
       ]
     },
-    "policy_110a": {
+    "filter_110a": {
       "sequence": "1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0"
     },
-    "policy_110b": {
+    "filter_110b": {
       "acl": [
         "- 1-ff00:0:130#0",
         "- 1-ff00:0:131#0",
@@ -189,7 +189,7 @@ For example (by Jelte):
 
 ```json
 {
-  "policy_110a": {
+  "filter_110a": {
     "sequence": "1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0",
     "fabrid_policies": {
       "1-ff00:0:110": {

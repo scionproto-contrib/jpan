@@ -100,7 +100,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#159](https://github.com/scionproto-contrib/jpan/pull/159)
 - Policy filters should not need to throw Exceptions when the path list is empty.
   [#160](https://github.com/scionproto-contrib/jpan/pull/160)
-- PplPolicy refactoring [#161](https://github.com/scionproto-contrib/jpan/pull/161)
+- PplPolicy refactoring [#169](https://github.com/scionproto-contrib/jpan/pull/169)
   - renamed `PplPolicy` to `PplSubPolicy`
   - renamed `PplPolicyGroup` to `PplPolicy`
   - renamed `"group"` to `"destinations"`

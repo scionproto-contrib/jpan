@@ -51,7 +51,7 @@ public class PplPathFilter implements PathPolicy {
   private Sequence sequence;
   private Option[] options;
 
-  protected PplPathFilter(String name, ACL acl, Sequence sequence, Option... options) {
+  PplPathFilter(String name, ACL acl, Sequence sequence, Option... options) {
     this.name = name;
     this.acl = acl;
     this.sequence = sequence;

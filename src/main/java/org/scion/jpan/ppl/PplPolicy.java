@@ -216,6 +216,9 @@ public class PplPolicy implements PathPolicy {
     }
 
     public PplPolicy build() {
+      if (list.isEmpty()) {
+        throw new PplException("Policy has no default filter");
+      }
       return new PplPolicy(list, minMtuBytes, minValiditySeconds);
     }
   }
