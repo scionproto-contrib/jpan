@@ -51,7 +51,10 @@ class PplPathFilterTest {
     List<Path> paths = new ArrayList<>();
     paths.add(ExamplePacket.PATH_IPV4);
     assertTrue(ppl.filter(paths).isEmpty());
+  }
 
+  @Test
+  void getSequence() {
     String str = PplPathFilter.getSequence(ExamplePacket.PATH_IPV4); // TODO do we need this?
     assertEquals("", str);
   }

@@ -29,11 +29,15 @@ public class PplPolicy implements PathPolicy {
   private final List<Entry> policies;
   private final int minMtu;
   private final int minValiditySec;
+  private final Comparator<Path> ordering;
 
-  private PplPolicy(List<Entry> policies, int minMtuBytes, int minValiditySeconds) {
+  private PplPolicy(
+      List<Entry> policies, int minMtuBytes, int minValiditySeconds, String ordering) {
     this.policies = policies;
     this.minMtu = minMtuBytes;
     this.minValiditySec = minValiditySeconds;
+    String[] orderings = ordering == null ? new String[0] : ordering.split(",");
+    this.ordering = buildComparator(orderings);
   }
 
   @Override
@@ -55,10 +59,65 @@ public class PplPolicy implements PathPolicy {
     ScionSocketAddress destination = filtered.get(0).getRemoteSocketAddress();
     for (Entry entry : policies) {
       if (entry.isMatch(destination)) {
-        return entry.policy.filter(filtered);
+        filtered = entry.policy.filter(filtered);
+        break;
       }
     }
-    throw new IllegalStateException("Default policy does not match!");
+
+    if (ordering != null) {
+      filtered.sort(ordering);
+    }
+    return filtered;
+  }
+
+  private Comparator<Path> buildComparator(String[] orderings) {
+    if (orderings.length == 0) {
+      return null;
+    }
+    Comparator<Path> comparator = getPathComparator(orderings[orderings.length - 1]);
+
+    for (int i = orderings.length - 2; i >= 0; i--) {
+      comparator = new ChainableComparator(getPathComparator(orderings[i]), comparator);
+    }
+    return comparator;
+  }
+
+  private static class ChainableComparator implements Comparator<Path> {
+    private final Comparator<Path> primary;
+    private final Comparator<Path> secondary;
+
+    public ChainableComparator(Comparator<Path> primary, Comparator<Path> secondary) {
+      this.primary = primary;
+      this.secondary = secondary;
+    }
+
+    @Override
+    public int compare(Path p1, Path p2) {
+      int res = primary.compare(p1, p2);
+      return res != 0 ? res : secondary.compare(p1, p2);
+    }
+  }
+
+  private Comparator<Path> getPathComparator(String ordering) {
+    switch (ordering) {
+      case "hops_asc":
+        return Comparator.comparingInt(p -> p.getMetadata().getInterfacesList().size());
+      case "hops_desc":
+        return (p1, p2) ->
+            Integer.compare(
+                p2.getMetadata().getInterfacesList().size(),
+                p1.getMetadata().getInterfacesList().size());
+      case "meta_latency_asc":
+        return Comparator.comparingInt(
+            p -> p.getMetadata().getLatencyList().stream().mapToInt(Integer::intValue).sum());
+      case "meta_latency_desc":
+        return (p1, p2) ->
+            Integer.compare(
+                p2.getMetadata().getLatencyList().stream().mapToInt(Integer::intValue).sum(),
+                p1.getMetadata().getLatencyList().stream().mapToInt(Integer::intValue).sum());
+      default:
+        throw new IllegalArgumentException("Unknown ordering: " + ordering);
+    }
   }
 
   public static Builder builder() {
@@ -187,6 +246,7 @@ public class PplPolicy implements PathPolicy {
     private final List<Entry> list = new ArrayList<>();
     private int minMtuBytes = 0;
     private int minValiditySeconds = 0;
+    private String ordering = null;
 
     public Builder add(String destination, PplPathFilter policy) {
       list.add(new Entry(destination, policy));
@@ -215,11 +275,16 @@ public class PplPolicy implements PathPolicy {
       return this;
     }
 
+    public Builder ordering(String ordering) {
+      this.ordering = ordering;
+      return this;
+    }
+
     public PplPolicy build() {
       if (list.isEmpty()) {
         throw new PplException("Policy has no default filter");
       }
-      return new PplPolicy(list, minMtuBytes, minValiditySeconds);
+      return new PplPolicy(list, minMtuBytes, minValiditySeconds, ordering);
     }
   }
 }
