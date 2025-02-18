@@ -99,7 +99,8 @@ public class PathProvider {
   private Daemon.Path protoPathFrom(SnetPath snetPath) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     Random rnd = new Random();
-    path.setExpiration(Timestamp.newBuilder().setSeconds(rnd.nextInt()).build());
+    long now = System.currentTimeMillis() / 1000;
+    path.setExpiration(Timestamp.newBuilder().setSeconds(now + rnd.nextInt(3600)).build());
     path.setMtu(1000 + rnd.nextInt(1000));
     // path.setInterface(Daemon.PathInterface.newBuilder().setAddress(Daemon.Address.getDefaultInstance()));
     for (PathInterface pathIntf : snetPath.pathIntfs) {

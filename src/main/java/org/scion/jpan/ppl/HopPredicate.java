@@ -26,7 +26,7 @@ class HopPredicate {
   // see docs/PathPolicy.md.
   private int isd;
   private long as;
-  private int[] ifIDs;
+  private final int[] ifIDs;
 
   static HopPredicate create(int isd, long as, int[] ifIDs) {
     return new HopPredicate(isd, as, ifIDs);
@@ -43,7 +43,7 @@ class HopPredicate {
     this.ifIDs = ifIDs;
   }
 
-  static HopPredicate HopPredicateFromString(String str) {
+  static HopPredicate fromString(String str) {
     validateHopPredStr(str);
 
     int[] ifIDs = new int[1];
@@ -112,9 +112,6 @@ class HopPredicate {
   }
 
   boolean matchesAll() {
-    if (this == null) {
-      return true; // TODO true !!!!???
-    }
     // hp.AS == 0 implies that there is exactly one 0 interface.
     return isd == 0 && as == 0;
   }
@@ -130,21 +127,8 @@ class HopPredicate {
     return String.format("%d-%s#%s", isd, as, sb);
   }
 
-  //    JsonWriter MarshalJSON(JsonWriter json) {
-  //        return json.Marshal(string());
-  //    }
-  //
-  //    JsonReader UnmarshalJSON(JsonReader json) {
-  //        String str;
-  //        json.Unmarshal(b, str);
-  //        nhp = HopPredicateFromString(str);
-  //                hp = nhp;
-  //        return json;
-  //    }
-
   private static int parseIfID(String str) {
-    int ifID = Integer.parseUnsignedInt(str, 10);
-    return ifID;
+    return Integer.parseInt(str, 10);
   }
 
   // validateHopPredStr checks if str has the correct amount of delimiters

@@ -122,42 +122,7 @@ class Sequence {
     return result;
   }
 
-  private String string() {
-    return srcstr;
-  }
-
-  //    JsonWriter MarshalJSON(JsonWriter json) {
-  //        return json.Marshal(s.srcstr);
-  //    }
-  //
-  //    JsonReader UnmarshalJSON(JsonReader json) {
-  //        String string;
-  //        json.Unmarshal(b, str);
-  //        Sequence sn = newSequence(str);
-  //    	this = sn;
-  //        return json;
-  //    }
-
-  //    func (s *Sequence) MarshalYAML() (interface{}, error) {
-  //        return s.srcstr, nil
-  //    }
-  //
-  //    func (s *Sequence) UnmarshalYAML(unmarshal func(interface{}) error) error {
-  //        var str string
-  //        err := unmarshal(&str)
-  //        if err != nil {
-  //            return err
-  //        }
-  //        sn, err := NewSequence(str)
-  //        if err != nil {
-  //            return err
-  //        }
-  //	*s = *sn
-  //        return nil
-  //    }
-
   private static class ErrorListener implements ANTLRErrorListener {
-    // *antlr.DefaultErrorListener
     String msg;
 
     @Override
@@ -180,8 +145,8 @@ class Sequence {
         boolean b,
         BitSet bitSet,
         ATNConfigSet atnConfigSet) {
-      throw new UnsupportedOperationException();
-      // this.msg += String.format("%d:%d %s\n", line, column, msg);
+      this.msg += String.format("%d:%d %s%n", line, column, msg);
+      throw new UnsupportedOperationException(msg);
     }
 
     @Override
@@ -218,28 +183,24 @@ class Sequence {
     @Override
     public void exitStart(SequenceParser.StartContext c) {
       String re = pop();
-      // fmt.Printf("Start: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitQuestionMark(SequenceParser.QuestionMarkContext c) {
       String re = String.format("(%s)?", pop());
-      // fmt.Printf("QuestionMark: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitPlus(SequenceParser.PlusContext c) {
       String re = String.format("(%s)+", pop());
-      // fmt.Printf("Plus: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitAsterisk(SequenceParser.AsteriskContext c) {
       String re = String.format("(%s)*", pop());
-      // fmt.Printf("Asterisk: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
@@ -248,7 +209,6 @@ class Sequence {
       String right = pop();
       String left = pop();
       String re = String.format("(%s|%s)", left, right);
-      // fmt.Printf("Or: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
@@ -257,21 +217,18 @@ class Sequence {
       String right = pop();
       String left = pop();
       String re = String.format("(%s%s)", left, right);
-      // fmt.Printf("Concatenation: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitParentheses(SequenceParser.ParenthesesContext c) {
       String re = pop();
-      // fmt.Printf("Parentheses: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitHop(SequenceParser.HopContext c) {
       String re = String.format("(%s +)", pop());
-      // fmt.Printf("Hop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
@@ -279,7 +236,6 @@ class Sequence {
     public void exitISDHop(SequenceParser.ISDHopContext c) {
       String isd = pop();
       String re = String.format("(%s-%s#%s,%s)", isd, AS_WILDCARD, IF_WILDCARD, IF_WILDCARD);
-      // fmt.Printf("ISDHop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
@@ -288,7 +244,6 @@ class Sequence {
       String as = pop();
       String isd = pop();
       String re = String.format("(%s-%s#%s,%s)", isd, as, IF_WILDCARD, IF_WILDCARD);
-      // fmt.Printf("ISDASHop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
@@ -300,7 +255,6 @@ class Sequence {
       String re =
           String.format(
               "(%s-%s#((%s,%s)|(%s,%s)))", isd, as, IF_WILDCARD, iface, iface, IF_WILDCARD);
-      // fmt.Printf("ISDASIFHop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
@@ -311,56 +265,45 @@ class Sequence {
       String as = pop();
       String isd = pop();
       String re = String.format("(%s-%s#%s,%s)", isd, as, ifin, ifout);
-      // fmt.Printf("ISDASIFIFHop: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitWildcardISD(SequenceParser.WildcardISDContext c) {
-      String re = ISD_WILDCARD;
-      // fmt.Printf("WildcardISD: %s RE: %s\n", c.GetText(), re)
-      push(re);
+      push(ISD_WILDCARD);
     }
 
     @Override
     public void exitISD(SequenceParser.ISDContext c) {
       String re = c.getText();
-      // fmt.Printf("ISD: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitWildcardAS(SequenceParser.WildcardASContext c) {
-      String re = AS_WILDCARD;
-      // fmt.Printf("WildcardAS: %s RE: %s\n", c.GetText(), re)
-      push(re);
+      push(AS_WILDCARD);
     }
 
     @Override
     public void exitLegacyAS(SequenceParser.LegacyASContext c) {
       String re = c.getText().substring(1);
-      // fmt.Printf("LegacyAS: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitAS(SequenceParser.ASContext c) {
       String re = c.getText().substring(1);
-      // fmt.Printf("AS: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
 
     @Override
     public void exitWildcardIFace(SequenceParser.WildcardIFaceContext c) {
-      String re = IF_WILDCARD;
-      // fmt.Printf("WildcardIFace: %s RE: %s\n", c.GetText(), re)
-      push(re);
+      push(IF_WILDCARD);
     }
 
     @Override
     public void exitIFace(SequenceParser.IFaceContext c) {
       String re = c.getText();
-      // fmt.Printf("IFace: %s RE: %s\n", c.GetText(), re)
       push(re);
     }
   }
@@ -369,10 +312,13 @@ class Sequence {
     return String.format("%s#%d,%d", ScionUtil.toStringIA(isdAs), ingress, egress);
   }
 
-  // GetSequence constructs the sequence string from snet path
-  // output format:
-  //
-  //	1-ff00:0:133#42 1-ff00:0:120#2,1 1-ff00:0:110#21
+  /**
+   * GetSequence constructs the sequence string from snet path.
+   *
+   * <p>output format:
+   *
+   * <p>1-ff00:0:133#42 1-ff00:0:120#2,1 1-ff00:0:110#21
+   */
   static String getSequence(Path path) {
     List<PathMetadata.PathInterface> ifaces = path.getMetadata().getInterfacesList();
     if (ifaces.size() % 2 != 0) {

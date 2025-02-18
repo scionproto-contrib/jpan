@@ -1,7 +1,7 @@
 {
-  "group": {
+  "destinations": {
   },
-  "policies": {
+  "filters": {
     "default": {
       "acl": [
         "+ 1-ff00:0:111",
@@ -10,7 +10,7 @@
         "+"
       ]
     },
-    "policy_110a": {
+    "filter_110a": {
       "sequence": "1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0"
     }
   }
