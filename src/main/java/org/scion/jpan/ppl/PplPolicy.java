@@ -16,6 +16,7 @@ package org.scion.jpan.ppl;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -23,9 +24,12 @@ import java.util.*;
 import java.util.stream.Stream;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PplPolicy implements PathPolicy {
 
+  private static final Logger log = LoggerFactory.getLogger(PplPolicy.class);
   private final List<Entry> policies;
   private final int minMtu;
   private final long minBandwidthBPS;
@@ -160,24 +164,48 @@ public class PplPolicy implements PathPolicy {
 
   public static PplPolicy fromJson(String jsonFile) {
     try {
-      JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
+      JsonElement jsonTree = JsonParser.parseString(jsonFile);
       if (!jsonTree.isJsonObject()) {
         throw new IllegalArgumentException("Bad file format: " + jsonFile);
       }
       JsonObject parentSet = jsonTree.getAsJsonObject();
 
-      // Policies
+      // Filters
       Map<String, PplPathFilter> policies = new HashMap<>();
-      JsonObject policySet = parentSet.get("filters").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> p : policySet.entrySet()) {
+      JsonObject filterSet = parentSet.get("filters").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> p : filterSet.entrySet()) {
         policies.put(
             p.getKey(), PplPathFilter.parseJsonPolicy(p.getKey(), p.getValue().getAsJsonObject()));
       }
 
-      // Group
+      // Ordering and Requirements
       Builder groupBuilder = new Builder();
-      JsonObject groupSet = parentSet.get("destinations").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> entry : groupSet.entrySet()) {
+      JsonElement defaultsElement = parentSet.get("defaults");
+      if (defaultsElement != null) {
+        for (Map.Entry<String, JsonElement> p : defaultsElement.getAsJsonObject().entrySet()) {
+          switch (p.getKey()) {
+            case "min_mtu":
+              groupBuilder.minMtu(p.getValue().getAsInt());
+              break;
+            case "min_validity_sec":
+              groupBuilder.minValidity(p.getValue().getAsInt());
+              break;
+            case "min_meta_bandwidth":
+              groupBuilder.minMetaBandwidth(p.getValue().getAsLong());
+              break;
+            case "ordering":
+              groupBuilder.ordering(p.getValue().getAsString());
+              break;
+
+            default:
+              log.warn("Unknown key in \"defaults\": {}", p.getKey());
+          }
+        }
+      }
+
+      // Destinations
+      JsonObject destinationSet = parentSet.get("destinations").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> entry : destinationSet.entrySet()) {
         String destination = entry.getKey();
         String policyName = entry.getValue().getAsString();
         PplPathFilter policy = policies.get(policyName);
@@ -198,6 +226,10 @@ public class PplPolicy implements PathPolicy {
     } catch (Exception e) {
       throw new IllegalArgumentException("Error parsing JSON: " + e.getMessage(), e);
     }
+  }
+
+  public String toJson() {
+    return "";
   }
 
   private static class Entry {
@@ -284,7 +316,7 @@ public class PplPolicy implements PathPolicy {
      * @param minBandwidthBytesPerSeconds Minimum bandwidth in bytes per second.
      * @return this Builder
      */
-    public Builder minMetaBandwidth(int minBandwidthBytesPerSeconds) {
+    public Builder minMetaBandwidth(long minBandwidthBytesPerSeconds) {
       this.minBandwidthBytesPerSeconds = minBandwidthBytesPerSeconds;
       return this;
     }

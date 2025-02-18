@@ -5,8 +5,8 @@
     "0": "default"
   },
   "defaults": {
-    "min_mtu": 1340,
-    "min_validity_sec": 10,
+    "min_mtu": 0,
+    "min_validity_sec": 0,
     "ordering": "hops_asc,meta_latency_asc"
   },
   "filters": {

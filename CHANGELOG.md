@@ -79,6 +79,10 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
 - Path policies `PplPolicy` and `PplPolicyGroup` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
+- Path policies JSON/YAML import export
+  [#170](https://github.com/scionproto-contrib/jpan/pull/170)
+TODO
+- test import of "defaults"
 
 ### Changed
  
