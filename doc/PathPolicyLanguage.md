@@ -22,7 +22,7 @@ that document.
 
 ## Destination Matching
 
-Each entry consists of a pattern (that matches destinations) and an associated path filter. 
+Each entry consists of a pattern (that matches destinations) and an associated path filter.
 The pattern contains:
 
 - ISD or `0` for catch all
@@ -47,6 +47,54 @@ For example:
 In the example above, the destination `1-0:0:110,10.0.0.2:80` would be filtered by
 `filter_110a`, whereas `1-0:0:110,10.0.0.3:80` would be filtered by `filter_110b` and
 `1-0:0:120,10.0.0.2:80` would be filtered by `default`.
+
+## Ordering and Requirements
+
+PPL also allows defining requirements and precedence ordering.
+They can be defined per filter or as global default.
+
+The following example specifies two default requirements that must be satisfied by all paths:
+MTU must be >= 1340 and the path must be valid for at least 10 more seconds.
+It also specifies that valid paths should be ordered primarily by hop count and secondarily by
+latency.
+However, filter `"filter_f10"` overrides the default MTU and sets the minimum MTU to 0.
+It also changes the ordering to be only by latency.
+
+```json
+{
+  "destination": {
+    ...
+  }
+  "defaults": {
+    "min_mtu": 1340,
+    "min_validity_sec": 10,
+    "ordering": "hops_asc,meta_latency_asc"
+  },
+  "filters": {
+    "filter_f10": {
+      "acl": [
+        ...
+      ],
+      "min_mtu": 0,
+      "ordering": "meta_latency_asc"
+    }
+  }
+}
+```
+
+The following requirements and ordering are supported:
+
+- `min_mtu`: minimum MTU in bytes
+- `min_bandwidth`: minimum bandwidth in bps
+- `min_validity_sec`: minimum validity time in seconds
+
+The following orderings are supported:
+
+- `hops_asc`: order by number of hops in ascending order
+- `hops_desc`: order by number of hops in descending order
+- `meta_bandwidth_desc`: order by metadata bandwidth in descending order (unknown bandwidth is
+  assumed 0)
+- `meta_latency_asc`: order by metadata latency in ascending order (unknown latency is assumed 10s)
 
 ## Path Filters
 

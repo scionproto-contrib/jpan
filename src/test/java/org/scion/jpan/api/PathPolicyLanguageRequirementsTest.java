@@ -17,105 +17,63 @@ package org.scion.jpan.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ppl.PathProvider;
+import org.scion.jpan.ppl.PplPathFilter;
 import org.scion.jpan.ppl.PplPolicy;
 
 /** Tests for PPL requirements and ordering. */
 class PathPolicyLanguageRequirementsTest {
 
-  @Test
-  void first() {
-    List<Path> paths = createLongMixedList();
-    List<Path> filtered = PathPolicy.FIRST.filter(paths);
-    for (int i = 0; i < 4; i++) {
-      assertEquals(paths.get(i), filtered.get(i));
-    }
-  }
+  private static final PplPathFilter ALLOW = PplPathFilter.builder().addAclEntry("+").build();
 
-  @Disabled
   @Test
-  void minHops() {
+  void minMetaBandwidth() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
-    PplPolicy.builder().ordering("hops_asc").build();
-    List<Path> filtered = PathPolicy.MIN_HOPS.filter(pathsWithDifferentLengths);
-    assertEquals(2, filtered.get(0).getMetadata().getInterfacesList().size());
-    int prevHops = 2;
-    for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
-      int nHops = filtered.get(i).getMetadata().getInterfacesList().size();
-      assertTrue(nHops >= prevHops);
-      prevHops = nHops;
-    }
-    assertEquals(8, prevHops);
-  }
-
-  @Test
-  void minLatency() {
-    List<Path> pathsWithDifferentLengths = createLongMixedList();
-    List<Path> filtered = PathPolicy.MIN_LATENCY.filter(pathsWithDifferentLengths);
-    int prevLatency = 0;
-    for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
-      int localMin = 0;
-      for (Integer lat : filtered.get(i).getMetadata().getLatencyList()) {
-        if (lat >= 0) {
-          localMin += lat;
-        } else {
-          localMin = Integer.MAX_VALUE;
-          break;
-        }
-      }
-      if (filtered.get(i).getMetadata().getLatencyList().isEmpty()) {
-        localMin = Integer.MAX_VALUE;
-      }
-
-      assertTrue(localMin >= prevLatency, localMin + " vs " + prevLatency);
-      prevLatency = localMin;
-    }
-  }
-
-  @Test
-  void maxBandwidth() {
-    List<Path> pathsWithDifferentLengths = createLongMixedList();
-    List<Path> filtered = PathPolicy.MAX_BANDWIDTH.filter(pathsWithDifferentLengths);
-    long prevBW = Long.MAX_VALUE;
-    for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
-      long localMax = Long.MAX_VALUE;
-      for (Long bw : filtered.get(i).getMetadata().getBandwidthList()) {
+    PplPolicy policy = PplPolicy.builder().add("0", ALLOW).minMetaBandwidth(1500).build();
+    List<Path> filtered = policy.filter(pathsWithDifferentLengths);
+    assertTrue(filtered.size() > 0);
+    assertTrue(filtered.size() < pathsWithDifferentLengths.size());
+    for (int i = 0; i < filtered.size(); i++) {
+      long localBW = Long.MAX_VALUE;
+      for (long bw : filtered.get(i).getMetadata().getBandwidthList()) {
         if (bw <= 0) {
-          localMax = 0;
+          localBW = 0;
           break;
         }
-        localMax = Math.min(localMax, bw);
-      }
-      if (localMax == 0) {
-        localMax = 0;
+        localBW = Math.min(localBW, bw);
       }
 
-      assertTrue(localMax <= prevBW);
-      prevBW = localMax;
+      assertTrue(localBW >= 1500);
     }
   }
 
   @Test
-  void isdAllow() {
+  void minMTU() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
-    Set<Integer> allowedIsds = new HashSet<>();
-    allowedIsds.add(2);
-    PathPolicy.IsdAllow isdAllow = new PathPolicy.IsdAllow(allowedIsds);
-    List<Path> filtered = isdAllow.filter(pathsWithDifferentLengths);
-    assertEquals(4, filtered.size());
+    PplPolicy policy = PplPolicy.builder().add("0", ALLOW).minMtu(1500).build();
+    List<Path> filtered = policy.filter(pathsWithDifferentLengths);
+    assertTrue(filtered.size() > 0);
+    assertTrue(filtered.size() < pathsWithDifferentLengths.size());
+    for (int i = 0; i < filtered.size(); i++) {
+      int mtu = filtered.get(i).getMetadata().getMtu();
+      assertTrue(mtu >= 1500);
+    }
   }
 
   @Test
-  void isdDisallow() {
+  void minValidity() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
-    Set<Integer> disallowedIsds = new HashSet<>();
-    disallowedIsds.add(1);
-    PathPolicy.IsdDisallow isdDisallow = new PathPolicy.IsdDisallow(disallowedIsds);
-    List<Path> filtered = isdDisallow.filter(pathsWithDifferentLengths);
-    assertEquals(4, filtered.size());
+    PplPolicy policy = PplPolicy.builder().add("0", ALLOW).minValidity(1500).build();
+    List<Path> filtered = policy.filter(pathsWithDifferentLengths);
+    assertTrue(filtered.size() > 0);
+    assertTrue(filtered.size() < pathsWithDifferentLengths.size());
+    for (int i = 0; i < filtered.size(); i++) {
+      long validity =
+          filtered.get(i).getMetadata().getExpiration() - System.currentTimeMillis() / 1000;
+      assertTrue(validity >= 1500);
+    }
   }
 
   private List<Path> createLongMixedList() {

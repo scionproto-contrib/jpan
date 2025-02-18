@@ -17,30 +17,36 @@ package org.scion.jpan.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ppl.PathProvider;
+import org.scion.jpan.ppl.PplPathFilter;
 import org.scion.jpan.ppl.PplPolicy;
 
 /** Tests for PPL requirements and ordering. */
 class PathPolicyLanguageOrderingTest {
 
+  private static final PplPathFilter ALLOW = PplPathFilter.builder().addAclEntry("+").build();
+
   @Test
-  void first() {
-    List<Path> paths = createLongMixedList();
-    List<Path> filtered = PathPolicy.FIRST.filter(paths);
-    for (int i = 0; i < 4; i++) {
-      assertEquals(paths.get(i), filtered.get(i));
-    }
+  void errorOrdering_label() {
+    PplPolicy.Builder pb = PplPolicy.builder().add("0", ALLOW).ordering("shops_asc");
+    Exception e = assertThrows(IllegalArgumentException.class, pb::build);
+    assertTrue(e.getMessage().contains("PPL: unknown ordering: "));
   }
 
-  @Disabled
   @Test
-  void minHops() {
+  void errorOrdering_labels() {
+    PplPolicy.Builder pb = PplPolicy.builder().add("0", ALLOW).ordering("hops_asc,meta_asc");
+    Exception e = assertThrows(IllegalArgumentException.class, pb::build);
+    assertTrue(e.getMessage().contains("PPL: unknown ordering: "));
+  }
+
+  @Test
+  void hopsAsc() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
-    PplPolicy.builder().ordering("hops_asc").build();
-    List<Path> filtered = PathPolicy.MIN_HOPS.filter(pathsWithDifferentLengths);
+    PplPolicy policy = PplPolicy.builder().add("0", ALLOW).ordering("hops_asc").build();
+    List<Path> filtered = policy.filter(pathsWithDifferentLengths);
     assertEquals(2, filtered.get(0).getMetadata().getInterfacesList().size());
     int prevHops = 2;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
@@ -52,9 +58,25 @@ class PathPolicyLanguageOrderingTest {
   }
 
   @Test
-  void minLatency() {
+  void hopsDesc() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
-    List<Path> filtered = PathPolicy.MIN_LATENCY.filter(pathsWithDifferentLengths);
+    PplPolicy policy = PplPolicy.builder().add("0", ALLOW).ordering("hops_desc").build();
+    List<Path> filtered = policy.filter(pathsWithDifferentLengths);
+    assertEquals(8, filtered.get(0).getMetadata().getInterfacesList().size());
+    int prevHops = 20000;
+    for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
+      int nHops = filtered.get(i).getMetadata().getInterfacesList().size();
+      assertTrue(nHops <= prevHops);
+      prevHops = nHops;
+    }
+    assertEquals(2, prevHops);
+  }
+
+  @Test
+  void metaLatencyAsc() {
+    List<Path> pathsWithDifferentLengths = createLongMixedList();
+    PplPolicy policy = PplPolicy.builder().add("0", ALLOW).ordering("meta_latency_asc").build();
+    List<Path> filtered = policy.filter(pathsWithDifferentLengths);
     int prevLatency = 0;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
       int localMin = 0;
@@ -76,46 +98,24 @@ class PathPolicyLanguageOrderingTest {
   }
 
   @Test
-  void maxBandwidth() {
+  void metaBandwidthDesc() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
-    List<Path> filtered = PathPolicy.MAX_BANDWIDTH.filter(pathsWithDifferentLengths);
+    PplPolicy policy = PplPolicy.builder().add("0", ALLOW).ordering("meta_bandwidth_desc").build();
+    List<Path> filtered = policy.filter(pathsWithDifferentLengths);
     long prevBW = Long.MAX_VALUE;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
       long localMax = Long.MAX_VALUE;
-      for (Long bw : filtered.get(i).getMetadata().getBandwidthList()) {
+      for (long bw : filtered.get(i).getMetadata().getBandwidthList()) {
         if (bw <= 0) {
           localMax = 0;
           break;
         }
         localMax = Math.min(localMax, bw);
       }
-      if (localMax == 0) {
-        localMax = 0;
-      }
 
       assertTrue(localMax <= prevBW);
       prevBW = localMax;
     }
-  }
-
-  @Test
-  void isdAllow() {
-    List<Path> pathsWithDifferentLengths = createLongMixedList();
-    Set<Integer> allowedIsds = new HashSet<>();
-    allowedIsds.add(2);
-    PathPolicy.IsdAllow isdAllow = new PathPolicy.IsdAllow(allowedIsds);
-    List<Path> filtered = isdAllow.filter(pathsWithDifferentLengths);
-    assertEquals(4, filtered.size());
-  }
-
-  @Test
-  void isdDisallow() {
-    List<Path> pathsWithDifferentLengths = createLongMixedList();
-    Set<Integer> disallowedIsds = new HashSet<>();
-    disallowedIsds.add(1);
-    PathPolicy.IsdDisallow isdDisallow = new PathPolicy.IsdDisallow(disallowedIsds);
-    List<Path> filtered = isdDisallow.filter(pathsWithDifferentLengths);
-    assertEquals(4, filtered.size());
   }
 
   private List<Path> createLongMixedList() {

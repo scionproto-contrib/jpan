@@ -28,13 +28,19 @@ public class PplPolicy implements PathPolicy {
 
   private final List<Entry> policies;
   private final int minMtu;
+  private final long minBandwidthBPS;
   private final int minValiditySec;
   private final Comparator<Path> ordering;
 
   private PplPolicy(
-      List<Entry> policies, int minMtuBytes, int minValiditySeconds, String ordering) {
+      List<Entry> policies,
+      int minMtuBytes,
+      long minBandwidthBPS,
+      int minValiditySeconds,
+      String ordering) {
     this.policies = policies;
     this.minMtu = minMtuBytes;
+    this.minBandwidthBPS = minBandwidthBPS;
     this.minValiditySec = minValiditySeconds;
     String[] orderings = ordering == null ? new String[0] : ordering.split(",");
     this.ordering = buildComparator(orderings);
@@ -42,13 +48,13 @@ public class PplPolicy implements PathPolicy {
 
   @Override
   public List<Path> filter(List<Path> input) {
-    // filter
     List<Path> filtered = new ArrayList<>();
     long now = System.currentTimeMillis() / 1000; // unix epoch
     for (Path path : input) {
       PathMetadata meta = path.getMetadata();
       if ((minMtu <= 0 || meta.getMtu() >= minMtu)
-          && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)) {
+          && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)
+          && (minBandwidthBPS <= 0 || getMinBandwidth(path) >= minBandwidthBPS)) {
         filtered.add(path);
       }
     }
@@ -68,6 +74,16 @@ public class PplPolicy implements PathPolicy {
       filtered.sort(ordering);
     }
     return filtered;
+  }
+
+  private long getMinBandwidth(Path path) {
+    long minBandwidth = Long.MAX_VALUE;
+    for (long bandwidth : path.getMetadata().getBandwidthList()) {
+      if (bandwidth < minBandwidth) {
+        minBandwidth = bandwidth;
+      }
+    }
+    return minBandwidth;
   }
 
   private Comparator<Path> buildComparator(String[] orderings) {
@@ -107,16 +123,24 @@ public class PplPolicy implements PathPolicy {
             Integer.compare(
                 p2.getMetadata().getInterfacesList().size(),
                 p1.getMetadata().getInterfacesList().size());
-      case "meta_latency_asc":
-        return Comparator.comparingInt(
-            p -> p.getMetadata().getLatencyList().stream().mapToInt(Integer::intValue).sum());
-      case "meta_latency_desc":
+      case "meta_bandwidth_desc":
+        // Unknown bw is treated as 0. Empty path is treated as MAX bandwidth
         return (p1, p2) ->
-            Integer.compare(
-                p2.getMetadata().getLatencyList().stream().mapToInt(Integer::intValue).sum(),
-                p1.getMetadata().getLatencyList().stream().mapToInt(Integer::intValue).sum());
+            Long.compare(
+                p2.getMetadata().getBandwidthList().stream()
+                    .mapToLong(Long::longValue)
+                    .min()
+                    .orElse(Long.MAX_VALUE),
+                p1.getMetadata().getBandwidthList().stream()
+                    .mapToLong(Long::longValue)
+                    .min()
+                    .orElse(Long.MAX_VALUE));
+      case "meta_latency_asc":
+        // -1 is mapped to 10000 to ensure that paths with missing latencies are sorted last
+        return Comparator.comparingInt(
+            p -> p.getMetadata().getLatencyList().stream().mapToInt(l -> l < 0 ? 10000 : l).sum());
       default:
-        throw new IllegalArgumentException("Unknown ordering: " + ordering);
+        throw new IllegalArgumentException("PPL: unknown ordering: " + ordering);
     }
   }
 
@@ -245,11 +269,23 @@ public class PplPolicy implements PathPolicy {
   public static class Builder {
     private final List<Entry> list = new ArrayList<>();
     private int minMtuBytes = 0;
+    private long minBandwidthBytesPerSeconds = 0;
     private int minValiditySeconds = 0;
     private String ordering = null;
 
     public Builder add(String destination, PplPathFilter policy) {
       list.add(new Entry(destination, policy));
+      return this;
+    }
+
+    /**
+     * Minimum metadata bandwidth requirement for paths. Default is 0.
+     *
+     * @param minBandwidthBytesPerSeconds Minimum bandwidth in bytes per second.
+     * @return this Builder
+     */
+    public Builder minMetaBandwidth(int minBandwidthBytesPerSeconds) {
+      this.minBandwidthBytesPerSeconds = minBandwidthBytesPerSeconds;
       return this;
     }
 
@@ -284,7 +320,8 @@ public class PplPolicy implements PathPolicy {
       if (list.isEmpty()) {
         throw new PplException("Policy has no default filter");
       }
-      return new PplPolicy(list, minMtuBytes, minValiditySeconds, ordering);
+      return new PplPolicy(
+          list, minMtuBytes, minBandwidthBytesPerSeconds, minValiditySeconds, ordering);
     }
   }
 }
