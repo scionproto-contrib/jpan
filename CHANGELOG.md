@@ -83,6 +83,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#170](https://github.com/scionproto-contrib/jpan/pull/170)
 TODO
 - test import of "defaults"
+- implement and test default overriding in filters / JSON
+- YAML?
 
 ### Changed
  
