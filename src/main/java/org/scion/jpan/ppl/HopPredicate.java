@@ -124,7 +124,10 @@ class HopPredicate {
       }
       sb.append(ifID);
     }
-    return String.format("%d-%s#%s", isd, as, sb);
+    if (sb.length() == 1 && sb.toString().equals("0")) {
+      return PplUtil.toMinimal(isd, as);
+    }
+    return ScionUtil.toStringIA(isd, as) + "#" + sb;
   }
 
   private static int parseIfID(String str) {

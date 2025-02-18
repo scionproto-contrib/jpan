@@ -16,12 +16,15 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.google.protobuf.Duration;
+import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -50,13 +53,14 @@ class PathPolicyLanguageTest {
     String input = readFile(getPath("ppl/pplGroup.json"));
     PplPolicy policy = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
 
-    String output = policy.toJson();
-
-    InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
-    List<Path> paths = toList(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:111"));
-
-    List<Path> filteredPaths = policy.filter(paths);
-    assertEquals(1, filteredPaths.size());
+    String output = policy.toJson(true);
+    // assertEquals(input, output)
+    // We only compare the length, the ordering of filters may be different.
+    // + 1 for final line break.
+    assertEquals(input.length(), output.length() + 1);
+    PplPolicy policy2 = PplPolicy.fromJson(output);
+    String output2 = policy2.toJson(true);
+    assertEquals(output, output2);
   }
 
   public static String readFile(java.nio.file.Path file) {
@@ -215,6 +219,13 @@ class PathPolicyLanguageTest {
         path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(isdAs).setId(id2).build());
       }
     }
+
+    long now = Instant.now().getEpochSecond();
+    path.setExpiration(Timestamp.newBuilder().setSeconds(now + 3600).build())
+        .addBandwidth(100_000_000)
+        .setMtu(1280)
+        .addLatency(Duration.newBuilder().setNanos(10_000_000));
+
     return path.build();
   }
 

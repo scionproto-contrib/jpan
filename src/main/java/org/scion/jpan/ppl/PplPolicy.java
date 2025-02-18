@@ -14,6 +14,7 @@
 
 package org.scion.jpan.ppl;
 
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -34,6 +35,7 @@ public class PplPolicy implements PathPolicy {
   private final int minMtu;
   private final long minBandwidthBPS;
   private final int minValiditySec;
+  private final String[] orderingStr;
   private final Comparator<Path> ordering;
 
   private PplPolicy(
@@ -46,8 +48,8 @@ public class PplPolicy implements PathPolicy {
     this.minMtu = minMtuBytes;
     this.minBandwidthBPS = minBandwidthBPS;
     this.minValiditySec = minValiditySeconds;
-    String[] orderings = ordering == null ? new String[0] : ordering.split(",");
-    this.ordering = buildComparator(orderings);
+    this.orderingStr = ordering == null ? new String[0] : ordering.split(",");
+    this.ordering = buildComparator(orderingStr);
   }
 
   @Override
@@ -179,22 +181,22 @@ public class PplPolicy implements PathPolicy {
       }
 
       // Ordering and Requirements
-      Builder groupBuilder = new Builder();
+      Builder defaultsBuilder = new Builder();
       JsonElement defaultsElement = parentSet.get("defaults");
       if (defaultsElement != null) {
         for (Map.Entry<String, JsonElement> p : defaultsElement.getAsJsonObject().entrySet()) {
           switch (p.getKey()) {
             case "min_mtu":
-              groupBuilder.minMtu(p.getValue().getAsInt());
+              defaultsBuilder.minMtu(p.getValue().getAsInt());
               break;
             case "min_validity_sec":
-              groupBuilder.minValidity(p.getValue().getAsInt());
+              defaultsBuilder.minValidity(p.getValue().getAsInt());
               break;
             case "min_meta_bandwidth":
-              groupBuilder.minMetaBandwidth(p.getValue().getAsLong());
+              defaultsBuilder.minMetaBandwidth(p.getValue().getAsLong());
               break;
             case "ordering":
-              groupBuilder.ordering(p.getValue().getAsString());
+              defaultsBuilder.ordering(p.getValue().getAsString());
               break;
 
             default:
@@ -212,24 +214,67 @@ public class PplPolicy implements PathPolicy {
         if (policy == null) {
           throw new IllegalArgumentException("Policy not found: " + policyName);
         }
-        groupBuilder.add(destination, policy);
+        defaultsBuilder.add(destination, policy);
       }
-      if (groupBuilder.list.isEmpty()) {
+      if (defaultsBuilder.list.isEmpty()) {
         throw new IllegalArgumentException("No entries in group");
       }
       PplPathFilter defaultPolicy = policies.get("default");
-      Entry defaultEntry = groupBuilder.list.get(groupBuilder.list.size() - 1);
+      Entry defaultEntry = defaultsBuilder.list.get(defaultsBuilder.list.size() - 1);
       if (defaultPolicy == null || defaultEntry.dstISD != 0) {
         throw new IllegalArgumentException("No default in group");
       }
-      return groupBuilder.build();
+      return defaultsBuilder.build();
     } catch (Exception e) {
       throw new IllegalArgumentException("Error parsing JSON: " + e.getMessage(), e);
     }
   }
 
-  public String toJson() {
-    return "";
+  public String toJson(boolean prettyPrint) {
+    JsonObject rootObj = new JsonObject();
+
+    // destinations
+    JsonObject destObj = new JsonObject();
+    for (Entry entry : policies) {
+      String key = PplUtil.toMinimal(entry.dstISD, entry.dstAS, entry.dstIP, entry.dstPort);
+      destObj.addProperty(key, entry.policy.getName());
+    }
+    destObj.addProperty("0", "default");
+    rootObj.add("destinations", destObj);
+
+    // requirements and ordering defaults
+    JsonObject defaultsObj = new JsonObject();
+    if (minBandwidthBPS > 0) {
+      defaultsObj.addProperty("min_meta_bandwidth", minBandwidthBPS);
+    }
+    if (minMtu > 0) {
+      defaultsObj.addProperty("min_mtu", minMtu);
+    }
+    if (minValiditySec > 0) {
+      defaultsObj.addProperty("min_validity_sec", minValiditySec);
+    }
+    rootObj.add("defaults", defaultsObj);
+
+    // ordering
+    if (orderingStr.length > 0) {
+      StringBuilder oStr = new StringBuilder(orderingStr[0]);
+      for (int i = 1; i < orderingStr.length; i++) {
+        oStr.append(",").append(orderingStr[i]);
+      }
+      defaultsObj.addProperty("ordering", oStr.toString());
+    }
+
+    JsonObject filtersObj = new JsonObject();
+    for (Entry entry : policies) {
+      filtersObj.add(entry.policy.getName(), entry.policy.toJson());
+    }
+    rootObj.add("filters", filtersObj);
+
+    GsonBuilder gsonBuilder = new GsonBuilder();
+    if (prettyPrint) {
+      gsonBuilder.setPrettyPrinting();
+    }
+    return gsonBuilder.create().toJson(rootObj);
   }
 
   private static class Entry {

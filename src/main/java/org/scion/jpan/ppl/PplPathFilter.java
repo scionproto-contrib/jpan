@@ -16,6 +16,7 @@ package org.scion.jpan.ppl;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -260,7 +261,7 @@ public class PplPathFilter implements PathPolicy {
 
   private static List<PplPathFilter> parseJsonFile(String jsonFile) {
     List<PplPathFilter> policies = new ArrayList<>();
-    JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
+    JsonElement jsonTree = JsonParser.parseString(jsonFile);
     if (jsonTree.isJsonObject()) {
       JsonObject parent = jsonTree.getAsJsonObject();
       for (Map.Entry<String, JsonElement> oo : parent.entrySet()) {
@@ -284,6 +285,18 @@ public class PplPathFilter implements PathPolicy {
       b.setSequence(sequence.getAsString());
     }
     return b.build();
+  }
+
+  public JsonElement toJson() {
+    JsonObject json = new JsonObject();
+    // json.addProperty("name", name);
+    if (acl != null) {
+      json.add("acl", acl.toJson());
+    }
+    if (sequence != null) {
+      json.addProperty("sequence", sequence.getSourceString());
+    }
+    return json;
   }
 
   public static class Builder {

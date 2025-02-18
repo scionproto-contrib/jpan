@@ -104,8 +104,11 @@ class HopPredicateTest {
 
   @Test
   void TestHopPredicateString() {
-    HopPredicate hp = HopPredicate.fromString("1-2#3,4");
-    assertEquals("1-2#3,4", hp.string());
+    HopPredicate hp1 = HopPredicate.fromString("1-2#3,4");
+    assertEquals("1-0:0:2#3,4", hp1.string());
+
+    HopPredicate hp2 = HopPredicate.fromString("1-0:0:2#3,4");
+    assertEquals("1-0:0:2#3,4", hp2.string());
   }
 
   @Test

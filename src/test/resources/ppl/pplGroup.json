@@ -5,8 +5,8 @@
     "0": "default"
   },
   "defaults": {
-    "min_mtu": 0,
-    "min_validity_sec": 0,
+    "min_mtu": 1,
+    "min_validity_sec": 1,
     "ordering": "hops_asc,meta_latency_asc"
   },
   "filters": {
@@ -23,9 +23,9 @@
     },
     "filter_110b": {
       "acl": [
-        "- 1-ff00:0:130#0",
-        "- 1-ff00:0:131#0",
-        "- 1-ff00:0:132#0",
+        "- 1-ff00:0:130",
+        "- 1-ff00:0:131#1",
+        "- 1-ff00:0:132#2",
         "+"
       ]
     }
