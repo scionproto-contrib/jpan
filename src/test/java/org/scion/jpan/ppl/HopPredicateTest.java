@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 class HopPredicateTest {
 
@@ -103,7 +104,7 @@ class HopPredicateTest {
   }
 
   @Test
-  void TestHopPredicateString() {
+  void testHopPredicateString() {
     HopPredicate hp1 = HopPredicate.fromString("1-2#3,4");
     assertEquals("1-0:0:2#3,4", hp1.string());
 
@@ -112,30 +113,32 @@ class HopPredicateTest {
   }
 
   @Test
-  void TestJsonConversion() {
-    //        tests := map[string]struct {
-    //            Name string
-    //            HP   *HopPredicate
-    //        }{
-    //            "Normal predicate": {
-    //                HP: &HopPredicate{ISD: 1, AS: 2, IfIDs: []iface.ID{1, 2}},
-    //            },
-    //            "wildcard predicate": {
-    //                HP: &HopPredicate{ISD: 1, AS: 2, IfIDs: []iface.ID{0}},
-    //            },
-    //            "only ifIDs": {
-    //                HP: &HopPredicate{IfIDs: []iface.ID{0}},
-    //            },
-    //        }
-    //        for name, test := range tests {
-    //            t.Run(name, func(t *testing.T) {
-    //                jsonHP, err := json.Marshal(test.HP)
-    //                if assert.NoError(t, err) {
-    //                    var hp HopPredicate
-    //                            err = json.Unmarshal(jsonHP, &hp)
-    //                    assert.NoError(t, err)
-    //                    assert.Equal(t, test.HP, &hp)
-    //                }
-    //            })
+  void testJsonConversion() {
+    HopPredicate hp;
+
+    // "Normal predicate":
+    hp = HopPredicate.create(1, 2, new int[] {1, 2});
+    checkConversion(hp, true);
+
+    // "wildcard predicate":
+    hp = HopPredicate.create(1, 2, new int[] {0});
+    checkConversion(hp, true);
+
+    // "only ifIDs"
+    // Result doesn't match in because we change that to the catch-all entry
+    HopPredicate hp2 = HopPredicate.create(0, 0, new int[] {0});
+    assertThrows(AssertionFailedError.class, () -> checkConversion(hp2, false));
+  }
+
+  private void checkConversion(HopPredicate hp, boolean addDefault) {
+    PplPathFilter.Builder builder = PplPathFilter.builder();
+    builder.addAclEntry(true, hp.string());
+    if (addDefault) {
+      builder.addAclEntry(true, null);
+    }
+
+    PplPathFilter ppf = builder.build();
+    PplPathFilter ppf2 = PplPathFilter.fromJson("", ppf.toJson());
+    assertEquals(ppf, ppf2);
   }
 }

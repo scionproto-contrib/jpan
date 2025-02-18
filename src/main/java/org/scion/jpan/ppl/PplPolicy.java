@@ -177,7 +177,7 @@ public class PplPolicy implements PathPolicy {
       JsonObject filterSet = parentSet.get("filters").getAsJsonObject();
       for (Map.Entry<String, JsonElement> p : filterSet.entrySet()) {
         policies.put(
-            p.getKey(), PplPathFilter.parseJsonPolicy(p.getKey(), p.getValue().getAsJsonObject()));
+            p.getKey(), PplPathFilter.fromJson(p.getKey(), p.getValue().getAsJsonObject()));
       }
 
       // Ordering and Requirements

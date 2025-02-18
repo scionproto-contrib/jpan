@@ -265,29 +265,29 @@ public class PplPathFilter implements PathPolicy {
     if (jsonTree.isJsonObject()) {
       JsonObject parent = jsonTree.getAsJsonObject();
       for (Map.Entry<String, JsonElement> oo : parent.entrySet()) {
-        policies.add(parseJsonPolicy(oo.getKey(), oo.getValue().getAsJsonObject()));
+        policies.add(fromJson(oo.getKey(), oo.getValue().getAsJsonObject()));
       }
     }
     return policies;
   }
 
-  static PplPathFilter parseJsonPolicy(String name, JsonObject policy) {
+  static PplPathFilter fromJson(String name, JsonObject json) {
     Builder b = new Builder();
     b.setName(name);
-    JsonElement aclElement = policy.get("acl");
+    JsonElement aclElement = json.get("acl");
     if (aclElement != null) {
       for (JsonElement e : aclElement.getAsJsonArray()) {
         b.addAclEntry(e.getAsString());
       }
     }
-    JsonElement sequence = policy.get("sequence");
+    JsonElement sequence = json.get("sequence");
     if (sequence != null) {
       b.setSequence(sequence.getAsString());
     }
     return b.build();
   }
 
-  public JsonElement toJson() {
+  public JsonObject toJson() {
     JsonObject json = new JsonObject();
     // json.addProperty("name", name);
     if (acl != null) {
