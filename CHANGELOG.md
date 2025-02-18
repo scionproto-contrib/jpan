@@ -21,23 +21,11 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
-- Ordering: expiration, MTU
-- Filter: min MTU, min expiration, min bw, max latency (+/- ignore unknown)
 - Selectors: PingLatency, ReversePath, ...
 - Fix PplPolicy.fromJson()
-- PplPolicy.addPre()/post() to permanently add a filter (custom ordering e.g. with live latency) 
-
-- add "ordering": bw, hopcount, latency, asc, desc
-- Add composite PathPolicy, composed of a chain of policies. Or, add chain() function?
-- Add normal policy to PolicyGroup with "destinations"
-- Add preference/ordering attribute to PplGroup: MIN_HOPS, MIN_LATENCY, MAX_BANDWIDTH
-  - For MIN_LATENCY: Change it to add 10000 for each UNKNOWN -> Two unknowns are worse than 1...
-- Why do they have the duplicate hopPredicate in almost every test?
-  .addAclEntry(true, "0-0#0").addAclEntry(denyStr)
-  -> Find out and either remove duplicate or remove buildNoValidate()
 - Add PPL JSON+YAML export. Fix JSON import of multiple policies
 
-- We could also do reverso-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
+- We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
  
 - topofiles + TRC server will be deprecated at some point.
@@ -104,6 +92,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   - renamed `PplPolicy` to `PplSubPolicy`
   - renamed `PplPolicyGroup` to `PplPolicy`
   - renamed `"group"` to `"destinations"`
+  - added requirements: minMtu, minValidity, minBandwidth
+  - added ordering: hops_asc, hops_desc, meta_latency_asc, meta_bandwidth_desc
   
 ### Fixed
 
