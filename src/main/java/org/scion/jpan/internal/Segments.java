@@ -403,6 +403,9 @@ public class Segments {
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
 
+    Timestamp ts = path.getExpiration();
+    System.out.println("FINAL: " + ts.getSeconds() + "  " + Instant.ofEpochSecond(ts.getSeconds())); // TODO
+
     paths.checkDuplicatePaths(path);
   }
 
@@ -437,6 +440,9 @@ public class Segments {
   }
 
   private static long calcExpTime(long baseTime, int deltaTime) {
+    long result = baseTime + (long) (1 + deltaTime) * 24 * 60 * 60 / 256;
+    System.out.println("calcTime:" + baseTime + " " + deltaTime + " = " + result); // TODO
+    System.out.println("         " + Instant.ofEpochSecond(baseTime) + "    -> " + Instant.ofEpochSecond(result)); // TODO
     return baseTime + (long) (1 + deltaTime) * 24 * 60 * 60 / 256;
   }
 
@@ -454,6 +460,7 @@ public class Segments {
       PathSegment pathSegment,
       int[] range) {
     int minExpiry = Integer.MAX_VALUE;
+    path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
     for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
       boolean reversed = range[2] == -1;
       Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
@@ -496,8 +503,12 @@ public class Segments {
 
     // expiration
     long time = calcExpTime(pathSegment.info.getTimestamp(), minExpiry);
+    System.out.println("Getting exp: " + pathSegment.info.getTimestamp() + " --- " + Instant.ofEpochSecond(pathSegment.info.getTimestamp())); // TODO
+    System.out.println("Getting min: " + minExpiry + " --- " + Instant.ofEpochSecond(minExpiry)); // TODO
+    System.out.println("Checking exp: " + time + " --- " + Instant.ofEpochSecond(time)); // TODO
     if (time < path.getExpiration().getSeconds()) {
-      path.setExpiration(Timestamp.newBuilder().setSeconds(minExpiry).build());
+      System.out.println("Setting exp: " + time + " --- " + Instant.ofEpochSecond(time)); // TODO
+      path.setExpiration(Timestamp.newBuilder().setSeconds(time).build());
     }
   }
 
