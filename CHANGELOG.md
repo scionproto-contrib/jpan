@@ -84,7 +84,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 TODO
 - test import of "defaults"
 - implement and test default overriding in filters / JSON
-- YAML?
+- rename json files w/o group
 
 ### Changed
  

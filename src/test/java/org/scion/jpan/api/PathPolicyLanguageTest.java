@@ -54,7 +54,7 @@ class PathPolicyLanguageTest {
     PplPolicy policy = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
 
     String output = policy.toJson(true);
-    // assertEquals(input, output)
+    assertEquals(input, output);
     // We only compare the length, the ordering of filters may be different.
     // + 1 for final line break.
     assertEquals(input.length(), output.length() + 1);
