@@ -349,6 +349,10 @@ class Sequence {
     return hops.toString();
   }
 
+  String getSourceString() {
+    return srcstr;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) {

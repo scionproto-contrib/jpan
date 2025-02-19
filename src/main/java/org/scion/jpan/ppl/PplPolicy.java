@@ -14,8 +14,10 @@
 
 package org.scion.jpan.ppl;
 
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -23,13 +25,17 @@ import java.util.*;
 import java.util.stream.Stream;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PplPolicy implements PathPolicy {
 
+  private static final Logger log = LoggerFactory.getLogger(PplPolicy.class);
   private final List<Entry> policies;
   private final int minMtu;
   private final long minBandwidthBPS;
   private final int minValiditySec;
+  private final String[] orderingStr;
   private final Comparator<Path> ordering;
 
   private PplPolicy(
@@ -42,22 +48,14 @@ public class PplPolicy implements PathPolicy {
     this.minMtu = minMtuBytes;
     this.minBandwidthBPS = minBandwidthBPS;
     this.minValiditySec = minValiditySeconds;
-    String[] orderings = ordering == null ? new String[0] : ordering.split(",");
-    this.ordering = buildComparator(orderings);
+    this.orderingStr = ordering == null ? new String[0] : ordering.split(",");
+    this.ordering = buildComparator(orderingStr);
   }
 
   @Override
   public List<Path> filter(List<Path> input) {
     List<Path> filtered = new ArrayList<>();
-    long now = System.currentTimeMillis() / 1000; // unix epoch
-    for (Path path : input) {
-      PathMetadata meta = path.getMetadata();
-      if ((minMtu <= 0 || meta.getMtu() >= minMtu)
-          && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)
-          && (minBandwidthBPS <= 0 || getMinBandwidth(path) >= minBandwidthBPS)) {
-        filtered.add(path);
-      }
-    }
+
     if (filtered.isEmpty()) {
       return Collections.emptyList();
     }
@@ -65,7 +63,7 @@ public class PplPolicy implements PathPolicy {
     ScionSocketAddress destination = filtered.get(0).getRemoteSocketAddress();
     for (Entry entry : policies) {
       if (entry.isMatch(destination)) {
-        filtered = entry.policy.filter(filtered);
+        filtered = entry.policy.filter(filtered, this);
         break;
       }
     }
@@ -160,44 +158,114 @@ public class PplPolicy implements PathPolicy {
 
   public static PplPolicy fromJson(String jsonFile) {
     try {
-      JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
+      JsonElement jsonTree = JsonParser.parseString(jsonFile);
       if (!jsonTree.isJsonObject()) {
         throw new IllegalArgumentException("Bad file format: " + jsonFile);
       }
       JsonObject parentSet = jsonTree.getAsJsonObject();
 
-      // Policies
-      Map<String, PplPathFilter> policies = new HashMap<>();
-      JsonObject policySet = parentSet.get("filters").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> p : policySet.entrySet()) {
-        policies.put(
-            p.getKey(), PplPathFilter.parseJsonPolicy(p.getKey(), p.getValue().getAsJsonObject()));
+      // Ordering and Requirements
+      Builder defaultsBuilder = new Builder();
+      JsonElement defaultsElement = parentSet.get("defaults");
+      if (defaultsElement != null) {
+        for (Map.Entry<String, JsonElement> p : defaultsElement.getAsJsonObject().entrySet()) {
+          switch (p.getKey()) {
+            case "min_mtu":
+              defaultsBuilder.minMtu(p.getValue().getAsInt());
+              break;
+            case "min_validity_sec":
+              defaultsBuilder.minValidity(p.getValue().getAsInt());
+              break;
+            case "min_meta_bandwidth":
+              defaultsBuilder.minMetaBandwidth(p.getValue().getAsLong());
+              break;
+            case "ordering":
+              defaultsBuilder.ordering(p.getValue().getAsString());
+              break;
+            default:
+              log.warn("Unknown key in \"defaults\": {}", p.getKey());
+          }
+        }
       }
 
-      // Group
-      Builder groupBuilder = new Builder();
-      JsonObject groupSet = parentSet.get("destinations").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> entry : groupSet.entrySet()) {
+      // Filters
+      Map<String, PplPathFilter> policies = new HashMap<>();
+      JsonObject filterSet = parentSet.get("filters").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> p : filterSet.entrySet()) {
+        PplPathFilter pf = PplPathFilter.fromJson(p.getKey(), p.getValue().getAsJsonObject());
+        policies.put(p.getKey(), pf);
+      }
+
+      // Destinations
+      JsonObject destinationSet = parentSet.get("destinations").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> entry : destinationSet.entrySet()) {
         String destination = entry.getKey();
         String policyName = entry.getValue().getAsString();
         PplPathFilter policy = policies.get(policyName);
         if (policy == null) {
           throw new IllegalArgumentException("Policy not found: " + policyName);
         }
-        groupBuilder.add(destination, policy);
+        defaultsBuilder.add(destination, policy);
       }
-      if (groupBuilder.list.isEmpty()) {
+      if (defaultsBuilder.list.isEmpty()) {
         throw new IllegalArgumentException("No entries in group");
       }
       PplPathFilter defaultPolicy = policies.get("default");
-      Entry defaultEntry = groupBuilder.list.get(groupBuilder.list.size() - 1);
+      Entry defaultEntry = defaultsBuilder.list.get(defaultsBuilder.list.size() - 1);
       if (defaultPolicy == null || defaultEntry.dstISD != 0) {
         throw new IllegalArgumentException("No default in group");
       }
-      return groupBuilder.build();
+      return defaultsBuilder.build();
     } catch (Exception e) {
       throw new IllegalArgumentException("Error parsing JSON: " + e.getMessage(), e);
     }
+  }
+
+  public String toJson(boolean prettyPrint) {
+    JsonObject rootObj = new JsonObject();
+
+    // destinations
+    JsonObject destObj = new JsonObject();
+    for (Entry entry : policies) {
+      String key = PplUtil.toMinimal(entry.dstISD, entry.dstAS, entry.dstIP, entry.dstPort);
+      destObj.addProperty(key, entry.policy.getName());
+    }
+    destObj.addProperty("0", "default");
+    rootObj.add("destinations", destObj);
+
+    // requirements and ordering defaults
+    JsonObject defaultsObj = new JsonObject();
+    if (minBandwidthBPS > 0) {
+      defaultsObj.addProperty("min_meta_bandwidth", minBandwidthBPS);
+    }
+    if (minMtu > 0) {
+      defaultsObj.addProperty("min_mtu", minMtu);
+    }
+    if (minValiditySec > 0) {
+      defaultsObj.addProperty("min_validity_sec", minValiditySec);
+    }
+    rootObj.add("defaults", defaultsObj);
+
+    // ordering
+    if (orderingStr.length > 0) {
+      StringBuilder oStr = new StringBuilder(orderingStr[0]);
+      for (int i = 1; i < orderingStr.length; i++) {
+        oStr.append(",").append(orderingStr[i]);
+      }
+      defaultsObj.addProperty("ordering", oStr.toString());
+    }
+
+    JsonObject filtersObj = new JsonObject();
+    for (Entry entry : policies) {
+      filtersObj.add(entry.policy.getName(), entry.policy.toJson());
+    }
+    rootObj.add("filters", filtersObj);
+
+    GsonBuilder gsonBuilder = new GsonBuilder();
+    if (prettyPrint) {
+      gsonBuilder.setPrettyPrinting();
+    }
+    return gsonBuilder.create().toJson(rootObj);
   }
 
   private static class Entry {
@@ -268,10 +336,15 @@ public class PplPolicy implements PathPolicy {
 
   public static class Builder {
     private final List<Entry> list = new ArrayList<>();
+    // We create Filters _before_ adding them to the Policy and before/without having defaults.
+    // Defaults can be created and applied later! To keep everything constant/final, the filter()
+    // function needs to dynamically detect whether requirements/ordering are present or should be
+    // taken from the defaults.
     private int minMtuBytes = 0;
     private long minBandwidthBytesPerSeconds = 0;
     private int minValiditySeconds = 0;
     private String ordering = null;
+
 
     public Builder add(String destination, PplPathFilter policy) {
       list.add(new Entry(destination, policy));
@@ -284,7 +357,7 @@ public class PplPolicy implements PathPolicy {
      * @param minBandwidthBytesPerSeconds Minimum bandwidth in bytes per second.
      * @return this Builder
      */
-    public Builder minMetaBandwidth(int minBandwidthBytesPerSeconds) {
+    public Builder minMetaBandwidth(long minBandwidthBytesPerSeconds) {
       this.minBandwidthBytesPerSeconds = minBandwidthBytesPerSeconds;
       return this;
     }
