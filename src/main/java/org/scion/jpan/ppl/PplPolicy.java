@@ -55,15 +55,7 @@ public class PplPolicy implements PathPolicy {
   @Override
   public List<Path> filter(List<Path> input) {
     List<Path> filtered = new ArrayList<>();
-    long now = System.currentTimeMillis() / 1000; // unix epoch
-    for (Path path : input) {
-      PathMetadata meta = path.getMetadata();
-      if ((minMtu <= 0 || meta.getMtu() >= minMtu)
-          && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)
-          && (minBandwidthBPS <= 0 || getMinBandwidth(path) >= minBandwidthBPS)) {
-        filtered.add(path);
-      }
-    }
+
     if (filtered.isEmpty()) {
       return Collections.emptyList();
     }
@@ -71,7 +63,7 @@ public class PplPolicy implements PathPolicy {
     ScionSocketAddress destination = filtered.get(0).getRemoteSocketAddress();
     for (Entry entry : policies) {
       if (entry.isMatch(destination)) {
-        filtered = entry.policy.filter(filtered);
+        filtered = entry.policy.filter(filtered, this);
         break;
       }
     }
@@ -172,14 +164,6 @@ public class PplPolicy implements PathPolicy {
       }
       JsonObject parentSet = jsonTree.getAsJsonObject();
 
-      // Filters
-      Map<String, PplPathFilter> policies = new HashMap<>();
-      JsonObject filterSet = parentSet.get("filters").getAsJsonObject();
-      for (Map.Entry<String, JsonElement> p : filterSet.entrySet()) {
-        policies.put(
-            p.getKey(), PplPathFilter.fromJson(p.getKey(), p.getValue().getAsJsonObject()));
-      }
-
       // Ordering and Requirements
       Builder defaultsBuilder = new Builder();
       JsonElement defaultsElement = parentSet.get("defaults");
@@ -198,11 +182,18 @@ public class PplPolicy implements PathPolicy {
             case "ordering":
               defaultsBuilder.ordering(p.getValue().getAsString());
               break;
-
             default:
               log.warn("Unknown key in \"defaults\": {}", p.getKey());
           }
         }
+      }
+
+      // Filters
+      Map<String, PplPathFilter> policies = new HashMap<>();
+      JsonObject filterSet = parentSet.get("filters").getAsJsonObject();
+      for (Map.Entry<String, JsonElement> p : filterSet.entrySet()) {
+        PplPathFilter pf = PplPathFilter.fromJson(p.getKey(), p.getValue().getAsJsonObject());
+        policies.put(p.getKey(), pf);
       }
 
       // Destinations
@@ -345,10 +336,15 @@ public class PplPolicy implements PathPolicy {
 
   public static class Builder {
     private final List<Entry> list = new ArrayList<>();
+    // We create Filters _before_ adding them to the Policy and before/without having defaults.
+    // Defaults can be created and applied later! To keep everything constant/final, the filter()
+    // function needs to dynamically detect whether requirements/ordering are present or should be
+    // taken from the defaults.
     private int minMtuBytes = 0;
     private long minBandwidthBytesPerSeconds = 0;
     private int minValiditySeconds = 0;
     private String ordering = null;
+
 
     public Builder add(String destination, PplPathFilter policy) {
       list.add(new Entry(destination, policy));
