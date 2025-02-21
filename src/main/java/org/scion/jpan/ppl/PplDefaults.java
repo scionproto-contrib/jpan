@@ -15,14 +15,16 @@
 package org.scion.jpan.ppl;
 
 import com.google.gson.JsonObject;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import org.scion.jpan.Path;
+import org.scion.jpan.PathMetadata;
 
 class PplDefaults {
   private final int minMtu;
   private final long minBandwidthBPS;
-  private final int minValiditySeconds;
+  private final int minValiditySec;
   private final String[] orderingStr;
   private final Comparator<Path> ordering;
 
@@ -30,15 +32,57 @@ class PplDefaults {
       int minMtuBytes, long minBandwidthBytesPerSeconds, int minValiditySeconds, String ordering) {
     this.minMtu = minMtuBytes;
     this.minBandwidthBPS = minBandwidthBytesPerSeconds;
-    this.minValiditySeconds = minValiditySeconds;
+    this.minValiditySec = minValiditySeconds;
     this.orderingStr = ordering == null ? new String[0] : ordering.split(",");
     this.ordering = buildComparator(orderingStr);
+  }
+
+  public List<Path> filter(List<Path> paths, PplDefaults global) {
+    ArrayList<Path> filtered = new ArrayList<>();
+    long now = System.currentTimeMillis() / 1000; // unix epoch
+    for (Path path : paths) {
+      PathMetadata meta = path.getMetadata();
+      boolean pass = true;
+
+      if (minMtu > 0) {
+        pass &= meta.getMtu() >= minMtu;
+      } else if (global != null && global.minMtu > 0) {
+        pass &= meta.getMtu() >= global.minMtu;
+      }
+
+      if (minValiditySec > 0) {
+        pass &= meta.getExpiration() >= now + minValiditySec;
+      } else if (global != null && global.minValiditySec > 0) {
+        pass &= meta.getExpiration() >= now + global.minValiditySec;
+      }
+
+      if (minBandwidthBPS > 0) {
+        pass &= getMinBandwidth(path) >= minBandwidthBPS;
+      } else if (global != null && global.minBandwidthBPS > 0) {
+        pass &= getMinBandwidth(path) >= global.minBandwidthBPS;
+      }
+
+      if (pass) {
+        filtered.add(path);
+      }
+    }
+    return filtered;
   }
 
   public void sortPaths(List<Path> filtered) {
     if (ordering != null) {
       filtered.sort(ordering);
     }
+  }
+
+  private long getMinBandwidth(Path path) {
+    long minBandwidth = Long.MAX_VALUE;
+    for (long bandwidth : path.getMetadata().getBandwidthList()) {
+      if (bandwidth < minBandwidth) {
+        minBandwidth = bandwidth;
+      }
+    }
+    return minBandwidth;
   }
 
   private Comparator<Path> buildComparator(String[] orderings) {
@@ -107,8 +151,8 @@ class PplDefaults {
     if (minMtu > 0) {
       defaultsObj.addProperty("min_mtu", minMtu);
     }
-    if (minValiditySeconds > 0) {
-      defaultsObj.addProperty("min_validity_sec", minValiditySeconds);
+    if (minValiditySec > 0) {
+      defaultsObj.addProperty("min_validity_sec", minValiditySec);
     }
 
     // ordering

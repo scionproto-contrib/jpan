@@ -33,7 +33,7 @@ class PathPolicyLanguageRequirementsTest {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
     PplPolicy policy = PplPolicy.builder().add("0", ALLOW).minMetaBandwidth(1500).build();
     List<Path> filtered = policy.filter(pathsWithDifferentLengths);
-    assertTrue(filtered.size() > 0);
+    assertFalse(filtered.isEmpty());
     assertTrue(filtered.size() < pathsWithDifferentLengths.size());
     for (int i = 0; i < filtered.size(); i++) {
       long localBW = Long.MAX_VALUE;
@@ -54,7 +54,7 @@ class PathPolicyLanguageRequirementsTest {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
     PplPolicy policy = PplPolicy.builder().add("0", ALLOW).minMtu(1500).build();
     List<Path> filtered = policy.filter(pathsWithDifferentLengths);
-    assertTrue(filtered.size() > 0);
+    assertFalse(filtered.isEmpty());
     assertTrue(filtered.size() < pathsWithDifferentLengths.size());
     for (int i = 0; i < filtered.size(); i++) {
       int mtu = filtered.get(i).getMetadata().getMtu();
@@ -67,7 +67,7 @@ class PathPolicyLanguageRequirementsTest {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
     PplPolicy policy = PplPolicy.builder().add("0", ALLOW).minValidity(1500).build();
     List<Path> filtered = policy.filter(pathsWithDifferentLengths);
-    assertTrue(filtered.size() > 0);
+    assertFalse(filtered.isEmpty());
     assertTrue(filtered.size() < pathsWithDifferentLengths.size());
     for (int i = 0; i < filtered.size(); i++) {
       long validity =

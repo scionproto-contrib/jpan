@@ -41,33 +41,23 @@ public class PplPolicy implements PathPolicy {
 
   @Override
   public List<Path> filter(List<Path> input) {
-    List<Path> filtered = new ArrayList<>();
-    filtered.addAll(input); // TODO cleanup
-
-    if (filtered.isEmpty()) {
+    if (input.isEmpty()) {
       return Collections.emptyList();
     }
+
+    List<Path> filtered = new ArrayList<>(input);
+
     // We assume that all paths have the same destination
     ScionSocketAddress destination = filtered.get(0).getRemoteSocketAddress();
     for (Entry entry : policies) {
       if (entry.isMatch(destination)) {
-        filtered = entry.policy.filter(filtered, this);
+        filtered = entry.policy.filter(filtered, this.defaults);
         break;
       }
     }
 
     defaults.sortPaths(filtered);
     return filtered;
-  }
-
-  private long getMinBandwidth(Path path) {
-    long minBandwidth = Long.MAX_VALUE;
-    for (long bandwidth : path.getMetadata().getBandwidthList()) {
-      if (bandwidth < minBandwidth) {
-        minBandwidth = bandwidth;
-      }
-    }
-    return minBandwidth;
   }
 
   public static Builder builder() {

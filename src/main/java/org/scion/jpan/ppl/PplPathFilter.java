@@ -16,7 +16,6 @@ package org.scion.jpan.ppl;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -76,10 +75,6 @@ public class PplPathFilter implements PathPolicy {
     return new Builder();
   }
 
-  public static PplPathFilter fromJson(String json) {
-    return parseJsonFile(json).get(0); // TODO
-  }
-
   // Filter filters the paths according to the policy.
   @Override
   public List<Path> filter(List<Path> paths) {
@@ -87,22 +82,16 @@ public class PplPathFilter implements PathPolicy {
   }
 
   // Filter filters the paths according to the policy.
-  public List<Path> filter(List<Path> paths, PplPolicy defaults) {
+  List<Path> filter(List<Path> paths, PplDefaults defaults) {
     return filterOpt(paths, defaults, new FilterOptions(false));
   }
 
   // FilterOpt filters the path set according to the policy with the given
   // options.
-  List<Path> filterOpt(List<Path> paths, PplPolicy defaults, FilterOptions opts) {
-    long now = System.currentTimeMillis() / 1000; // unix epoch
-    //    for (Path path : input) {
-    //      PathMetadata meta = path.getMetadata();
-    //      if ((minMtu <= 0 || meta.getMtu() >= minMtu)
-    //              && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)
-    //              && (minBandwidthBPS <= 0 || getMinBandwidth(path) >= minBandwidthBPS)) {
-    //        filtered.add(path);
-    //      }
-    //    }
+  List<Path> filterOpt(List<Path> paths, PplDefaults globalDefaults, FilterOptions opts) {
+    if (defaults != null) {
+      paths = this.defaults.filter(paths, globalDefaults);
+    }
 
     paths = acl == null ? paths : acl.eval(paths);
     if (sequence != null && !opts.ignoreSequence) {
@@ -110,7 +99,11 @@ public class PplPathFilter implements PathPolicy {
     }
     // Filter on sub policies
     if (options.length > 0) {
-      paths = evalOptions(paths, defaults, opts);
+      paths = evalOptions(paths, globalDefaults, opts);
+    }
+
+    if (defaults != null) {
+      this.defaults.sortPaths(paths);
     }
     return paths;
   }
@@ -156,7 +149,7 @@ public class PplPathFilter implements PathPolicy {
 
   // evalOptions evaluates the options of a policy and returns the pathSet that matches the option
   // with the highest weight
-  private List<Path> evalOptions(List<Path> paths, PplPolicy defaults, FilterOptions opts) {
+  private List<Path> evalOptions(List<Path> paths, PplDefaults defaults, FilterOptions opts) {
     Set<String> subPolicySet = new HashSet<>();
     int currWeight = options[0].weight;
     // Go through sub policies
@@ -281,18 +274,6 @@ public class PplPathFilter implements PathPolicy {
         + '}';
   }
 
-  private static List<PplPathFilter> parseJsonFile(String jsonFile) {
-    List<PplPathFilter> policies = new ArrayList<>();
-    JsonElement jsonTree = JsonParser.parseString(jsonFile);
-    if (jsonTree.isJsonObject()) {
-      JsonObject parent = jsonTree.getAsJsonObject();
-      for (Map.Entry<String, JsonElement> oo : parent.entrySet()) {
-        policies.add(fromJson(oo.getKey(), oo.getValue().getAsJsonObject()));
-      }
-    }
-    return policies;
-  }
-
   static PplPathFilter fromJson(String name, JsonObject json) {
     Builder b = new Builder();
     b.setName(name);
@@ -322,16 +303,6 @@ public class PplPathFilter implements PathPolicy {
           log.warn("Unknown key in filter \"{}\": {}", name, p.getKey());
       }
     }
-    //    JsonElement aclElement = json.get("acl");
-    //    if (aclElement != null) {
-    //      for (JsonElement e : aclElement.getAsJsonArray()) {
-    //        b.addAclEntry(e.getAsString());
-    //      }
-    //    }
-    //    JsonElement sequence = json.get("sequence");
-    //    if (sequence != null) {
-    //      b.setSequence(sequence.getAsString());
-    //    }
     return b.build();
   }
 
