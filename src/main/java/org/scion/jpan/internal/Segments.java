@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
+import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -392,19 +393,33 @@ public class Segments {
     raw.flip();
     path.setRaw(ByteString.copyFrom(raw));
 
-    // TODO where do we get these?
-    //    segUp.getSegmentInfo();
-    //    path.setLatency();
-    //    path.setInternalHops();
-    //    path.setNotes();
+    // metadata
+    for (int i = 0; i < segments.length; i++) {
+      for (Seg.ASEntrySignedBody body : segments[i].bodies) {
+        SegExtensions.PathSegmentExtensions ext =  body.getExtensions();
+        if (ext.hasStaticInfo()) {
+          // path.addLatency()
+          // TODO where do we get these?
+          //    path.setLatency();
+          //    path.setInternalHops();
+          //    path.setNotes();
+          SegExtensions.StaticInfoExtension sExt = ext.getStaticInfo();
+          sExt.getLatency().getIntraMap();
+          sExt.getLatency().getInterMap();
+          sExt.getBandwidth().getIntraMap();
+          sExt.getBandwidth().getInterMap();
+          sExt.getGeoMap();
+          sExt.getLinkTypeMap();
+          sExt.getNote();
+        }
+      }
+    }
+
     // First hop
     String firstHop = localAS.getBorderRouterAddressString((int) path.getInterfaces(0).getId());
     Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
-
-    Timestamp ts = path.getExpiration();
-    System.out.println("FINAL: " + ts.getSeconds() + "  " + Instant.ofEpochSecond(ts.getSeconds())); // TODO
 
     paths.checkDuplicatePaths(path);
   }
@@ -440,9 +455,6 @@ public class Segments {
   }
 
   private static long calcExpTime(long baseTime, int deltaTime) {
-    long result = baseTime + (long) (1 + deltaTime) * 24 * 60 * 60 / 256;
-    System.out.println("calcTime:" + baseTime + " " + deltaTime + " = " + result); // TODO
-    System.out.println("         " + Instant.ofEpochSecond(baseTime) + "    -> " + Instant.ofEpochSecond(result)); // TODO
     return baseTime + (long) (1 + deltaTime) * 24 * 60 * 60 / 256;
   }
 
@@ -503,11 +515,7 @@ public class Segments {
 
     // expiration
     long time = calcExpTime(pathSegment.info.getTimestamp(), minExpiry);
-    System.out.println("Getting exp: " + pathSegment.info.getTimestamp() + " --- " + Instant.ofEpochSecond(pathSegment.info.getTimestamp())); // TODO
-    System.out.println("Getting min: " + minExpiry + " --- " + Instant.ofEpochSecond(minExpiry)); // TODO
-    System.out.println("Checking exp: " + time + " --- " + Instant.ofEpochSecond(time)); // TODO
     if (time < path.getExpiration().getSeconds()) {
-      System.out.println("Setting exp: " + time + " --- " + Instant.ofEpochSecond(time)); // TODO
       path.setExpiration(Timestamp.newBuilder().setSeconds(time).build());
     }
   }

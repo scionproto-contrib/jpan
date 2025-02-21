@@ -15,11 +15,13 @@
 package org.scion.jpan.testutil;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -193,10 +195,11 @@ public class MockControlServer {
     dstIA = ScionUtil.isWildcard(dstIA) ? ScionUtil.parseIA("1-ff00:0:110") : dstIA;
 
     ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hop0 = Seg.HopField.newBuilder().setMac(mac0).setIngress(3).setEgress(2).build();
-    Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hop0).build();
+    Seg.HopField hop0 =
+        Seg.HopField.newBuilder().setMac(mac0).setIngress(3).setEgress(2).setExpTime(64).build();
+    Seg.HopEntry hopEntry0 = Seg.HopEntry.newBuilder().setHopField(hop0).setIngressMtu(2345).build();
     Seg.ASEntrySignedBody asSigneBody0 =
-        Seg.ASEntrySignedBody.newBuilder().setIsdAs(srcIA).setHopEntry(hopEntry0).build();
+        Seg.ASEntrySignedBody.newBuilder().setIsdAs(srcIA).setHopEntry(hopEntry0).setMtu(4567).build();
     Signed.HeaderAndBodyInternal habi0 =
         Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
     Signed.SignedMessage sm0 =
@@ -204,18 +207,26 @@ public class MockControlServer {
     Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
 
     ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hop1 = Seg.HopField.newBuilder().setMac(mac1).setIngress(1).setEgress(0).build();
-    Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hop1).build();
+    Seg.HopField hop1 =
+        Seg.HopField.newBuilder().setMac(mac1).setIngress(1).setEgress(0).setExpTime(64).build();
+    Seg.HopEntry hopEntry1 = Seg.HopEntry.newBuilder().setHopField(hop1).setIngressMtu(1234).build();
     Seg.ASEntrySignedBody asSigneBody1 =
-        Seg.ASEntrySignedBody.newBuilder().setIsdAs(dstIA).setHopEntry(hopEntry1).build();
+        Seg.ASEntrySignedBody.newBuilder().setIsdAs(dstIA).setHopEntry(hopEntry1).setMtu(3456).build();
     Signed.HeaderAndBodyInternal habi1 =
         Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
     Signed.SignedMessage sm1 =
         Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
     Seg.ASEntry asEntry1 = Seg.ASEntry.newBuilder().setSigned(sm1).build();
 
+    long now = Instant.now().getEpochSecond();
+    Seg.SegmentInformation info = Seg.SegmentInformation.newBuilder().setTimestamp(now).build();
+    ByteString infoBS = info.toByteString();
     Seg.PathSegment pathSegment =
-        Seg.PathSegment.newBuilder().addAsEntries(asEntry0).addAsEntries(asEntry1).build();
+        Seg.PathSegment.newBuilder()
+            .addAsEntries(asEntry0)
+            .addAsEntries(asEntry1)
+            .setSegmentInfo(infoBS)
+            .build();
     Seg.SegmentsResponse.Segments segments =
         Seg.SegmentsResponse.Segments.newBuilder().addSegments(pathSegment).build();
     if (srcIA == ScionUtil.parseIA("1-ff00:0:110")) {
