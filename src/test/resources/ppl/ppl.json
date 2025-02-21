@@ -29,7 +29,7 @@
         "- 1-ff00:0:132#2",
         "+"
       ],
-      "ordering": "meta_latency_desc"
+      "ordering": "meta_latency_asc"
     }
   }
 }

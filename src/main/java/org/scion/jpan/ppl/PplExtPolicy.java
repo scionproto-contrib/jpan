@@ -31,7 +31,7 @@ public class PplExtPolicy extends PplPathFilter {
 
   private PplExtPolicy(
       String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
-    super(name, acl, sequence, options);
+    super(name, acl, sequence, null, options);
     this.extensions = extensions;
   }
 

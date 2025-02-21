@@ -32,29 +32,17 @@ public class PplPolicy implements PathPolicy {
 
   private static final Logger log = LoggerFactory.getLogger(PplPolicy.class);
   private final List<Entry> policies;
-  private final int minMtu;
-  private final long minBandwidthBPS;
-  private final int minValiditySec;
-  private final String[] orderingStr;
-  private final Comparator<Path> ordering;
+  private final PplDefaults defaults;
 
-  private PplPolicy(
-      List<Entry> policies,
-      int minMtuBytes,
-      long minBandwidthBPS,
-      int minValiditySeconds,
-      String ordering) {
+  private PplPolicy(List<Entry> policies, PplDefaults defaults) {
     this.policies = policies;
-    this.minMtu = minMtuBytes;
-    this.minBandwidthBPS = minBandwidthBPS;
-    this.minValiditySec = minValiditySeconds;
-    this.orderingStr = ordering == null ? new String[0] : ordering.split(",");
-    this.ordering = buildComparator(orderingStr);
+    this.defaults = defaults;
   }
 
   @Override
   public List<Path> filter(List<Path> input) {
     List<Path> filtered = new ArrayList<>();
+    filtered.addAll(input); // TODO cleanup
 
     if (filtered.isEmpty()) {
       return Collections.emptyList();
@@ -68,9 +56,7 @@ public class PplPolicy implements PathPolicy {
       }
     }
 
-    if (ordering != null) {
-      filtered.sort(ordering);
-    }
+    defaults.sortPaths(filtered);
     return filtered;
   }
 
@@ -82,64 +68,6 @@ public class PplPolicy implements PathPolicy {
       }
     }
     return minBandwidth;
-  }
-
-  private Comparator<Path> buildComparator(String[] orderings) {
-    if (orderings.length == 0) {
-      return null;
-    }
-    Comparator<Path> comparator = getPathComparator(orderings[orderings.length - 1]);
-
-    for (int i = orderings.length - 2; i >= 0; i--) {
-      comparator = new ChainableComparator(getPathComparator(orderings[i]), comparator);
-    }
-    return comparator;
-  }
-
-  private static class ChainableComparator implements Comparator<Path> {
-    private final Comparator<Path> primary;
-    private final Comparator<Path> secondary;
-
-    public ChainableComparator(Comparator<Path> primary, Comparator<Path> secondary) {
-      this.primary = primary;
-      this.secondary = secondary;
-    }
-
-    @Override
-    public int compare(Path p1, Path p2) {
-      int res = primary.compare(p1, p2);
-      return res != 0 ? res : secondary.compare(p1, p2);
-    }
-  }
-
-  private Comparator<Path> getPathComparator(String ordering) {
-    switch (ordering) {
-      case "hops_asc":
-        return Comparator.comparingInt(p -> p.getMetadata().getInterfacesList().size());
-      case "hops_desc":
-        return (p1, p2) ->
-            Integer.compare(
-                p2.getMetadata().getInterfacesList().size(),
-                p1.getMetadata().getInterfacesList().size());
-      case "meta_bandwidth_desc":
-        // Unknown bw is treated as 0. Empty path is treated as MAX bandwidth
-        return (p1, p2) ->
-            Long.compare(
-                p2.getMetadata().getBandwidthList().stream()
-                    .mapToLong(Long::longValue)
-                    .min()
-                    .orElse(Long.MAX_VALUE),
-                p1.getMetadata().getBandwidthList().stream()
-                    .mapToLong(Long::longValue)
-                    .min()
-                    .orElse(Long.MAX_VALUE));
-      case "meta_latency_asc":
-        // -1 is mapped to 10000 to ensure that paths with missing latencies are sorted last
-        return Comparator.comparingInt(
-            p -> p.getMetadata().getLatencyList().stream().mapToInt(l -> l < 0 ? 10000 : l).sum());
-      default:
-        throw new IllegalArgumentException("PPL: unknown ordering: " + ordering);
-    }
   }
 
   public static Builder builder() {
@@ -235,25 +163,8 @@ public class PplPolicy implements PathPolicy {
 
     // requirements and ordering defaults
     JsonObject defaultsObj = new JsonObject();
-    if (minBandwidthBPS > 0) {
-      defaultsObj.addProperty("min_meta_bandwidth", minBandwidthBPS);
-    }
-    if (minMtu > 0) {
-      defaultsObj.addProperty("min_mtu", minMtu);
-    }
-    if (minValiditySec > 0) {
-      defaultsObj.addProperty("min_validity_sec", minValiditySec);
-    }
+    defaults.toJson(defaultsObj);
     rootObj.add("defaults", defaultsObj);
-
-    // ordering
-    if (orderingStr.length > 0) {
-      StringBuilder oStr = new StringBuilder(orderingStr[0]);
-      for (int i = 1; i < orderingStr.length; i++) {
-        oStr.append(",").append(orderingStr[i]);
-      }
-      defaultsObj.addProperty("ordering", oStr.toString());
-    }
 
     JsonObject filtersObj = new JsonObject();
     for (Entry entry : policies) {
@@ -336,14 +247,7 @@ public class PplPolicy implements PathPolicy {
 
   public static class Builder {
     private final List<Entry> list = new ArrayList<>();
-    // We create Filters _before_ adding them to the Policy and before/without having defaults.
-    // Defaults can be created and applied later! To keep everything constant/final, the filter()
-    // function needs to dynamically detect whether requirements/ordering are present or should be
-    // taken from the defaults.
-    private int minMtuBytes = 0;
-    private long minBandwidthBytesPerSeconds = 0;
-    private int minValiditySeconds = 0;
-    private String ordering = null;
+    private final PplDefaults.Builder defaults = new PplDefaults.Builder();
 
     public Builder add(String destination, PplPathFilter policy) {
       list.add(new Entry(destination, policy));
@@ -357,7 +261,7 @@ public class PplPolicy implements PathPolicy {
      * @return this Builder
      */
     public Builder minMetaBandwidth(long minBandwidthBytesPerSeconds) {
-      this.minBandwidthBytesPerSeconds = minBandwidthBytesPerSeconds;
+      this.defaults.minMetaBandwidth(minBandwidthBytesPerSeconds);
       return this;
     }
 
@@ -368,7 +272,7 @@ public class PplPolicy implements PathPolicy {
      * @return this builder
      */
     public Builder minMtu(int minMtuBytes) {
-      this.minMtuBytes = minMtuBytes;
+      this.defaults.minMtu(minMtuBytes);
       return this;
     }
 
@@ -379,12 +283,12 @@ public class PplPolicy implements PathPolicy {
      * @return this Builder
      */
     public Builder minValidity(int minValiditySeconds) {
-      this.minValiditySeconds = minValiditySeconds;
+      this.defaults.minValidity(minValiditySeconds);
       return this;
     }
 
     public Builder ordering(String ordering) {
-      this.ordering = ordering;
+      this.defaults.ordering(ordering);
       return this;
     }
 
@@ -392,8 +296,7 @@ public class PplPolicy implements PathPolicy {
       if (list.isEmpty()) {
         throw new PplException("Policy has no default filter");
       }
-      return new PplPolicy(
-          list, minMtuBytes, minBandwidthBytesPerSeconds, minValiditySeconds, ordering);
+      return new PplPolicy(list, defaults.build());
     }
   }
 }

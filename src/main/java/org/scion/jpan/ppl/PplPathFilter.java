@@ -55,18 +55,21 @@ public class PplPathFilter implements PathPolicy {
   private ACL acl;
   private Sequence sequence;
   private Option[] options;
+  private final PplDefaults defaults;
 
-  PplPathFilter(String name, ACL acl, Sequence sequence, Option... options) {
+  PplPathFilter(String name, ACL acl, Sequence sequence, PplDefaults defaults, Option... options) {
     this.name = name;
     this.acl = acl;
     this.sequence = sequence;
+    this.defaults = defaults;
     this.options = options == null ? new Option[0] : options;
     // Sort Options by weight, descending
     Arrays.sort(this.options, (o1, o2) -> -Integer.compare(o1.weight, o2.weight));
   }
 
   private static PplPathFilter createCopy(PplPathFilter policy) {
-    return new PplPathFilter(policy.name, policy.acl, policy.sequence, policy.options);
+    return new PplPathFilter(
+        policy.name, policy.acl, policy.sequence, policy.defaults, policy.options);
   }
 
   public static Builder builder() {
@@ -80,7 +83,7 @@ public class PplPathFilter implements PathPolicy {
   // Filter filters the paths according to the policy.
   @Override
   public List<Path> filter(List<Path> paths) {
-    return filterOpt(paths, null, new FilterOptions(false));
+    return filter(paths, null);
   }
 
   // Filter filters the paths according to the policy.
@@ -334,12 +337,14 @@ public class PplPathFilter implements PathPolicy {
 
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
-    // json.addProperty("name", name);
     if (acl != null) {
       json.add("acl", acl.toJson());
     }
     if (sequence != null) {
       json.addProperty("sequence", sequence.getSourceString());
+    }
+    if (defaults != null) {
+      defaults.toJson(json);
     }
     return json;
   }
@@ -349,10 +354,7 @@ public class PplPathFilter implements PathPolicy {
     Sequence sequence = null;
     final List<Option> options = new ArrayList<>();
     final List<ACL.AclEntry> entries = new ArrayList<>();
-    private int minMtuBytes = 0;
-    private long minBandwidthBytesPerSeconds = 0;
-    private int minValiditySeconds = 0;
-    private String ordering = null;
+    private final PplDefaults.Builder defaults = new PplDefaults.Builder();
 
     Builder() {
       // empty
@@ -395,7 +397,7 @@ public class PplPathFilter implements PathPolicy {
      * @return this Builder
      */
     public Builder minMetaBandwidth(long minBandwidthBytesPerSeconds) {
-      this.minBandwidthBytesPerSeconds = minBandwidthBytesPerSeconds;
+      this.defaults.minMetaBandwidth(minBandwidthBytesPerSeconds);
       return this;
     }
 
@@ -406,7 +408,7 @@ public class PplPathFilter implements PathPolicy {
      * @return this builder
      */
     public Builder minMtu(int minMtuBytes) {
-      this.minMtuBytes = minMtuBytes;
+      this.defaults.minMtu(minMtuBytes);
       return this;
     }
 
@@ -417,12 +419,12 @@ public class PplPathFilter implements PathPolicy {
      * @return this Builder
      */
     public Builder minValidity(int minValiditySeconds) {
-      this.minValiditySeconds = minValiditySeconds;
+      this.defaults.minValidity(minValiditySeconds);
       return this;
     }
 
     public Builder ordering(String ordering) {
-      this.ordering = ordering;
+      this.defaults.ordering(ordering);
       return this;
     }
 
@@ -443,13 +445,15 @@ public class PplPathFilter implements PathPolicy {
         throw new PplException(ACL.ERR_NO_DEFAULT);
       }
       ACL acl = entries.isEmpty() ? null : ACL.create(entries.toArray(new ACL.AclEntry[0]));
-      return new PplPathFilter(name, acl, sequence, options.toArray(new Option[0]));
+      return new PplPathFilter(
+          name, acl, sequence, defaults.build(), options.toArray(new Option[0]));
     }
 
     PplPathFilter buildNoValidate() {
       ACL acl =
           entries.isEmpty() ? null : ACL.createNoValidate(entries.toArray(new ACL.AclEntry[0]));
-      return new PplPathFilter(name, acl, sequence, options.toArray(new Option[0]));
+      return new PplPathFilter(
+          name, acl, sequence, defaults.build(), options.toArray(new Option[0]));
     }
   }
 }
