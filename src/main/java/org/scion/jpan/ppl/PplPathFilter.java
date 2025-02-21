@@ -92,14 +92,14 @@ public class PplPathFilter implements PathPolicy {
   // options.
   List<Path> filterOpt(List<Path> paths, PplPolicy defaults, FilterOptions opts) {
     long now = System.currentTimeMillis() / 1000; // unix epoch
-//    for (Path path : input) {
-//      PathMetadata meta = path.getMetadata();
-//      if ((minMtu <= 0 || meta.getMtu() >= minMtu)
-//              && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)
-//              && (minBandwidthBPS <= 0 || getMinBandwidth(path) >= minBandwidthBPS)) {
-//        filtered.add(path);
-//      }
-//    }
+    //    for (Path path : input) {
+    //      PathMetadata meta = path.getMetadata();
+    //      if ((minMtu <= 0 || meta.getMtu() >= minMtu)
+    //              && (minValiditySec <= 0 || meta.getExpiration() >= now + minValiditySec)
+    //              && (minBandwidthBPS <= 0 || getMinBandwidth(path) >= minBandwidthBPS)) {
+    //        filtered.add(path);
+    //      }
+    //    }
 
     paths = acl == null ? paths : acl.eval(paths);
     if (sequence != null && !opts.ignoreSequence) {
@@ -319,16 +319,16 @@ public class PplPathFilter implements PathPolicy {
           log.warn("Unknown key in filter \"{}\": {}", name, p.getKey());
       }
     }
-//    JsonElement aclElement = json.get("acl");
-//    if (aclElement != null) {
-//      for (JsonElement e : aclElement.getAsJsonArray()) {
-//        b.addAclEntry(e.getAsString());
-//      }
-//    }
-//    JsonElement sequence = json.get("sequence");
-//    if (sequence != null) {
-//      b.setSequence(sequence.getAsString());
-//    }
+    //    JsonElement aclElement = json.get("acl");
+    //    if (aclElement != null) {
+    //      for (JsonElement e : aclElement.getAsJsonArray()) {
+    //        b.addAclEntry(e.getAsString());
+    //      }
+    //    }
+    //    JsonElement sequence = json.get("sequence");
+    //    if (sequence != null) {
+    //      b.setSequence(sequence.getAsString());
+    //    }
     return b.build();
   }
 

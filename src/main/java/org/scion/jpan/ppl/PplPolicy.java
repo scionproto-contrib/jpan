@@ -345,7 +345,6 @@ public class PplPolicy implements PathPolicy {
     private int minValiditySeconds = 0;
     private String ordering = null;
 
-
     public Builder add(String destination, PplPathFilter policy) {
       list.add(new Entry(destination, policy));
       return this;

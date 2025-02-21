@@ -40,7 +40,7 @@ class PathPolicyLanguageTest {
 
   @Test
   void filter_smokeTest() {
-    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl.json"));
     InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     List<Path> paths = toList(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:111"));
 
@@ -50,8 +50,8 @@ class PathPolicyLanguageTest {
 
   @Test
   void filter_export() {
-    String input = readFile(getPath("ppl/pplGroup.json"));
-    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
+    String input = readFile(getPath("ppl/ppl.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl.json"));
 
     String output = policy.toJson(true);
     assertEquals(input, output);
@@ -75,7 +75,7 @@ class PathPolicyLanguageTest {
 
   @Test
   void filter_defaultOnly() {
-    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/pplGroup_trivial.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl_trivial.json"));
     InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     List<Path> paths = toList(createPath(addr, "1-ff00:0:110", "1", "2", "1-ff00:0:111"));
 
@@ -85,7 +85,7 @@ class PathPolicyLanguageTest {
 
   @Test
   void filter_complex() {
-    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl.json"));
     final List<Path> paths = new ArrayList<>();
     InetSocketAddress addr;
 
@@ -234,23 +234,23 @@ class PathPolicyLanguageTest {
     Class<IllegalArgumentException> ec = IllegalArgumentException.class;
     Exception e;
     // missing default policy in "destinations"
-    e = assertThrows(ec, () -> testJsonFile("ppl/pplGroup_missingDefault.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: "), e.getMessage());
 
     // missing policy in "filters"
-    e = assertThrows(ec, () -> testJsonFile("ppl/pplGroup_missingPolicy.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingPolicy.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: Policy not found:"), e.getMessage());
 
     // missing policies in "destinations"
-    e = assertThrows(ec, () -> testJsonFile("ppl/pplGroup_missingPolicies.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingPolicies.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No entries in group"));
 
     // missing default policy in "filters"
-    e = assertThrows(ec, () -> testJsonFile("ppl/pplGroup_missingDefault.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No default in group"));
 
     // bad default destination (not a catch-all)
-    e = assertThrows(ec, () -> testJsonFile("ppl/pplGroup_badDefault.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_badDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No default in group"));
   }
 

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
+- Metadata: BW/Latency/Geo/Notes! 
 
 - API do drop current path or even use most diverse one.
   -> To be called if application detects interruption (but no SCMP errors arrive?)
@@ -84,7 +85,6 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 TODO
 - test import of "defaults"
 - implement and test default overriding in filters / JSON
-- rename json files w/o group
 
 ### Changed
  
