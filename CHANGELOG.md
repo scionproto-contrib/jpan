@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
+- Metadata: BW/Latency/Geo/Notes! 
 
 - API do drop current path or even use most diverse one.
   -> To be called if application detects interruption (but no SCMP errors arrive?)
@@ -22,8 +23,7 @@ Post-0.5.0
 
 TODO
 - Selectors: PingLatency, ReversePath, ...
-- Fix PplPolicy.fromJson()
-- Add PPL JSON+YAML export. Fix JSON import of multiple policies
+- Authenticate paths!?!?!?
 
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
@@ -79,6 +79,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#154](https://github.com/scionproto-contrib/jpan/pull/154)
 - Path policies `PplPolicy` and `PplPolicyGroup` created from Path Policy Language
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
+- Path policies JSON import export
+  [#170](https://github.com/scionproto-contrib/jpan/pull/170)
 
 ### Changed
  

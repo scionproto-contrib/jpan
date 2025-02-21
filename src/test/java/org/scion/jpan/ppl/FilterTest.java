@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 
@@ -364,53 +363,12 @@ class FilterTest {
     // "sequence in options is ignored"
     PplExtPolicy optPolicy = PplExtPolicy.builder().setSequence("0+ 1-ff00:0:111 0+").build();
     PplPathFilter policy = PplPathFilter.builder().addOption(0, optPolicy).build();
-    List<Path> outPaths = policy.filterOpt(paths, PplPathFilter.FilterOptions.create(true));
+    List<Path> outPaths = policy.filterOpt(paths, null, PplPathFilter.FilterOptions.create(true));
     assertEquals(3, outPaths.size());
 
     // "sequence is ignored"
     policy = PplPathFilter.builder().setSequence("0+ 1-ff00:0:111 0+").build();
-    outPaths = policy.filterOpt(paths, PplPathFilter.FilterOptions.create(true));
+    outPaths = policy.filterOpt(paths, null, PplPathFilter.FilterOptions.create(true));
     assertEquals(3, outPaths.size());
-  }
-
-  @Test
-  @Disabled
-  void testPolicyJsonConversion() {
-    //        acl, err := NewACL(
-    //                &ACLEntry{Action: Allow, Rule: mustHopPredicate(t, "42-0#0")},
-    //        denyEntry,
-    //	)
-    //        require.NoError(t, err)
-    //
-    //        policy := NewPolicy("", nil, nil, []Option{
-    //            {
-    //                Policy: &ExtPolicy{
-    //                Policy: &Policy{
-    //                    ACL: acl,
-    //                            LocalISDAS: &LocalISDAS{
-    //                        AllowedIAs: []addr.IA{
-    //                            addr.MustParseIA("64-123"),
-    //                                    addr.MustParseIA("70-ff00:0102:0304"),
-    //                        },
-    //                    },
-    //                    RemoteISDAS: &RemoteISDAS{
-    //                        Rules: []ISDASRule{
-    //                            {
-    //                                IA:     addr.MustParseIA("64-123"),
-    //                                        Reject: true,
-    //                            },
-    //                        },
-    //                    },
-    //                },
-    //            },
-    //                Weight: 0,
-    //            },
-    //        })
-    //        jsonPol, err := json.Marshal(policy)
-    //        require.NoError(t, err)
-    //        var pol Policy
-    //                err = json.Unmarshal(jsonPol, &pol)
-    //        assert.NoError(t, err)
-    //        assert.Equal(t, policy, &pol)
   }
 }

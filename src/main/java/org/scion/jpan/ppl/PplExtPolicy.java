@@ -31,7 +31,7 @@ public class PplExtPolicy extends PplPathFilter {
 
   private PplExtPolicy(
       String name, ACL acl, Sequence sequence, String[] extensions, Option... options) {
-    super(name, acl, sequence, options);
+    super(name, acl, sequence, null, options);
     this.extensions = extensions;
   }
 
@@ -45,6 +45,10 @@ public class PplExtPolicy extends PplPathFilter {
 
   public static class Builder extends PplPathFilter.Builder {
     private final List<String> extensions = new ArrayList<>();
+
+    Builder() {
+      // empty
+    }
 
     public Builder addExtension(String extension) {
       this.extensions.add(extension);

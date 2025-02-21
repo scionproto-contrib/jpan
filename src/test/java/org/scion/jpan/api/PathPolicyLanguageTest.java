@@ -16,12 +16,19 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.google.protobuf.Duration;
+import com.google.protobuf.Timestamp;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.IPHelper;
@@ -33,27 +40,52 @@ class PathPolicyLanguageTest {
 
   @Test
   void filter_smokeTest() {
-    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl.json"));
     InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     List<Path> paths = toList(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:111"));
 
-    List<Path> filteredPaths = group.filter(paths);
+    List<Path> filteredPaths = policy.filter(paths);
     assertEquals(1, filteredPaths.size());
   }
 
   @Test
+  void filter_export() {
+    String input = readFile(getPath("ppl/ppl.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl.json"));
+
+    String output = policy.toJson(true);
+    // assertEquals(input, output)
+    // We only compare the length, the ordering of filters may be different.
+    // + 1 for final line break.
+    assertEquals(input.length(), output.length() + 1);
+    PplPolicy policy2 = PplPolicy.fromJson(output);
+    String output2 = policy2.toJson(true);
+    assertEquals(output, output2);
+  }
+
+  public static String readFile(java.nio.file.Path file) {
+    StringBuilder contentBuilder = new StringBuilder();
+    try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
+      stream.forEach(s -> contentBuilder.append(s).append("\n"));
+    } catch (IOException e) {
+      throw new ScionRuntimeException("Error reading topology file: " + file.toAbsolutePath(), e);
+    }
+    return contentBuilder.toString();
+  }
+
+  @Test
   void filter_defaultOnly() {
-    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup_trivial.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl_trivial.json"));
     InetSocketAddress addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     List<Path> paths = toList(createPath(addr, "1-ff00:0:110", "1", "2", "1-ff00:0:111"));
 
-    List<Path> filteredPaths = group.filter(paths);
+    List<Path> filteredPaths = policy.filter(paths);
     assertEquals(1, filteredPaths.size());
   }
 
   @Test
   void filter_complex() {
-    PplPolicy group = PplPolicy.fromJson(getPath("ppl/pplGroup.json"));
+    PplPolicy policy = PplPolicy.fromJson(getPath("ppl/ppl.json"));
     final List<Path> paths = new ArrayList<>();
     InetSocketAddress addr;
 
@@ -75,42 +107,42 @@ class PathPolicyLanguageTest {
       "1-ff00:0:110"
     };
     paths.add(createPath("10.0.0.2:12234", path133x110));
-    assertEquals(1, group.filter(paths).size());
+    assertEquals(1, policy.filter(paths).size());
 
     // filter_110a: address does not match -> filter_110b fails
     paths.clear();
     paths.add(createPath("10.0.0.3:12235", path133x110));
-    assertTrue(group.filter(paths).isEmpty());
+    assertTrue(policy.filter(paths).isEmpty());
 
     // filter_110b - address match - no ISD match -> accept
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:112", "1", "2", "1-ff00:0:110"));
-    assertEquals(1, group.filter(paths).size());
+    assertEquals(1, policy.filter(paths).size());
 
     // filter_110b - address match - ISD match -> deny
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:130", "0", "2", "1-ff00:0:110"));
-    assertTrue(group.filter(paths).isEmpty());
+    assertTrue(policy.filter(paths).isEmpty());
 
     // default match only (ISD 1-..210) -> specific 112 -> accept
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:112", "1", "2", "2-ff00:0:210"));
-    assertEquals(1, group.filter(paths).size());
+    assertEquals(1, policy.filter(paths).size());
 
     // default match only (ISD 1-..210) -> specific 1 -> deny
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "1-ff00:0:113", "1", "2", "2-ff00:0:210"));
-    assertTrue(group.filter(paths).isEmpty());
+    assertTrue(policy.filter(paths).isEmpty());
 
     // default match only  (ISD 1-..210) -> default ISD 2 -> accept
     paths.clear();
     addr = IPHelper.toInetSocketAddress("192.186.0.5:12234");
     paths.add(createPath(addr, "2-ff00:0:113", "1", "2", "2-ff00:0:210"));
-    assertEquals(1, group.filter(paths).size());
+    assertEquals(1, policy.filter(paths).size());
   }
 
   private List<Path> toList(Path path) {
@@ -152,16 +184,16 @@ class PathPolicyLanguageTest {
   private void testDenyAllow(String destDeny, String addrDeny, String addrAllow) {
     PplPathFilter deny = PplPathFilter.builder().addAclEntry("-").build();
     PplPathFilter allow = PplPathFilter.builder().addAclEntry("+").build();
-    PplPolicy group = PplPolicy.builder().add(destDeny, deny).add("0", allow).build();
+    PplPolicy policy = PplPolicy.builder().add(destDeny, deny).add("0", allow).build();
     String[] path133x110 = {"1-ff00:0:133", "0", "0", "1-ff00:0:110"};
 
     // address+port do not match "deny"
     List<Path> pathsAllow = toList(createPath(addrDeny, path133x110));
-    assertEquals(1, group.filter(pathsAllow).size());
+    assertEquals(1, policy.filter(pathsAllow).size());
 
     // address+port do not match "deny"
     List<Path> pathsDeny = toList(createPath(addrAllow, path133x110));
-    assertTrue(group.filter(pathsDeny).isEmpty());
+    assertTrue(policy.filter(pathsDeny).isEmpty());
   }
 
   /**
@@ -187,6 +219,13 @@ class PathPolicyLanguageTest {
         path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(isdAs).setId(id2).build());
       }
     }
+
+    long now = Instant.now().getEpochSecond();
+    path.setExpiration(Timestamp.newBuilder().setSeconds(now + 3600).build())
+        .addBandwidth(100_000_000)
+        .setMtu(1280)
+        .addLatency(Duration.newBuilder().setNanos(10_000_000));
+
     return path.build();
   }
 
@@ -195,27 +234,27 @@ class PathPolicyLanguageTest {
     Class<IllegalArgumentException> ec = IllegalArgumentException.class;
     Exception e;
     // missing default policy in "destinations"
-    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingDefault.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: "), e.getMessage());
 
     // missing policy in "filters"
-    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicy.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingPolicy.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: Policy not found:"), e.getMessage());
 
     // missing policies in "destinations"
-    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingPolicies.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingPolicies.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No entries in group"));
 
     // missing default policy in "filters"
-    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_missingDefault.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_missingDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No default in group"));
 
     // bad default destination (not a catch-all)
-    e = assertThrows(ec, () -> testJsonGroup("ppl/pplGroup_badDefault.json"));
+    e = assertThrows(ec, () -> testJsonFile("ppl/ppl_badDefault.json"));
     assertTrue(e.getMessage().startsWith("Error parsing JSON: No default in group"));
   }
 
-  private void testJsonGroup(String file) {
+  private void testJsonFile(String file) {
     PplPolicy.fromJson(getPath(file));
   }
 

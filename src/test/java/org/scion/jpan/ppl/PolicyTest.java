@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 
@@ -177,46 +176,5 @@ class PolicyTest {
             .build();
     paths = pp.getPaths("1-ff00:0:110", "2-ff00:0:220");
     assertEquals(2, policy.filter(paths).size());
-  }
-
-  @Test
-  @Disabled
-  void testPolicyJsonConversion() {
-    //        acl, err := NewACL(
-    //                &ACLEntry{Action: Allow, Rule: mustHopPredicate(t, "42-0#0")},
-    //        denyEntry,
-    //	)
-    //        require.NoError(t, err)
-    //
-    //        policy := NewPolicy("", nil, nil, []Option{
-    //            {
-    //                Policy: &ExtPolicy{
-    //                Policy: &Policy{
-    //                    ACL: acl,
-    //                            LocalISDAS: &LocalISDAS{
-    //                        AllowedIAs: []addr.IA{
-    //                            addr.MustParseIA("64-123"),
-    //                                    addr.MustParseIA("70-ff00:0102:0304"),
-    //                        },
-    //                    },
-    //                    RemoteISDAS: &RemoteISDAS{
-    //                        Rules: []ISDASRule{
-    //                            {
-    //                                IA:     addr.MustParseIA("64-123"),
-    //                                        Reject: true,
-    //                            },
-    //                        },
-    //                    },
-    //                },
-    //            },
-    //                Weight: 0,
-    //            },
-    //        })
-    //        jsonPol, err := json.Marshal(policy)
-    //        require.NoError(t, err)
-    //        var pol Policy
-    //                err = json.Unmarshal(jsonPol, &pol)
-    //        assert.NoError(t, err)
-    //        assert.Equal(t, policy, &pol)
   }
 }

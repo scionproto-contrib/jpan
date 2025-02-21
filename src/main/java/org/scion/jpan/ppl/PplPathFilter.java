@@ -22,6 +22,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import org.scion.jpan.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A path policy based onj Path Policy Language: <a
@@ -31,6 +33,8 @@ import org.scion.jpan.*;
  */
 // Copied from https://github.com/scionproto/scion/tree/master/private/path/pathpol
 public class PplPathFilter implements PathPolicy {
+
+  private static final Logger log = LoggerFactory.getLogger(PplPathFilter.class);
 
   /** FilterOptions contains options for filtering. */
   static class FilterOptions {
@@ -50,44 +54,56 @@ public class PplPathFilter implements PathPolicy {
   private ACL acl;
   private Sequence sequence;
   private Option[] options;
+  private final PplDefaults defaults;
 
-  PplPathFilter(String name, ACL acl, Sequence sequence, Option... options) {
+  PplPathFilter(String name, ACL acl, Sequence sequence, PplDefaults defaults, Option... options) {
     this.name = name;
     this.acl = acl;
     this.sequence = sequence;
+    this.defaults = defaults;
     this.options = options == null ? new Option[0] : options;
     // Sort Options by weight, descending
     Arrays.sort(this.options, (o1, o2) -> -Integer.compare(o1.weight, o2.weight));
   }
 
   private static PplPathFilter createCopy(PplPathFilter policy) {
-    return new PplPathFilter(policy.name, policy.acl, policy.sequence, policy.options);
+    return new PplPathFilter(
+        policy.name, policy.acl, policy.sequence, policy.defaults, policy.options);
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public static PplPathFilter fromJson(String json) {
-    return parseJsonFile(json).get(0); // TODO
-  }
-
   // Filter filters the paths according to the policy.
   @Override
   public List<Path> filter(List<Path> paths) {
-    return filterOpt(paths, new FilterOptions(false));
+    return filter(paths, null);
+  }
+
+  // Filter filters the paths according to the policy.
+  List<Path> filter(List<Path> paths, PplDefaults defaults) {
+    return filterOpt(paths, defaults, new FilterOptions(false));
   }
 
   // FilterOpt filters the path set according to the policy with the given
   // options.
-  List<Path> filterOpt(List<Path> paths, FilterOptions opts) {
+  List<Path> filterOpt(List<Path> paths, PplDefaults globalDefaults, FilterOptions opts) {
+    if (defaults != null) {
+      paths = this.defaults.filter(paths, globalDefaults);
+    }
+
     paths = acl == null ? paths : acl.eval(paths);
     if (sequence != null && !opts.ignoreSequence) {
       paths = sequence.eval(paths);
     }
     // Filter on sub policies
     if (options.length > 0) {
-      paths = evalOptions(paths, opts);
+      paths = evalOptions(paths, globalDefaults, opts);
+    }
+
+    if (defaults != null) {
+      this.defaults.sortPaths(paths);
     }
     return paths;
   }
@@ -133,7 +149,7 @@ public class PplPathFilter implements PathPolicy {
 
   // evalOptions evaluates the options of a policy and returns the pathSet that matches the option
   // with the highest weight
-  private List<Path> evalOptions(List<Path> paths, FilterOptions opts) {
+  private List<Path> evalOptions(List<Path> paths, PplDefaults defaults, FilterOptions opts) {
     Set<String> subPolicySet = new HashSet<>();
     int currWeight = options[0].weight;
     // Go through sub policies
@@ -142,7 +158,7 @@ public class PplPathFilter implements PathPolicy {
         break;
       }
       currWeight = option.weight;
-      List<Path> subPaths = option.policy.filterOpt(paths, opts);
+      List<Path> subPaths = option.policy.filterOpt(paths, defaults, opts);
       for (Path path : subPaths) {
         subPolicySet.add(fingerprint(path));
       }
@@ -258,32 +274,50 @@ public class PplPathFilter implements PathPolicy {
         + '}';
   }
 
-  private static List<PplPathFilter> parseJsonFile(String jsonFile) {
-    List<PplPathFilter> policies = new ArrayList<>();
-    JsonElement jsonTree = com.google.gson.JsonParser.parseString(jsonFile);
-    if (jsonTree.isJsonObject()) {
-      JsonObject parent = jsonTree.getAsJsonObject();
-      for (Map.Entry<String, JsonElement> oo : parent.entrySet()) {
-        policies.add(parseJsonPolicy(oo.getKey(), oo.getValue().getAsJsonObject()));
-      }
-    }
-    return policies;
-  }
-
-  static PplPathFilter parseJsonPolicy(String name, JsonObject policy) {
+  static PplPathFilter fromJson(String name, JsonObject json) {
     Builder b = new Builder();
     b.setName(name);
-    JsonElement aclElement = policy.get("acl");
-    if (aclElement != null) {
-      for (JsonElement e : aclElement.getAsJsonArray()) {
-        b.addAclEntry(e.getAsString());
+    for (Map.Entry<String, JsonElement> p : json.getAsJsonObject().entrySet()) {
+      switch (p.getKey()) {
+        case "acl":
+          for (JsonElement e : p.getValue().getAsJsonArray()) {
+            b.addAclEntry(e.getAsString());
+          }
+          break;
+        case "sequence":
+          b.setSequence(p.getValue().getAsString());
+          break;
+        case "min_mtu":
+          b.minMtu(p.getValue().getAsInt());
+          break;
+        case "min_validity_sec":
+          b.minValidity(p.getValue().getAsInt());
+          break;
+        case "min_meta_bandwidth":
+          b.minMetaBandwidth(p.getValue().getAsLong());
+          break;
+        case "ordering":
+          b.ordering(p.getValue().getAsString());
+          break;
+        default:
+          log.warn("Unknown key in filter \"{}\": {}", name, p.getKey());
       }
     }
-    JsonElement sequence = policy.get("sequence");
-    if (sequence != null) {
-      b.setSequence(sequence.getAsString());
-    }
     return b.build();
+  }
+
+  public JsonObject toJson() {
+    JsonObject json = new JsonObject();
+    if (acl != null) {
+      json.add("acl", acl.toJson());
+    }
+    if (sequence != null) {
+      json.addProperty("sequence", sequence.getSourceString());
+    }
+    if (defaults != null) {
+      defaults.toJson(json);
+    }
+    return json;
   }
 
   public static class Builder {
@@ -291,6 +325,11 @@ public class PplPathFilter implements PathPolicy {
     Sequence sequence = null;
     final List<Option> options = new ArrayList<>();
     final List<ACL.AclEntry> entries = new ArrayList<>();
+    private final PplDefaults.Builder defaults = new PplDefaults.Builder();
+
+    Builder() {
+      // empty
+    }
 
     public Builder setName(String name) {
       this.name = name;
@@ -323,6 +362,44 @@ public class PplPathFilter implements PathPolicy {
     }
 
     /**
+     * Minimum metadata bandwidth requirement for paths. Default is 0.
+     *
+     * @param minBandwidthBytesPerSeconds Minimum bandwidth in bytes per second.
+     * @return this Builder
+     */
+    public Builder minMetaBandwidth(long minBandwidthBytesPerSeconds) {
+      this.defaults.minMetaBandwidth(minBandwidthBytesPerSeconds);
+      return this;
+    }
+
+    /**
+     * Minimum MTU requirement for paths. Default is 0.
+     *
+     * @param minMtuBytes Minimum MTU bytes required for a path to be accepted.
+     * @return this builder
+     */
+    public Builder minMtu(int minMtuBytes) {
+      this.defaults.minMtu(minMtuBytes);
+      return this;
+    }
+
+    /**
+     * Minimum validity requirement for paths. Default is 0.
+     *
+     * @param minValiditySeconds Minimum seconds before a path expires.
+     * @return this Builder
+     */
+    public Builder minValidity(int minValiditySeconds) {
+      this.defaults.minValidity(minValiditySeconds);
+      return this;
+    }
+
+    public Builder ordering(String ordering) {
+      this.defaults.ordering(ordering);
+      return this;
+    }
+
+    /**
      * @param weight weight
      * @param policy policy
      * @return Builder
@@ -339,13 +416,15 @@ public class PplPathFilter implements PathPolicy {
         throw new PplException(ACL.ERR_NO_DEFAULT);
       }
       ACL acl = entries.isEmpty() ? null : ACL.create(entries.toArray(new ACL.AclEntry[0]));
-      return new PplPathFilter(name, acl, sequence, options.toArray(new Option[0]));
+      return new PplPathFilter(
+          name, acl, sequence, defaults.build(), options.toArray(new Option[0]));
     }
 
     PplPathFilter buildNoValidate() {
       ACL acl =
           entries.isEmpty() ? null : ACL.createNoValidate(entries.toArray(new ACL.AclEntry[0]));
-      return new PplPathFilter(name, acl, sequence, options.toArray(new Option[0]));
+      return new PplPathFilter(
+          name, acl, sequence, defaults.build(), options.toArray(new Option[0]));
     }
   }
 }

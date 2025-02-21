@@ -14,6 +14,8 @@
 
 package org.scion.jpan.ppl;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -102,6 +104,14 @@ class ACL {
     }
   }
 
+  public JsonElement toJson() {
+    JsonArray array = new JsonArray(entries.length);
+    for (AclEntry entry : entries) {
+      array.add(entry.string());
+    }
+    return array;
+  }
+
   static class AclEntry {
     private final AclAction action;
     private final HopPredicate rule;
@@ -133,7 +143,10 @@ class ACL {
         str = ALLOW_SYMBOL;
       }
       if (rule != null) {
-        str = str + " " + rule.string();
+        String ruleStr = rule.string();
+        if (!ruleStr.equals("0")) {
+          str = str + " " + ruleStr;
+        }
       }
       return str;
     }
