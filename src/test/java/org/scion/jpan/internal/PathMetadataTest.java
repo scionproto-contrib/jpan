@@ -14,26 +14,20 @@
 
 package org.scion.jpan.internal;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
-import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionUtil;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class PathMetadataTest {
 
@@ -48,7 +42,7 @@ public class PathMetadataTest {
     InetAddress ia = InetAddress.getByAddress(ExamplePacket.DST_HOST);
     try (Scion.CloseableService service =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
-        assertNotEquals(ExamplePacket.DST_IA, service.getLocalIsdAs());
+      assertNotEquals(ExamplePacket.DST_IA, service.getLocalIsdAs());
       List<Path> paths = service.getPaths(ExamplePacket.DST_IA, ia, 12345);
       Path path = paths.get(0);
       long expSec = path.getMetadata().getExpiration();
@@ -64,7 +58,7 @@ public class PathMetadataTest {
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     InetAddress ia = InetAddress.getByAddress(ExamplePacket.DST_HOST);
     try (Scion.CloseableService service =
-                 Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
+        Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
       assertNotEquals(ExamplePacket.DST_IA, service.getLocalIsdAs());
       List<Path> paths = service.getPaths(ExamplePacket.DST_IA, ia, 12345);
       Path path = paths.get(0);
@@ -79,14 +73,14 @@ public class PathMetadataTest {
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
     InetAddress ia = InetAddress.getByAddress(ExamplePacket.DST_HOST);
     try (Scion.CloseableService service =
-                 Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
+        Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
       assertNotEquals(ExamplePacket.DST_IA, service.getLocalIsdAs());
       List<Path> paths = service.getPaths(ExamplePacket.DST_IA, ia, 12345);
       Path path = paths.get(0);
       List<Integer> latencies = path.getMetadata().getLatencyList();
       assertEquals(3, latencies.size());
       for (Integer latency : latencies) {
-       // assertTrue(latency >= 0);
+        // assertTrue(latency >= 0);
         System.out.println("latency: " + latency);
       }
     }

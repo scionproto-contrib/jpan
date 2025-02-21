@@ -396,7 +396,7 @@ public class Segments {
     // metadata
     for (int i = 0; i < segments.length; i++) {
       for (Seg.ASEntrySignedBody body : segments[i].bodies) {
-        SegExtensions.PathSegmentExtensions ext =  body.getExtensions();
+        SegExtensions.PathSegmentExtensions ext = body.getExtensions();
         if (ext.hasStaticInfo()) {
           // path.addLatency()
           // TODO where do we get these?
