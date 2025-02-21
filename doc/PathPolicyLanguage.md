@@ -169,34 +169,7 @@ The following example specifies a path from interface `1-ff00:0:133#1` through m
 
 ## Examples
 
-PPL scripts can be defined via API or via YAML or JSON files. For example:
-
-```yaml
----
-destinations:
-  - destination: "1-0:0:110,10.0.0.2"
-    filter: filter_110a
-  - destination: "1-0:0:110"
-    filter: filter_110b
-  - destination: "0"
-    filter: default
-
-filters:
-  - name: default
-    acl:
-      - "+ 1-ff00:0:111",
-      - "+ 1-ff00:0:112",
-      - "- 1",
-      - "+"
-  - name: filter_110a
-    "sequence": "1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0"
-  - name: filter_110b
-    acl:
-      - "+ 1-ff00:0:133",
-      - "+ 1-ff00:0:120",
-      - "- 1",
-      - "+"
-```
+PPL scripts can be defined via API or via JSON files. For example:
 
 ```json
 {
@@ -204,6 +177,11 @@ filters:
     "1-0:0:110,10.0.0.2": "filter_110a",
     "1-0:0:110": "filter_110b",
     "0": "default"
+  },
+  "defaults": {
+    "min_mtu": 1280,
+    "min_validity_sec": 10,
+    "ordering": "hops_asc,meta_latency_asc"
   },
   "filters": {
     "default": {
@@ -216,6 +194,9 @@ filters:
     },
     "filter_110a": {
       "sequence": "1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0"
+      "min_mtu": 1400,
+      "min_validity_sec": 120,
+      "ordering": "meta_latency_asc"
     },
     "filter_110b": {
       "acl": [
@@ -279,6 +260,35 @@ For example (by Jelte):
     ]
   }
 }
+```
+
+Another extension would be YAML support, e.g.:
+
+```yaml
+---
+destinations:
+  - destination: "1-0:0:110,10.0.0.2"
+    filter: filter_110a
+  - destination: "1-0:0:110"
+    filter: filter_110b
+  - destination: "0"
+    filter: default
+
+filters:
+  - name: default
+    acl:
+      - "+ 1-ff00:0:111",
+      - "+ 1-ff00:0:112",
+      - "- 1",
+      - "+"
+  - name: filter_110a
+    "sequence": "1-ff00:0:133#0 1-ff00:0:120#2,1 0 0 1-ff00:0:110#0"
+  - name: filter_110b
+    acl:
+      - "+ 1-ff00:0:133",
+      - "+ 1-ff00:0:120",
+      - "- 1",
+      - "+"
 ```
 
 # Disclaimer
