@@ -115,6 +115,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#165](https://github.com/scionproto-contrib/jpan/pull/165)
 - Stabilized some NAT unit tests that kept failing on MacOS
   [#166](https://github.com/scionproto-contrib/jpan/pull/166)
+- Fixed missing expiration time for Segments from control server
+  [#171](https://github.com/scionproto-contrib/jpan/pull/171)
 
 ## [0.4.1] - 2024-11-22
 

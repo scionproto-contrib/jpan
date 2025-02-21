@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
+import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -392,11 +393,28 @@ public class Segments {
     raw.flip();
     path.setRaw(ByteString.copyFrom(raw));
 
-    // TODO where do we get these?
-    //    segUp.getSegmentInfo();
-    //    path.setLatency();
-    //    path.setInternalHops();
-    //    path.setNotes();
+    // metadata
+    for (int i = 0; i < segments.length; i++) {
+      for (Seg.ASEntrySignedBody body : segments[i].bodies) {
+        SegExtensions.PathSegmentExtensions ext = body.getExtensions();
+        if (ext.hasStaticInfo()) {
+          // path.addLatency()
+          // TODO where do we get these?
+          //    path.setLatency();
+          //    path.setInternalHops();
+          //    path.setNotes();
+          SegExtensions.StaticInfoExtension sExt = ext.getStaticInfo();
+          sExt.getLatency().getIntraMap();
+          sExt.getLatency().getInterMap();
+          sExt.getBandwidth().getIntraMap();
+          sExt.getBandwidth().getInterMap();
+          sExt.getGeoMap();
+          sExt.getLinkTypeMap();
+          sExt.getNote();
+        }
+      }
+    }
+
     // First hop
     String firstHop = localAS.getBorderRouterAddressString((int) path.getInterfaces(0).getId());
     Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
@@ -454,6 +472,7 @@ public class Segments {
       PathSegment pathSegment,
       int[] range) {
     int minExpiry = Integer.MAX_VALUE;
+    path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
     for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
       boolean reversed = range[2] == -1;
       Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
@@ -497,7 +516,7 @@ public class Segments {
     // expiration
     long time = calcExpTime(pathSegment.info.getTimestamp(), minExpiry);
     if (time < path.getExpiration().getSeconds()) {
-      path.setExpiration(Timestamp.newBuilder().setSeconds(minExpiry).build());
+      path.setExpiration(Timestamp.newBuilder().setSeconds(time).build());
     }
   }
 
