@@ -85,7 +85,7 @@ It also changes the ordering to be only by latency.
 The following requirements and ordering are supported:
 
 - `min_mtu`: minimum MTU in bytes
-- `min_bandwidth`: minimum bandwidth in bps
+- `min_meta_bandwidth`: minimum bandwidth in bytes/s (based on metadata)
 - `min_validity_sec`: minimum validity time in seconds
 
 The following orderings are supported:

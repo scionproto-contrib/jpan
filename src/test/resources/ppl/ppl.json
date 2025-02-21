@@ -29,6 +29,8 @@
         "- 1-ff00:0:132#2",
         "+"
       ],
+      "min_meta_bandwidth": 1000000,
+      "min_validity_sec": 120,
       "ordering": "meta_latency_asc"
     }
   }
