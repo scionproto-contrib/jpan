@@ -5,6 +5,7 @@
     "0": "default"
   },
   "defaults": {
+    "min_meta_bandwidth": 1000,
     "min_mtu": 1,
     "min_validity_sec": 1,
     "ordering": "hops_asc,meta_latency_asc"
