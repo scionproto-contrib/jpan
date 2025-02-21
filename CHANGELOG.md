@@ -112,7 +112,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 - Stop contacting daemon of every received packet
   [#157](https://github.com/scionproto-contrib/jpan/pull/157)
 - Fixed troubleshooting documentation for slf4j
-  [#161](https://github.com/scionproto-contrib/jpan/pull/161)
+  [#161](https://github.com/scionproto-contrib/jpan/pull/161),
+  [#162](https://github.com/scionproto-contrib/jpan/pull/162)
 - Fixed Android problems with grpc-netty-shaded jar.
   [#165](https://github.com/scionproto-contrib/jpan/pull/165)
 - Stabilized some NAT unit tests that kept failing on MacOS
