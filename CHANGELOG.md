@@ -23,7 +23,7 @@ Post-0.5.0
 
 TODO
 - Selectors: PingLatency, ReversePath, ...
-- Authenticate paths!?!?!?
+- Authenticate SCMP / EPIC !?!?!?
 
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
