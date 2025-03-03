@@ -26,29 +26,23 @@ import java.util.List;
 import java.util.WeakHashMap;
 import org.scion.jpan.internal.ByteUtil;
 import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.PathPolicyHandler;
 import org.scion.jpan.internal.ScionHeaderParser;
 
 public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
-
-  public enum RefreshPolicy {
-    /** No refresh. */
-    OFF,
-    /** Refresh with path along the same links. */
-    SAME_LINKS,
-    /** Refresh with path path following path policy. */
-    POLICY
-  }
 
   // Store one path per (non-Scion-)destination address
   private final WeakHashMap<InetSocketAddress, RequestPath> resolvedDestinations =
       new WeakHashMap<>();
   // Store a refreshed paths for every path
   private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
+  private final PathPolicyHandler policyHandler;
 
   protected ScionDatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
       throws IOException {
     super(service, channel);
+    this.policyHandler = PathPolicyHandler.with(service, super.getPathPolicy());
   }
 
   /**
@@ -128,7 +122,10 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
     if (destination instanceof ScionSocketAddress) {
-      return send(srcBuffer, ((ScionSocketAddress) destination).getPath(), RefreshPolicy.OFF);
+      return send(
+          srcBuffer,
+          ((ScionSocketAddress) destination).getPath(),
+          PathPolicyHandler.RefreshPolicy.OFF);
     }
 
     InetSocketAddress dst = (InetSocketAddress) destination;
@@ -140,7 +137,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         resolvedDestinations.put(dst, path);
       }
     }
-    return send(srcBuffer, path, RefreshPolicy.POLICY);
+    return send(srcBuffer, path, PathPolicyHandler.RefreshPolicy.POLICY);
   }
 
   /**
@@ -155,10 +152,11 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
   public int send(ByteBuffer srcBuffer, Path path) throws IOException {
-    return send(srcBuffer, path, RefreshPolicy.SAME_LINKS);
+    return send(srcBuffer, path, PathPolicyHandler.RefreshPolicy.SAME_LINKS);
   }
 
-  private int send(ByteBuffer srcBuffer, Path path, RefreshPolicy refresh) throws IOException {
+  private int send(ByteBuffer srcBuffer, Path path, PathPolicyHandler.RefreshPolicy refresh)
+      throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
@@ -220,7 +218,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
-      checkPathAndBuildHeaderUDP(buffer, path, len, RefreshPolicy.POLICY);
+      checkPathAndBuildHeaderUDP(buffer, path, len, PathPolicyHandler.RefreshPolicy.POLICY);
       buffer.put(src);
       buffer.flip();
 
@@ -242,12 +240,15 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @throws IOException in case of IOException.
    */
   private void checkPathAndBuildHeaderUDP(
-      ByteBuffer buffer, Path path, int payloadLength, RefreshPolicy rf) throws IOException {
+      ByteBuffer buffer, Path path, int payloadLength, PathPolicyHandler.RefreshPolicy rf)
+      throws IOException {
     synchronized (super.stateLock()) {
       if (path instanceof RequestPath) {
         RequestPath requestPath = (RequestPath) path;
         RequestPath newPath = refreshPath(requestPath, rf);
         if (newPath != null) {
+          // TODO FIX!!! We never use this....
+          //   But it can be useful for send(ScionSocketAddress)!!
           refreshedPaths.put(path, newPath);
           updateConnection(requestPath, true);
         }
@@ -267,24 +268,21 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @param refreshPolicy Path refresh policy
    * @return a new Path if the path was updated, otherwise `null`.
    */
-  private RequestPath refreshPath(RequestPath path, RefreshPolicy refreshPolicy) {
+  private RequestPath refreshPath(RequestPath path, PathPolicyHandler.RefreshPolicy refreshPolicy) {
     int expiryMargin = getCfgExpirationSafetyMargin();
     if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
       return null;
     }
     // expired, get new path
-    List<Path> paths = getService().getPaths(path);
     switch (refreshPolicy) {
       case OFF:
-        // let this pass until it is ACTUALLY expired
-        if (Instant.now().getEpochSecond() <= path.getMetadata().getExpiration()) {
-          return path;
-        }
-        throw new ScionRuntimeException("Path is expired");
+        // let this pass until it is ACTUALLY expired -> SCMP error
+        return path;
       case POLICY:
         return (RequestPath)
             applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
       case SAME_LINKS:
+        List<Path> paths = applyFilter(getService().getPaths(path), path.getRemoteSocketAddress());
         return findPathSameLinks(paths, path);
       default:
         throw new UnsupportedOperationException();
