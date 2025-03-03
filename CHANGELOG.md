@@ -80,6 +80,8 @@ TODO
   [#179](https://github.com/scionproto-contrib/jpan/pull/179)
 - Added instructions for getting a path from an IP address.
   [#184](https://github.com/scionproto-contrib/jpan/pull/184)
+- Improve support for dynamic path policies
+  [#171](https://github.com/scionproto-contrib/jpan/pull/171)
 
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
