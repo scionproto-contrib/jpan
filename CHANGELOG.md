@@ -25,6 +25,9 @@ TODO
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
 
+- STUN: Always listen for STUN packets (e.g. eternally blocking receive()) 
+  in order to support on-demand STUN
+
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
  
@@ -81,6 +84,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 - Path policies JSON import export
   [#170](https://github.com/scionproto-contrib/jpan/pull/170)
+- Improve support for dynamic path policies
+  [#172](https://github.com/scionproto-contrib/jpan/pull/172)
 
 ### Changed
  
