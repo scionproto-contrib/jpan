@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
+import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.ExternalIpDiscovery;
 import org.scion.jpan.internal.Shim;
 
@@ -70,6 +71,7 @@ public class JUnitSetUp
   @Override
   public void beforeEach(ExtensionContext context) {
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, "....invalid-dummy-filename");
+    AddressLookupService.refresh(); // refresh address cache and parsed hosts file
     if (failed) {
       System.exit(1);
     }

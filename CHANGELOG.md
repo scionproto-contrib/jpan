@@ -81,6 +81,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 - Path policies JSON import export
   [#170](https://github.com/scionproto-contrib/jpan/pull/170)
+- Improve support for dynamic path policies
+  [#171](https://github.com/scionproto-contrib/jpan/pull/171)
 
 ### Changed
  
