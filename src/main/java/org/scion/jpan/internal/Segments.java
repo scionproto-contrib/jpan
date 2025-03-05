@@ -15,6 +15,7 @@
 package org.scion.jpan.internal;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import io.grpc.Status;
@@ -394,26 +395,7 @@ public class Segments {
     path.setRaw(ByteString.copyFrom(raw));
 
     // metadata
-    for (int i = 0; i < segments.length; i++) {
-      for (Seg.ASEntrySignedBody body : segments[i].bodies) {
-        SegExtensions.PathSegmentExtensions ext = body.getExtensions();
-        if (ext.hasStaticInfo()) {
-          // path.addLatency()
-          // TODO where do we get these?
-          //    path.setLatency();
-          //    path.setInternalHops();
-          //    path.setNotes();
-          SegExtensions.StaticInfoExtension sExt = ext.getStaticInfo();
-          sExt.getLatency().getIntraMap();
-          sExt.getLatency().getInterMap();
-          sExt.getBandwidth().getIntraMap();
-          sExt.getBandwidth().getInterMap();
-          sExt.getGeoMap();
-          sExt.getLinkTypeMap();
-          sExt.getNote();
-        }
-      }
-    }
+    writeMetadata(path, segments);
 
     // First hop
     String firstHop = localAS.getBorderRouterAddressString((int) path.getInterfaces(0).getId());
@@ -510,6 +492,7 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
+        writeMetadata(path, body, pos, range, pib.getId(), pib2.getId());
       }
     }
 
@@ -518,6 +501,103 @@ public class Segments {
     if (time < path.getExpiration().getSeconds()) {
       path.setExpiration(Timestamp.newBuilder().setSeconds(time).build());
     }
+  }
+
+  private static void writeMetadata(
+      Daemon.Path.Builder path,
+      Seg.ASEntrySignedBody body,
+      int pos,
+      int[] range,
+      long id1,
+      long id2) {
+    SegExtensions.PathSegmentExtensions ext = body.getExtensions();
+    if (!ext.hasStaticInfo()) {
+      return;
+    }
+    SegExtensions.StaticInfoExtension sie = ext.getStaticInfo();
+    Seg.HopField hf = body.getHopEntry().getHopField();
+    // Don´t add intra for first hop.
+    if (pos != range[0]) {
+      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id1)));
+      path.addBandwidth(sie.getBandwidth().getIntraMap().get(id1));
+      // key: IF id of the "other" interface. TODO what is "other"?
+      path.addInternalHops(sie.getInternalHopsMap().get(id2));
+      path.addGeo(toGeo(sie.getGeoMap().get(id1)));
+    }
+    path.addLatency(toDuration(sie.getLatency().getInterMap().get(id2)));
+    path.addBandwidth(sie.getBandwidth().getInterMap().get(id2));
+
+    path.addGeo(toGeo(sie.getGeoMap().get(id2)));
+
+    path.addLinkType(toLinkType(sie.getLinkTypeMap().get(id2)));
+    path.addNotes(sie.getNote());
+  }
+
+  private static Duration toDuration(long micros) {
+    return Duration.newBuilder().setNanos(1000 * (int) micros).build();
+  }
+
+  private static Daemon.GeoCoordinates toGeo(SegExtensions.GeoCoordinates geo) {
+    return Daemon.GeoCoordinates.newBuilder()
+        .setLatitude(geo.getLatitude())
+        .setLongitude(geo.getLongitude())
+        .setAddress(geo.getAddress())
+        .build();
+  }
+
+  private static Daemon.LinkType toLinkType(SegExtensions.LinkType lt) {
+    switch (lt) {
+      case LINK_TYPE_UNSPECIFIED:
+        return Daemon.LinkType.LINK_TYPE_UNSPECIFIED;
+      case LINK_TYPE_DIRECT:
+        return Daemon.LinkType.LINK_TYPE_DIRECT;
+      case LINK_TYPE_MULTI_HOP:
+        return Daemon.LinkType.LINK_TYPE_MULTI_HOP;
+      case LINK_TYPE_OPEN_NET:
+        return Daemon.LinkType.LINK_TYPE_OPEN_NET;
+      case UNRECOGNIZED:
+      default:
+        return Daemon.LinkType.UNRECOGNIZED;
+    }
+  }
+
+  private static void writeMetadata(Daemon.Path.Builder path, PathSegment[] segments) {
+    //    for (int i = 0; i < segments.length; i++) {
+    //      for (Seg.ASEntrySignedBody body : segments[i].bodies) {
+    //        long if1 = body.getHopEntry().getHopField().getIngress();
+    //        long if2 = body.getHopEntry().getHopField().getEgress();
+    //        // TODO simply use path.getInterfaces() instead (for ordering)?
+    //
+    //        SegExtensions.PathSegmentExtensions ext = body.getExtensions();
+    //        if (ext.hasStaticInfo()) {
+    //          // path.addLatency()
+    //          // TODO where do we get these?
+    //          //    path.setLatency();
+    //          //    path.setInternalHops();
+    //          //    path.setNotes();
+    //          // Latency + bandwidth: use inter, intra, inter, ... inter.
+    //          SegExtensions.StaticInfoExtension sExt = ext.getStaticInfo();
+    //          for (int latency: sExt.getLatency().getIntraMap().values()) {
+    //            path.addLatency(Duration.newBuilder().setNanos(latency * 1000).build());
+    //          }
+    //          for (int latency: sExt.getLatency().getInterMap().values()) {
+    //            path.addLatency(Duration.newBuilder().setNanos(latency * 1000).build());
+    //          }
+    //          sExt.getLatency().getIntraMap();
+    //          sExt.getLatency().getInterMap();
+    //          sExt.getBandwidth().getIntraMap();
+    //          sExt.getBandwidth().getInterMap();
+    //
+    //          // Hops : only for ASes that are fully (in & out)
+    //
+    //
+    //          sExt.getGeoMap();
+    //          sExt.getLinkTypeMap(); // TODO
+    //          // Notes
+    //          path.setNotes(path.getNotesCount(), sExt.getNote());
+    //        }
+    //      }
+    //    }
   }
 
   private static boolean detectShortcut(PathSegment[] segments, int[][] iterators) {

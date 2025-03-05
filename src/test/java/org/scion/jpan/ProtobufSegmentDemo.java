@@ -14,6 +14,8 @@
 
 package org.scion.jpan;
 
+import static org.scion.jpan.demo.DemoConstants.*;
+
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import io.grpc.Grpc;
@@ -22,7 +24,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 import java.time.Instant;
 import java.util.*;
-import org.scion.jpan.demo.DemoConstants;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
@@ -36,12 +37,13 @@ public class ProtobufSegmentDemo {
   private final ManagedChannel channel;
 
   public static void main(String[] args) throws ScionException {
-    // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csETH);
+    // ProtobufSegmentDemo demo = new ProtobufSegmentDemo("192.168.53.20:30252");//csETH);
     // demo.getSegments(iaETH, iaETH_CORE);
-    // demo.getSegments(toWildcard(iaETH), toWildcard(iaAnapayaHK));
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(DemoConstants.csAddr110_minimal);
-    // demo.getSegments(ia110, ia121);
-    demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
+    // demo.getSegments(ScionUtil.toWildcard(iaETH), ScionUtil.toWildcard(iaAnapayaHK));
+    // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_minimal);
+    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_default);
+    demo.getSegments(ia110, ScionUtil.parseIA("2-ff00:0:220"));
+    // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
   }
@@ -153,24 +155,16 @@ public class ProtobufSegmentDemo {
                   + hf.getEgress());
         }
         if (body.hasExtensions()) {
-          SegExtensions.PathSegmentExtensions pse = body.getExtensions();
-          if (pse.hasStaticInfo()) {
-            SegExtensions.StaticInfoExtension sie = pse.getStaticInfo();
-            System.out.println(
-                "    Static: latencies="
-                    + sie.getLatency().getIntraCount()
-                    + "/"
-                    + sie.getLatency().getInterCount()
-                    + "  bandwidth="
-                    + sie.getBandwidth().getIntraCount()
-                    + "/"
-                    + sie.getBandwidth().getInterCount()
-                    + "  geo="
-                    + sie.getGeoCount()
-                    + "  interfaces="
-                    + sie.getLinkTypeCount()
-                    + "  note="
-                    + sie.getNote());
+          SegExtensions.PathSegmentExtensions ext = body.getExtensions();
+          System.out.println(
+              "      Extensions: "
+                  + ext.hasStaticInfo()
+                  + "/"
+                  + ext.hasHiddenPath()
+                  + "/"
+                  + ext.hasDigests());
+          if (ext.hasStaticInfo()) {
+            print("        ", ext.getStaticInfo());
           }
         }
       }
@@ -183,5 +177,47 @@ public class ProtobufSegmentDemo {
         }
       }
     }
+  }
+
+  private static void print(String prefix, SegExtensions.StaticInfoExtension sie) {
+    System.out.println(
+        prefix
+            + "Static: latencies="
+            + sie.getLatency().getIntraCount()
+            + "/"
+            + sie.getLatency().getInterCount()
+            + "  bandwidth="
+            + sie.getBandwidth().getIntraCount()
+            + "/"
+            + sie.getBandwidth().getInterCount()
+            + "  geo="
+            + sie.getGeoCount()
+            + "  interfaces="
+            + sie.getLinkTypeCount()
+            + "  note='"
+            + sie.getNote()
+            + "'");
+    for (Map.Entry<Long, Integer> e : sie.getLatency().getIntraMap().entrySet()) {
+      System.out.println(
+          prefix + "  latency intra: " + e.getKey() + " -> " + e.getValue() / 1000. + " ms");
+    }
+    for (Map.Entry<Long, Integer> e : sie.getLatency().getInterMap().entrySet()) {
+      System.out.println(
+          prefix + "  latency inter: " + e.getKey() + " -> " + e.getValue() / 1000. + " ms");
+    }
+    for (Map.Entry<Long, Long> e : sie.getBandwidth().getIntraMap().entrySet()) {
+      System.out.println(prefix + "  bw intra: " + e.getKey() + " -> " + e.getValue());
+    }
+    for (Map.Entry<Long, Long> e : sie.getBandwidth().getInterMap().entrySet()) {
+      System.out.println(prefix + "  bw inter: " + e.getKey() + " -> " + e.getValue());
+    }
+    for (Map.Entry<Long, SegExtensions.GeoCoordinates> e : sie.getGeoMap().entrySet()) {
+      System.out.println(prefix + "  geo: " + e.getKey() + " -> " + e.getValue());
+    }
+    for (Map.Entry<Long, SegExtensions.LinkType> e : sie.getLinkTypeMap().entrySet()) {
+      System.out.println(prefix + "  link types: " + e.getKey() + " -> " + e.getValue());
+    }
+    // Notes
+    System.out.println(prefix + "  note: " + sie.getNote());
   }
 }
