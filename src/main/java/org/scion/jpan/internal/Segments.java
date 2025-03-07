@@ -534,7 +534,9 @@ public class Segments {
   }
 
   private static Duration toDuration(long micros) {
-    return Duration.newBuilder().setNanos(1000 * (int) micros).build();
+    int secs = (int) (micros / 1_000_000);
+    int nanos = (int) (micros % 1_000_000) * 1_000;
+    return Duration.newBuilder().setSeconds(secs).setNanos(nanos).build();
   }
 
   private static Daemon.GeoCoordinates toGeo(SegExtensions.GeoCoordinates geo) {
