@@ -24,6 +24,12 @@ Post-0.5.0
 TODO
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
+- Improve PathPolicy API:
+  - Chainable PathPolicies (can be done manually or by providing a combinator class)
+  - PathProvider/Supplier (e.g. for traceroute policies)
+  - Ability to check for new Path or skip a broken paths, see fix/171
+- Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise 
+- TC: ask about port field in SCMP? Or must it be sent from 30041?
 
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
