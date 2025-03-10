@@ -22,6 +22,7 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
+- ASK to add latency/bw/geo/notes to SCIERA network!
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
 - Improve PathPolicy API:
