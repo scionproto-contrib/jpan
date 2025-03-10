@@ -28,6 +28,10 @@ TODO
   - Chainable PathPolicies (can be done manually or by providing a combinator class)
   - PathProvider/Supplier (e.g. for traceroute policies)
   - Ability to check for new Path or skip a broken paths, see fix/171
+- Scmp API: 
+  - Move ResponderCallback to Scmp?
+  - Make onTimeout() a default method? 
+  - Merge all methods into one? A single onMessage()???
 - Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise 
 - TC: ask about port field in SCMP? Or must it be sent from 30041?
 
