@@ -77,22 +77,22 @@
         "500":{
             "Latitude": 47.2,
             "Longitude": 62.2,
-            "Address": "geo1"
+            "Address": "geo220#500"
         },
         "501":{
             "Latitude": 79.2,
             "Longitude": 45.2,
-            "Address": "geo2"
+            "Address": "geo220#501"
         },
         "502":{
             "Latitude": 47.22,
             "Longitude": 42.23,
-            "Address": "geo3"
+            "Address": "geo220#502"
         },
         "503":{
             "Latitude": 48.2,
             "Longitude": 46.2,
-            "Address": "geo5"
+            "Address": "geo220#503"
         }
     },
     "Hops": {

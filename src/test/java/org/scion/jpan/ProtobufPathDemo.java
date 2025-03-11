@@ -114,6 +114,24 @@ public class ProtobufPathDemo {
       String bw =
           path.getBandwidthList().stream().map(d -> d + "B/s, ").collect(Collectors.joining());
       System.out.println("    bandwidth: " + bw);
+      String geo =
+          path.getGeoList().stream()
+              .map(
+                  g ->
+                      "        Lat: "
+                          + g.getLatitude()
+                          + "; Long: "
+                          + g.getLongitude()
+                          + "; Addr: "
+                          + g.getAddress()
+                          + "\n")
+              .collect(Collectors.joining());
+      System.out.println("    geo: " + geo);
+      String notes =
+          path.getNotesList().stream()
+              .map(s -> "        " + s + "\n")
+              .collect(Collectors.joining());
+      System.out.println("    notes: " + notes);
       System.out.println("    raw: " + TestUtil.toStringHex(path.getRaw().toByteArray()));
       System.out.println("    raw: " + TestUtil.toStringByte(path.getRaw().toByteArray()));
       System.out.println("    " + ScionUtil.toStringPath(path.getRaw().toByteArray()));

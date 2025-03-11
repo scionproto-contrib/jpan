@@ -54,17 +54,17 @@
         "1":{
             "Latitude": 47.2,
             "Longitude": 62.2,
-            "Address": "geo1"
+            "Address": "geo110-1"
         },
         "2":{
             "Latitude": 79.2,
             "Longitude": 45.2,
-            "Address": "geo2"
+            "Address": "geo110-2"
         },
         "3":{
             "Latitude": 47.22,
             "Longitude": 42.23,
-            "Address": "geo3"
+            "Address": "geo110-3"
         },
     },
     "Hops": {
