@@ -16,6 +16,7 @@ package org.scion.jpan.demo;
 
 import java.io.*;
 import java.net.*;
+import java.time.Instant;
 import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
@@ -37,7 +38,8 @@ import org.scion.jpan.testutil.MockScmpHandler;
 public class ShowpathsDemo {
 
   public static boolean PRINT = true;
-  public static Network NETWORK = Network.PRODUCTION;
+  public static Network NETWORK = Network.SCION_PROTO;
+  public static boolean EXTENDED = true;
 
   public enum Network {
     JUNIT_MOCK_V4, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -84,8 +86,8 @@ public class ShowpathsDemo {
         {
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           // "topologies/minimal/ASff00_0_1111/topology.json");
-          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          runDemo(DemoConstants.ia211);
+          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon110_default);
+          runDemo(DemoConstants.ia220);
           break;
         }
       case PRODUCTION:
@@ -120,22 +122,132 @@ public class ShowpathsDemo {
         localIP = channel.getLocalAddress().getAddress().getHostAddress();
       }
       PathMetadata meta = path.getMetadata();
-      String sb =
-          "["
-              + id++
-              + "] Hops: "
-              + ScionUtil.toStringPath(meta)
-              + " MTU: "
-              + meta.getMtu()
-              + " NextHop: "
-              + path.getFirstHopAddress().getHostString()
-              + ":"
-              + path.getFirstHopAddress().getPort()
-              + " LocalIP: "
-              + localIP;
-      println(sb);
+      String header = "[" + id++ + "] Hops: " + ScionUtil.toStringPath(meta);
+      if (EXTENDED) {
+        println(header);
+        printExtended(path);
+      } else {
+        String compact =
+            " MTU: "
+                + meta.getMtu()
+                + " NextHop: "
+                + path.getFirstHopAddress().getHostString()
+                + ":"
+                + path.getFirstHopAddress().getPort()
+                + " LocalIP: "
+                + localIP;
+        println(header + compact);
+      }
     }
     return paths.size();
+  }
+
+  private static void printExtended(Path path) {
+    StringBuilder sb = new StringBuilder();
+    String NL = System.lineSeparator();
+
+    PathMetadata meta = path.getMetadata();
+    // for (Object o : meta.get)
+
+    sb.append("    MTU: ").append(meta.getMtu()).append(NL);
+    sb.append("    NextHop: ").append(meta.getFirstHopAddress().getHostString()).append(NL);
+    Instant exp = Instant.ofEpochSecond(meta.getExpiration());
+    sb.append("    Expires: ").append(exp).append(NL);
+    sb.append("    Latency: ").append(toStringLatency(meta)).append(NL);
+    sb.append("    Bandwidth: ").append(toStringBandwidth(meta)).append(NL);
+    sb.append("    Geo: ").append(toStringGeo(meta)).append(NL);
+    sb.append("    LinkType: ").append(toStringLinkType(meta)).append(NL);
+    sb.append("    Notes: ").append(meta.getMtu()).append(NL);
+    sb.append("    SupportsEPIC: ").append(meta.getMtu()).append(NL);
+    sb.append("    Status: ").append(meta.getMtu()).append(NL);
+    sb.append("    LocalIP: ").append(meta.getMtu()).append(NL);
+
+    println(sb.toString());
+  }
+
+  private static String toStringLatency(PathMetadata meta) {
+    int latencyMs = 0;
+    boolean latencyComplete = true;
+    for (int l : meta.getLatencyList()) {
+      if (l >= 0) {
+        latencyMs += l;
+      } else {
+        latencyComplete = false;
+      }
+    }
+    if (latencyComplete) {
+      return latencyMs + "ms";
+    } else {
+      return ">" + latencyMs + "ms (information incomplete)";
+    }
+  }
+
+  private static String toStringBandwidth(PathMetadata meta) {
+    long bw = 0;
+    boolean bwComplete = true;
+    for (long l : meta.getBandwidthList()) {
+      if (l > 0) {
+        bw += l;
+      } else {
+        bwComplete = false;
+      }
+    }
+    String bwString = bw + "KBit/s";
+    if (!bwComplete) {
+      bwString += "KBit/s (information incomplete)";
+    }
+    return bwString;
+  }
+
+  private static String toStringGeo(PathMetadata meta) {
+    StringBuilder s = new StringBuilder("[");
+    int n = meta.getGeoList().size();
+    int i = 0;
+    for (PathMetadata.GeoCoordinates g : meta.getGeoList()) {
+      if (g.getLatitude() == 0 && g.getLongitude() == 0 && g.getAddress().isEmpty()) {
+        s.append("N/A");
+      } else {
+        s.append(g.getLatitude()).append(",").append(g.getLongitude());
+        s.append(" (\"").append(g.getAddress()).append("\")");
+      }
+      if (i < n - 1) {
+        s.append(" > ");
+      }
+      i++;
+    }
+    s.append("]");
+    return s.toString();
+  }
+
+  private static String toStringLinkType(PathMetadata meta) {
+    StringBuilder s = new StringBuilder("[");
+    int n = meta.getLinkTypeList().size();
+    int i = 0;
+    for (PathMetadata.LinkType lt : meta.getLinkTypeList()) {
+      switch (lt) {
+        case LINK_TYPE_UNSPECIFIED:
+          s.append("unset");
+          break;
+        case LINK_TYPE_DIRECT:
+          s.append("direct");
+          break;
+        case LINK_TYPE_MULTI_HOP:
+          s.append("multihop");
+          break;
+        case LINK_TYPE_OPEN_NET:
+          s.append("opennet");
+          break;
+        default:
+          s.append("unset");
+          break;
+      }
+      if (i < n - 1) {
+        s.append(", ");
+      }
+      i++;
+    }
+    s.append("]");
+    return s.toString();
   }
 
   private static void println(String msg) {
