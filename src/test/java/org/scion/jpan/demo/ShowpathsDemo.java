@@ -16,7 +16,10 @@ package org.scion.jpan.demo;
 
 import java.io.*;
 import java.net.*;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
@@ -38,7 +41,7 @@ import org.scion.jpan.testutil.MockScmpHandler;
 public class ShowpathsDemo {
 
   public static boolean PRINT = true;
-  public static Network NETWORK = Network.SCION_PROTO;
+  public static Network NETWORK = Network.PRODUCTION;
   public static boolean EXTENDED = true;
 
   public enum Network {
@@ -92,7 +95,8 @@ public class ShowpathsDemo {
         }
       case PRODUCTION:
         {
-          runDemo(DemoConstants.iaAnapayaHK);
+          runDemo(ScionUtil.parseIA("71-2:0:48"));
+          // runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
           break;
         }
@@ -125,7 +129,7 @@ public class ShowpathsDemo {
       String header = "[" + id++ + "] Hops: " + ScionUtil.toStringPath(meta);
       if (EXTENDED) {
         println(header);
-        printExtended(path);
+        printExtended(path, localIP);
       } else {
         String compact =
             " MTU: "
@@ -142,17 +146,14 @@ public class ShowpathsDemo {
     return paths.size();
   }
 
-  private static void printExtended(Path path) {
+  private static void printExtended(Path path, String localIP) {
     StringBuilder sb = new StringBuilder();
     String NL = System.lineSeparator();
 
     PathMetadata meta = path.getMetadata();
-    // for (Object o : meta.get)
-
     sb.append("    MTU: ").append(meta.getMtu()).append(NL);
     sb.append("    NextHop: ").append(meta.getFirstHopAddress().getHostString()).append(NL);
-    Instant exp = Instant.ofEpochSecond(meta.getExpiration());
-    sb.append("    Expires: ").append(exp).append(NL);
+    sb.append("    Expires: ").append(toStringExpiry(meta)).append(NL);
     sb.append("    Latency: ").append(toStringLatency(meta)).append(NL);
     sb.append("    Bandwidth: ").append(toStringBandwidth(meta)).append(NL);
     sb.append("    Geo: ").append(toStringGeo(meta)).append(NL);
@@ -160,12 +161,21 @@ public class ShowpathsDemo {
     sb.append("    Notes: ").append(toStringNotes(meta)).append(NL);
     sb.append("    SupportsEPIC: ").append(toStringEPIC(meta)).append(NL);
     // TODO, see private/app/path/pathprobe/paths.go
-    // sb.append("    Status: ").append("unknown").append(NL);
-    sb.append("    LocalIP: ")
-        .append(meta.getFirstHopAddress().getAddress().getHostAddress())
-        .append(NL);
+    sb.append("    Status: ").append("unknown").append(NL);
+    // TODO use destination IP from returned packet from probe
+    sb.append("    LocalIP: ").append(localIP).append(NL);
 
     println(sb.toString());
+  }
+
+  private static String toStringExpiry(PathMetadata meta) {
+    Instant exp = Instant.ofEpochSecond(meta.getExpiration());
+    DateTimeFormatter formatter =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z").withZone(ZoneId.of("UTC"));
+    Instant now = Instant.now();
+    long s = Duration.between(now, exp).getSeconds();
+    String ds = String.format("(%dh%02dm%02ds)", s / 3600, (s % 3600) / 60, (s % 60));
+    return formatter.format(exp) + " UTC " + ds;
   }
 
   private static String toStringLatency(PathMetadata meta) {
@@ -204,19 +214,17 @@ public class ShowpathsDemo {
 
   private static String toStringGeo(PathMetadata meta) {
     StringBuilder s = new StringBuilder("[");
-    int n = meta.getGeoList().size();
-    int i = 0;
     for (PathMetadata.GeoCoordinates g : meta.getGeoList()) {
+      if (s.length() > 1) {
+        s.append(" > ");
+      }
       if (g.getLatitude() == 0 && g.getLongitude() == 0 && g.getAddress().isEmpty()) {
         s.append("N/A");
       } else {
         s.append(g.getLatitude()).append(",").append(g.getLongitude());
-        s.append(" (\"").append(g.getAddress()).append("\")");
+        String addr = g.getAddress().replace("\n", ", ");
+        s.append(" (\"").append(addr).append("\")");
       }
-      if (i < n - 1) {
-        s.append(" > ");
-      }
-      i++;
     }
     s.append("]");
     return s.toString();
@@ -224,9 +232,10 @@ public class ShowpathsDemo {
 
   private static String toStringLinkType(PathMetadata meta) {
     StringBuilder s = new StringBuilder("[");
-    int n = meta.getLinkTypeList().size();
-    int i = 0;
     for (PathMetadata.LinkType lt : meta.getLinkTypeList()) {
+      if (s.length() > 1) {
+        s.append(", ");
+      }
       switch (lt) {
         case LINK_TYPE_UNSPECIFIED:
           s.append("unset");
@@ -244,10 +253,6 @@ public class ShowpathsDemo {
           s.append("unset");
           break;
       }
-      if (i < n - 1) {
-        s.append(", ");
-      }
-      i++;
     }
     s.append("]");
     return s.toString();
@@ -269,19 +274,15 @@ public class ShowpathsDemo {
 
   private static String toStringNotes(PathMetadata meta) {
     StringBuilder s = new StringBuilder("[");
-    int n = meta.getNotesList().size();
     int i = 0;
-    for (PathMetadata.PathInterface pi : meta.getInterfacesList()) {
-      pi.getIsdAs();
-    }
     for (String note : meta.getNotesList()) {
       if (note != null && !note.isEmpty()) {
+        if (s.length() > 1) {
+          s.append(", ");
+        }
         long isdAs = meta.getInterfacesList().get(Math.max(0, i * 2 - 1)).getIsdAs();
         s.append(ScionUtil.toStringIA(isdAs));
         s.append(": \"").append(note).append("\"");
-        if (i < n - 1) {
-          s.append(", ");
-        }
       }
       i++;
     }

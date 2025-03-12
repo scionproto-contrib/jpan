@@ -525,7 +525,8 @@ public class Segments {
       path.addGeo(toGeo(sie.getGeoMap().get(id1)));
     }
     path.addLatency(toDuration(sie.getLatency().getInterMap().get(id2)));
-    path.addBandwidth(sie.getBandwidth().getInterMap().get(id2));
+    Long bw = sie.getBandwidth().getInterMap().get(id2);
+    path.addBandwidth(bw == null ? 0 : bw);
 
     path.addGeo(toGeo(sie.getGeoMap().get(id2)));
 
@@ -533,13 +534,19 @@ public class Segments {
     path.addNotes(sie.getNote());
   }
 
-  private static Duration toDuration(long micros) {
-    int secs = (int) (micros / 1_000_000);
-    int nanos = (int) (micros % 1_000_000) * 1_000;
+  private static Duration toDuration(Integer micros) {
+    if (micros == null) {
+      return Duration.newBuilder().setSeconds(-1).setNanos(-1).build();
+    }
+    int secs = micros / 1_000_000;
+    int nanos = (micros % 1_000_000) * 1_000;
     return Duration.newBuilder().setSeconds(secs).setNanos(nanos).build();
   }
 
   private static Daemon.GeoCoordinates toGeo(SegExtensions.GeoCoordinates geo) {
+    if (geo == null) {
+      return Daemon.GeoCoordinates.newBuilder().build();
+    }
     return Daemon.GeoCoordinates.newBuilder()
         .setLatitude(geo.getLatitude())
         .setLongitude(geo.getLongitude())
@@ -548,6 +555,9 @@ public class Segments {
   }
 
   private static Daemon.LinkType toLinkType(SegExtensions.LinkType lt) {
+    if (lt == null) {
+      return Daemon.LinkType.LINK_TYPE_UNSPECIFIED;
+    }
     switch (lt) {
       case LINK_TYPE_UNSPECIFIED:
         return Daemon.LinkType.LINK_TYPE_UNSPECIFIED;
