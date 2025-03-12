@@ -157,10 +157,13 @@ public class ShowpathsDemo {
     sb.append("    Bandwidth: ").append(toStringBandwidth(meta)).append(NL);
     sb.append("    Geo: ").append(toStringGeo(meta)).append(NL);
     sb.append("    LinkType: ").append(toStringLinkType(meta)).append(NL);
-    sb.append("    Notes: ").append(meta.getMtu()).append(NL);
-    sb.append("    SupportsEPIC: ").append(meta.getMtu()).append(NL);
-    sb.append("    Status: ").append(meta.getMtu()).append(NL);
-    sb.append("    LocalIP: ").append(meta.getMtu()).append(NL);
+    sb.append("    Notes: ").append(toStringNotes(meta)).append(NL);
+    sb.append("    SupportsEPIC: ").append(toStringEPIC(meta)).append(NL);
+    // TODO, see private/app/path/pathprobe/paths.go
+    // sb.append("    Status: ").append("unknown").append(NL);
+    sb.append("    LocalIP: ")
+        .append(meta.getFirstHopAddress().getAddress().getHostAddress())
+        .append(NL);
 
     println(sb.toString());
   }
@@ -183,11 +186,11 @@ public class ShowpathsDemo {
   }
 
   private static String toStringBandwidth(PathMetadata meta) {
-    long bw = 0;
+    long bw = Long.MAX_VALUE;
     boolean bwComplete = true;
     for (long l : meta.getBandwidthList()) {
       if (l > 0) {
-        bw += l;
+        bw = Math.min(bw, l);
       } else {
         bwComplete = false;
       }
@@ -243,6 +246,42 @@ public class ShowpathsDemo {
       }
       if (i < n - 1) {
         s.append(", ");
+      }
+      i++;
+    }
+    s.append("]");
+    return s.toString();
+  }
+
+  private static String toStringEPIC(PathMetadata meta) {
+    PathMetadata.EpicAuths ea = meta.getEpicAuths();
+    if (ea == null) {
+      return "false";
+    }
+    if (ea.getAuthLhvf() != null && ea.getAuthLhvf().length == 16) {
+      return "true";
+    }
+    if (ea.getAuthPhvf() != null && ea.getAuthPhvf().length == 16) {
+      return "true";
+    }
+    return "false";
+  }
+
+  private static String toStringNotes(PathMetadata meta) {
+    StringBuilder s = new StringBuilder("[");
+    int n = meta.getNotesList().size();
+    int i = 0;
+    for (PathMetadata.PathInterface pi : meta.getInterfacesList()) {
+      pi.getIsdAs();
+    }
+    for (String note : meta.getNotesList()) {
+      if (note != null && !note.isEmpty()) {
+        long isdAs = meta.getInterfacesList().get(Math.max(0, i * 2 - 1)).getIsdAs();
+        s.append(ScionUtil.toStringIA(isdAs));
+        s.append(": \"").append(note).append("\"");
+        if (i < n - 1) {
+          s.append(", ");
+        }
       }
       i++;
     }
