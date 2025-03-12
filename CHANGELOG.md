@@ -23,6 +23,8 @@ Post-0.5.0
 
 TODO
 - ASK to add latency/bw/geo/notes to SCIERA network!
+- There can be multiple-control servers per AS -> Handle it (fallback)
+- JSON is not an ordered file format -> Use JSON array for ordering...
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
 - Improve PathPolicy API:
