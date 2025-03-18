@@ -349,15 +349,12 @@ public class Scenario {
     JsonObject entry = jsonTree.getAsJsonObject();
     SegExtensions.StaticInfoExtension.Builder sie = SegExtensions.StaticInfoExtension.newBuilder();
     for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
-      System.out.println("Parsing e: " + e.getKey());
       switch (e.getKey()) {
         case "Bandwidth":
           System.out.println("Parsing Bandwidth");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
-            System.out.println("Parsing bw: " + e2.getKey());
             SegExtensions.BandwidthInfo.Builder bwi = SegExtensions.BandwidthInfo.newBuilder();
             for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
-              System.out.println("Parsing bw: " + e3.getKey());
               if (e3.getKey().equals("Intra")) {
                 for (Map.Entry<String, JsonElement> e4 :
                     e3.getValue().getAsJsonObject().entrySet()) {
