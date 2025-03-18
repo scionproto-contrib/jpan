@@ -394,9 +394,6 @@ public class Segments {
     raw.flip();
     path.setRaw(ByteString.copyFrom(raw));
 
-    // metadata
-    writeMetadata(path, segments);
-
     // First hop
     String firstHop = localAS.getBorderRouterAddressString((int) path.getInterfaces(0).getId());
     Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
@@ -571,45 +568,6 @@ public class Segments {
       default:
         return Daemon.LinkType.UNRECOGNIZED;
     }
-  }
-
-  private static void writeMetadata(Daemon.Path.Builder path, PathSegment[] segments) {
-    //    for (int i = 0; i < segments.length; i++) {
-    //      for (Seg.ASEntrySignedBody body : segments[i].bodies) {
-    //        long if1 = body.getHopEntry().getHopField().getIngress();
-    //        long if2 = body.getHopEntry().getHopField().getEgress();
-    //        // TODO simply use path.getInterfaces() instead (for ordering)?
-    //
-    //        SegExtensions.PathSegmentExtensions ext = body.getExtensions();
-    //        if (ext.hasStaticInfo()) {
-    //          // path.addLatency()
-    //          // TODO where do we get these?
-    //          //    path.setLatency();
-    //          //    path.setInternalHops();
-    //          //    path.setNotes();
-    //          // Latency + bandwidth: use inter, intra, inter, ... inter.
-    //          SegExtensions.StaticInfoExtension sExt = ext.getStaticInfo();
-    //          for (int latency: sExt.getLatency().getIntraMap().values()) {
-    //            path.addLatency(Duration.newBuilder().setNanos(latency * 1000).build());
-    //          }
-    //          for (int latency: sExt.getLatency().getInterMap().values()) {
-    //            path.addLatency(Duration.newBuilder().setNanos(latency * 1000).build());
-    //          }
-    //          sExt.getLatency().getIntraMap();
-    //          sExt.getLatency().getInterMap();
-    //          sExt.getBandwidth().getIntraMap();
-    //          sExt.getBandwidth().getInterMap();
-    //
-    //          // Hops : only for ASes that are fully (in & out)
-    //
-    //
-    //          sExt.getGeoMap();
-    //          sExt.getLinkTypeMap(); // TODO
-    //          // Notes
-    //          path.setNotes(path.getNotesCount(), sExt.getNote());
-    //        }
-    //      }
-    //    }
   }
 
   private static boolean detectShortcut(PathSegment[] segments, int[][] iterators) {

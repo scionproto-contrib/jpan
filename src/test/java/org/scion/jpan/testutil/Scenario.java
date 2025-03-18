@@ -41,6 +41,7 @@ import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.LocalTopology;
 import org.scion.jpan.proto.control_plane.Seg;
+import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.crypto.Signed;
 
 public class Scenario {
@@ -49,6 +50,7 @@ public class Scenario {
   private static final Map<String, Scenario> scenarios = new ConcurrentHashMap<>();
   private final Map<Long, String> daemons = new HashMap<>();
   private final Map<Long, LocalTopology> topologies = new HashMap<>();
+  private final Map<Long, SegExtensions.StaticInfoExtension> staticInfo = new HashMap<>();
   private final List<SegmentEntry> segmentDb = new ArrayList<>();
 
   private static class SegmentEntry {
@@ -125,14 +127,33 @@ public class Scenario {
     try {
       Files.list(file)
           .filter(path -> path.getFileName().toString().startsWith("AS"))
-          .map(path -> Paths.get(path.toString(), "topology.json"))
-          .map(topoFile -> LocalTopology.create(readFile(topoFile)))
-          .forEach(topo -> topologies.put(topo.getIsdAs(), topo));
+          .forEach(this::readAS);
+      //      Files.list(file)
+      //          .filter(path -> path.getFileName().toString().startsWith("AS"))
+      //          .map(path -> Paths.get(path.toString(), "topology.json"))
+      //          .map(topoFile -> LocalTopology.create(readFile(topoFile)))
+      //          .forEach(topo -> topologies.put(topo.getIsdAs(), topo));
+      //      Files.list(file)
+      //              .filter(path -> path.getFileName().toString().startsWith("AS"))
+      //              .map(path -> Paths.get(path.toString(), "staticInfoConfig.json"))
+      //              .forEach(infoFile -> parseStaticInfo(readFile(infoFile)));
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
 
     buildSegments();
+  }
+
+  private void readAS(Path asPath) {
+    Path topoFile = Paths.get(asPath.toString(), "topology.json");
+    LocalTopology topo = LocalTopology.create(readFile(topoFile));
+    topologies.put(topo.getIsdAs(), topo);
+
+    Path infoFile = Paths.get(asPath.toString(), "staticInfoConfig.json");
+    if (infoFile.toFile().exists()) {
+      System.out.println("Parsing info file: " + infoFile); // TODO
+      parseStaticInfo(topo.getIsdAs(), readFile(infoFile));
+    }
   }
 
   private static String readFile(Path file) {
@@ -253,18 +274,26 @@ public class Scenario {
     return Seg.HopEntry.newBuilder().setIngressMtu(mtu).setHopField(hf).build();
   }
 
-  private static Seg.ASEntry buildASEntry(long isdAs, long nextIA, int mtu, Seg.HopEntry he) {
+  private Seg.ASEntry buildASEntry(long isdAs, long nextIA, int mtu, Seg.HopEntry he) {
     Signed.Header header =
         Signed.Header.newBuilder()
             .setSignatureAlgorithm(Signed.SignatureAlgorithm.SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256)
             .setTimestamp(now())
             .build();
+
+    SegExtensions.PathSegmentExtensions.Builder ext =
+        SegExtensions.PathSegmentExtensions.newBuilder();
+    if (staticInfo.containsKey(isdAs)) {
+      ext.setStaticInfo(staticInfo.get(isdAs));
+    }
+
     Seg.ASEntrySignedBody body =
         Seg.ASEntrySignedBody.newBuilder()
             .setIsdAs(isdAs)
             .setNextIsdAs(nextIA)
             .setMtu(mtu)
             .setHopEntry(he)
+            .setExtensions(ext.build())
             .build();
     Signed.HeaderAndBodyInternal habi =
         Signed.HeaderAndBodyInternal.newBuilder()
@@ -313,5 +342,79 @@ public class Scenario {
     } catch (InvalidProtocolBufferException e) {
       throw new ScionRuntimeException(e);
     }
+  }
+
+  private void parseStaticInfo(long isdAs, String content) {
+    JsonElement jsonTree = JsonParser.parseString(content);
+    JsonObject entry = jsonTree.getAsJsonObject();
+    SegExtensions.StaticInfoExtension.Builder sie = SegExtensions.StaticInfoExtension.newBuilder();
+    for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
+      System.out.println("Parsing e: " + e.getKey());
+      switch (e.getKey()) {
+        case "Bandwidth":
+          System.out.println("Parsing Bandwidth");
+          for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
+            System.out.println("Parsing bw: " + e2.getKey());
+            SegExtensions.BandwidthInfo.Builder bwi = SegExtensions.BandwidthInfo.newBuilder();
+            for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
+              System.out.println("Parsing bw: " + e3.getKey());
+              if (e3.getKey().equals("Intra")) {
+                for (Map.Entry<String, JsonElement> e4 :
+                    e3.getValue().getAsJsonObject().entrySet()) {
+                  bwi.putIntra(Long.parseLong(e4.getKey()), e4.getValue().getAsLong());
+                }
+              } else if (e3.getKey().equals("Inter")) {
+                System.out.println(
+                    "Parsing bw Inter: "
+                        + Long.parseLong(e2.getKey())
+                        + " "
+                        + e3.getValue().getAsLong());
+                bwi.putInter(Long.parseLong(e2.getKey()), e3.getValue().getAsLong());
+              }
+            }
+            sie.setBandwidth(bwi.build());
+          }
+          break;
+        case "Latency":
+          System.out.println("Parsing Latency");
+          break;
+        case "Linktype":
+          System.out.println("Parsing LinkType");
+          break;
+        case "Geo":
+          System.out.println("Parsing Geo");
+          break;
+        case "Hops":
+          System.out.println("Parsing Hops");
+          break;
+        case "Note":
+          System.out.println("Parsing Notes");
+          break;
+        default:
+          throw new UnsupportedOperationException("Unknown: " + e.getKey());
+      }
+      // TODO
+      //      for (Map.Entry<String, JsonElement> e : elem.getAsJsonObject().entrySet()) {
+      //      }
+    }
+
+    // Don´t add intra for first hop.
+    //    if (pos != range[0]) {
+    //      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id1)));
+    //      path.addBandwidth(sie.getBandwidth().getIntraMap().get(id1));
+    //      // key: IF id of the "other" interface. TODO what is "other"?
+    //      path.addInternalHops(sie.getInternalHopsMap().get(id2));
+    //      path.addGeo(toGeo(sie.getGeoMap().get(id1)));
+    //    }
+    //    path.addLatency(toDuration(sie.getLatency().getInterMap().get(id2)));
+    //    Long bw = sie.getBandwidth().getInterMap().get(id2);
+    //    path.addBandwidth(bw == null ? 0 : bw);
+    //
+    //    path.addGeo(toGeo(sie.getGeoMap().get(id2)));
+    //
+    //    path.addLinkType(toLinkType(sie.getLinkTypeMap().get(id2)));
+    //    path.addNotes(sie.getNote());
+
+    // TODO staticInfo.put(isdAs, sie.build());
   }
 }

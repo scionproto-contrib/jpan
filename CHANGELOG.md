@@ -22,11 +22,15 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
+- More tests on unordered "destinations" in JSON
+- More tests on segment metadata
 - ASK to add latency/bw/geo/notes to SCIERA network!
 - There can be multiple-control servers per AS -> Handle it (fallback)
 - JSON is not an ordered file format -> Use JSON array for ordering...
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
+- STUN: Always listen for STUN packets (e.g. eternally blocking receive())
+  in order to support on-demand STUN
 - Improve PathPolicy API:
   - Chainable PathPolicies (can be done manually or by providing a combinator class)
   - PathProvider/Supplier (e.g. for traceroute policies)
