@@ -50,7 +50,8 @@ public class Scenario {
   private static final Map<String, Scenario> scenarios = new ConcurrentHashMap<>();
   private final Map<Long, String> daemons = new HashMap<>();
   private final Map<Long, LocalTopology> topologies = new HashMap<>();
-  private final Map<Long, SegExtensions.StaticInfoExtension> staticInfo = new HashMap<>();
+  private final Map<Long, SegExtensions.StaticInfoExtension.Builder> staticInfo = new HashMap<>();
+  private final Map<Long, Map<Long, Integer>> staticHopInfo = new HashMap<>();
   private final List<SegmentEntry> segmentDb = new ArrayList<>();
 
   private static class SegmentEntry {
@@ -256,7 +257,7 @@ public class Scenario {
     Seg.HopEntry he01 = buildHopEntry(parentIf.getMtu(), buildHopField(63, ingress, 0));
     Seg.ASEntry ase01 = buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01);
     builder.addAsEntries(ase01);
-    boolean isCore = BorderRouterInterface.CORE == linkType;
+    boolean isCore = BorderRouterInterface.CORE.equals(linkType);
     segmentDb.add(new SegmentEntry(local.getIsdAs(), rootIsdAs, builder.build(), isCore));
   }
 
@@ -284,7 +285,16 @@ public class Scenario {
     SegExtensions.PathSegmentExtensions.Builder ext =
         SegExtensions.PathSegmentExtensions.newBuilder();
     if (staticInfo.containsKey(isdAs)) {
-      ext.setStaticInfo(staticInfo.get(isdAs));
+      SegExtensions.StaticInfoExtension.Builder b = staticInfo.get(isdAs);
+      Seg.HopField hf = he.getHopField();
+      if (hf.getEgress() != 0 && hf.getIngress() != 0) {
+        //        System.out.println("bASE: " + hf.getIngress() + " -> " + hf.getEgress());
+        //        int hc =
+        // staticHopInfo.get(hf.getIngress()).get(staticHopInfo.get(hf.getEgress()));
+        //        b.putInternalHops(42, hc);
+        // TODO
+      }
+      ext.setStaticInfo(b);
     }
 
     Seg.ASEntrySignedBody body =
@@ -362,10 +372,7 @@ public class Scenario {
                 }
               } else if (e3.getKey().equals("Inter")) {
                 System.out.println(
-                    "Parsing bw Inter: "
-                        + Long.parseLong(e2.getKey())
-                        + " "
-                        + e3.getValue().getAsLong());
+                    "Parsing bw Inter: " + e2.getKey() + " " + e3.getValue().getAsLong());
                 bwi.putInter(Long.parseLong(e2.getKey()), e3.getValue().getAsLong());
               }
             }
@@ -374,18 +381,73 @@ public class Scenario {
           break;
         case "Latency":
           System.out.println("Parsing Latency");
+          for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
+            SegExtensions.LatencyInfo.Builder li = SegExtensions.LatencyInfo.newBuilder();
+            for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
+              if (e3.getKey().equals("Intra")) {
+                for (Map.Entry<String, JsonElement> e4 :
+                    e3.getValue().getAsJsonObject().entrySet()) {
+                  li.putIntra(Long.parseLong(e4.getKey()), getMs(e4.getValue()));
+                }
+              } else if (e3.getKey().equals("Inter")) {
+                System.out.println(
+                    "Parsing lat Inter: " + e2.getKey() + " " + e3.getValue().getAsString());
+                li.putInter(Long.parseLong(e2.getKey()), getMs(e3.getValue()));
+              }
+            }
+            sie.setLatency(li.build());
+          }
           break;
         case "Linktype":
           System.out.println("Parsing LinkType");
+          for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
+            sie.putLinkType(Long.parseLong(e2.getKey()), toLinkType(e2.getValue().getAsString()));
+          }
           break;
         case "Geo":
           System.out.println("Parsing Geo");
+          for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
+            SegExtensions.GeoCoordinates.Builder gc = SegExtensions.GeoCoordinates.newBuilder();
+            for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
+              switch (e3.getKey()) {
+                case "Latitude":
+                  gc.setLatitude(e3.getValue().getAsFloat());
+                  break;
+                case "Longitude":
+                  gc.setLongitude(e3.getValue().getAsFloat());
+                  break;
+                case "Address":
+                  gc.setAddress(e3.getValue().getAsString());
+                  break;
+                default:
+                  throw new UnsupportedOperationException();
+              }
+            }
+            sie.putGeo(Long.parseLong(e2.getKey()), gc.build());
+          }
           break;
         case "Hops":
           System.out.println("Parsing Hops");
+          for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
+            for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
+              if (e3.getKey().equals("Intra")) {
+                for (Map.Entry<String, JsonElement> e4 :
+                    e3.getValue().getAsJsonObject().entrySet()) {
+                  long id1 = Long.parseLong(e2.getKey());
+                  long id2 = Long.parseLong(e4.getKey());
+                  int hc = e4.getValue().getAsInt();
+                  staticHopInfo.computeIfAbsent(id1, k -> new HashMap<>()).put(id2, hc);
+                  staticHopInfo.computeIfAbsent(id2, k -> new HashMap<>()).put(id1, hc);
+                }
+              } else {
+                throw new UnsupportedOperationException();
+              }
+            }
+          }
           break;
         case "Note":
           System.out.println("Parsing Notes");
+          sie.setNote(e.getValue().getAsString());
           break;
         default:
           throw new UnsupportedOperationException("Unknown: " + e.getKey());
@@ -412,6 +474,29 @@ public class Scenario {
     //    path.addLinkType(toLinkType(sie.getLinkTypeMap().get(id2)));
     //    path.addNotes(sie.getNote());
 
-    // TODO staticInfo.put(isdAs, sie.build());
+    staticInfo.put(isdAs, sie);
+  }
+
+  private static int getMs(JsonElement e) {
+    String lat = e.getAsString();
+    if (!e.getAsString().endsWith("ms")) {
+      throw new IllegalArgumentException("Bad latency entry: " + lat);
+    }
+    return Integer.parseInt(lat.substring(0, lat.length() - 2));
+  }
+
+  private static SegExtensions.LinkType toLinkType(String lt) {
+    switch (lt) {
+      case "unspecified":
+        return SegExtensions.LinkType.LINK_TYPE_UNSPECIFIED;
+      case "direct":
+        return SegExtensions.LinkType.LINK_TYPE_DIRECT;
+      case "multihop":
+        return SegExtensions.LinkType.LINK_TYPE_MULTI_HOP;
+      case "opennet":
+        return SegExtensions.LinkType.LINK_TYPE_OPEN_NET;
+      default:
+        throw new IllegalArgumentException("Linktype: " + lt);
+    }
   }
 }
