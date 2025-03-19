@@ -186,7 +186,10 @@ public abstract class AbstractSegmentsMinimalTest {
     addUpDown(AS_133, AS_130);
 
     addCore(AS_130, AS_120);
-    addCore(AS_120, AS_130);
+    addCore(AS_120, AS_130); // TODO why duplicate?
+
+    addCore(AS_110, AS_120);
+    addCore(AS_120, AS_110); // TODO why duplicate?
   }
 
   protected void addResponsesScionprotoTiny4() {
