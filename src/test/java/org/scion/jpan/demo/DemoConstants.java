@@ -63,6 +63,8 @@ public class DemoConstants {
   public static final String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
   public static final String csAddr111_default = "[fd00:f00d:cafe::7f00:1c]:31022";
   public static final String csAddr112_default = "127.0.0.59:31030";
+  public static final String csAddr120_default = "127.0.0.68:31008";
+  public static final String csAddr220_default = "[fd00:f00d:cafe::7f00:45]:31082";
 
   // ----------------  ISD/AS for Production network  ----------------
   public static final long iaETH = ScionUtil.parseIA("64-2:0:9");

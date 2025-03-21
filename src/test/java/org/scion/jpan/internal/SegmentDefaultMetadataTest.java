@@ -12,66 +12,70 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.api;
+package org.scion.jpan.internal;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.proto.control_plane.Seg;
+import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+class SegmentDefaultMetadataTest {
 
-class PathMetadataTest {
+  /** ISD 1 - core AS */
+  protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
 
-  @BeforeEach
-  void beforeEach() {
-    MockNetwork.startTiny();
-  }
+  /** ISD 1 - non-core AS */
+  protected static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
 
-  @AfterEach
-  void afterEach() {
-    MockNetwork.stopTiny();
-  }
+  /** ISD 1 - non-core AS */
+  protected static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
 
-  @Test
-  void test() {
-    MockControlServer cs = MockControlServer.start(12345);
-    Seg.SegmentsResponse.Builder respUp = Seg.SegmentsResponse.newBuilder();
-    Seg.SegmentsResponse.Segments.Builder segUp = Seg.SegmentsResponse.Segments.newBuilder();
-    Seg.PathSegment.Builder pSegUp = Seg.PathSegment.newBuilder();
-    // pSegUp.setSegmentInfo();
-    segUp.addSegments(pSegUp.build());
-    respUp.putSegments(Seg.SegmentType.SEGMENT_TYPE_UP_VALUE, segUp.build());
-    // TODO cs.addResponse();
-  }
+  /** ISD 1 - core AS */
+  protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
+
+  /** ISD 1 - non-core AS */
+  protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");
+
+  /** ISD 2 - core AS */
+  protected static final long AS_210 = ScionUtil.parseIA("2-ff00:0:210");
+
+  /** ISD 2 - non-core AS */
+  protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
+
+  private static final String TOPO_120 = "topologies/default/ASff00_0_120/topology.json";
 
   @Test
-  void testCore_120_110() {
+  void testCore_120_110() throws IOException {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_120")) {
+
+      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_110);
+        assertNotNull(paths);
+        assertFalse(paths.isEmpty());
+
+        Daemon.Path path = paths.get(0);
+        assertEquals(1, path.getLatencyList().size());
+        assertEquals(100, path.getLatencyList().get(0).getNanos()/1_000_000);
+      }
+
+      MockControlServer cs = nw.getControlServer();
+
       ScionService service = Scion.defaultService();
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dstAddress);
-      assertEquals(7, paths.size());
-      for (Path path : paths) {
-        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
-      }
-      Path path = paths.get(0);
-      PathMetadata meta = path.getMetadata();
-      assertEquals(2, meta.getInterfacesList().size());
-      assertEquals(6, meta.getInterfacesList().get(0).getId());
-      assertEquals(1, meta.getInterfacesList().get(1).getId());
-      assertEquals(1, meta.getBandwidthList().size());
-      assertEquals(100, meta.getBandwidthList().get(0));
+      assertEquals(0, paths.size());
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -326,102 +330,5 @@ class PathMetadataTest {
     //    Static: latencies=0/0  bandwidth=0/0  geo=1  interfaces=0  note='asdf-1-112'
     //    geo: 494 -> lon: 62.2; lat: 47.2; addr: geo112-494
     //    note: asdf-1-112
-  }
-
-  @Test
-  void testUpCoreDown_112_221() {
-    // scion showpaths 2-ff00:0:221 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
-    //Available paths to 2-ff00:0:221
-    //5 Hops:
-    //[0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 2>501 2-ff00:0:220 500>2 2-ff00:0:221]
-    //    MTU: 1350
-    //    NextHop: 127.0.0.58:31034
-    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h56m53s)
-    //    Latency: 595ms
-    //    Bandwidth: 40Kbit/s
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") > 79.12,45.2 ("geo120-5") > 79.12,45.2 ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
-    //    LinkType: [multihop, direct, opennet, direct]
-    //    InternalHops: [1-ff00:0:111: 4, 1-ff00:0:120: 5, 2-ff00:0:220: 2]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 3>502 2-ff00:0:220 500>2 2-ff00:0:221]
-    //    MTU: 1400
-    //    NextHop: 127.0.0.58:31034
-    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h56m53s)
-    //    Latency: 636ms
-    //    Bandwidth: 40Kbit/s
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") > 79.12,45.2 ("geo120-5") > 47.12,42.23 ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
-    //    LinkType: [multihop, direct, multihop, direct]
-    //    InternalHops: [1-ff00:0:111: 4, 1-ff00:0:120: 5, 2-ff00:0:220: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //[2] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 2>501 2-ff00:0:220 500>2 2-ff00:0:221]
-    //    MTU: 1350
-    //    NextHop: 127.0.0.57:31032
-    //    Expires: 2025-03-19 22:15:33 +0000 UTC (5h56m54s)
-    //    Latency: >404ms (information incomplete)
-    //    Bandwidth: 50Kbit/s (information incomplete)
-    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 79.12,45.2 ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
-    //    LinkType: [unset, direct, opennet, direct]
-    //    InternalHops: [1-ff00:0:120: 2, 2-ff00:0:220: 2]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //[3] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 3>502 2-ff00:0:220 500>2 2-ff00:0:221]
-    //    MTU: 1400
-    //    NextHop: 127.0.0.57:31032
-    //    Expires: 2025-03-19 22:15:33 +0000 UTC (5h56m54s)
-    //    Latency: >465ms (information incomplete)
-    //    Bandwidth: 80Kbit/s (information incomplete)
-    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 47.12,42.23 ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
-    //    LinkType: [unset, direct, multihop, direct]
-    //    InternalHops: [1-ff00:0:120: 3, 2-ff00:0:220: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //6 Hops:
-    //...
-  }
-
-  @Test
-  void testUpCoreDown112_222() {
-    // scion showpaths 2-ff00:0:222 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
-    //Available paths to 2-ff00:0:222
-    //4 Hops:
-    //[0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 101>5 2-ff00:0:211 4>301 2-ff00:0:222]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.58:31034
-    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h59m37s)
-    //    Latency: >287ms (information incomplete)
-    //    Bandwidth: 51Kbit/s (information incomplete)
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-101") > N/A > N/A > N/A]
-    //    LinkType: [multihop, direct, unset]
-    //    InternalHops: [1-ff00:0:111: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 102>6 2-ff00:0:211 4>301 2-ff00:0:222]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.58:31034
-    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h59m37s)
-    //    Latency: >288ms (information incomplete)
-    //    Bandwidth: 52Kbit/s (information incomplete)
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 79.12,45.2 ("geo111-102") > N/A > N/A > N/A]
-    //    LinkType: [multihop, opennet, unset]
-    //    InternalHops: [1-ff00:0:111: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //6 Hops:
-    //..
-
   }
 }

@@ -41,8 +41,8 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(ScionUtil.toWildcard(iaETH), ScionUtil.toWildcard(iaAnapayaHK));
     // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_minimal);
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_default);
-    demo.getSegments(ia110, ScionUtil.parseIA("2-ff00:0:220"));
+    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr120_default);
+    demo.getSegments(ia120, ScionUtil.parseIA("1-ff00:0:110"));
     // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
@@ -212,12 +212,18 @@ public class ProtobufSegmentDemo {
       System.out.println(prefix + "  bw inter: " + e.getKey() + " -> " + e.getValue());
     }
     for (Map.Entry<Long, SegExtensions.GeoCoordinates> e : sie.getGeoMap().entrySet()) {
-      System.out.println(prefix + "  geo: " + e.getKey() + " -> " + e.getValue());
+      String pos = "lon: " + e.getValue().getLongitude();
+      pos += "; lat: " + e.getValue().getLatitude();
+      String addr = e.getValue().getAddress().replace("\n", ", ");
+      System.out.println(prefix + "  geo: " + e.getKey() + " -> " + pos + "; addr: " + addr);
     }
     for (Map.Entry<Long, SegExtensions.LinkType> e : sie.getLinkTypeMap().entrySet()) {
       System.out.println(prefix + "  link types: " + e.getKey() + " -> " + e.getValue());
     }
     // Notes
     System.out.println(prefix + "  note: " + sie.getNote());
+    for (Map.Entry<Long, Integer> e : sie.getInternalHopsMap().entrySet()) {
+      System.out.println(prefix + "  internal hops: " + e.getKey() + " -> " + e.getValue());
+    }
   }
 }

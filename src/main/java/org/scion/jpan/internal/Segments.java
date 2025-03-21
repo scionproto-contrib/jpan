@@ -514,16 +514,39 @@ public class Segments {
     SegExtensions.StaticInfoExtension sie = ext.getStaticInfo();
     Seg.HopField hf = body.getHopEntry().getHopField();
     // Don´t add intra for first hop.
+    System.out.println("writeMetadata: id1=" + id1 + " id2=" + id2); // TODO
     if (pos != range[0]) {
       path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id1)));
-      path.addBandwidth(sie.getBandwidth().getIntraMap().get(id1));
+      if (sie.getBandwidth().getIntraMap().containsKey(id1)) {
+        path.addBandwidth(sie.getBandwidth().getIntraMap().get(id1));
+      } else {
+        for (Map.Entry<Long, Long> o : sie.getBandwidth().getIntraMap().entrySet()) {
+          System.out.println("   bw-intra:: " + o.getKey() + "  " + o.getValue()); // TODO
+        }
+      }
       // key: IF id of the "other" interface. TODO what is "other"?
-      path.addInternalHops(sie.getInternalHopsMap().get(id2));
+      //      System.out.println("range: " + Arrays.toString(range) + " pos=" + pos + " " +
+      // sie.getInternalHopsMap()); // TODO
+      //      for (Map.Entry<Long, Integer> o: sie.getInternalHopsMap().entrySet()) {
+      //        System.out.println("   hop:: " + o.getKey() + "  "   + o.getValue()); // TODO
+      //      }
+      if (sie.getInternalHopsMap().containsKey(id2)) {
+        path.addInternalHops(sie.getInternalHopsMap().get(id2));
+      }
       path.addGeo(toGeo(sie.getGeoMap().get(id1)));
     }
     path.addLatency(toDuration(sie.getLatency().getInterMap().get(id2)));
     Long bw = sie.getBandwidth().getInterMap().get(id2);
     path.addBandwidth(bw == null ? 0 : bw);
+    if (bw == null) {
+      // TODO do we need to reverse things? -> Maybe in Scenario?
+      // TODO do we need to reverse things? -> Maybe in Scenario?
+      // TODO do we need to reverse things? -> Maybe in Scenario?
+      // TODO do we need to reverse things? -> Maybe in Scenario?
+      for (Map.Entry<Long, Long> o : sie.getBandwidth().getInterMap().entrySet()) {
+        System.out.println("   bw-inter:: " + o.getKey() + "  " + o.getValue()); // TODO
+      }
+    }
 
     path.addGeo(toGeo(sie.getGeoMap().get(id2)));
 

@@ -51,7 +51,8 @@ public class Scenario {
   private final Map<Long, String> daemons = new HashMap<>();
   private final Map<Long, LocalTopology> topologies = new HashMap<>();
   private final Map<Long, SegExtensions.StaticInfoExtension.Builder> staticInfo = new HashMap<>();
-  private final Map<Long, Map<Long, Integer>> staticHopInfo = new HashMap<>();
+  /// isd/as -> ingress -> egress -> hopcount
+  private final Map<Long, Map<Long, Map<Long, Integer>>> staticHopInfo = new HashMap<>();
   private final List<SegmentEntry> segmentDb = new ArrayList<>();
 
   private static class SegmentEntry {
@@ -288,11 +289,11 @@ public class Scenario {
       SegExtensions.StaticInfoExtension.Builder b = staticInfo.get(isdAs);
       Seg.HopField hf = he.getHopField();
       if (hf.getEgress() != 0 && hf.getIngress() != 0) {
-        //        System.out.println("bASE: " + hf.getIngress() + " -> " + hf.getEgress());
-        //        int hc =
-        // staticHopInfo.get(hf.getIngress()).get(staticHopInfo.get(hf.getEgress()));
-        //        b.putInternalHops(42, hc);
-        // TODO
+        String ia1 = ScionUtil.toStringIA(isdAs);
+        String ia2 = ScionUtil.toStringIA(nextIA);
+        System.out.println("bASE: " + ia1 + " -> " + ia2 + "   " + hf.getIngress() + " -> " + hf.getEgress());
+        int hc = staticHopInfo.get(isdAs).get(hf.getIngress()).get(hf.getEgress());
+        b.putInternalHops(hf.getIngress(), hc);
       }
       ext.setStaticInfo(b);
     }
@@ -436,8 +437,10 @@ public class Scenario {
                   long id1 = Long.parseLong(e2.getKey());
                   long id2 = Long.parseLong(e4.getKey());
                   int hc = e4.getValue().getAsInt();
-                  staticHopInfo.computeIfAbsent(id1, k -> new HashMap<>()).put(id2, hc);
-                  staticHopInfo.computeIfAbsent(id2, k -> new HashMap<>()).put(id1, hc);
+                  Map<Long, Map<Long, Integer>> map =
+                      staticHopInfo.computeIfAbsent(isdAs, ia -> new HashMap<>());
+                  map.computeIfAbsent(id1, k -> new HashMap<>()).put(id2, hc);
+                  map.computeIfAbsent(id2, k -> new HashMap<>()).put(id1, hc);
                 }
               } else {
                 throw new UnsupportedOperationException();
