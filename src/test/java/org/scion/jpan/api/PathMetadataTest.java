@@ -71,6 +71,9 @@ class PathMetadataTest {
       assertEquals(6, meta.getInterfacesList().get(0).getId());
       assertEquals(1, meta.getInterfacesList().get(1).getId());
       assertEquals(1, meta.getBandwidthList().size());
+      for (Object o : meta.getBandwidthList()) {
+        System.out.println("pb: " + o);
+      }
       assertEquals(100, meta.getBandwidthList().get(0));
     }
 

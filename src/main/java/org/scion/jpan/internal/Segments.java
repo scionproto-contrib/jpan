@@ -514,7 +514,7 @@ public class Segments {
     SegExtensions.StaticInfoExtension sie = ext.getStaticInfo();
     Seg.HopField hf = body.getHopEntry().getHopField();
     // Don´t add intra for first hop.
-    System.out.println("writeMetadata: id1=" + id1 + " id2=" + id2); // TODO
+    System.out.println("writeMetadata: id1=" + id1 + " id2=" + id2 + " " + ScionUtil.toStringIA(body.getIsdAs())); // TODO
     if (pos != range[0]) {
       path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id1)));
       if (sie.getBandwidth().getIntraMap().containsKey(id1)) {

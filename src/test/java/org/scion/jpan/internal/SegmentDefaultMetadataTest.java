@@ -66,6 +66,11 @@ class SegmentDefaultMetadataTest {
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
+        assertEquals(1, path.getBandwidthList().size());
+        for (Object o : path.getBandwidthList()) {
+          System.out.println("pb: " + o);
+        }
+        assertEquals(100, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
         assertEquals(100, path.getLatencyList().get(0).getNanos()/1_000_000);
       }
