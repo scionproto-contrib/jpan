@@ -50,10 +50,56 @@ public class Scenario {
   private static final Map<String, Scenario> scenarios = new ConcurrentHashMap<>();
   private final Map<Long, String> daemons = new HashMap<>();
   private final Map<Long, LocalTopology> topologies = new HashMap<>();
-  private final Map<Long, SegExtensions.StaticInfoExtension.Builder> staticInfo = new HashMap<>();
+  private final Map<Long, StaticInfo> staticInfo = new HashMap<>();
   /// isd/as -> ingress -> egress -> hopcount
-  private final Map<Long, Map<Long, Map<Long, Integer>>> staticHopInfo = new HashMap<>();
   private final List<SegmentEntry> segmentDb = new ArrayList<>();
+
+  private static class StaticInfo {
+    private final Map<Long, SegExtensions.GeoCoordinates> geo = new HashMap<>();
+    private final Map<Long, Long> bandwidthInter = new HashMap<>();
+    private final Map<Long, Map<Long, Long>> bandwidthIntra = new HashMap<>();
+    private final Map<Long, Integer> latencyInter = new HashMap<>();
+    private final Map<Long, Map<Long, Integer>> latencyIntra = new HashMap<>();
+    private final Map<Long, SegExtensions.LinkType> linkTypes = new HashMap<>();
+    private final Map<Long, Map<Long, Integer>> internalHops = new HashMap<>();
+    private String notes;
+
+    SegExtensions.StaticInfoExtension build(long id1, long id2) {
+      SegExtensions.StaticInfoExtension.Builder builder = SegExtensions.StaticInfoExtension.newBuilder();
+      SegExtensions.LatencyInfo.Builder lb = SegExtensions.LatencyInfo.newBuilder();
+      if (id1 > 0) {
+        lb.putInter(id1, latencyInter.get(id1));
+        if (id2 > 0) {
+          lb.putIntra(id2, latencyIntra.get(id2).get(id1));
+        }
+      }
+      builder.setLatency(lb);
+      SegExtensions.BandwidthInfo.Builder bb = SegExtensions.BandwidthInfo.newBuilder();
+      if (id1 > 0) {
+        bb.putInter(id1, bandwidthInter.get(id1));
+        if (id2 > 0) {
+          bb.putIntra(id2, bandwidthIntra.get(id2).get(id1));
+        }
+      }
+      builder.setBandwidth(bb);
+      if (geo.containsKey(id1)) {
+        builder.putGeo(id1, geo.get(id1));
+      }
+      if (geo.containsKey(id2)) {
+        builder.putGeo(id2, geo.get(id2));
+      }
+      if (internalHops.containsKey(id1) && internalHops.get(id1).containsKey(id2)) {
+          builder.putInternalHops(id2, internalHops.get(id1).get(id2));
+      }
+      if (linkTypes.containsKey(id1)) {
+        builder.putLinkType(id1, linkTypes.get(id1));
+      }
+      if (notes != null) {
+        builder.setNote(notes);
+      }
+      return builder.build();
+    }
+  }
 
   private static class SegmentEntry {
     final long localAS;
@@ -130,15 +176,6 @@ public class Scenario {
       Files.list(file)
           .filter(path -> path.getFileName().toString().startsWith("AS"))
           .forEach(this::readAS);
-      //      Files.list(file)
-      //          .filter(path -> path.getFileName().toString().startsWith("AS"))
-      //          .map(path -> Paths.get(path.toString(), "topology.json"))
-      //          .map(topoFile -> LocalTopology.create(readFile(topoFile)))
-      //          .forEach(topo -> topologies.put(topo.getIsdAs(), topo));
-      //      Files.list(file)
-      //              .filter(path -> path.getFileName().toString().startsWith("AS"))
-      //              .map(path -> Paths.get(path.toString(), "staticInfoConfig.json"))
-      //              .forEach(infoFile -> parseStaticInfo(readFile(infoFile)));
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
@@ -173,7 +210,7 @@ public class Scenario {
     JsonObject entry = jsonTree.getAsJsonObject();
     for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
       String addr = e.getValue().getAsString();
-      if (addr.contains(":") && !addr.contains("[") & !addr.contains(".")) {
+      if (addr.contains(":") && !addr.contains("[") && !addr.contains(".")) {
         addr = "[" + addr + "]";
       }
       daemons.put(ScionUtil.parseIA(e.getKey()), addr);
@@ -217,6 +254,7 @@ public class Scenario {
       int prevIngress,
       BorderRouterInterface parentIf) {
     LocalTopology local = topologies.get(parentIf.getIsdAs());
+    boolean reversed = false;
     long isdAs = local.getIsdAs();
     PRINT =
         (isdAs == ScionUtil.parseIA("1-ff00:0:110")
@@ -226,7 +264,7 @@ public class Scenario {
 
     // Build ingoing entry
     Seg.HopEntry he0 = buildHopEntry(0, buildHopField(63, prevIngress, parentIf.getId()));
-    Seg.ASEntry as0 = buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0);
+    Seg.ASEntry as0 = buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed);
     builder.addAsEntries(as0);
 
     Set<Long> visited =
@@ -262,7 +300,7 @@ public class Scenario {
 
     // Add ingress interface
     Seg.HopEntry he01 = buildHopEntry(parentIf.getMtu(), buildHopField(63, ingress, 0));
-    Seg.ASEntry ase01 = buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01);
+    Seg.ASEntry ase01 = buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01, reversed);
     builder.addAsEntries(ase01);
     boolean isCore = BorderRouterInterface.CORE.equals(linkType);
     segmentDb.add(new SegmentEntry(local.getIsdAs(), rootIsdAs, builder.build(), isCore));
@@ -283,7 +321,7 @@ public class Scenario {
         sb.append(" ").append(eg).append(" > ");
         sb.append(ScionUtil.toStringIA(b.getNextIsdAs()));
     }
-    System.out.println("Segment: " + sb.toString());
+    System.out.println("Segment: " + sb.toString()); // TODO
   }
 
   private static Seg.HopField buildHopField(int expiry, int ingress, int egress) {
@@ -300,7 +338,7 @@ public class Scenario {
     return Seg.HopEntry.newBuilder().setIngressMtu(mtu).setHopField(hf).build();
   }
 
-  private Seg.ASEntry buildASEntry(long isdAs, long nextIA, int mtu, Seg.HopEntry he) {
+  private Seg.ASEntry buildASEntry(long isdAs, long nextIA, int mtu, Seg.HopEntry he, boolean reversed) {
     Signed.Header header =
         Signed.Header.newBuilder()
             .setSignatureAlgorithm(Signed.SignatureAlgorithm.SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256)
@@ -309,27 +347,24 @@ public class Scenario {
 
     String ia1 = ScionUtil.toStringIA(isdAs);
     String ia2 = ScionUtil.toStringIA(nextIA);
-    println("      bASE: " + ia1 + " -> " + ia2);
 
     SegExtensions.PathSegmentExtensions.Builder ext =
         SegExtensions.PathSegmentExtensions.newBuilder();
     if (staticInfo.containsKey(isdAs)) {
-      SegExtensions.StaticInfoExtension.Builder b = staticInfo.get(isdAs);
-      Seg.HopField hf = he.getHopField();
-      if (hf.getEgress() != 0 && hf.getIngress() != 0) {
-        println(
-            "          bASE: "
-                + ia1
-                + " -> "
-                + ia2
-                + "   "
-                + hf.getIngress()
-                + " -> "
-                + hf.getEgress());
-        int hc = staticHopInfo.get(isdAs).get(hf.getIngress()).get(hf.getEgress());
-        b.putInternalHops(hf.getIngress(), hc);
+      boolean x =
+              (isdAs == ScionUtil.parseIA("1-ff00:0:110")
+                      && nextIA == ScionUtil.parseIA("1-ff00:0:120"))
+                      || (isdAs == ScionUtil.parseIA("1-ff00:0:120")
+                      && nextIA == ScionUtil.parseIA("1-ff00:0:110"));
+      if (x) {
+        println("      bASE: " + ia1 + " -> " + ia2);
       }
-      ext.setStaticInfo(b);
+      Seg.HopField hf = he.getHopField();
+      if (reversed) {
+        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getEgress(), hf.getIngress()));
+      } else {
+        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress()));
+      }
     }
 
     Seg.ASEntrySignedBody body =
@@ -371,7 +406,6 @@ public class Scenario {
 
   private static Timestamp now() {
     Instant now = Instant.now();
-    // TODO correct? Set nanos?
     return Timestamp.newBuilder().setSeconds(now.getEpochSecond()).setNanos(now.getNano()).build();
   }
 
@@ -394,49 +428,47 @@ public class Scenario {
     JsonObject entry = jsonTree.getAsJsonObject();
     PRINT =
         isdAs == ScionUtil.parseIA("1-ff00:0:120") || isdAs == ScionUtil.parseIA("1-ff00:0:110");
-    SegExtensions.StaticInfoExtension.Builder sie = SegExtensions.StaticInfoExtension.newBuilder();
+    StaticInfo sie = new StaticInfo();
     for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
       switch (e.getKey()) {
         case "Bandwidth":
           println("Parsing Bandwidth");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
-            SegExtensions.BandwidthInfo.Builder bwi = SegExtensions.BandwidthInfo.newBuilder();
             for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
               if (e3.getKey().equals("Intra")) {
                 for (Map.Entry<String, JsonElement> e4 :
                     e3.getValue().getAsJsonObject().entrySet()) {
-                  bwi.putIntra(Long.parseLong(e4.getKey()), e4.getValue().getAsLong());
+                  Map<Long, Long> bwIn = sie.bandwidthIntra.computeIfAbsent(Long.parseLong(e2.getKey()), l -> new HashMap<>());
+                  bwIn.put(Long.parseLong(e4.getKey()), e4.getValue().getAsLong());
                 }
               } else if (e3.getKey().equals("Inter")) {
                 println("Parsing bw Inter: " + e2.getKey() + " " + e3.getValue().getAsLong());
-                bwi.putInter(Long.parseLong(e2.getKey()), e3.getValue().getAsLong());
+                sie.bandwidthInter.put(Long.parseLong(e2.getKey()), e3.getValue().getAsLong());
               }
             }
-            sie.setBandwidth(bwi.build());
           }
           break;
         case "Latency":
           println("Parsing Latency");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
-            SegExtensions.LatencyInfo.Builder li = SegExtensions.LatencyInfo.newBuilder();
             for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
               if (e3.getKey().equals("Intra")) {
                 for (Map.Entry<String, JsonElement> e4 :
                     e3.getValue().getAsJsonObject().entrySet()) {
-                  li.putIntra(Long.parseLong(e4.getKey()), getMs(e4.getValue()));
+                  Map<Long, Integer> latIn = sie.latencyIntra.computeIfAbsent(Long.parseLong(e2.getKey()), l -> new HashMap<>());
+                  latIn.put(Long.parseLong(e4.getKey()), getMicros(e4.getValue()));
                 }
               } else if (e3.getKey().equals("Inter")) {
                 println("Parsing lat Inter: " + e2.getKey() + " " + e3.getValue().getAsString());
-                li.putInter(Long.parseLong(e2.getKey()), getMs(e3.getValue()));
+                sie.latencyInter.put(Long.parseLong(e2.getKey()), getMicros(e3.getValue()));
               }
             }
-            sie.setLatency(li.build());
           }
           break;
         case "Linktype":
           println("Parsing LinkType");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
-            sie.putLinkType(Long.parseLong(e2.getKey()), toLinkType(e2.getValue().getAsString()));
+            sie.linkTypes.put(Long.parseLong(e2.getKey()), toLinkType(e2.getValue().getAsString()));
           }
           break;
         case "Geo":
@@ -458,7 +490,7 @@ public class Scenario {
                   throw new UnsupportedOperationException();
               }
             }
-            sie.putGeo(Long.parseLong(e2.getKey()), gc.build());
+            sie.geo.put(Long.parseLong(e2.getKey()), gc.build());
           }
           break;
         case "Hops":
@@ -471,10 +503,8 @@ public class Scenario {
                   long id1 = Long.parseLong(e2.getKey());
                   long id2 = Long.parseLong(e4.getKey());
                   int hc = e4.getValue().getAsInt();
-                  Map<Long, Map<Long, Integer>> map =
-                      staticHopInfo.computeIfAbsent(isdAs, ia -> new HashMap<>());
-                  map.computeIfAbsent(id1, k -> new HashMap<>()).put(id2, hc);
-                  map.computeIfAbsent(id2, k -> new HashMap<>()).put(id1, hc);
+                  sie.internalHops.computeIfAbsent(id1, k -> new HashMap<>()).put(id2, hc);
+                  sie.internalHops.computeIfAbsent(id2, k -> new HashMap<>()).put(id1, hc);
                 }
               } else {
                 throw new UnsupportedOperationException();
@@ -484,33 +514,12 @@ public class Scenario {
           break;
         case "Note":
           println("Parsing Notes");
-          sie.setNote(e.getValue().getAsString());
+          sie.notes = e.getValue().getAsString();
           break;
         default:
           throw new UnsupportedOperationException("Unknown: " + e.getKey());
       }
-      // TODO
-      //      for (Map.Entry<String, JsonElement> e : elem.getAsJsonObject().entrySet()) {
-      //      }
     }
-
-    // Don´t add intra for first hop.
-    //    if (pos != range[0]) {
-    //      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id1)));
-    //      path.addBandwidth(sie.getBandwidth().getIntraMap().get(id1));
-    //      // key: IF id of the "other" interface. TODO what is "other"?
-    //      path.addInternalHops(sie.getInternalHopsMap().get(id2));
-    //      path.addGeo(toGeo(sie.getGeoMap().get(id1)));
-    //    }
-    //    path.addLatency(toDuration(sie.getLatency().getInterMap().get(id2)));
-    //    Long bw = sie.getBandwidth().getInterMap().get(id2);
-    //    path.addBandwidth(bw == null ? 0 : bw);
-    //
-    //    path.addGeo(toGeo(sie.getGeoMap().get(id2)));
-    //
-    //    path.addLinkType(toLinkType(sie.getLinkTypeMap().get(id2)));
-    //    path.addNotes(sie.getNote());
-
     staticInfo.put(isdAs, sie);
   }
 
@@ -522,12 +531,12 @@ public class Scenario {
     }
   }
 
-  private static int getMs(JsonElement e) {
+  private static int getMicros(JsonElement e) {
     String lat = e.getAsString();
     if (!e.getAsString().endsWith("ms")) {
       throw new IllegalArgumentException("Bad latency entry: " + lat);
     }
-    return Integer.parseInt(lat.substring(0, lat.length() - 2));
+    return Integer.parseInt(lat.substring(0, lat.length() - 2)) * 1000;
   }
 
   private static SegExtensions.LinkType toLinkType(String lt) {

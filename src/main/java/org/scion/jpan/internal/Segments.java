@@ -478,6 +478,7 @@ public class Segments {
 
       // Do this for all except last.
       boolean addInterfaces = pos + range[2] != range[1];
+      System.out.println("wHF: " + pos + "  aIF=" + addInterfaces + "   ->  " + ScionUtil.toStringPath(raw.array()) + " " + ScionUtil.toStringIA(body.getIsdAs())); // TODO
       if (addInterfaces) {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
@@ -489,8 +490,8 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
-        writeMetadata(path, body, pos, range, pib.getId(), pib2.getId());
       }
+      writeMetadata(path, body, range);
     }
 
     // expiration
@@ -503,54 +504,64 @@ public class Segments {
   private static void writeMetadata(
       Daemon.Path.Builder path,
       Seg.ASEntrySignedBody body,
-      int pos,
-      int[] range,
-      long id1,
-      long id2) {
+      int[] range) {
     SegExtensions.PathSegmentExtensions ext = body.getExtensions();
     if (!ext.hasStaticInfo()) {
       return;
     }
     SegExtensions.StaticInfoExtension sie = ext.getStaticInfo();
-    Seg.HopField hf = body.getHopEntry().getHopField();
+    Seg.HopField hopField = body.getHopEntry().getHopField();
+    boolean reversed = range[2] == -1;
+    long id1 = reversed ? hopField.getEgress() : hopField.getIngress();
+    long id2 = reversed ? hopField.getIngress() : hopField.getEgress();
     // Don´t add intra for first hop.
-    System.out.println("writeMetadata: id1=" + id1 + " id2=" + id2 + " " + ScionUtil.toStringIA(body.getIsdAs())); // TODO
-    if (pos != range[0]) {
-      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id1)));
-      if (sie.getBandwidth().getIntraMap().containsKey(id1)) {
-        path.addBandwidth(sie.getBandwidth().getIntraMap().get(id1));
-      } else {
-        for (Map.Entry<Long, Long> o : sie.getBandwidth().getIntraMap().entrySet()) {
-          System.out.println("   bw-intra:: " + o.getKey() + "  " + o.getValue()); // TODO
-        }
-      }
+    //    System.out.println("writeMetadata: id1=" + id1 + " id2=" + id2 + " " +
+    // ScionUtil.toStringIA(body.getIsdAs())); // TODO
+    //    if (pos != range[0]) {
+
+    if (!sie.getLatency().getIntraMap().isEmpty()) {
+      path.addLatency(toDuration(sie.getLatency().getIntraMap().values().iterator().next()));
+    }
+    if (!sie.getBandwidth().getIntraMap().isEmpty()) {
+      path.addBandwidth(sie.getBandwidth().getIntraMap().values().iterator().next());
+    }
+
+//    if (id2 != 0 && sie.getLatency().getIntraMap().containsKey(id2)) {
+//      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id2)));
+//    }
+////      System.out.println("   lat-intra? " + id2 + " -> " + sie.getLatency().getIntraMap().get(id2)); // TODO
+//      if (sie.getBandwidth().getIntraMap().containsKey(id2)) {
+//        path.addBandwidth(sie.getBandwidth().getIntraMap().get(id2));
+//      }
       // key: IF id of the "other" interface. TODO what is "other"?
-      //      System.out.println("range: " + Arrays.toString(range) + " pos=" + pos + " " +
-      // sie.getInternalHopsMap()); // TODO
-      //      for (Map.Entry<Long, Integer> o: sie.getInternalHopsMap().entrySet()) {
-      //        System.out.println("   hop:: " + o.getKey() + "  "   + o.getValue()); // TODO
-      //      }
+//            System.out.println("range: " + Arrays.toString(range) + " pos=" + pos + " " +
+//       sie.getInternalHopsMap()); // TODO
+//            for (Map.Entry<Long, Integer> o: sie.getInternalHopsMap().entrySet()) {
+//              System.out.println("   hop:: " + o.getKey() + "  "   + o.getValue()); // TODO
+//            }
       if (sie.getInternalHopsMap().containsKey(id2)) {
         path.addInternalHops(sie.getInternalHopsMap().get(id2));
       }
+    if (id1 != 0) {
       path.addGeo(toGeo(sie.getGeoMap().get(id1)));
     }
-    path.addLatency(toDuration(sie.getLatency().getInterMap().get(id2)));
-    Long bw = sie.getBandwidth().getInterMap().get(id2);
-    path.addBandwidth(bw == null ? 0 : bw);
-    if (bw == null) {
-      // TODO do we need to reverse things? -> Maybe in Scenario?
-      // TODO do we need to reverse things? -> Maybe in Scenario?
-      // TODO do we need to reverse things? -> Maybe in Scenario?
-      // TODO do we need to reverse things? -> Maybe in Scenario?
-      for (Map.Entry<Long, Long> o : sie.getBandwidth().getInterMap().entrySet()) {
-        System.out.println("   bw-inter:: " + o.getKey() + "  " + o.getValue()); // TODO
-      }
+    //    }
+    if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
+      path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
+    }
+    System.out.println("   lat inter?: " + id1 + "  " + sie.getLatency().getInterMap().get(id1)); // TODO
+    System.out.println("   bw-inter?: " + id1 + "  " + sie.getBandwidth().getInterMap().get(id1)); // TODO
+    System.out.println("   lat inter2?: " + id2 + "  " + sie.getLatency().getInterMap().get(id2)); // TODO
+    System.out.println("   bw-inter2?: " + id2 + "  " + sie.getBandwidth().getInterMap().get(id2)); // TODO
+    if (id1 != 0) {
+      Long bw = sie.getBandwidth().getInterMap().get(id1);
+      path.addBandwidth(bw == null ? 0 : bw);
+    }
+    if (id2 != 0) {
+      path.addGeo(toGeo(sie.getGeoMap().get(id2)));
     }
 
-    path.addGeo(toGeo(sie.getGeoMap().get(id2)));
-
-    path.addLinkType(toLinkType(sie.getLinkTypeMap().get(id2)));
+    path.addLinkType(toLinkType(sie.getLinkTypeMap().get(id1)));
     path.addNotes(sie.getNote());
   }
 

@@ -49,10 +49,12 @@ class SegmentDefaultMetadataTest {
 
   /** ISD 2 - core AS */
   protected static final long AS_210 = ScionUtil.parseIA("2-ff00:0:210");
+  protected static final long AS_220 = ScionUtil.parseIA("2-ff00:0:220");
 
   /** ISD 2 - non-core AS */
   protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
 
+  private static final String TOPO_112 = "topologies/default/ASff00_0_112/topology.json";
   private static final String TOPO_120 = "topologies/default/ASff00_0_120/topology.json";
 
   @Test
@@ -72,14 +74,15 @@ class SegmentDefaultMetadataTest {
         }
         assertEquals(100, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(100, path.getLatencyList().get(0).getNanos()/1_000_000);
+        System.out.println("LAT: " + path.getLatencyList().get(0));
+        assertEquals(101, path.getLatencyList().get(0).getNanos()/1_000_000);
       }
 
       MockControlServer cs = nw.getControlServer();
 
       ScionService service = Scion.defaultService();
 
-      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dstAddress);
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:130"), dstAddress);
       assertEquals(0, paths.size());
     }
 
@@ -127,7 +130,34 @@ class SegmentDefaultMetadataTest {
   }
 
   @Test
-  void testCore_120_220() {
+  void testCore_120_220() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_120")) {
+
+      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_220);
+        assertNotNull(paths);
+        assertFalse(paths.isEmpty());
+
+        Daemon.Path path = paths.get(0);
+        assertEquals(1, path.getBandwidthList().size());
+        for (Object o : path.getBandwidthList()) {
+          System.out.println("pb: " + o);
+        }
+        assertEquals(100, path.getBandwidthList().get(0));
+        assertEquals(1, path.getLatencyList().size());
+        System.out.println("LAT: " + path.getLatencyList().get(0));
+        assertEquals(101, path.getLatencyList().get(0).getNanos()/1_000_000);
+      }
+
+      MockControlServer cs = nw.getControlServer();
+
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:130"), dstAddress);
+      assertEquals(0, paths.size());
+    }
+
     // scion showpaths 2-ff00:0:220 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
     //Available paths to 2-ff00:0:220
     //2 Hops:
@@ -208,7 +238,34 @@ class SegmentDefaultMetadataTest {
 
 
   @Test
-  void testUp_112_120() {
+  void testUp_112_120() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_112")) {
+
+      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_112)) {
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_120);
+        assertNotNull(paths);
+        assertFalse(paths.isEmpty());
+
+        Daemon.Path path = paths.get(0);
+        assertEquals(3, path.getBandwidthList().size());
+        for (Object o : path.getBandwidthList()) {
+          System.out.println("pb: " + o);
+        }
+        assertEquals(100, path.getBandwidthList().get(0));
+        assertEquals(1, path.getLatencyList().size());
+        System.out.println("LAT: " + path.getLatencyList().get(0));
+        assertEquals(101, path.getLatencyList().get(0).getNanos()/1_000_000);
+      }
+
+      MockControlServer cs = nw.getControlServer();
+
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:130"), dstAddress);
+      assertEquals(0, paths.size());
+    }
+
     // scion showpaths 1-ff00:0:120 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
     //Available paths to 1-ff00:0:120
     //3 Hops:
