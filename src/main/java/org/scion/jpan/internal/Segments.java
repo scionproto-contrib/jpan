@@ -133,7 +133,7 @@ public class Segments {
     // we still should look at core segments because they may offer additional paths.
     List<PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
     if (localAS.isCoreAs()) {
-      // SRC is core, we can disregard all CORE segments that don't start with SRC
+      // SRC is core, we can disregard all CORE segments that don't end with SRC
       segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);
     }
     // For CORE we ensure that dstIsdAs is at the END of a segment, not somewhere in the middle
@@ -259,8 +259,10 @@ public class Segments {
       LocalTopology localAS,
       long srcIsdAs,
       long dstIsdAs) {
+    System.out.println("buildPath-50 " + segments.size()); // TODO
     for (PathSegment pathSegment : segments) {
       if (containsIsdAses(pathSegment, srcIsdAs, dstIsdAs)) {
+        System.out.println("buildPath-51"); // TODO
         buildPath(paths, localAS, dstIsdAs, pathSegment);
       }
     }
@@ -478,7 +480,15 @@ public class Segments {
 
       // Do this for all except last.
       boolean addInterfaces = pos + range[2] != range[1];
-      System.out.println("wHF: " + pos + "  aIF=" + addInterfaces + "   ->  " + ScionUtil.toStringPath(raw.array()) + " " + ScionUtil.toStringIA(body.getIsdAs())); // TODO
+      System.out.println(
+          "wHF: "
+              + pos
+              + "  aIF="
+              + addInterfaces
+              + "   ->  "
+              + ScionUtil.toStringPath(raw.array())
+              + " "
+              + ScionUtil.toStringIA(body.getIsdAs())); // TODO
       if (addInterfaces) {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
@@ -502,9 +512,7 @@ public class Segments {
   }
 
   private static void writeMetadata(
-      Daemon.Path.Builder path,
-      Seg.ASEntrySignedBody body,
-      int[] range) {
+      Daemon.Path.Builder path, Seg.ASEntrySignedBody body, int[] range) {
     SegExtensions.PathSegmentExtensions ext = body.getExtensions();
     if (!ext.hasStaticInfo()) {
       return;
@@ -526,22 +534,29 @@ public class Segments {
       path.addBandwidth(sie.getBandwidth().getIntraMap().values().iterator().next());
     }
 
-//    if (id2 != 0 && sie.getLatency().getIntraMap().containsKey(id2)) {
-//      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id2)));
-//    }
-////      System.out.println("   lat-intra? " + id2 + " -> " + sie.getLatency().getIntraMap().get(id2)); // TODO
-//      if (sie.getBandwidth().getIntraMap().containsKey(id2)) {
-//        path.addBandwidth(sie.getBandwidth().getIntraMap().get(id2));
-//      }
-      // key: IF id of the "other" interface. TODO what is "other"?
-//            System.out.println("range: " + Arrays.toString(range) + " pos=" + pos + " " +
-//       sie.getInternalHopsMap()); // TODO
-//            for (Map.Entry<Long, Integer> o: sie.getInternalHopsMap().entrySet()) {
-//              System.out.println("   hop:: " + o.getKey() + "  "   + o.getValue()); // TODO
-//            }
-      if (sie.getInternalHopsMap().containsKey(id2)) {
-        path.addInternalHops(sie.getInternalHopsMap().get(id2));
-      }
+    //    if (id2 != 0 && sie.getLatency().getIntraMap().containsKey(id2)) {
+    //      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id2)));
+    //    }
+    System.out.println(
+        "   lat-intra1? " + id1 + " -> " + sie.getLatency().getIntraMap().get(id1)); // TODO
+    System.out.println(
+        "   lat-intra2? " + id2 + " -> " + sie.getLatency().getIntraMap().get(id2)); // TODO
+    System.out.println(
+        "   bw-intra1? " + id1 + " -> " + sie.getBandwidth().getIntraMap().get(id1)); // TODO
+    System.out.println(
+        "   bw-intra2? " + id2 + " -> " + sie.getBandwidth().getIntraMap().get(id2)); // TODO
+    //      if (sie.getBandwidth().getIntraMap().containsKey(id2)) {
+    //        path.addBandwidth(sie.getBandwidth().getIntraMap().get(id2));
+    //      }
+    // key: IF id of the "other" interface. TODO what is "other"?
+    //            System.out.println("range: " + Arrays.toString(range) + " pos=" + pos + " " +
+    //       sie.getInternalHopsMap()); // TODO
+    //            for (Map.Entry<Long, Integer> o: sie.getInternalHopsMap().entrySet()) {
+    //              System.out.println("   hop:: " + o.getKey() + "  "   + o.getValue()); // TODO
+    //            }
+    if (sie.getInternalHopsMap().containsKey(id2)) {
+      path.addInternalHops(sie.getInternalHopsMap().get(id2));
+    }
     if (id1 != 0) {
       path.addGeo(toGeo(sie.getGeoMap().get(id1)));
     }
@@ -549,10 +564,14 @@ public class Segments {
     if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
       path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
     }
-    System.out.println("   lat inter?: " + id1 + "  " + sie.getLatency().getInterMap().get(id1)); // TODO
-    System.out.println("   bw-inter?: " + id1 + "  " + sie.getBandwidth().getInterMap().get(id1)); // TODO
-    System.out.println("   lat inter2?: " + id2 + "  " + sie.getLatency().getInterMap().get(id2)); // TODO
-    System.out.println("   bw-inter2?: " + id2 + "  " + sie.getBandwidth().getInterMap().get(id2)); // TODO
+    System.out.println(
+        "   lat inter?: " + id1 + "  " + sie.getLatency().getInterMap().get(id1)); // TODO
+    System.out.println(
+        "   bw-inter?: " + id1 + "  " + sie.getBandwidth().getInterMap().get(id1)); // TODO
+    System.out.println(
+        "   lat inter2?: " + id2 + "  " + sie.getLatency().getInterMap().get(id2)); // TODO
+    System.out.println(
+        "   bw-inter2?: " + id2 + "  " + sie.getBandwidth().getInterMap().get(id2)); // TODO
     if (id1 != 0) {
       Long bw = sie.getBandwidth().getInterMap().get(id1);
       path.addBandwidth(bw == null ? 0 : bw);
@@ -760,10 +779,7 @@ public class Segments {
   private static List<PathSegment> filterForEndIsdAs(List<PathSegment> segments, final long isdAs) {
     // Return all segments that end with the given ISD/AS
     return segments.stream()
-        .filter(
-            pathSegment ->
-                pathSegment.getAsEntriesFirst().getIsdAs() == isdAs
-                    || pathSegment.getAsEntriesLast().getIsdAs() == isdAs)
+        .filter(pathSegment -> pathSegment.getAsEntriesLast().getIsdAs() == isdAs)
         .collect(Collectors.toList());
   }
 

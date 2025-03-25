@@ -67,20 +67,16 @@ public class Scenario {
     SegExtensions.StaticInfoExtension build(long id1, long id2) {
       SegExtensions.StaticInfoExtension.Builder builder = SegExtensions.StaticInfoExtension.newBuilder();
       SegExtensions.LatencyInfo.Builder lb = SegExtensions.LatencyInfo.newBuilder();
-      if (id1 > 0) {
-        lb.putInter(id1, latencyInter.get(id1));
-        if (id2 > 0) {
-          lb.putIntra(id2, latencyIntra.get(id2).get(id1));
-        }
+      SegExtensions.BandwidthInfo.Builder bb = SegExtensions.BandwidthInfo.newBuilder();
+      if (id2 > 0) {
+        lb.putInter(id2, latencyInter.get(id2));
+        bb.putInter(id2, bandwidthInter.get(id2));
+      }
+      if (id1 > 0 && id2 > 0) {
+        lb.putIntra(id2, latencyIntra.get(id2).get(id1));
+        bb.putIntra(id2, bandwidthIntra.get(id2).get(id1));
       }
       builder.setLatency(lb);
-      SegExtensions.BandwidthInfo.Builder bb = SegExtensions.BandwidthInfo.newBuilder();
-      if (id1 > 0) {
-        bb.putInter(id1, bandwidthInter.get(id1));
-        if (id2 > 0) {
-          bb.putIntra(id2, bandwidthIntra.get(id2).get(id1));
-        }
-      }
       builder.setBandwidth(bb);
       if (geo.containsKey(id1)) {
         builder.putGeo(id1, geo.get(id1));
@@ -293,6 +289,7 @@ public class Scenario {
         if (linkType.equals(brIf.getLinkTo()) && !visited.contains(brIf.getIsdAs())) {
           Seg.PathSegment.Builder childBuilder =
               Seg.PathSegment.newBuilder(builder.build()); // TODO buildPartial() ?
+          System.out.println("Building 1: " + ScionUtil.toStringIA(isdAs) + " -> " + ScionUtil.toStringIA(rootIsdAs)); // TODO
           buildChild(childBuilder, linkType, rootIsdAs, local, ingress, brIf);
         }
       }
@@ -304,6 +301,7 @@ public class Scenario {
     builder.addAsEntries(ase01);
     boolean isCore = BorderRouterInterface.CORE.equals(linkType);
     segmentDb.add(new SegmentEntry(local.getIsdAs(), rootIsdAs, builder.build(), isCore));
+    System.out.println("Building 2: " + ScionUtil.toStringIA(isdAs) + " -> " + ScionUtil.toStringIA(rootIsdAs)); // TODO
     println(
         "Added segment: " + ScionUtil.toStringIA(isdAs) + " -> " + ScionUtil.toStringIA(rootIsdAs));
     SegmentEntry se = segmentDb.get(segmentDb.size() - 1);

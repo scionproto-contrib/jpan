@@ -14,49 +14,48 @@
 
 package org.scion.jpan.internal;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockControlServer;
-import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
-import static org.junit.jupiter.api.Assertions.*;
+class SegmentTiny4bMetadataTest {
 
-class SegmentDefaultMetadataTest {
-
-  /** ISD 1 - core AS */
   protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
-
-  /** ISD 1 - non-core AS */
   protected static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
-
-  /** ISD 1 - non-core AS */
   protected static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
-
-  /** ISD 1 - core AS */
   protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
-
-  /** ISD 1 - non-core AS */
   protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");
 
-  /** ISD 2 - core AS */
-  protected static final long AS_210 = ScionUtil.parseIA("2-ff00:0:210");
-  protected static final long AS_220 = ScionUtil.parseIA("2-ff00:0:220");
-
-  /** ISD 2 - non-core AS */
-  protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
-
-  private static final String TOPO_DIR = "topologies/default/";
+  private static final String TOPO_DIR = "topologies/tiny4b/";
+  private static final String TOPO_110 = TOPO_DIR + "ASff00_0_110/topology.json";
   private static final String TOPO_112 = TOPO_DIR + "ASff00_0_112/topology.json";
   private static final String TOPO_120 = TOPO_DIR + "ASff00_0_120/topology.json";
+
+  @Test
+  void testCore_110_120() throws IOException {
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_110")) {
+
+      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_120);
+        assertNotNull(paths);
+        assertEquals(1, paths.size());
+
+        Daemon.Path path = paths.get(0);
+        assertEquals(1, path.getBandwidthList().size());
+        assertEquals(121, path.getBandwidthList().get(0));
+        assertEquals(1, path.getLatencyList().size());
+        assertEquals(110, path.getLatencyList().get(0).getNanos() / 1_000_000);
+      }
+    }
+  }
 
   @Test
   void testCore_120_110() throws IOException {
@@ -66,17 +65,17 @@ class SegmentDefaultMetadataTest {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_110);
         assertNotNull(paths);
-        assertFalse(paths.isEmpty());
+        assertEquals(1, paths.size());
 
         Daemon.Path path = paths.get(0);
         assertEquals(1, path.getBandwidthList().size());
         for (Object o : path.getBandwidthList()) {
           System.out.println("pb: " + o);
         }
-        assertEquals(100, path.getBandwidthList().get(0));
+        assertEquals(120, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
         System.out.println("LAT: " + path.getLatencyList().get(0));
-        assertEquals(101, path.getLatencyList().get(0).getNanos()/1_000_000);
+        assertEquals(120, path.getLatencyList().get(0).getNanos()/1_000_000);
       }
 
       MockControlServer cs = nw.getControlServer();
@@ -131,12 +130,12 @@ class SegmentDefaultMetadataTest {
   }
 
   @Test
-  void testCore_120_220() throws IOException {
+  void testDown_120_121() throws IOException {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_120")) {
 
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_220);
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_121);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
@@ -145,10 +144,10 @@ class SegmentDefaultMetadataTest {
         for (Object o : path.getBandwidthList()) {
           System.out.println("pb: " + o);
         }
-        assertEquals(100, path.getBandwidthList().get(0));
+        assertEquals(20000, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
         System.out.println("LAT: " + path.getLatencyList().get(0));
-        assertEquals(101, path.getLatencyList().get(0).getNanos()/1_000_000);
+        assertEquals(20, path.getLatencyList().get(0).getNanos()/1_000_000);
       }
 
       MockControlServer cs = nw.getControlServer();
@@ -237,161 +236,114 @@ class SegmentDefaultMetadataTest {
     //    note: asdf-1-120
   }
 
-
   @Test
-  void testUp_112_120() throws IOException {
-    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+  void testUp_112_110() throws IOException {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_112")) {
-
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_112)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_120);
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_110);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
         assertEquals(3, path.getBandwidthList().size());
-        for (Object o : path.getBandwidthList()) {
-          System.out.println("pb: " + o);
-        }
-        assertEquals(100, path.getBandwidthList().get(0));
-        assertEquals(1, path.getLatencyList().size());
-        System.out.println("LAT: " + path.getLatencyList().get(0));
-        assertEquals(101, path.getLatencyList().get(0).getNanos()/1_000_000);
+        assertEquals(512, path.getBandwidthList().get(0));
+        assertEquals(112, path.getBandwidthList().get(1));
+        assertEquals(111, path.getBandwidthList().get(2));
+        assertEquals(3, path.getLatencyList().size());
+        assertEquals(12, path.getLatencyList().get(0).getNanos() / 1_000_000);
+        assertEquals(112, path.getLatencyList().get(1).getNanos() / 1_000_000);
+        assertEquals(111, path.getLatencyList().get(2).getNanos() / 1_000_000);
       }
-
-      MockControlServer cs = nw.getControlServer();
-
-      ScionService service = Scion.defaultService();
-
-      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:130"), dstAddress);
-      assertEquals(0, paths.size());
     }
 
-    // scion showpaths 1-ff00:0:120 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
-    //Available paths to 1-ff00:0:120
-    //3 Hops:
-    //[0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.58:31034
-    //    Expires: 2025-03-19 22:24:51 +0000 UTC (5h59m51s)
-    //    Latency: 292ms
-    //    Bandwidth: 40Kbit/s
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") > 79.12,45.2 ("geo120-5")]
-    //    LinkType: [multihop, direct]
-    //    InternalHops: [1-ff00:0:111: 4]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120: "asdf-1-120"]
+    //  $ ./bin/scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:112 --sciond 127.0.0.35:30255 --extended
+    //  Available paths to 1-ff00:0:110
+    //  3 Hops:
+    //  [0] Hops: [1-ff00:0:112 11>12 1-ff00:0:111 10>11 1-ff00:0:110]
+    //    MTU: 1280
+    //    NextHop: 127.0.0.33:31020
+    //    Expires: 2025-03-25 17:34:05 +0000 UTC (5h19m10s)
+    //    Latency: 235ms
+    //    Bandwidth: 111Kbit/s
+    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") > 47.111,42.11 ("geo111-110") > 47.11,42.111 ("geo110-111")]
+    //    LinkType: [direct, direct]
+    //    InternalHops: [1-ff00:0:111: 11]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:110: "asdf-1-110"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.57:31032
-    //    Expires: 2025-03-19 22:24:51 +0000 UTC (5h59m51s)
-    //    Latency: >101ms (information incomplete)
-    //    Bandwidth: 100Kbit/s (information incomplete)
-    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1")]
-    //    LinkType: [unset, direct]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120"]
+
+    //    wHF: 2  aIF=true   ->  [11>0 0>0] 1-ff00:0:112
+    //    lat-intra1? 0 -> null
+    //    lat-intra2? 11 -> null
+    //    bw-intra1? 0 -> null
+    //    bw-intra2? 11 -> null
+    //    lat inter?: 0  null
+    //    bw-inter?: 0  null
+    //    lat inter2?: 11  null
+    //    bw-inter2?: 11  null
+    //    wHF: 1  aIF=true   ->  [11>12 10>0] 1-ff00:0:111
+    //    lat-intra1? 12 -> null
+    //    lat-intra2? 10 -> 12000
+    //    bw-intra1? 12 -> null
+    //    bw-intra2? 10 -> 512
+    //    lat inter?: 12  112000
+    //    bw-inter?: 12  112
+    //    lat inter2?: 10  null
+    //    bw-inter2?: 10  null
+    //    wHF: 0  aIF=false   ->  [11>12 10>11] 1-ff00:0:110
+    //    lat-intra1? 11 -> null
+    //    lat-intra2? 0 -> null
+    //    bw-intra1? 11 -> null
+    //    bw-intra2? 0 -> null
+    //    lat inter?: 11  111000
+    //    bw-inter?: 11  111
+    //    lat inter2?: 0  null
+    //    bw-inter2?: 0  null
+    //    Available paths to 1-ff00:0:110
+    //            [0] Hops: [1-ff00:0:112 11>12 1-ff00:0:111 10>11 1-ff00:0:110]
+    //    MTU: 1280
+    //    NextHop: 127.0.0.33
+    //    Expires: 2025-03-25 18:16:40 +0000 UTC (5h59m50s)
+    //    Latency: 245ms
+    //    Bandwidth: 111KBit/s
+    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") > 47.111,42.11 ("geo111-110") > 47.11,42.111 ("geo110-111")]
+    //    LinkType: [unset, direct, direct]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:110: "asdf-1-110"]
     //    SupportsEPIC: false
-    //    Status: alive
+    //    Status: unknown
     //    LocalIP: 127.0.0.1
-    //4 Hops:
-    // ...
+
   }
 
   @Test
-  void testDown_120_112() {
-    // scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
-    //Available paths to 1-ff00:0:112
-    //3 Hops:
-    //[0] Hops: [1-ff00:0:120 1>105 1-ff00:0:130 113>495 1-ff00:0:112]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.65:31010
-    //    Expires: 2025-03-19 22:27:19 +0000 UTC (5h59m49s)
-    //    Geo: [47.12,62.2 ("geo120-1") > N/A > N/A > 79.2,45.2 ("geo112-495")]
-    //    Notes: [1-ff00:0:120: "asdf-1-120", 1-ff00:0:112: "asdf-1-112"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:120 5>104 1-ff00:0:111 103>494 1-ff00:0:112]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.67:31014
-    //    Expires: 2025-03-19 22:27:20 +0000 UTC (5h59m50s)
-    //    Latency: 292ms
-    //    Bandwidth: 40Kbit/s
-    //    Geo: [79.12,45.2 ("geo120-5") > 47.12,62.2 ("geo111-104") > 47.12,42.23 ("geo111-103") > 47.2,62.2 ("geo112-494")]
-    //    LinkType: [direct, multihop]
-    //    InternalHops: [1-ff00:0:111: 4]
-    //    Notes: [1-ff00:0:120: "asdf-1-120", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:112: "asdf-1-112"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    //4 Hops:
-    // ...
+  void testDown_110_112() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_110")) {
+      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_112);
+        assertNotNull(paths);
+        assertFalse(paths.isEmpty());
 
-    //    PathSeg: size=10
-    //    SegInfo:  ts=2025-03-21T11:35:37Z  id=36331
-    //    AS: signed=241   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:37.051852243Z  meta=0  data=10
-    //    AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:111  mtu=1472
-    //    HopEntry: true mtu=0
-    //    HopField: exp=63 ingress=0 egress=5
-    //    Extensions: true/false/false
-    //    Static: latencies=4/1  bandwidth=4/1  geo=1  interfaces=1  note='asdf-1-120'
-    //    latency intra: 1 -> 50.0 ms
-    //    latency intra: 2 -> 50.0 ms
-    //    latency intra: 3 -> 60.0 ms
-    //    latency intra: 6 -> 50.0 ms
-    //    latency inter: 5 -> 105.0 ms
-    //    bw intra: 2 -> 50
-    //    bw intra: 3 -> 50
-    //    bw intra: 6 -> 60
-    //    bw intra: 1 -> 50
-    //    bw inter: 5 -> 100
-    //    geo: 5 -> lon: 45.2; lat: 79.12; addr: geo120-5
-    //    link types: 5 -> LINK_TYPE_DIRECT
-    //    note: asdf-1-120
-    //    AS: signed=516   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:39.024261600Z  meta=0  data=322
-    //    AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:112  mtu=1472
-    //    HopEntry: true mtu=1472
-    //    HopField: exp=63 ingress=104 egress=103
-    //    Extensions: true/false/false
-    //    Static: latencies=4/4  bandwidth=4/4  geo=5  interfaces=4  note='asdf-1-111'
-    //    latency intra: 100 -> 83.0 ms
-    //    latency intra: 101 -> 83.0 ms
-    //    latency intra: 102 -> 83.0 ms
-    //    latency intra: 104 -> 84.0 ms
-    //    latency inter: 102 -> 102.0 ms
-    //    latency inter: 103 -> 103.0 ms
-    //    latency inter: 100 -> 100.0 ms
-    //    latency inter: 101 -> 101.0 ms
-    //    bw intra: 104 -> 40
-    //    bw intra: 100 -> 50
-    //    bw intra: 101 -> 51
-    //    bw intra: 102 -> 52
-    //    bw inter: 100 -> 100
-    //    bw inter: 101 -> 100
-    //    bw inter: 102 -> 100
-    //    bw inter: 103 -> 100
-    //    geo: 100 -> lon: 42.23; lat: 47.12; addr: geo111-100
-    //    geo: 101 -> lon: 62.2; lat: 47.12; addr: geo111-101
-    //    geo: 102 -> lon: 45.2; lat: 79.12; addr: geo111-102
-    //    geo: 103 -> lon: 42.23; lat: 47.12; addr: geo111-103
-    //    geo: 104 -> lon: 62.2; lat: 47.12; addr: geo111-104
-    //    link types: 102 -> LINK_TYPE_OPEN_NET
-    //    link types: 103 -> LINK_TYPE_MULTI_HOP
-    //    link types: 100 -> LINK_TYPE_DIRECT
-    //    link types: 101 -> LINK_TYPE_DIRECT
-    //    note: asdf-1-111
-    //    AS: signed=134   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:44.050599857Z  meta=0  data=909
-    //    AS Body: IA=1-ff00:0:112 nextIA=0-0:0:0  mtu=1450
-    //    HopEntry: true mtu=1472
-    //    HopField: exp=63 ingress=494 egress=0
-    //    Extensions: true/false/false
-    //    Static: latencies=0/0  bandwidth=0/0  geo=1  interfaces=0  note='asdf-1-112'
-    //    geo: 494 -> lon: 62.2; lat: 47.2; addr: geo112-494
-    //    note: asdf-1-112
+        Daemon.Path path = paths.get(0);
+        RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
+        System.out.println("Path: " + ScionUtil.toStringPath(rp.getRawPath()));
+        System.out.println("Path: " + ScionUtil.toStringPath(rp.getMetadata()));
+        for (Object o : path.getBandwidthList()) {
+          System.out.println("bw: " + o);
+        }
+        for (Object o : path.getLatencyList()) {
+          System.out.println("lat: " + o);
+        }
+        assertEquals(3, path.getBandwidthList().size());
+        assertEquals(512, path.getBandwidthList().get(0));
+        assertEquals(112, path.getBandwidthList().get(1));
+        assertEquals(111, path.getBandwidthList().get(2));
+        assertEquals(3, path.getLatencyList().size());
+        assertEquals(12, path.getLatencyList().get(0).getNanos() / 1_000_000);
+        assertEquals(112, path.getLatencyList().get(1).getNanos() / 1_000_000);
+        assertEquals(111, path.getLatencyList().get(2).getNanos() / 1_000_000);
+      }
+    }
   }
 }

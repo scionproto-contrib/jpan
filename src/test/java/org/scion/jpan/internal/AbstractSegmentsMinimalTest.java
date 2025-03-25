@@ -31,6 +31,7 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static final String CFG_MINIMAL = "topologies/minimal/";
   protected static final String CFG_DEFAULT = "topologies/default/";
   protected static final String CFG_TINY4 = "topologies/tiny4/";
+  protected static final String CFG_TINY4B = "topologies/tiny4b/";
 
   /** ISD 1 - core AS */
   protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
@@ -200,6 +201,14 @@ public abstract class AbstractSegmentsMinimalTest {
   protected void addResponsesScionprotoTiny4() {
     addUpDown(AS_111, AS_110);
     addUpDown(AS_112, AS_110);
+  }
+
+  protected void addResponsesScionprotoTiny4b() {
+    addUpDown(AS_111, AS_110);
+    addUpDown(AS_112, AS_110);
+    addUpDown(AS_121, AS_120);
+    addCore(AS_110, AS_120);
+    addCore(AS_120, AS_110);
   }
 
   private void addCore(long local, long origin) {

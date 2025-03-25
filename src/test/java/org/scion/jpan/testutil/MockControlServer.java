@@ -136,6 +136,7 @@ public class MockControlServer {
       long maskISD = -1L << 48;
       long srcWildcard = srcIA & maskISD;
       long dstWildcard = dstIA & maskISD;
+      System.out.println("MCS-add: " + ScionUtil.toStringIA(srcIA) + " -> " + ScionUtil.toStringIA(dstIA));
       addResponse(key(srcIA, dstIA), response);
       if (dstIsCore) {
         addResponse(key(srcIA, dstWildcard), response);
@@ -149,6 +150,7 @@ public class MockControlServer {
     }
 
     private void addResponse(String key, Seg.SegmentsResponse response) {
+      System.out.println("MCS-add: " + key);
       if (!responses.containsKey(key)) {
         responses.put(key, response);
         return;

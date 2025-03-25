@@ -87,10 +87,10 @@ public class ShowpathsDemo {
         }
       case SCION_PROTO:
         {
-          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-          // "topologies/minimal/ASff00_0_1111/topology.json");
-          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon110_default);
-          runDemo(DemoConstants.ia220);
+          System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+           "topologies/tiny4b/ASff00_0_110/topology.json");
+          //System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon110_tiny4b);
+          runDemo(DemoConstants.ia120);
           break;
         }
       case PRODUCTION:
@@ -205,9 +205,10 @@ public class ShowpathsDemo {
         bwComplete = false;
       }
     }
+    bw = bw == Long.MAX_VALUE ? 0 : bw;
     String bwString = bw + "KBit/s";
     if (!bwComplete) {
-      bwString += "KBit/s (information incomplete)";
+      bwString += " (information incomplete)";
     }
     return bwString;
   }

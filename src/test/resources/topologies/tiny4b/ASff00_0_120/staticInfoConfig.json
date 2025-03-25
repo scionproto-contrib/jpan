@@ -1,0 +1,54 @@
+{
+    "Bandwidth": {
+        "21": {
+            "Inter": 20000,
+            "Intra": {
+                "20": 520
+            }
+        },
+        "10": {
+            "Inter": 121,
+            "Intra": {
+                "21": 520
+            }
+        }
+    },
+    "Latency": {
+        "21": {
+            "Inter": "121ms",
+            "Intra": {
+                "10": "20ms"
+            }
+        },
+        "10": {
+            "Inter": "110ms",
+            "Intra": {
+                "21": "20ms"
+            }
+        }
+    },
+    "Linktype": {
+        "21":"direct",
+        "10":"multihop"
+    },
+    "Geo": {
+        "21":{
+            "Latitude": 47.120,
+            "Longitude": 42.121,
+            "Address": "geo120-121"
+        },
+        "10":{
+            "Latitude": 47.120,
+            "Longitude": 62.110,
+            "Address": "geo120-110"
+        }
+    },
+    "Hops": {
+        "21":{
+            "Intra": {
+                "10": 7
+            }
+        }
+    },
+    "Note": "asdf-1-120"
+}

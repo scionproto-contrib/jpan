@@ -1,0 +1,23 @@
+{
+    "Bandwidth": {
+        "20": {
+            "Inter": 20000
+        }
+    },
+    "Latency": {
+        "20": {
+            "Inter": "20ms"
+        }
+    },
+    "Linktype": {
+        "20":"direct"
+    },
+    "Geo": {
+        "20":{
+            "Latitude": 79.121,
+            "Longitude": 45.120,
+            "Address": "geo121-20"
+        }
+    },
+    "Note": "asdf-1-121"
+}

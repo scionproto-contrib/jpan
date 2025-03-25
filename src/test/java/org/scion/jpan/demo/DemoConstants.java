@@ -58,6 +58,11 @@ public class DemoConstants {
   public static final String csAddr111_tiny = "127.0.0.18:31006";
   public static final String csAddr112_tiny = "[fd00:f00d:cafe::7f00:a]:31010";
 
+  // ----------------  "tiny4b" network - daemons and control servers  ------------------
+  public static final String daemon110_tiny4b = "127.0.0.20:30255";
+  public static final String daemon112_tiny4b = "127.0.0.35:30255";
+  public static final String csAddr112_tiny4b = "127.0.0.34:31018";
+
   // ----------------  "default" network - control servers  ------------------------
   public static final String daemon110_default = "[fd00:f00d:cafe::7f00:15]:30255";
   public static final String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
