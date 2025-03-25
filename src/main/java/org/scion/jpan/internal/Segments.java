@@ -528,11 +528,14 @@ public class Segments {
     //    System.out.println(
     //            "   lat inter?: " + id1 + "  " + sie.getLatency().getInterMap().get(id1)); // TODO
     //    System.out.println(
-    //            "   bw-inter?: " + id1 + "  " + sie.getBandwidth().getInterMap().get(id1)); // TODO
+    //            "   bw-inter?: " + id1 + "  " + sie.getBandwidth().getInterMap().get(id1)); //
+    // TODO
     //    System.out.println(
-    //            "   lat inter2?: " + id2 + "  " + sie.getLatency().getInterMap().get(id2)); // TODO
+    //            "   lat inter2?: " + id2 + "  " + sie.getLatency().getInterMap().get(id2)); //
+    // TODO
     //    System.out.println(
-    //            "   bw-inter2?: " + id2 + "  " + sie.getBandwidth().getInterMap().get(id2)); // TODO
+    //            "   bw-inter2?: " + id2 + "  " + sie.getBandwidth().getInterMap().get(id2)); //
+    // TODO
     if (reversed) {
       if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
         path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));

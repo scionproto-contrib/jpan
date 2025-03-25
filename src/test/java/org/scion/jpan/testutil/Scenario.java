@@ -65,7 +65,8 @@ public class Scenario {
     private String notes;
 
     SegExtensions.StaticInfoExtension build(long id1, long id2) {
-      SegExtensions.StaticInfoExtension.Builder builder = SegExtensions.StaticInfoExtension.newBuilder();
+      SegExtensions.StaticInfoExtension.Builder builder =
+          SegExtensions.StaticInfoExtension.newBuilder();
       SegExtensions.LatencyInfo.Builder lb = SegExtensions.LatencyInfo.newBuilder();
       SegExtensions.BandwidthInfo.Builder bb = SegExtensions.BandwidthInfo.newBuilder();
       if (id2 > 0) {
@@ -85,7 +86,7 @@ public class Scenario {
         builder.putGeo(id2, geo.get(id2));
       }
       if (internalHops.containsKey(id1) && internalHops.get(id1).containsKey(id2)) {
-          builder.putInternalHops(id2, internalHops.get(id1).get(id2));
+        builder.putInternalHops(id2, internalHops.get(id1).get(id2));
       }
       if (linkTypes.containsKey(id1)) {
         builder.putLinkType(id1, linkTypes.get(id1));
@@ -259,7 +260,8 @@ public class Scenario {
 
     // Build ingoing entry
     Seg.HopEntry he0 = buildHopEntry(0, buildHopField(63, prevIngress, parentIf.getId()));
-    Seg.ASEntry as0 = buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed);
+    Seg.ASEntry as0 =
+        buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed);
     builder.addAsEntries(as0);
 
     Set<Long> visited =
@@ -303,15 +305,15 @@ public class Scenario {
 
     StringBuilder sb = new StringBuilder();
     for (Seg.ASEntry ase : se.segment.getAsEntriesList()) {
-        Seg.ASEntrySignedBody b = getBody(ase);
+      Seg.ASEntrySignedBody b = getBody(ase);
       long eg = b.getHopEntry().getHopField().getEgress();
       long ing = b.getHopEntry().getHopField().getIngress();
       if (sb.length() > 0) {
         sb.append("#").append(ing).append(" --- ");
       }
-        sb.append(ScionUtil.toStringIA(b.getIsdAs()));
-        sb.append(" ").append(eg).append(" > ");
-        sb.append(ScionUtil.toStringIA(b.getNextIsdAs()));
+      sb.append(ScionUtil.toStringIA(b.getIsdAs()));
+      sb.append(" ").append(eg).append(" > ");
+      sb.append(ScionUtil.toStringIA(b.getNextIsdAs()));
     }
   }
 
@@ -329,7 +331,8 @@ public class Scenario {
     return Seg.HopEntry.newBuilder().setIngressMtu(mtu).setHopField(hf).build();
   }
 
-  private Seg.ASEntry buildASEntry(long isdAs, long nextIA, int mtu, Seg.HopEntry he, boolean reversed) {
+  private Seg.ASEntry buildASEntry(
+      long isdAs, long nextIA, int mtu, Seg.HopEntry he, boolean reversed) {
     Signed.Header header =
         Signed.Header.newBuilder()
             .setSignatureAlgorithm(Signed.SignatureAlgorithm.SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256)
@@ -417,7 +420,9 @@ public class Scenario {
               if (e3.getKey().equals("Intra")) {
                 for (Map.Entry<String, JsonElement> e4 :
                     e3.getValue().getAsJsonObject().entrySet()) {
-                  Map<Long, Long> bwIn = sie.bandwidthIntra.computeIfAbsent(Long.parseLong(e2.getKey()), l -> new HashMap<>());
+                  Map<Long, Long> bwIn =
+                      sie.bandwidthIntra.computeIfAbsent(
+                          Long.parseLong(e2.getKey()), l -> new HashMap<>());
                   bwIn.put(Long.parseLong(e4.getKey()), e4.getValue().getAsLong());
                 }
               } else if (e3.getKey().equals("Inter")) {
@@ -432,7 +437,9 @@ public class Scenario {
               if (e3.getKey().equals("Intra")) {
                 for (Map.Entry<String, JsonElement> e4 :
                     e3.getValue().getAsJsonObject().entrySet()) {
-                  Map<Long, Integer> latIn = sie.latencyIntra.computeIfAbsent(Long.parseLong(e2.getKey()), l -> new HashMap<>());
+                  Map<Long, Integer> latIn =
+                      sie.latencyIntra.computeIfAbsent(
+                          Long.parseLong(e2.getKey()), l -> new HashMap<>());
                   latIn.put(Long.parseLong(e4.getKey()), getMicros(e4.getValue()));
                 }
               } else if (e3.getKey().equals("Inter")) {

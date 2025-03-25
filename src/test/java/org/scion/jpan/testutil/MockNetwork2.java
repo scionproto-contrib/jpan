@@ -40,6 +40,7 @@ public class MockNetwork2 implements AutoCloseable {
     DefaultInitializer() {
       super(CFG_DEFAULT);
     }
+
     @Override
     public void addResponses() {
       super.addResponsesScionprotoDefault();
@@ -54,6 +55,7 @@ public class MockNetwork2 implements AutoCloseable {
     Tiny4bInitializer() {
       super(CFG_TINY4B);
     }
+
     @Override
     public void addResponses() {
       super.addResponsesScionprotoTiny4b();

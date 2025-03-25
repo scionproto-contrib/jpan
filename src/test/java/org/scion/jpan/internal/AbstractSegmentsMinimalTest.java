@@ -63,11 +63,11 @@ public abstract class AbstractSegmentsMinimalTest {
 
   /** ISD 2 - core AS */
   protected static final long AS_210 = ScionUtil.parseIA("2-ff00:0:210");
+
   protected static final long AS_220 = ScionUtil.parseIA("2-ff00:0:220");
 
   /** ISD 2 - non-core AS */
   protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
-
 
   protected static MockControlServer controlServer;
   protected final Scenario scenario;

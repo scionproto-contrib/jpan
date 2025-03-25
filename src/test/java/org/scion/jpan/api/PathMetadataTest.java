@@ -14,6 +14,11 @@
 
 package org.scion.jpan.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,13 +27,6 @@ import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PathMetadataTest {
 
@@ -78,9 +76,9 @@ class PathMetadataTest {
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
-    //Available paths to 1-ff00:0:110
-    //2 Hops:
-    //[0] Hops: [1-ff00:0:120 6>1 1-ff00:0:110]
+    // Available paths to 1-ff00:0:110
+    // 2 Hops:
+    // [0] Hops: [1-ff00:0:120 6>1 1-ff00:0:110]
     //    MTU: 1472
     //    NextHop: 127.0.0.65:31010
     //    Expires: 2025-03-19 22:45:03 +0000 UTC (5h59m56s)
@@ -92,13 +90,14 @@ class PathMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //3 Hops:
+    // 3 Hops:
     // ...
 
     //    PathSeg: size=9
     //    SegInfo:  ts=2025-03-21T10:05:09Z  id=13212
     //    AS: signed=159   signature size=70
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:09.523003643Z  meta=0  data=9
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:09.523003643Z
+    // meta=0  data=9
     //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:120  mtu=1472
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=1
@@ -110,7 +109,8 @@ class PathMetadataTest {
     //    link types: 1 -> LINK_TYPE_DIRECT
     //    note: asdf-1-110
     //    AS: signed=130   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:12.049697132Z  meta=0  data=238
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:12.049697132Z
+    // meta=0  data=238
     //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
     //    HopEntry: true mtu=1472
     //    HopField: exp=63 ingress=6 egress=0
@@ -123,9 +123,9 @@ class PathMetadataTest {
   @Test
   void testCore_120_220() {
     // scion showpaths 2-ff00:0:220 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
-    //Available paths to 2-ff00:0:220
-    //2 Hops:
-    //[0] Hops: [1-ff00:0:120 2>501 2-ff00:0:220]
+    // Available paths to 2-ff00:0:220
+    // 2 Hops:
+    // [0] Hops: [1-ff00:0:120 2>501 2-ff00:0:220]
     //    MTU: 1350
     //    NextHop: 127.0.0.66:31012
     //    Expires: 2025-03-19 22:46:40 +0000 UTC (5h59m50s)
@@ -137,7 +137,7 @@ class PathMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:120 3>502 2-ff00:0:220]
+    // [1] Hops: [1-ff00:0:120 3>502 2-ff00:0:220]
     //    MTU: 1400
     //    NextHop: 127.0.0.66:31012
     //    Expires: 2025-03-19 22:46:40 +0000 UTC (5h59m50s)
@@ -149,13 +149,14 @@ class PathMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //4 Hops:
+    // 4 Hops:
 
     // ProtobufSegmentDemo:
     //    PathSeg: size=10
     //    SegInfo:  ts=2025-03-21T10:01:37Z  id=18555
     //    AS: signed=168   signature size=72
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.630857126Z  meta=0  data=10
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.630857126Z
+    // meta=0  data=10
     //    AS Body: IA=2-ff00:0:220 nextIA=1-ff00:0:120  mtu=1472
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=502
@@ -167,7 +168,8 @@ class PathMetadataTest {
     //    link types: 502 -> LINK_TYPE_MULTI_HOP
     //    note: asdf-2-220
     //    AS: signed=131   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560685521Z  meta=0  data=250
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560685521Z
+    // meta=0  data=250
     //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
     //    HopEntry: true mtu=1400
     //    HopField: exp=63 ingress=3 egress=0
@@ -178,7 +180,8 @@ class PathMetadataTest {
     //    PathSeg: size=10
     //    SegInfo:  ts=2025-03-21T10:01:37Z  id=26399
     //    AS: signed=168   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.629688488Z  meta=0  data=10
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.629688488Z
+    // meta=0  data=10
     //    AS Body: IA=2-ff00:0:220 nextIA=1-ff00:0:120  mtu=1472
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=501
@@ -190,7 +193,8 @@ class PathMetadataTest {
     //    link types: 501 -> LINK_TYPE_OPEN_NET
     //    note: asdf-2-220
     //    AS: signed=131   signature size=69
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560947350Z  meta=0  data=249
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560947350Z
+    // meta=0  data=249
     //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
     //    HopEntry: true mtu=1350
     //    HopField: exp=63 ingress=2 egress=0
@@ -200,26 +204,27 @@ class PathMetadataTest {
     //    note: asdf-1-120
   }
 
-
   @Test
   void testUp_112_120() {
     // scion showpaths 1-ff00:0:120 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
-    //Available paths to 1-ff00:0:120
-    //3 Hops:
-    //[0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120]
+    // Available paths to 1-ff00:0:120
+    // 3 Hops:
+    // [0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120]
     //    MTU: 1450
     //    NextHop: 127.0.0.58:31034
     //    Expires: 2025-03-19 22:24:51 +0000 UTC (5h59m51s)
     //    Latency: 292ms
     //    Bandwidth: 40Kbit/s
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") > 79.12,45.2 ("geo120-5")]
+    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") >
+    // 79.12,45.2 ("geo120-5")]
     //    LinkType: [multihop, direct]
     //    InternalHops: [1-ff00:0:111: 4]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120: "asdf-1-120"]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120:
+    // "asdf-1-120"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120]
+    // [1] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120]
     //    MTU: 1450
     //    NextHop: 127.0.0.57:31032
     //    Expires: 2025-03-19 22:24:51 +0000 UTC (5h59m51s)
@@ -231,16 +236,16 @@ class PathMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //4 Hops:
+    // 4 Hops:
     // ...
   }
 
   @Test
   void testDown_120_112() {
     // scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
-    //Available paths to 1-ff00:0:112
-    //3 Hops:
-    //[0] Hops: [1-ff00:0:120 1>105 1-ff00:0:130 113>495 1-ff00:0:112]
+    // Available paths to 1-ff00:0:112
+    // 3 Hops:
+    // [0] Hops: [1-ff00:0:120 1>105 1-ff00:0:130 113>495 1-ff00:0:112]
     //    MTU: 1450
     //    NextHop: 127.0.0.65:31010
     //    Expires: 2025-03-19 22:27:19 +0000 UTC (5h59m49s)
@@ -249,26 +254,29 @@ class PathMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:120 5>104 1-ff00:0:111 103>494 1-ff00:0:112]
+    // [1] Hops: [1-ff00:0:120 5>104 1-ff00:0:111 103>494 1-ff00:0:112]
     //    MTU: 1450
     //    NextHop: 127.0.0.67:31014
     //    Expires: 2025-03-19 22:27:20 +0000 UTC (5h59m50s)
     //    Latency: 292ms
     //    Bandwidth: 40Kbit/s
-    //    Geo: [79.12,45.2 ("geo120-5") > 47.12,62.2 ("geo111-104") > 47.12,42.23 ("geo111-103") > 47.2,62.2 ("geo112-494")]
+    //    Geo: [79.12,45.2 ("geo120-5") > 47.12,62.2 ("geo111-104") > 47.12,42.23 ("geo111-103") >
+    // 47.2,62.2 ("geo112-494")]
     //    LinkType: [direct, multihop]
     //    InternalHops: [1-ff00:0:111: 4]
-    //    Notes: [1-ff00:0:120: "asdf-1-120", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:112: "asdf-1-112"]
+    //    Notes: [1-ff00:0:120: "asdf-1-120", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:112:
+    // "asdf-1-112"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //4 Hops:
+    // 4 Hops:
     // ...
 
     //    PathSeg: size=10
     //    SegInfo:  ts=2025-03-21T11:35:37Z  id=36331
     //    AS: signed=241   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:37.051852243Z  meta=0  data=10
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:37.051852243Z
+    // meta=0  data=10
     //    AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:111  mtu=1472
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=5
@@ -288,7 +296,8 @@ class PathMetadataTest {
     //    link types: 5 -> LINK_TYPE_DIRECT
     //    note: asdf-1-120
     //    AS: signed=516   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:39.024261600Z  meta=0  data=322
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:39.024261600Z
+    // meta=0  data=322
     //    AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:112  mtu=1472
     //    HopEntry: true mtu=1472
     //    HopField: exp=63 ingress=104 egress=103
@@ -321,7 +330,8 @@ class PathMetadataTest {
     //    link types: 101 -> LINK_TYPE_DIRECT
     //    note: asdf-1-111
     //    AS: signed=134   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:44.050599857Z  meta=0  data=909
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:44.050599857Z
+    // meta=0  data=909
     //    AS Body: IA=1-ff00:0:112 nextIA=0-0:0:0  mtu=1450
     //    HopEntry: true mtu=1472
     //    HopField: exp=63 ingress=494 egress=0
@@ -334,97 +344,114 @@ class PathMetadataTest {
   @Test
   void testUpCoreDown_112_221() {
     // scion showpaths 2-ff00:0:221 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
-    //Available paths to 2-ff00:0:221
-    //5 Hops:
-    //[0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 2>501 2-ff00:0:220 500>2 2-ff00:0:221]
+    // Available paths to 2-ff00:0:221
+    // 5 Hops:
+    // [0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 2>501 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
     //    MTU: 1350
     //    NextHop: 127.0.0.58:31034
     //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h56m53s)
     //    Latency: 595ms
     //    Bandwidth: 40Kbit/s
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") > 79.12,45.2 ("geo120-5") > 79.12,45.2 ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
+    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") >
+    // 79.12,45.2 ("geo120-5") > 79.12,45.2 ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2
+    // ("geo220#500") > 79.2,45.2 ("geo212-2")]
     //    LinkType: [multihop, direct, opennet, direct]
     //    InternalHops: [1-ff00:0:111: 4, 1-ff00:0:120: 5, 2-ff00:0:220: 2]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120:
+    // "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 3>502 2-ff00:0:220 500>2 2-ff00:0:221]
+    // [1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 3>502 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
     //    MTU: 1400
     //    NextHop: 127.0.0.58:31034
     //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h56m53s)
     //    Latency: 636ms
     //    Bandwidth: 40Kbit/s
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") > 79.12,45.2 ("geo120-5") > 47.12,42.23 ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
+    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") >
+    // 79.12,45.2 ("geo120-5") > 47.12,42.23 ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2
+    // ("geo220#500") > 79.2,45.2 ("geo212-2")]
     //    LinkType: [multihop, direct, multihop, direct]
     //    InternalHops: [1-ff00:0:111: 4, 1-ff00:0:120: 5, 2-ff00:0:220: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120:
+    // "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[2] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 2>501 2-ff00:0:220 500>2 2-ff00:0:221]
+    // [2] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 2>501 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
     //    MTU: 1350
     //    NextHop: 127.0.0.57:31032
     //    Expires: 2025-03-19 22:15:33 +0000 UTC (5h56m54s)
     //    Latency: >404ms (information incomplete)
     //    Bandwidth: 50Kbit/s (information incomplete)
-    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 79.12,45.2 ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
+    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 79.12,45.2
+    // ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
     //    LinkType: [unset, direct, opennet, direct]
     //    InternalHops: [1-ff00:0:120: 2, 2-ff00:0:220: 2]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220:
+    // "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[3] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 3>502 2-ff00:0:220 500>2 2-ff00:0:221]
+    // [3] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 3>502 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
     //    MTU: 1400
     //    NextHop: 127.0.0.57:31032
     //    Expires: 2025-03-19 22:15:33 +0000 UTC (5h56m54s)
     //    Latency: >465ms (information incomplete)
     //    Bandwidth: 80Kbit/s (information incomplete)
-    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 47.12,42.23 ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
+    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 47.12,42.23
+    // ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2 ("geo220#500") > 79.2,45.2
+    // ("geo212-2")]
     //    LinkType: [unset, direct, multihop, direct]
     //    InternalHops: [1-ff00:0:120: 3, 2-ff00:0:220: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220:
+    // "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //6 Hops:
-    //...
+    // 6 Hops:
+    // ...
   }
 
   @Test
   void testUpCoreDown112_222() {
     // scion showpaths 2-ff00:0:222 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
-    //Available paths to 2-ff00:0:222
-    //4 Hops:
-    //[0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 101>5 2-ff00:0:211 4>301 2-ff00:0:222]
+    // Available paths to 2-ff00:0:222
+    // 4 Hops:
+    // [0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 101>5 2-ff00:0:211 4>301 2-ff00:0:222]
     //    MTU: 1450
     //    NextHop: 127.0.0.58:31034
     //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h59m37s)
     //    Latency: >287ms (information incomplete)
     //    Bandwidth: 51Kbit/s (information incomplete)
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-101") > N/A > N/A > N/A]
+    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-101") >
+    // N/A > N/A > N/A]
     //    LinkType: [multihop, direct, unset]
     //    InternalHops: [1-ff00:0:111: 3]
     //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 102>6 2-ff00:0:211 4>301 2-ff00:0:222]
+    // [1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 102>6 2-ff00:0:211 4>301 2-ff00:0:222]
     //    MTU: 1450
     //    NextHop: 127.0.0.58:31034
     //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h59m37s)
     //    Latency: >288ms (information incomplete)
     //    Bandwidth: 52Kbit/s (information incomplete)
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 79.12,45.2 ("geo111-102") > N/A > N/A > N/A]
+    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 79.12,45.2 ("geo111-102") >
+    // N/A > N/A > N/A]
     //    LinkType: [multihop, opennet, unset]
     //    InternalHops: [1-ff00:0:111: 3]
     //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //6 Hops:
-    //..
+    // 6 Hops:
+    // ..
 
   }
 }

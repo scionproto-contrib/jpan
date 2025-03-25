@@ -23,7 +23,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.proto.daemon.Daemon;
-import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockNetwork2;
 
 class SegmentTiny4bMetadataTest {
@@ -70,14 +69,14 @@ class SegmentTiny4bMetadataTest {
         assertEquals(1, path.getBandwidthList().size());
         assertEquals(120, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(120, path.getLatencyList().get(0).getNanos()/1_000_000);
+        assertEquals(120, path.getLatencyList().get(0).getNanos() / 1_000_000);
       }
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
-    //Available paths to 1-ff00:0:110
-    //2 Hops:
-    //[0] Hops: [1-ff00:0:120 6>1 1-ff00:0:110]
+    // Available paths to 1-ff00:0:110
+    // 2 Hops:
+    // [0] Hops: [1-ff00:0:120 6>1 1-ff00:0:110]
     //    MTU: 1472
     //    NextHop: 127.0.0.65:31010
     //    Expires: 2025-03-19 22:45:03 +0000 UTC (5h59m56s)
@@ -89,13 +88,14 @@ class SegmentTiny4bMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //3 Hops:
+    // 3 Hops:
     // ...
 
     //    PathSeg: size=9
     //    SegInfo:  ts=2025-03-21T10:05:09Z  id=13212
     //    AS: signed=159   signature size=70
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:09.523003643Z  meta=0  data=9
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:09.523003643Z
+    // meta=0  data=9
     //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:120  mtu=1472
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=1
@@ -107,7 +107,8 @@ class SegmentTiny4bMetadataTest {
     //    link types: 1 -> LINK_TYPE_DIRECT
     //    note: asdf-1-110
     //    AS: signed=130   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:12.049697132Z  meta=0  data=238
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:12.049697132Z
+    // meta=0  data=238
     //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
     //    HopEntry: true mtu=1472
     //    HopField: exp=63 ingress=6 egress=0
@@ -140,14 +141,14 @@ class SegmentTiny4bMetadataTest {
         assertEquals(1, path.getBandwidthList().size());
         assertEquals(20000, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(121, path.getLatencyList().get(0).getNanos()/1_000_000);
+        assertEquals(121, path.getLatencyList().get(0).getNanos() / 1_000_000);
       }
     }
 
     // scion showpaths 2-ff00:0:220 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
-    //Available paths to 2-ff00:0:220
-    //2 Hops:
-    //[0] Hops: [1-ff00:0:120 2>501 2-ff00:0:220]
+    // Available paths to 2-ff00:0:220
+    // 2 Hops:
+    // [0] Hops: [1-ff00:0:120 2>501 2-ff00:0:220]
     //    MTU: 1350
     //    NextHop: 127.0.0.66:31012
     //    Expires: 2025-03-19 22:46:40 +0000 UTC (5h59m50s)
@@ -159,7 +160,7 @@ class SegmentTiny4bMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //[1] Hops: [1-ff00:0:120 3>502 2-ff00:0:220]
+    // [1] Hops: [1-ff00:0:120 3>502 2-ff00:0:220]
     //    MTU: 1400
     //    NextHop: 127.0.0.66:31012
     //    Expires: 2025-03-19 22:46:40 +0000 UTC (5h59m50s)
@@ -171,13 +172,13 @@ class SegmentTiny4bMetadataTest {
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
-    //4 Hops:
+    // 4 Hops:
 
     // ProtobufSegmentDemo:
     //    PathSeg: size=10
     //    SegInfo:  ts=2025-03-21T10:01:37Z  id=18555
     //    AS: signed=168   signature size=72
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.630857126Z  meta=0  data=10
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  ... meta=0  data=10
     //    AS Body: IA=2-ff00:0:220 nextIA=1-ff00:0:120  mtu=1472
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=502
@@ -189,7 +190,7 @@ class SegmentTiny4bMetadataTest {
     //    link types: 502 -> LINK_TYPE_MULTI_HOP
     //    note: asdf-2-220
     //    AS: signed=131   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560685521Z  meta=0  data=250
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  ... meta=0  data=250
     //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
     //    HopEntry: true mtu=1400
     //    HopField: exp=63 ingress=3 egress=0
@@ -200,7 +201,7 @@ class SegmentTiny4bMetadataTest {
     //    PathSeg: size=10
     //    SegInfo:  ts=2025-03-21T10:01:37Z  id=26399
     //    AS: signed=168   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.629688488Z  meta=0  data=10
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  ... meta=0  data=10
     //    AS Body: IA=2-ff00:0:220 nextIA=1-ff00:0:120  mtu=1472
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=501
@@ -212,7 +213,7 @@ class SegmentTiny4bMetadataTest {
     //    link types: 501 -> LINK_TYPE_OPEN_NET
     //    note: asdf-2-220
     //    AS: signed=131   signature size=69
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560947350Z  meta=0  data=249
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  ... meta=0  data=249
     //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
     //    HopEntry: true mtu=1350
     //    HopField: exp=63 ingress=2 egress=0
@@ -252,7 +253,7 @@ class SegmentTiny4bMetadataTest {
       }
     }
 
-    //  $ ./bin/scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:112 --sciond 127.0.0.35:30255 --extended
+    //  $ scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:112 --sciond 127.0.0.35:30255 --extended
     //  Available paths to 1-ff00:0:110
     //  3 Hops:
     //  [0] Hops: [1-ff00:0:112 11>12 1-ff00:0:111 10>11 1-ff00:0:110]
@@ -261,10 +262,12 @@ class SegmentTiny4bMetadataTest {
     //    Expires: 2025-03-25 17:34:05 +0000 UTC (5h19m10s)
     //    Latency: 235ms
     //    Bandwidth: 111Kbit/s
-    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") > 47.111,42.11 ("geo111-110") > 47.11,42.111 ("geo110-111")]
+    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") > 47.111,42.11
+    // ("geo111-110") > 47.11,42.111 ("geo110-111")]
     //    LinkType: [direct, direct]
     //    InternalHops: [1-ff00:0:111: 11]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:110: "asdf-1-110"]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:110:
+    // "asdf-1-110"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
@@ -303,9 +306,11 @@ class SegmentTiny4bMetadataTest {
     //    Expires: 2025-03-25 18:16:40 +0000 UTC (5h59m50s)
     //    Latency: 245ms
     //    Bandwidth: 111KBit/s
-    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") > 47.111,42.11 ("geo111-110") > 47.11,42.111 ("geo110-111")]
+    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") > 47.111,42.11
+    // ("geo111-110") > 47.11,42.111 ("geo110-111")]
     //    LinkType: [unset, direct, direct]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:110: "asdf-1-110"]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:110:
+    // "asdf-1-110"]
     //    SupportsEPIC: false
     //    Status: unknown
     //    LocalIP: 127.0.0.1
@@ -342,19 +347,21 @@ class SegmentTiny4bMetadataTest {
       }
     }
 
-    //$ ./bin/scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:110 --sciond 127.0.0.20:30255 --extended
-    //Available paths to 1-ff00:0:112
-    //3 Hops:
-    //[0] Hops: [1-ff00:0:110 11>10 1-ff00:0:111 12>11 1-ff00:0:112]
+    // $ scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:110 --sciond 127.0.0.20:30255 --extended
+    // Available paths to 1-ff00:0:112
+    // 3 Hops:
+    // [0] Hops: [1-ff00:0:110 11>10 1-ff00:0:111 12>11 1-ff00:0:112]
     //    MTU: 1280
     //    NextHop: 127.0.0.17:31002
     //    Expires: 2025-03-25 22:12:45 +0000 UTC (5h59m51s)
     //    Latency: 235ms
     //    Bandwidth: 111Kbit/s
-    //    Geo: [47.11,42.111 ("geo110-111") > 47.111,42.11 ("geo111-110") > 47.111,62.112 ("geo111-112") > 79.112,45.112 ("geo112-11")]
+    //    Geo: [47.11,42.111 ("geo110-111") > 47.111,42.11 ("geo111-110") > 47.111,62.112
+    // ("geo111-112") > 79.112,45.112 ("geo112-11")]
     //    LinkType: [direct, direct]
     //    InternalHops: [1-ff00:0:111: 11]
-    //    Notes: [1-ff00:0:110: "asdf-1-110", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:112: "asdf-1-112"]
+    //    Notes: [1-ff00:0:110: "asdf-1-110", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:112:
+    // "asdf-1-112"]
     //    SupportsEPIC: false
     //    Status: alive
     //    LocalIP: 127.0.0.1
@@ -364,7 +371,7 @@ class SegmentTiny4bMetadataTest {
     //    PathSeg: size=10
     //    SegInfo:  ts=2025-03-25T16:16:17Z  id=58187
     //    AS: signed=181   signature size=72
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-25T16:16:17.477759096Z  meta=0  data=10
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  ... meta=0  data=10
     //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
     //    HopEntry: true mtu=0
     //    HopField: exp=63 ingress=0 egress=11
@@ -379,7 +386,7 @@ class SegmentTiny4bMetadataTest {
     //    note: asdf-1-110
     //    internal hops: 20 -> 10
     //    AS: signed=216   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-25T16:16:18.980253396Z  meta=0  data=263
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  ... meta=0  data=263
     //    AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:112  mtu=1472
     //    HopEntry: true mtu=1280
     //    HopField: exp=63 ingress=10 egress=12
@@ -395,7 +402,7 @@ class SegmentTiny4bMetadataTest {
     //    note: asdf-1-111
     //    internal hops: 10 -> 11
     //    AS: signed=132   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-25T16:16:20.984887843Z  meta=0  data=550
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  ... meta=0  data=550
     //    AS Body: IA=1-ff00:0:112 nextIA=0-0:0:0  mtu=1472
     //    HopEntry: true mtu=1280
     //    HopField: exp=63 ingress=11 egress=0
