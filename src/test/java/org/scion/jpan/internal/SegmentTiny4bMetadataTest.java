@@ -59,7 +59,6 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testCore_120_110() throws IOException {
-    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_120")) {
 
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
@@ -69,21 +68,10 @@ class SegmentTiny4bMetadataTest {
 
         Daemon.Path path = paths.get(0);
         assertEquals(1, path.getBandwidthList().size());
-        for (Object o : path.getBandwidthList()) {
-          System.out.println("pb: " + o);
-        }
         assertEquals(120, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        System.out.println("LAT: " + path.getLatencyList().get(0));
         assertEquals(120, path.getLatencyList().get(0).getNanos()/1_000_000);
       }
-
-      MockControlServer cs = nw.getControlServer();
-
-      ScionService service = Scion.defaultService();
-
-      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:130"), dstAddress);
-      assertEquals(0, paths.size());
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -140,22 +128,20 @@ class SegmentTiny4bMetadataTest {
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
-        assertEquals(1, path.getBandwidthList().size());
+        RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
+        System.out.println("Path: " + ScionUtil.toStringPath(rp.getRawPath()));
+        System.out.println("Path: " + ScionUtil.toStringPath(rp.getMetadata()));
         for (Object o : path.getBandwidthList()) {
-          System.out.println("pb: " + o);
+          System.out.println("bw: " + o);
         }
+        for (Object o : path.getLatencyList()) {
+          System.out.println("lat: " + o);
+        }
+        assertEquals(1, path.getBandwidthList().size());
         assertEquals(20000, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        System.out.println("LAT: " + path.getLatencyList().get(0));
-        assertEquals(20, path.getLatencyList().get(0).getNanos()/1_000_000);
+        assertEquals(121, path.getLatencyList().get(0).getNanos()/1_000_000);
       }
-
-      MockControlServer cs = nw.getControlServer();
-
-      ScionService service = Scion.defaultService();
-
-      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:130"), dstAddress);
-      assertEquals(0, paths.size());
     }
 
     // scion showpaths 2-ff00:0:220 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -238,6 +224,7 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testUp_112_110() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_112")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_112)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_110);
@@ -245,13 +232,22 @@ class SegmentTiny4bMetadataTest {
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
+        RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
+        System.out.println("Path: " + ScionUtil.toStringPath(rp.getRawPath()));
+        System.out.println("Path: " + ScionUtil.toStringPath(rp.getMetadata()));
+        for (Object o : path.getBandwidthList()) {
+          System.out.println("bw: " + o);
+        }
+        for (Object o : path.getLatencyList()) {
+          System.out.println("lat: " + o);
+        }
         assertEquals(3, path.getBandwidthList().size());
-        assertEquals(512, path.getBandwidthList().get(0));
-        assertEquals(112, path.getBandwidthList().get(1));
-        assertEquals(111, path.getBandwidthList().get(2));
+        assertEquals(112, path.getBandwidthList().get(0));
+        assertEquals(511, path.getBandwidthList().get(1));
+        assertEquals(11000, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
-        assertEquals(12, path.getLatencyList().get(0).getNanos() / 1_000_000);
-        assertEquals(112, path.getLatencyList().get(1).getNanos() / 1_000_000);
+        assertEquals(112, path.getLatencyList().get(0).getNanos() / 1_000_000);
+        assertEquals(12, path.getLatencyList().get(1).getNanos() / 1_000_000);
         assertEquals(111, path.getLatencyList().get(2).getNanos() / 1_000_000);
       }
     }
@@ -336,14 +332,76 @@ class SegmentTiny4bMetadataTest {
           System.out.println("lat: " + o);
         }
         assertEquals(3, path.getBandwidthList().size());
-        assertEquals(512, path.getBandwidthList().get(0));
-        assertEquals(112, path.getBandwidthList().get(1));
-        assertEquals(111, path.getBandwidthList().get(2));
+        assertEquals(11000, path.getBandwidthList().get(0));
+        assertEquals(511, path.getBandwidthList().get(1));
+        assertEquals(112, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
-        assertEquals(12, path.getLatencyList().get(0).getNanos() / 1_000_000);
-        assertEquals(112, path.getLatencyList().get(1).getNanos() / 1_000_000);
-        assertEquals(111, path.getLatencyList().get(2).getNanos() / 1_000_000);
+        assertEquals(111, path.getLatencyList().get(0).getNanos() / 1_000_000);
+        assertEquals(12, path.getLatencyList().get(1).getNanos() / 1_000_000);
+        assertEquals(112, path.getLatencyList().get(2).getNanos() / 1_000_000);
       }
     }
+
+    //$ ./bin/scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:110 --sciond 127.0.0.20:30255 --extended
+    //Available paths to 1-ff00:0:112
+    //3 Hops:
+    //[0] Hops: [1-ff00:0:110 11>10 1-ff00:0:111 12>11 1-ff00:0:112]
+    //    MTU: 1280
+    //    NextHop: 127.0.0.17:31002
+    //    Expires: 2025-03-25 22:12:45 +0000 UTC (5h59m51s)
+    //    Latency: 235ms
+    //    Bandwidth: 111Kbit/s
+    //    Geo: [47.11,42.111 ("geo110-111") > 47.111,42.11 ("geo111-110") > 47.111,62.112 ("geo111-112") > 79.112,45.112 ("geo112-11")]
+    //    LinkType: [direct, direct]
+    //    InternalHops: [1-ff00:0:111: 11]
+    //    Notes: [1-ff00:0:110: "asdf-1-110", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:112: "asdf-1-112"]
+    //    SupportsEPIC: false
+    //    Status: alive
+    //    LocalIP: 127.0.0.1
+
+    //    Requesting segments: 1-ff00:0:110 -> 1-ff00:0:112
+    //    SEG: key=SEGMENT_TYPE_DOWN -> n=1
+    //    PathSeg: size=10
+    //    SegInfo:  ts=2025-03-25T16:16:17Z  id=58187
+    //    AS: signed=181   signature size=72
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-25T16:16:17.477759096Z  meta=0  data=10
+    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:111  mtu=1400
+    //    HopEntry: true mtu=0
+    //    HopField: exp=63 ingress=0 egress=11
+    //    Extensions: true/false/false
+    //    Static: latencies=1/1  bandwidth=1/1  geo=1  interfaces=1  note='asdf-1-110'
+    //    latency intra: 20 -> 10.0 ms
+    //    latency inter: 11 -> 111.0 ms
+    //    bw intra: 20 -> 510
+    //    bw inter: 11 -> 111
+    //    geo: 11 -> lon: 42.111; lat: 47.11; addr: geo110-111
+    //    link types: 11 -> LINK_TYPE_DIRECT
+    //    note: asdf-1-110
+    //    internal hops: 20 -> 10
+    //    AS: signed=216   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-25T16:16:18.980253396Z  meta=0  data=263
+    //    AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:112  mtu=1472
+    //    HopEntry: true mtu=1280
+    //    HopField: exp=63 ingress=10 egress=12
+    //    Extensions: true/false/false
+    //    Static: latencies=1/1  bandwidth=1/1  geo=2  interfaces=1  note='asdf-1-111'
+    //    latency intra: 10 -> 12.0 ms
+    //    latency inter: 12 -> 112.0 ms
+    //    bw intra: 10 -> 512
+    //    bw inter: 12 -> 112
+    //    geo: 10 -> lon: 42.11; lat: 47.111; addr: geo111-110
+    //    geo: 12 -> lon: 62.112; lat: 47.111; addr: geo111-112
+    //    link types: 12 -> LINK_TYPE_DIRECT
+    //    note: asdf-1-111
+    //    internal hops: 10 -> 11
+    //    AS: signed=132   signature size=71
+    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-25T16:16:20.984887843Z  meta=0  data=550
+    //    AS Body: IA=1-ff00:0:112 nextIA=0-0:0:0  mtu=1472
+    //    HopEntry: true mtu=1280
+    //    HopField: exp=63 ingress=11 egress=0
+    //    Extensions: true/false/false
+    //    Static: latencies=0/0  bandwidth=0/0  geo=1  interfaces=0  note='asdf-1-112'
+    //    geo: 11 -> lon: 45.112; lat: 79.112; addr: geo112-11
+    //    note: asdf-1-112
   }
 }

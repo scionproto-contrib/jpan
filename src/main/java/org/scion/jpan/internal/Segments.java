@@ -259,10 +259,8 @@ public class Segments {
       LocalTopology localAS,
       long srcIsdAs,
       long dstIsdAs) {
-    System.out.println("buildPath-50 " + segments.size()); // TODO
     for (PathSegment pathSegment : segments) {
       if (containsIsdAses(pathSegment, srcIsdAs, dstIsdAs)) {
-        System.out.println("buildPath-51"); // TODO
         buildPath(paths, localAS, dstIsdAs, pathSegment);
       }
     }
@@ -520,18 +518,46 @@ public class Segments {
     SegExtensions.StaticInfoExtension sie = ext.getStaticInfo();
     Seg.HopField hopField = body.getHopEntry().getHopField();
     boolean reversed = range[2] == -1;
-    long id1 = reversed ? hopField.getEgress() : hopField.getIngress();
-    long id2 = reversed ? hopField.getIngress() : hopField.getEgress();
+    long id1 = hopField.getEgress();
+    long id2 = hopField.getIngress();
     // Don´t add intra for first hop.
     //    System.out.println("writeMetadata: id1=" + id1 + " id2=" + id2 + " " +
     // ScionUtil.toStringIA(body.getIsdAs())); // TODO
     //    if (pos != range[0]) {
+
+    //    System.out.println(
+    //            "   lat inter?: " + id1 + "  " + sie.getLatency().getInterMap().get(id1)); // TODO
+    //    System.out.println(
+    //            "   bw-inter?: " + id1 + "  " + sie.getBandwidth().getInterMap().get(id1)); // TODO
+    //    System.out.println(
+    //            "   lat inter2?: " + id2 + "  " + sie.getLatency().getInterMap().get(id2)); // TODO
+    //    System.out.println(
+    //            "   bw-inter2?: " + id2 + "  " + sie.getBandwidth().getInterMap().get(id2)); // TODO
+    if (reversed) {
+      if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
+        path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
+      }
+      if (id1 != 0) {
+        Long bw = sie.getBandwidth().getInterMap().get(id1);
+        path.addBandwidth(bw == null ? 0 : bw);
+      }
+    }
 
     if (!sie.getLatency().getIntraMap().isEmpty()) {
       path.addLatency(toDuration(sie.getLatency().getIntraMap().values().iterator().next()));
     }
     if (!sie.getBandwidth().getIntraMap().isEmpty()) {
       path.addBandwidth(sie.getBandwidth().getIntraMap().values().iterator().next());
+    }
+
+    if (!reversed) {
+      if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
+        path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
+      }
+      if (id1 != 0) {
+        Long bw = sie.getBandwidth().getInterMap().get(id1);
+        path.addBandwidth(bw == null ? 0 : bw);
+      }
     }
 
     //    if (id2 != 0 && sie.getLatency().getIntraMap().containsKey(id2)) {
@@ -561,21 +587,7 @@ public class Segments {
       path.addGeo(toGeo(sie.getGeoMap().get(id1)));
     }
     //    }
-    if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
-      path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
-    }
-    System.out.println(
-        "   lat inter?: " + id1 + "  " + sie.getLatency().getInterMap().get(id1)); // TODO
-    System.out.println(
-        "   bw-inter?: " + id1 + "  " + sie.getBandwidth().getInterMap().get(id1)); // TODO
-    System.out.println(
-        "   lat inter2?: " + id2 + "  " + sie.getLatency().getInterMap().get(id2)); // TODO
-    System.out.println(
-        "   bw-inter2?: " + id2 + "  " + sie.getBandwidth().getInterMap().get(id2)); // TODO
-    if (id1 != 0) {
-      Long bw = sie.getBandwidth().getInterMap().get(id1);
-      path.addBandwidth(bw == null ? 0 : bw);
-    }
+
     if (id2 != 0) {
       path.addGeo(toGeo(sie.getGeoMap().get(id2)));
     }

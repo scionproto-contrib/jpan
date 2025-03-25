@@ -1,7 +1,7 @@
 {
     "Bandwidth": {
         "11": {
-            "Inter": 111,
+            "Inter": 11000,
             "Intra": {
                 "20": 510
             }

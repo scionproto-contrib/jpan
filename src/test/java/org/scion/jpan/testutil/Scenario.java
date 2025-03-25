@@ -186,7 +186,6 @@ public class Scenario {
 
     Path infoFile = Paths.get(asPath.toString(), "staticInfoConfig.json");
     if (infoFile.toFile().exists()) {
-      System.out.println("Parsing info file: " + infoFile); // TODO
       parseStaticInfo(topo.getIsdAs(), readFile(infoFile));
     }
   }
@@ -289,7 +288,6 @@ public class Scenario {
         if (linkType.equals(brIf.getLinkTo()) && !visited.contains(brIf.getIsdAs())) {
           Seg.PathSegment.Builder childBuilder =
               Seg.PathSegment.newBuilder(builder.build()); // TODO buildPartial() ?
-          System.out.println("Building 1: " + ScionUtil.toStringIA(isdAs) + " -> " + ScionUtil.toStringIA(rootIsdAs)); // TODO
           buildChild(childBuilder, linkType, rootIsdAs, local, ingress, brIf);
         }
       }
@@ -301,11 +299,7 @@ public class Scenario {
     builder.addAsEntries(ase01);
     boolean isCore = BorderRouterInterface.CORE.equals(linkType);
     segmentDb.add(new SegmentEntry(local.getIsdAs(), rootIsdAs, builder.build(), isCore));
-    System.out.println("Building 2: " + ScionUtil.toStringIA(isdAs) + " -> " + ScionUtil.toStringIA(rootIsdAs)); // TODO
-    println(
-        "Added segment: " + ScionUtil.toStringIA(isdAs) + " -> " + ScionUtil.toStringIA(rootIsdAs));
     SegmentEntry se = segmentDb.get(segmentDb.size() - 1);
-    println("   ASEntries: " + se.segment.getAsEntriesList().size());
 
     StringBuilder sb = new StringBuilder();
     for (Seg.ASEntry ase : se.segment.getAsEntriesList()) {
@@ -319,7 +313,6 @@ public class Scenario {
         sb.append(" ").append(eg).append(" > ");
         sb.append(ScionUtil.toStringIA(b.getNextIsdAs()));
     }
-    System.out.println("Segment: " + sb.toString()); // TODO
   }
 
   private static Seg.HopField buildHopField(int expiry, int ingress, int egress) {
@@ -343,20 +336,9 @@ public class Scenario {
             .setTimestamp(now())
             .build();
 
-    String ia1 = ScionUtil.toStringIA(isdAs);
-    String ia2 = ScionUtil.toStringIA(nextIA);
-
     SegExtensions.PathSegmentExtensions.Builder ext =
         SegExtensions.PathSegmentExtensions.newBuilder();
     if (staticInfo.containsKey(isdAs)) {
-      boolean x =
-              (isdAs == ScionUtil.parseIA("1-ff00:0:110")
-                      && nextIA == ScionUtil.parseIA("1-ff00:0:120"))
-                      || (isdAs == ScionUtil.parseIA("1-ff00:0:120")
-                      && nextIA == ScionUtil.parseIA("1-ff00:0:110"));
-      if (x) {
-        println("      bASE: " + ia1 + " -> " + ia2);
-      }
       Seg.HopField hf = he.getHopField();
       if (reversed) {
         ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getEgress(), hf.getIngress()));
@@ -430,7 +412,6 @@ public class Scenario {
     for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
       switch (e.getKey()) {
         case "Bandwidth":
-          println("Parsing Bandwidth");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
             for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
               if (e3.getKey().equals("Intra")) {
@@ -440,14 +421,12 @@ public class Scenario {
                   bwIn.put(Long.parseLong(e4.getKey()), e4.getValue().getAsLong());
                 }
               } else if (e3.getKey().equals("Inter")) {
-                println("Parsing bw Inter: " + e2.getKey() + " " + e3.getValue().getAsLong());
                 sie.bandwidthInter.put(Long.parseLong(e2.getKey()), e3.getValue().getAsLong());
               }
             }
           }
           break;
         case "Latency":
-          println("Parsing Latency");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
             for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
               if (e3.getKey().equals("Intra")) {
@@ -457,20 +436,17 @@ public class Scenario {
                   latIn.put(Long.parseLong(e4.getKey()), getMicros(e4.getValue()));
                 }
               } else if (e3.getKey().equals("Inter")) {
-                println("Parsing lat Inter: " + e2.getKey() + " " + e3.getValue().getAsString());
                 sie.latencyInter.put(Long.parseLong(e2.getKey()), getMicros(e3.getValue()));
               }
             }
           }
           break;
         case "Linktype":
-          println("Parsing LinkType");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
             sie.linkTypes.put(Long.parseLong(e2.getKey()), toLinkType(e2.getValue().getAsString()));
           }
           break;
         case "Geo":
-          println("Parsing Geo");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
             SegExtensions.GeoCoordinates.Builder gc = SegExtensions.GeoCoordinates.newBuilder();
             for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
@@ -492,7 +468,6 @@ public class Scenario {
           }
           break;
         case "Hops":
-          println("Parsing Hops");
           for (Map.Entry<String, JsonElement> e2 : e.getValue().getAsJsonObject().entrySet()) {
             for (Map.Entry<String, JsonElement> e3 : e2.getValue().getAsJsonObject().entrySet()) {
               if (e3.getKey().equals("Intra")) {
@@ -511,7 +486,6 @@ public class Scenario {
           }
           break;
         case "Note":
-          println("Parsing Notes");
           sie.notes = e.getValue().getAsString();
           break;
         default:

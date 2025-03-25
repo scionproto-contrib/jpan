@@ -61,6 +61,7 @@ public class DemoConstants {
   // ----------------  "tiny4b" network - daemons and control servers  ------------------
   public static final String daemon110_tiny4b = "127.0.0.20:30255";
   public static final String daemon112_tiny4b = "127.0.0.35:30255";
+  public static final String csAddr110_tiny4b = "127.0.0.19:31000";
   public static final String csAddr112_tiny4b = "127.0.0.34:31018";
 
   // ----------------  "default" network - control servers  ------------------------
