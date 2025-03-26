@@ -22,6 +22,7 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
+- BIG: extract testframework into separate project -> reuse by others!
 - More tests on unordered "destinations" in JSON
 - More tests on segment metadata
 - ASK to add latency/bw/geo/notes to SCIERA network!
