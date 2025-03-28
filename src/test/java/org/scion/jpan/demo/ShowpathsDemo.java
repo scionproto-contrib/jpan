@@ -41,7 +41,7 @@ import org.scion.jpan.testutil.MockScmpHandler;
 public class ShowpathsDemo {
 
   public static boolean PRINT = true;
-  public static Network NETWORK = Network.PRODUCTION;
+  public static Network NETWORK = Network.SCION_PROTO;
   public static boolean EXTENDED = true;
 
   public enum Network {
@@ -89,9 +89,9 @@ public class ShowpathsDemo {
         {
           System.setProperty(
               Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-              "topologies/tiny4b/ASff00_0_110/topology.json");
+              "topologies/default/ASff00_0_112/topology.json");
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon110_tiny4b);
-          runDemo(DemoConstants.ia112);
+          runDemo(DemoConstants.ia221);
           break;
         }
       case PRODUCTION:

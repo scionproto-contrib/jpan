@@ -400,6 +400,9 @@ public class Segments {
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
 
+    // Metadata
+    writeMetadata(path, segments, ranges);
+
     paths.checkDuplicatePaths(path);
   }
 
@@ -478,15 +481,6 @@ public class Segments {
 
       // Do this for all except last.
       boolean addInterfaces = pos + range[2] != range[1];
-      System.out.println(
-          "wHF: "
-              + pos
-              + "  aIF="
-              + addInterfaces
-              + "   ->  "
-              + ScionUtil.toStringPath(raw.array())
-              + " "
-              + ScionUtil.toStringIA(body.getIsdAs())); // TODO
       if (addInterfaces) {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
@@ -498,8 +492,10 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
+// TODO        writeMetadata(path, body, range, pib.getId(), pib2.getId());
+      } else {
+// TODO        writeMetadata(path, body, range, -1, -1);
       }
-      writeMetadata(path, body, range);
     }
 
     // expiration
@@ -510,16 +506,25 @@ public class Segments {
   }
 
   private static void writeMetadata(
-      Daemon.Path.Builder path, Seg.ASEntrySignedBody body, int[] range) {
+      Daemon.Path.Builder path, Seg.ASEntrySignedBody body, int[] range, long id3, long id4) {
     SegExtensions.PathSegmentExtensions ext = body.getExtensions();
+    boolean reversed = range[2] == -1;
+    Seg.HopField hopField = body.getHopEntry().getHopField();
+    long id1 = hopField.getEgress();
+    long id2 = hopField.getIngress();
     if (!ext.hasStaticInfo()) {
+      // TODO path.addNotes("");
+      // TODO path.addGeo("");
+      // TODO path.addHops("");
+      if (id1 != 0) {
+        path.addLatency(toDuration(null));
+        path.addBandwidth(0);
+      }
+      path.addLatency(toDuration(null));
+      path.addBandwidth(0);
       return;
     }
     SegExtensions.StaticInfoExtension sie = ext.getStaticInfo();
-    Seg.HopField hopField = body.getHopEntry().getHopField();
-    boolean reversed = range[2] == -1;
-    long id1 = hopField.getEgress();
-    long id2 = hopField.getIngress();
     // Don´t add intra for first hop.
     //    System.out.println("writeMetadata: id1=" + id1 + " id2=" + id2 + " " +
     // ScionUtil.toStringIA(body.getIsdAs())); // TODO
@@ -566,14 +571,31 @@ public class Segments {
     //    if (id2 != 0 && sie.getLatency().getIntraMap().containsKey(id2)) {
     //      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id2)));
     //    }
+    if (id3 != -1 || id4 !=-1) {
+      System.out.println("id3 = " + id3 + " id4 = " + id4); // TODO
+    }
     System.out.println(
         "   lat-intra1? " + id1 + " -> " + sie.getLatency().getIntraMap().get(id1)); // TODO
     System.out.println(
         "   lat-intra2? " + id2 + " -> " + sie.getLatency().getIntraMap().get(id2)); // TODO
+    if (!sie.getLatency().getIntraMap().isEmpty()) {
+      System.out.print("   lat-intra: "); // TODO
+      for (Map.Entry<Long, Integer> o : sie.getLatency().getIntraMap().entrySet()) {
+        System.out.print(o.getKey() + "->" + o.getValue() + ";   "); // TODO
+      }
+      System.out.println(); // TODO
+    }
     System.out.println(
         "   bw-intra1? " + id1 + " -> " + sie.getBandwidth().getIntraMap().get(id1)); // TODO
     System.out.println(
         "   bw-intra2? " + id2 + " -> " + sie.getBandwidth().getIntraMap().get(id2)); // TODO
+    if (!sie.getBandwidth().getIntraMap().isEmpty()) {
+      System.out.print("   bw-intra: "); // TODO
+      for (Map.Entry<Long, Long> o : sie.getBandwidth().getIntraMap().entrySet()) {
+        System.out.print(o.getKey() + "->" + o.getValue() + ";   "); // TODO
+      }
+      System.out.println(); // TODO
+    }
     //      if (sie.getBandwidth().getIntraMap().containsKey(id2)) {
     //        path.addBandwidth(sie.getBandwidth().getIntraMap().get(id2));
     //      }
@@ -597,6 +619,72 @@ public class Segments {
 
     path.addLinkType(toLinkType(sie.getLinkTypeMap().get(id1)));
     path.addNotes(sie.getNote());
+  }
+
+  private static void writeMetadata(Daemon.Path.Builder path,
+                                          PathSegment[] pathSegments,
+                                          int[][] ranges) {
+    // Stitching metadata is not trivial.
+    // Some quirks:
+    // - The segments contain internal bandwidth & latency metadata. However, they contain
+    //   metadata for multiple internal combinations, even for interfaces that are not in the path.
+    //   The reason is that we don't know the "other" interface before stitching.
+    // - The internal metadata is stored as key value pairs, with the "other" interface as key.
+    // - The internal metadata is provided only for UP and DOWN segments. CORE segments do not have
+    //   it.
+
+    int interfacePos = 0;
+    for (int r = 0; r < ranges.length; r++) {
+      int[] range = ranges[r];
+      PathSegment pathSegment = pathSegments[r];
+      for (int pos = range[0]; pos != range[1]; pos += range[2]) {
+        boolean reversed = range[2] == -1;
+        Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
+        Seg.HopEntry hopEntry = body.getHopEntry();
+        Seg.HopField hopField = hopEntry.getHopField();
+
+        // Do this for all except last.
+        boolean addInterfaces = pos + range[2] != range[1];
+        System.out.println(
+                "wHF: "
+                        + pos
+                        + "   ->  "
+                        + ScionUtil.toStringPath(path.getRaw().toByteArray())
+                        + " "
+                        + ScionUtil.toStringIA(body.getIsdAs())
+                        + "  ext:" + body.getExtensions().hasStaticInfo() + "  reversed: " + reversed); // TODO
+        long idX = -1;
+        if (pos == 0 && reversed && r < ranges.length - 1) {
+          // must be UP or CORE
+          if (pathSegment.isCore()) {
+            // CORE followed by DOWN
+          } else {
+            // UP followed by CORE or DOWN
+            idX = path.getInterfaces(interfacePos).getId();
+          }
+        } else if (pos == 0 && !reversed && interfacePos > 0) {
+          // must be DOWN
+          idX = path.getInterfaces(interfacePos - 1).getId();
+        } else {
+          // any other case: just increment by 2
+          interfacePos +=2;
+        }
+
+        //if (addInterfaces) {
+//        if (interfacePos + 1 < path.getInterfacesCount()) {
+//          long id3 = path.getInterfaces(interfacePos).getId();
+//          long id4 = path.getInterfaces(interfacePos + 1).getId();
+//          writeMetadata(path, body, range, id3, id4);
+//        } else if (interfacePos < path.getInterfacesCount()) {
+//          long id3 = path.getInterfaces(interfacePos).getId();
+//          writeMetadata(path, body, range, id3, -1);
+//        } else {
+//          writeMetadata(path, body, range, -1, -1);
+//        }
+          writeMetadata(path, body, range, idX, -1);
+
+      }
+    }
   }
 
   private static Duration toDuration(Integer micros) {

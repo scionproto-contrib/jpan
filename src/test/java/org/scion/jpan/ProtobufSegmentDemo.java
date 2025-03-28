@@ -41,8 +41,8 @@ public class ProtobufSegmentDemo {
     // demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(ScionUtil.toWildcard(iaETH), ScionUtil.toWildcard(iaAnapayaHK));
     // ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_minimal);
-    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr110_tiny4b);
-    demo.getSegments(ia110, ScionUtil.parseIA("1-ff00:0:112"));
+    ProtobufSegmentDemo demo = new ProtobufSegmentDemo(csAddr112_default);
+    demo.getSegments(ia112, ScionUtil.parseIA("2-ff00:0:221"));
     // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));

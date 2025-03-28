@@ -20,6 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockNetwork2;
@@ -118,7 +121,7 @@ class PathMetadataTest {
       assertEquals(501, meta.getInterfacesList().get(1).getId());
 
       assertEquals(1, meta.getBandwidthList().size());
-      assertEquals(100, meta.getBandwidthList().get(0));
+      assertEquals(120220, meta.getBandwidthList().get(0));
 
       assertEquals(1, meta.getLatencyList().size());
       assertEquals(102, meta.getLatencyList().get(0));
@@ -460,18 +463,29 @@ class PathMetadataTest {
         System.out.println("pb: " + o);
       }
       assertEquals(7, meta.getBandwidthList().size());
-      assertEquals(11200, meta.getBandwidthList().get(2));
-      assertEquals(40, meta.getBandwidthList().get(1));
-      assertEquals(11100, meta.getBandwidthList().get(0));
+      assertEquals(11200, meta.getBandwidthList().get(0));
+      assertEquals(50, meta.getBandwidthList().get(1));
+      assertEquals(11100, meta.getBandwidthList().get(2));
+      assertEquals(50, meta.getBandwidthList().get(3));
+      assertEquals(120220, meta.getBandwidthList().get(4));
+      assertEquals(50, meta.getBandwidthList().get(5));
+      assertEquals(220221, meta.getBandwidthList().get(6));
 
       for (Object o : meta.getLatencyList()) {
         System.out.println("pl: " + o);
       }
       assertEquals(7, meta.getLatencyList().size());
-      assertEquals(112, meta.getLatencyList().get(2));
-      assertEquals(84, meta.getLatencyList().get(1));
-      assertEquals(111, meta.getLatencyList().get(0));
+      assertEquals(112, meta.getLatencyList().get(0));
+      assertEquals(50, meta.getLatencyList().get(1));
+      assertEquals(111, meta.getLatencyList().get(2));
+      assertEquals(50, meta.getLatencyList().get(3));
+      assertEquals(102, meta.getLatencyList().get(4));
+      assertEquals(50, meta.getLatencyList().get(5));
+      assertEquals(101, meta.getLatencyList().get(6));
+
+      assertEqual(new String[] {"asdf-1-112", "asdf-1-111", "asdf-1-120", "asdf-2-220", "asdf-2-212"}, meta.getNotesList().stream());
     }
+    // 494>103 104>5 2>501
 
     // scion showpaths 2-ff00:0:221 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
     // Available paths to 2-ff00:0:221
@@ -547,6 +561,14 @@ class PathMetadataTest {
     // ...
   }
 
+  private void assertEqual(String[] expected, Stream<String> actual) {
+    List<String> list = actual.collect(Collectors.toList());
+    assertEquals(expected.length, list.size());
+    for (int i = 0; i < expected.length; i++) {
+      assertEquals(expected[i], list.get(i));
+    }
+  }
+
   @Test
   void testUpCoreDown112_222() {
     // scion showpaths 2-ff00:0:222 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
@@ -584,4 +606,136 @@ class PathMetadataTest {
     // ..
 
   }
+
+
+  @Test
+  void testUpCoreDown_tiny4b_112_121() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/tiny4b/", "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:121"), dstAddress);
+      assertEquals(1, paths.size());
+      for (Path path : paths) {
+        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
+      }
+      Path path = paths.get(0);
+//      Path path = null;
+//      for (Path p : paths) {
+//        PathMetadata meta = p.getMetadata();
+//        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
+//        System.out.println("meta: " + list.size() + "  "+  list.get(0).getId() + "  "+  list.get(4).getId());
+//        if (list.size() == 8 && list.get(0).getId() == 494 && list.get(4).getId() == 2) {
+//          path = p;
+//        }
+//      }
+//      assertNotNull(path);
+      PathMetadata meta = path.getMetadata();
+      assertEquals(8, meta.getInterfacesList().size());
+      for (PathMetadata.PathInterface o : meta.getInterfacesList()) {
+        System.out.println("if: " + o.getId());
+      }
+      // TODO assert IsdAs
+      assertEquals(11, meta.getInterfacesList().get(0).getId());
+      assertEquals(12, meta.getInterfacesList().get(1).getId());
+      assertEquals(10, meta.getInterfacesList().get(2).getId());
+      assertEquals(11, meta.getInterfacesList().get(3).getId());
+      assertEquals(20, meta.getInterfacesList().get(4).getId());
+      assertEquals(10, meta.getInterfacesList().get(5).getId());
+      assertEquals(21, meta.getInterfacesList().get(6).getId());
+      assertEquals(20, meta.getInterfacesList().get(7).getId());
+      for (Object o : meta.getBandwidthList()) {
+        System.out.println("pb: " + o);
+      }
+      assertEquals(7, meta.getBandwidthList().size());
+      assertEquals(11200, meta.getBandwidthList().get(0));
+      assertEquals(40, meta.getBandwidthList().get(1));
+      assertEquals(11100, meta.getBandwidthList().get(2));
+
+      for (Object o : meta.getLatencyList()) {
+        System.out.println("pl: " + o);
+      }
+      assertEquals(7, meta.getLatencyList().size());
+      assertEquals(112, meta.getLatencyList().get(0));
+      assertEquals(84, meta.getLatencyList().get(1));
+      assertEquals(111, meta.getLatencyList().get(2));
+
+      assertEquals(new String[] {"asdf-1-112", "asdf-1-111", "asdf-1-120", "asdf-2-220", "asdf-2-212"}, meta.getNotesList());
+    }
+    // 494>103 104>5 2>501
+
+    // scion showpaths 2-ff00:0:221 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
+    // Available paths to 2-ff00:0:221
+    // 5 Hops:
+    // [0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 2>501 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
+    //    MTU: 1350
+    //    NextHop: 127.0.0.58:31034
+    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h56m53s)
+    //    Latency: 595ms
+    //    Bandwidth: 40Kbit/s
+    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") >
+    // 79.12,45.2 ("geo120-5") > 79.12,45.2 ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2
+    // ("geo220#500") > 79.2,45.2 ("geo212-2")]
+    //    LinkType: [multihop, direct, opennet, direct]
+    //    InternalHops: [1-ff00:0:111: 4, 1-ff00:0:120: 5, 2-ff00:0:220: 2]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120:
+    // "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    SupportsEPIC: false
+    //    Status: alive
+    //    LocalIP: 127.0.0.1
+    // [1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 3>502 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
+    //    MTU: 1400
+    //    NextHop: 127.0.0.58:31034
+    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h56m53s)
+    //    Latency: 636ms
+    //    Bandwidth: 40Kbit/s
+    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104") >
+    // 79.12,45.2 ("geo120-5") > 47.12,42.23 ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2
+    // ("geo220#500") > 79.2,45.2 ("geo212-2")]
+    //    LinkType: [multihop, direct, multihop, direct]
+    //    InternalHops: [1-ff00:0:111: 4, 1-ff00:0:120: 5, 2-ff00:0:220: 3]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120:
+    // "asdf-1-120", 2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    SupportsEPIC: false
+    //    Status: alive
+    //    LocalIP: 127.0.0.1
+    // [2] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 2>501 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
+    //    MTU: 1350
+    //    NextHop: 127.0.0.57:31032
+    //    Expires: 2025-03-19 22:15:33 +0000 UTC (5h56m54s)
+    //    Latency: >404ms (information incomplete)
+    //    Bandwidth: 50Kbit/s (information incomplete)
+    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 79.12,45.2
+    // ("geo120-2") > 79.2,45.2 ("geo220#501") > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo212-2")]
+    //    LinkType: [unset, direct, opennet, direct]
+    //    InternalHops: [1-ff00:0:120: 2, 2-ff00:0:220: 2]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220:
+    // "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    SupportsEPIC: false
+    //    Status: alive
+    //    LocalIP: 127.0.0.1
+    // [3] Hops: [1-ff00:0:112 495>113 1-ff00:0:130 105>1 1-ff00:0:120 3>502 2-ff00:0:220 500>2
+    // 2-ff00:0:221]
+    //    MTU: 1400
+    //    NextHop: 127.0.0.57:31032
+    //    Expires: 2025-03-19 22:15:33 +0000 UTC (5h56m54s)
+    //    Latency: >465ms (information incomplete)
+    //    Bandwidth: 80Kbit/s (information incomplete)
+    //    Geo: [79.2,45.2 ("geo112-495") > N/A > N/A > 47.12,62.2 ("geo120-1") > 47.12,42.23
+    // ("geo120-3") > 47.22,42.23 ("geo220#502") > 47.2,62.2 ("geo220#500") > 79.2,45.2
+    // ("geo212-2")]
+    //    LinkType: [unset, direct, multihop, direct]
+    //    InternalHops: [1-ff00:0:120: 3, 2-ff00:0:220: 3]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:120: "asdf-1-120", 2-ff00:0:220:
+    // "asdf-2-220", 2-ff00:0:221: "asdf-2-212"]
+    //    SupportsEPIC: false
+    //    Status: alive
+    //    LocalIP: 127.0.0.1
+    // 6 Hops:
+    // ...
+  }
+
 }

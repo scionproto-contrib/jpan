@@ -64,7 +64,7 @@ public class Scenario {
     private final Map<Long, Map<Long, Integer>> internalHops = new HashMap<>();
     private String notes;
 
-    SegExtensions.StaticInfoExtension build(long id1, long id2) {
+    SegExtensions.StaticInfoExtension build(long id1, long id2, boolean addAllIntraData) {
       SegExtensions.StaticInfoExtension.Builder builder =
           SegExtensions.StaticInfoExtension.newBuilder();
       SegExtensions.LatencyInfo.Builder lb = SegExtensions.LatencyInfo.newBuilder();
@@ -73,9 +73,26 @@ public class Scenario {
         lb.putInter(id2, latencyInter.get(id2));
         bb.putInter(id2, bandwidthInter.get(id2));
       }
-      if (id1 > 0 && id2 > 0) {
-        lb.putIntra(id2, latencyIntra.get(id2).get(id1));
-        bb.putIntra(id2, bandwidthIntra.get(id2).get(id1));
+      if (addAllIntraData) {
+        System.out.println("Addding: " + id1 + " / " + id2 + "     size=" + latencyIntra.size() + "/" + bandwidthIntra.size());
+        for (Map.Entry<Long, Integer> e : latencyIntra.get(id2).entrySet()) {
+          // TODO if UP, remove interfaces leading to other CORE segments.
+          //   E.g. default 112->120: remove IF 105 from 111
+        //  if (e.getKey() != id1) {
+
+            lb.putIntra(e.getKey(), e.getValue());
+        //  }
+        }
+        for (Map.Entry<Long, Long> e : bandwidthIntra.get(id2).entrySet()) {
+        //  if (e.getKey() != id1) {
+            bb.putIntra(e.getKey(), e.getValue());
+        //  }
+        }
+      } else {
+        if (id1 > 0 && id2 > 0) {
+          lb.putIntra(id2, latencyIntra.get(id2).get(id1));
+          bb.putIntra(id2, bandwidthIntra.get(id2).get(id1));
+        }
       }
       builder.setLatency(lb);
       builder.setBandwidth(bb);
@@ -250,7 +267,8 @@ public class Scenario {
       int prevIngress,
       BorderRouterInterface parentIf) {
     LocalTopology local = topologies.get(parentIf.getIsdAs());
-    boolean reversed = false;
+    boolean reversed = false; // TODO ?????
+    boolean isCore = BorderRouterInterface.CORE.equals(linkType);
     long isdAs = local.getIsdAs();
     PRINT =
         (isdAs == ScionUtil.parseIA("1-ff00:0:110")
@@ -261,7 +279,7 @@ public class Scenario {
     // Build ingoing entry
     Seg.HopEntry he0 = buildHopEntry(0, buildHopField(63, prevIngress, parentIf.getId()));
     Seg.ASEntry as0 =
-        buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed);
+        buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed, isCore, true);
     builder.addAsEntries(as0);
 
     Set<Long> visited =
@@ -297,9 +315,8 @@ public class Scenario {
 
     // Add ingress interface
     Seg.HopEntry he01 = buildHopEntry(parentIf.getMtu(), buildHopField(63, ingress, 0));
-    Seg.ASEntry ase01 = buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01, reversed);
+    Seg.ASEntry ase01 = buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01, reversed, isCore, false);
     builder.addAsEntries(ase01);
-    boolean isCore = BorderRouterInterface.CORE.equals(linkType);
     segmentDb.add(new SegmentEntry(local.getIsdAs(), rootIsdAs, builder.build(), isCore));
     SegmentEntry se = segmentDb.get(segmentDb.size() - 1);
 
@@ -332,7 +349,13 @@ public class Scenario {
   }
 
   private Seg.ASEntry buildASEntry(
-      long isdAs, long nextIA, int mtu, Seg.HopEntry he, boolean reversed) {
+      long isdAs,
+      long nextIA,
+      int mtu,
+      Seg.HopEntry he,
+      boolean reversed,
+      boolean isCore,
+      boolean isFirst) {
     Signed.Header header =
         Signed.Header.newBuilder()
             .setSignatureAlgorithm(Signed.SignatureAlgorithm.SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256)
@@ -341,12 +364,21 @@ public class Scenario {
 
     SegExtensions.PathSegmentExtensions.Builder ext =
         SegExtensions.PathSegmentExtensions.newBuilder();
+    System.out.println("Building: " + Long.toHexString(isdAs) + " / " + Long.toHexString(nextIA));
     if (staticInfo.containsKey(isdAs)) {
       Seg.HopField hf = he.getHopField();
+      boolean addAllIntraData = false;
+//      if (nextIA == 0 && reversed && !isCore) {
+//        addAllIntraData = true;
+//      } else if (!reversed && isFirst) {
+//        // TODO can we derive "isFirst" from id1/id2?
+//        addAllIntraData = true;
+//      }
+      addAllIntraData = !isCore && isFirst;
       if (reversed) {
-        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getEgress(), hf.getIngress()));
+        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getEgress(), hf.getIngress(), addAllIntraData));
       } else {
-        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress()));
+        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress(), addAllIntraData));
       }
     }
 

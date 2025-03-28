@@ -37,6 +37,7 @@ public class DemoConstants {
   public static final long ia210 = ScionUtil.parseIA("2-ff00:0:210");
   public static final long ia211 = ScionUtil.parseIA("2-ff00:0:211");
   public static final long ia220 = ScionUtil.parseIA("2-ff00:0:220");
+  public static final long ia221 = ScionUtil.parseIA("2-ff00:0:221");
 
   // ----------------  "minimal" network - daemons and control servers  ---------------
   public static final String daemon110_minimal = "127.0.0.29:30255";
@@ -66,6 +67,7 @@ public class DemoConstants {
 
   // ----------------  "default" network - control servers  ------------------------
   public static final String daemon110_default = "[fd00:f00d:cafe::7f00:15]:30255";
+  public static final String daemon112_default = "127.0.0.60:30255";
   public static final String csAddr110_default = "[fd00:f00d:cafe::7f00:14]:31000";
   public static final String csAddr111_default = "[fd00:f00d:cafe::7f00:1c]:31022";
   public static final String csAddr112_default = "127.0.0.59:31030";
