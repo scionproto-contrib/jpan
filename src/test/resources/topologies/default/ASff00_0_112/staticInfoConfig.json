@@ -1,7 +1,7 @@
 {
     "Bandwidth": {
         "494": {
-            "Inter": 49400,
+            "Inter": 11200,
             "Intra": {
                 "495": 4940
             }
@@ -15,7 +15,7 @@
     },
     "Latency": {
         "494": {
-            "Inter": "94ms",
+            "Inter": "112ms",
             "Intra": {
                 "495": "55ms"
             }

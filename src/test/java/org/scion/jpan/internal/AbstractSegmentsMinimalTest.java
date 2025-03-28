@@ -65,6 +65,7 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static final long AS_210 = ScionUtil.parseIA("2-ff00:0:210");
 
   protected static final long AS_220 = ScionUtil.parseIA("2-ff00:0:220");
+  protected static final long AS_221 = ScionUtil.parseIA("2-ff00:0:221");
 
   /** ISD 2 - non-core AS */
   protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
@@ -196,6 +197,9 @@ public abstract class AbstractSegmentsMinimalTest {
     addCore(AS_120, AS_110);
 
     addCore(AS_120, AS_220);
+    addCore(AS_220, AS_120);
+
+    addUpDown(AS_221, AS_220);
   }
 
   protected void addResponsesScionprotoTiny4() {

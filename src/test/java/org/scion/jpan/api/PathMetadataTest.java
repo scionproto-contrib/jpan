@@ -15,42 +15,16 @@
 package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.testutil.MockControlServer;
-import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
 class PathMetadataTest {
-
-  @BeforeEach
-  void beforeEach() {
-    MockNetwork.startTiny();
-  }
-
-  @AfterEach
-  void afterEach() {
-    MockNetwork.stopTiny();
-  }
-
-  @Test
-  void test() {
-    MockControlServer cs = MockControlServer.start(12345);
-    Seg.SegmentsResponse.Builder respUp = Seg.SegmentsResponse.newBuilder();
-    Seg.SegmentsResponse.Segments.Builder segUp = Seg.SegmentsResponse.Segments.newBuilder();
-    Seg.PathSegment.Builder pSegUp = Seg.PathSegment.newBuilder();
-    // pSegUp.setSegmentInfo();
-    segUp.addSegments(pSegUp.build());
-    respUp.putSegments(Seg.SegmentType.SEGMENT_TYPE_UP_VALUE, segUp.build());
-    // TODO cs.addResponse();
-  }
 
   @Test
   void testCore_120_110() {
@@ -69,10 +43,9 @@ class PathMetadataTest {
       assertEquals(6, meta.getInterfacesList().get(0).getId());
       assertEquals(1, meta.getInterfacesList().get(1).getId());
       assertEquals(1, meta.getBandwidthList().size());
-      for (Object o : meta.getBandwidthList()) {
-        System.out.println("pb: " + o);
-      }
       assertEquals(100, meta.getBandwidthList().get(0));
+      assertEquals(1, meta.getLatencyList().size());
+      assertEquals(101, meta.getLatencyList().get(0));
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -122,6 +95,35 @@ class PathMetadataTest {
 
   @Test
   void testCore_120_220() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_120")) {
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:220"), dstAddress);
+      assertEquals(4, paths.size());
+      for (Path path : paths) {
+        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
+      }
+      Path path = null;
+      for (Path p : paths) {
+        PathMetadata meta = p.getMetadata();
+        if (meta.getInterfacesList().size() == 2 && meta.getInterfacesList().get(0).getId() == 2) {
+          path = p;
+        }
+      }
+      assertNotNull(path);
+      PathMetadata meta = path.getMetadata();
+      assertEquals(2, meta.getInterfacesList().size());
+      assertEquals(2, meta.getInterfacesList().get(0).getId());
+      assertEquals(501, meta.getInterfacesList().get(1).getId());
+
+      assertEquals(1, meta.getBandwidthList().size());
+      assertEquals(100, meta.getBandwidthList().get(0));
+
+      assertEquals(1, meta.getLatencyList().size());
+      assertEquals(102, meta.getLatencyList().get(0));
+    }
+
     // scion showpaths 2-ff00:0:220 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
     // Available paths to 2-ff00:0:220
     // 2 Hops:
@@ -206,6 +208,47 @@ class PathMetadataTest {
 
   @Test
   void testUp_112_120() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:120"), dstAddress);
+      assertEquals(9, paths.size());
+      for (Path path : paths) {
+        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
+      }
+      Path path = null;
+      for (Path p : paths) {
+        PathMetadata meta = p.getMetadata();
+        System.out.println("meta: " + meta.getInterfacesList().size() + "  "+  meta.getInterfacesList().get(0).getId());
+        if (meta.getInterfacesList().size() == 4 && meta.getInterfacesList().get(0).getId() == 494) {
+          path = p;
+        }
+      }
+      assertNotNull(path);
+      PathMetadata meta = path.getMetadata();
+      assertEquals(4, meta.getInterfacesList().size());
+      assertEquals(494, meta.getInterfacesList().get(0).getId());
+      assertEquals(103, meta.getInterfacesList().get(1).getId());
+      assertEquals(104, meta.getInterfacesList().get(2).getId());
+      assertEquals(5, meta.getInterfacesList().get(3).getId());
+      for (Object o : meta.getBandwidthList()) {
+        System.out.println("pb: " + o);
+      }
+      assertEquals(3, meta.getBandwidthList().size());
+      assertEquals(11200, meta.getBandwidthList().get(0));
+      assertEquals(40, meta.getBandwidthList().get(1));
+      assertEquals(11100, meta.getBandwidthList().get(2));
+
+      for (Object o : meta.getLatencyList()) {
+        System.out.println("pb: " + o);
+      }
+      assertEquals(3, meta.getLatencyList().size());
+      assertEquals(112, meta.getLatencyList().get(0));
+      assertEquals(84, meta.getLatencyList().get(1));
+      assertEquals(111, meta.getLatencyList().get(2));
+    }
+
     // scion showpaths 1-ff00:0:120 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
     // Available paths to 1-ff00:0:120
     // 3 Hops:
@@ -242,6 +285,47 @@ class PathMetadataTest {
 
   @Test
   void testDown_120_112() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_120")) {
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:112"), dstAddress);
+      assertEquals(9, paths.size());
+      for (Path path : paths) {
+        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
+      }
+      Path path = null;
+      for (Path p : paths) {
+        PathMetadata meta = p.getMetadata();
+        System.out.println("meta: " + meta.getInterfacesList().size() + "  "+  meta.getInterfacesList().get(0).getId());
+        if (meta.getInterfacesList().size() == 4 && meta.getInterfacesList().get(0).getId() == 5) {
+          path = p;
+        }
+      }
+      assertNotNull(path);
+      PathMetadata meta = path.getMetadata();
+      assertEquals(4, meta.getInterfacesList().size());
+      assertEquals(494, meta.getInterfacesList().get(3).getId());
+      assertEquals(103, meta.getInterfacesList().get(2).getId());
+      assertEquals(104, meta.getInterfacesList().get(1).getId());
+      assertEquals(5, meta.getInterfacesList().get(0).getId());
+      for (Object o : meta.getBandwidthList()) {
+        System.out.println("pb: " + o);
+      }
+      assertEquals(3, meta.getBandwidthList().size());
+      assertEquals(11200, meta.getBandwidthList().get(2));
+      assertEquals(40, meta.getBandwidthList().get(1));
+      assertEquals(11100, meta.getBandwidthList().get(0));
+
+      for (Object o : meta.getLatencyList()) {
+        System.out.println("pb: " + o);
+      }
+      assertEquals(3, meta.getLatencyList().size());
+      assertEquals(112, meta.getLatencyList().get(2));
+      assertEquals(84, meta.getLatencyList().get(1));
+      assertEquals(111, meta.getLatencyList().get(0));
+    }
+
     // scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
     // Available paths to 1-ff00:0:112
     // 3 Hops:
@@ -343,6 +427,52 @@ class PathMetadataTest {
 
   @Test
   void testUpCoreDown_112_221() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:221"), dstAddress);
+      assertEquals(4, paths.size());
+      for (Path path : paths) {
+        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
+      }
+      Path path = null;
+      for (Path p : paths) {
+        PathMetadata meta = p.getMetadata();
+        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
+        System.out.println("meta: " + list.size() + "  "+  list.get(0).getId() + "  "+  list.get(4).getId());
+        if (list.size() == 8 && list.get(0).getId() == 494 && list.get(4).getId() == 2) {
+          path = p;
+        }
+      }
+      assertNotNull(path);
+      PathMetadata meta = path.getMetadata();
+      assertEquals(8, meta.getInterfacesList().size());
+      assertEquals(494, meta.getInterfacesList().get(0).getId());
+      assertEquals(103, meta.getInterfacesList().get(1).getId());
+      assertEquals(104, meta.getInterfacesList().get(2).getId());
+      assertEquals(5, meta.getInterfacesList().get(3).getId());
+      assertEquals(2, meta.getInterfacesList().get(4).getId());
+      assertEquals(501, meta.getInterfacesList().get(5).getId());
+      assertEquals(500, meta.getInterfacesList().get(6).getId());
+      assertEquals(2, meta.getInterfacesList().get(7).getId());
+      for (Object o : meta.getBandwidthList()) {
+        System.out.println("pb: " + o);
+      }
+      assertEquals(7, meta.getBandwidthList().size());
+      assertEquals(11200, meta.getBandwidthList().get(2));
+      assertEquals(40, meta.getBandwidthList().get(1));
+      assertEquals(11100, meta.getBandwidthList().get(0));
+
+      for (Object o : meta.getLatencyList()) {
+        System.out.println("pl: " + o);
+      }
+      assertEquals(7, meta.getLatencyList().size());
+      assertEquals(112, meta.getLatencyList().get(2));
+      assertEquals(84, meta.getLatencyList().get(1));
+      assertEquals(111, meta.getLatencyList().get(0));
+    }
+
     // scion showpaths 2-ff00:0:221 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
     // Available paths to 2-ff00:0:221
     // 5 Hops:
