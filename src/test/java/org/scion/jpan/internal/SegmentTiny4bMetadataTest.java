@@ -139,7 +139,7 @@ class SegmentTiny4bMetadataTest {
           System.out.println("lat: " + o);
         }
         assertEquals(1, path.getBandwidthList().size());
-        assertEquals(20000, path.getBandwidthList().get(0));
+        assertEquals(120121, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
         assertEquals(121, path.getLatencyList().get(0).getNanos() / 1_000_000);
       }
@@ -243,9 +243,9 @@ class SegmentTiny4bMetadataTest {
           System.out.println("lat: " + o);
         }
         assertEquals(3, path.getBandwidthList().size());
-        assertEquals(112, path.getBandwidthList().get(0));
+        assertEquals(112111, path.getBandwidthList().get(0));
         assertEquals(511, path.getBandwidthList().get(1));
-        assertEquals(11000, path.getBandwidthList().get(2));
+        assertEquals(111110, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
         assertEquals(112, path.getLatencyList().get(0).getNanos() / 1_000_000);
         assertEquals(12, path.getLatencyList().get(1).getNanos() / 1_000_000);
@@ -337,9 +337,9 @@ class SegmentTiny4bMetadataTest {
           System.out.println("lat: " + o);
         }
         assertEquals(3, path.getBandwidthList().size());
-        assertEquals(11000, path.getBandwidthList().get(0));
+        assertEquals(111110, path.getBandwidthList().get(0));
         assertEquals(511, path.getBandwidthList().get(1));
-        assertEquals(112, path.getBandwidthList().get(2));
+        assertEquals(112111, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
         assertEquals(111, path.getLatencyList().get(0).getNanos() / 1_000_000);
         assertEquals(12, path.getLatencyList().get(1).getNanos() / 1_000_000);
