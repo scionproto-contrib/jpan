@@ -65,7 +65,6 @@ public class Scenario {
     private String notes;
 
     SegExtensions.StaticInfoExtension build(long id1, long id2, boolean addAllIntraData) {
-      System.out.println("  Building: " + id1 + " / " + id2);
       SegExtensions.StaticInfoExtension.Builder builder =
           SegExtensions.StaticInfoExtension.newBuilder();
       SegExtensions.LatencyInfo.Builder lb = SegExtensions.LatencyInfo.newBuilder();
@@ -75,19 +74,13 @@ public class Scenario {
         bb.putInter(id2, bandwidthInter.get(id2));
       }
       if (addAllIntraData) {
-        System.out.println("  Addding: " + id1 + " / " + id2 + "     size=" + latencyIntra.size() + "/" + bandwidthIntra.size());
         for (Map.Entry<Long, Integer> e : latencyIntra.get(id2).entrySet()) {
           // TODO if UP, remove interfaces leading to other CORE segments.
           //   E.g. default 112->120: remove IF 105 from 111
-        //  if (e.getKey() != id1) {
-
-            lb.putIntra(e.getKey(), e.getValue());
-        //  }
+          lb.putIntra(e.getKey(), e.getValue());
         }
         for (Map.Entry<Long, Long> e : bandwidthIntra.get(id2).entrySet()) {
-        //  if (e.getKey() != id1) {
-            bb.putIntra(e.getKey(), e.getValue());
-        //  }
+          bb.putIntra(e.getKey(), e.getValue());
         }
       } else {
         if (id1 > 0 && id2 > 0) {
@@ -103,25 +96,11 @@ public class Scenario {
       if (geo.containsKey(id2)) {
         builder.putGeo(id2, geo.get(id2));
       }
-//      if (internalHops.containsKey(id1) && internalHops.get(id1).containsKey(id2)) {
-//        builder.putInternalHops(id2, internalHops.get(id1).get(id2));
-//      }
-      System.out.println("  hop: " + id1 + " -> " + id2 + " = " + internalHops.containsKey(id2));
-      if (internalHops.containsKey(id2)) {
-        System.out.println("    hop: " + id1 + " -> " + id2 + " = " + internalHops.get(id2).containsKey(id1));
-      } else {
-        for (Map.Entry<Long, Map<Long, Integer>> e : internalHops.entrySet()) {
-          System.out.println("    ---- hop: " + e.getKey() + " -> " + e.getValue());
-        }
-      }
       if (addAllIntraData) {
         for (Map.Entry<Long, Integer> e : internalHops.get(id2).entrySet()) {
           // TODO if UP, remove interfaces leading to other CORE segments.
           //   E.g. default 112->120: remove IF 105 from 111
-          //  if (e.getKey() != id1) {
-
           builder.putInternalHops(e.getKey(), e.getValue());
-          //  }
         }
       } else {
         if (internalHops.containsKey(id2) && internalHops.get(id2).containsKey(id1)) {
@@ -302,7 +281,8 @@ public class Scenario {
     // Build ingoing entry
     Seg.HopEntry he0 = buildHopEntry(0, buildHopField(63, prevIngress, parentIf.getId()));
     Seg.ASEntry as0 =
-        buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed, isCore, true);
+        buildASEntry(
+            prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed, isCore, true);
     builder.addAsEntries(as0);
 
     Set<Long> visited =
@@ -338,7 +318,8 @@ public class Scenario {
 
     // Add ingress interface
     Seg.HopEntry he01 = buildHopEntry(parentIf.getMtu(), buildHopField(63, ingress, 0));
-    Seg.ASEntry ase01 = buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01, reversed, isCore, false);
+    Seg.ASEntry ase01 =
+        buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01, reversed, isCore, false);
     builder.addAsEntries(ase01);
     segmentDb.add(new SegmentEntry(local.getIsdAs(), rootIsdAs, builder.build(), isCore));
     SegmentEntry se = segmentDb.get(segmentDb.size() - 1);
@@ -387,21 +368,22 @@ public class Scenario {
 
     SegExtensions.PathSegmentExtensions.Builder ext =
         SegExtensions.PathSegmentExtensions.newBuilder();
-    System.out.println("Building: " + Long.toHexString(isdAs) + " / " + Long.toHexString(nextIA));
     if (staticInfo.containsKey(isdAs)) {
       Seg.HopField hf = he.getHopField();
       boolean addAllIntraData = false;
-//      if (nextIA == 0 && reversed && !isCore) {
-//        addAllIntraData = true;
-//      } else if (!reversed && isFirst) {
-//        // TODO can we derive "isFirst" from id1/id2?
-//        addAllIntraData = true;
-//      }
+      //      if (nextIA == 0 && reversed && !isCore) {
+      //        addAllIntraData = true;
+      //      } else if (!reversed && isFirst) {
+      //        // TODO can we derive "isFirst" from id1/id2?
+      //        addAllIntraData = true;
+      //      }
       addAllIntraData = !isCore && isFirst;
       if (reversed) {
-        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getEgress(), hf.getIngress(), addAllIntraData));
+        ext.setStaticInfo(
+            staticInfo.get(isdAs).build(hf.getEgress(), hf.getIngress(), addAllIntraData));
       } else {
-        ext.setStaticInfo(staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress(), addAllIntraData));
+        ext.setStaticInfo(
+            staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress(), addAllIntraData));
       }
     }
 

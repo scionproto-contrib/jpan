@@ -130,14 +130,6 @@ class SegmentTiny4bMetadataTest {
 
         Daemon.Path path = paths.get(0);
         RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
-        System.out.println("Path: " + ScionUtil.toStringPath(rp.getRawPath()));
-        System.out.println("Path: " + ScionUtil.toStringPath(rp.getMetadata()));
-        for (Object o : path.getBandwidthList()) {
-          System.out.println("bw: " + o);
-        }
-        for (Object o : path.getLatencyList()) {
-          System.out.println("lat: " + o);
-        }
         assertEquals(1, path.getBandwidthList().size());
         assertEquals(120121, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
@@ -234,14 +226,6 @@ class SegmentTiny4bMetadataTest {
 
         Daemon.Path path = paths.get(0);
         RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
-        System.out.println("Path: " + ScionUtil.toStringPath(rp.getRawPath()));
-        System.out.println("Path: " + ScionUtil.toStringPath(rp.getMetadata()));
-        for (Object o : path.getBandwidthList()) {
-          System.out.println("bw: " + o);
-        }
-        for (Object o : path.getLatencyList()) {
-          System.out.println("lat: " + o);
-        }
         assertEquals(3, path.getBandwidthList().size());
         assertEquals(112111, path.getBandwidthList().get(0));
         assertEquals(511, path.getBandwidthList().get(1));
@@ -328,14 +312,6 @@ class SegmentTiny4bMetadataTest {
 
         Daemon.Path path = paths.get(0);
         RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
-        System.out.println("Path: " + ScionUtil.toStringPath(rp.getRawPath()));
-        System.out.println("Path: " + ScionUtil.toStringPath(rp.getMetadata()));
-        for (Object o : path.getBandwidthList()) {
-          System.out.println("bw: " + o);
-        }
-        for (Object o : path.getLatencyList()) {
-          System.out.println("lat: " + o);
-        }
         assertEquals(3, path.getBandwidthList().size());
         assertEquals(111110, path.getBandwidthList().get(0));
         assertEquals(511, path.getBandwidthList().get(1));

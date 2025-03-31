@@ -15,12 +15,10 @@
 package org.scion.jpan.internal;
 
 import com.google.protobuf.Duration;
-import org.scion.jpan.ScionUtil;
+import java.util.*;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.daemon.Daemon;
-
-import java.util.*;
 
 class SegmentMetadataAccumulator {
 
@@ -29,14 +27,17 @@ class SegmentMetadataAccumulator {
     private final int startIncl;
     private final int endExcl;
     private final int increment;
+
     Range(int[] range) {
       startIncl = range[0];
       endExcl = range[1];
       increment = range[2];
     }
+
     int last() {
       return endExcl - increment;
     }
+
     boolean isReversed() {
       return increment == -1;
     }
@@ -46,225 +47,7 @@ class SegmentMetadataAccumulator {
     }
   }
 
-  private static class RemoteEntry {
-    private final long isdAs;
-    private final long ifId;
-
-    RemoteEntry(long isdAs, long ifId) {
-      this.isdAs = isdAs;
-      this.ifId = ifId;
-    }
-
-    @Override
-    public String toString() {
-      return "InterEntry{" +
-              "isdAs=" + isdAs +
-              ", ifId=" + ifId +
-              '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (!(o instanceof RemoteEntry)) return false;
-      RemoteEntry that = (RemoteEntry) o;
-      return isdAs == that.isdAs && ifId == that.ifId;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(isdAs, ifId);
-    }
-  }
-
-  private static class InterEntry {
-    private final long isdAs1;
-    private final long isdAs2;
-    private final long ifId1;
-    private final long ifId2;
-
-    private long latency;
-    private int bandwidth;
-
-    InterEntry(long isdAs1, long isdAs2, long ifId1, long ifId2) {
-      this.isdAs1 = isdAs1;
-      this.isdAs2 = isdAs2;
-      this.ifId1 = ifId1;
-      this.ifId2 = ifId2;
-    }
-
-    @Override
-    public String toString() {
-      return "InterEntry{" +
-              "isdAs1=" + isdAs1 +
-              ", isdAs2=" + isdAs2 +
-              ", ifId1=" + ifId1 +
-              ", ifId2=" + ifId2 +
-              ", latency=" + latency +
-              ", bandwidth=" + bandwidth +
-              '}';
-    }
-  }
-
-  private static class IntraEntry {
-    private final long isdAs;
-    private final long ifId1;
-    private final long ifId2;
-
-    private long latency;
-    private int bandwidth;
-
-    IntraEntry(long isdAs, long ifId1, long ifId2) {
-      this.isdAs = isdAs;
-      this.ifId1 = ifId1;
-      this.ifId2 = ifId2;
-    }
-
-    @Override
-    public String toString() {
-      return "IntraEntry{" +
-              "isdAs=" + isdAs +
-              ", ifId1=" + ifId1 +
-              ", ifId2=" + ifId2 +
-              ", latency=" + latency +
-              ", bandwidth=" + bandwidth +
-              '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o == null || getClass() != o.getClass()) return false;
-      IntraEntry that = (IntraEntry) o;
-      return isdAs == that.isdAs && ifId1 == that.ifId1 && ifId2 == that.ifId2;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(isdAs, ifId1, ifId2);
-    }
-  }
-
   static void writeMetadata(
-      Daemon.Path.Builder path, Segments.PathSegment[] pathSegments, int[][] ranges) {
-
-    // TODO build this only once and use it for all paths!
-    // Map IsdAS to interface ID to remote IsdAS/interface
-    Map<Long, Map<Long, RemoteEntry>> ia2if2remote = new HashMap<>();
-    long prevIsdAs = 0;
-    long prevIfId = 0;
-    for (Daemon.PathInterface pi : path.getInterfacesList()) {
-      long currIfId = pi.getId();
-      Map<Long, RemoteEntry> e = ia2if2remote.computeIfAbsent(pi.getIsdAs(), ia -> new HashMap<>());
-      e.put(currIfId, new RemoteEntry(prevIsdAs, prevIfId));
-      Map<Long, RemoteEntry> e2 = ia2if2remote.computeIfAbsent(prevIsdAs, ia -> new HashMap<>());
-      e2.put(pi.getId(), new RemoteEntry(pi.getIsdAs(), pi.getId()));
-      prevIsdAs = pi.getIsdAs();
-      prevIfId = pi.getId();
-    }
-
-    Set<IntraEntry> intraSet = new HashSet<>();
-    Set<InterEntry> interSet = new HashSet<>();
-    for (int r = 0; r < ranges.length; r++) {
-      int[] range = ranges[r];
-      Segments.PathSegment pathSegment = pathSegments[r];
-      for (int pos = range[0]; pos != range[1]; pos += range[2]) {
-        boolean reversed = range[2] == -1;
-        Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
-
-        long currIsdAs = body.getIsdAs();
-        long ifIn = body.getHopEntry().getHopField().getIngress();
-        long ifOut = body.getHopEntry().getHopField().getEgress();
-        IntraEntry intra = new IntraEntry(currIsdAs, ifIn, ifOut);
-        intraSet.add(intra);
-
-
-//        long remoteIF = ia2if2remote.get(currIsdAs, ifIn)
-//        InterEntry inter = new InterEntry(currIsdAs, body.getNextIsdAs(), ifIn, ifOut);
-        //System.out.println("intraRef: " + intraRef + "   found: " + intraSet.contains(intraRef)); // TODO
-      }
-    }
-
-
-    // TODO this is OLD!!!!!!
-    prevIsdAs = 0;
-    prevIfId = 0;
-    for (Daemon.PathInterface pi : path.getInterfacesList()) {
-      long currIsdAs = pi.getIsdAs();
-      long currIfId = pi.getId();
-      InterEntry inter = new InterEntry(prevIsdAs, currIsdAs, prevIfId, currIfId);
-      interSet.add(inter);
-      System.out.println("inter: " + inter); // TODO
-
-      IntraEntry intra1 = new IntraEntry(currIsdAs, prevIfId, currIfId);
-      intraSet.add(intra1);
-      IntraEntry intra2 = new IntraEntry(currIsdAs, currIfId, prevIfId);
-      intraSet.add(intra2);
-      System.out.println("intra: " + intra1); // TODO
-      System.out.println("intra: " + intra2); // TODO
-
-      prevIsdAs = currIsdAs;
-      prevIfId = currIfId;
-    }
-    IntraEntry intra1 = new IntraEntry(prevIsdAs, prevIfId, 0); // TODO prevIsdAs???
-    intraSet.add(intra1);
-    IntraEntry intra2 = new IntraEntry(prevIsdAs, 0, prevIfId);
-    intraSet.add(intra2);
-
-
-  }
-
-  static void writeMetadata1(
-          Daemon.Path.Builder path, Segments.PathSegment[] pathSegments, int[][] ranges) {
-
-    Set<InterEntry> set = new HashSet<>();
-
-    Set<InterEntry> interSet = new HashSet<>();
-    Set<IntraEntry> intraSet = new HashSet<>();
-
-    long prevIsdAs = 0;
-    long prevIfId = 0;
-    for (Daemon.PathInterface pi : path.getInterfacesList()) {
-      long currIsdAs = pi.getIsdAs();
-      long currIfId = pi.getId();
-      InterEntry inter = new InterEntry(prevIsdAs, currIsdAs, prevIfId, currIfId);
-      interSet.add(inter);
-      System.out.println("inter: " + inter); // TODO
-
-      IntraEntry intra1 = new IntraEntry(currIsdAs, prevIfId, currIfId);
-      intraSet.add(intra1);
-      IntraEntry intra2 = new IntraEntry(currIsdAs, currIfId, prevIfId);
-      intraSet.add(intra2);
-      System.out.println("intra: " + intra1); // TODO
-      System.out.println("intra: " + intra2); // TODO
-
-      prevIsdAs = currIsdAs;
-      prevIfId = currIfId;
-    }
-    IntraEntry intra1 = new IntraEntry(prevIsdAs, prevIfId, 0); // TODO prevIsdAs???
-    intraSet.add(intra1);
-    IntraEntry intra2 = new IntraEntry(prevIsdAs, 0, prevIfId);
-    intraSet.add(intra2);
-
-    for (int r = 0; r < ranges.length; r++) {
-      int[] range = ranges[r];
-      Segments.PathSegment pathSegment = pathSegments[r];
-      for (int pos = range[0]; pos != range[1]; pos += range[2]) {
-        boolean reversed = range[2] == -1;
-        Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
-
-        long currIsdAs = body.getIsdAs();
-        long ifIn = body.getHopEntry().getHopField().getIngress();
-        long ifOut = body.getHopEntry().getHopField().getEgress();
-        IntraEntry intraRef = new IntraEntry(currIsdAs, ifIn, ifOut);
-        System.out.println("intraRef: " + intraRef + "   found: " + intraSet.contains(intraRef)); // TODO
-
-        InterEntry interRef = new InterEntry(currIsdAs, body.getNextIsdAs(), ifIn, ifOut);
-        //System.out.println("intraRef: " + intraRef + "   found: " + intraSet.contains(intraRef)); // TODO
-      }
-    }
-
-  }
-
-  static void writeMetadata2(
       Daemon.Path.Builder path, Segments.PathSegment[] pathSegments, int[][] ranges) {
     // Stitching metadata is not trivial.
     // Some quirks:
@@ -285,17 +68,17 @@ class SegmentMetadataAccumulator {
         Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
 
         // Do this for all except last.
-        System.out.println(
-            "wHF: "
-                + pos
-                + "   ->  "
-                + ScionUtil.toStringPath(path.getRaw().toByteArray())
-                + " "
-                + ScionUtil.toStringIA(body.getIsdAs())
-                + "  ext:"
-                + body.getExtensions().hasStaticInfo()
-                + "  reversed: "
-                + reversed); // TODO
+        //        System.out.println(
+        //            "wHF: "
+        //                + pos
+        //                + "   ->  "
+        //                + ScionUtil.toStringPath(path.getRaw().toByteArray())
+        //                + " "
+        //                + ScionUtil.toStringIA(body.getIsdAs())
+        //                + "  ext:"
+        //                + body.getExtensions().hasStaticInfo()
+        //                + "  reversed: "
+        //                + reversed); // TODO
         long idX = -1;
         boolean addIsdAs = false;
         if (pos == 0 && reversed && r < ranges.length - 1) {
@@ -437,31 +220,32 @@ class SegmentMetadataAccumulator {
     //    if (id2 != 0 && sie.getLatency().getIntraMap().containsKey(id2)) {
     //      path.addLatency(toDuration(sie.getLatency().getIntraMap().get(id2)));
     //    }
-    if (id3 != -1) {
-      System.out.println("id3 = " + id3); // TODO
-    }
-    System.out.print(
-        "   lat-intra1? " + id1 + " -> " + sie.getLatency().getIntraMap().get(id1)); // TODO
-    System.out.println(
-        "   lat-intra2? " + id2 + " -> " + sie.getLatency().getIntraMap().get(id2)); // TODO
-    if (!sie.getLatency().getIntraMap().isEmpty()) {
-      System.out.print("   lat-intra: "); // TODO
-      for (Map.Entry<Long, Integer> o : sie.getLatency().getIntraMap().entrySet()) {
-        System.out.print(o.getKey() + "->" + o.getValue() + ";   "); // TODO
-      }
-      System.out.println(); // TODO
-    }
-    System.out.print(
-        "   bw-intra1? " + id1 + " -> " + sie.getBandwidth().getIntraMap().get(id1)); // TODO
-    System.out.println(
-        "   bw-intra2? " + id2 + " -> " + sie.getBandwidth().getIntraMap().get(id2)); // TODO
-    if (!sie.getBandwidth().getIntraMap().isEmpty()) {
-      System.out.print("   bw-intra: "); // TODO
-      for (Map.Entry<Long, Long> o : sie.getBandwidth().getIntraMap().entrySet()) {
-        System.out.print(o.getKey() + "->" + o.getValue() + ";   "); // TODO
-      }
-      System.out.println(); // TODO
-    }
+    //    if (id3 != -1) {
+    //      System.out.println("id3 = " + id3); // TODO
+    //    }
+    //    System.out.print(
+    //        "   lat-intra1? " + id1 + " -> " + sie.getLatency().getIntraMap().get(id1)); // TODO
+    //    System.out.println(
+    //        "   lat-intra2? " + id2 + " -> " + sie.getLatency().getIntraMap().get(id2)); // TODO
+    //    if (!sie.getLatency().getIntraMap().isEmpty()) {
+    //      System.out.print("   lat-intra: "); // TODO
+    //      for (Map.Entry<Long, Integer> o : sie.getLatency().getIntraMap().entrySet()) {
+    //        System.out.print(o.getKey() + "->" + o.getValue() + ";   "); // TODO
+    //      }
+    //      System.out.println(); // TODO
+    //    }
+    //    System.out.print(
+    //        "   bw-intra1? " + id1 + " -> " + sie.getBandwidth().getIntraMap().get(id1)); // TODO
+    //    System.out.println(
+    //        "   bw-intra2? " + id2 + " -> " + sie.getBandwidth().getIntraMap().get(id2)); // TODO
+    //    if (!sie.getBandwidth().getIntraMap().isEmpty()) {
+    //      System.out.print("   bw-intra: "); // TODO
+    //      for (Map.Entry<Long, Long> o : sie.getBandwidth().getIntraMap().entrySet()) {
+    //        System.out.print(o.getKey() + "->" + o.getValue() + ";   "); // TODO
+    //      }
+    //      System.out.println(); // TODO
+    //    }
+
     //      if (sie.getBandwidth().getIntraMap().containsKey(id2)) {
     //        path.addBandwidth(sie.getBandwidth().getIntraMap().get(id2));
     //      }
@@ -483,18 +267,21 @@ class SegmentMetadataAccumulator {
       path.addGeo(toGeo(sie.getGeoMap().get(id2)));
     }
 
-    System.out.print("   geo1? " + id1 + " -> " + (sie.getGeoMap().get(id1) != null)); // TODO
-    System.out.println("   geo2? " + id2 + " -> " + (sie.getGeoMap().get(id2) != null)); // TODO
-    System.out.print("   hops1? " + id1 + " -> " + (sie.getInternalHopsMap().get(id1))); // TODO
-    System.out.print("   hops2? " + id2 + " -> " + (sie.getInternalHopsMap().get(id2))); // TODO
-    for (Map.Entry<Long, Integer> o : sie.getInternalHopsMap().entrySet()) {
-      System.out.print("   e: " + o.getKey() + "  " + o.getValue()); // TODO
-    }
-    System.out.println();
+    //    System.out.print("   geo1? " + id1 + " -> " + (sie.getGeoMap().get(id1) != null)); // TODO
+    //    System.out.println("   geo2? " + id2 + " -> " + (sie.getGeoMap().get(id2) != null)); //
+    // TODO
+    //    System.out.print("   hops1? " + id1 + " -> " + (sie.getInternalHopsMap().get(id1))); //
+    // TODO
+    //    System.out.print("   hops2? " + id2 + " -> " + (sie.getInternalHopsMap().get(id2))); //
+    // TODO
+    //    for (Map.Entry<Long, Integer> o : sie.getInternalHopsMap().entrySet()) {
+    //      System.out.print("   e: " + o.getKey() + "  " + o.getValue()); // TODO
+    //    }
+    //    System.out.println();
 
-    System.out.println("   n1? -> " + sie.getNote()); // TODO
-    System.out.print("   lt1? " + id1 + " -> " + sie.getLinkTypeMap().get(id1)); // TODO
-    System.out.println("   lt2? " + id2 + " -> " + sie.getLinkTypeMap().get(id2)); // TODO
+    //    System.out.println("   n1? -> " + sie.getNote()); // TODO
+    //    System.out.print("   lt1? " + id1 + " -> " + sie.getLinkTypeMap().get(id1)); // TODO
+    //    System.out.println("   lt2? " + id2 + " -> " + sie.getLinkTypeMap().get(id2)); // TODO
     if (addIsdAs) {
       path.addNotes(sie.getNote());
     }

@@ -51,6 +51,21 @@ public class MockNetwork2 implements AutoCloseable {
     }
   }
 
+  static class Tiny4Initializer extends AbstractSegmentsMinimalTest {
+    Tiny4Initializer() {
+      super(CFG_TINY4);
+    }
+
+    @Override
+    public void addResponses() {
+      super.addResponsesScionprotoTiny4();
+    }
+
+    void init(MockControlServer controlServer) {
+      AbstractSegmentsMinimalTest.controlServer = controlServer;
+    }
+  }
+
   static class Tiny4bInitializer extends AbstractSegmentsMinimalTest {
     Tiny4bInitializer() {
       super(CFG_TINY4B);
@@ -87,6 +102,10 @@ public class MockNetwork2 implements AutoCloseable {
       data.addResponses();
     } else if (configDir.startsWith("topologies/tiny4b")) {
       Tiny4bInitializer data = new Tiny4bInitializer();
+      data.init(controlServer);
+      data.addResponses();
+    } else if (configDir.startsWith("topologies/tiny4")) {
+      Tiny4Initializer data = new Tiny4Initializer();
       data.init(controlServer);
       data.addResponses();
     } else {

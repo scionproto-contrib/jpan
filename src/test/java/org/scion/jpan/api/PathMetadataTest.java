@@ -14,43 +14,42 @@
 
 package org.scion.jpan.api;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.function.Function;
-
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockNetwork2;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class PathMetadataTest {
 
   private static final Function<PathMetadata.PathInterface, Integer> GET_ID = p -> (int) p.getId();
-  private static final Function<PathMetadata.PathInterface, Long> GET_IAS_AS = PathMetadata.PathInterface::getIsdAs;
-  private static final Function<PathMetadata.GeoCoordinates, String> GET_ADDR = PathMetadata.GeoCoordinates::getAddress;
+  private static final Function<PathMetadata.PathInterface, Long> GET_IAS_AS =
+      PathMetadata.PathInterface::getIsdAs;
+  private static final Function<PathMetadata.GeoCoordinates, String> GET_ADDR =
+      PathMetadata.GeoCoordinates::getAddress;
 
   @Test
   void testCore_120_110() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_120")) {
       ScionService service = Scion.defaultService();
-
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dstAddress);
       assertEquals(7, paths.size());
-      for (Path path : paths) {
-        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
-      }
       Path path = paths.get(0);
       PathMetadata meta = path.getMetadata();
-      assertEquals(2, meta.getInterfacesList().size());
-      assertEquals(6, meta.getInterfacesList().get(0).getId());
-      assertEquals(1, meta.getInterfacesList().get(1).getId());
-      assertEquals(1, meta.getBandwidthList().size());
-      assertEquals(100, meta.getBandwidthList().get(0));
-      assertEquals(1, meta.getLatencyList().size());
-      assertEquals(101, meta.getLatencyList().get(0));
+      checkEqual(meta.getInterfacesList(), GET_ID, 6, 1);
+      checkEqual(meta.getInterfacesList(), GET_IAS_AS, 0x1_ff00_0000_0120L, 0x1_ff00_0000_0110L);
+      checkEqual(meta.getBandwidthList(), 100L);
+      checkEqual(meta.getLatencyList(), 101);
+
+      checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT);
+      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-6", "geo110-1");
+      checkEqual(meta.getNotesList(), "asdf-1-120", "asdf-1-110");
+      checkEqual(meta.getInternalHopsList());
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -106,9 +105,6 @@ class PathMetadataTest {
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:220"), dstAddress);
       assertEquals(4, paths.size());
-      for (Path path : paths) {
-        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
-      }
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
@@ -118,15 +114,15 @@ class PathMetadataTest {
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      assertEquals(2, meta.getInterfacesList().size());
-      assertEquals(2, meta.getInterfacesList().get(0).getId());
-      assertEquals(501, meta.getInterfacesList().get(1).getId());
+      checkEqual(meta.getInterfacesList(), GET_ID, 2, 501);
+      checkEqual(meta.getInterfacesList(), GET_IAS_AS, 0x1_ff00_0000_0120L, 0x2_ff00_0000_0220L);
+      checkEqual(meta.getBandwidthList(), 120220L);
+      checkEqual(meta.getLatencyList(), 102);
 
-      assertEquals(1, meta.getBandwidthList().size());
-      assertEquals(120220, meta.getBandwidthList().get(0));
-
-      assertEquals(1, meta.getLatencyList().size());
-      assertEquals(102, meta.getLatencyList().get(0));
+      checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.OPEN_NET);
+      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-2", "geo220#501");
+      checkEqual(meta.getNotesList(), "asdf-1-120", "asdf-2-220");
+      checkEqual(meta.getInternalHopsList());
     }
 
     // scion showpaths 2-ff00:0:220 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -219,39 +215,32 @@ class PathMetadataTest {
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:120"), dstAddress);
       assertEquals(9, paths.size());
-      for (Path path : paths) {
-        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
-      }
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        System.out.println("meta: " + meta.getInterfacesList().size() + "  "+  meta.getInterfacesList().get(0).getId());
-        if (meta.getInterfacesList().size() == 4 && meta.getInterfacesList().get(0).getId() == 494) {
+        if (meta.getInterfacesList().size() == 4
+            && meta.getInterfacesList().get(0).getId() == 494) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      assertEquals(4, meta.getInterfacesList().size());
-      assertEquals(494, meta.getInterfacesList().get(0).getId());
-      assertEquals(103, meta.getInterfacesList().get(1).getId());
-      assertEquals(104, meta.getInterfacesList().get(2).getId());
-      assertEquals(5, meta.getInterfacesList().get(3).getId());
-      for (Object o : meta.getBandwidthList()) {
-        System.out.println("pb: " + o);
-      }
-      assertEquals(3, meta.getBandwidthList().size());
-      assertEquals(11200, meta.getBandwidthList().get(0));
-      assertEquals(40, meta.getBandwidthList().get(1));
-      assertEquals(11100, meta.getBandwidthList().get(2));
+      checkEqual(meta.getInterfacesList(), GET_ID, 494, 103, 104, 5);
+      checkEqual(
+          meta.getInterfacesList(),
+          GET_IAS_AS,
+          0x1_ff00_0000_0112L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0120L);
+      checkEqual(meta.getBandwidthList(), 11200L, 50L, 11100L);
+      checkEqual(meta.getLatencyList(), 112, 50, 111);
 
-      for (Object o : meta.getLatencyList()) {
-        System.out.println("pb: " + o);
-      }
-      assertEquals(3, meta.getLatencyList().size());
-      assertEquals(112, meta.getLatencyList().get(0));
-      assertEquals(84, meta.getLatencyList().get(1));
-      assertEquals(111, meta.getLatencyList().get(2));
+      checkEqual(
+          meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.DIRECT);
+      checkEqual(meta.getGeoList(), GET_ADDR, "geo112-494", "geo111-103", "geo111-104", "geo120-5");
+      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-120");
+      checkEqual(meta.getInternalHopsList(), 3);
     }
 
     // scion showpaths 1-ff00:0:120 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
@@ -296,39 +285,31 @@ class PathMetadataTest {
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:112"), dstAddress);
       assertEquals(9, paths.size());
-      for (Path path : paths) {
-        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
-      }
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        System.out.println("meta: " + meta.getInterfacesList().size() + "  "+  meta.getInterfacesList().get(0).getId());
         if (meta.getInterfacesList().size() == 4 && meta.getInterfacesList().get(0).getId() == 5) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      assertEquals(4, meta.getInterfacesList().size());
-      assertEquals(494, meta.getInterfacesList().get(3).getId());
-      assertEquals(103, meta.getInterfacesList().get(2).getId());
-      assertEquals(104, meta.getInterfacesList().get(1).getId());
-      assertEquals(5, meta.getInterfacesList().get(0).getId());
-      for (Object o : meta.getBandwidthList()) {
-        System.out.println("pb: " + o);
-      }
-      assertEquals(3, meta.getBandwidthList().size());
-      assertEquals(11200, meta.getBandwidthList().get(2));
-      assertEquals(40, meta.getBandwidthList().get(1));
-      assertEquals(11100, meta.getBandwidthList().get(0));
+      checkEqual(meta.getInterfacesList(), GET_ID, 5, 104, 103, 494);
+      checkEqual(
+          meta.getInterfacesList(),
+          GET_IAS_AS,
+          0x1_ff00_0000_0120L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0112L);
+      checkEqual(meta.getBandwidthList(), 11100L, 50L, 11200L);
+      checkEqual(meta.getLatencyList(), 111, 50, 112);
 
-      for (Object o : meta.getLatencyList()) {
-        System.out.println("pb: " + o);
-      }
-      assertEquals(3, meta.getLatencyList().size());
-      assertEquals(112, meta.getLatencyList().get(2));
-      assertEquals(84, meta.getLatencyList().get(1));
-      assertEquals(111, meta.getLatencyList().get(0));
+      checkEqual(
+          meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.DIRECT);
+      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-5", "geo111-103", "geo111-104", "geo112-494");
+      checkEqual(meta.getNotesList(), "asdf-1-120", "asdf-1-111", "asdf-1-112");
+      checkEqual(meta.getInternalHopsList(), 3);
     }
 
     // scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -438,54 +419,56 @@ class PathMetadataTest {
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:221"), dstAddress);
       assertEquals(4, paths.size());
-      for (Path path : paths) {
-        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
-      }
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
         List<PathMetadata.PathInterface> list = meta.getInterfacesList();
-        System.out.println("meta: " + list.size() + "  "+  list.get(0).getId() + "  "+  list.get(4).getId());
         if (list.size() == 8 && list.get(0).getId() == 494 && list.get(4).getId() == 2) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      assertEquals(8, meta.getInterfacesList().size());
-      assertEquals(494, meta.getInterfacesList().get(0).getId());
-      assertEquals(103, meta.getInterfacesList().get(1).getId());
-      assertEquals(104, meta.getInterfacesList().get(2).getId());
-      assertEquals(5, meta.getInterfacesList().get(3).getId());
-      assertEquals(2, meta.getInterfacesList().get(4).getId());
-      assertEquals(501, meta.getInterfacesList().get(5).getId());
-      assertEquals(500, meta.getInterfacesList().get(6).getId());
-      assertEquals(2, meta.getInterfacesList().get(7).getId());
-      for (Object o : meta.getBandwidthList()) {
-        System.out.println("pb: " + o);
-      }
-      assertEquals(7, meta.getBandwidthList().size());
-      assertEquals(11200, meta.getBandwidthList().get(0));
-      assertEquals(50, meta.getBandwidthList().get(1));
-      assertEquals(11100, meta.getBandwidthList().get(2));
-      assertEquals(50, meta.getBandwidthList().get(3));
-      assertEquals(120220, meta.getBandwidthList().get(4));
-      assertEquals(50, meta.getBandwidthList().get(5));
-      assertEquals(220221, meta.getBandwidthList().get(6));
+      checkEqual(meta.getInterfacesList(), GET_ID, 494, 103, 104, 5, 2, 501, 500, 2);
+      checkEqual(
+          meta.getInterfacesList(),
+          GET_IAS_AS,
+          0x1_ff00_0000_0112L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0120L,
+          0x1_ff00_0000_0120L,
+          0x2_ff00_0000_0220L,
+          0x2_ff00_0000_0220L,
+          0x2_ff00_0000_0221L);
+      checkEqual(meta.getBandwidthList(), 11200L, 50L, 11100L, 50L, 120220L, 50L, 220221L);
+      checkEqual(meta.getLatencyList(), 112, 50, 111, 50, 102, 50, 101);
 
-      for (Object o : meta.getLatencyList()) {
-        System.out.println("pl: " + o);
-      }
-      assertEquals(7, meta.getLatencyList().size());
-      assertEquals(112, meta.getLatencyList().get(0));
-      assertEquals(50, meta.getLatencyList().get(1));
-      assertEquals(111, meta.getLatencyList().get(2));
-      assertEquals(50, meta.getLatencyList().get(3));
-      assertEquals(102, meta.getLatencyList().get(4));
-      assertEquals(50, meta.getLatencyList().get(5));
-      assertEquals(101, meta.getLatencyList().get(6));
-
-      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-120", "asdf-2-220", "asdf-2-212");
+      checkEqual(
+          meta.getLinkTypeList(),
+          PathMetadata.LinkType.DIRECT,
+          PathMetadata.LinkType.DIRECT,
+          PathMetadata.LinkType.OPEN_NET,
+          PathMetadata.LinkType.OPEN_NET);
+      checkEqual(
+          meta.getGeoList(),
+          GET_ADDR,
+          "geo112-494",
+          "geo111-103",
+          "geo111-104",
+          "geo120-5",
+          "geo120-2",
+          "geo220#501",
+          "geo220#500",
+          "geo212-2");
+      checkEqual(
+          meta.getNotesList(),
+          "asdf-1-112",
+          "asdf-1-111",
+          "asdf-1-120",
+          "asdf-2-220",
+          "asdf-2-212");
+      checkEqual(meta.getInternalHopsList(), 3, 5, 2);
     }
     // 494>103 104>5 2>501
 
@@ -565,6 +548,29 @@ class PathMetadataTest {
 
   @Test
   void testUpCoreDown112_222() {
+    //    for (PathMetadata.LinkType o : meta.getLinkTypeList()) {
+    //      System.out.println("lt: " + o);
+    //    }
+    //    checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT,
+    //            PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.MULTI_HOP,
+    //            PathMetadata.LinkType.DIRECT);
+    //    for (PathMetadata.GeoCoordinates o : meta.getGeoList()) {
+    //      System.out.println("geo: " + o.getAddress());
+    //    }
+    //
+    //    checkEqual(
+    //            meta.getGeoList(),
+    //            GET_ADDR,
+    //            "geo112-11", "geo111-112",  "geo111-110",  "geo110-111",
+    //            "geo110-120",  "geo120-110",  "geo120-121",  "geo121-20");
+    //    checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-110", "asdf-1-120",
+    // "asdf-1-121");
+    //
+    //    for (Object o : meta.getInternalHopsList()) {
+    //      System.out.println("hops: " + o);
+    //    }
+    //    checkEqual(meta.getInternalHopsList(), 11, 10, 7);
+
     // scion showpaths 2-ff00:0:222 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
     // Available paths to 2-ff00:0:222
     // 4 Hops:
@@ -601,7 +607,6 @@ class PathMetadataTest {
 
   }
 
-
   @Test
   void testUpCoreDown_tiny4b_112_121() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -610,68 +615,50 @@ class PathMetadataTest {
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:121"), dstAddress);
       assertEquals(1, paths.size());
-      for (Path path : paths) {
-        System.out.println(ScionUtil.toStringPath(path.getRawPath()));
-      }
       Path path = paths.get(0);
-//      Path path = null;
-//      for (Path p : paths) {
-//        PathMetadata meta = p.getMetadata();
-//        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
-//        System.out.println("meta: " + list.size() + "  "+  list.get(0).getId() + "  "+  list.get(4).getId());
-//        if (list.size() == 8 && list.get(0).getId() == 494 && list.get(4).getId() == 2) {
-//          path = p;
-//        }
-//      }
-//      assertNotNull(path);
       PathMetadata meta = path.getMetadata();
       assertEquals(8, meta.getInterfacesList().size());
-      for (PathMetadata.PathInterface o : meta.getInterfacesList()) {
-        System.out.println("if: " + o.getId());
-      }
-      checkEqual(meta.getInterfacesList(), GET_ID,11, 12, 10, 11, 20, 10, 21, 20);
-      checkEqual(meta.getInterfacesList(), GET_IAS_AS,0x1_FF00_0000_0112L,
-              0x1_FF00_0000_0111L, 0x1_FF00_0000_0111L,
-              0x1_FF00_0000_0110L, 0x1_FF00_0000_0110L,
-              0x1_FF00_0000_0120L, 0x1_FF00_0000_0120L,
-              0x1_FF00_0000_0121L);
+      checkEqual(meta.getInterfacesList(), GET_ID, 11, 12, 10, 11, 20, 10, 21, 20);
+      checkEqual(
+          meta.getInterfacesList(),
+          GET_IAS_AS,
+          0x1_FF00_0000_0112L,
+          0x1_FF00_0000_0111L,
+          0x1_FF00_0000_0111L,
+          0x1_FF00_0000_0110L,
+          0x1_FF00_0000_0110L,
+          0x1_FF00_0000_0120L,
+          0x1_FF00_0000_0120L,
+          0x1_FF00_0000_0121L);
 
-      for (Object o : meta.getBandwidthList()) {
-        System.out.println("pb: " + o);
-      }
       checkEqual(meta.getBandwidthList(), 112111L, 511L, 111110L, 510L, 110120L, 520L, 120121L);
-
-      for (Object o : meta.getLatencyList()) {
-        System.out.println("pl: " + o);
-      }
       checkEqual(meta.getLatencyList(), 112, 12, 111, 10, 120, 20, 121);
 
-      for (PathMetadata.LinkType o : meta.getLinkTypeList()) {
-        System.out.println("lt: " + o);
-      }
-      checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT,
-              PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.MULTI_HOP,
-              PathMetadata.LinkType.DIRECT);
-      for (PathMetadata.GeoCoordinates o : meta.getGeoList()) {
-        System.out.println("geo: " + o.getAddress());
-      }
-
+      checkEqual(
+          meta.getLinkTypeList(),
+          PathMetadata.LinkType.DIRECT,
+          PathMetadata.LinkType.DIRECT,
+          PathMetadata.LinkType.MULTI_HOP,
+          PathMetadata.LinkType.DIRECT);
       checkEqual(
           meta.getGeoList(),
           GET_ADDR,
-          "geo112-11", "geo111-112",  "geo111-110",  "geo110-111",
-              "geo110-120",  "geo120-110",  "geo120-121",  "geo121-20");
-
-//      for (Object o : meta.getNotesList()) {
-//        System.out.println("n: " + o);
-//      }
-      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-110", "asdf-1-120", "asdf-1-121");
-
-//      for (Object o : meta.getInternalHopsList()) {
-//        System.out.println("hops: " + o);
-//      }
+          "geo112-11",
+          "geo111-112",
+          "geo111-110",
+          "geo110-111",
+          "geo110-120",
+          "geo120-110",
+          "geo120-121",
+          "geo121-20");
+      checkEqual(
+          meta.getNotesList(),
+          "asdf-1-112",
+          "asdf-1-111",
+          "asdf-1-110",
+          "asdf-1-120",
+          "asdf-1-121");
       checkEqual(meta.getInternalHopsList(), 11, 10, 7);
-
     }
     // 494>103 104>5 2>501
 
@@ -826,8 +813,47 @@ class PathMetadataTest {
     //    LocalIP: 127.0.0.1
   }
 
+  @Test
+  void testUpDown_tiny4_112_111() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/tiny4/", "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
 
-  private <T> void checkEqual(List<T> actual, T ... expected) {
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:111"), dstAddress);
+      assertEquals(2, paths.size());
+      Path path = null;
+      for (Path p : paths) {
+        PathMetadata meta = p.getMetadata();
+        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
+        if (list.get(0).getId() == 1) {
+          path = p;
+        }
+      }
+      assertNotNull(path);
+      PathMetadata meta = path.getMetadata();
+      assertEquals(4, meta.getInterfacesList().size());
+      checkEqual(meta.getInterfacesList(), GET_ID, 1, 2, 1, 41);
+      checkEqual(
+          meta.getInterfacesList(),
+          GET_IAS_AS,
+          0x1_FF00_0000_0112L,
+          0x1_FF00_0000_0110L,
+          0x1_FF00_0000_0110L,
+          0x1_FF00_0000_0111L);
+
+      checkEqual(meta.getBandwidthList(), 112110L, 510L, 111110L);
+      checkEqual(meta.getLatencyList(), 112, 10, 111);
+
+      checkEqual(
+          meta.getLinkTypeList(), PathMetadata.LinkType.MULTI_HOP, PathMetadata.LinkType.DIRECT);
+      checkEqual(meta.getGeoList(), GET_ADDR, "geo112-1", "geo110-2", "geo110-1", "geo111-41");
+      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-110", "asdf-1-111");
+      checkEqual(meta.getInternalHopsList(), 10);
+    }
+  }
+
+  @SafeVarargs
+  private final <T> void checkEqual(List<T> actual, T... expected) {
     for (int i = 0; i < expected.length; i++) {
       assertTrue(i < actual.size(), "No such element: " + i);
       assertEquals(expected[i], actual.get(i), "At position " + i);
@@ -835,25 +861,11 @@ class PathMetadataTest {
     assertEquals(expected.length, actual.size());
   }
 
-//  private void checkEqual(List<Integer> actual, int ... expected) {
-//    for (int i = 0; i < expected.length; i++) {
-//      assertTrue(i < actual.size(), "No such element: " + i);
-//      assertEquals((Integer) expected[i], actual.get(i), "At position " + i);
-//    }
-//    assertEquals(expected.length, actual.size());
-//  }
-
-  private <T, R> void checkEqual(List<T> actual, Function<T, R> mapFn, R ... expected) {
+  @SafeVarargs
+  private final <T, R> void checkEqual(List<T> actual, Function<T, R> mapFn, R... expected) {
     for (int i = 0; i < expected.length; i++) {
       assertEquals(expected[i], mapFn.apply(actual.get(i)), "At position " + i);
     }
     assertEquals(expected.length, actual.size());
   }
-
-//  private void checkEqual(List<Long> actual, long ... expected) {
-//    for (int i = 0; i < expected.length; i++) {
-//      assertEquals((Long)expected[i], actual.get(i), "At position " + i);
-//    }
-//    assertEquals(expected.length, actual.size());
-//  }
 }

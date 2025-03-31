@@ -23,6 +23,9 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
+- Cleanup: 
+  - rename AbstractMinimalTest to AbstractSegmentTest or similar
+  - refactor MockNetwork2 initialisation to use enum   
 - BIG: extract testframework into separate project -> reuse by others!
 - More tests on unordered "destinations" in JSON
 - More tests on segment metadata

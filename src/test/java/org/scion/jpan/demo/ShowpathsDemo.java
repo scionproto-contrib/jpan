@@ -41,7 +41,7 @@ import org.scion.jpan.testutil.MockScmpHandler;
 public class ShowpathsDemo {
 
   public static boolean PRINT = true;
-  public static Network NETWORK = Network.SCION_PROTO;
+  public static Network NETWORK = Network.PRODUCTION;
   public static boolean EXTENDED = true;
 
   public enum Network {

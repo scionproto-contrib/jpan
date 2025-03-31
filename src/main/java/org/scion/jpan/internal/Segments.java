@@ -15,7 +15,6 @@
 package org.scion.jpan.internal;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import io.grpc.Status;
@@ -27,7 +26,6 @@ import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -401,7 +399,7 @@ public class Segments {
     path.setInterface(interfaceAddr);
 
     // Metadata
-    SegmentMetadataAccumulator.writeMetadata2(path, segments, ranges);
+    SegmentMetadataAccumulator.writeMetadata(path, segments, ranges);
 
     paths.checkDuplicatePaths(path);
   }
@@ -492,9 +490,9 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
-// TODO        writeMetadata(path, body, range, pib.getId(), pib2.getId());
+        // TODO        writeMetadata(path, body, range, pib.getId(), pib2.getId());
       } else {
-// TODO        writeMetadata(path, body, range, -1, -1);
+        // TODO        writeMetadata(path, body, range, -1, -1);
       }
     }
 
