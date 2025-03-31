@@ -26,6 +26,7 @@ TODO
 - Cleanup: 
   - rename AbstractMinimalTest to AbstractSegmentTest or similar
   - refactor MockNetwork2 initialisation to use enum   
+  - Use Range class everywhere
 - BIG: extract testframework into separate project -> reuse by others!
 - More tests on unordered "destinations" in JSON
 - More tests on segment metadata
