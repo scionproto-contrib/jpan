@@ -65,6 +65,7 @@ public class Scenario {
     private String notes;
 
     SegExtensions.StaticInfoExtension build(long id1, long id2, boolean addAllIntraData) {
+      System.out.println("  Building: " + id1 + " / " + id2);
       SegExtensions.StaticInfoExtension.Builder builder =
           SegExtensions.StaticInfoExtension.newBuilder();
       SegExtensions.LatencyInfo.Builder lb = SegExtensions.LatencyInfo.newBuilder();
@@ -74,7 +75,7 @@ public class Scenario {
         bb.putInter(id2, bandwidthInter.get(id2));
       }
       if (addAllIntraData) {
-        System.out.println("Addding: " + id1 + " / " + id2 + "     size=" + latencyIntra.size() + "/" + bandwidthIntra.size());
+        System.out.println("  Addding: " + id1 + " / " + id2 + "     size=" + latencyIntra.size() + "/" + bandwidthIntra.size());
         for (Map.Entry<Long, Integer> e : latencyIntra.get(id2).entrySet()) {
           // TODO if UP, remove interfaces leading to other CORE segments.
           //   E.g. default 112->120: remove IF 105 from 111
@@ -102,8 +103,30 @@ public class Scenario {
       if (geo.containsKey(id2)) {
         builder.putGeo(id2, geo.get(id2));
       }
-      if (internalHops.containsKey(id1) && internalHops.get(id1).containsKey(id2)) {
-        builder.putInternalHops(id2, internalHops.get(id1).get(id2));
+//      if (internalHops.containsKey(id1) && internalHops.get(id1).containsKey(id2)) {
+//        builder.putInternalHops(id2, internalHops.get(id1).get(id2));
+//      }
+      System.out.println("  hop: " + id1 + " -> " + id2 + " = " + internalHops.containsKey(id2));
+      if (internalHops.containsKey(id2)) {
+        System.out.println("    hop: " + id1 + " -> " + id2 + " = " + internalHops.get(id2).containsKey(id1));
+      } else {
+        for (Map.Entry<Long, Map<Long, Integer>> e : internalHops.entrySet()) {
+          System.out.println("    ---- hop: " + e.getKey() + " -> " + e.getValue());
+        }
+      }
+      if (addAllIntraData) {
+        for (Map.Entry<Long, Integer> e : internalHops.get(id2).entrySet()) {
+          // TODO if UP, remove interfaces leading to other CORE segments.
+          //   E.g. default 112->120: remove IF 105 from 111
+          //  if (e.getKey() != id1) {
+
+          builder.putInternalHops(e.getKey(), e.getValue());
+          //  }
+        }
+      } else {
+        if (internalHops.containsKey(id2) && internalHops.get(id2).containsKey(id1)) {
+          builder.putInternalHops(id2, internalHops.get(id1).get(id2));
+        }
       }
       if (linkTypes.containsKey(id1)) {
         builder.putLinkType(id1, linkTypes.get(id1));

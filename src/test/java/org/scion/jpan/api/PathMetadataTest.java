@@ -14,20 +14,22 @@
 
 package org.scion.jpan.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockNetwork2;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 class PathMetadataTest {
+
+  private static final Function<PathMetadata.PathInterface, Integer> GET_ID = p -> (int) p.getId();
+  private static final Function<PathMetadata.PathInterface, Long> GET_IAS_AS = PathMetadata.PathInterface::getIsdAs;
+  private static final Function<PathMetadata.GeoCoordinates, String> GET_ADDR = PathMetadata.GeoCoordinates::getAddress;
 
   @Test
   void testCore_120_110() {
@@ -483,7 +485,7 @@ class PathMetadataTest {
       assertEquals(50, meta.getLatencyList().get(5));
       assertEquals(101, meta.getLatencyList().get(6));
 
-      assertEqual(new String[] {"asdf-1-112", "asdf-1-111", "asdf-1-120", "asdf-2-220", "asdf-2-212"}, meta.getNotesList().stream());
+      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-120", "asdf-2-220", "asdf-2-212");
     }
     // 494>103 104>5 2>501
 
@@ -559,14 +561,6 @@ class PathMetadataTest {
     //    LocalIP: 127.0.0.1
     // 6 Hops:
     // ...
-  }
-
-  private void assertEqual(String[] expected, Stream<String> actual) {
-    List<String> list = actual.collect(Collectors.toList());
-    assertEquals(expected.length, list.size());
-    for (int i = 0; i < expected.length; i++) {
-      assertEquals(expected[i], list.get(i));
-    }
   }
 
   @Test
@@ -635,32 +629,49 @@ class PathMetadataTest {
       for (PathMetadata.PathInterface o : meta.getInterfacesList()) {
         System.out.println("if: " + o.getId());
       }
-      // TODO assert IsdAs
-      assertEquals(11, meta.getInterfacesList().get(0).getId());
-      assertEquals(12, meta.getInterfacesList().get(1).getId());
-      assertEquals(10, meta.getInterfacesList().get(2).getId());
-      assertEquals(11, meta.getInterfacesList().get(3).getId());
-      assertEquals(20, meta.getInterfacesList().get(4).getId());
-      assertEquals(10, meta.getInterfacesList().get(5).getId());
-      assertEquals(21, meta.getInterfacesList().get(6).getId());
-      assertEquals(20, meta.getInterfacesList().get(7).getId());
+      checkEqual(meta.getInterfacesList(), GET_ID,11, 12, 10, 11, 20, 10, 21, 20);
+      checkEqual(meta.getInterfacesList(), GET_IAS_AS,0x1_FF00_0000_0112L,
+              0x1_FF00_0000_0111L, 0x1_FF00_0000_0111L,
+              0x1_FF00_0000_0110L, 0x1_FF00_0000_0110L,
+              0x1_FF00_0000_0120L, 0x1_FF00_0000_0120L,
+              0x1_FF00_0000_0121L);
+
       for (Object o : meta.getBandwidthList()) {
         System.out.println("pb: " + o);
       }
-      assertEquals(7, meta.getBandwidthList().size());
-      assertEquals(11200, meta.getBandwidthList().get(0));
-      assertEquals(40, meta.getBandwidthList().get(1));
-      assertEquals(11100, meta.getBandwidthList().get(2));
+      checkEqual(meta.getBandwidthList(), 112111L, 511L, 111110L, 510L, 110120L, 520L, 120121L);
 
       for (Object o : meta.getLatencyList()) {
         System.out.println("pl: " + o);
       }
-      assertEquals(7, meta.getLatencyList().size());
-      assertEquals(112, meta.getLatencyList().get(0));
-      assertEquals(84, meta.getLatencyList().get(1));
-      assertEquals(111, meta.getLatencyList().get(2));
+      checkEqual(meta.getLatencyList(), 112, 12, 111, 10, 120, 20, 121);
 
-      assertEquals(new String[] {"asdf-1-112", "asdf-1-111", "asdf-1-120", "asdf-2-220", "asdf-2-212"}, meta.getNotesList());
+      for (PathMetadata.LinkType o : meta.getLinkTypeList()) {
+        System.out.println("lt: " + o);
+      }
+      checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT,
+              PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.MULTI_HOP,
+              PathMetadata.LinkType.DIRECT);
+      for (PathMetadata.GeoCoordinates o : meta.getGeoList()) {
+        System.out.println("geo: " + o.getAddress());
+      }
+
+      checkEqual(
+          meta.getGeoList(),
+          GET_ADDR,
+          "geo112-11", "geo111-112",  "geo111-110",  "geo110-111",
+              "geo110-120",  "geo120-110",  "geo120-121",  "geo121-20");
+
+//      for (Object o : meta.getNotesList()) {
+//        System.out.println("n: " + o);
+//      }
+      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-110", "asdf-1-120", "asdf-1-121");
+
+//      for (Object o : meta.getInternalHopsList()) {
+//        System.out.println("hops: " + o);
+//      }
+      checkEqual(meta.getInternalHopsList(), 11, 10, 7);
+
     }
     // 494>103 104>5 2>501
 
@@ -736,6 +747,113 @@ class PathMetadataTest {
     //    LocalIP: 127.0.0.1
     // 6 Hops:
     // ...
+
+    //    wHF: 2   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:112  ext:true  reversed: true
+    //      lat-intra1? 0 -> null   lat-intra2? 11 -> null
+    //      bw-intra1? 0 -> null   bw-intra2? 11 -> null
+    //      geo1? 0 -> false   geo2? 11 -> true
+    //      hops1? 0 -> null   hops2? 11 -> null
+    //      n1? -> asdf-1-112
+    //      lt1? 0 -> null   lt2? 11 -> null
+    //    wHF: 1   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:111  ext:true  reversed: true
+    //      lat-intra1? 12 -> null   lat-intra2? 10 -> 12000
+    //      lat-intra: 10->12000;
+    //      bw-intra1? 12 -> null   bw-intra2? 10 -> 511
+    //      bw-intra: 10->511;
+    //      geo1? 12 -> true   geo2? 10 -> true
+    //      hops1? 12 -> null   hops2? 10 -> 11
+    //      n1? -> asdf-1-111
+    //      lt1? 12 -> LINK_TYPE_DIRECT   lt2? 10 -> null
+    //    wHF: 0   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:110  ext:true  reversed: true
+    //      id3 = 20
+    //      lat-intra1? 11 -> null   lat-intra2? 0 -> null
+    //      lat-intra: 20->10000;
+    //      bw-intra1? 11 -> null   bw-intra2? 0 -> null
+    //      bw-intra: 20->510;
+    //      geo1? 11 -> true   geo2? 0 -> false
+    //      hops1? 11 -> null   hops2? 0 -> null
+    //      n1? -> asdf-1-110
+    //      lt1? 11 -> LINK_TYPE_DIRECT   lt2? 0 -> null
+    //    wHF: 1   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:110  ext:true  reversed: true
+    //      lat-intra1? 0 -> null   lat-intra2? 20 -> null
+    //      bw-intra1? 0 -> null   bw-intra2? 20 -> null
+    //      geo1? 0 -> false   geo2? 20 -> true
+    //      hops1? 0 -> null   hops2? 20 -> null
+    //      n1? -> asdf-1-110
+    //      lt1? 0 -> null   lt2? 20 -> null
+    //    wHF: 0   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:120  ext:true  reversed: true
+    //      lat-intra1? 10 -> null   lat-intra2? 0 -> null
+    //      bw-intra1? 10 -> null   bw-intra2? 0 -> null
+    //      geo1? 10 -> true   geo2? 0 -> false
+    //      hops1? 10 -> null   hops2? 0 -> null
+    //      n1? -> asdf-1-120
+    //      lt1? 10 -> LINK_TYPE_MULTI_HOP   lt2? 0 -> null
+    //    wHF: 0   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:120  ext:true  reversed: false
+    //      id3 = 10
+    //      lat-intra1? 21 -> null   lat-intra2? 0 -> null
+    //      lat-intra: 10->20000;
+    //      bw-intra1? 21 -> null   bw-intra2? 0 -> null
+    //      bw-intra: 10->520;
+    //      geo1? 21 -> true   geo2? 0 -> false
+    //      hops1? 21 -> null   hops2? 0 -> null
+    //      n1? -> asdf-1-120
+    //      lt1? 21 -> LINK_TYPE_DIRECT   lt2? 0 -> null
+    //    wHF: 1   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:121  ext:true  reversed: false
+    //      lat-intra1? 0 -> null   lat-intra2? 20 -> null
+    //      bw-intra1? 0 -> null   bw-intra2? 20 -> null
+    //      geo1? 0 -> false   geo2? 20 -> true
+    //      hops1? 0 -> null   hops2? 20 -> null
+    //      n1? -> asdf-1-121
+    //      lt1? 0 -> null   lt2? 20 -> null
+
+    //    Available paths to 1-ff00:0:121
+    //            [0] Hops: [1-ff00:0:112 11>12 1-ff00:0:111 10>11 1-ff00:0:110 20>10 1-ff00:0:120
+    //                       21>20 1-ff00:0:121]
+    //    MTU: 1280
+    //    NextHop: 127.0.0.33
+    //    Expires: 2025-03-31 17:06:05 +0000 UTC (5h57m19s)
+    //    Latency: 506ms
+    //    Bandwidth: 510KBit/s
+    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") >
+    //      47.111,42.11 ("geo111-110") > 47.11,42.111 ("geo110-111") >
+    //      47.11,62.12 ("geo110-120") > 47.12,62.11 ("geo120-110") >
+    //      47.12,42.121 ("geo120-121") > 79.121,45.12 ("geo121-20")]
+    //    LinkType: [direct, direct, multihop, direct]
+    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111",
+    //      1-ff00:0:110: "asdf-1-110", 1-ff00:0:120: "asdf-1-120", 1-ff00:0:121: "asdf-1-121"]
+    //    SupportsEPIC: false
+    //    Status: unknown
+    //    LocalIP: 127.0.0.1
   }
 
+
+  private <T> void checkEqual(List<T> actual, T ... expected) {
+    for (int i = 0; i < expected.length; i++) {
+      assertTrue(i < actual.size(), "No such element: " + i);
+      assertEquals(expected[i], actual.get(i), "At position " + i);
+    }
+    assertEquals(expected.length, actual.size());
+  }
+
+//  private void checkEqual(List<Integer> actual, int ... expected) {
+//    for (int i = 0; i < expected.length; i++) {
+//      assertTrue(i < actual.size(), "No such element: " + i);
+//      assertEquals((Integer) expected[i], actual.get(i), "At position " + i);
+//    }
+//    assertEquals(expected.length, actual.size());
+//  }
+
+  private <T, R> void checkEqual(List<T> actual, Function<T, R> mapFn, R ... expected) {
+    for (int i = 0; i < expected.length; i++) {
+      assertEquals(expected[i], mapFn.apply(actual.get(i)), "At position " + i);
+    }
+    assertEquals(expected.length, actual.size());
+  }
+
+//  private void checkEqual(List<Long> actual, long ... expected) {
+//    for (int i = 0; i < expected.length; i++) {
+//      assertEquals((Long)expected[i], actual.get(i), "At position " + i);
+//    }
+//    assertEquals(expected.length, actual.size());
+//  }
 }

@@ -89,9 +89,9 @@ public class ShowpathsDemo {
         {
           System.setProperty(
               Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-              "topologies/default/ASff00_0_112/topology.json");
+              "topologies/tiny4b/ASff00_0_112/topology.json");
           // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon110_tiny4b);
-          runDemo(DemoConstants.ia221);
+          runDemo(DemoConstants.ia121);
           break;
         }
       case PRODUCTION:
@@ -239,16 +239,16 @@ public class ShowpathsDemo {
         s.append(", ");
       }
       switch (lt) {
-        case LINK_TYPE_UNSPECIFIED:
+        case UNSPECIFIED:
           s.append("unset");
           break;
-        case LINK_TYPE_DIRECT:
+        case DIRECT:
           s.append("direct");
           break;
-        case LINK_TYPE_MULTI_HOP:
+        case MULTI_HOP:
           s.append("multihop");
           break;
-        case LINK_TYPE_OPEN_NET:
+        case OPEN_NET:
           s.append("opennet");
           break;
         default:

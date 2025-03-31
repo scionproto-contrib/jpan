@@ -49,9 +49,9 @@ class SegmentTiny4bMetadataTest {
 
         Daemon.Path path = paths.get(0);
         assertEquals(1, path.getBandwidthList().size());
-        assertEquals(121, path.getBandwidthList().get(0));
+        assertEquals(110120, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(110, path.getLatencyList().get(0).getNanos() / 1_000_000);
+        assertEquals(120, path.getLatencyList().get(0).getNanos() / 1_000_000);
       }
     }
   }
@@ -67,7 +67,7 @@ class SegmentTiny4bMetadataTest {
 
         Daemon.Path path = paths.get(0);
         assertEquals(1, path.getBandwidthList().size());
-        assertEquals(120, path.getBandwidthList().get(0));
+        assertEquals(110120, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
         assertEquals(120, path.getLatencyList().get(0).getNanos() / 1_000_000);
       }

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 - Metadata: BW/Latency/Geo/Notes! 
+- Add scion-java-packet-example to README
 
 - API do drop current path or even use most diverse one.
   -> To be called if application detects interruption (but no SCMP errors arrive?)
