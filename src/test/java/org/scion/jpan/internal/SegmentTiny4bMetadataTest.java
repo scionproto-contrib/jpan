@@ -26,7 +26,6 @@ import org.scion.jpan.testutil.MockNetwork2;
 class SegmentTiny4bMetadataTest {
 
   protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
-  protected static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
   protected static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
   protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
   protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");

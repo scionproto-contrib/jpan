@@ -66,7 +66,6 @@ class SegmentMinimalMetadataMissingTest {
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
-        RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
         assertEquals(1, path.getBandwidthList().size());
         assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
@@ -107,7 +106,6 @@ class SegmentMinimalMetadataMissingTest {
 
   @Test
   void testUp_112_110() throws IOException {
-    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_1121")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_1121)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1121, AS_110);
@@ -156,7 +154,6 @@ class SegmentMinimalMetadataMissingTest {
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
-        RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
         assertEquals(3, path.getBandwidthList().size());
         assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(0, path.getBandwidthList().get(1));

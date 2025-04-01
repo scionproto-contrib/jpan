@@ -15,13 +15,13 @@
 package org.scion.jpan.internal;
 
 import com.google.protobuf.Duration;
-import java.util.*;
-import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.daemon.Daemon;
 
 class SegmentMetadataAccumulator {
+
+  private SegmentMetadataAccumulator() {}
 
   // [start (inclusive), end (exclusive), increment]
   static class Range {
@@ -69,41 +69,41 @@ class SegmentMetadataAccumulator {
         Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
 
         // Do this for all except last.
-        Seg.HopField hopField = body.getHopEntry().getHopField();
-        long id1 = hopField.getEgress();
-        long id2 = hopField.getIngress();
-        System.out.println(
-            "wHF: "
-                + pos
-                + "  id1/2: "
-                + id1
-                + "/"
-                + id2
-                + "   ->  "
-                + ScionUtil.toStringPath(path.getRaw().toByteArray())
-                + " "
-                + ScionUtil.toStringIA(body.getIsdAs())
-                + "  ext:"
-                + body.getExtensions().hasStaticInfo()
-                + "  reversed: "
-                + reversed); // TODO
-        long idX = -1;
+        // Seg.HopField hopField = body.getHopEntry().getHopField();
+        // long id1 = hopField.getEgress();
+        // long id2 = hopField.getIngress();
+        //        System.out.println(
+        //            "wHF: "
+        //                + pos
+        //                + "  id1/2: "
+        //                + id1
+        //                + "/"
+        //                + id2
+        //                + "   ->  "
+        //                + ScionUtil.toStringPath(path.getRaw().toByteArray())
+        //                + " "
+        //                + ScionUtil.toStringIA(body.getIsdAs())
+        //                + "  ext:"
+        //                + body.getExtensions().hasStaticInfo()
+        //                + "  reversed: "
+        //                + reversed); // TODO
+        //        long idX = -1;
         boolean addIsdAs = false;
-        if (pos == 0 && reversed && r < ranges.length - 1) {
-          // must be UP or CORE
-          if (pathSegment.isCore()) {
-            // CORE followed by DOWN
-          } else {
-            // UP followed by CORE or DOWN
-            idX = path.getInterfaces(interfacePos).getId();
-          }
-        } else if (pos == 0 && !reversed && interfacePos > 0) {
-          // must be DOWN
-          idX = path.getInterfaces(interfacePos - 1).getId();
-        } else {
-          // any other case: just increment by 2
-          interfacePos += 2;
-        }
+        //        if (pos == 0 && reversed && r < ranges.length - 1) {
+        //          // must be UP or CORE
+        //          if (pathSegment.isCore()) {
+        //            // CORE followed by DOWN
+        //          } else {
+        //            // UP followed by CORE or DOWN
+        //            idX = path.getInterfaces(interfacePos).getId();
+        //          }
+        //        } else if (pos == 0 && !reversed && interfacePos > 0) {
+        //          // must be DOWN
+        //          idX = path.getInterfaces(interfacePos - 1).getId();
+        //        } else {
+        //          // any other case: just increment by 2
+        //          interfacePos += 2;
+        //        }
 
         boolean addIntraInfo;
         if (pathSegments.length == 1) {
@@ -162,18 +162,15 @@ class SegmentMetadataAccumulator {
     long id2 = hopField.getIngress();
     if (!ext.hasStaticInfo()) {
       if (id1 != 0) {
-        System.out.println("  Adding lat 1: " + toDuration(null).getSeconds()); // TODO
         path.addLatency(toDuration(null));
         path.addBandwidth(0);
         path.addGeo(toGeo(null));
       }
       if (id2 != 0) {
         path.addLinkType(Daemon.LinkType.LINK_TYPE_UNSPECIFIED);
-        System.out.println("  Adding LT 1: " + Daemon.LinkType.LINK_TYPE_UNSPECIFIED); // TODO
         path.addGeo(toGeo(null));
       }
       if (addIntraInfo) {
-        System.out.println("  Adding lat 2: " + toDuration(null).getSeconds()); // TODO
         path.addLatency(toDuration(null));
         path.addBandwidth(0);
         path.addInternalHops(0);
@@ -185,13 +182,13 @@ class SegmentMetadataAccumulator {
     }
     SegExtensions.StaticInfoExtension sie = ext.getStaticInfo();
     // Don´t add intra for first hop.
-    System.out.println(
-        "    writeMetadata: id1="
-            + id1
-            + " id2="
-            + id2
-            + " "
-            + ScionUtil.toStringIA(body.getIsdAs())); // TODO
+    //    System.out.println(
+    //        "    writeMetadata: id1="
+    //            + id1
+    //            + " id2="
+    //            + id2
+    //            + " "
+    //            + ScionUtil.toStringIA(body.getIsdAs())); // TODO
     //    if (pos != range[0]) {
 
     //    System.out.println(
@@ -208,9 +205,6 @@ class SegmentMetadataAccumulator {
     if (reversed) {
       if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
         path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
-        System.out.println(
-            "  Adding lat 4: "
-                + toDuration(sie.getLatency().getInterMap().get(id1)).getSeconds()); // TODO
       }
       if (id1 != 0) {
         Long bw = sie.getBandwidth().getInterMap().get(id1);
@@ -249,9 +243,6 @@ class SegmentMetadataAccumulator {
     if (!reversed) {
       if (id1 != 0 && sie.getLatency().getInterMap().containsKey(id1)) {
         path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
-        System.out.println(
-            "  Adding lat 6: "
-                + toDuration(sie.getLatency().getInterMap().get(id1)).getSeconds()); // TODO
       }
       if (id1 != 0) {
         Long bw = sie.getBandwidth().getInterMap().get(id1);
@@ -320,8 +311,8 @@ class SegmentMetadataAccumulator {
     //    System.out.println();
 
     //    System.out.println("   n1? -> " + sie.getNote()); // TODO
-    System.out.print("   lt1? " + id1 + " -> " + sie.getLinkTypeMap().get(id1)); // TODO
-    System.out.println("   lt2? " + id2 + " -> " + sie.getLinkTypeMap().get(id2)); // TODO
+    //    System.out.print("   lt1? " + id1 + " -> " + sie.getLinkTypeMap().get(id1)); // TODO
+    //    System.out.println("   lt2? " + id2 + " -> " + sie.getLinkTypeMap().get(id2)); // TODO
     if (addIsdAs) {
       path.addNotes(sie.getNote());
     }
