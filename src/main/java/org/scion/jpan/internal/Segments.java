@@ -490,9 +490,6 @@ public class Segments {
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
         path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
-        // TODO        writeMetadata(path, body, range, pib.getId(), pib2.getId());
-      } else {
-        // TODO        writeMetadata(path, body, range, -1, -1);
       }
     }
 

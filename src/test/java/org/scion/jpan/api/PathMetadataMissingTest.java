@@ -51,9 +51,6 @@ class PathMetadataMissingTest {
           0x2_ff00_0000_0210L);
       checkEqual(meta.getBandwidthList(), 0L, 0L, 0L);
       checkEqual(meta.getLatencyList(), -1, -1, -1);
-      for (PathMetadata.PathInterface iface : meta.getInterfacesList()) {
-        System.out.println(iface.getId());
-      }
       checkEqual(
           meta.getLinkTypeList(),
           PathMetadata.LinkType.UNSPECIFIED,

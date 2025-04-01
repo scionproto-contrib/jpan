@@ -436,9 +436,6 @@ class PathMetadataTest {
           meta.getBandwidthList(), 11200L, 50L, 11100L, 50L, 120220L, 50L, 220221L, 50L, 221222L);
       checkEqual(meta.getLatencyList(), 112, 50, 111, 50, 102, 50, 101, 50, 101);
 
-      for (PathMetadata.LinkType o : meta.getLinkTypeList()) {
-        System.out.println("lt: " + o);
-      }
       checkEqual(
           meta.getLinkTypeList(),
           PathMetadata.LinkType.DIRECT,
@@ -446,9 +443,6 @@ class PathMetadataTest {
           PathMetadata.LinkType.OPEN_NET,
           PathMetadata.LinkType.OPEN_NET,
           PathMetadata.LinkType.UNSPECIFIED);
-      for (PathMetadata.GeoCoordinates o : meta.getGeoList()) {
-        System.out.println("geo: " + o.getAddress());
-      }
       checkEqual(
           meta.getGeoList(),
           GET_ADDR,
