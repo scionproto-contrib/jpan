@@ -107,8 +107,9 @@ public class Scenario {
           builder.putInternalHops(id2, internalHops.get(id1).get(id2));
         }
       }
-      if (linkTypes.containsKey(id1)) {
-        builder.putLinkType(id1, linkTypes.get(id1));
+      if (id1 > 0) {
+        builder.putLinkType(
+            id1, linkTypes.getOrDefault(id1, SegExtensions.LinkType.LINK_TYPE_UNSPECIFIED));
       }
       if (notes != null) {
         builder.setNote(notes);

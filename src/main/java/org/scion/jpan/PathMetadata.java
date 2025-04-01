@@ -125,7 +125,11 @@ public class PathMetadata {
   public List<Integer> getLatencyList() {
     return Collections.unmodifiableList(
         protoPath().getLatencyList().stream()
-            .map(time -> (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
+            .map(
+                time ->
+                    (time.getSeconds() < 0 || time.getNanos() < 0)
+                        ? -1
+                        : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
             .collect(Collectors.toList()));
   }
 

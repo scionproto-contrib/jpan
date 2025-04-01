@@ -17,24 +17,25 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockNetwork2;
 
-class SegmentTiny4bMetadataTest {
+class SegmentMinimalMetadataMissingTest {
 
   protected static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
-  protected static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
-  protected static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
   protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
   protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");
+  protected static final long AS_1121 = ScionUtil.parseIA("1-ff00:0:1121");
 
-  private static final String TOPO_DIR = "topologies/tiny4b/";
+  private static final String TOPO_DIR = "topologies/minimal/";
   private static final String TOPO_110 = TOPO_DIR + "ASff00_0_110/topology.json";
-  private static final String TOPO_112 = TOPO_DIR + "ASff00_0_112/topology.json";
   private static final String TOPO_120 = TOPO_DIR + "ASff00_0_120/topology.json";
+  private static final String TOPO_1121 = TOPO_DIR + "ASff00_0_1121/topology.json";
 
   @Test
   void testCore_110_120() throws IOException {
@@ -47,62 +48,29 @@ class SegmentTiny4bMetadataTest {
 
         Daemon.Path path = paths.get(0);
         assertEquals(1, path.getBandwidthList().size());
-        assertEquals(110120, path.getBandwidthList().get(0));
+        assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(120, path.getLatencyList().get(0).getNanos() / 1_000_000);
+        assertEquals(-1, path.getLatencyList().get(0).getNanos());
       }
     }
-  }
-
-  @Test
-  void testCore_120_110() throws IOException {
-    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_120")) {
-
-      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_110);
-        assertNotNull(paths);
-        assertEquals(1, paths.size());
-
-        Daemon.Path path = paths.get(0);
-        assertEquals(1, path.getBandwidthList().size());
-        assertEquals(110120, path.getBandwidthList().get(0));
-        assertEquals(1, path.getLatencyList().size());
-        assertEquals(120, path.getLatencyList().get(0).getNanos() / 1_000_000);
-      }
-    }
-
-    // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
-    // Available paths to 1-ff00:0:110
-    // 2 Hops:
-    // [0] Hops: [1-ff00:0:120 6>1 1-ff00:0:110]
-    //    MTU: 1472
-    //    NextHop: 127.0.0.65:31010
-    //    Expires: 2025-03-19 22:45:03 +0000 UTC (5h59m56s)
-    //    Latency: 101ms
-    //    Bandwidth: 100Kbit/s
-    //    Geo: [47.12,42.23 ("geo120-6") > 47.2,62.2 ("geo110-1")]
-    //    LinkType: [direct]
-    //    Notes: [1-ff00:0:120: "asdf-1-120", 1-ff00:0:110: "asdf-1-110"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    // 3 Hops:
-    // ...
   }
 
   @Test
   void testDown_120_121() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_120")) {
+
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_121);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
+        RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
         assertEquals(1, path.getBandwidthList().size());
-        assertEquals(120121, path.getBandwidthList().get(0));
+        assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(121, path.getLatencyList().get(0).getNanos() / 1_000_000);
+        assertEquals(-1, path.getLatencyList().get(0).getNanos());
       }
     }
 
@@ -139,21 +107,22 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testUp_112_110() throws IOException {
-    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_112")) {
-      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_112)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_110);
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_1121")) {
+      try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_1121)) {
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1121, AS_110);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
         assertEquals(3, path.getBandwidthList().size());
-        assertEquals(112111, path.getBandwidthList().get(0));
-        assertEquals(511, path.getBandwidthList().get(1));
-        assertEquals(111110, path.getBandwidthList().get(2));
+        assertEquals(0, path.getBandwidthList().get(0));
+        assertEquals(0, path.getBandwidthList().get(1));
+        assertEquals(0, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
-        assertEquals(112, path.getLatencyList().get(0).getNanos() / 1_000_000);
-        assertEquals(12, path.getLatencyList().get(1).getNanos() / 1_000_000);
-        assertEquals(111, path.getLatencyList().get(2).getNanos() / 1_000_000);
+        assertEquals(-1, path.getLatencyList().get(0).getNanos());
+        assertEquals(-1, path.getLatencyList().get(1).getNanos());
+        assertEquals(-1, path.getLatencyList().get(2).getNanos());
       }
     }
 
@@ -178,22 +147,24 @@ class SegmentTiny4bMetadataTest {
   }
 
   @Test
-  void testDown_110_112() throws IOException {
+  void testDown_110_1121() throws IOException {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_110")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_112);
+        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_1121);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
         Daemon.Path path = paths.get(0);
+        RequestPath rp = PackageVisibilityHelper.createRequestPath(path, AS_110, dstAddress);
         assertEquals(3, path.getBandwidthList().size());
-        assertEquals(111110, path.getBandwidthList().get(0));
-        assertEquals(511, path.getBandwidthList().get(1));
-        assertEquals(112111, path.getBandwidthList().get(2));
+        assertEquals(0, path.getBandwidthList().get(0));
+        assertEquals(0, path.getBandwidthList().get(1));
+        assertEquals(0, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
-        assertEquals(111, path.getLatencyList().get(0).getNanos() / 1_000_000);
-        assertEquals(12, path.getLatencyList().get(1).getNanos() / 1_000_000);
-        assertEquals(112, path.getLatencyList().get(2).getNanos() / 1_000_000);
+        assertEquals(-1, path.getLatencyList().get(0).getNanos());
+        assertEquals(-1, path.getLatencyList().get(1).getNanos());
+        assertEquals(-1, path.getLatencyList().get(2).getNanos());
       }
     }
 

@@ -1,7 +1,7 @@
 {
     "Bandwidth": {
         "1": {
-            "Inter": 100,
+            "Inter": 221222,
             "Intra": {
                 "2": 50,
                 "3": 80
@@ -54,17 +54,17 @@
         "1":{
             "Latitude": 47.2,
             "Longitude": 62.2,
-            "Address": "geo212-1"
+            "Address": "geo221-1"
         },
         "2":{
             "Latitude": 79.2,
             "Longitude": 45.2,
-            "Address": "geo212-2"
+            "Address": "geo221-2"
         },
         "3":{
             "Latitude": 47.22,
             "Longitude": 42.23,
-            "Address": "geo212-3"
+            "Address": "geo221-3"
         }
     },
     "Hops": {
@@ -80,5 +80,5 @@
             }
         }
     },
-    "Note": "asdf-2-212"
+    "Note": "asdf-2-221"
 }

@@ -23,10 +23,15 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
+- Ask about 32bit timestamp and year 2038 problem.
 - Cleanup: 
   - rename AbstractMinimalTest to AbstractSegmentTest or similar
   - refactor MockNetwork2 initialisation to use enum   
   - Use Range class everywhere
+- REMOVE topofile requirement from SCIO server:
+  Border routers will always use the same port for send/receive
+  (at least when communicating with hosts). They do split port only for
+  BR to BR communication 
 - BIG: extract testframework into separate project -> reuse by others!
 - More tests on unordered "destinations" in JSON
 - More tests on segment metadata

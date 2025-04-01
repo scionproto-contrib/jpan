@@ -69,32 +69,6 @@ class PathMetadataTest {
     //    LocalIP: 127.0.0.1
     // 3 Hops:
     // ...
-
-    //    PathSeg: size=9
-    //    SegInfo:  ts=2025-03-21T10:05:09Z  id=13212
-    //    AS: signed=159   signature size=70
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:09.523003643Z
-    // meta=0  data=9
-    //    AS Body: IA=1-ff00:0:110 nextIA=1-ff00:0:120  mtu=1472
-    //    HopEntry: true mtu=0
-    //    HopField: exp=63 ingress=0 egress=1
-    //    Extensions: true/false/false
-    //    Static: latencies=0/1  bandwidth=0/1  geo=1  interfaces=1  note='asdf-1-110'
-    //    latency inter: 1 -> 101.0 ms
-    //    bw inter: 1 -> 100
-    //    geo: 1 -> lon: 62.2; lat: 47.2; addr: geo110-1
-    //    link types: 1 -> LINK_TYPE_DIRECT
-    //    note: asdf-1-110
-    //    AS: signed=130   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:05:12.049697132Z
-    // meta=0  data=238
-    //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
-    //    HopEntry: true mtu=1472
-    //    HopField: exp=63 ingress=6 egress=0
-    //    Extensions: true/false/false
-    //    Static: latencies=0/0  bandwidth=0/0  geo=1  interfaces=0  note='asdf-1-120'
-    //    geo: 6 -> lon: 42.23; lat: 47.12; addr: geo120-6
-    //    note: asdf-1-120
   }
 
   @Test
@@ -153,58 +127,6 @@ class PathMetadataTest {
     //    Status: alive
     //    LocalIP: 127.0.0.1
     // 4 Hops:
-
-    // ProtobufSegmentDemo:
-    //    PathSeg: size=10
-    //    SegInfo:  ts=2025-03-21T10:01:37Z  id=18555
-    //    AS: signed=168   signature size=72
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.630857126Z
-    // meta=0  data=10
-    //    AS Body: IA=2-ff00:0:220 nextIA=1-ff00:0:120  mtu=1472
-    //    HopEntry: true mtu=0
-    //    HopField: exp=63 ingress=0 egress=502
-    //    Extensions: true/false/false
-    //    Static: latencies=0/1  bandwidth=0/1  geo=1  interfaces=1  note='asdf-2-220'
-    //    latency inter: 502 -> 103.0 ms
-    //    bw inter: 502 -> 100
-    //    geo: 502 -> lon: 42.23; lat: 47.22; addr: geo220#502
-    //    link types: 502 -> LINK_TYPE_MULTI_HOP
-    //    note: asdf-2-220
-    //    AS: signed=131   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560685521Z
-    // meta=0  data=250
-    //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
-    //    HopEntry: true mtu=1400
-    //    HopField: exp=63 ingress=3 egress=0
-    //    Extensions: true/false/false
-    //    Static: latencies=0/0  bandwidth=0/0  geo=1  interfaces=0  note='asdf-1-120'
-    //    geo: 3 -> lon: 42.23; lat: 47.12; addr: geo120-3
-    //    note: asdf-1-120
-    //    PathSeg: size=10
-    //    SegInfo:  ts=2025-03-21T10:01:37Z  id=26399
-    //    AS: signed=168   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:37.629688488Z
-    // meta=0  data=10
-    //    AS Body: IA=2-ff00:0:220 nextIA=1-ff00:0:120  mtu=1472
-    //    HopEntry: true mtu=0
-    //    HopField: exp=63 ingress=0 egress=501
-    //    Extensions: true/false/false
-    //    Static: latencies=0/1  bandwidth=0/1  geo=1  interfaces=1  note='asdf-2-220'
-    //    latency inter: 501 -> 102.0 ms
-    //    bw inter: 501 -> 100
-    //    geo: 501 -> lon: 45.2; lat: 79.2; addr: geo220#501
-    //    link types: 501 -> LINK_TYPE_OPEN_NET
-    //    note: asdf-2-220
-    //    AS: signed=131   signature size=69
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T10:01:39.560947350Z
-    // meta=0  data=249
-    //    AS Body: IA=1-ff00:0:120 nextIA=0-0:0:0  mtu=1472
-    //    HopEntry: true mtu=1350
-    //    HopField: exp=63 ingress=2 egress=0
-    //    Extensions: true/false/false
-    //    Static: latencies=0/0  bandwidth=0/0  geo=1  interfaces=0  note='asdf-1-120'
-    //    geo: 2 -> lon: 45.2; lat: 79.12; addr: geo120-2
-    //    note: asdf-1-120
   }
 
   @Test
@@ -307,7 +229,7 @@ class PathMetadataTest {
 
       checkEqual(
           meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.DIRECT);
-      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-5", "geo111-103", "geo111-104", "geo112-494");
+      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-5", "geo111-104", "geo111-103", "geo112-494");
       checkEqual(meta.getNotesList(), "asdf-1-120", "asdf-1-111", "asdf-1-112");
       checkEqual(meta.getInternalHopsList(), 3);
     }
@@ -341,74 +263,6 @@ class PathMetadataTest {
     //    LocalIP: 127.0.0.1
     // 4 Hops:
     // ...
-
-    //    PathSeg: size=10
-    //    SegInfo:  ts=2025-03-21T11:35:37Z  id=36331
-    //    AS: signed=241   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:37.051852243Z
-    // meta=0  data=10
-    //    AS Body: IA=1-ff00:0:120 nextIA=1-ff00:0:111  mtu=1472
-    //    HopEntry: true mtu=0
-    //    HopField: exp=63 ingress=0 egress=5
-    //    Extensions: true/false/false
-    //    Static: latencies=4/1  bandwidth=4/1  geo=1  interfaces=1  note='asdf-1-120'
-    //    latency intra: 1 -> 50.0 ms
-    //    latency intra: 2 -> 50.0 ms
-    //    latency intra: 3 -> 60.0 ms
-    //    latency intra: 6 -> 50.0 ms
-    //    latency inter: 5 -> 105.0 ms
-    //    bw intra: 2 -> 50
-    //    bw intra: 3 -> 50
-    //    bw intra: 6 -> 60
-    //    bw intra: 1 -> 50
-    //    bw inter: 5 -> 100
-    //    geo: 5 -> lon: 45.2; lat: 79.12; addr: geo120-5
-    //    link types: 5 -> LINK_TYPE_DIRECT
-    //    note: asdf-1-120
-    //    AS: signed=516   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:39.024261600Z
-    // meta=0  data=322
-    //    AS Body: IA=1-ff00:0:111 nextIA=1-ff00:0:112  mtu=1472
-    //    HopEntry: true mtu=1472
-    //    HopField: exp=63 ingress=104 egress=103
-    //    Extensions: true/false/false
-    //    Static: latencies=4/4  bandwidth=4/4  geo=5  interfaces=4  note='asdf-1-111'
-    //    latency intra: 100 -> 83.0 ms
-    //    latency intra: 101 -> 83.0 ms
-    //    latency intra: 102 -> 83.0 ms
-    //    latency intra: 104 -> 84.0 ms
-    //    latency inter: 102 -> 102.0 ms
-    //    latency inter: 103 -> 103.0 ms
-    //    latency inter: 100 -> 100.0 ms
-    //    latency inter: 101 -> 101.0 ms
-    //    bw intra: 104 -> 40
-    //    bw intra: 100 -> 50
-    //    bw intra: 101 -> 51
-    //    bw intra: 102 -> 52
-    //    bw inter: 100 -> 100
-    //    bw inter: 101 -> 100
-    //    bw inter: 102 -> 100
-    //    bw inter: 103 -> 100
-    //    geo: 100 -> lon: 42.23; lat: 47.12; addr: geo111-100
-    //    geo: 101 -> lon: 62.2; lat: 47.12; addr: geo111-101
-    //    geo: 102 -> lon: 45.2; lat: 79.12; addr: geo111-102
-    //    geo: 103 -> lon: 42.23; lat: 47.12; addr: geo111-103
-    //    geo: 104 -> lon: 62.2; lat: 47.12; addr: geo111-104
-    //    link types: 102 -> LINK_TYPE_OPEN_NET
-    //    link types: 103 -> LINK_TYPE_MULTI_HOP
-    //    link types: 100 -> LINK_TYPE_DIRECT
-    //    link types: 101 -> LINK_TYPE_DIRECT
-    //    note: asdf-1-111
-    //    AS: signed=134   signature size=71
-    //    AS header: SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256  time=2025-03-21T11:35:44.050599857Z
-    // meta=0  data=909
-    //    AS Body: IA=1-ff00:0:112 nextIA=0-0:0:0  mtu=1450
-    //    HopEntry: true mtu=1472
-    //    HopField: exp=63 ingress=494 egress=0
-    //    Extensions: true/false/false
-    //    Static: latencies=0/0  bandwidth=0/0  geo=1  interfaces=0  note='asdf-1-112'
-    //    geo: 494 -> lon: 62.2; lat: 47.2; addr: geo112-494
-    //    note: asdf-1-112
   }
 
   @Test
@@ -460,14 +314,14 @@ class PathMetadataTest {
           "geo120-2",
           "geo220#501",
           "geo220#500",
-          "geo212-2");
+          "geo221-2");
       checkEqual(
           meta.getNotesList(),
           "asdf-1-112",
           "asdf-1-111",
           "asdf-1-120",
           "asdf-2-220",
-          "asdf-2-212");
+          "asdf-2-221");
       checkEqual(meta.getInternalHopsList(), 3, 5, 2);
     }
     // 494>103 104>5 2>501
@@ -547,64 +401,100 @@ class PathMetadataTest {
   }
 
   @Test
-  void testUpCoreDown112_222() {
-    //    for (PathMetadata.LinkType o : meta.getLinkTypeList()) {
-    //      System.out.println("lt: " + o);
-    //    }
-    //    checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT,
-    //            PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.MULTI_HOP,
-    //            PathMetadata.LinkType.DIRECT);
-    //    for (PathMetadata.GeoCoordinates o : meta.getGeoList()) {
-    //      System.out.println("geo: " + o.getAddress());
-    //    }
-    //
-    //    checkEqual(
-    //            meta.getGeoList(),
-    //            GET_ADDR,
-    //            "geo112-11", "geo111-112",  "geo111-110",  "geo110-111",
-    //            "geo110-120",  "geo120-110",  "geo120-121",  "geo121-20");
-    //    checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-110", "asdf-1-120",
-    // "asdf-1-121");
-    //
-    //    for (Object o : meta.getInternalHopsList()) {
-    //      System.out.println("hops: " + o);
-    //    }
-    //    checkEqual(meta.getInternalHopsList(), 11, 10, 7);
+  void testUpCoreDown_112_222() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start("topologies/default/", "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
 
-    // scion showpaths 2-ff00:0:222 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
-    // Available paths to 2-ff00:0:222
-    // 4 Hops:
-    // [0] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 101>5 2-ff00:0:211 4>301 2-ff00:0:222]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.58:31034
-    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h59m37s)
-    //    Latency: >287ms (information incomplete)
-    //    Bandwidth: 51Kbit/s (information incomplete)
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-101") >
-    // N/A > N/A > N/A]
-    //    LinkType: [multihop, direct, unset]
-    //    InternalHops: [1-ff00:0:111: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    // [1] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 102>6 2-ff00:0:211 4>301 2-ff00:0:222]
-    //    MTU: 1450
-    //    NextHop: 127.0.0.58:31034
-    //    Expires: 2025-03-19 22:15:32 +0000 UTC (5h59m37s)
-    //    Latency: >288ms (information incomplete)
-    //    Bandwidth: 52Kbit/s (information incomplete)
-    //    Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 79.12,45.2 ("geo111-102") >
-    // N/A > N/A > N/A]
-    //    LinkType: [multihop, opennet, unset]
-    //    InternalHops: [1-ff00:0:111: 3]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111"]
-    //    SupportsEPIC: false
-    //    Status: alive
-    //    LocalIP: 127.0.0.1
-    // 6 Hops:
-    // ..
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:222"), dstAddress);
+      assertEquals(4, paths.size());
+      Path path = null;
+      for (Path p : paths) {
+        PathMetadata meta = p.getMetadata();
+        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
+        if (list.size() == 10 && list.get(0).getId() == 494 && list.get(4).getId() == 2) {
+          path = p;
+        }
+      }
+      assertNotNull(path);
+      PathMetadata meta = path.getMetadata();
+      checkEqual(meta.getInterfacesList(), GET_ID, 494, 103, 104, 5, 2, 501, 500, 2, 1, 302);
+      checkEqual(
+          meta.getInterfacesList(),
+          GET_IAS_AS,
+          0x1_ff00_0000_0112L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0111L,
+          0x1_ff00_0000_0120L,
+          0x1_ff00_0000_0120L,
+          0x2_ff00_0000_0220L,
+          0x2_ff00_0000_0220L,
+          0x2_ff00_0000_0221L,
+          0x2_ff00_0000_0221L,
+          0x2_ff00_0000_0222L);
+      checkEqual(
+          meta.getBandwidthList(), 11200L, 50L, 11100L, 50L, 120220L, 50L, 220221L, 50L, 221222L);
+      checkEqual(meta.getLatencyList(), 112, 50, 111, 50, 102, 50, 101, 50, 101);
 
+      for (PathMetadata.LinkType o : meta.getLinkTypeList()) {
+        System.out.println("lt: " + o);
+      }
+      checkEqual(
+          meta.getLinkTypeList(),
+          PathMetadata.LinkType.DIRECT,
+          PathMetadata.LinkType.DIRECT,
+          PathMetadata.LinkType.OPEN_NET,
+          PathMetadata.LinkType.OPEN_NET,
+          PathMetadata.LinkType.UNSPECIFIED);
+      for (PathMetadata.GeoCoordinates o : meta.getGeoList()) {
+        System.out.println("geo: " + o.getAddress());
+      }
+      checkEqual(
+          meta.getGeoList(),
+          GET_ADDR,
+          "geo112-494",
+          "geo111-103",
+          "geo111-104",
+          "geo120-5",
+          "geo120-2",
+          "geo220#501",
+          "geo220#500",
+          "geo221-2",
+          "geo221-1",
+          "");
+      checkEqual(
+          meta.getNotesList(),
+          "asdf-1-112",
+          "asdf-1-111",
+          "asdf-1-120",
+          "asdf-2-220",
+          "asdf-2-221",
+          "");
+      checkEqual(meta.getInternalHopsList(), 3, 5, 2, 2);
+    }
+
+    // 494>103 104>5 2>501 500>2 1>302
+
+    //  scion showpaths 2-ff00:0:222 --sciond 127.0.0.60:30255 --extended
+    //  ...
+    //  [2] Hops: [1-ff00:0:112 494>103 1-ff00:0:111 104>5 1-ff00:0:120 2>501 2-ff00:0:220 500>2
+    //      2-ff00:0:221 1>302 2-ff00:0:222]
+    //  MTU: 1350
+    //  NextHop: 127.0.0.58:31034
+    //  Expires: 2025-04-01 21:14:26 +0000 UTC (5h56m21s)
+    //  Latency: 761ms
+    //  Bandwidth: 40Kbit/s
+    //  Geo: [47.2,62.2 ("geo112-494") > 47.12,42.23 ("geo111-103") > 47.12,62.2 ("geo111-104")
+    //      > 79.12,45.2 ("geo120-5") > 79.12,45.2 ("geo120-2") > 79.2,45.2 ("geo220#501")
+    //      > 47.2,62.2 ("geo220#500") > 79.2,45.2 ("geo221-2") > 47.2,62.2 ("geo221-1") > N/A]
+    //  LinkType: [multihop, direct, opennet, direct, direct]
+    //  InternalHops: [1-ff00:0:111: 4, 1-ff00:0:120: 5, 2-ff00:0:220: 2, 2-ff00:0:221: 2]
+    //  Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111", 1-ff00:0:120: "asdf-1-120",
+    //      2-ff00:0:220: "asdf-2-220", 2-ff00:0:221: "asdf-2-221"]
+    //  SupportsEPIC: false
+    //  Status: alive
+    //  LocalIP: 127.0.0.1
+    // ...
   }
 
   @Test
@@ -734,83 +624,6 @@ class PathMetadataTest {
     //    LocalIP: 127.0.0.1
     // 6 Hops:
     // ...
-
-    //    wHF: 2   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:112  ext:true  reversed: true
-    //      lat-intra1? 0 -> null   lat-intra2? 11 -> null
-    //      bw-intra1? 0 -> null   bw-intra2? 11 -> null
-    //      geo1? 0 -> false   geo2? 11 -> true
-    //      hops1? 0 -> null   hops2? 11 -> null
-    //      n1? -> asdf-1-112
-    //      lt1? 0 -> null   lt2? 11 -> null
-    //    wHF: 1   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:111  ext:true  reversed: true
-    //      lat-intra1? 12 -> null   lat-intra2? 10 -> 12000
-    //      lat-intra: 10->12000;
-    //      bw-intra1? 12 -> null   bw-intra2? 10 -> 511
-    //      bw-intra: 10->511;
-    //      geo1? 12 -> true   geo2? 10 -> true
-    //      hops1? 12 -> null   hops2? 10 -> 11
-    //      n1? -> asdf-1-111
-    //      lt1? 12 -> LINK_TYPE_DIRECT   lt2? 10 -> null
-    //    wHF: 0   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:110  ext:true  reversed: true
-    //      id3 = 20
-    //      lat-intra1? 11 -> null   lat-intra2? 0 -> null
-    //      lat-intra: 20->10000;
-    //      bw-intra1? 11 -> null   bw-intra2? 0 -> null
-    //      bw-intra: 20->510;
-    //      geo1? 11 -> true   geo2? 0 -> false
-    //      hops1? 11 -> null   hops2? 0 -> null
-    //      n1? -> asdf-1-110
-    //      lt1? 11 -> LINK_TYPE_DIRECT   lt2? 0 -> null
-    //    wHF: 1   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:110  ext:true  reversed: true
-    //      lat-intra1? 0 -> null   lat-intra2? 20 -> null
-    //      bw-intra1? 0 -> null   bw-intra2? 20 -> null
-    //      geo1? 0 -> false   geo2? 20 -> true
-    //      hops1? 0 -> null   hops2? 20 -> null
-    //      n1? -> asdf-1-110
-    //      lt1? 0 -> null   lt2? 20 -> null
-    //    wHF: 0   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:120  ext:true  reversed: true
-    //      lat-intra1? 10 -> null   lat-intra2? 0 -> null
-    //      bw-intra1? 10 -> null   bw-intra2? 0 -> null
-    //      geo1? 10 -> true   geo2? 0 -> false
-    //      hops1? 10 -> null   hops2? 0 -> null
-    //      n1? -> asdf-1-120
-    //      lt1? 10 -> LINK_TYPE_MULTI_HOP   lt2? 0 -> null
-    //    wHF: 0   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:120  ext:true  reversed: false
-    //      id3 = 10
-    //      lat-intra1? 21 -> null   lat-intra2? 0 -> null
-    //      lat-intra: 10->20000;
-    //      bw-intra1? 21 -> null   bw-intra2? 0 -> null
-    //      bw-intra: 10->520;
-    //      geo1? 21 -> true   geo2? 0 -> false
-    //      hops1? 21 -> null   hops2? 0 -> null
-    //      n1? -> asdf-1-120
-    //      lt1? 21 -> LINK_TYPE_DIRECT   lt2? 0 -> null
-    //    wHF: 1   ->  [11>12 10>11 20>10 21>20] 1-ff00:0:121  ext:true  reversed: false
-    //      lat-intra1? 0 -> null   lat-intra2? 20 -> null
-    //      bw-intra1? 0 -> null   bw-intra2? 20 -> null
-    //      geo1? 0 -> false   geo2? 20 -> true
-    //      hops1? 0 -> null   hops2? 20 -> null
-    //      n1? -> asdf-1-121
-    //      lt1? 0 -> null   lt2? 20 -> null
-
-    //    Available paths to 1-ff00:0:121
-    //            [0] Hops: [1-ff00:0:112 11>12 1-ff00:0:111 10>11 1-ff00:0:110 20>10 1-ff00:0:120
-    //                       21>20 1-ff00:0:121]
-    //    MTU: 1280
-    //    NextHop: 127.0.0.33
-    //    Expires: 2025-03-31 17:06:05 +0000 UTC (5h57m19s)
-    //    Latency: 506ms
-    //    Bandwidth: 510KBit/s
-    //    Geo: [79.112,45.112 ("geo112-11") > 47.111,62.112 ("geo111-112") >
-    //      47.111,42.11 ("geo111-110") > 47.11,42.111 ("geo110-111") >
-    //      47.11,62.12 ("geo110-120") > 47.12,62.11 ("geo120-110") >
-    //      47.12,42.121 ("geo120-121") > 79.121,45.12 ("geo121-20")]
-    //    LinkType: [direct, direct, multihop, direct]
-    //    Notes: [1-ff00:0:112: "asdf-1-112", 1-ff00:0:111: "asdf-1-111",
-    //      1-ff00:0:110: "asdf-1-110", 1-ff00:0:120: "asdf-1-120", 1-ff00:0:121: "asdf-1-121"]
-    //    SupportsEPIC: false
-    //    Status: unknown
-    //    LocalIP: 127.0.0.1
   }
 
   @Test

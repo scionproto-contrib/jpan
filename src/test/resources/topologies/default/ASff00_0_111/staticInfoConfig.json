@@ -128,7 +128,7 @@
         "100":"direct",
         "101":"direct",
         "102":"opennet",
-        "103":"multihop",
+        "103":"direct",
         "104":"direct",
         "105":"direct"
     },

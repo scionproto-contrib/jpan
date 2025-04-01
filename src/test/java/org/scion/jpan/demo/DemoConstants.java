@@ -38,6 +38,7 @@ public class DemoConstants {
   public static final long ia211 = ScionUtil.parseIA("2-ff00:0:211");
   public static final long ia220 = ScionUtil.parseIA("2-ff00:0:220");
   public static final long ia221 = ScionUtil.parseIA("2-ff00:0:221");
+  public static final long ia222 = ScionUtil.parseIA("2-ff00:0:222");
 
   // ----------------  "minimal" network - daemons and control servers  ---------------
   public static final String daemon110_minimal = "127.0.0.29:30255";
