@@ -270,20 +270,12 @@ public class Scenario {
       int prevIngress,
       BorderRouterInterface parentIf) {
     LocalTopology local = topologies.get(parentIf.getIsdAs());
-    boolean reversed = false; // TODO ?????
     boolean isCore = BorderRouterInterface.CORE.equals(linkType);
-    long isdAs = local.getIsdAs();
-    PRINT =
-        (isdAs == ScionUtil.parseIA("1-ff00:0:110")
-                && rootIsdAs == ScionUtil.parseIA("1-ff00:0:120"))
-            || (isdAs == ScionUtil.parseIA("1-ff00:0:120")
-                && rootIsdAs == ScionUtil.parseIA("1-ff00:0:110"));
 
     // Build ingoing entry
     Seg.HopEntry he0 = buildHopEntry(0, buildHopField(63, prevIngress, parentIf.getId()));
     Seg.ASEntry as0 =
-        buildASEntry(
-            prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, reversed, isCore, true);
+        buildASEntry(prevAs.getIsdAs(), local.getIsdAs(), prevAs.getMtu(), he0, isCore, true);
     builder.addAsEntries(as0);
 
     Set<Long> visited =
@@ -319,8 +311,7 @@ public class Scenario {
 
     // Add ingress interface
     Seg.HopEntry he01 = buildHopEntry(parentIf.getMtu(), buildHopField(63, ingress, 0));
-    Seg.ASEntry ase01 =
-        buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01, reversed, isCore, false);
+    Seg.ASEntry ase01 = buildASEntry(local.getIsdAs(), ZERO, local.getMtu(), he01, isCore, false);
     builder.addAsEntries(ase01);
     segmentDb.add(new SegmentEntry(local.getIsdAs(), rootIsdAs, builder.build(), isCore));
     SegmentEntry se = segmentDb.get(segmentDb.size() - 1);
@@ -354,13 +345,7 @@ public class Scenario {
   }
 
   private Seg.ASEntry buildASEntry(
-      long isdAs,
-      long nextIA,
-      int mtu,
-      Seg.HopEntry he,
-      boolean reversed,
-      boolean isCore,
-      boolean isFirst) {
+      long isdAs, long nextIA, int mtu, Seg.HopEntry he, boolean isCore, boolean isFirst) {
     Signed.Header header =
         Signed.Header.newBuilder()
             .setSignatureAlgorithm(Signed.SignatureAlgorithm.SIGNATURE_ALGORITHM_ECDSA_WITH_SHA256)
@@ -371,21 +356,10 @@ public class Scenario {
         SegExtensions.PathSegmentExtensions.newBuilder();
     if (staticInfo.containsKey(isdAs)) {
       Seg.HopField hf = he.getHopField();
-      boolean addAllIntraData = false;
-      //      if (nextIA == 0 && reversed && !isCore) {
-      //        addAllIntraData = true;
-      //      } else if (!reversed && isFirst) {
-      //        // TODO can we derive "isFirst" from id1/id2?
-      //        addAllIntraData = true;
-      //      }
-      addAllIntraData = !isCore && isFirst;
-      if (reversed) {
-        ext.setStaticInfo(
-            staticInfo.get(isdAs).build(hf.getEgress(), hf.getIngress(), addAllIntraData));
-      } else {
-        ext.setStaticInfo(
-            staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress(), addAllIntraData));
-      }
+      // TODO can we derive "isFirst" from id1/id2?
+      boolean addAllIntraData = !isCore && isFirst;
+      ext.setStaticInfo(
+          staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress(), addAllIntraData));
     }
 
     Seg.ASEntrySignedBody body =
@@ -447,8 +421,6 @@ public class Scenario {
   private void parseStaticInfo(long isdAs, String content) {
     JsonElement jsonTree = JsonParser.parseString(content);
     JsonObject entry = jsonTree.getAsJsonObject();
-    PRINT =
-        isdAs == ScionUtil.parseIA("1-ff00:0:120") || isdAs == ScionUtil.parseIA("1-ff00:0:110");
     StaticInfo sie = new StaticInfo();
     for (Map.Entry<String, JsonElement> e : entry.entrySet()) {
       switch (e.getKey()) {
@@ -538,14 +510,6 @@ public class Scenario {
       }
     }
     staticInfo.put(isdAs, sie);
-  }
-
-  private static boolean PRINT = true;
-
-  private static void println(String msg) {
-    if (PRINT) {
-      System.out.println(msg);
-    }
   }
 
   private static int getMicros(JsonElement e) {
