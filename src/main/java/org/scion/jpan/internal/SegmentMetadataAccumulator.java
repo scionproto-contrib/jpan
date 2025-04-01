@@ -219,10 +219,6 @@ class SegmentMetadataAccumulator {
     }
 
     if (addIntraInfo && !sie.getLatency().getIntraMap().isEmpty()) {
-      System.out.println(
-          "  Adding lat 5: "
-              + toDuration(sie.getLatency().getIntraMap().values().iterator().next())
-                  .getSeconds()); // TODO
       path.addLatency(toDuration(sie.getLatency().getIntraMap().values().iterator().next()));
     }
     if (addIntraInfo && !sie.getBandwidth().getIntraMap().isEmpty()) {
