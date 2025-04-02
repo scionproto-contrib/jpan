@@ -87,6 +87,12 @@ TODO
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
+## [0.5.1] - 2025-04-02
+
+### Fixed
+- Use JDK 8 `javac` instead of JDK 21
+  [#174](https://github.com/scionproto-contrib/jpan/pull/174)
+
 ## [0.5.0] - 2025-04-02
 
 ** BREAKING CHANGES **
@@ -420,7 +426,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/scionproto-contrib/jpan/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/scionproto-contrib/jpan/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.4.0

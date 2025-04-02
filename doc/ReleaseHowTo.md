@@ -11,7 +11,7 @@
 1) Prepare the environment
     - Make sure to have a valid signing key
     - Make sure to have `~/.m2/settings.xml` configured properly
-    - Make sure to use JDK 8
+    - Make sure to use JDK 8: `java` and `javac`!
 
 2) Release preparation
     - Prepare CHANGELOG
