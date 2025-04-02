@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.5.0
-- Metadata: BW/Latency/Geo/Notes! 
 - Add scion-java-packet-example to README
 
 - API do drop current path or even use most diverse one.
@@ -87,6 +86,8 @@ TODO
 - Bootstrap with DHCP - Check Book page 327, chapter 13.2
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
+
+## [0.5.0] - 2025-04-02
 
 ** BREAKING CHANGES **
 - Minor: Some methods have `throw IOException` removed from their declaration.
@@ -419,7 +420,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/scionproto-contrib/jpan/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/scionproto-contrib/jpan/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.4.0
 [0.3.1]: https://github.com/scionproto-contrib/jpan/compare/v0.3.0...v0.3.1
