@@ -23,7 +23,6 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
-- Ask about 32bit timestamp and year 2038 problem.
 - Cleanup: 
   - rename AbstractMinimalTest to AbstractSegmentTest or similar
   - refactor MockNetwork2 initialisation to use enum   
@@ -109,6 +108,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 - Path policies JSON import export
   [#170](https://github.com/scionproto-contrib/jpan/pull/170)
+- Add missing metadata from staticInfo
+  [#173](https://github.com/scionproto-contrib/jpan/pull/173)
 
 ### Changed
  

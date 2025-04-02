@@ -399,7 +399,7 @@ public class Segments {
     path.setInterface(interfaceAddr);
 
     // Metadata
-    SegmentMetadataAccumulator.writeMetadata(path, segments, ranges);
+    SegmentMetadataAccumulator.writeStaticInfoMetadata(path, segments, ranges);
 
     paths.checkDuplicatePaths(path);
   }

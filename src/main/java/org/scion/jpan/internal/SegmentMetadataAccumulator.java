@@ -48,7 +48,7 @@ class SegmentMetadataAccumulator {
     }
   }
 
-  static void writeMetadata(
+  static void writeStaticInfoMetadata(
       Daemon.Path.Builder path, Segments.PathSegment[] pathSegments, int[][] ranges) {
     // Stitching metadata is not trivial.
     // Some quirks:
@@ -71,7 +71,6 @@ class SegmentMetadataAccumulator {
           addIntraInfo = pos != range.first() && pos != range.last();
         } else if (pathSegments.length == 2) {
           if (r == 0) {
-            // TODO check: pos != begin!
             addIntraInfo = pos != range.first();
           } else {
             // r == 1
@@ -91,12 +90,12 @@ class SegmentMetadataAccumulator {
 
         boolean addIsdAs = prevIsdAs != body.getIsdAs();
         prevIsdAs = body.getIsdAs();
-        writeMetadata(path, body, range, addIsdAs, addIntraInfo);
+        writeStaticInfoMetadata(path, body, range, addIsdAs, addIntraInfo);
       }
     }
   }
 
-  private static void writeMetadata(
+  private static void writeStaticInfoMetadata(
       Daemon.Path.Builder path,
       Seg.ASEntrySignedBody body,
       Range range,
