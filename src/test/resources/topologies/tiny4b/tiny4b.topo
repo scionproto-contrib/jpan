@@ -1,0 +1,25 @@
+--- # Tiny Topology, IPv4 Only
+ASes:
+  "1-ff00:0:110":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+    mtu: 1400
+  "1-ff00:0:120":
+    core: true
+    voting: true
+    authoritative: true
+    issuing: true
+    mtu: 1400
+  "1-ff00:0:111":
+    cert_issuer: 1-ff00:0:110
+  "1-ff00:0:112":
+    cert_issuer: 1-ff00:0:110
+  "1-ff00:0:121":
+    cert_issuer: 1-ff00:0:120
+links:
+  - {a: "1-ff00:0:110#11", b: "1-ff00:0:111#10", linkAtoB: CHILD, mtu: 1280}
+  - {a: "1-ff00:0:110#20", b: "1-ff00:0:120#10", linkAtoB: CORE, mtu: 1280}
+  - {a: "1-ff00:0:120#21", b: "1-ff00:0:121#20", linkAtoB: CHILD, bw: 500}
+  - {a: "1-ff00:0:111#12", b: "1-ff00:0:112#11", linkAtoB: CHILD, mtu: 1280}

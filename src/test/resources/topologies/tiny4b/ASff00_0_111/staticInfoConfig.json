@@ -1,0 +1,54 @@
+{
+    "Bandwidth": {
+        "10": {
+            "Inter": 111110,
+            "Intra": {
+                "12": 511
+            }
+        },
+        "12": {
+            "Inter": 112111,
+            "Intra": {
+                "10": 511
+            }
+        }
+    },
+    "Latency": {
+        "10": {
+            "Inter": "111ms",
+            "Intra": {
+                "12": "12ms"
+            }
+        },
+        "12": {
+            "Inter": "112ms",
+            "Intra": {
+                "10": "12ms"
+            }
+        }
+    },
+    "Linktype": {
+        "10":"direct",
+        "12":"direct"
+    },
+    "Geo": {
+        "10":{
+            "Latitude": 47.111,
+            "Longitude": 42.110,
+            "Address": "geo111-110"
+        },
+        "12":{
+            "Latitude": 47.111,
+            "Longitude": 62.112,
+            "Address": "geo111-112"
+        }
+    },
+    "Hops": {
+        "10":{
+            "Intra": {
+                "12": 11
+            }
+        }
+    },
+    "Note": "asdf-1-111"
+}

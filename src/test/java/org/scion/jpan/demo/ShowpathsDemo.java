@@ -16,6 +16,10 @@ package org.scion.jpan.demo;
 
 import java.io.*;
 import java.net.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockDNS;
@@ -38,6 +42,7 @@ public class ShowpathsDemo {
 
   public static boolean PRINT = true;
   public static Network NETWORK = Network.PRODUCTION;
+  public static boolean EXTENDED = true;
 
   public enum Network {
     JUNIT_MOCK_V4, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
@@ -82,15 +87,17 @@ public class ShowpathsDemo {
         }
       case SCION_PROTO:
         {
-          // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
-          // "topologies/minimal/ASff00_0_1111/topology.json");
-          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          runDemo(DemoConstants.ia211);
+          System.setProperty(
+              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+              "topologies/default/ASff00_0_112/topology.json");
+          // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon110_tiny4b);
+          runDemo(DemoConstants.ia222);
           break;
         }
       case PRODUCTION:
         {
-          runDemo(DemoConstants.iaAnapayaHK);
+          runDemo(ScionUtil.parseIA("71-2:0:48"));
+          // runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
           break;
         }
@@ -120,22 +127,169 @@ public class ShowpathsDemo {
         localIP = channel.getLocalAddress().getAddress().getHostAddress();
       }
       PathMetadata meta = path.getMetadata();
-      String sb =
-          "["
-              + id++
-              + "] Hops: "
-              + ScionUtil.toStringPath(meta)
-              + " MTU: "
-              + meta.getMtu()
-              + " NextHop: "
-              + path.getFirstHopAddress().getHostString()
-              + ":"
-              + path.getFirstHopAddress().getPort()
-              + " LocalIP: "
-              + localIP;
-      println(sb);
+      String header = "[" + id++ + "] Hops: " + ScionUtil.toStringPath(meta);
+      if (EXTENDED) {
+        println(header);
+        printExtended(path, localIP);
+      } else {
+        String compact =
+            " MTU: "
+                + meta.getMtu()
+                + " NextHop: "
+                + path.getFirstHopAddress().getHostString()
+                + ":"
+                + path.getFirstHopAddress().getPort()
+                + " LocalIP: "
+                + localIP;
+        println(header + compact);
+      }
     }
     return paths.size();
+  }
+
+  private static void printExtended(Path path, String localIP) {
+    StringBuilder sb = new StringBuilder();
+    String NL = System.lineSeparator();
+
+    PathMetadata meta = path.getMetadata();
+    sb.append("    MTU: ").append(meta.getMtu()).append(NL);
+    sb.append("    NextHop: ").append(meta.getFirstHopAddress().getHostString()).append(NL);
+    sb.append("    Expires: ").append(toStringExpiry(meta)).append(NL);
+    sb.append("    Latency: ").append(toStringLatency(meta)).append(NL);
+    sb.append("    Bandwidth: ").append(toStringBandwidth(meta)).append(NL);
+    sb.append("    Geo: ").append(toStringGeo(meta)).append(NL);
+    sb.append("    LinkType: ").append(toStringLinkType(meta)).append(NL);
+    sb.append("    Notes: ").append(toStringNotes(meta)).append(NL);
+    sb.append("    SupportsEPIC: ").append(toStringEPIC(meta)).append(NL);
+    // TODO, see private/app/path/pathprobe/paths.go
+    sb.append("    Status: ").append("unknown").append(NL);
+    // TODO use destination IP from returned packet from probe
+    sb.append("    LocalIP: ").append(localIP).append(NL);
+
+    println(sb.toString());
+  }
+
+  private static String toStringExpiry(PathMetadata meta) {
+    Instant exp = Instant.ofEpochSecond(meta.getExpiration());
+    DateTimeFormatter formatter =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z").withZone(ZoneId.of("UTC"));
+    Instant now = Instant.now();
+    long s = Duration.between(now, exp).getSeconds();
+    String ds = String.format("(%dh%02dm%02ds)", s / 3600, (s % 3600) / 60, (s % 60));
+    return formatter.format(exp) + " UTC " + ds;
+  }
+
+  private static String toStringLatency(PathMetadata meta) {
+    int latencyMs = 0;
+    boolean latencyComplete = true;
+    for (int l : meta.getLatencyList()) {
+      if (l >= 0) {
+        latencyMs += l;
+      } else {
+        latencyComplete = false;
+      }
+    }
+    if (latencyComplete) {
+      return latencyMs + "ms";
+    } else {
+      return ">" + latencyMs + "ms (information incomplete)";
+    }
+  }
+
+  private static String toStringBandwidth(PathMetadata meta) {
+    long bw = Long.MAX_VALUE;
+    boolean bwComplete = true;
+    for (long l : meta.getBandwidthList()) {
+      if (l > 0) {
+        bw = Math.min(bw, l);
+      } else {
+        bwComplete = false;
+      }
+    }
+    bw = bw == Long.MAX_VALUE ? 0 : bw;
+    String bwString = bw + "KBit/s";
+    if (!bwComplete) {
+      bwString += " (information incomplete)";
+    }
+    return bwString;
+  }
+
+  private static String toStringGeo(PathMetadata meta) {
+    StringBuilder s = new StringBuilder("[");
+    for (PathMetadata.GeoCoordinates g : meta.getGeoList()) {
+      if (s.length() > 1) {
+        s.append(" > ");
+      }
+      if (g.getLatitude() == 0 && g.getLongitude() == 0 && g.getAddress().isEmpty()) {
+        s.append("N/A");
+      } else {
+        s.append(g.getLatitude()).append(",").append(g.getLongitude());
+        String addr = g.getAddress().replace("\n", ", ");
+        s.append(" (\"").append(addr).append("\")");
+      }
+    }
+    s.append("]");
+    return s.toString();
+  }
+
+  private static String toStringLinkType(PathMetadata meta) {
+    StringBuilder s = new StringBuilder("[");
+    for (PathMetadata.LinkType lt : meta.getLinkTypeList()) {
+      if (s.length() > 1) {
+        s.append(", ");
+      }
+      switch (lt) {
+        case UNSPECIFIED:
+          s.append("unset");
+          break;
+        case DIRECT:
+          s.append("direct");
+          break;
+        case MULTI_HOP:
+          s.append("multihop");
+          break;
+        case OPEN_NET:
+          s.append("opennet");
+          break;
+        default:
+          s.append("unset");
+          break;
+      }
+    }
+    s.append("]");
+    return s.toString();
+  }
+
+  private static String toStringEPIC(PathMetadata meta) {
+    PathMetadata.EpicAuths ea = meta.getEpicAuths();
+    if (ea == null) {
+      return "false";
+    }
+    if (ea.getAuthLhvf() != null && ea.getAuthLhvf().length == 16) {
+      return "true";
+    }
+    if (ea.getAuthPhvf() != null && ea.getAuthPhvf().length == 16) {
+      return "true";
+    }
+    return "false";
+  }
+
+  private static String toStringNotes(PathMetadata meta) {
+    StringBuilder s = new StringBuilder("[");
+    int i = 0;
+    for (String note : meta.getNotesList()) {
+      if (note != null && !note.isEmpty()) {
+        if (s.length() > 1) {
+          s.append(", ");
+        }
+        long isdAs = meta.getInterfacesList().get(Math.max(0, i * 2 - 1)).getIsdAs();
+        s.append(ScionUtil.toStringIA(isdAs));
+        s.append(": \"").append(note).append("\"");
+      }
+      i++;
+    }
+    s.append("]");
+    return s.toString();
   }
 
   private static void println(String msg) {

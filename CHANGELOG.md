@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.5.0
 - Metadata: BW/Latency/Geo/Notes! 
+- Add scion-java-packet-example to README
 
 - API do drop current path or even use most diverse one.
   -> To be called if application detects interruption (but no SCMP errors arrive?)
@@ -22,8 +23,34 @@ Post-0.5.0
   - https://scion-architecture.net/apps/
 
 TODO
+- Cleanup: 
+  - rename AbstractMinimalTest to AbstractSegmentTest or similar
+  - refactor MockNetwork2 initialisation to use enum   
+  - Use Range class everywhere
+- REMOVE topofile requirement from SCIO server:
+  Border routers will always use the same port for send/receive
+  (at least when communicating with hosts). They do split port only for
+  BR to BR communication 
+- BIG: extract testframework into separate project -> reuse by others!
+- More tests on unordered "destinations" in JSON
+- More tests on segment metadata
+- ASK to add latency/bw/geo/notes to SCIERA network!
+- There can be multiple-control servers per AS -> Handle it (fallback)
+- JSON is not an ordered file format -> Use JSON array for ordering...
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
+- STUN: Always listen for STUN packets (e.g. eternally blocking receive())
+  in order to support on-demand STUN
+- Improve PathPolicy API:
+  - Chainable PathPolicies (can be done manually or by providing a combinator class)
+  - PathProvider/Supplier (e.g. for traceroute policies)
+  - Ability to check for new Path or skip a broken paths, see fix/171
+- Scmp API: 
+  - Move ResponderCallback to Scmp?
+  - Make onTimeout() a default method? 
+  - Merge all methods into one? A single onMessage()???
+- Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise 
+- TC: ask about port field in SCMP? Or must it be sent from 30041?
 
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
@@ -81,6 +108,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
   [#158](https://github.com/scionproto-contrib/jpan/pull/158)
 - Path policies JSON import export
   [#170](https://github.com/scionproto-contrib/jpan/pull/170)
+- Add missing metadata from staticInfo
+  [#173](https://github.com/scionproto-contrib/jpan/pull/173)
 
 ### Changed
  

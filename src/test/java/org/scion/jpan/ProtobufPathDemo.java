@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.scion.jpan.demo.DemoConstants;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.TestUtil;
@@ -33,12 +34,13 @@ public class ProtobufPathDemo {
   private final ScionService service;
 
   public static void main(String[] args) {
-    try (Scion.CloseableService daemon = Scion.newServiceWithDaemon(DemoConstants.daemon110_tiny)) {
+    try (Scion.CloseableService daemon =
+        Scion.newServiceWithDaemon(DemoConstants.daemon112_default)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
       demo.testAsInfo();
       demo.testInterfaces();
       demo.testServices();
-      demo.testPathsDaemon(DemoConstants.ia110, DemoConstants.ia111);
+      demo.testPathsDaemon(DemoConstants.ia112, DemoConstants.ia221);
       // demo.testPathsControlService(srcIA, dstIA);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -90,8 +92,6 @@ public class ProtobufPathDemo {
                 + i++
                 + ": "
                 + pathIf.getId()
-                + " "
-                + pathIf.getIsdAs()
                 + "  "
                 + ScionUtil.toStringIA(pathIf.getIsdAs()));
       }
@@ -106,8 +106,35 @@ public class ProtobufPathDemo {
                 + " "
                 + linkType.getValueDescriptor().getName());
       }
+      String lat =
+          path.getLatencyList().stream()
+              .map(d -> d.getNanos() / 1_000_000 + "ms, ")
+              .collect(Collectors.joining());
+      System.out.println("    latency:   " + lat);
+      String bw =
+          path.getBandwidthList().stream().map(d -> d + "B/s, ").collect(Collectors.joining());
+      System.out.println("    bandwidth: " + bw);
+      String geo =
+          path.getGeoList().stream()
+              .map(
+                  g ->
+                      "        Lat: "
+                          + g.getLatitude()
+                          + "; Long: "
+                          + g.getLongitude()
+                          + "; Addr: "
+                          + g.getAddress()
+                          + "\n")
+              .collect(Collectors.joining());
+      System.out.println("    geo: " + geo);
+      String notes =
+          path.getNotesList().stream()
+              .map(s -> "        " + s + "\n")
+              .collect(Collectors.joining());
+      System.out.println("    notes: " + notes);
       System.out.println("    raw: " + TestUtil.toStringHex(path.getRaw().toByteArray()));
       System.out.println("    raw: " + TestUtil.toStringByte(path.getRaw().toByteArray()));
+      System.out.println("    " + ScionUtil.toStringPath(path.getRaw().toByteArray()));
     }
   }
 

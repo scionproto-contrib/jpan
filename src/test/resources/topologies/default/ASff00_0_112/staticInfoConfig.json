@@ -1,0 +1,54 @@
+{
+    "Bandwidth": {
+        "494": {
+            "Inter": 11200,
+            "Intra": {
+                "495": 4940
+            }
+        },
+        "495": {
+            "Inter": 49500,
+            "Intra": {
+                "494": 4950
+            }
+        }
+    },
+    "Latency": {
+        "494": {
+            "Inter": "112ms",
+            "Intra": {
+                "495": "55ms"
+            }
+        },
+        "495": {
+            "Inter": "95ms",
+            "Intra": {
+                "494": "54ms"
+            }
+        }
+    },
+    "Linktype": {
+        "494":"direct",
+        "495":"opennet"
+    },
+    "Geo": {
+        "494":{
+            "Latitude": 47.2,
+            "Longitude": 62.2,
+            "Address": "geo112-494"
+        },
+        "495":{
+            "Latitude": 79.2,
+            "Longitude": 45.2,
+            "Address": "geo112-495"
+        }
+    },
+    "Hops": {
+        "494":{
+            "Intra": {
+                "495": 3
+            }
+        }
+    },
+    "Note": "asdf-1-112"
+}

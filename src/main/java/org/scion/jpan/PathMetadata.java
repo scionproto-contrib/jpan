@@ -125,7 +125,11 @@ public class PathMetadata {
   public List<Integer> getLatencyList() {
     return Collections.unmodifiableList(
         protoPath().getLatencyList().stream()
-            .map(time -> (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
+            .map(
+                time ->
+                    (time.getSeconds() < 0 || time.getNanos() < 0)
+                        ? -1
+                        : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
             .collect(Collectors.toList()));
   }
 
@@ -192,13 +196,13 @@ public class PathMetadata {
 
   public enum LinkType {
     /** Unspecified link type. */
-    LINK_TYPE_UNSPECIFIED, // = 0
+    UNSPECIFIED, // = 0
     /** Direct physical connection. */
-    LINK_TYPE_DIRECT, // = 1
+    DIRECT, // = 1
     /** Connection with local routing/switching. */
-    LINK_TYPE_MULTI_HOP, // = 2
+    MULTI_HOP, // = 2
     /** Connection overlayed over publicly routed Internet. */
-    LINK_TYPE_OPEN_NET, // = 3
+    OPEN_NET, // = 3
   }
 
   public static class EpicAuths {

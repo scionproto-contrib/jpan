@@ -1,0 +1,84 @@
+{
+    "Bandwidth": {
+        "1": {
+            "Inter": 221222,
+            "Intra": {
+                "2": 50,
+                "3": 80
+            }
+        },
+        "2": {
+            "Inter": 220221,
+            "Intra": {
+                "1": 50,
+                "3": 60
+            }
+        },
+        "3": {
+            "Inter": 100,
+            "Intra": {
+                "1": 80,
+                "2": 60
+            }
+        }
+    },
+    "Latency": {
+        "1": {
+            "Inter": "101ms",
+            "Intra": {
+                "2": "50ms",
+                "3": "80ms"
+            }
+        },
+        "2": {
+            "Inter": "102ms",
+            "Intra": {
+                "1": "50ms",
+                "3": "60ms"
+            }
+        },
+        "3": {
+            "Inter": "103ms",
+            "Intra": {
+                "1": "80ms",
+                "2": "60ms"
+            }
+        }
+    },
+    "Linktype": {
+        "1":"direct",
+        "2":"opennet",
+        "3":"multihop"
+    },
+    "Geo": {
+        "1":{
+            "Latitude": 47.2,
+            "Longitude": 62.2,
+            "Address": "geo221-1"
+        },
+        "2":{
+            "Latitude": 79.2,
+            "Longitude": 45.2,
+            "Address": "geo221-2"
+        },
+        "3":{
+            "Latitude": 47.22,
+            "Longitude": 42.23,
+            "Address": "geo221-3"
+        }
+    },
+    "Hops": {
+        "1":{
+            "Intra": {
+                "2": 2,
+                "3": 3
+            }
+        },
+        "2":{
+            "Intra": {
+                "3": 3
+            }
+        }
+    },
+    "Note": "asdf-2-221"
+}

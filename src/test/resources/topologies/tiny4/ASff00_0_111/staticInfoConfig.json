@@ -1,0 +1,23 @@
+{
+    "Bandwidth": {
+        "41": {
+            "Inter": 111110
+        }
+    },
+    "Latency": {
+        "41": {
+            "Inter": "111ms"
+        }
+    },
+    "Linktype": {
+        "41":"direct"
+    },
+    "Geo": {
+        "41":{
+            "Latitude": 79.112,
+            "Longitude": 45.112,
+            "Address": "geo111-41"
+        }
+    },
+    "Note": "asdf-1-111"
+}

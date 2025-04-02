@@ -1,0 +1,29 @@
+{
+    "Bandwidth": {
+        "1": {
+            "Inter": 112110
+        }
+    },
+    "Latency": {
+        "11": {
+            "Inter": "112ms"
+        }
+    },
+    "Linktype": {
+        "1":"multihop",
+        "11":"multihop"
+    },
+    "Geo": {
+        "1":{
+            "Latitude": 79.112,
+            "Longitude": 45.112,
+            "Address": "geo112-1"
+        },
+        "11":{
+            "Latitude": 79.112,
+            "Longitude": 45.112,
+            "Address": "geo112-11"
+        }
+    },
+    "Note": "asdf-1-112"
+}

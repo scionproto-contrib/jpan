@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -132,7 +131,7 @@ public class Segments {
     // we still should look at core segments because they may offer additional paths.
     List<PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
     if (localAS.isCoreAs()) {
-      // SRC is core, we can disregard all CORE segments that don't start with SRC
+      // SRC is core, we can disregard all CORE segments that don't end with SRC
       segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);
     }
     // For CORE we ensure that dstIsdAs is at the END of a segment, not somewhere in the middle
@@ -393,33 +392,14 @@ public class Segments {
     raw.flip();
     path.setRaw(ByteString.copyFrom(raw));
 
-    // metadata
-    for (int i = 0; i < segments.length; i++) {
-      for (Seg.ASEntrySignedBody body : segments[i].bodies) {
-        SegExtensions.PathSegmentExtensions ext = body.getExtensions();
-        if (ext.hasStaticInfo()) {
-          // path.addLatency()
-          // TODO where do we get these?
-          //    path.setLatency();
-          //    path.setInternalHops();
-          //    path.setNotes();
-          SegExtensions.StaticInfoExtension sExt = ext.getStaticInfo();
-          sExt.getLatency().getIntraMap();
-          sExt.getLatency().getInterMap();
-          sExt.getBandwidth().getIntraMap();
-          sExt.getBandwidth().getInterMap();
-          sExt.getGeoMap();
-          sExt.getLinkTypeMap();
-          sExt.getNote();
-        }
-      }
-    }
-
     // First hop
     String firstHop = localAS.getBorderRouterAddressString((int) path.getInterfaces(0).getId());
     Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
     Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
     path.setInterface(interfaceAddr);
+
+    // Metadata
+    SegmentMetadataAccumulator.writeStaticInfoMetadata(path, segments, ranges);
 
     paths.checkDuplicatePaths(path);
   }
@@ -676,10 +656,7 @@ public class Segments {
   private static List<PathSegment> filterForEndIsdAs(List<PathSegment> segments, final long isdAs) {
     // Return all segments that end with the given ISD/AS
     return segments.stream()
-        .filter(
-            pathSegment ->
-                pathSegment.getAsEntriesFirst().getIsdAs() == isdAs
-                    || pathSegment.getAsEntriesLast().getIsdAs() == isdAs)
+        .filter(pathSegment -> pathSegment.getAsEntriesLast().getIsdAs() == isdAs)
         .collect(Collectors.toList());
   }
 
@@ -713,7 +690,7 @@ public class Segments {
     }
   }
 
-  private static class PathSegment {
+  static class PathSegment {
     final Seg.PathSegment segment;
     final List<Seg.ASEntrySignedBody> bodies;
     final Seg.SegmentInformation info;
