@@ -95,6 +95,8 @@ TODO
     + maybe separate super classes for segment creation helpers vs actual test helpers
   - Make controlServer + topoServer non-static. 
   - Instantiate network topologies in tests and in Network2.
+- See TODO further up for more TODOs
+  - Cleanup staticInfoParser 
   
 ## [0.5.1] - 2025-04-02
 
