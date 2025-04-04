@@ -82,7 +82,7 @@ TODO
 
 ### Fixed
 - Post 0.5.0 cleanup
-  [#175](https://github.com/scionproto-contrib/jpan/pull/175)
+  [#176](https://github.com/scionproto-contrib/jpan/pull/176)
 
 ## [0.5.1] - 2025-04-02
 
