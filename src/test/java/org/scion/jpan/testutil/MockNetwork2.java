@@ -17,7 +17,7 @@ package org.scion.jpan.testutil;
 import java.net.InetSocketAddress;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.internal.AbstractSegmentsMinimalTest;
+import org.scion.jpan.internal.AbstractSegmentsTest;
 
 /** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
@@ -25,59 +25,35 @@ public class MockNetwork2 implements AutoCloseable {
   private final MockBootstrapServer topoServer;
   private final MockControlServer controlServer;
 
-  static class MinimalInitializer extends AbstractSegmentsMinimalTest {
-    @Override
-    public void addResponses() {
-      super.addResponses();
-    }
-
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
+  static class MinimalInitializer extends AbstractSegmentsTest {
+    MinimalInitializer(MockControlServer controlServer) {
+      super(CFG_MINIMAL);
+      super.controlServer = controlServer;
+      super.addResponsesScionprotoMinimal();
     }
   }
 
-  static class DefaultInitializer extends AbstractSegmentsMinimalTest {
-    DefaultInitializer() {
+  static class DefaultInitializer extends AbstractSegmentsTest {
+    DefaultInitializer(MockControlServer controlServer) {
       super(CFG_DEFAULT);
-    }
-
-    @Override
-    public void addResponses() {
+      super.controlServer = controlServer;
       super.addResponsesScionprotoDefault();
     }
-
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
-    }
   }
 
-  static class Tiny4Initializer extends AbstractSegmentsMinimalTest {
-    Tiny4Initializer() {
+  static class Tiny4Initializer extends AbstractSegmentsTest {
+    Tiny4Initializer(MockControlServer controlServer) {
       super(CFG_TINY4);
-    }
-
-    @Override
-    public void addResponses() {
+      super.controlServer = controlServer;
       super.addResponsesScionprotoTiny4();
     }
-
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
-    }
   }
 
-  static class Tiny4bInitializer extends AbstractSegmentsMinimalTest {
-    Tiny4bInitializer() {
+  static class Tiny4bInitializer extends AbstractSegmentsTest {
+    Tiny4bInitializer(MockControlServer controlServer) {
       super(CFG_TINY4B);
-    }
-
-    @Override
-    public void addResponses() {
+      super.controlServer = controlServer;
       super.addResponsesScionprotoTiny4b();
-    }
-
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
     }
   }
 
@@ -93,21 +69,13 @@ public class MockNetwork2 implements AutoCloseable {
     String topoFileOfLocalAS = configDir + topoOfLocalAS + "/topology.json";
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
     if (configDir.startsWith("topologies/minimal")) {
-      MinimalInitializer data = new MinimalInitializer();
-      data.init(controlServer);
-      data.addResponses();
+      MinimalInitializer data = new MinimalInitializer(controlServer);
     } else if (configDir.startsWith("topologies/default")) {
-      DefaultInitializer data = new DefaultInitializer();
-      data.init(controlServer);
-      data.addResponses();
+      DefaultInitializer data = new DefaultInitializer(controlServer);
     } else if (configDir.startsWith("topologies/tiny4b")) {
-      Tiny4bInitializer data = new Tiny4bInitializer();
-      data.init(controlServer);
-      data.addResponses();
+      Tiny4bInitializer data = new Tiny4bInitializer(controlServer);
     } else if (configDir.startsWith("topologies/tiny4")) {
-      Tiny4Initializer data = new Tiny4Initializer();
-      data.init(controlServer);
-      data.addResponses();
+      Tiny4Initializer data = new Tiny4Initializer(controlServer);
     } else {
       throw new UnsupportedOperationException();
     }

@@ -85,7 +85,19 @@ TODO
   [#176](https://github.com/scionproto-contrib/jpan/pull/176)
 - Use `Range` in `Segments`.
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
-
+- Cleanup unit tests for segments.
+  [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+TODO
+- AbstractSegmentTest: 
+  - Use addUpCoreDown methods for minimal tests
+  - Create 4 concrete subclasses for minimal/default/tiny/tiny4b
+    + abstract super class with helper methods
+    + maybe separate super classes for segment creation helpers vs actual test helpers
+  - Make controlServer + topoServer non-static. 
+  - Instantiate network topologies in tests and in Network2.
+- See TODO further up for more TODOs
+  - Cleanup staticInfoParser 
+  
 ## [0.5.1] - 2025-04-02
 
 ### Fixed

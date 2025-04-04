@@ -26,7 +26,7 @@ import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.Scenario;
 
-public abstract class AbstractSegmentsMinimalTest {
+public abstract class AbstractSegmentsTest {
   protected static final String AS_HOST = MockNetwork2.AS_HOST;
   protected static final String CFG_MINIMAL = "topologies/minimal/";
   protected static final String CFG_DEFAULT = "topologies/default/";
@@ -74,11 +74,7 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static MockControlServer controlServer;
   protected final Scenario scenario;
 
-  protected AbstractSegmentsMinimalTest() {
-    this(CFG_MINIMAL);
-  }
-
-  protected AbstractSegmentsMinimalTest(String cfg) {
+  protected AbstractSegmentsTest(String cfg) {
     scenario = Scenario.readFrom(cfg);
   }
 
@@ -166,7 +162,7 @@ public abstract class AbstractSegmentsMinimalTest {
     return replyBuilder.build();
   }
 
-  protected void addResponses() {
+  protected final void addResponsesScionprotoMinimal() {
     addResponse110_1111();
     addResponse110_1112();
     addResponse110_1121();
@@ -180,7 +176,8 @@ public abstract class AbstractSegmentsMinimalTest {
     addResponse210_211();
   }
 
-  protected void addResponsesScionprotoDefault() {
+  protected final void addResponsesScionprotoDefault() {
+    // NOTE: There are many links missing, add them as required.
     addUpDown(AS_111, AS_130);
     addUpDown(AS_111, AS_120);
 
@@ -205,12 +202,12 @@ public abstract class AbstractSegmentsMinimalTest {
     addUpDown(AS_222, AS_220);
   }
 
-  protected void addResponsesScionprotoTiny4() {
+  protected final void addResponsesScionprotoTiny4() {
     addUpDown(AS_111, AS_110);
     addUpDown(AS_112, AS_110);
   }
 
-  protected void addResponsesScionprotoTiny4b() {
+  protected final void addResponsesScionprotoTiny4b() {
     addUpDown(AS_111, AS_110);
     addUpDown(AS_112, AS_110);
     addUpDown(AS_121, AS_120);

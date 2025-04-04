@@ -30,7 +30,7 @@ import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockControlServer;
 
-public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
+class SegmentsDefault131Test extends AbstractSegmentsTest {
 
   private static final long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
   private static final long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
@@ -41,7 +41,7 @@ public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
   }
 
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     topoServer = MockBootstrapServer.start(CFG_DEFAULT, "ASff00_0_131");
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
@@ -49,14 +49,14 @@ public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     controlServer.clearSegments();
     topoServer.getAndResetCallCount();
     controlServer.getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();

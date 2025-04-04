@@ -46,13 +46,17 @@ import org.scion.jpan.testutil.MockControlServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores); Book: 1c<br>
  */
-public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
+class SegmentsMinimal121Test extends AbstractSegmentsTest {
 
   private static String firstHop120 = "127.0.0.81:31042";
   private static MockBootstrapServer topoServer;
 
+  SegmentsMinimal121Test() {
+    super(CFG_MINIMAL);
+  }
+
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_121");
     InetSocketAddress topoAddr = topoServer.getAddress();
     firstHop120 = topoServer.getBorderRouterAddressByIA(AS_120);
@@ -61,14 +65,14 @@ public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     controlServer.clearSegments();
     topoServer.getAndResetCallCount();
     controlServer.getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
@@ -78,7 +82,7 @@ public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseF_DifferentIsd_UpCore_1_Hop() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_121, AS_210);
       assertNotNull(paths);
@@ -133,7 +137,7 @@ public class SegmentsMinimal121Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseH_DifferentIsd_UpCoreDown_1_Hop() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_121, AS_211);
       assertNotNull(paths);

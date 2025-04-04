@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
@@ -64,25 +63,6 @@ public class PathMetadataTest {
       Path path = paths.get(0);
       long mtu = path.getMetadata().getMtu();
       assertEquals(1234, mtu);
-    }
-  }
-
-  @Disabled
-  @Test
-  void latency() throws IOException {
-    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
-    InetAddress ia = InetAddress.getByAddress(ExamplePacket.DST_HOST);
-    try (Scion.CloseableService service =
-        Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
-      assertNotEquals(ExamplePacket.DST_IA, service.getLocalIsdAs());
-      List<Path> paths = service.getPaths(ExamplePacket.DST_IA, ia, 12345);
-      Path path = paths.get(0);
-      List<Integer> latencies = path.getMetadata().getLatencyList();
-      assertEquals(3, latencies.size());
-      for (Integer latency : latencies) {
-        // assertTrue(latency >= 0);
-        System.out.println("latency: " + latency);
-      }
     }
   }
 }

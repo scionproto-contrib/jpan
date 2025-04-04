@@ -46,12 +46,17 @@ import org.scion.jpan.testutil.MockControlServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
-public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
+class SegmentsMinimal120Test extends AbstractSegmentsTest {
+
   private static String firstFop210;
   private static MockBootstrapServer topoServer;
 
+  SegmentsMinimal120Test() {
+    super(CFG_MINIMAL);
+  }
+
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_120");
     InetSocketAddress topoAddr = topoServer.getAddress();
     firstFop210 = topoServer.getBorderRouterAddressByIA(AS_210);
@@ -60,14 +65,14 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     controlServer.clearSegments();
     topoServer.getAndResetCallCount();
     controlServer.getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
@@ -77,7 +82,7 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseG_DifferentIsd_CoreDown_1_Hop() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_211);
       assertNotNull(paths);
@@ -132,7 +137,7 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseI_DifferentIsd_Core_1_Hop() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_210);
       assertNotNull(paths);

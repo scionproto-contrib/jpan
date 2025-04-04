@@ -43,7 +43,7 @@ import org.scion.jpan.testutil.MockControlServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores); Book: 1c<br>
  */
-public class SegmentsTiny4_111Test extends AbstractSegmentsMinimalTest {
+class SegmentsTiny4_111Test extends AbstractSegmentsTest {
 
   private static String firstHop110;
   private static MockBootstrapServer topoServer;
@@ -53,7 +53,7 @@ public class SegmentsTiny4_111Test extends AbstractSegmentsMinimalTest {
   }
 
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     topoServer = MockBootstrapServer.start(CFG_TINY4, "ASff00_0_111");
     InetSocketAddress topoAddr = topoServer.getAddress();
     firstHop110 = topoServer.getBorderRouterAddressByIA(AS_110);
@@ -67,14 +67,14 @@ public class SegmentsTiny4_111Test extends AbstractSegmentsMinimalTest {
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     controlServer.clearSegments();
     topoServer.getAndResetCallCount();
     controlServer.getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
