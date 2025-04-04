@@ -23,33 +23,8 @@ class SegmentMetadataAccumulator {
 
   private SegmentMetadataAccumulator() {}
 
-  // [start (inclusive), end (exclusive), increment]
-  static class Range {
-    private final int startIncl;
-    private final int endExcl;
-    private final int increment;
-
-    Range(int[] range) {
-      startIncl = range[0];
-      endExcl = range[1];
-      increment = range[2];
-    }
-
-    int last() {
-      return endExcl - increment;
-    }
-
-    boolean isReversed() {
-      return increment == -1;
-    }
-
-    public int first() {
-      return startIncl;
-    }
-  }
-
   static void writeStaticInfoMetadata(
-      Daemon.Path.Builder path, Segments.PathSegment[] pathSegments, int[][] ranges) {
+      Daemon.Path.Builder path, Segments.PathSegment[] pathSegments, Segments.Range[] ranges) {
     // Stitching metadata is not trivial.
     // Some quirks:
     // - The segments contain internal bandwidth & latency metadata. However, they contain
@@ -61,10 +36,9 @@ class SegmentMetadataAccumulator {
 
     long prevIsdAs = -1;
     for (int r = 0; r < ranges.length; r++) {
-      Range range = new Range(ranges[r]);
-      Segments.PathSegment pathSegment = pathSegments[r];
-      for (int pos = range.startIncl; pos != range.endExcl; pos += range.increment) {
-        Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
+      Segments.Range range = ranges[r];
+      for (int pos = range.begin(); pos != range.end(); pos += range.increment()) {
+        Seg.ASEntrySignedBody body = pathSegments[r].getAsEntries(pos);
 
         boolean addIntraInfo;
         if (pathSegments.length == 1) {
@@ -98,7 +72,7 @@ class SegmentMetadataAccumulator {
   private static void writeStaticInfoMetadata(
       Daemon.Path.Builder path,
       Seg.ASEntrySignedBody body,
-      Range range,
+      Segments.Range range,
       boolean addIsdAs,
       boolean addIntraInfo) {
     SegExtensions.PathSegmentExtensions ext = body.getExtensions();

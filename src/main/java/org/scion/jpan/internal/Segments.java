@@ -344,7 +344,7 @@ public class Segments {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
-    int[][] ranges = new int[segments.length][]; // [start (inclusive), end (exclusive), increment]
+    Range[] ranges = new Range[segments.length]; // [start (inclusive), end (exclusive), increment]
     long startIA = localAS.getIsdAs();
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
@@ -355,30 +355,30 @@ public class Segments {
     // Search for on-path and shortcuts.
     if (detectOnPathUp(segments, dstIsdAs, ranges)) {
       segments = new PathSegment[] {segments[0]};
-      ranges = new int[][] {ranges[0]};
+      ranges = new Range[] {ranges[0]};
       LOG.debug("Found on-path AS on UP segment.");
     } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
       segments = new PathSegment[] {segments[segments.length - 1]};
-      ranges = new int[][] {ranges[ranges.length - 1]};
+      ranges = new Range[] {ranges[ranges.length - 1]};
       LOG.debug("Found on-path AS on DOWN segment.");
     } else if (detectShortcut(segments, ranges)) {
       // The following is a no-op if there is no CORE segment
       segments = new PathSegment[] {segments[0], segments[segments.length - 1]};
-      ranges = new int[][] {ranges[0], ranges[ranges.length - 1]};
-      LOG.debug("Found shortcut at hop {}:", ranges[0][1]);
+      ranges = new Range[] {ranges[0], ranges[ranges.length - 1]};
+      LOG.debug("Found shortcut at hop {}:", ranges[0].end());
     }
 
     // path meta header
     int pathMetaHeader = 0;
     for (int i = 0; i < segments.length; i++) {
-      int hopCount = Math.abs(ranges[i][1] - ranges[i][0]);
+      int hopCount = ranges[i].size();
       pathMetaHeader |= hopCount << (6 * (2 - i));
     }
     raw.putInt(pathMetaHeader);
 
     // info fields
     for (int i = 0; i < segments.length; i++) {
-      writeInfoField(raw, segments[i].info, ranges[i][2]);
+      writeInfoField(raw, segments[i].info, ranges[i].increment());
       calcBetaCorrection(raw, 6 + i * 8, segments[i], ranges[i]);
     }
 
@@ -405,12 +405,12 @@ public class Segments {
   }
 
   private static void calcBetaCorrection(
-      ByteBuffer raw, int bytePosSegID, PathSegment segment, int[] range) {
+      ByteBuffer raw, int bytePosSegID, PathSegment segment, Range range) {
     // When we create a shortcut or on-path, we need to remove the MACs from the segID / beta.
     byte[] fix = new byte[2];
 
     // We remove all MACs from start of the segment to start of the range that is actually used.
-    int startRange = range[2] == 1 ? range[0] : range[1] + 1;
+    int startRange = range.isReversed() ? range.last() : range.first();
     for (int pos = 0; pos < startRange; pos++) {
       ByteString mac = segment.getAsEntriesList().get(pos).getHopEntry().getHopField().getMac();
       fix[0] ^= mac.byteAt(0);
@@ -421,15 +421,15 @@ public class Segments {
     raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ fix[1]));
   }
 
-  private static int[] createRange(PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
+  private static Range createRange(PathSegment pathSegment, long startIA, ByteUtil.MutLong endIA) {
     Seg.ASEntrySignedBody body0 = pathSegment.getAsEntriesFirst();
     Seg.ASEntrySignedBody bodyN = pathSegment.getAsEntriesLast();
     if (body0.getIsdAs() == startIA) {
       endIA.set(bodyN.getIsdAs());
-      return new int[] {0, pathSegment.getAsEntriesCount(), +1};
+      return new Range(0, pathSegment.getAsEntriesCount(), +1);
     } else if (bodyN.getIsdAs() == startIA) {
       endIA.set(body0.getIsdAs());
-      return new int[] {pathSegment.getAsEntriesCount() - 1, -1, -1};
+      return new Range(pathSegment.getAsEntriesCount() - 1, -1, -1);
     }
     throw new UnsupportedOperationException("Relevant IA is not an ending IA!");
   }
@@ -450,11 +450,13 @@ public class Segments {
       ByteBuffer raw,
       int bytePosSegID,
       PathSegment pathSegment,
-      int[] range) {
+      Range range) {
     int minExpiry = Integer.MAX_VALUE;
     path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
-    for (int pos = range[0], total = 0; pos != range[1]; pos += range[2], total++) {
-      boolean reversed = range[2] == -1;
+    for (int pos = range.begin(), total = 0;
+        pos != range.end();
+        pos += range.increment(), total++) {
+      boolean reversed = range.isReversed();
       Seg.ASEntrySignedBody body = pathSegment.getAsEntries(pos);
       Seg.HopEntry hopEntry = body.getHopEntry();
       Seg.HopField hopField = hopEntry.getHopField();
@@ -478,14 +480,14 @@ public class Segments {
       }
 
       // Do this for all except last.
-      boolean addInterfaces = pos + range[2] != range[1];
+      boolean addInterfaces = pos + range.increment() != range.end();
       if (addInterfaces) {
         Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
         pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
         path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
-        int pos2 = pos + range[2];
+        int pos2 = pos + range.increment();
         Seg.ASEntrySignedBody body2 = pathSegment.getAsEntries(pos2);
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
         pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
@@ -500,7 +502,7 @@ public class Segments {
     }
   }
 
-  private static boolean detectShortcut(PathSegment[] segments, int[][] iterators) {
+  private static boolean detectShortcut(PathSegment[] segments, Range[] iterators) {
     // Shortcut: the up-segment and down-segment intersect at a non-core AS. In this case, a shorter
     // forwarding path can be created by removing the extraneous part of the path.
     // Also: "the up- and down-segments intersect at a non-core AS. This is the case of a shortcut
@@ -518,15 +520,15 @@ public class Segments {
     HashMap<Long, Integer> map = new HashMap<>();
 
     int posUp = -1;
-    int[] iterUp = iterators[idUp];
-    for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
+    Range iterUp = iterators[idUp];
+    for (int pos = iterUp.begin(); pos != iterUp.end(); pos += iterUp.increment()) {
       Seg.ASEntrySignedBody body = segments[idUp].getAsEntries(pos);
       map.putIfAbsent(body.getIsdAs(), pos);
     }
 
     int posDown = -1;
-    int[] iterDown = iterators[idDown];
-    for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
+    Range iterDown = iterators[idDown];
+    for (int pos = iterDown.begin(); pos != iterDown.end(); pos += iterDown.increment()) {
       Seg.ASEntrySignedBody body = segments[idDown].getAsEntries(pos);
       long isdAs = body.getIsdAs();
       if (map.containsKey(isdAs)) {
@@ -536,14 +538,14 @@ public class Segments {
       // keep going, we want to find the LAST/LOWEST AS that occurs twice.
     }
     if (posUp >= 0) {
-      iterators[0][1] = posUp + iterators[0][2]; // the range maximum is _exclusive_.
-      iterators[1][0] = posDown;
+      iterators[0].setEnd(posUp + iterators[0].increment()); // the range maximum is _exclusive_.
+      iterators[1].setBegin(posDown);
       return true;
     }
     return false;
   }
 
-  private static boolean detectOnPathUp(PathSegment[] segments, long dstIsdAs, int[][] ranges) {
+  private static boolean detectOnPathUp(PathSegment[] segments, long dstIsdAs, Range[] ranges) {
     // On-Path (SCION Book 2022, p 106): "In the case where the source’s up-segment contains the
     // destination AS, or the destination's down-segment contains the source AS, a single segment is
     // sufficient to construct the forwarding path. Again, no core AS is on the final path."
@@ -552,18 +554,18 @@ public class Segments {
     if (segments[idUp].isCore()) {
       return false;
     }
-    int[] iterUp = ranges[idUp];
-    for (int pos = iterUp[0]; pos != iterUp[1]; pos += iterUp[2]) {
+    Range iterUp = ranges[idUp];
+    for (int pos = iterUp.begin(); pos != iterUp.end(); pos += iterUp.increment()) {
       Seg.ASEntrySignedBody body = segments[idUp].getAsEntries(pos);
       if (body.getIsdAs() == dstIsdAs) {
-        ranges[idUp][1] = pos + ranges[idUp][2];
+        iterUp.setEnd(pos + iterUp.increment());
         return true;
       }
     }
     return false;
   }
 
-  private static boolean detectOnPathDown(PathSegment[] segments, long srcIA, int[][] ranges) {
+  private static boolean detectOnPathDown(PathSegment[] segments, long srcIA, Range[] ranges) {
     // On-Path (SCION Book 2022, p 106): "In the case where the source’s up-segment contains the
     // destination AS, or the destination's down-segment contains the source AS, a single segment is
     // sufficient to construct the forwarding path. Again, no core AS is on the final path."
@@ -573,11 +575,11 @@ public class Segments {
       return false;
     }
 
-    int[] iterDown = ranges[idDown];
-    for (int pos = iterDown[0]; pos != iterDown[1]; pos += iterDown[2]) {
+    Range iterDown = ranges[idDown];
+    for (int pos = iterDown.begin(); pos != iterDown.end(); pos += iterDown.increment) {
       Seg.ASEntrySignedBody body = segments[idDown].getAsEntries(pos);
       if (body.getIsdAs() == srcIA) {
-        ranges[idDown][0] = pos;
+        iterDown.setBegin(pos);
         return true;
       }
     }
@@ -669,6 +671,55 @@ public class Segments {
       }
     }
     return false;
+  }
+
+  // [start (inclusive), end (exclusive), increment]
+  static class Range {
+    private int startIncl;
+    private int endExcl;
+    private final int increment;
+
+    Range(int startIncl, int endExcl, int increment) {
+      this.startIncl = startIncl;
+      this.endExcl = endExcl;
+      this.increment = increment;
+    }
+
+    boolean isReversed() {
+      return increment == -1;
+    }
+
+    public int first() {
+      return startIncl;
+    }
+
+    int last() {
+      return endExcl - increment;
+    }
+
+    public int begin() {
+      return first();
+    }
+
+    public int end() {
+      return endExcl;
+    }
+
+    public int increment() {
+      return increment;
+    }
+
+    public void setBegin(int begin) {
+      this.startIncl = begin;
+    }
+
+    public void setEnd(int end) {
+      this.endExcl = end;
+    }
+
+    public int size() {
+      return Math.abs(endExcl - startIncl);
+    }
   }
 
   private enum SegmentType {
