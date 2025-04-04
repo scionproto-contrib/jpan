@@ -53,7 +53,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           Constants.DEFAULT_PATH_EXPIRY_MARGIN);
   private int cfgTrafficClass;
   private Consumer<Scmp.ErrorMessage> errorListener;
-  private boolean cfgRemoteDispatcher = false;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
 
@@ -452,22 +451,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   }
 
   /**
-   * Assume that the destination host uses a dispatcher.
-   *
-   * <p>Calling this method sets an internal flag that forces the destination port of intra-AS
-   * packets to be 30041 independent of the UDP-overlay port. This flag has no effect for inter-AS
-   * packets or if the overlay port is already 30041.
-   *
-   * @param hasDispatcher Set to 'true' if remote end-host uses a dispatcher and requires using port
-   *     30041.
-   * @deprecated Not required anymore, will be removed for 0.5.0
-   */
-  @Deprecated // TODO remove for 0.5.0
-  public void configureRemoteDispatcher(boolean hasDispatcher) {
-    this.cfgRemoteDispatcher = hasDispatcher;
-  }
-
-  /**
    * This allows overriding the source address in SCION headers. This can be useful when a host is
    * located behind a NAT. The specified source address should in this case be the external address
    * of the NAT.
@@ -492,11 +475,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
     InetSocketAddress remoteHost = path.getFirstHopAddress();
-    // TODO remove this for 0.5.0
-    if (cfgRemoteDispatcher && path.getRawPath().length == 0) {
-      InetAddress remoteHostIP = remoteHost.getAddress();
-      return channel.send(buffer, new InetSocketAddress(remoteHostIP, Constants.DISPATCHER_PORT));
-    }
     if (getService() != null && path.getRawPath().length == 0) {
       // For intra-AS traffic we need to send packets directly to the originating underlay address.
       // This is necessary to work handle NAT.

@@ -7,19 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### TODO for 0.5.0
-- Add scion-java-packet-example to README
-
+### TODO for 0.6.0
 - API do drop current path or even use most diverse one.
   -> To be called if application detects interruption (but no SCMP errors arrive?)
   -> Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
      They may become valid/valuable again. Especially if the problem is actually the 
      remote server and not the path itself.  
-
-Post-0.5.0
-- Update:
-  - https://github.com/netsec-ethz/scion-java-packet-example
-  - https://scion-architecture.net/apps/
 
 TODO
 - Cleanup: 
@@ -86,6 +79,10 @@ TODO
 - Bootstrap with DHCP - Check Book page 327, chapter 13.2
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
+
+### Fixed
+- Post 0.5.0 cleanup
+  [#176](https://github.com/scionproto-contrib/jpan/pull/176)
 
 ## [0.5.1] - 2025-04-02
 
