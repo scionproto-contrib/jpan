@@ -162,7 +162,11 @@ public abstract class AbstractSegmentsTest {
     return replyBuilder.build();
   }
 
-  protected void addResponsesScionprotoMinimal() {
+  public void addResponses() {
+    throw new UnsupportedOperationException("Please override this method in the subclass");
+  }
+
+  protected final void addResponsesScionprotoMinimal() {
     addResponse110_1111();
     addResponse110_1112();
     addResponse110_1121();
@@ -176,7 +180,8 @@ public abstract class AbstractSegmentsTest {
     addResponse210_211();
   }
 
-  protected void addResponsesScionprotoDefault() {
+  protected final void addResponsesScionprotoDefault() {
+    // NOTE: There are many links missing, add them as required.
     addUpDown(AS_111, AS_130);
     addUpDown(AS_111, AS_120);
 
@@ -201,12 +206,12 @@ public abstract class AbstractSegmentsTest {
     addUpDown(AS_222, AS_220);
   }
 
-  protected void addResponsesScionprotoTiny4() {
+  protected final void addResponsesScionprotoTiny4() {
     addUpDown(AS_111, AS_110);
     addUpDown(AS_112, AS_110);
   }
 
-  protected void addResponsesScionprotoTiny4b() {
+  protected final void addResponsesScionprotoTiny4b() {
     addUpDown(AS_111, AS_110);
     addUpDown(AS_112, AS_110);
     addUpDown(AS_121, AS_120);
