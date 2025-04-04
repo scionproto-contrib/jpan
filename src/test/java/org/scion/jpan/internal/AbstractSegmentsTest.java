@@ -162,10 +162,6 @@ public abstract class AbstractSegmentsTest {
     return replyBuilder.build();
   }
 
-  public void addResponses() {
-    throw new UnsupportedOperationException("Please override this method in the subclass");
-  }
-
   protected final void addResponsesScionprotoMinimal() {
     addResponse110_1111();
     addResponse110_1112();
