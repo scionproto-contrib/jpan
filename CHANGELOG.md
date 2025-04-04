@@ -85,6 +85,8 @@ TODO
   [#176](https://github.com/scionproto-contrib/jpan/pull/176)
 - Use `Range` in `Segments`.
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
+- Cleanup unit tests for segments.
+  [#178](https://github.com/scionproto-contrib/jpan/pull/178)
 
 ## [0.5.1] - 2025-04-02
 

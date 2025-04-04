@@ -17,8 +17,6 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
@@ -57,9 +55,7 @@ class SegmentMinimalMetadataMissingTest {
 
   @Test
   void testDown_120_121() throws IOException {
-    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_120")) {
-
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_121);
         assertNotNull(paths);
@@ -146,7 +142,6 @@ class SegmentMinimalMetadataMissingTest {
 
   @Test
   void testDown_110_1121() throws IOException {
-    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_110")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_1121);

@@ -26,7 +26,7 @@ import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.Scenario;
 
-public abstract class AbstractSegmentsMinimalTest {
+public abstract class AbstractSegmentsTest {
   protected static final String AS_HOST = MockNetwork2.AS_HOST;
   protected static final String CFG_MINIMAL = "topologies/minimal/";
   protected static final String CFG_DEFAULT = "topologies/default/";
@@ -74,11 +74,7 @@ public abstract class AbstractSegmentsMinimalTest {
   protected static MockControlServer controlServer;
   protected final Scenario scenario;
 
-  protected AbstractSegmentsMinimalTest() {
-    this(CFG_MINIMAL);
-  }
-
-  protected AbstractSegmentsMinimalTest(String cfg) {
+  protected AbstractSegmentsTest(String cfg) {
     scenario = Scenario.readFrom(cfg);
   }
 
@@ -166,7 +162,7 @@ public abstract class AbstractSegmentsMinimalTest {
     return replyBuilder.build();
   }
 
-  protected void addResponses() {
+  protected void addResponsesScionprotoMinimal() {
     addResponse110_1111();
     addResponse110_1112();
     addResponse110_1121();

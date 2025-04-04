@@ -46,13 +46,17 @@ import org.scion.jpan.testutil.MockControlServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores); Book: 1a<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores); Book: 1c<br>
  */
-public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
+class SegmentsMinimal1111Test extends AbstractSegmentsTest {
 
   private static String firstHop;
   private static MockBootstrapServer topoServer;
 
+  SegmentsMinimal1111Test() {
+    super(CFG_MINIMAL);
+  }
+
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_1111");
     InetSocketAddress topoAddr = topoServer.getAddress();
     firstHop = topoServer.getBorderRouterAddressByIA(AS_111);
@@ -61,14 +65,14 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     controlServer.clearSegments();
     topoServer.getAndResetCallCount();
     controlServer.getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     controlServer.close();
     topoServer.close();
     DNSUtil.clear();
@@ -79,7 +83,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseA_SameNonCoreAS() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1111, AS_1111);
       //  ListService: control
@@ -98,7 +102,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseB_SameIsd_Up() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1111, AS_110);
       //  $ scion showpaths 1-ff00:0:110 --sciond 127.0.0.43:30255
@@ -149,7 +153,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS_Shortcut() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1111, AS_1112);
       //  Available paths to 1-ff00:0:1112
@@ -212,7 +216,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
   private void caseE_SameIsd_UpDown_OneCoreAS_OnPathUp(boolean minRequests) throws IOException {
     System.setProperty(
         Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS, Boolean.toString(minRequests));
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1111, AS_111);
       //  Available paths to 1-ff00:0:1112
@@ -259,7 +263,7 @@ public class SegmentsMinimal1111Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS_b() throws IOException {
-    addResponses();
+    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1111, AS_1121);
       //  Available paths to 1-ff00:0:1121
