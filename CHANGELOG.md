@@ -83,6 +83,8 @@ TODO
 ### Fixed
 - Post 0.5.0 cleanup
   [#176](https://github.com/scionproto-contrib/jpan/pull/176)
+- Use `Range` in `Segments`.
+  [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 
 ## [0.5.1] - 2025-04-02
 
