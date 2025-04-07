@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
@@ -79,7 +78,7 @@ public class Segments {
    * @return list of available paths (unordered)
    */
   public static List<Daemon.Path> getPaths(
-      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub service,
+      ControlService service,
       ScionBootstrapper bootstrapper,
       long srcIsdAs,
       long dstIsdAs,
@@ -91,7 +90,7 @@ public class Segments {
   }
 
   private static List<Daemon.Path> getPaths(
-      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub service,
+      ControlService service,
       LocalTopology localAS,
       long srcIsdAs,
       long dstIsdAs,
@@ -146,9 +145,7 @@ public class Segments {
   }
 
   private static List<PathSegment> getSegments(
-      SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub,
-      long srcIsdAs,
-      long dstIsdAs) {
+      ControlService segmentStub, long srcIsdAs, long dstIsdAs) {
     if (LOG.isInfoEnabled()) {
       LOG.info(
           "Requesting segments: {} {}",
@@ -182,10 +179,6 @@ public class Segments {
               e.getMessage());
           return Collections.emptyList();
         }
-      }
-      if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
-        throw new ScionRuntimeException(
-            "Error while getting Segments: cannot connect to SCION network", e);
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
     }

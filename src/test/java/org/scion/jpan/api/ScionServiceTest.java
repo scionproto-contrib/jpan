@@ -36,7 +36,7 @@ import org.scion.jpan.testutil.MockNetwork2;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
 
-public class ScionServiceTest {
+class ScionServiceTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
@@ -45,14 +45,14 @@ public class ScionServiceTest {
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
     // Defensive clean up
     ScionService.closeDefault();
   }
 
   @BeforeEach
-  public void beforeEach() {
+  void beforeEach() {
     ScionService.closeDefault();
     // reset counter
     MockDaemon.getAndResetCallCount();
@@ -550,6 +550,23 @@ public class ScionServiceTest {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();
       System.clearProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS);
+    }
+  }
+
+  @Test
+  void testControlServiceFailure_Backup() throws IOException {
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      // First border router does not exist, but we should automatically switch to the backup.
+      try (Scion.CloseableService client =
+          Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
+        Path path = client.getPaths(dstIA, dstAddress).get(0);
+        assertNotNull(path);
+      }
+    } finally {
+      MockNetwork.stopTiny();
     }
   }
 }

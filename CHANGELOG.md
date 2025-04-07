@@ -15,15 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
-- REMOVE topofile requirement from SCIO server:
-  Border routers will always use the same port for send/receive
-  (at least when communicating with hosts). They do split port only for
-  BR to BR communication 
 - BIG: extract testframework into separate project -> reuse by others!
 - More tests on unordered "destinations" in JSON
-- More tests on segment metadata
 - ASK to add latency/bw/geo/notes to SCIERA network!
-- There can be multiple-control servers per AS -> Handle it (fallback)
 - JSON is not an ordered file format -> Use JSON array for ordering...
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
@@ -75,6 +69,10 @@ TODO
 - Bootstrap with DHCP - Check Book page 327, chapter 13.2
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
+
+### Added
+- Support for multiple control servers per AS (fallback)
+  [#179](https://github.com/scionproto-contrib/jpan/pull/179)
 
 ### Fixed
 - Post 0.5.0 cleanup

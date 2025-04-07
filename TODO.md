@@ -7,7 +7,7 @@
 
 ## Plan
 
-### 0.4.0
+### Soon
 - Allow disabling local address resolution in DNS to local-IA. Resolving 127.0.0.x to
   localIA is fine for many purposes, but it can be confusing when testing a local
   mock-network (tiny, minimal, ...)
@@ -58,6 +58,13 @@
   -> see JDO for releasing only some modules for a release.
 - Support authentication for control servers
 
+- Remove SHIM
+  - Once SHIM is gone: REMOVE topofile requirement from SCIO server:
+    Border routers will always use the same port for send/receive
+    (at least when communicating with hosts). They do split port only for
+    BR to BR communication
+- Remove "public" keyword from topology JSON parser
+
 #### Other
 - Truncate PROTO files?
 - TEST concurrent path/as/DNS lookup
@@ -66,7 +73,7 @@
   Or not? This would be an attack, send a partial header would block the receiver....
   We could just buffer a partial header until it is complete...
 
-### 0.5.0
+### Later
 - Multipathing
 - EPIC, Hidden paths
 - SPAO end-to-end option -> Later, not used at the moment
