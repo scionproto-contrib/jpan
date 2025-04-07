@@ -65,6 +65,7 @@ public class ControlService {
     }
     LOG.info("Bootstrapping with control service: {}", csHost);
     // TODO InsecureChannelCredentials: Implement authentication!
+    // We are using OkHttp instead of Netty for Android compatibility
     channel = OkHttpChannelBuilder.forTarget(csHost, InsecureChannelCredentials.create()).build();
     segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
   }

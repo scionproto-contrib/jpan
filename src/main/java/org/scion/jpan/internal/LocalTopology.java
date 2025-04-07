@@ -26,7 +26,6 @@ import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.daemon.Daemon;
-import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,10 +50,9 @@ public class LocalTopology {
     return topo;
   }
 
-  public static synchronized LocalTopology create(
-      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+  public static synchronized LocalTopology create(DaemonService daemonService) {
     LocalTopology topo = new LocalTopology();
-    topo.interrogateDaemon(daemonStub);
+    topo.interrogateDaemon(daemonService);
     topo.initInterfaceIDs();
     return topo;
   }
@@ -182,20 +180,19 @@ public class LocalTopology {
     }
   }
 
-  private void interrogateDaemon(DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
-    Daemon.ASResponse as = readASInfo(daemonStub);
+  private void interrogateDaemon(DaemonService daemonService) {
+    Daemon.ASResponse as = readASInfo(daemonService);
     this.localIsdAs = as.getIsdAs();
     this.localMtu = as.getMtu();
     this.isCoreAs = as.getCore();
-    this.portRange = readLocalPortRange(daemonStub);
-    this.borderRouters.addAll(readBorderRouterAddresses(daemonStub));
+    this.portRange = readLocalPortRange(daemonService);
+    this.borderRouters.addAll(readBorderRouterAddresses(daemonService));
   }
 
-  private static DispatcherPortRange readLocalPortRange(
-      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+  private static DispatcherPortRange readLocalPortRange(DaemonService daemonService) {
     Daemon.PortRangeResponse response;
     try {
-      response = daemonStub.portRange(Empty.getDefaultInstance());
+      response = daemonService.portRange(Empty.getDefaultInstance());
       return DispatcherPortRange.create(
           response.getDispatchedPortStart(), response.getDispatchedPortEnd());
     } catch (StatusRuntimeException e) {
@@ -205,10 +202,9 @@ public class LocalTopology {
     }
   }
 
-  private static Collection<BorderRouter> readBorderRouterAddresses(
-      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+  private static Collection<BorderRouter> readBorderRouterAddresses(DaemonService daemonService) {
     Map<String, BorderRouter> borderRouters = new HashMap<>();
-    for (Map.Entry<Long, Daemon.Interface> e : readInterfaces(daemonStub).entrySet()) {
+    for (Map.Entry<Long, Daemon.Interface> e : readInterfaces(daemonService).entrySet()) {
       String addr = e.getValue().getAddress().getAddress();
       int id = (int) (long) e.getKey();
       BorderRouter br =
@@ -221,12 +217,11 @@ public class LocalTopology {
     return borderRouters.values();
   }
 
-  private static Daemon.ASResponse readASInfo(
-      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+  private static Daemon.ASResponse readASInfo(DaemonService daemonService) {
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
-      response = daemonStub.aS(request);
+      response = daemonService.aS(request);
     } catch (StatusRuntimeException e) {
       if (e.getStatus().getCode() == Status.Code.UNAVAILABLE) {
         throw new ScionRuntimeException("Could not connect to SCION daemon: " + e.getMessage(), e);
@@ -236,12 +231,11 @@ public class LocalTopology {
     return response;
   }
 
-  private static Map<Long, Daemon.Interface> readInterfaces(
-      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+  private static Map<Long, Daemon.Interface> readInterfaces(DaemonService daemonService) {
     Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {
-      response = daemonStub.interfaces(request);
+      response = daemonService.interfaces(request);
     } catch (StatusRuntimeException e) {
       throw new ScionRuntimeException(e);
     }

@@ -31,14 +31,12 @@ import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_USE_OS_SEARCH_DOMAINS;
 
 import io.grpc.*;
-import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -72,11 +70,10 @@ public class ScionService {
   private static ScionService defaultService = null;
 
   private final ScionBootstrapper bootstrapper;
-  private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
   private final ControlService controlService;
+  private final DaemonService daemonService;
 
   private final boolean minimizeRequests;
-  private final ManagedChannel daemonChannel;
   private Thread shutdownHook;
   private final HostsFileParser hostsFile = new HostsFileParser();
   private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
@@ -96,15 +93,10 @@ public class ScionService {
             Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     if (mode == Mode.DAEMON) {
       addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
-      LOG.info("Bootstrapping with daemon: target={}", addressOrHost);
-      // We are using OkHttp instead of Netty for Android compatibility
-      daemonChannel =
-          OkHttpChannelBuilder.forTarget(addressOrHost, InsecureChannelCredentials.create())
-              .build();
-      daemonStub = DaemonServiceGrpc.newBlockingStub(daemonChannel);
+      daemonService = DaemonService.create(addressOrHost);
       controlService = null;
       try {
-        bootstrapper = ScionBootstrapper.createViaDaemon(daemonStub);
+        bootstrapper = ScionBootstrapper.createViaDaemon(daemonService);
       } catch (RuntimeException e) {
         // If this fails for whatever reason we want to make sure that the channel is closed.
         try {
@@ -127,8 +119,7 @@ public class ScionService {
         throw new UnsupportedOperationException();
       }
 
-      daemonStub = null;
-      daemonChannel = null;
+      daemonService = null;
       controlService = ControlService.create(bootstrapper.getLocalTopology());
     }
     shutdownHook = addShutdownHook();
@@ -256,21 +247,14 @@ public class ScionService {
   }
 
   public void close() throws IOException {
-    try {
-      if (daemonChannel != null
-          && !daemonChannel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
-          && !daemonChannel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
-        LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-      }
-      if (controlService != null) {
-        controlService.close();
-      }
-      if (shutdownHook != null) {
-        Runtime.getRuntime().removeShutdownHook(shutdownHook);
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IOException(e);
+    if (daemonService != null) {
+      daemonService.close();
+    }
+    if (controlService != null) {
+      controlService.close();
+    }
+    if (shutdownHook != null) {
+      Runtime.getRuntime().removeShutdownHook(shutdownHook);
     }
   }
 
@@ -284,7 +268,7 @@ public class ScionService {
   }
 
   private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
-    if (daemonStub != null) {
+    if (daemonService != null) {
       return getPathListDaemon(srcIsdAs, dstIsdAs);
     }
     return getPathListCS(srcIsdAs, dstIsdAs);
@@ -300,7 +284,7 @@ public class ScionService {
 
     Daemon.PathsResponse response;
     try {
-      response = daemonStub.paths(request);
+      response = daemonService.paths(request);
     } catch (StatusRuntimeException e) {
       throw new ScionRuntimeException(e);
     }
@@ -621,6 +605,6 @@ public class ScionService {
   }
 
   DaemonServiceGrpc.DaemonServiceBlockingStub getDaemonConnection() {
-    return daemonStub;
+    return daemonService.getDaemonConnection();
   }
 }
