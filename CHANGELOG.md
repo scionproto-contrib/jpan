@@ -83,11 +83,6 @@ TODO
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 - Cleanup unit tests for segments.
   [#178](https://github.com/scionproto-contrib/jpan/pull/178)
-TODO
-- AbstractSegmentTest: 
-  - Use addUpCoreDown methods for minimal tests
-- See TODO further up for more TODOs
-  - Cleanup staticInfoParser 
   
 ## [0.5.1] - 2025-04-02
 

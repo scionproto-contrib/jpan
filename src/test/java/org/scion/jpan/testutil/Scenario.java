@@ -82,10 +82,16 @@ public class Scenario {
         for (Map.Entry<Long, Long> e : bandwidthIntra.get(id2).entrySet()) {
           bb.putIntra(e.getKey(), e.getValue());
         }
+        for (Map.Entry<Long, Integer> e : internalHops.get(id2).entrySet()) {
+          builder.putInternalHops(e.getKey(), e.getValue());
+        }
       } else {
         if (id1 > 0 && id2 > 0) {
           lb.putIntra(id2, latencyIntra.get(id2).get(id1));
           bb.putIntra(id2, bandwidthIntra.get(id2).get(id1));
+        }
+        if (internalHops.containsKey(id2) && internalHops.get(id2).containsKey(id1)) {
+          builder.putInternalHops(id2, internalHops.get(id1).get(id2));
         }
       }
       builder.setLatency(lb);
@@ -95,17 +101,6 @@ public class Scenario {
       }
       if (geo.containsKey(id2)) {
         builder.putGeo(id2, geo.get(id2));
-      }
-      if (addAllIntraData) {
-        for (Map.Entry<Long, Integer> e : internalHops.get(id2).entrySet()) {
-          // TODO if UP, remove interfaces leading to other CORE segments.
-          //   E.g. default 112->120: remove IF 105 from 111
-          builder.putInternalHops(e.getKey(), e.getValue());
-        }
-      } else {
-        if (internalHops.containsKey(id2) && internalHops.get(id2).containsKey(id1)) {
-          builder.putInternalHops(id2, internalHops.get(id1).get(id2));
-        }
       }
       if (id1 > 0) {
         builder.putLinkType(
@@ -189,10 +184,8 @@ public class Scenario {
     Path addresses = Paths.get(parent.getPath(), "sciond_addresses.json");
     parseSciondAddresses(readFile(addresses));
 
-    try {
-      Files.list(file)
-          .filter(path -> path.getFileName().toString().startsWith("AS"))
-          .forEach(this::readAS);
+    try (Stream<Path> files = Files.list(file)) {
+      files.filter(path -> path.getFileName().toString().startsWith("AS")).forEach(this::readAS);
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
@@ -356,7 +349,6 @@ public class Scenario {
         SegExtensions.PathSegmentExtensions.newBuilder();
     if (staticInfo.containsKey(isdAs)) {
       Seg.HopField hf = he.getHopField();
-      // TODO can we derive "isFirst" from id1/id2?
       boolean addAllIntraData = !isCore && isFirst;
       ext.setStaticInfo(
           staticInfo.get(isdAs).build(hf.getIngress(), hf.getEgress(), addAllIntraData));
@@ -378,25 +370,6 @@ public class Scenario {
     Signed.SignedMessage sm =
         Signed.SignedMessage.newBuilder().setHeaderAndBody(habi.toByteString()).build();
     return Seg.ASEntry.newBuilder().setSigned(sm).build();
-  }
-
-  private static Seg.PathSegment buildPath(int id, Seg.ASEntry... entries) {
-    long now = Instant.now().getEpochSecond();
-    Seg.SegmentInformation info =
-        Seg.SegmentInformation.newBuilder().setSegmentId(id).setTimestamp(now).build();
-    Seg.PathSegment.Builder builder =
-        Seg.PathSegment.newBuilder().setSegmentInfo(info.toByteString());
-    builder.addAllAsEntries(Arrays.asList(entries));
-    return builder.build();
-  }
-
-  private static Seg.SegmentsResponse buildResponse(
-      Seg.SegmentType type, Seg.PathSegment... paths) {
-    Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
-    Seg.SegmentsResponse.Segments segments =
-        Seg.SegmentsResponse.Segments.newBuilder().addAllSegments(Arrays.asList(paths)).build();
-    replyBuilder.putSegments(type.getNumber(), segments);
-    return replyBuilder.build();
   }
 
   private static Timestamp now() {
