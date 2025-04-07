@@ -35,7 +35,7 @@ class PathMetadataMissingTest {
   @Test
   void testCore_110_210() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/", "ASff00_0_110")) {
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_110")) {
       ScionService service = Scion.defaultService();
       List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:210"), dstAddress);
       assertEquals(1, paths.size());
@@ -82,7 +82,7 @@ class PathMetadataMissingTest {
   @Test
   void testUp_1121_110() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/", "ASff00_0_1121")) {
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_1121")) {
       ScionService service = Scion.defaultService();
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dstAddress);
@@ -146,7 +146,7 @@ class PathMetadataMissingTest {
   @Test
   void testDown_110_1121() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/", "ASff00_0_110")) {
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_110")) {
       ScionService service = Scion.defaultService();
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:1121"), dstAddress);
@@ -207,7 +207,7 @@ class PathMetadataMissingTest {
   @Test
   void testUpCoreDown_1121_211() {
     InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    try (MockNetwork2 nw = MockNetwork2.start("topologies/minimal/", "ASff00_0_1121")) {
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_1121")) {
       ScionService service = Scion.defaultService();
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:211"), dstAddress);

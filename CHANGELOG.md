@@ -15,10 +15,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
-- Cleanup: 
-  - rename AbstractMinimalTest to AbstractSegmentTest or similar
-  - refactor MockNetwork2 initialisation to use enum   
-  - Use Range class everywhere
 - REMOVE topofile requirement from SCIO server:
   Border routers will always use the same port for send/receive
   (at least when communicating with hosts). They do split port only for
@@ -85,7 +81,9 @@ TODO
   [#176](https://github.com/scionproto-contrib/jpan/pull/176)
 - Use `Range` in `Segments`.
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
-
+- Cleanup unit tests for segments.
+  [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+  
 ## [0.5.1] - 2025-04-02
 
 ### Fixed

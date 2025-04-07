@@ -94,7 +94,7 @@ class ShimTest {
 
   @Test
   void testShim_noDaemon() throws IOException {
-    try (MockNetwork2 unused = MockNetwork2.start("topologies/minimal/", "ASff00_0_110")) {
+    try (MockNetwork2 unused = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_110")) {
       testShim();
     }
   }

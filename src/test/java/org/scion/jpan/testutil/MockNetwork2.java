@@ -15,9 +15,9 @@
 package org.scion.jpan.testutil;
 
 import java.net.InetSocketAddress;
+import java.util.function.Consumer;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.internal.AbstractSegmentsMinimalTest;
 
 /** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
@@ -25,92 +25,43 @@ public class MockNetwork2 implements AutoCloseable {
   private final MockBootstrapServer topoServer;
   private final MockControlServer controlServer;
 
-  static class MinimalInitializer extends AbstractSegmentsMinimalTest {
-    @Override
-    public void addResponses() {
-      super.addResponses();
+  public enum Topology {
+    DEFAULT("topologies/default/", ScenarioInitializer::addResponsesScionprotoDefault),
+    MINIMAL("topologies/minimal/", ScenarioInitializer::addResponsesScionprotoMinimal),
+    TINY4("topologies/tiny4/", ScenarioInitializer::addResponsesScionprotoTiny4),
+    TINY4B("topologies/tiny4b/", ScenarioInitializer::addResponsesScionprotoTiny4b);
+
+    private final String configDir;
+    private final Consumer<ScenarioInitializer> initializer;
+
+    Topology(String configDir, Consumer<ScenarioInitializer> initializer) {
+      this.configDir = configDir;
+      this.initializer = initializer;
     }
 
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
-    }
-  }
-
-  static class DefaultInitializer extends AbstractSegmentsMinimalTest {
-    DefaultInitializer() {
-      super(CFG_DEFAULT);
+    public String configDir() {
+      return configDir;
     }
 
-    @Override
-    public void addResponses() {
-      super.addResponsesScionprotoDefault();
-    }
-
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
+    public Consumer<ScenarioInitializer> initializer() {
+      return initializer;
     }
   }
 
-  static class Tiny4Initializer extends AbstractSegmentsMinimalTest {
-    Tiny4Initializer() {
-      super(CFG_TINY4);
-    }
-
-    @Override
-    public void addResponses() {
-      super.addResponsesScionprotoTiny4();
-    }
-
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
-    }
+  public static MockNetwork2 start(Topology topo, String topoOfLocalAS) {
+    return new MockNetwork2(topo, topoOfLocalAS);
   }
 
-  static class Tiny4bInitializer extends AbstractSegmentsMinimalTest {
-    Tiny4bInitializer() {
-      super(CFG_TINY4B);
-    }
-
-    @Override
-    public void addResponses() {
-      super.addResponsesScionprotoTiny4b();
-    }
-
-    void init(MockControlServer controlServer) {
-      AbstractSegmentsMinimalTest.controlServer = controlServer;
-    }
-  }
-
-  public static MockNetwork2 start(String configDir, String topoOfLocalAS) {
-    return new MockNetwork2(configDir, topoOfLocalAS);
-  }
-
-  private MockNetwork2(String configDir, String topoOfLocalAS) {
-    topoServer = MockBootstrapServer.start(configDir, topoOfLocalAS);
+  private MockNetwork2(Topology topo, String topoOfLocalAS) {
+    topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
-    String topoFileOfLocalAS = configDir + topoOfLocalAS + "/topology.json";
+    String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
-    if (configDir.startsWith("topologies/minimal")) {
-      MinimalInitializer data = new MinimalInitializer();
-      data.init(controlServer);
-      data.addResponses();
-    } else if (configDir.startsWith("topologies/default")) {
-      DefaultInitializer data = new DefaultInitializer();
-      data.init(controlServer);
-      data.addResponses();
-    } else if (configDir.startsWith("topologies/tiny4b")) {
-      Tiny4bInitializer data = new Tiny4bInitializer();
-      data.init(controlServer);
-      data.addResponses();
-    } else if (configDir.startsWith("topologies/tiny4")) {
-      Tiny4Initializer data = new Tiny4Initializer();
-      data.init(controlServer);
-      data.addResponses();
-    } else {
-      throw new UnsupportedOperationException();
-    }
+
+    // Initialize segments
+    ScenarioInitializer.init(topo, controlServer);
   }
 
   public void reset() {

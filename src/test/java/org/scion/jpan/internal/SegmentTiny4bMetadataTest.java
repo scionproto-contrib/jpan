@@ -30,6 +30,7 @@ class SegmentTiny4bMetadataTest {
   protected static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
   protected static final long AS_121 = ScionUtil.parseIA("1-ff00:0:121");
 
+  private static final MockNetwork2.Topology TOPO = MockNetwork2.Topology.TINY4B;
   private static final String TOPO_DIR = "topologies/tiny4b/";
   private static final String TOPO_110 = TOPO_DIR + "ASff00_0_110/topology.json";
   private static final String TOPO_112 = TOPO_DIR + "ASff00_0_112/topology.json";
@@ -37,7 +38,7 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testCore_110_120() throws IOException {
-    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_110")) {
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_110")) {
 
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_120);
@@ -55,7 +56,7 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testCore_120_110() throws IOException {
-    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_120")) {
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_120")) {
 
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_110);
@@ -91,7 +92,7 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testDown_120_121() throws IOException {
-    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_120")) {
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_120")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_121);
         assertNotNull(paths);
@@ -138,7 +139,7 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testUp_112_110() throws IOException {
-    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_112")) {
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_112")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_112)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_110);
         assertNotNull(paths);
@@ -178,7 +179,7 @@ class SegmentTiny4bMetadataTest {
 
   @Test
   void testDown_110_112() throws IOException {
-    try (MockNetwork2 nw = MockNetwork2.start(TOPO_DIR, "ASff00_0_110")) {
+    try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_110")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
         List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_112);
         assertNotNull(paths);

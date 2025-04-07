@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -30,8 +29,7 @@ import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.MockNetwork2;
 
 /**
  * Test cases: <br>
@@ -46,28 +44,24 @@ import org.scion.jpan.testutil.MockControlServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
-public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
-  private static MockBootstrapServer topoServer;
+class SegmentsMinimal110Test extends AbstractSegmentsTest {
+
+  private static MockNetwork2 network;
 
   @BeforeAll
-  public static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_110");
-    InetSocketAddress topoAddr = topoServer.getAddress();
-    DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(topoServer.getControlServerPort());
+  static void beforeAll() {
+    network = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_110");
   }
 
   @AfterEach
-  public void afterEach() {
-    controlServer.clearSegments();
-    topoServer.getAndResetCallCount();
-    controlServer.getAndResetCallCount();
+  void afterEach() {
+    network.getTopoServer().getAndResetCallCount();
+    network.getControlServer().getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
-    controlServer.close();
-    topoServer.close();
+  static void afterAll() {
+    network.close();
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
@@ -75,7 +69,6 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseA_SameCoreAS() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_110);
       Daemon.Path path = paths.get(0);
@@ -83,13 +76,12 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       assertEquals(1460, path.getMtu());
       assertEquals(0, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(0, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(0, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseC_SameIsd_Down() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_111);
       assertNotNull(paths);
@@ -112,13 +104,12 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseD_SameIsd_Core() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_120);
       assertNotNull(paths);
@@ -140,13 +131,12 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(1, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseF0_SameIsd_CoreDown() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_121);
       assertNotNull(paths);
@@ -167,11 +157,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
         0, 1, 0, 0, -32, 11, -116, 98, 40, 59, 0, 63, 0, 0, 0, 10, 69, 7, 15, -100, -60, -113, 0,
         63, 0, 0, 0, 21, -1, 100, 76, 70, -81, 125, 0, 63, 0, 104, 0, 0, -74, -115, 123, 0, -56, 48
       };
-      // System.out.println(ToStringUtil.pathLong(raw)); // TODO
-      // System.out.println(ToStringUtil.path(raw)); // TODO
       Daemon.Path path = paths.get(0);
-      // System.out.println(ToStringUtil.path(path.getRaw().toByteArray())); // TODO
-      // System.out.println(ToStringUtil.pathLong(path.getRaw().toByteArray())); // TODO
       ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
       checkMetaHeader(rawBB, 2, 2, 0);
       checkInfo(rawBB, 10619, 0);
@@ -186,7 +172,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1350, path.getMtu());
-      String firstHop = topoServer.getBorderRouterAddressByIA(AS_120);
+      String firstHop = network.getTopoServer().getBorderRouterAddressByIA(AS_120);
       assertEquals(firstHop, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 1, "1-ff00:0:110");
       checkInterface(path, 1, 10, "1-ff00:0:120");
@@ -194,13 +180,12 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       checkInterface(path, 3, 104, "1-ff00:0:121");
       assertEquals(4, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseG_DifferentIsd_CoreDown_2_Hop() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_211);
       assertNotNull(paths);
@@ -229,13 +214,12 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseI_DifferentIsd_Core_2_Hop() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_210);
       assertNotNull(paths);
@@ -261,7 +245,7 @@ public class SegmentsMinimal110Test extends AbstractSegmentsMinimalTest {
       // compare with recorded byte[]
       checkRaw(raw, path.getRaw().toByteArray());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(1, network.getControlServer().getAndResetCallCount());
   }
 }

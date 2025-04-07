@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -30,8 +29,7 @@ import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.MockNetwork2;
 
 /**
  * Test cases: <br>
@@ -46,30 +44,26 @@ import org.scion.jpan.testutil.MockControlServer;
  * H (UP, CORE, DOWN): srcISD != dstISD; (different ISDs, src/dst are non-cores)<br>
  * I (CORE): srcISD != dstISD; (different ISDs, src/dst are cores)
  */
-public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
+class SegmentsMinimal120Test extends AbstractSegmentsTest {
+
   private static String firstFop210;
-  private static MockBootstrapServer topoServer;
+  private static MockNetwork2 network;
 
   @BeforeAll
-  public static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_120");
-    InetSocketAddress topoAddr = topoServer.getAddress();
-    firstFop210 = topoServer.getBorderRouterAddressByIA(AS_210);
-    DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(topoServer.getControlServerPort());
+  static void beforeAll() {
+    network = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_120");
+    firstFop210 = network.getTopoServer().getBorderRouterAddressByIA(AS_210);
   }
 
   @AfterEach
-  public void afterEach() {
-    controlServer.clearSegments();
-    topoServer.getAndResetCallCount();
-    controlServer.getAndResetCallCount();
+  void afterEach() {
+    network.getTopoServer().getAndResetCallCount();
+    network.getControlServer().getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
-    controlServer.close();
-    topoServer.close();
+  static void afterAll() {
+    network.close();
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
@@ -77,7 +71,6 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void caseG_DifferentIsd_CoreDown_1_Hop() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_211);
       assertNotNull(paths);
@@ -126,13 +119,12 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
       checkInterface(path, 3, 503, "2-ff00:0:211");
       assertEquals(4, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseI_DifferentIsd_Core_1_Hop() throws IOException {
-    addResponses();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_210);
       assertNotNull(paths);
@@ -170,7 +162,7 @@ public class SegmentsMinimal120Test extends AbstractSegmentsMinimalTest {
       checkInterface(path, 1, 105, "2-ff00:0:210");
       assertEquals(2, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(1, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(1, network.getControlServer().getAndResetCallCount());
   }
 }

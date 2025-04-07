@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -27,38 +26,26 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.MockNetwork2;
 
-public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
+class SegmentsDefault131Test extends AbstractSegmentsTest {
 
-  private static final long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
-  private static final long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
-  private static MockBootstrapServer topoServer;
-
-  SegmentsDefault131Test() {
-    super(CFG_DEFAULT);
-  }
+  private static MockNetwork2 network;
 
   @BeforeAll
-  public static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_DEFAULT, "ASff00_0_131");
-    InetSocketAddress topoAddr = topoServer.getAddress();
-    DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(topoServer.getControlServerPort());
+  static void beforeAll() {
+    network = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_131");
   }
 
   @AfterEach
-  public void afterEach() {
-    controlServer.clearSegments();
-    topoServer.getAndResetCallCount();
-    controlServer.getAndResetCallCount();
+  void afterEach() {
+    network.getTopoServer().getAndResetCallCount();
+    network.getControlServer().getAndResetCallCount();
   }
 
   @AfterAll
-  public static void afterAll() {
-    controlServer.close();
-    topoServer.close();
+  static void afterAll() {
+    network.close();
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
@@ -67,7 +54,6 @@ public class SegmentsDefault131Test extends AbstractSegmentsMinimalTest {
 
   @Test
   void onPathDown() throws IOException {
-    addResponsesScionprotoDefault();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_131, AS_133);
 
