@@ -71,15 +71,11 @@ public abstract class AbstractSegmentsTest {
   /** ISD 2 - non-core AS */
   protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
 
-  protected static MockControlServer controlServer;
+  private MockControlServer controlServer;
   protected final Scenario scenario;
 
   protected AbstractSegmentsTest() {
     scenario = null;
-  }
-
-  protected AbstractSegmentsTest(String cfg) {
-    scenario = Scenario.readFrom(cfg);
   }
 
   protected AbstractSegmentsTest(String cfg, MockControlServer controlServer) {
