@@ -30,8 +30,6 @@ import org.scion.jpan.testutil.MockNetwork2;
 
 class SegmentsDefault131Test extends AbstractSegmentsTest {
 
-  private static final long AS_131 = ScionUtil.parseIA("1-ff00:0:131");
-  private static final long AS_133 = ScionUtil.parseIA("1-ff00:0:133");
   private static MockNetwork2 network;
 
   @BeforeAll

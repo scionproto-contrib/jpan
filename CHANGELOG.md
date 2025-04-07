@@ -15,10 +15,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
-- Cleanup: 
-  - rename AbstractMinimalTest to AbstractSegmentTest or similar
-  - refactor MockNetwork2 initialisation to use enum   
-  - Use Range class everywhere
 - REMOVE topofile requirement from SCIO server:
   Border routers will always use the same port for send/receive
   (at least when communicating with hosts). They do split port only for
@@ -90,11 +86,6 @@ TODO
 TODO
 - AbstractSegmentTest: 
   - Use addUpCoreDown methods for minimal tests
-  - Create 4 concrete subclasses for minimal/default/tiny/tiny4b
-    + abstract super class with helper methods
-    + maybe separate super classes for segment creation helpers vs actual test helpers
-  - Make controlServer + topoServer non-static. 
-  - Instantiate network topologies in tests and in Network2.
 - See TODO further up for more TODOs
   - Cleanup staticInfoParser 
   
