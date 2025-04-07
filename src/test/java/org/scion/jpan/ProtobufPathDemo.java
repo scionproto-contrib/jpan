@@ -207,7 +207,7 @@ public class ProtobufPathDemo {
     Daemon.ServicesRequest request = Daemon.ServicesRequest.newBuilder().build();
     Daemon.ServicesResponse response;
     try {
-      response = service.getDaemonConnection().services(request);
+      response = service.getDaemonConnection().getGrpcStub().services(request);
     } catch (StatusRuntimeException e) {
       throw new ScionException(e);
     }

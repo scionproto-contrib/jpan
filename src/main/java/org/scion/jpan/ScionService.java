@@ -40,7 +40,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.proto.daemon.Daemon;
-import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -604,7 +603,7 @@ public class ScionService {
     return bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
   }
 
-  DaemonServiceGrpc.DaemonServiceBlockingStub getDaemonConnection() {
-    return daemonService.getDaemonConnection();
+  DaemonService getDaemonConnection() {
+    return daemonService;
   }
 }

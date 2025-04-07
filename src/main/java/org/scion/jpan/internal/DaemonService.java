@@ -29,7 +29,6 @@ public class DaemonService {
 
   private static final Logger LOG = LoggerFactory.getLogger(DaemonService.class.getName());
 
-  private final String addressOrHost;
   private ManagedChannel channel;
   private DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
 
@@ -38,7 +37,6 @@ public class DaemonService {
   }
 
   private DaemonService(String addressOrHost) {
-    this.addressOrHost = addressOrHost; // TODO remove?
     initChannel(addressOrHost);
   }
 
@@ -90,8 +88,7 @@ public class DaemonService {
     return daemonStub.paths(request);
   }
 
-  public DaemonServiceGrpc.DaemonServiceBlockingStub getDaemonConnection() {
-    // TODO Remove GRPC from ScionService
+  public DaemonServiceGrpc.DaemonServiceBlockingStub getGrpcStub() {
     return daemonStub;
   }
 }
