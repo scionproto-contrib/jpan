@@ -74,6 +74,10 @@ public abstract class AbstractSegmentsTest {
   protected static MockControlServer controlServer;
   protected final Scenario scenario;
 
+  protected AbstractSegmentsTest() {
+    scenario = null;
+  }
+
   protected AbstractSegmentsTest(String cfg) {
     scenario = Scenario.readFrom(cfg);
   }

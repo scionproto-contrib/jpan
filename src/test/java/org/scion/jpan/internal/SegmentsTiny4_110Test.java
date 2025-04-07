@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.*;
@@ -27,8 +26,7 @@ import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.MockNetwork2;
 
 /**
  * Test cases: (with references to book p105 Fig. 5.8)<br>
@@ -46,37 +44,23 @@ import org.scion.jpan.testutil.MockControlServer;
 class SegmentsTiny4_110Test extends AbstractSegmentsTest {
 
   private static String firstHop111;
-  private static MockBootstrapServer topoServer;
-
-  private SegmentsTiny4_110Test() {
-    super(CFG_TINY4);
-  }
+  private static MockNetwork2 network;
 
   @BeforeAll
   static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_TINY4, "ASff00_0_110");
-    InetSocketAddress topoAddr = topoServer.getAddress();
-    firstHop111 = topoServer.getBorderRouterAddressByIA(AS_111);
-    DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(topoServer.getControlServerPort());
-  }
-
-  @BeforeEach
-  void beforeEach() {
-    addResponsesScionprotoTiny4();
+    network = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_110");
+    firstHop111 = network.getTopoServer().getBorderRouterAddressByIA(AS_111);
   }
 
   @AfterEach
   void afterEach() {
-    controlServer.clearSegments();
-    topoServer.getAndResetCallCount();
-    controlServer.getAndResetCallCount();
+    network.getTopoServer().getAndResetCallCount();
+    network.getControlServer().getAndResetCallCount();
   }
 
   @AfterAll
   static void afterAll() {
-    controlServer.close();
-    topoServer.close();
+    network.close();
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
@@ -121,7 +105,7 @@ class SegmentsTiny4_110Test extends AbstractSegmentsTest {
       checkInterface(path, 1, 41, "1-ff00:0:111");
       assertEquals(2, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertTrue(controlServer.getAndResetCallCount() <= 3);
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertTrue(network.getControlServer().getAndResetCallCount() <= 3);
   }
 }

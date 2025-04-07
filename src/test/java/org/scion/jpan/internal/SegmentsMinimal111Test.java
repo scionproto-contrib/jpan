@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -30,8 +29,7 @@ import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.MockNetwork2;
 
 /**
  * Test cases: (with references to book p105 Fig. 5.8)<br>
@@ -49,32 +47,23 @@ import org.scion.jpan.testutil.MockControlServer;
 class SegmentsMinimal111Test extends AbstractSegmentsTest {
 
   private static String firstFop110;
-  private static MockBootstrapServer topoServer;
-
-  SegmentsMinimal111Test() {
-    super(CFG_MINIMAL);
-  }
+  private static MockNetwork2 network;
 
   @BeforeAll
   static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_MINIMAL, "ASff00_0_111");
-    InetSocketAddress topoAddr = topoServer.getAddress();
-    firstFop110 = topoServer.getBorderRouterAddressByIA(AS_110);
-    DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(topoServer.getControlServerPort());
+    network = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_111");
+    firstFop110 = network.getTopoServer().getBorderRouterAddressByIA(AS_110);
   }
 
   @AfterEach
   void afterEach() {
-    controlServer.clearSegments();
-    topoServer.getAndResetCallCount();
-    controlServer.getAndResetCallCount();
+    network.getTopoServer().getAndResetCallCount();
+    network.getControlServer().getAndResetCallCount();
   }
 
   @AfterAll
   static void afterAll() {
-    controlServer.close();
-    topoServer.close();
+    network.close();
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
@@ -83,7 +72,6 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
 
   @Test
   void caseA_SameNonCoreAS() throws IOException {
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_111);
       //  ListService: control
@@ -96,8 +84,8 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       assertEquals(1472, path.getMtu());
       assertEquals(0, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(0, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(0, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
@@ -112,7 +100,6 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
 
   private void caseB_SameIsd_Up(boolean minimize) throws IOException {
     System.setProperty(Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS, Boolean.toString(minimize));
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_110);
       //    scion showpaths 1-ff00:0:110 --sciond 127.0.0.27:30255
@@ -151,13 +138,12 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       assertEquals(2, path.getInterfacesCount());
     }
 
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(minimize ? 1 : 2, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(minimize ? 1 : 2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS() throws IOException {
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_112);
       //  Available paths to 1-ff00:0:112
@@ -208,13 +194,12 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkInterface(path, 3, 453, "1-ff00:0:112");
       assertEquals(4, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(3, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(3, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseE_SameIsd_UpDownTwoCoreAS() throws IOException {
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_121);
       //  Available paths to 1-ff00:0:121
@@ -271,13 +256,12 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkInterface(path, 5, 104, "1-ff00:0:121");
       assertEquals(6, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(3, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(3, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseF0_SameIsd_UpCore() throws IOException {
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_120);
       //  Available paths to 1-ff00:0:120
@@ -315,7 +299,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRaw().toByteArray());
 
       assertEquals(1460, path.getMtu());
-      String firstHop = topoServer.getBorderRouterAddressByIA(AS_110);
+      String firstHop = network.getTopoServer().getBorderRouterAddressByIA(AS_110);
       assertEquals(firstHop, path.getInterface().getAddress().getAddress());
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
@@ -323,13 +307,12 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkInterface(path, 3, 10, "1-ff00:0:120");
       assertEquals(4, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseF_DifferentIsd_UpCore_2_Hop() throws IOException {
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_210);
       //  Available paths to 2-ff00:0:210
@@ -383,13 +366,12 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkInterface(path, 5, 105, "2-ff00:0:210");
       assertEquals(6, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(2, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseH_DifferentIsd_UpCoreDown_2_Hop() throws IOException {
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_211);
       //  Available paths to 2-ff00:0:211
@@ -455,13 +437,12 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkInterface(path, 7, 503, "2-ff00:0:211");
       assertEquals(8, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(3, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(3, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS_OnPathDown() throws IOException {
-    addResponsesScionprotoMinimal();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_1111);
       //  Available paths to 1-ff00:0:1112
@@ -498,7 +479,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkInterface(path, 1, 123, "1-ff00:0:1111");
       assertEquals(2, path.getInterfacesCount());
     }
-    assertEquals(1, topoServer.getAndResetCallCount());
-    assertEquals(3, controlServer.getAndResetCallCount());
+    assertEquals(1, network.getTopoServer().getAndResetCallCount());
+    assertEquals(3, network.getControlServer().getAndResetCallCount());
   }
 }

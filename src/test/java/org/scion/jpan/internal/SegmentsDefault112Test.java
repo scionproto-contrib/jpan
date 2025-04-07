@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -27,36 +26,26 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockControlServer;
+import org.scion.jpan.testutil.MockNetwork2;
 
 class SegmentsDefault112Test extends AbstractSegmentsTest {
 
-  private static MockBootstrapServer topoServer;
-
-  SegmentsDefault112Test() {
-    super(CFG_DEFAULT);
-  }
+  private static MockNetwork2 network;
 
   @BeforeAll
   static void beforeAll() {
-    topoServer = MockBootstrapServer.start(CFG_DEFAULT, "ASff00_0_112");
-    InetSocketAddress topoAddr = topoServer.getAddress();
-    DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    controlServer = MockControlServer.start(topoServer.getControlServerPort());
+    network = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112");
   }
 
   @AfterEach
   void afterEach() {
-    controlServer.clearSegments();
-    topoServer.getAndResetCallCount();
-    controlServer.getAndResetCallCount();
+    network.getTopoServer().getAndResetCallCount();
+    network.getControlServer().getAndResetCallCount();
   }
 
   @AfterAll
   static void afterAll() {
-    controlServer.close();
-    topoServer.close();
+    network.close();
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
@@ -65,7 +54,6 @@ class SegmentsDefault112Test extends AbstractSegmentsTest {
 
   @Test
   void removeDuplicatePaths() throws IOException {
-    addResponsesScionprotoDefault();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_111);
 
@@ -88,7 +76,6 @@ class SegmentsDefault112Test extends AbstractSegmentsTest {
 
   @Test
   void orderingByHopCount() throws IOException {
-    addResponsesScionprotoDefault();
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_112, AS_111);
 
