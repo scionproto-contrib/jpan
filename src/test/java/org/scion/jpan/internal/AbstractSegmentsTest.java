@@ -78,6 +78,11 @@ public abstract class AbstractSegmentsTest {
     scenario = Scenario.readFrom(cfg);
   }
 
+  protected AbstractSegmentsTest(String cfg, MockControlServer controlServer) {
+    scenario = Scenario.readFrom(cfg);
+    this.controlServer = controlServer;
+  }
+
   protected static void checkMetaHeader(
       ByteBuffer rawBB, int hopCount0, int hopCount1, int hopCount2) {
     int bits = (((hopCount0 << 6) | hopCount1) << 6) | hopCount2;

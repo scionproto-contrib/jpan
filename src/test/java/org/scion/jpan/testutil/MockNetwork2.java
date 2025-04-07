@@ -25,59 +25,73 @@ public class MockNetwork2 implements AutoCloseable {
   private final MockBootstrapServer topoServer;
   private final MockControlServer controlServer;
 
+  public enum Topology {
+    DEFAULT("topologies/default/"),
+    MINIMAL("topologies/minimal/"),
+    TINY4("topologies/tiny4/"),
+    TINY4B("topologies/tiny4b/");
+
+    private final String configDir;
+
+    Topology(String configDir) {
+      this.configDir = configDir;
+    }
+  }
+
   static class MinimalInitializer extends AbstractSegmentsTest {
     MinimalInitializer(MockControlServer controlServer) {
-      super(CFG_MINIMAL);
-      super.controlServer = controlServer;
+      super(CFG_MINIMAL, controlServer);
       super.addResponsesScionprotoMinimal();
     }
   }
 
   static class DefaultInitializer extends AbstractSegmentsTest {
     DefaultInitializer(MockControlServer controlServer) {
-      super(CFG_DEFAULT);
-      super.controlServer = controlServer;
+      super(CFG_DEFAULT, controlServer);
       super.addResponsesScionprotoDefault();
     }
   }
 
   static class Tiny4Initializer extends AbstractSegmentsTest {
     Tiny4Initializer(MockControlServer controlServer) {
-      super(CFG_TINY4);
-      super.controlServer = controlServer;
+      super(CFG_TINY4, controlServer);
       super.addResponsesScionprotoTiny4();
     }
   }
 
   static class Tiny4bInitializer extends AbstractSegmentsTest {
     Tiny4bInitializer(MockControlServer controlServer) {
-      super(CFG_TINY4B);
-      super.controlServer = controlServer;
+      super(CFG_TINY4B, controlServer);
       super.addResponsesScionprotoTiny4b();
     }
   }
 
-  public static MockNetwork2 start(String configDir, String topoOfLocalAS) {
-    return new MockNetwork2(configDir, topoOfLocalAS);
+  public static MockNetwork2 start(Topology topo, String topoOfLocalAS) {
+    return new MockNetwork2(topo, topoOfLocalAS);
   }
 
-  private MockNetwork2(String configDir, String topoOfLocalAS) {
-    topoServer = MockBootstrapServer.start(configDir, topoOfLocalAS);
+  private MockNetwork2(Topology topo, String topoOfLocalAS) {
+    topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.installNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     controlServer = MockControlServer.start(topoServer.getControlServerPort());
-    String topoFileOfLocalAS = configDir + topoOfLocalAS + "/topology.json";
+    String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
-    if (configDir.startsWith("topologies/minimal")) {
-      MinimalInitializer data = new MinimalInitializer(controlServer);
-    } else if (configDir.startsWith("topologies/default")) {
-      DefaultInitializer data = new DefaultInitializer(controlServer);
-    } else if (configDir.startsWith("topologies/tiny4b")) {
-      Tiny4bInitializer data = new Tiny4bInitializer(controlServer);
-    } else if (configDir.startsWith("topologies/tiny4")) {
-      Tiny4Initializer data = new Tiny4Initializer(controlServer);
-    } else {
-      throw new UnsupportedOperationException();
+    switch (topo) {
+      case DEFAULT:
+        new DefaultInitializer(controlServer);
+        break;
+      case MINIMAL:
+        new MinimalInitializer(controlServer);
+        break;
+      case TINY4:
+        new Tiny4Initializer(controlServer);
+        break;
+      case TINY4B:
+        new Tiny4bInitializer(controlServer);
+        break;
+      default:
+        throw new UnsupportedOperationException();
     }
   }
 
