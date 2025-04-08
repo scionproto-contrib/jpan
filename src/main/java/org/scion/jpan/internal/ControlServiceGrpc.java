@@ -87,8 +87,6 @@ public class ControlServiceGrpc {
             channel.isShutdown(),
             channel.isTerminated(),
             channel.getState(false));
-        channel = null;
-        grpcStub = null;
         return segmentsTryAll(request);
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
@@ -109,8 +107,6 @@ public class ControlServiceGrpc {
               channel.isTerminated(),
               channel.getState(false));
           LOG.warn("Error connecting to control service: {}", node.ipString);
-          channel = null;
-          grpcStub = null;
           continue;
         }
         // Rethrow the exception if it's not UNAVAILABLE
