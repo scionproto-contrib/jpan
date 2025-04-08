@@ -117,6 +117,11 @@ public class ControlServiceGrpc {
             channel.isShutdown(),
             channel.isTerminated(),
             channel.getState(false));
+        try {
+          closeChannel();
+        } catch (IOException ex) {
+          throw new ScionRuntimeException(ex);
+        }
         return segmentsTryAll(request);
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
@@ -141,6 +146,11 @@ public class ControlServiceGrpc {
               channel.isTerminated(),
               channel.getState(false));
           LOG.warn("Error connecting to control service: {}", node.ipString);
+          try {
+            closeChannel();
+          } catch (IOException ex) {
+            throw new ScionRuntimeException(ex);
+          }
           continue;
         }
         // Rethrow the exception if it's not UNAVAILABLE
