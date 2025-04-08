@@ -49,14 +49,18 @@ class ScionServiceTest {
   static void afterAll() {
     System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
     // Defensive clean up
+    System.err.println("TEST AFTER ---- 1"); // TODO
     ScionService.closeDefault();
+    System.err.println("TEST AFTER ---- 2"); // TODO
   }
 
   @BeforeEach
   void beforeEach() {
+    System.err.println("TEST BEFORE ---- 1"); // TODO
     ScionService.closeDefault();
     // reset counter
     MockDaemon.getAndResetCallCount();
+    System.err.println("TEST BEFORE ---- 2"); // TODO
   }
 
   @Test
@@ -556,6 +560,7 @@ class ScionServiceTest {
 
   @Test
   void testControlServiceFailure_NoCS() throws IOException {
+    System.err.println("TEST 1 ---- 1"); // TODO
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Kill CS
@@ -577,6 +582,7 @@ class ScionServiceTest {
 
   @Test
   void testControlServiceFailure_Backup() throws IOException {
+    System.err.println("TEST 2 ---- 1"); // TODO
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
@@ -594,6 +600,7 @@ class ScionServiceTest {
 
   @Test
   void testControlServiceFailure_PrimaryWorksThenFails() throws IOException {
+    System.err.println("TEST 3 ---- 1"); // TODO
     // CS works, then fails, then works again.
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
@@ -603,27 +610,39 @@ class ScionServiceTest {
       long dstIA112 = ScionUtil.parseIA("1-ff00:0:112");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
       // First border router does not exist, but we should automatically switch to the backup.
+      System.err.println("TEST 3 ---- 2"); // TODO
       try (Scion.CloseableService client =
           Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
+        System.err.println("TEST 3 ---- 3"); // TODO
         Path path = client.getPaths(dstIA111, dstAddress).get(0);
+        System.err.println("TEST 3 ---- 4"); // TODO
         assertNotNull(path);
 
         // Kill CS - ask for different AS do avoid getting a cached path or similar.
         controlService.close();
+        System.err.println("TEST 3 ---- 5"); // TODO
         Exception ex =
             assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA112, dstAddress));
+        System.err.println("TEST 3 ---- 6"); // TODO
         String expected = "Error while connecting to SCION network, not control service available";
         assertEquals(expected, ex.getMessage());
 
         // Restart CS
         controlService = MockControlServer.start(csPort);
+        System.err.println("TEST 3 ---- 7"); // TODO
         Path path2 = client.getPaths(dstIA112, dstAddress).get(0);
+        System.err.println("TEST 3 ---- 8"); // TODO
         assertNotNull(path2);
       } finally {
+        System.err.println("TEST 3 ---- 9"); // TODO
         controlService.close();
+        System.err.println("TEST 3 ---- 10"); // TODO
       }
     } finally {
+      System.err.println("TEST 3 ---- 11"); // TODO
       MockNetwork.stopTiny();
+      System.err.println("TEST 3 ---- 12"); // TODO
     }
+    System.err.println("TEST 3 ---- 13"); // TODO
   }
 }

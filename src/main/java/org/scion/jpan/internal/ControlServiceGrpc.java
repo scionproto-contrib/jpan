@@ -51,6 +51,8 @@ public class ControlServiceGrpc {
           && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
         LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
       }
+      channel = null;
+      grpcStub = null;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IOException(e);
