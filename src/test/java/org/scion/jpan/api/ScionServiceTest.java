@@ -560,7 +560,7 @@ class ScionServiceTest {
 
   @Test
   void testControlServiceFailure_NoCS() throws IOException {
-    System.err.println("TEST 1 ---- 1"); // TODO
+    System.err.println("TEST 1 -------------------------------------------------- 1"); // TODO
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Kill CS
@@ -590,7 +590,7 @@ class ScionServiceTest {
 
   @Test
   void testControlServiceFailure_Backup() throws IOException {
-    System.err.println("TEST 2 ---- 1"); // TODO
+    System.err.println("TEST 2 ----------------------------------------------------- 1"); // TODO
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       System.err.println("TEST 2 ---- 2"); // TODO
@@ -616,7 +616,7 @@ class ScionServiceTest {
 
   @Test
   void testControlServiceFailure_PrimaryWorksThenFails() throws IOException {
-    System.err.println("TEST 3 ---- 1"); // TODO
+    System.err.println("TEST 3 ----------------------------------------------------- 1"); // TODO
     // CS works, then fails, then works again.
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);

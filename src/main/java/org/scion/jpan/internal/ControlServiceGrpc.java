@@ -17,6 +17,7 @@ package org.scion.jpan.internal;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.control_plane.Seg;
@@ -50,11 +51,24 @@ public class ControlServiceGrpc {
         Thread.sleep(200); // TODO??
         System.err.println("Shutting down.... " + channel);
       }
-      if (channel != null
-          && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
-          && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
-        // TODO remove exception
-        LOG.error("Failed to shut down ScionService gRPC ManagedChannel", new RuntimeException());
+      //      if (channel != null
+      //          && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
+      //          && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
+      //        // TODO remove exception
+      //        LOG.error("Failed to shut down ScionService gRPC ManagedChannel", new
+      // RuntimeException());
+      //      }
+      if (channel != null) {
+        System.err.println("Close ------------0.... " + Instant.now() + "  " + channel);
+        if (!channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)) {
+          System.err.println("Close ------------1.... " + Instant.now() + "  " + channel);
+          if (!channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
+            System.err.println("Close ------------2.... " + Instant.now() + "  " + channel);
+            // TODO remove exception
+            LOG.error(
+                "Failed to shut down ScionService gRPC ManagedChannel", new RuntimeException());
+          }
+        }
       }
       if (channel != null) {
         System.err.println("              .... Done");
@@ -64,10 +78,13 @@ public class ControlServiceGrpc {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IOException(e);
+    } finally {
+      System.err.println("Close ------------ 3.... " + Instant.now() + "  " + channel);
     }
   }
 
   private void initChannel(String csHost) {
+    System.err.println("init - 1 " + channel);
     try {
       closeChannel(); // close existing channel
     } catch (IOException e) {
@@ -76,8 +93,11 @@ public class ControlServiceGrpc {
     LOG.info("Bootstrapping with control service: {}", csHost);
     // TODO InsecureChannelCredentials: Implement authentication!
     // We are using OkHttp instead of Netty for Android compatibility
+    System.err.println("init - 2 " + channel);
     channel = OkHttpChannelBuilder.forTarget(csHost, InsecureChannelCredentials.create()).build();
+    System.err.println("init - 3 " + channel);
     grpcStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
+    System.err.println("init - 4 " + channel);
   }
 
   public synchronized Seg.SegmentsResponse segments(Seg.SegmentsRequest request) {
