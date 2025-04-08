@@ -106,6 +106,10 @@ public class MockControlServer {
     this.controlServer.clearSegments();
   }
 
+  public int getPort() {
+    return server.getPort();
+  }
+
   private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
 
