@@ -566,6 +566,7 @@ class ScionServiceTest {
       // Kill CS
       System.err.println("TEST 1 ---- 2"); // TODO
       MockNetwork.getControlServer().close();
+      Thread.sleep(1000); // TODO Wait for port to be freed up
       System.err.println("TEST 1 ---- 3"); // TODO
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
@@ -580,6 +581,8 @@ class ScionServiceTest {
         assertEquals(expected, ex.getMessage());
       }
       System.err.println("TEST 1 ---- 6"); // TODO
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     } finally {
       System.err.println("TEST 1 ---- 7"); // TODO
       MockNetwork.stopTiny();
