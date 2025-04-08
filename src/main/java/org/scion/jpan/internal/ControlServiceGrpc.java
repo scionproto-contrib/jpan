@@ -15,7 +15,6 @@
 package org.scion.jpan.internal;
 
 import io.grpc.*;
-import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +47,7 @@ public class ControlServiceGrpc {
   private void closeChannel() throws IOException {
     try {
       if (channel != null) {
-        Thread.sleep(200); // TODO??
+        // Thread.sleep(200); // TODO??
         System.err.println("Shutting down.... " + channel);
       }
       //      if (channel != null
@@ -72,7 +71,7 @@ public class ControlServiceGrpc {
       }
       if (channel != null) {
         System.err.println("              .... Done");
-        Thread.sleep(200); // TODO??
+        // Thread.sleep(200); // TODO??
         channel = null;
       }
     } catch (InterruptedException e) {
@@ -94,7 +93,9 @@ public class ControlServiceGrpc {
     // TODO InsecureChannelCredentials: Implement authentication!
     // We are using OkHttp instead of Netty for Android compatibility
     System.err.println("init - 2 " + channel);
-    channel = OkHttpChannelBuilder.forTarget(csHost, InsecureChannelCredentials.create()).build();
+    // channel = OkHttpChannelBuilder.forTarget(csHost,
+    // InsecureChannelCredentials.create()).build();
+    channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
     System.err.println("init - 3 " + channel);
     grpcStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
     System.err.println("init - 4 " + channel);
