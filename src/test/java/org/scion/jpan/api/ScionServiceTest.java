@@ -576,7 +576,7 @@ class ScionServiceTest {
         Exception ex =
             assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
         System.err.println("TEST 1 ---- 5"); // TODO
-        String expected = "Error while connecting to SCION network, not control service available";
+        String expected = "Error while connecting to SCION network, no control service available";
         assertEquals(expected, ex.getMessage());
       }
       System.err.println("TEST 1 ---- 6"); // TODO
@@ -640,7 +640,7 @@ class ScionServiceTest {
         Exception ex =
             assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA112, dstAddress));
         System.err.println("TEST 3 ---- 6"); // TODO
-        String expected = "Error while connecting to SCION network, not control service available";
+        String expected = "Error while connecting to SCION network, no control service available";
         assertEquals(expected, ex.getMessage());
 
         // Restart CS

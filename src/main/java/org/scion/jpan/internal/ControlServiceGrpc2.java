@@ -24,19 +24,19 @@ import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ControlServiceGrpc {
+public class ControlServiceGrpc2 {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ControlServiceGrpc.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(ControlServiceGrpc2.class.getName());
 
   private final LocalTopology localAS;
   private ManagedChannel channel;
   private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub grpcStub;
 
-  public static ControlServiceGrpc create(LocalTopology localAS) {
-    return new ControlServiceGrpc(localAS);
+  public static ControlServiceGrpc2 create(LocalTopology localAS) {
+    return new ControlServiceGrpc2(localAS);
   }
 
-  private ControlServiceGrpc(LocalTopology localAS) {
+  private ControlServiceGrpc2(LocalTopology localAS) {
     this.localAS = localAS;
   }
 
@@ -46,19 +46,13 @@ public class ControlServiceGrpc {
 
   private void closeChannel() throws IOException {
     try {
-      if (channel != null) {
-        System.err.println("Shutting down.... " + channel);
-      }
       if (channel != null
           && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
           && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
         // TODO remove exception
         LOG.error("Failed to shut down ScionService gRPC ManagedChannel", new RuntimeException());
-      }
-      if (channel != null) {
-        System.err.println("              .... Done");
-        Thread.sleep(200); // TODO??
         channel = null;
+        grpcStub = null;
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -120,10 +114,10 @@ public class ControlServiceGrpc {
       }
     }
     throw new ScionRuntimeException(
-        "Error while connecting to SCION network, no control service available");
+        "Error while connecting to SCION network, not control service available");
   }
 
-  //  public SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub getGrpcStub() {
-  //    return grpcStub;
-  //  }
+  public SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub getGrpcStub() {
+    return grpcStub;
+  }
 }
