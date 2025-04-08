@@ -554,6 +554,27 @@ class ScionServiceTest {
   }
 
   @Test
+  void testControlServiceFailure_NoCS() throws IOException {
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      // Kill CS
+      MockNetwork.getControlServer().close();
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      // First border router does not exist, but we should automatically switch to the backup.
+      try (Scion.CloseableService client =
+          Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
+        Exception ex =
+            assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+        String expected = "Error while connecting to SCION network, not control service available";
+        assertEquals(expected, ex.getMessage());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
   void testControlServiceFailure_Backup() throws IOException {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
