@@ -51,9 +51,9 @@ public class ControlServiceGrpc {
           && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
         // TODO remove exception
         LOG.error("Failed to shut down ScionService gRPC ManagedChannel", new RuntimeException());
+        channel = null;
+        grpcStub = null;
       }
-      channel = null;
-      grpcStub = null;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IOException(e);
@@ -81,6 +81,14 @@ public class ControlServiceGrpc {
       return grpcStub.segments(request);
     } catch (StatusRuntimeException e) {
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
+        // TODO
+        LOG.error(
+            "UNAVAILABLE: {} {} {}",
+            channel.isShutdown(),
+            channel.isTerminated(),
+            channel.getState(false));
+        channel = null;
+        grpcStub = null;
         return segmentsTryAll(request);
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
@@ -94,7 +102,15 @@ public class ControlServiceGrpc {
         return grpcStub.segments(request);
       } catch (StatusRuntimeException e) {
         if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
+          // TODO
+          LOG.error(
+              "UNAVAILABLE 2: {} {} {}",
+              channel.isShutdown(),
+              channel.isTerminated(),
+              channel.getState(false));
           LOG.warn("Error connecting to control service: {}", node.ipString);
+          channel = null;
+          grpcStub = null;
           continue;
         }
         // Rethrow the exception if it's not UNAVAILABLE
