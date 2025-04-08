@@ -585,17 +585,25 @@ class ScionServiceTest {
     System.err.println("TEST 2 ---- 1"); // TODO
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      System.err.println("TEST 2 ---- 2"); // TODO
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
       // First border router does not exist, but we should automatically switch to the backup.
       try (Scion.CloseableService client =
           Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
+        System.err.println("TEST 2 ---- 3"); // TODO
         Path path = client.getPaths(dstIA, dstAddress).get(0);
+        System.err.println("TEST 2 ---- 4"); // TODO
         assertNotNull(path);
+        System.err.println("TEST 2 ---- 5"); // TODO
       }
+      System.err.println("TEST 2 ---- 6"); // TODO
     } finally {
+      System.err.println("TEST 2 ---- 7"); // TODO
       MockNetwork.stopTiny();
+      System.err.println("TEST 2 ---- 8"); // TODO
     }
+    System.err.println("TEST 2 ---- 9"); // TODO
   }
 
   @Test
