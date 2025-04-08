@@ -55,7 +55,7 @@ public class ScionBootstrapper {
     this.world = GlobalTopology.createEmpty();
   }
 
-  protected ScionBootstrapper(DaemonService daemonService) {
+  protected ScionBootstrapper(DaemonServiceGrpc daemonService) {
     this.topologyResource = null;
     this.localAS = LocalTopology.create(daemonService);
     this.world = GlobalTopology.createEmpty();
@@ -79,7 +79,7 @@ public class ScionBootstrapper {
     return new ScionBootstrapper(file);
   }
 
-  public static synchronized ScionBootstrapper createViaDaemon(DaemonService daemonService) {
+  public static synchronized ScionBootstrapper createViaDaemon(DaemonServiceGrpc daemonService) {
     return new ScionBootstrapper(daemonService);
   }
 

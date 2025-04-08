@@ -50,7 +50,7 @@ public class LocalTopology {
     return topo;
   }
 
-  public static synchronized LocalTopology create(DaemonService daemonService) {
+  public static synchronized LocalTopology create(DaemonServiceGrpc daemonService) {
     LocalTopology topo = new LocalTopology();
     topo.interrogateDaemon(daemonService);
     topo.initInterfaceIDs();
@@ -180,7 +180,7 @@ public class LocalTopology {
     }
   }
 
-  private void interrogateDaemon(DaemonService daemonService) {
+  private void interrogateDaemon(DaemonServiceGrpc daemonService) {
     Daemon.ASResponse as = readASInfo(daemonService);
     this.localIsdAs = as.getIsdAs();
     this.localMtu = as.getMtu();
@@ -189,7 +189,7 @@ public class LocalTopology {
     this.borderRouters.addAll(readBorderRouterAddresses(daemonService));
   }
 
-  private static DispatcherPortRange readLocalPortRange(DaemonService daemonService) {
+  private static DispatcherPortRange readLocalPortRange(DaemonServiceGrpc daemonService) {
     Daemon.PortRangeResponse response;
     try {
       response = daemonService.portRange(Empty.getDefaultInstance());
@@ -202,7 +202,8 @@ public class LocalTopology {
     }
   }
 
-  private static Collection<BorderRouter> readBorderRouterAddresses(DaemonService daemonService) {
+  private static Collection<BorderRouter> readBorderRouterAddresses(
+      DaemonServiceGrpc daemonService) {
     Map<String, BorderRouter> borderRouters = new HashMap<>();
     for (Map.Entry<Long, Daemon.Interface> e : readInterfaces(daemonService).entrySet()) {
       String addr = e.getValue().getAddress().getAddress();
@@ -217,7 +218,7 @@ public class LocalTopology {
     return borderRouters.values();
   }
 
-  private static Daemon.ASResponse readASInfo(DaemonService daemonService) {
+  private static Daemon.ASResponse readASInfo(DaemonServiceGrpc daemonService) {
     Daemon.ASRequest request = Daemon.ASRequest.newBuilder().setIsdAs(0).build();
     Daemon.ASResponse response;
     try {
@@ -231,7 +232,7 @@ public class LocalTopology {
     return response;
   }
 
-  private static Map<Long, Daemon.Interface> readInterfaces(DaemonService daemonService) {
+  private static Map<Long, Daemon.Interface> readInterfaces(DaemonServiceGrpc daemonService) {
     Daemon.InterfacesRequest request = Daemon.InterfacesRequest.newBuilder().build();
     Daemon.InterfacesResponse response;
     try {

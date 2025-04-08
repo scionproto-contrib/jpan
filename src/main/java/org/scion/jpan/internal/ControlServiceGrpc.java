@@ -24,19 +24,19 @@ import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ControlService {
+public class ControlServiceGrpc {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ControlService.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(ControlServiceGrpc.class.getName());
 
   private final LocalTopology localAS;
   private ManagedChannel channel;
-  private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
+  private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub grpcStub;
 
-  public static ControlService create(LocalTopology localAS) {
-    return new ControlService(localAS);
+  public static ControlServiceGrpc create(LocalTopology localAS) {
+    return new ControlServiceGrpc(localAS);
   }
 
-  private ControlService(LocalTopology localAS) {
+  private ControlServiceGrpc(LocalTopology localAS) {
     this.localAS = localAS;
   }
 
@@ -67,7 +67,7 @@ public class ControlService {
     // TODO InsecureChannelCredentials: Implement authentication!
     // We are using OkHttp instead of Netty for Android compatibility
     channel = OkHttpChannelBuilder.forTarget(csHost, InsecureChannelCredentials.create()).build();
-    segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
+    grpcStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
   }
 
   public synchronized Seg.SegmentsResponse segments(Seg.SegmentsRequest request) {
@@ -75,7 +75,7 @@ public class ControlService {
       return segmentsTryAll(request);
     }
     try {
-      return segmentStub.segments(request);
+      return grpcStub.segments(request);
     } catch (StatusRuntimeException e) {
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
         return segmentsTryAll(request);
@@ -88,7 +88,7 @@ public class ControlService {
     for (LocalTopology.ServiceNode node : localAS.getControlServices()) {
       initChannel(node.ipString);
       try {
-        return segmentStub.segments(request);
+        return grpcStub.segments(request);
       } catch (StatusRuntimeException e) {
         if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
           LOG.warn("Error connecting to control service: {}", node.ipString);
@@ -100,5 +100,9 @@ public class ControlService {
     }
     throw new ScionRuntimeException(
         "Error while connecting to SCION network, not control service available");
+  }
+
+  public SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub getGrpcStub() {
+    return grpcStub;
   }
 }

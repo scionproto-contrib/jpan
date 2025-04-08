@@ -78,7 +78,7 @@ public class Segments {
    * @return list of available paths (unordered)
    */
   public static List<Daemon.Path> getPaths(
-      ControlService service,
+      ControlServiceGrpc service,
       ScionBootstrapper bootstrapper,
       long srcIsdAs,
       long dstIsdAs,
@@ -90,7 +90,7 @@ public class Segments {
   }
 
   private static List<Daemon.Path> getPaths(
-      ControlService service,
+      ControlServiceGrpc service,
       LocalTopology localAS,
       long srcIsdAs,
       long dstIsdAs,
@@ -145,7 +145,7 @@ public class Segments {
   }
 
   private static List<PathSegment> getSegments(
-      ControlService segmentStub, long srcIsdAs, long dstIsdAs) {
+      ControlServiceGrpc segmentStub, long srcIsdAs, long dstIsdAs) {
     if (LOG.isInfoEnabled()) {
       LOG.info(
           "Requesting segments: {} {}",

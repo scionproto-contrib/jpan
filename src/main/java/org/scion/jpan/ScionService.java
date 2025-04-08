@@ -14,21 +14,7 @@
 
 package org.scion.jpan;
 
-import static org.scion.jpan.Constants.DEFAULT_DAEMON;
-import static org.scion.jpan.Constants.DEFAULT_DAEMON_PORT;
-import static org.scion.jpan.Constants.DEFAULT_USE_OS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.ENV_BOOTSTRAP_HOST;
-import static org.scion.jpan.Constants.ENV_BOOTSTRAP_NAPTR_NAME;
-import static org.scion.jpan.Constants.ENV_BOOTSTRAP_TOPO_FILE;
-import static org.scion.jpan.Constants.ENV_DAEMON;
-import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.ENV_USE_OS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_HOST;
-import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME;
-import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_TOPO_FILE;
-import static org.scion.jpan.Constants.PROPERTY_DAEMON;
-import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.PROPERTY_USE_OS_SEARCH_DOMAINS;
+import static org.scion.jpan.Constants.*;
 
 import io.grpc.*;
 import java.io.IOException;
@@ -69,8 +55,8 @@ public class ScionService {
   private static ScionService defaultService = null;
 
   private final ScionBootstrapper bootstrapper;
-  private final ControlService controlService;
-  private final DaemonService daemonService;
+  private final ControlServiceGrpc controlService;
+  private final DaemonServiceGrpc daemonService;
 
   private final boolean minimizeRequests;
   private Thread shutdownHook;
@@ -92,7 +78,7 @@ public class ScionService {
             Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     if (mode == Mode.DAEMON) {
       addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
-      daemonService = DaemonService.create(addressOrHost);
+      daemonService = DaemonServiceGrpc.create(addressOrHost);
       controlService = null;
       try {
         bootstrapper = ScionBootstrapper.createViaDaemon(daemonService);
@@ -117,9 +103,8 @@ public class ScionService {
       } else {
         throw new UnsupportedOperationException();
       }
-
       daemonService = null;
-      controlService = ControlService.create(bootstrapper.getLocalTopology());
+      controlService = ControlServiceGrpc.create(bootstrapper.getLocalTopology());
     }
     shutdownHook = addShutdownHook();
     try {
@@ -603,7 +588,11 @@ public class ScionService {
     return bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
   }
 
-  DaemonService getDaemonConnection() {
+  ControlServiceGrpc getControlServiceConnection() {
+    return controlService;
+  }
+
+  DaemonServiceGrpc getDaemonConnection() {
     return daemonService;
   }
 }

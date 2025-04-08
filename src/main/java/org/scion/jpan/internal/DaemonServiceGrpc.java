@@ -21,22 +21,21 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.daemon.Daemon;
-import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DaemonService {
+public class DaemonServiceGrpc {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DaemonService.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(DaemonServiceGrpc.class.getName());
 
   private ManagedChannel channel;
-  private DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
+  private org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub grpcStub;
 
-  public static DaemonService create(String addressOrHost) {
-    return new DaemonService(addressOrHost);
+  public static DaemonServiceGrpc create(String addressOrHost) {
+    return new DaemonServiceGrpc(addressOrHost);
   }
 
-  private DaemonService(String addressOrHost) {
+  private DaemonServiceGrpc(String addressOrHost) {
     initChannel(addressOrHost);
   }
 
@@ -46,11 +45,10 @@ public class DaemonService {
 
   private void closeChannel() throws IOException {
     try {
-      if (channel != null) {
-        if (!channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
-            && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
-          LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-        }
+      if (channel != null
+          && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
+          && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
+        LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -69,26 +67,26 @@ public class DaemonService {
     // We are using OkHttp instead of Netty for Android compatibility
     channel =
         OkHttpChannelBuilder.forTarget(addressOrHost, InsecureChannelCredentials.create()).build();
-    daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
+    grpcStub = org.scion.jpan.proto.daemon.DaemonServiceGrpc.newBlockingStub(channel);
   }
 
   public Daemon.ASResponse aS(Daemon.ASRequest request) {
-    return daemonStub.aS(request);
+    return grpcStub.aS(request);
   }
 
   public Daemon.PortRangeResponse portRange(Empty defaultInstance) {
-    return daemonStub.portRange(defaultInstance);
+    return grpcStub.portRange(defaultInstance);
   }
 
   public Daemon.InterfacesResponse interfaces(Daemon.InterfacesRequest request) {
-    return daemonStub.interfaces(request);
+    return grpcStub.interfaces(request);
   }
 
   public Daemon.PathsResponse paths(Daemon.PathsRequest request) {
-    return daemonStub.paths(request);
+    return grpcStub.paths(request);
   }
 
-  public DaemonServiceGrpc.DaemonServiceBlockingStub getGrpcStub() {
-    return daemonStub;
+  public org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub getGrpcStub() {
+    return grpcStub;
   }
 }
