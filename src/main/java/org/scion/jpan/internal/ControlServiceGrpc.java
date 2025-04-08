@@ -47,6 +47,7 @@ public class ControlServiceGrpc {
   private void closeChannel() throws IOException {
     try {
       if (channel != null) {
+        Thread.sleep(200); // TODO??
         System.err.println("Shutting down.... " + channel);
       }
       if (channel != null
