@@ -85,8 +85,10 @@ public class ControlServiceGrpc {
       return segmentsTryAll(request);
     }
     try {
+      System.err.println("segments - 1 " + channel);
       return grpcStub.segments(request);
     } catch (StatusRuntimeException e) {
+      System.err.println("segments - E " + e.getMessage());
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
         // TODO
         LOG.error(
@@ -97,6 +99,8 @@ public class ControlServiceGrpc {
         return segmentsTryAll(request);
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
+    } finally {
+      System.err.println("segments - 2 " + channel);
     }
   }
 
@@ -104,8 +108,10 @@ public class ControlServiceGrpc {
     for (LocalTopology.ServiceNode node : localAS.getControlServices()) {
       initChannel(node.ipString);
       try {
+        System.err.println("segmentsTryAll - 1 " + channel);
         return grpcStub.segments(request);
       } catch (StatusRuntimeException e) {
+        System.err.println("segmentsTryAll - E " + e.getMessage());
         if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
           // TODO
           LOG.error(
@@ -118,6 +124,8 @@ public class ControlServiceGrpc {
         }
         // Rethrow the exception if it's not UNAVAILABLE
         throw e;
+      } finally {
+        System.err.println("segmentsTryAll - 2 " + channel);
       }
     }
     throw new ScionRuntimeException(
