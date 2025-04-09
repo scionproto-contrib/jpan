@@ -14,21 +14,7 @@
 
 package org.scion.jpan;
 
-import static org.scion.jpan.Constants.DEFAULT_DAEMON;
-import static org.scion.jpan.Constants.DEFAULT_DAEMON_PORT;
-import static org.scion.jpan.Constants.DEFAULT_USE_OS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.ENV_BOOTSTRAP_HOST;
-import static org.scion.jpan.Constants.ENV_BOOTSTRAP_NAPTR_NAME;
-import static org.scion.jpan.Constants.ENV_BOOTSTRAP_TOPO_FILE;
-import static org.scion.jpan.Constants.ENV_DAEMON;
-import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.ENV_USE_OS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_HOST;
-import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME;
-import static org.scion.jpan.Constants.PROPERTY_BOOTSTRAP_TOPO_FILE;
-import static org.scion.jpan.Constants.PROPERTY_DAEMON;
-import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
-import static org.scion.jpan.Constants.PROPERTY_USE_OS_SEARCH_DOMAINS;
+import static org.scion.jpan.Constants.*;
 
 import io.grpc.*;
 import java.io.IOException;
@@ -37,12 +23,9 @@ import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
-import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.daemon.Daemon;
-import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,11 +55,10 @@ public class ScionService {
   private static ScionService defaultService = null;
 
   private final ScionBootstrapper bootstrapper;
-  private final DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub;
-  private final SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub segmentStub;
+  private final ControlServiceGrpc controlService;
+  private final DaemonServiceGrpc daemonService;
 
   private final boolean minimizeRequests;
-  private final ManagedChannel channel;
   private Thread shutdownHook;
   private final HostsFileParser hostsFile = new HostsFileParser();
   private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
@@ -96,16 +78,10 @@ public class ScionService {
             Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     if (mode == Mode.DAEMON) {
       addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
-      LOG.info("Bootstrapping with daemon: target={}", addressOrHost);
-      // We are using OkHttp instead of Netty for Android compatibility
-      channel =
-          io.grpc.okhttp.OkHttpChannelBuilder.forTarget(
-                  addressOrHost, InsecureChannelCredentials.create())
-              .build();
-      daemonStub = DaemonServiceGrpc.newBlockingStub(channel);
-      segmentStub = null;
+      daemonService = DaemonServiceGrpc.create(addressOrHost);
+      controlService = null;
       try {
-        bootstrapper = ScionBootstrapper.createViaDaemon(daemonStub);
+        bootstrapper = ScionBootstrapper.createViaDaemon(daemonService);
       } catch (RuntimeException e) {
         // If this fails for whatever reason we want to make sure that the channel is closed.
         try {
@@ -127,12 +103,8 @@ public class ScionService {
       } else {
         throw new UnsupportedOperationException();
       }
-      String csHost = bootstrapper.getLocalTopology().getControlServerAddress();
-      LOG.info("Bootstrapping with control service: {}", csHost);
-      // TODO InsecureChannelCredentials: Implement authentication!
-      channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
-      daemonStub = null;
-      segmentStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
+      daemonService = null;
+      controlService = ControlServiceGrpc.create(bootstrapper.getLocalTopology());
     }
     shutdownHook = addShutdownHook();
     try {
@@ -259,17 +231,14 @@ public class ScionService {
   }
 
   public void close() throws IOException {
-    try {
-      if (!channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
-          && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
-        LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-      }
-      if (shutdownHook != null) {
-        Runtime.getRuntime().removeShutdownHook(shutdownHook);
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IOException(e);
+    if (daemonService != null) {
+      daemonService.close();
+    }
+    if (controlService != null) {
+      controlService.close();
+    }
+    if (shutdownHook != null) {
+      Runtime.getRuntime().removeShutdownHook(shutdownHook);
     }
   }
 
@@ -283,7 +252,7 @@ public class ScionService {
   }
 
   private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
-    if (daemonStub != null) {
+    if (daemonService != null) {
       return getPathListDaemon(srcIsdAs, dstIsdAs);
     }
     return getPathListCS(srcIsdAs, dstIsdAs);
@@ -299,7 +268,7 @@ public class ScionService {
 
     Daemon.PathsResponse response;
     try {
-      response = daemonStub.paths(request);
+      response = daemonService.paths(request);
     } catch (StatusRuntimeException e) {
       throw new ScionRuntimeException(e);
     }
@@ -584,7 +553,7 @@ public class ScionService {
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> list =
-        Segments.getPaths(segmentStub, bootstrapper, srcIsdAs, dstIsdAs, minimizeRequests);
+        Segments.getPaths(controlService, bootstrapper, srcIsdAs, dstIsdAs, minimizeRequests);
     if (LOG.isInfoEnabled()) {
       LOG.info(
           "Path found between {} and {}: {}",
@@ -619,7 +588,11 @@ public class ScionService {
     return bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
   }
 
-  DaemonServiceGrpc.DaemonServiceBlockingStub getDaemonConnection() {
-    return daemonStub;
+  ControlServiceGrpc getControlServiceConnection() {
+    return controlService;
+  }
+
+  DaemonServiceGrpc getDaemonConnection() {
+    return daemonService;
   }
 }

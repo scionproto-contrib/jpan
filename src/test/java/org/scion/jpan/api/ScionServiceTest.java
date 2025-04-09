@@ -30,13 +30,14 @@ import org.scion.jpan.*;
 import org.scion.jpan.internal.DNSHelper;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
+import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
 
-public class ScionServiceTest {
+class ScionServiceTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
@@ -45,14 +46,14 @@ public class ScionServiceTest {
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
     // Defensive clean up
     ScionService.closeDefault();
   }
 
   @BeforeEach
-  public void beforeEach() {
+  void beforeEach() {
     ScionService.closeDefault();
     // reset counter
     MockDaemon.getAndResetCallCount();
@@ -502,7 +503,7 @@ public class ScionServiceTest {
   @Test
   void testDomainSearchResolver_nonScionHost() throws IOException {
     try {
-      String searchHost = "localhost"; // "google.com";
+      String searchHost = "localhost"; // "google.com"
       Name n = Name.fromString(searchHost);
       Lookup.setDefaultSearchPath(n);
       // Topology server is not SCION enabled
@@ -550,6 +551,79 @@ public class ScionServiceTest {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();
       System.clearProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS);
+    }
+  }
+
+  @Test
+  void testControlServiceFailure_NoCS() throws IOException {
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      // Kill CS
+      MockNetwork.getControlServer().close();
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      // First border router does not exist, but we should automatically switch to the backup.
+      try (Scion.CloseableService client =
+          Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
+        Exception ex =
+            assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+        String expected = "Error while connecting to SCION network, no control service available";
+        assertEquals(expected, ex.getMessage());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void testControlServiceFailure_Backup() throws IOException {
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      // First border router does not exist, but we should automatically switch to the backup.
+      try (Scion.CloseableService client =
+          Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
+        Path path = client.getPaths(dstIA, dstAddress).get(0);
+        assertNotNull(path);
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void testControlServiceFailure_PrimaryWorksThenFails() throws IOException {
+    // CS works, then fails, then works again.
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      MockControlServer controlService = MockNetwork.getControlServer();
+      int csPort = MockNetwork.getControlServer().getPort();
+      long dstIA111 = ScionUtil.parseIA("1-ff00:0:112");
+      long dstIA112 = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      // First border router does not exist, but we should automatically switch to the backup.
+      try (Scion.CloseableService client =
+          Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
+        Path path = client.getPaths(dstIA111, dstAddress).get(0);
+        assertNotNull(path);
+
+        // Kill CS - ask for different AS do avoid getting a cached path or similar.
+        controlService.close();
+        Exception ex =
+            assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA112, dstAddress));
+        String expected = "Error while connecting to SCION network, no control service available";
+        assertEquals(expected, ex.getMessage());
+
+        // Restart CS
+        controlService = MockControlServer.start(csPort);
+        Path path2 = client.getPaths(dstIA112, dstAddress).get(0);
+        assertNotNull(path2);
+      } finally {
+        controlService.close();
+      }
+    } finally {
+      MockNetwork.stopTiny();
     }
   }
 }

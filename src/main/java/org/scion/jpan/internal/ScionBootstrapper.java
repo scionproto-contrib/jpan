@@ -26,7 +26,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,9 +55,9 @@ public class ScionBootstrapper {
     this.world = GlobalTopology.createEmpty();
   }
 
-  protected ScionBootstrapper(DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
+  protected ScionBootstrapper(DaemonServiceGrpc daemonService) {
     this.topologyResource = null;
-    this.localAS = LocalTopology.create(daemonStub);
+    this.localAS = LocalTopology.create(daemonService);
     this.world = GlobalTopology.createEmpty();
   }
 
@@ -80,9 +79,8 @@ public class ScionBootstrapper {
     return new ScionBootstrapper(file);
   }
 
-  public static synchronized ScionBootstrapper createViaDaemon(
-      DaemonServiceGrpc.DaemonServiceBlockingStub daemonStub) {
-    return new ScionBootstrapper(daemonStub);
+  public static synchronized ScionBootstrapper createViaDaemon(DaemonServiceGrpc daemonService) {
+    return new ScionBootstrapper(daemonService);
   }
 
   public LocalTopology getLocalTopology() {
