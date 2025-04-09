@@ -15,6 +15,7 @@
 package org.scion.jpan.internal;
 
 import io.grpc.*;
+import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
@@ -49,8 +50,7 @@ public class ControlServiceGrpc {
       if (channel != null
           && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
           && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
-        // TODO remove exception
-        LOG.error("Failed to shut down ScionService gRPC ManagedChannel", new RuntimeException());
+        LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
       }
       if (channel != null) {
         channel = null;
@@ -70,9 +70,9 @@ public class ControlServiceGrpc {
     LOG.info("Bootstrapping with control service: {}", csHost);
     // TODO InsecureChannelCredentials: Implement authentication!
     // We are using OkHttp instead of Netty for Android compatibility
-    // channel = OkHttpChannelBuilder.forTarget(csHost,
-    // InsecureChannelCredentials.create()).build();
-    channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build();
+    channel = OkHttpChannelBuilder.forTarget(csHost, InsecureChannelCredentials.create()).build();
+    // channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build(); //
+    // TODO
     grpcStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
     System.err.println("init - 4 " + channel);
   }
@@ -82,17 +82,9 @@ public class ControlServiceGrpc {
       return segmentsTryAll(request);
     }
     try {
-      System.err.println("segments - 1 " + channel);
       return grpcStub.segments(request);
     } catch (StatusRuntimeException e) {
-      System.err.println("segments - E " + e.getMessage());
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
-        // TODO
-        LOG.error(
-            "UNAVAILABLE: {} {} {}",
-            channel.isShutdown(),
-            channel.isTerminated(),
-            channel.getState(false));
         try {
           closeChannel();
         } catch (IOException ex) {
@@ -101,8 +93,6 @@ public class ControlServiceGrpc {
         return segmentsTryAll(request);
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
-    } finally {
-      System.err.println("segments - 2 " + channel);
     }
   }
 
@@ -138,8 +128,4 @@ public class ControlServiceGrpc {
     throw new ScionRuntimeException(
         "Error while connecting to SCION network, no control service available");
   }
-
-  //  public SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub getGrpcStub() {
-  //    return grpcStub;
-  //  }
 }
