@@ -503,7 +503,7 @@ class ScionServiceTest {
   @Test
   void testDomainSearchResolver_nonScionHost() throws IOException {
     try {
-      String searchHost = "localhost"; // "google.com";
+      String searchHost = "localhost"; // "google.com"
       Name n = Name.fromString(searchHost);
       Lookup.setDefaultSearchPath(n);
       // Topology server is not SCION enabled
