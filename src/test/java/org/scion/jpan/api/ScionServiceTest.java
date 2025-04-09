@@ -110,8 +110,6 @@ class ScionServiceTest {
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
         path = client.getPaths(dstIA, dstAddress).get(0);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
       }
 
       // Expected:
@@ -144,8 +142,6 @@ class ScionServiceTest {
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
         paths = client.getPaths(dstIA, dstAddress);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
       }
 
       // Expected:
@@ -177,8 +173,6 @@ class ScionServiceTest {
       try (Scion.CloseableService client =
           Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
         paths = client.getPaths(dstIA, dstAddress);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
       }
 
       //  Paths found: 1
@@ -555,7 +549,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void testControlServiceFailure_NoCS() throws IOException {
+  void testControlServiceFailure_NoCS() {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Kill CS
@@ -576,7 +570,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void testControlServiceFailure_Backup() throws IOException {
+  void testControlServiceFailure_Backup() {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
@@ -593,7 +587,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void testControlServiceFailure_PrimaryWorksThenFails() throws IOException {
+  void testControlServiceFailure_PrimaryWorksThenFails() {
     // CS works, then fails, then works again.
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
