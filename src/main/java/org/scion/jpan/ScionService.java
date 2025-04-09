@@ -84,11 +84,7 @@ public class ScionService {
         bootstrapper = ScionBootstrapper.createViaDaemon(daemonService);
       } catch (RuntimeException e) {
         // If this fails for whatever reason we want to make sure that the channel is closed.
-        try {
-          close();
-        } catch (IOException ex) {
-          // Ignore, we just want to get out.
-        }
+        close();
         throw new ScionRuntimeException("Could not connect to daemon at: " + addressOrHost, e);
       }
     } else {
@@ -113,7 +109,7 @@ public class ScionService {
       // If this fails for whatever reason we want to make sure that the channel is closed.
       try {
         close();
-      } catch (IOException ex) {
+      } catch (Exception ex) {
         // Ignore, we just want to get out.
       }
       throw e;
@@ -202,13 +198,8 @@ public class ScionService {
   public static void closeDefault() {
     synchronized (LOCK) {
       if (defaultService != null) {
-        try {
-          defaultService.close();
-        } catch (IOException e) {
-          throw new ScionRuntimeException(e);
-        } finally {
-          defaultService = null;
-        }
+        defaultService.close();
+        defaultService = null;
       }
     }
   }
@@ -217,20 +208,16 @@ public class ScionService {
     Thread hook =
         new Thread(
             () -> {
-              try {
-                if (defaultService != null) {
-                  defaultService.shutdownHook = null;
-                  defaultService.close();
-                }
-              } catch (IOException e) {
-                // Ignore, we just want to get out.
+              if (defaultService != null) {
+                defaultService.shutdownHook = null;
+                defaultService.close();
               }
             });
     Runtime.getRuntime().addShutdownHook(hook);
     return hook;
   }
 
-  public void close() throws IOException {
+  public void close() {
     if (daemonService != null) {
       daemonService.close();
     }

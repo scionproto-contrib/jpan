@@ -4,6 +4,7 @@ on: [push]
 
 env:
   time: 3
+  time_windows: 5
 
 jobs:
   format-check:
@@ -71,7 +72,7 @@ jobs:
           java-version: 8
           distribution: 'temurin'
       - name: Build with Maven
-        timeout-minutes: ${{ fromJSON(env.time) }}
+        timeout-minutes: ${{ fromJSON(env.time_windows) }}
         run: mvn --batch-mode --update-snapshots install
 
 

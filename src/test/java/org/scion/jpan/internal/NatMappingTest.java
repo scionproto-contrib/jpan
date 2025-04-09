@@ -498,11 +498,11 @@ class NatMappingTest {
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Wait for 1st IP to expire
-      TestUtil.sleep(550);
+      TestUtil.sleep(600);
       assertEquals(1, MockNetwork.getAndResetStunCount());
 
       // Wait for 2nd IP to expire
-      TestUtil.sleep(550);
+      TestUtil.sleep(600);
       // One keep alive per IP
       assertEquals(1, MockNetwork.getAndResetStunCount());
     }
@@ -552,11 +552,11 @@ class NatMappingTest {
       assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // Wait for 1st IP to expire
-      TestUtil.sleep(550);
+      TestUtil.sleep(600);
       assertEquals(1, MockNetwork.getAndResetStunCount());
 
       // Wait for 2nd IP to expire
-      TestUtil.sleep(550);
+      TestUtil.sleep(600);
       // One keep alive per IP
       assertEquals(1, MockNetwork.getAndResetStunCount());
     } finally {

@@ -171,11 +171,7 @@ public class PingPongHelperBase {
 
   void close() {
     if (serverService != null) {
-      try {
-        serverService.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      serverService.close();
     }
     ScionService.closeDefault();
     MockNetwork.stopTiny();

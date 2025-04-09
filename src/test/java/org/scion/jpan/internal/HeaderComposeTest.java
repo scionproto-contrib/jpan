@@ -30,7 +30,7 @@ import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 
-public class HeaderComposeTest {
+class HeaderComposeTest {
 
   // Recorded before sending a packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_CLIENT_E2E_PING;
@@ -38,25 +38,21 @@ public class HeaderComposeTest {
   private Scion.CloseableService pathService = null;
 
   @BeforeAll
-  public static void beforeAll() throws IOException {
+  static void beforeAll() throws IOException {
     MockDaemon.createAndStartDefault();
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     // path service
     if (pathService != null) {
-      try {
-        pathService.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      pathService.close();
       pathService = null;
     }
   }
 
   @AfterAll
-  public static void afterAll() throws IOException {
+  static void afterAll() throws IOException {
     MockDaemon.closeDefault();
     // Defensive clean up
     ScionService.closeDefault();

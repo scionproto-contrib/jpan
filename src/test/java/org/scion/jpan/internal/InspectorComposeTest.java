@@ -42,26 +42,22 @@ class InspectorComposeTest {
   private Scion.CloseableService pathService = null;
 
   @BeforeAll
-  public static void beforeAll() throws IOException {
+  static void beforeAll() throws IOException {
     MockDaemon.createAndStartDefault();
   }
 
   @AfterAll
-  public static void afterAll() throws IOException {
+  static void afterAll() throws IOException {
     MockDaemon.closeDefault();
     // Defensive clean up
     ScionService.closeDefault();
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     // path service
     if (pathService != null) {
-      try {
-        pathService.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      pathService.close();
       pathService = null;
     }
   }
