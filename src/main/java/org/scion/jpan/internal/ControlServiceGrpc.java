@@ -16,7 +16,6 @@ package org.scion.jpan.internal;
 
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.control_plane.Seg;
@@ -40,11 +39,11 @@ public class ControlServiceGrpc {
     this.localAS = localAS;
   }
 
-  public void close() throws IOException {
+  public void close() {
     closeChannel();
   }
 
-  private void closeChannel() throws IOException {
+  private void closeChannel() {
     try {
       if (channel != null
           && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
@@ -56,16 +55,12 @@ public class ControlServiceGrpc {
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new IOException(e);
+      throw new ScionRuntimeException(e);
     }
   }
 
   private void initChannel(String csHost) {
-    try {
-      closeChannel(); // close existing channel
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
-    }
+    closeChannel(); // close existing channel
     LOG.info("Bootstrapping with control service: {}", csHost);
     // TODO InsecureChannelCredentials: Implement authentication!
     // We are using OkHttp instead of Netty for Android compatibility
@@ -81,11 +76,7 @@ public class ControlServiceGrpc {
       return grpcStub.segments(request);
     } catch (StatusRuntimeException e) {
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
-        try {
-          closeChannel();
-        } catch (IOException ex) {
-          throw new ScionRuntimeException(ex);
-        }
+        closeChannel();
         return segmentsTryAll(request);
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
@@ -100,11 +91,7 @@ public class ControlServiceGrpc {
       } catch (StatusRuntimeException e) {
         if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
           LOG.warn("Error connecting to control service: {}", node.ipString);
-          try {
-            closeChannel();
-          } catch (IOException ex) {
-            throw new ScionRuntimeException(ex);
-          }
+          closeChannel();
           continue;
         }
         // Rethrow the exception if it's not UNAVAILABLE

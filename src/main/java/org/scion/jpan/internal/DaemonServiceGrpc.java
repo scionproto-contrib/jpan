@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import com.google.protobuf.Empty;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -39,11 +38,11 @@ public class DaemonServiceGrpc {
     initChannel(addressOrHost);
   }
 
-  public void close() throws IOException {
+  public void close() {
     closeChannel();
   }
 
-  private void closeChannel() throws IOException {
+  private void closeChannel() {
     try {
       if (channel != null
           && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
@@ -52,16 +51,12 @@ public class DaemonServiceGrpc {
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new IOException(e);
+      throw new ScionRuntimeException(e);
     }
   }
 
   private void initChannel(String addressOrHost) {
-    try {
-      closeChannel(); // close existing channel
-    } catch (IOException e) {
-      throw new ScionRuntimeException(e);
-    }
+    closeChannel(); // close existing channel
     LOG.info("Bootstrapping with daemon: {}", addressOrHost);
     // TODO InsecureChannelCredentials: Implement authentication!
     // We are using OkHttp instead of Netty for Android compatibility
