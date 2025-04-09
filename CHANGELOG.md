@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- Remove close() IOException from ScionService
 - DHCP bootstrapping
 - BIG: extract testframework into separate project -> reuse by others!
 - More tests on unordered "destinations" in JSON
@@ -75,9 +76,6 @@ TODO
 - Support for multiple control servers per AS (fallback), compartmentalize GRPC usage and
   fully switch to OkHttp.
   [#179](https://github.com/scionproto-contrib/jpan/pull/179)
-TODO
-- close() IOException?
-- Remove GRPC usage from Segments
 
 ### Fixed
 - Post 0.5.0 cleanup

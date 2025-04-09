@@ -18,6 +18,7 @@ import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.slf4j.Logger;
@@ -78,6 +79,25 @@ public class ControlServiceGrpc {
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
         closeChannel();
         return segmentsTryAll(request);
+      }
+      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
+        String srcIsdAs = ScionUtil.toStringIA(request.getSrcIsdAs());
+        String dstIsdAs = ScionUtil.toStringIA(request.getDstIsdAs());
+        if (e.getMessage().contains("TRC not found")) {
+          String msg = srcIsdAs + " / " + dstIsdAs;
+          throw new ScionRuntimeException(
+              "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+        }
+        if (e.getMessage().contains("invalid request")) {
+          // AS not found
+          LOG.info(
+              "Requesting segments: {} -> {} failed (AS unreachable?): {}",
+              srcIsdAs,
+              dstIsdAs,
+              e.getMessage());
+          // Return empty result
+          return Seg.SegmentsResponse.newBuilder().build();
+        }
       }
       throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
     }

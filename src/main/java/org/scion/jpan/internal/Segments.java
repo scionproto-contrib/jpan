@@ -17,8 +17,6 @@ package org.scion.jpan.internal;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.*;
@@ -154,34 +152,14 @@ public class Segments {
     }
     Seg.SegmentsRequest request =
         Seg.SegmentsRequest.newBuilder().setSrcIsdAs(srcIsdAs).setDstIsdAs(dstIsdAs).build();
-    try {
-      long t0 = System.nanoTime();
-      Seg.SegmentsResponse response = segmentStub.segments(request);
-      long t1 = System.nanoTime();
-      LOG.info("Segment request took {} ms.", (t1 - t0) / 1_000_000);
-      if (response.getSegmentsMap().size() > 1) {
-        throw new UnsupportedOperationException();
-      }
-      return getPathSegments(response);
-    } catch (StatusRuntimeException e) {
-      if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
-        if (e.getMessage().contains("TRC not found")) {
-          String msg = ScionUtil.toStringIA(srcIsdAs) + " / " + ScionUtil.toStringIA(dstIsdAs);
-          throw new ScionRuntimeException(
-              "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
-        }
-        if (e.getMessage().contains("invalid request")) {
-          // AS not found
-          LOG.info(
-              "Requesting segments: {} {} failed (AS unreachable?): {}",
-              ScionUtil.toStringIA(srcIsdAs),
-              ScionUtil.toStringIA(dstIsdAs),
-              e.getMessage());
-          return Collections.emptyList();
-        }
-      }
-      throw new ScionRuntimeException("Error while getting Segment info: " + e.getMessage(), e);
+    long t0 = System.nanoTime();
+    Seg.SegmentsResponse response = segmentStub.segments(request);
+    long t1 = System.nanoTime();
+    LOG.info("Segment request took {} ms.", (t1 - t0) / 1_000_000);
+    if (response.getSegmentsMap().size() > 1) {
+      throw new UnsupportedOperationException();
     }
+    return getPathSegments(response);
   }
 
   private static List<PathSegment> getPathSegments(Seg.SegmentsResponse response) {
