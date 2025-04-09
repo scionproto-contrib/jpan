@@ -49,18 +49,14 @@ class ScionServiceTest {
   static void afterAll() {
     System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
     // Defensive clean up
-    System.err.println("TEST AFTER ---- 1"); // TODO
     ScionService.closeDefault();
-    System.err.println("TEST AFTER ---- 2"); // TODO
   }
 
   @BeforeEach
   void beforeEach() {
-    System.err.println("TEST BEFORE ---- 1"); // TODO
     ScionService.closeDefault();
     // reset counter
     MockDaemon.getAndResetCallCount();
-    System.err.println("TEST BEFORE ---- 2"); // TODO
   }
 
   @Test
@@ -560,66 +556,44 @@ class ScionServiceTest {
 
   @Test
   void testControlServiceFailure_NoCS() throws IOException {
-    System.err.println("TEST 1 -------------------------------------------------- 1"); // TODO
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
       // Kill CS
-      System.err.println("TEST 1 ---- 2"); // TODO
       MockNetwork.getControlServer().close();
-      Thread.sleep(1000); // TODO Wait for port to be freed up
-      System.err.println("TEST 1 ---- 3"); // TODO
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
       // First border router does not exist, but we should automatically switch to the backup.
       try (Scion.CloseableService client =
           Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
-        System.err.println("TEST 1 ---- 4"); // TODO
         Exception ex =
             assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
-        System.err.println("TEST 1 ---- 5"); // TODO
         String expected = "Error while connecting to SCION network, no control service available";
         assertEquals(expected, ex.getMessage());
       }
-      System.err.println("TEST 1 ---- 6"); // TODO
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     } finally {
-      System.err.println("TEST 1 ---- 7"); // TODO
       MockNetwork.stopTiny();
-      System.err.println("TEST 1 ---- 8"); // TODO
     }
-    System.err.println("TEST 1 ---- 9"); // TODO
   }
 
   @Test
   void testControlServiceFailure_Backup() throws IOException {
-    System.err.println("TEST 2 ----------------------------------------------------- 1"); // TODO
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
-      System.err.println("TEST 2 ---- 2"); // TODO
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
       // First border router does not exist, but we should automatically switch to the backup.
       try (Scion.CloseableService client =
           Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
-        System.err.println("TEST 2 ---- 3"); // TODO
         Path path = client.getPaths(dstIA, dstAddress).get(0);
-        System.err.println("TEST 2 ---- 4"); // TODO
         assertNotNull(path);
-        System.err.println("TEST 2 ---- 5"); // TODO
       }
-      System.err.println("TEST 2 ---- 6"); // TODO
     } finally {
-      System.err.println("TEST 2 ---- 7"); // TODO
       MockNetwork.stopTiny();
-      System.err.println("TEST 2 ---- 8"); // TODO
     }
-    System.err.println("TEST 2 ---- 9"); // TODO
   }
 
   @Test
   void testControlServiceFailure_PrimaryWorksThenFails() throws IOException {
-    System.err.println("TEST 3 ----------------------------------------------------- 1"); // TODO
     // CS works, then fails, then works again.
     try {
       MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
@@ -629,39 +603,27 @@ class ScionServiceTest {
       long dstIA112 = ScionUtil.parseIA("1-ff00:0:112");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
       // First border router does not exist, but we should automatically switch to the backup.
-      System.err.println("TEST 3 ---- 2"); // TODO
       try (Scion.CloseableService client =
           Scion.newServiceWithTopologyFile("topologies/double-border-router.json")) {
-        System.err.println("TEST 3 ---- 3"); // TODO
         Path path = client.getPaths(dstIA111, dstAddress).get(0);
-        System.err.println("TEST 3 ---- 4"); // TODO
         assertNotNull(path);
 
         // Kill CS - ask for different AS do avoid getting a cached path or similar.
         controlService.close();
-        System.err.println("TEST 3 ---- 5"); // TODO
         Exception ex =
             assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA112, dstAddress));
-        System.err.println("TEST 3 ---- 6"); // TODO
         String expected = "Error while connecting to SCION network, no control service available";
         assertEquals(expected, ex.getMessage());
 
         // Restart CS
         controlService = MockControlServer.start(csPort);
-        System.err.println("TEST 3 ---- 7"); // TODO
         Path path2 = client.getPaths(dstIA112, dstAddress).get(0);
-        System.err.println("TEST 3 ---- 8"); // TODO
         assertNotNull(path2);
       } finally {
-        System.err.println("TEST 3 ---- 9"); // TODO
         controlService.close();
-        System.err.println("TEST 3 ---- 10"); // TODO
       }
     } finally {
-      System.err.println("TEST 3 ---- 11"); // TODO
       MockNetwork.stopTiny();
-      System.err.println("TEST 3 ---- 12"); // TODO
     }
-    System.err.println("TEST 3 ---- 13"); // TODO
   }
 }

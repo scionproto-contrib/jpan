@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.control_plane.Seg;
@@ -71,10 +70,7 @@ public class ControlServiceGrpc {
     // TODO InsecureChannelCredentials: Implement authentication!
     // We are using OkHttp instead of Netty for Android compatibility
     channel = OkHttpChannelBuilder.forTarget(csHost, InsecureChannelCredentials.create()).build();
-    // channel = Grpc.newChannelBuilder(csHost, InsecureChannelCredentials.create()).build(); //
-    // TODO
     grpcStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
-    System.err.println("init - 4 " + channel);
   }
 
   public synchronized Seg.SegmentsResponse segments(Seg.SegmentsRequest request) {
@@ -100,17 +96,9 @@ public class ControlServiceGrpc {
     for (LocalTopology.ServiceNode node : localAS.getControlServices()) {
       initChannel(node.ipString);
       try {
-        System.err.println("segmentsTryAll - 1 " + channel + "           " + Instant.now());
         return grpcStub.segments(request);
       } catch (StatusRuntimeException e) {
-        System.err.println("segmentsTryAll - E " + e.getMessage() + "           " + Instant.now());
         if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
-          // TODO
-          LOG.error(
-              "UNAVAILABLE 2: {} {} {}",
-              channel.isShutdown(),
-              channel.isTerminated(),
-              channel.getState(false));
           LOG.warn("Error connecting to control service: {}", node.ipString);
           try {
             closeChannel();
@@ -121,8 +109,6 @@ public class ControlServiceGrpc {
         }
         // Rethrow the exception if it's not UNAVAILABLE
         throw e;
-      } finally {
-        System.err.println("segmentsTryAll - 2 " + channel);
       }
     }
     throw new ScionRuntimeException(
