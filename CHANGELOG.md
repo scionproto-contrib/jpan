@@ -88,6 +88,10 @@ TODO
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 - Cleanup unit tests for segments.
   [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+
+## [0.5.2] - 2025-04-11
+
+### Fixed
 - Fix problem returning intra-AS packets with SHIM present
   [#181](https://github.com/scionproto-contrib/jpan/pull/181)
   
