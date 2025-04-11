@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- Fix #174! 
 - More tests on unordered "destinations" in JSON
 - ASK to add latency/bw/geo/notes to SCIERA network!
 - DHCP bootstrapping
@@ -87,6 +88,12 @@ TODO
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 - Cleanup unit tests for segments.
   [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+
+## [0.5.2] - 2025-04-11
+
+### Fixed
+- Fix problem returning intra-AS packets with SHIM present
+  [#181](https://github.com/scionproto-contrib/jpan/pull/181)
   
 ## [0.5.1] - 2025-04-02
 
