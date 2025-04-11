@@ -477,10 +477,12 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     InetSocketAddress remoteHost = path.getFirstHopAddress();
     if (getService() != null && path.getRawPath().length == 0) {
       // For intra-AS traffic we need to send packets directly to the originating underlay address.
-      // This is necessary to work handle NAT.
+      // This is necessary to handle NAT.
       // Unfortunately this does not work if:
-      // - We received the original packet via SHIM // TODO remove this once we remove SHIM
+      // - We received the original packet via SHIM
       // - we don't have a ScionService
+      // The first-hop address may ba a SHIM, so we need to send directly to the remote address.
+      remoteHost = path.getRemoteSocketAddress();
 
       // For intra-AS traffic we also need to respect the port range and use 30041 when applicable
       // (the remote host may be running a dispatcher).
