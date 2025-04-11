@@ -87,6 +87,12 @@ TODO
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
+## [0.5.2] - 2025-04-11
+
+### Fixed
+- Fix problem returning intra-AS packets with SHIM present
+  [#181](https://github.com/scionproto-contrib/jpan/pull/181)
+
 ## [0.5.1] - 2025-04-02
 
 ### Fixed

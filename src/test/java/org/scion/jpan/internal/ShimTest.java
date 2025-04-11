@@ -260,7 +260,9 @@ class ShimTest {
 
   @Test
   void testForwardingUDP_LocalAS_remoteOutsideRange() {
-    testForwardingUDP_LocalAS(45678, 2 * 2 * 10);
+    // Packets should go through the SHIM on the way to the server but not on the
+    // way back (the client is in the exempt port range).
+    testForwardingUDP_LocalAS(45678, 2 * 10);
   }
 
   void testForwardingUDP_LocalAS(int port, int expectedShimCount) {
@@ -276,6 +278,27 @@ class ShimTest {
     pph.runPingPong(serverFn, clientFn);
     assertTrue(Shim.isInstalled());
     assertEquals(expectedShimCount, shimForwardingCounter.getAndSet(0));
+    assertEquals(0, MockNetwork.getAndResetForwardCount());
+  }
+
+  @Test
+  void testIssue181_serverDoesNotReplyToSHIM_LocalAS() {
+    // Packets should go through the SHIM on the way to the server but not on the
+    // way back (the client is in the exempt port range).
+    PingPongChannelHelper.Server serverFn = this::serverNoShim;
+    PingPongChannelHelper.Client clientFn = this::client;
+    // we are circumventing the daemon! -> checkCounters(false)
+    PingPongChannelHelper pph =
+        PingPongChannelHelper.newBuilder(1, 1, 1)
+            .checkCounters(false)
+            .serverIsdAs(MockNetwork.TINY_CLIENT_ISD_AS)
+            // USe port that will be routed through the SHIM
+            .serverBindAddress(new InetSocketAddress("127.0.0.1", 45678))
+            .build();
+    pph.runPingPong(serverFn, clientFn);
+    assertFalse(Shim.isInstalled());
+    // One packet passing going through the SHIM on the way to the server
+    assertEquals(1, shimForwardingCounter.getAndSet(0));
     assertEquals(0, MockNetwork.getAndResetForwardCount());
   }
 
@@ -319,6 +342,24 @@ class ShimTest {
     String msg = Charset.defaultCharset().decode(request).toString();
     assertTrue(msg.startsWith(PingPongChannelHelper.MSG), msg);
     assertTrue(PingPongChannelHelper.MSG.length() + 3 >= msg.length());
+
+    request.flip();
+    channel.send(request, responseAddress);
+  }
+
+  public void serverNoShim(ScionDatagramChannel channel) throws IOException {
+    ByteBuffer request = ByteBuffer.allocate(512);
+    serverBarrier.countDown();
+    ScionSocketAddress responseAddress = channel.receive(request);
+
+    request.flip();
+    String msg = Charset.defaultCharset().decode(request).toString();
+    assertTrue(msg.startsWith(PingPongChannelHelper.MSG), msg);
+    assertTrue(PingPongChannelHelper.MSG.length() + 3 >= msg.length());
+
+    // kill SHIM
+    assertTrue(Shim.isInstalled());
+    Shim.uninstall();
 
     request.flip();
     channel.send(request, responseAddress);
