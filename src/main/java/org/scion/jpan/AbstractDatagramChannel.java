@@ -22,6 +22,7 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -392,6 +393,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
       InetSocketAddress firstHopAddress = getFirstHopAddress(buffer, srcAddress);
       ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, firstHopAddress);
+      System.out.println(ScionUtil.toStringPath(path.getRawPath()));
       if (hdrType == expectedHdrType) {
         return path;
       }
@@ -409,9 +411,28 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (pathPos > 0) {
         buffer.position(pathPos);
         int segCount = PathRawParserLight.extractSegmentCount(buffer);
-        buffer.position(pathPos + 4 + segCount * 8);
-        int interfaceId1 = PathRawParserLight.extractHopFieldEgress(buffer, segCount, 0);
-        int interfaceId2 = PathRawParserLight.extractHopFieldIngress(buffer, segCount, 0);
+        int[] segLen = PathRawParserLight.getSegments(buffer);
+        int hopCount = PathRawParserLight.extractHopCount(segLen);
+        int interfaceId1 = PathRawParserLight.extractHopFieldEgress(buffer, segCount, hopCount - 1);
+        int interfaceId2 =
+            PathRawParserLight.extractHopFieldIngress(buffer, segCount, hopCount - 1);
+        System.out.println(
+            "pos= "
+                + pathPos
+                + "/ "
+                + oldPos
+                + "/"
+                + buffer.position()
+                + "  "
+                + segCount
+                + "/"
+                + interfaceId1
+                + "/"
+                + interfaceId2
+                + "   "
+                + hopCount
+                + "/"
+                + Arrays.toString(segLen));
         buffer.position(oldPos);
         int interfaceId = interfaceId2 == 0 ? interfaceId1 : interfaceId2;
         return service.getBorderRouterAddress(interfaceId);
