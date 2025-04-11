@@ -88,6 +88,8 @@ TODO
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 - Cleanup unit tests for segments.
   [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+- Fix broken extraction of BR identifier from path when creating return paths
+  [#183](https://github.com/scionproto-contrib/jpan/pull/183)
 
 ## [0.5.2] - 2025-04-11
 

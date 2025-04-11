@@ -43,9 +43,10 @@ public class PathRawParserLight {
 
   public static int extractHopCount(int[] segLen) {
     int nHops = segLen[0] + segLen[1] + segLen[2];
-    return nHops - calcSegmentCount(segLen);
+    return nHops;
   }
 
+  // TODO extrtact should be position-agnostic
   public static int extractHopFieldIngress(ByteBuffer data, int segCount, int hopID) {
     int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopID * HOP_FIELD_LEN;
     return ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 2));
