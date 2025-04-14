@@ -200,6 +200,9 @@ public abstract class AbstractSegmentsMinimalTest {
     addCore(AS_120, AS_220);
     addCore(AS_220, AS_120);
 
+    addCore(AS_120, AS_210);
+    addCore(AS_210, AS_120);
+
     addUpDown(AS_221, AS_220);
 
     addUpDown(AS_222, AS_220);

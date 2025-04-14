@@ -409,12 +409,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       // If we don't have a path (local AS) we need to use the underlay IP address.
       if (pathPos > 0) {
         buffer.position(pathPos);
-        int segCount = PathRawParserLight.extractSegmentCount(buffer);
-        buffer.position(pathPos + 4 + segCount * 8);
-        int interfaceId1 = PathRawParserLight.extractHopFieldEgress(buffer, segCount, 0);
-        int interfaceId2 = PathRawParserLight.extractHopFieldIngress(buffer, segCount, 0);
+        int hopCount = PathRawParserLight.extractHopCount(buffer);
+        int[] interfaceIds = PathRawParserLight.extractHopFieldInterfaceIDs(buffer, hopCount - 1);
         buffer.position(oldPos);
-        int interfaceId = interfaceId2 == 0 ? interfaceId1 : interfaceId2;
+        int interfaceId = interfaceIds[0] == 0 ? interfaceIds[1] : interfaceIds[0];
         return service.getBorderRouterAddress(interfaceId);
       }
     }

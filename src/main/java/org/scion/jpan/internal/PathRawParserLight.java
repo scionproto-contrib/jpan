@@ -43,7 +43,16 @@ public class PathRawParserLight {
 
   public static int extractHopCount(int[] segLen) {
     int nHops = segLen[0] + segLen[1] + segLen[2];
-    return nHops - calcSegmentCount(segLen);
+    return nHops;
+  }
+
+  public static int extractHopCount(ByteBuffer data) {
+    int i0 = data.getInt(data.position());
+    int nHops = 0;
+    nHops += readInt(i0, 14, 6);
+    nHops += readInt(i0, 20, 6);
+    nHops += readInt(i0, 26, 6);
+    return nHops;
   }
 
   public static int extractHopFieldIngress(ByteBuffer data, int segCount, int hopID) {
@@ -54,6 +63,24 @@ public class PathRawParserLight {
   public static int extractHopFieldEgress(ByteBuffer data, int segCount, int hopID) {
     int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopID * HOP_FIELD_LEN;
     return ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 4));
+  }
+
+  /**
+   * Extracts the ingress and egress interface IDs of a hop field. The buffer's position is not
+   * changed.
+   *
+   * @param data ByteBuffer with the path data. The buffer's must be at the beginning of the path
+   *     header.
+   * @param hopID The number of the hop field.
+   * @return int[]{ingress, egress}
+   */
+  public static int[] extractHopFieldInterfaceIDs(ByteBuffer data, int hopID) {
+    int segCount = extractSegmentCount(data);
+    int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopID * HOP_FIELD_LEN;
+    int[] result = new int[2];
+    result[0] = ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 2)); // ingress
+    result[1] = ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 4)); // egress
+    return result;
   }
 
   public static int extractSegmentCount(ByteBuffer data) {
