@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
 - Fix #174! 
 - More tests on unordered "destinations" in JSON
 - ASK to add latency/bw/geo/notes to SCIERA network!
@@ -88,6 +89,8 @@ TODO
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 - Cleanup unit tests for segments.
   [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+- Fix broken extraction of BR identifier from path when creating return paths
+  [#183](https://github.com/scionproto-contrib/jpan/pull/183)
 
 ## [0.5.2] - 2025-04-11
 
@@ -434,7 +437,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.2...HEAD
 [0.5.2]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/scionproto-contrib/jpan/compare/v0.4.1...v0.5.0

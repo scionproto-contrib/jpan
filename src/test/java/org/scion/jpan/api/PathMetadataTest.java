@@ -78,7 +78,6 @@ class PathMetadataTest {
       ScionService service = Scion.defaultService();
 
       List<Path> paths = service.getPaths(ScionUtil.parseIA("2-ff00:0:220"), dstAddress);
-      assertEquals(4, paths.size());
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();

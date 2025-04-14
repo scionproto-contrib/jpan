@@ -87,7 +87,8 @@ public class AsInfo {
         }
       }
     }
-    throw new ScionRuntimeException("No router found for IsdAs " + remoteIsdAs);
+    throw new ScionRuntimeException(
+        "No router found for IsdAs: " + ScionUtil.toStringIA(remoteIsdAs));
   }
 
   public long getIsdAs() {
