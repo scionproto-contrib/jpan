@@ -89,6 +89,10 @@ TODO
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 - Cleanup unit tests for segments.
   [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+  
+## [0.5.3] - 2025-04-14
+
+### Fixed
 - Fix broken extraction of BR identifier from path when creating return paths
   [#183](https://github.com/scionproto-contrib/jpan/pull/183)
 
@@ -437,7 +441,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...HEAD
+[0.5.3]: https://github.com/scionproto-contrib/jpan/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/scionproto-contrib/jpan/compare/v0.4.1...v0.5.0
