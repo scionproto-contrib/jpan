@@ -237,4 +237,6 @@ public class PathHeaderScion {
         throw new IllegalArgumentException("i=" + i);
     }
   }
+
+  public void setPath() {}
 }

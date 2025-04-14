@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
@@ -32,6 +33,7 @@ import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockNetwork2;
 
 class DatagramChannelApiServerTest {
 
@@ -196,6 +198,70 @@ class DatagramChannelApiServerTest {
   }
 
   @Test
+  void receive_correctSrc_divergentBR_longPath_112_210() throws IOException {
+    // Get raw path
+    Path path = null;
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
+      long isdAs210 = ScionUtil.parseIA("2-ff00:0:210");
+      InetSocketAddress dummy = new InetSocketAddress(InetAddress.getLocalHost(), 23456);
+      List<Path> paths = Scion.defaultService().getPaths(isdAs210, dummy);
+      path = paths.get(0);
+    }
+
+    String topoFile = "topologies/default/ASff00_0_210/topology.json";
+    // Check that the ResponsePath's first hop is looked up from the border router table,
+    // i.e. that it doesn't simply use the underlay's source address as first hop.
+    byte[] scionSrcBytes = {10, 0, 123, 123};
+    byte[] underLaySrcBytes = {192 - 256, 168 - 256, 123, 123};
+    InetSocketAddress underLaySrc =
+        new InetSocketAddress(InetAddress.getByAddress(underLaySrcBytes), 12345);
+
+    // Find border router address
+    long isdAs220 = ScionUtil.parseIA("2-ff00:0:220");
+    AsInfo as210 = JsonFileParser.parseTopologyFile(Paths.get(topoFile));
+    String brAddressString = as210.getBorderRouterAddressByIA(isdAs220);
+    InetSocketAddress brAddress = IPHelper.toInetSocketAddress(brAddressString);
+
+    // prepare packet
+    ScionPacketInspector spi = new ScionPacketInspector();
+    spi.read(ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING));
+    spi.getScionHeader().setSrcHostAddress(scionSrcBytes);
+    InetAddress scionSrcIP = spi.getScionHeader().getSrcHostAddress();
+    int scionSrcPort = spi.getOverlayHeaderUdp().getSrcPort();
+    InetSocketAddress scionSrc = new InetSocketAddress(scionSrcIP, scionSrcPort);
+
+    spi.getPathHeaderScion().read(ByteBuffer.wrap(path.getRawPath()));
+
+    MockDatagramChannel mdc = MockDatagramChannel.open();
+    mdc.setReceiveCallback(
+        buf -> {
+          spi.writePacket(buf, new byte[0]);
+          return underLaySrc;
+        });
+
+    MockNetwork.startTiny();
+    ScionService service = null;
+    try {
+      service = Scion.newServiceWithTopologyFile(topoFile);
+      try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
+        ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
+        assertEquals(brAddress, address.getPath().getFirstHopAddress());
+        assertNotEquals(scionSrc, address.getPath().getFirstHopAddress());
+        assertNotEquals(underLaySrc, address.getPath().getFirstHopAddress());
+        assertEquals(scionSrc.getAddress(), address.getAddress());
+        assertEquals(scionSrc.getPort(), address.getPort());
+      } finally {
+        ScionService.closeDefault();
+        MockNetwork.stopTiny();
+      }
+    } finally {
+      if (service != null) {
+        service.close();
+      }
+    }
+  }
+
+  @Test
   void receive_correctSrc_emptyPath() throws IOException {
     // In case of an empty path, the ResponsePath's first hop is the IP src address
     InetSocketAddress underLaySrc =
@@ -247,4 +313,55 @@ class DatagramChannelApiServerTest {
       assertEquals("This operation requires a ScionService.", e.getMessage());
     }
   }
+
+  //  @Test
+  //  void setOverrideSourceAddress_withConnect() throws IOException {
+  //    setOverrideSourceAddress(false, true);
+  //  }
+  //
+  //  void setOverrideSourceAddress(boolean bind, boolean connect) throws IOException {
+  //    assertFalse(bind && connect);
+  //    ByteBuffer buf = ByteBuffer.wrap("Hello".getBytes());
+  //    InetAddress overrideSrcIP = InetAddress.getByAddress(new byte[] {42, 42, 42, 42});
+  //    int overrideSrcPort = 4242;
+  //    InetSocketAddress overrideSrc = new InetSocketAddress(overrideSrcIP, overrideSrcPort);
+  //
+  //    try (MockDatagramChannel mock = MockDatagramChannel.open();
+  //         ScionDatagramChannel channel = ScionDatagramChannel.open(Scion.defaultService(), mock))
+  // {
+  //
+  //      // initialize local address
+  //      InetSocketAddress localAddress;
+  //      if (bind) {
+  //        localAddress = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
+  //        channel.bind(localAddress);
+  //      } else if (connect) {
+  //        channel.connect(dummyAddress);
+  //        localAddress = channel.getLocalAddress();
+  //      } else {
+  //        mock.setSendCallback((buffer, address) -> 0);
+  //        channel.send(buf, dummyAddress);
+  //        InetSocketAddress firstHop = MockNetwork.getBorderRouterAddress1();
+  //        InetAddress localIP = ExternalIpDiscovery.getExternalIP(firstHop);
+  //        localAddress = new InetSocketAddress(localIP, channel.getLocalAddress().getPort());
+  //      }
+  //
+  //      // src should be 127.0.0.1
+  //      mock.setSendCallback((buffer, address) -> checkAddress(buffer, localAddress));
+  //      channel.send(buf, dummyAddress);
+  //
+  //      // src should be overrideAddress
+  //      channel.setOverrideSourceAddress(overrideSrc);
+  //      assertEquals(overrideSrc, channel.getOverrideSourceAddress());
+  //      mock.setSendCallback((buffer, address) -> checkAddress(buffer, overrideSrc));
+  //      channel.send(buf, dummyAddress);
+  //
+  //      // src should be local address again
+  //      channel.setOverrideSourceAddress(null);
+  //      assertNull(channel.getOverrideSourceAddress());
+  //      mock.setSendCallback((buffer, address) -> checkAddress(buffer, localAddress));
+  //      channel.send(buf, dummyAddress);
+  //    }
+  //  }
+
 }
