@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
 - Fix #174! 
 - More tests on unordered "destinations" in JSON
 - ASK to add latency/bw/geo/notes to SCIERA network!
