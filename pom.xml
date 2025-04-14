@@ -4,7 +4,7 @@
 
     <groupId>org.scion</groupId>
     <artifactId>jpan</artifactId>
-    <version>0.5.3</version>
+    <version>0.5.4-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <properties>
@@ -42,7 +42,7 @@
         <connection>scm:git:git@github.com:scionproto-contrib/jpan.git</connection>
         <developerConnection>scm:git:git@github.com:scionproto-contrib/jpan.git
         </developerConnection>
-        <tag>v0.5.3</tag>
+        <tag>v0.5.2</tag>
     </scm>
 
     <distributionManagement>
