@@ -18,7 +18,7 @@ The following artifact contains the complete SCION Java implementation:
 <dependency>
     <groupId>org.scion</groupId>
     <artifactId>jpan</artifactId>
-    <version>0.5.2</version>
+    <version>0.5.3</version>
 </dependency>
 ```
 
