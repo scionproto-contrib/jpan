@@ -87,6 +87,12 @@ TODO
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
+## [0.5.3] - 2025-04-14
+
+### Fixed
+- Fix broken extraction of BR identifier from path when creating return paths
+  [#183](https://github.com/scionproto-contrib/jpan/pull/183)
+
 ## [0.5.2] - 2025-04-11
 
 ### Fixed
@@ -432,7 +438,9 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/scionproto-contrib/jpan/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/scionproto-contrib/jpan/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/scionproto-contrib/jpan/compare/v0.4.0...v0.4.1
