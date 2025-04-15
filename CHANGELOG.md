@@ -77,6 +77,8 @@ TODO
 - Support for multiple control servers per AS (fallback), compartmentalize GRPC usage and
   fully switch to OkHttp.
   [#179](https://github.com/scionproto-contrib/jpan/pull/179)
+- Added instructions for getting a path from an IP address.
+  [#184](https://github.com/scionproto-contrib/jpan/pull/184)
 
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
