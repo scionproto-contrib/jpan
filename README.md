@@ -119,7 +119,40 @@ try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
 
 Examples can be found [this repository](https://github.com/netsec-ethz/scion-java-packet-example).
 
-### Local installation
+### How to connect to a remote server with JPAN
+
+We assume that you have local SCION connectivity including access to a SCION daemon (on your 
+machine) or a control service (of your local AS). Alternatively you have a local topology running, 
+e.g. with [scionproto](https://github.com/scionproto/scion)
+/[docs](https://docs.scion.org/en/latest/dev/run.html), 
+or a[Freestanding SCION network](https://docs.scion.org/en/latest/tutorials/deploy.html)
+or [SCIONlab](https://www.scionlab.org/).
+Having connectivity through a SIG does not work.
+
+#### Scenario 1: remote IP + ISD/AS
+
+If you know the IP/port and ISD/AS, the easiest way is to get paths directly from the 
+`ScionService`: `Scion.defaultService().getPaths(ISD/AS, IP)` and then use that with 
+`connect(path)` or `send(packet, path)`.
+
+#### Scenario 2: URL/host name + DNS entry
+
+If you don't know the IP or ISD/AS, JPAN may be able to look it up via DNS. 
+However, this requires the host name to have a DNS TXT entry that maps to the  IP + ISD/AS. 
+Note that this IP may be different that the normal IP returned by a DNS lookup.
+
+To check whether a SCION DNS TXT entry exists. check the following:
+
+```
+$ dig TXT  ethz.ch | grep scion=
+ethz.ch.		130	IN	TXT	"scion=64-2:0:9,129.132.230.98"
+``` 
+
+In JPAN you can simply create an `InetSocketAddress` with your host name and use it with 
+`connect(address)` or `send(packet, address)`.
+JPAN will then internally query DNS and request and use paths to the destination.
+
+### Working with JPAN sources
 
 If you want to work on JPAN or simply browse the code locally, you can install it locally.
 
@@ -178,6 +211,9 @@ For proper testing it is recommended to use one of the following:
 - [scionproto](https://github.com/scionproto/scion), the reference implementation of SCION, comes 
   with a framework that allows defining a topology and running a local network with daemons, control 
   servers, border routers and more, see [docs](https://docs.scion.org/en/latest/dev/run.html).
+- [Freestanding SCION network](https://docs.scion.org/en/latest/tutorials/deploy.html).
+  This is a standalone network of SCION nodes that are not connected to the global SCION network. 
+  It is a good way to test your application in a real world environment.
 - [SEED](https://github.com/seed-labs/seed-emulator/tree/master/examples/scion) is a network
   emulator that can emulate SCION networks.
 - [SCIONlab](https://www.scionlab.org/) is a world wide testing framework for SCION. You can define your own AS
