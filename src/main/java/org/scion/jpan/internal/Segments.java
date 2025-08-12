@@ -127,6 +127,10 @@ public class Segments {
     // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable leaf)
     // we still should look at core segments because they may offer additional paths.
     List<PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
+    if (ScionUtil.extractIsd(srcIsdAs) != ScionUtil.extractIsd(dstIsdAs)
+        && segmentsCore.isEmpty()) {
+      return Collections.emptyList();
+    }
     if (localAS.isCoreAs()) {
       // SRC is core, we can disregard all CORE segments that don't end with SRC
       segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);

@@ -91,6 +91,8 @@ TODO
   [#177](https://github.com/scionproto-contrib/jpan/pull/177)
 - Cleanup unit tests for segments.
   [#178](https://github.com/scionproto-contrib/jpan/pull/178)
+- Report path not found if no CORE segments are available.
+  [#185](https://github.com/scionproto-contrib/jpan/pull/185)
   
 ## [0.5.3] - 2025-04-14
 
