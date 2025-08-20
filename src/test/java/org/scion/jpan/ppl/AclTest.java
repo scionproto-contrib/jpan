@@ -60,7 +60,7 @@ class AclTest {
     assertEquals("+", ACL.AclEntry.create("+ 0").string());
     // "Allow 1-2#3"
     // originally expected: "+ 1-2#3"
-    assertEquals("+ 1-0:0:2#3", ACL.AclEntry.create("+ 1-2#3").string());
+    assertEquals("+ 1-2#3", ACL.AclEntry.create("+ 1-2#3").string());
     // "Allow all short"
     assertEquals("+", ACL.AclEntry.create("+").string());
     // "Allow none"

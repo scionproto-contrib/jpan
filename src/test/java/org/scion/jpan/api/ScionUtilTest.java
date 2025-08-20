@@ -49,22 +49,22 @@ class ScionUtilTest {
 
   @Test
   void toStringIA() {
-    assertEquals("0-0:0:0", ScionUtil.toStringIA(0));
-    assertEquals("42-0:0:0", ScionUtil.toStringIA(42L << 48));
+    assertEquals("0-0", ScionUtil.toStringIA(0));
+    assertEquals("42-0", ScionUtil.toStringIA(42L << 48));
     assertEquals("0-fedc:0:0", ScionUtil.toStringIA(0xfedcL << 32));
-    assertEquals("0-0:fedc:0", ScionUtil.toStringIA(0xfedcL << 16));
-    assertEquals("0-0:0:fedc", ScionUtil.toStringIA(0xfedcL));
+    assertEquals("0-4275830784", ScionUtil.toStringIA(0xfedcL << 16));
+    assertEquals("0-65244", ScionUtil.toStringIA(0xfedcL));
     assertEquals("42-fedc:ba98:7654", ScionUtil.toStringIA(42L << 48 | 0xfedcba987654L));
     assertEquals("65000-fedc:ba98:7654", ScionUtil.toStringIA(65000L << 48 | 0xfedcba987654L));
   }
 
   @Test
   void toStringIA2() {
-    assertEquals("0-0:0:0", ScionUtil.toStringIA(0, 0));
-    assertEquals("42-0:0:0", ScionUtil.toStringIA(42, 0));
+    assertEquals("0-0", ScionUtil.toStringIA(0, 0));
+    assertEquals("42-0", ScionUtil.toStringIA(42, 0));
     assertEquals("0-fedc:0:0", ScionUtil.toStringIA(0, 0xfedcL << 32));
-    assertEquals("0-0:fedc:0", ScionUtil.toStringIA(0, 0xfedcL << 16));
-    assertEquals("0-0:0:fedc", ScionUtil.toStringIA(0, 0xfedcL));
+    assertEquals("0-4275830784", ScionUtil.toStringIA(0, 0xfedcL << 16));
+    assertEquals("0-65244", ScionUtil.toStringIA(0, 0xfedcL));
     assertEquals("42-fedc:ba98:7654", ScionUtil.toStringIA(42, 0xfedcba987654L));
     assertEquals("65000-fedc:ba98:7654", ScionUtil.toStringIA(65000, 0xfedcba987654L));
   }
