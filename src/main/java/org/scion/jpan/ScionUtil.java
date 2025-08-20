@@ -80,30 +80,26 @@ public class ScionUtil {
   }
 
   public static String toStringIA(long ia) {
-    long mask = 0xFFFFL << 48;
-    String s = "";
-    s += Long.toString((ia & mask) >>> 48, 10) + "-";
-    mask >>>= 16;
-    s += Long.toString((ia & mask) >>> 32, 16) + ":";
-    mask >>>= 16;
-    s += Long.toString((ia & mask) >>> 16, 16) + ":";
-    mask >>>= 16;
-    s += Long.toString(ia & mask, 16);
-    return s;
+    return toStringIA((int) ((ia & 0xFFFF000000000000L) >>> 48), ia & 0xFFFFFFFFFFFFL);
   }
 
   public static String toStringIA(int isd, long as) {
     checkLimits(isd, as);
-    long ia = ((long) (isd) << 48) | as;
-    long mask = 0xFFFFL << 48;
+
+    // ISD
     String s = "";
-    s += Long.toString((ia & mask) >>> 48, 10) + "-";
-    mask >>>= 16;
-    s += Long.toString((ia & mask) >>> 32, 16) + ":";
-    mask >>>= 16;
-    s += Long.toString((ia & mask) >>> 16, 16) + ":";
-    mask >>>= 16;
-    s += Long.toString(ia & mask, 16);
+    s += (isd & 0xFFFFL) + "-";
+
+    if (as <= 0xFFFFFFFFL) {
+      // Classic AS - 32bit - decimal
+      s += as;
+    } else {
+      // SCION AS - 48bit - hexadecimal
+      s += Long.toString((as & 0xFFFF00000000L) >>> 32, 16) + ":";
+      s += Long.toString((as & 0xFFFF0000L) >>> 16, 16) + ":";
+      s += Long.toString(as & 0xFFFFL, 16);
+    }
+
     return s;
   }
 
