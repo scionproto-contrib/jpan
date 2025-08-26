@@ -18,7 +18,6 @@ TODO
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
 - Fix #174! 
 - More tests on unordered "destinations" in JSON
-- ASK to add latency/bw/geo/notes to SCIERA network!
 - DHCP bootstrapping
 - BIG: extract testframework into separate project -> reuse by others!
 - JSON is not an ordered file format -> Use JSON array for ordering...
@@ -95,6 +94,8 @@ TODO
   [#185](https://github.com/scionproto-contrib/jpan/pull/185)
 - Fixed AS number formatting for 32bit ASes to decimal.
   [#186](https://github.com/scionproto-contrib/jpan/pull/186)
+- Fixed SHIM to forward only packets with local interfaces as destination.
+  [#187](https://github.com/scionproto-contrib/jpan/pull/187)
   
 ## [0.5.3] - 2025-04-14
 
