@@ -57,10 +57,7 @@ public class Shim implements AutoCloseable {
     try {
       Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
       for (NetworkInterface netint : Collections.list(nets)) {
-        Enumeration<InetAddress> inetAddresses = netint.getInetAddresses();
-        for (InetAddress inetAddress : Collections.list(inetAddresses)) {
-          addresses.add(inetAddress);
-        }
+        addresses.addAll(Collections.list(netint.getInetAddresses()));
       }
     } catch (SocketException e) {
       throw new ScionRuntimeException("Error while listing network interfaces.", e);
