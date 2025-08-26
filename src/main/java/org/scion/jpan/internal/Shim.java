@@ -15,10 +15,10 @@
 package org.scion.jpan.internal;
 
 import java.io.IOException;
-import java.net.BindException;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -44,10 +44,25 @@ public class Shim implements AutoCloseable {
   private Thread forwarder;
   private Predicate<ByteBuffer> forwardCallback = null;
   private final CountDownLatch scmpResponderBarrier = new CountDownLatch(1);
+  private final Set<InetAddress> localAddresses;
 
   private Shim(int port) {
     this.scmpResponder =
         Scmp.newResponderBuilder().setService(null).setLocalPort(port).setShim(this).build();
+    this.localAddresses = getLocalInterfaces();
+  }
+
+  private Set<InetAddress> getLocalInterfaces() {
+    Set<InetAddress> addresses = new HashSet<>();
+    try {
+      Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+      for (NetworkInterface netint : Collections.list(nets)) {
+        addresses.addAll(Collections.list(netint.getInetAddresses()));
+      }
+    } catch (SocketException e) {
+      throw new ScionRuntimeException("Error while listing network interfaces.", e);
+    }
+    return addresses;
   }
 
   /** Start the SHIM. The SHIM also provides an SCMP echo responder. */
@@ -144,6 +159,11 @@ public class Shim implements AutoCloseable {
         InetSocketAddress dst = ScionHeaderParser.extractDestinationSocketAddress(buf);
         if (dst == null) {
           log.error("SCMP error with truncated UDP header");
+          return;
+        }
+
+        if (!dst.getAddress().isLoopbackAddress() && !localAddresses.contains(dst.getAddress())) {
+          log.debug("Dropping packet with non-local address: {}", dst.getAddress());
           return;
         }
         log.info("Forwarding packet to {}", dst);
