@@ -174,6 +174,11 @@ public class MockDaemon implements AutoCloseable {
     block.release();
   }
 
+  private static void awaitBlock() {
+    block();
+    unblock();
+  }
+
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
     final List<MockBorderRouter> borderRouters;
     final AsInfo asInfo;
@@ -189,7 +194,7 @@ public class MockDaemon implements AutoCloseable {
       logger.debug(
           "Got request from client: {} / {}", req.getSourceIsdAs(), req.getDestinationIsdAs());
       callCount.incrementAndGet();
-      block(); // for testing timeouts
+      awaitBlock(); // for testing timeouts
       ByteString rawPath1 = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       ByteString rawPath11 = ByteString.copyFrom(PATH_RAW_TINY_110_112_b);
       long expirySecs = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
@@ -228,14 +233,13 @@ public class MockDaemon implements AutoCloseable {
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
-      unblock();
     }
 
     @Override
     public void aS(Daemon.ASRequest req, StreamObserver<Daemon.ASResponse> responseObserver) {
       logger.debug("Got AS request from client: {}", req.getIsdAs());
       callCount.incrementAndGet();
-      block(); // for testing timeouts
+      awaitBlock(); // for testing timeouts
       Daemon.ASResponse.Builder replyBuilder = Daemon.ASResponse.newBuilder();
       if (req.getIsdAs() == 0) { // 0 -> local AS
         replyBuilder.setCore(true);
@@ -244,14 +248,13 @@ public class MockDaemon implements AutoCloseable {
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
-      unblock();
     }
 
     @Override
     public void interfaces(
         Daemon.InterfacesRequest req, StreamObserver<Daemon.InterfacesResponse> responseObserver) {
       callCount.incrementAndGet();
-      block(); // for testing timeouts
+      awaitBlock(); // for testing timeouts
       Daemon.InterfacesResponse.Builder replyBuilder = Daemon.InterfacesResponse.newBuilder();
       for (MockBorderRouter br : borderRouters) {
         String brAddress = br.getAddress1().toString().substring(1);
@@ -262,19 +265,17 @@ public class MockDaemon implements AutoCloseable {
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
-      unblock();
     }
 
     @Override
     public void portRange(Empty req, StreamObserver<Daemon.PortRangeResponse> responseObserver) {
       callCount.incrementAndGet();
-      block(); // for testing timeouts
+      awaitBlock(); // for testing timeouts
       Daemon.PortRangeResponse.Builder replyBuilder = Daemon.PortRangeResponse.newBuilder();
       replyBuilder.setDispatchedPortStart(asInfo.getPortRange().getPortMin());
       replyBuilder.setDispatchedPortEnd(asInfo.getPortRange().getPortMax());
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
-      unblock();
     }
   }
 }
