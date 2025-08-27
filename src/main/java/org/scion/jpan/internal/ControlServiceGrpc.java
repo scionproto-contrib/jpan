@@ -17,8 +17,6 @@ package org.scion.jpan.internal;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.util.concurrent.TimeUnit;
-
-import io.grpc.stub.AbstractStub;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
@@ -33,7 +31,6 @@ public class ControlServiceGrpc {
   private final LocalTopology localAS;
   private ManagedChannel channel;
   private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub grpcStub;
-  private int deadLineMs;
 
   public static ControlServiceGrpc create(LocalTopology localAS) {
     return new ControlServiceGrpc(localAS);
@@ -41,7 +38,6 @@ public class ControlServiceGrpc {
 
   private ControlServiceGrpc(LocalTopology localAS) {
     this.localAS = localAS;
-    this.deadLineMs = Config.getControlPlaneTimeoutMs();
   }
 
   public void close() {
@@ -73,19 +69,12 @@ public class ControlServiceGrpc {
     grpcStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
   }
 
-  private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub getStub() {
-      // This is a deadline, not a timeout. It counts from the time the "with..." is called.
-      // See also https://github.com/grpc/grpc-java/issues/1495
-      // and https://github.com/grpc/grpc-java/issues/4305#issuecomment-378770067
-      return grpcStub.withDeadlineAfter(deadLineMs, TimeUnit.MILLISECONDS);
-  }
-
   public synchronized Seg.SegmentsResponse segments(Seg.SegmentsRequest request) {
     if (channel == null) {
       return segmentsTryAll(request);
     }
     try {
-      return getStub().segments(request);
+      return grpcStub.segments(request);
     } catch (StatusRuntimeException e) {
       if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
         closeChannel();
@@ -118,7 +107,7 @@ public class ControlServiceGrpc {
     for (LocalTopology.ServiceNode node : localAS.getControlServices()) {
       initChannel(node.ipString);
       try {
-        return getStub().segments(request);
+        return grpcStub.segments(request);
       } catch (StatusRuntimeException e) {
         if (e.getStatus().getCode().equals(Status.Code.UNAVAILABLE)) {
           LOG.warn("Error connecting to control service: {}", node.ipString);
@@ -126,7 +115,7 @@ public class ControlServiceGrpc {
           continue;
         }
         // Rethrow the exception if it's not UNAVAILABLE
-        throw new ScionRuntimeException("Error getting segments from control service.", e);
+        throw e;
       }
     }
     throw new ScionRuntimeException(

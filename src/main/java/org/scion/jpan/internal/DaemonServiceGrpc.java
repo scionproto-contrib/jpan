@@ -29,7 +29,6 @@ public class DaemonServiceGrpc {
 
   private ManagedChannel channel;
   private org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub grpcStub;
-  private int deadLineMs;
 
   public static DaemonServiceGrpc create(String addressOrHost) {
     return new DaemonServiceGrpc(addressOrHost);
@@ -37,7 +36,6 @@ public class DaemonServiceGrpc {
 
   private DaemonServiceGrpc(String addressOrHost) {
     initChannel(addressOrHost);
-    this.deadLineMs = Config.getControlPlaneTimeoutMs();
   }
 
   public void close() {
@@ -67,30 +65,23 @@ public class DaemonServiceGrpc {
     grpcStub = org.scion.jpan.proto.daemon.DaemonServiceGrpc.newBlockingStub(channel);
   }
 
-  private org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub getStub() {
-    // This is a deadline, not a timeout. It counts from the time the "with..." is called.
-    // See also https://github.com/grpc/grpc-java/issues/1495
-    // and https://github.com/grpc/grpc-java/issues/4305#issuecomment-378770067
-    return grpcStub.withDeadlineAfter(deadLineMs, TimeUnit.MILLISECONDS);
-  }
-
   public Daemon.ASResponse aS(Daemon.ASRequest request) {
-    return getStub().aS(request);
+    return grpcStub.aS(request);
   }
 
   public Daemon.PortRangeResponse portRange(Empty defaultInstance) {
-    return getStub().portRange(defaultInstance);
+    return grpcStub.portRange(defaultInstance);
   }
 
   public Daemon.InterfacesResponse interfaces(Daemon.InterfacesRequest request) {
-    return getStub().interfaces(request);
+    return grpcStub.interfaces(request);
   }
 
   public Daemon.PathsResponse paths(Daemon.PathsRequest request) {
-    return getStub().paths(request);
+    return grpcStub.paths(request);
   }
 
   public org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub getGrpcStub() {
-    return getStub();
+    return grpcStub;
   }
 }

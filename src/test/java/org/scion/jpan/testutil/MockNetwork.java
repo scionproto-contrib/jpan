@@ -295,10 +295,6 @@ public class MockNetwork {
     return controlServer;
   }
 
-  public static MockDaemon getDaemon() {
-    return daemon;
-  }
-
   public static void disableStun() {
     enableStun.set(false);
   }

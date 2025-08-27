@@ -83,7 +83,6 @@ public class JUnitSetUp
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
-    System.clearProperty(Constants.PROPERTY_CONTROL_PLANE_TIMEOUT_MS);
     System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_DNS_SEARCH_DOMAINS);
     System.clearProperty(Constants.PROPERTY_HOSTS_FILES);

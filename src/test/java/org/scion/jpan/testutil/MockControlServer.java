@@ -24,7 +24,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.ScionUtil;
@@ -41,7 +40,6 @@ public class MockControlServer {
   private final InetSocketAddress address;
   private Server server;
   private ControlServiceImpl controlServer;
-  private final Semaphore block = new Semaphore(1);
 
   private MockControlServer(InetSocketAddress address) {
     this.address = address;
@@ -112,23 +110,6 @@ public class MockControlServer {
     return server.getPort();
   }
 
-  public void block() {
-    try {
-      block.acquire();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public void unblock() {
-    block.release();
-  }
-
-  private void awaitBlock() {
-    block();
-    unblock();
-  }
-
   private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
 
@@ -141,7 +122,6 @@ public class MockControlServer {
       String dstIsdAsStr = ScionUtil.toStringIA(req.getDstIsdAs());
       logger.info("Segment request: {} -> {}", srcIsdAsStr, dstIsdAsStr);
       callCount.incrementAndGet();
-      awaitBlock(); // for testing timeouts
 
       if (responses.isEmpty()) {
         responseObserver.onNext(defaultResponse(req.getSrcIsdAs(), req.getDstIsdAs()));
