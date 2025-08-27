@@ -56,6 +56,7 @@ public final class Constants {
    * default is 10000 ms = 10 seconds.
    */
   public static final String ENV_CONTROL_PLANE_TIMEOUT_MS = "SCION_CONTROL_PLANE_TIMEOUT_MS";
+
   public static final double DEFAULT_CONTROL_PLANE_TIMEOUT_MS = 10_000;
 
   /** Paths are refreshed when their expiry is less than X seconds away. */

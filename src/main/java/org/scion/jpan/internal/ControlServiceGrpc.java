@@ -32,7 +32,7 @@ public class ControlServiceGrpc {
   private final LocalTopology localAS;
   private ManagedChannel channel;
   private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub grpcStub;
-  private int deadLineMs;
+  private final int deadLineMs;
 
   public static ControlServiceGrpc create(LocalTopology localAS) {
     return new ControlServiceGrpc(localAS);
@@ -73,10 +73,10 @@ public class ControlServiceGrpc {
   }
 
   private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub getStub() {
-      // This is a deadline, not a timeout. It counts from the time the "with..." is called.
-      // See also https://github.com/grpc/grpc-java/issues/1495
-      // and https://github.com/grpc/grpc-java/issues/4305#issuecomment-378770067
-      return grpcStub.withDeadlineAfter(deadLineMs, TimeUnit.MILLISECONDS);
+    // This is a deadline, not a timeout. It counts from the time the "with..." is called.
+    // See also https://github.com/grpc/grpc-java/issues/1495
+    // and https://github.com/grpc/grpc-java/issues/4305#issuecomment-378770067
+    return grpcStub.withDeadlineAfter(deadLineMs, TimeUnit.MILLISECONDS);
   }
 
   public synchronized Seg.SegmentsResponse segments(Seg.SegmentsRequest request) {

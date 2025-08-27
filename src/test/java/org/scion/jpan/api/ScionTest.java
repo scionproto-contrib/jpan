@@ -110,7 +110,6 @@ class ScionTest {
       Exception e = assertThrows(Exception.class, Scion::defaultService);
       boolean okay = false;
       while (e != null) {
-        e.printStackTrace();
         if (e.getMessage().contains("127.0.0.234")) {
           okay = true;
           break;
@@ -145,8 +144,8 @@ class ScionTest {
       ScionService service = Scion.defaultService();
       MockDaemon.block();
       try {
-         service.getPaths(dstIA, dstAddress);
-         fail();
+        service.getPaths(dstIA, dstAddress);
+        fail();
       } catch (ScionRuntimeException e) {
         assertTrue(e.getCause().getMessage().contains("DEADLINE_EXCEEDED"));
       }
