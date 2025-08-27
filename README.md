@@ -396,10 +396,11 @@ Whether a SHIM is started can be controlled with a configuration option, see bel
 
 | Option                                                                                                               | Java property                                     | Environment variable                            | Default value      |
 |----------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|-------------------------------------------------|--------------------|
-| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`                      | `SCION_PATH_EXPIRY_MARGIN`                      | 10                 |
+| Timeout for daemon / control service (milliseconds).                                                                 | `org.scion.controlPlane.timeoutMs`                | `SCION_CONTROL_PLANE_TIMEOUT_MS`                |                    |
 | Location of `hosts` file. Multiple location can be specified separated by `;`.                                       | `org.scion.hostsFiles`                            | `SCION_HOSTS_FILES`                             | `/etc/scion/hosts` |
-| Start SHIM. If not set, SHIM will be started unless the dispatcher port range is set to `all`.                       | `org.scion.shim`                                  | `SCION_SHIM`                                    |                    |
+| Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`                      | `SCION_PATH_EXPIRY_MARGIN`                      | 10                 |
 | Minimize segment requests to local AS at the cost of reduced range of path available.                                | `org.scion.resolver.experimentalMinimizeRequests` | `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` | `false`            |
+| Start SHIM. If not set, SHIM will be started unless the dispatcher port range is set to `all`.                       | `org.scion.shim`                                  | `SCION_SHIM`                                    |                    |
 
 `EXPERIMENTAL_SCION_RESOLVER_MINIMIZE_REQUESTS` is a non-standard option that requests CORE segments only 
 if noother path can be constructed. This may reduce response time when requesting new paths. It is very likely,

@@ -28,6 +28,7 @@ import java.nio.file.attribute.AclEntry;
 import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,7 +40,7 @@ import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.TestUtil;
 
-public class ScionTest {
+class ScionTest {
 
   private static final String SCION_HOST = "as110.test";
   private static final String SCION_TXT = "\"scion=1-ff00:0:110,127.0.0.1\"";
@@ -47,7 +48,7 @@ public class ScionTest {
   private static final int DEFAULT_PORT = MockDaemon.DEFAULT_PORT;
 
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
@@ -59,21 +60,21 @@ public class ScionTest {
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
     // Defensive clean up
     ScionService.closeDefault();
   }
 
   @BeforeEach
-  public void beforeEach() {
+  void beforeEach() {
     // reset counter
     MockDaemon.getAndResetCallCount();
     MockNetwork.stopTiny();
   }
 
   @AfterEach
-  public void afterEach() throws IOException {
+  void afterEach() throws IOException {
     System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
@@ -109,6 +110,7 @@ public class ScionTest {
       Exception e = assertThrows(Exception.class, Scion::defaultService);
       boolean okay = false;
       while (e != null) {
+        e.printStackTrace();
         if (e.getMessage().contains("127.0.0.234")) {
           okay = true;
           break;
@@ -119,6 +121,66 @@ public class ScionTest {
     } finally {
       Scion.closeDefault();
       MockDaemon.closeDefault();
+    }
+  }
+
+  @Test
+  void defaultService_daemon_error_timeout() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+
+    MockNetwork.startTiny(MockNetwork.Mode.DAEMON);
+    System.setProperty(Constants.PROPERTY_CONTROL_PLANE_TIMEOUT_MS, "10");
+    try {
+      MockDaemon.block();
+      try {
+        Scion.defaultService();
+      } catch (ScionRuntimeException e) {
+        assertTrue(e.getCause().getMessage().contains("DEADLINE_EXCEEDED"));
+      }
+      MockDaemon.unblock();
+
+      // try again
+      System.setProperty(Constants.PROPERTY_CONTROL_PLANE_TIMEOUT_MS, "200");
+      ScionService service = Scion.defaultService();
+      MockDaemon.block();
+      try {
+         service.getPaths(dstIA, dstAddress);
+         fail();
+      } catch (ScionRuntimeException e) {
+        assertTrue(e.getCause().getMessage().contains("DEADLINE_EXCEEDED"));
+      }
+      MockDaemon.unblock();
+    } finally {
+      Scion.closeDefault();
+      MockNetwork.stopTiny();
+      System.clearProperty(Constants.PROPERTY_CONTROL_PLANE_TIMEOUT_MS);
+    }
+  }
+
+  @Test
+  void defaultService_topoFile_error_timeout() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    System.setProperty(Constants.PROPERTY_CONTROL_PLANE_TIMEOUT_MS, "10");
+    try {
+      ScionService service = Scion.defaultService();
+
+      MockNetwork.getControlServer().block();
+      try {
+        service.getPaths(dstIA, dstAddress);
+        fail();
+      } catch (ScionRuntimeException e) {
+        assertTrue(e.getCause().getMessage().contains("DEADLINE_EXCEEDED"));
+      }
+      MockNetwork.getControlServer().unblock();
+    } finally {
+      Scion.closeDefault();
+      MockNetwork.stopTiny();
+      System.clearProperty(Constants.PROPERTY_CONTROL_PLANE_TIMEOUT_MS);
     }
   }
 
@@ -489,7 +551,7 @@ public class ScionTest {
   }
 
   @Test
-  void newServiceWithTopoFile() throws IOException {
+  void newServiceWithTopoFile() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);

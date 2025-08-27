@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.Constants;
@@ -50,6 +51,7 @@ public class MockDaemon implements AutoCloseable {
   private final List<MockBorderRouter> borderRouters;
   private final AsInfo asInfo;
   private static final AtomicInteger callCount = new AtomicInteger();
+  private static final Semaphore block = new Semaphore(1);
   private static final byte[] PATH_RAW_TINY_110_112 = {
     0, 0, 32, 0, 1, 0, 11, 16,
     101, 83, 118, -81, 0, 63, 0, 0,
@@ -160,6 +162,18 @@ public class MockDaemon implements AutoCloseable {
     return callCount.getAndSet(0);
   }
 
+  public static void block() {
+    try {
+      block.acquire();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void unblock() {
+    block.release();
+  }
+
   static class DaemonImpl extends DaemonServiceGrpc.DaemonServiceImplBase {
     final List<MockBorderRouter> borderRouters;
     final AsInfo asInfo;
@@ -175,6 +189,7 @@ public class MockDaemon implements AutoCloseable {
       logger.debug(
           "Got request from client: {} / {}", req.getSourceIsdAs(), req.getDestinationIsdAs());
       callCount.incrementAndGet();
+      block(); // for testing timeouts
       ByteString rawPath1 = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       ByteString rawPath11 = ByteString.copyFrom(PATH_RAW_TINY_110_112_b);
       long expirySecs = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
@@ -213,12 +228,14 @@ public class MockDaemon implements AutoCloseable {
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
+      unblock();
     }
 
     @Override
     public void aS(Daemon.ASRequest req, StreamObserver<Daemon.ASResponse> responseObserver) {
       logger.debug("Got AS request from client: {}", req.getIsdAs());
       callCount.incrementAndGet();
+      block(); // for testing timeouts
       Daemon.ASResponse.Builder replyBuilder = Daemon.ASResponse.newBuilder();
       if (req.getIsdAs() == 0) { // 0 -> local AS
         replyBuilder.setCore(true);
@@ -227,12 +244,14 @@ public class MockDaemon implements AutoCloseable {
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
+      unblock();
     }
 
     @Override
     public void interfaces(
         Daemon.InterfacesRequest req, StreamObserver<Daemon.InterfacesResponse> responseObserver) {
       callCount.incrementAndGet();
+      block(); // for testing timeouts
       Daemon.InterfacesResponse.Builder replyBuilder = Daemon.InterfacesResponse.newBuilder();
       for (MockBorderRouter br : borderRouters) {
         String brAddress = br.getAddress1().toString().substring(1);
@@ -243,16 +262,19 @@ public class MockDaemon implements AutoCloseable {
       }
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
+      unblock();
     }
 
     @Override
     public void portRange(Empty req, StreamObserver<Daemon.PortRangeResponse> responseObserver) {
       callCount.incrementAndGet();
+      block(); // for testing timeouts
       Daemon.PortRangeResponse.Builder replyBuilder = Daemon.PortRangeResponse.newBuilder();
       replyBuilder.setDispatchedPortStart(asInfo.getPortRange().getPortMin());
       replyBuilder.setDispatchedPortEnd(asInfo.getPortRange().getPortMax());
       responseObserver.onNext(replyBuilder.build());
       responseObserver.onCompleted();
+      unblock();
     }
   }
 }

@@ -23,6 +23,15 @@ public class Config {
 
   private Config() {}
 
+  public static int getControlPlaneTimeoutMs() {
+    double milliSeconds =
+        ScionUtil.getPropertyOrEnv(
+            PROPERTY_CONTROL_PLANE_TIMEOUT_MS,
+            ENV_CONTROL_PLANE_TIMEOUT_MS,
+            DEFAULT_CONTROL_PLANE_TIMEOUT_MS);
+    return (int) (milliSeconds);
+  }
+
   public static String getNat() {
     return ScionUtil.getPropertyOrEnv(PROPERTY_NAT, ENV_NAT, DEFAULT_NAT).toUpperCase();
   }
