@@ -45,6 +45,20 @@ public final class Constants {
   /** path/file name for topology file. */
   public static final String ENV_BOOTSTRAP_TOPO_FILE = "SCION_BOOTSTRAP_TOPO_FILE";
 
+  /**
+   * Timeout for calls to control plane services, such as the path service, in milliseconds. The
+   * default is 10000 ms = 10 seconds.
+   */
+  public static final String PROPERTY_CONTROL_PLANE_TIMEOUT_MS = "org.scion.controlPlane.timeoutMs";
+
+  /**
+   * Timeout for calls to control plane services, such as the path service, in milliseconds. The
+   * default is 10000 ms = 10 seconds.
+   */
+  public static final String ENV_CONTROL_PLANE_TIMEOUT_MS = "SCION_CONTROL_PLANE_TIMEOUT_MS";
+
+  public static final double DEFAULT_CONTROL_PLANE_TIMEOUT_MS = 10_000;
+
   /** Paths are refreshed when their expiry is less than X seconds away. */
   public static final String PROPERTY_PATH_EXPIRY_MARGIN = "org.scion.pathExpiryMargin";
 

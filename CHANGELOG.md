@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 TODO
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
-- Fix #174! 
 - More tests on unordered "destinations" in JSON
 - DHCP bootstrapping
 - BIG: extract testframework into separate project -> reuse by others!
@@ -96,6 +95,8 @@ TODO
   [#186](https://github.com/scionproto-contrib/jpan/pull/186)
 - Fixed SHIM to forward only packets with local interfaces as destination.
   [#187](https://github.com/scionproto-contrib/jpan/pull/187)
+- Added timeout for connections to control service and daemon.
+  [#174](https://github.com/scionproto-contrib/jpan/issues/174)
   
 ## [0.5.3] - 2025-04-14
 
