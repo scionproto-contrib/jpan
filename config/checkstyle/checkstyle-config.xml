@@ -25,4 +25,7 @@
         <property name="fileExtensions" value="java"/>
         <property name="ignoreLines" value="1"/>
     </module>
+    <module name="SuppressionFilter">
+        <property name="file" value="${base_dir}/config/checkstyle/suppressions.xml" />
+    </module>
 </module>
