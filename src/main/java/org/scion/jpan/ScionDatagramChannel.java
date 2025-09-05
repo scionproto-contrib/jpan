@@ -269,6 +269,10 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @return a new Path if the path was updated, otherwise `null`.
    */
   private RequestPath refreshPath(RequestPath path, PathPolicyHandler.RefreshPolicy refreshPolicy) {
+    if (true) {
+      return (RequestPath) policyHandler.getCurrent(refreshPolicy, getCfgExpirationSafetyMargin());
+    }
+
     int expiryMargin = getCfgExpirationSafetyMargin();
     if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
       return null;
