@@ -104,50 +104,6 @@
             <version>1.75.0.1.20240318173947.41a3ba29dc4e</version>
         </dependency>
 
-<!--        TODO lite -->
-<!--        <dependency>-->
-<!--            <groupId>build.buf.gen</groupId>-->
-<!--            <artifactId>connectrpc_conformance_grpc_java_lite</artifactId>-->
-<!--            <version>1.75.0.1.20240318173947.41a3ba29dc4e</version>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>com.google.protobuf</groupId>-->
-<!--            <artifactId>protobuf-javalite</artifactId>-->
-<!--            <version>${scion.protobuf.version}</version>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>com.google.protobuf</groupId>-->
-<!--            <artifactId>protobuf-java-util</artifactId>-->
-<!--            <version>${scion.protobuf.version}</version>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>com.google.protobuf</groupId>-->
-<!--            <artifactId>protoc</artifactId>-->
-<!--            <version>${scion.protobuf.version}</version>-->
-<!--            <type>pom</type>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>io.grpc</groupId>-->
-<!--            <artifactId>grpc-all</artifactId>-->
-<!--            <version>${scion.io-grpc.version}</version>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>io.grpc</groupId>-->
-<!--            <artifactId>grpc-protobuf</artifactId>-->
-<!--            <version>${scion.io-grpc.version}</version>-->
-<!--        </dependency>-->
-
-<!--        <dependency>-->
-<!--            <groupId>io.grpc</groupId>-->
-<!--            <artifactId>grpc-stub</artifactId>-->
-<!--            <version>${scion.io-grpc.version}</version>-->
-<!--        </dependency>-->
-
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>

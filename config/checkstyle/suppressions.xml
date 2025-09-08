@@ -5,7 +5,6 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
 
 <suppressions>
-    <suppress checks=".*" files="com[\\/]google[\\/]protobuf[\\/]"/>
 <!--    <suppress checks="JavadocStyleCheck"-->
 <!--              files="GeneratedObject.java"-->
 <!--              lines="50-9999"/>-->
