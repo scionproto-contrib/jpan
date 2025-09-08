@@ -160,12 +160,6 @@ public final class Constants {
   public static final int DEFAULT_NAT_STUN_TIMEOUT_MS = 10;
 
   /**
-   * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
-   * entries: server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
-   */
-  static final String DEBUG_PROPERTY_MOCK_DNS_TXT = "DEBUG_SCION_MOCK_DNS_TXT";
-
-  /**
    * Non-public property that allows ignoring all environment variables. This is useful for running
    * the tests on a host with a SCION installation.
    */

@@ -35,6 +35,9 @@ TODO
 - Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise 
 - TC: ask about port field in SCMP? Or must it be sent from 30041?
 
+- STUN: Always listen for STUN packets (e.g. eternally blocking receive()) 
+  in order to support on-demand STUN (Already DONE?)
+
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
  
@@ -77,6 +80,8 @@ TODO
   [#179](https://github.com/scionproto-contrib/jpan/pull/179)
 - Added instructions for getting a path from an IP address.
   [#184](https://github.com/scionproto-contrib/jpan/pull/184)
+- Improve support for dynamic path policies
+  [#171](https://github.com/scionproto-contrib/jpan/pull/171)
 
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
