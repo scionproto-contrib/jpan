@@ -9,7 +9,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <scion.io-grpc.version>1.71.0</scion.io-grpc.version>
+        <scion.io-grpc.version>1.75.0</scion.io-grpc.version>
         <scion.protobuf.version>4.28.2</scion.protobuf.version>
         <scion.fmt-maven.version>2.23</scion.fmt-maven.version>
         <scion.maven-enforcer-plugin.version>3.5.0</scion.maven-enforcer-plugin.version>
@@ -61,6 +61,20 @@
         <url>https://github.com/scionproto-contrib/jpan/issues</url>
     </issueManagement>
 
+    <repositories>
+        <repository>
+            <name>Buf Maven Repository</name>
+            <id>buf</id>
+            <url>https://buf.build/gen/maven</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <!-- mvn versions:display-dependency-updates -->
     <dependencies>
         <dependency>
@@ -85,34 +99,15 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>${scion.protobuf.version}</version>
+            <groupId>build.buf.gen</groupId>
+            <artifactId>connectrpc_conformance_grpc_java</artifactId>
+            <version>1.75.0.1.20240318173947.41a3ba29dc4e</version>
         </dependency>
 
         <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java-util</artifactId>
-            <version>${scion.protobuf.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protoc</artifactId>
-            <version>${scion.protobuf.version}</version>
-            <type>pom</type>
-        </dependency>
-
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-protobuf</artifactId>
-            <version>${scion.io-grpc.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-stub</artifactId>
-            <version>${scion.io-grpc.version}</version>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.13.1</version>
         </dependency>
 
         <dependency>
