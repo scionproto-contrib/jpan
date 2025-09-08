@@ -81,6 +81,8 @@ TODO
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
   [#180](https://github.com/scionproto-contrib/jpan/pull/180)
+- Changed protoc compiler to ConnectRPC buf.
+  [#189](https://github.com/scionproto-contrib/jpan/pull/189)
 
 ### Fixed
 - Post 0.5.0 cleanup
