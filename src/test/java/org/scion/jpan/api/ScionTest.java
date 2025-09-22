@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
@@ -491,7 +492,9 @@ class ScionTest {
         FileChannel channel = raf.getChannel()) {
       assertNotNull(channel.lock());
       // Attempt opening the file -> should fail
-      Scion.defaultService();
+      // Normally that happens in ScionService.defaultService() but this has been called already
+      // in other tests.
+      AddressLookupService.refresh();
       fail("This should cause an IOException because the file is locked");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("locked"), e.getMessage());
