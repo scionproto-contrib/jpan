@@ -48,7 +48,7 @@ jobs:
     strategy:
       matrix:
         # run different builds with the listed java versions
-        java: [ 8, 11, 17, 21 ]
+        java: [ 8, 11, 17, 21, 25 ]
     name: "build-ubuntu Java ${{ matrix.java }}"
     steps:
       - uses: actions/checkout@v4
