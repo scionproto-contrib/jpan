@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan;
+package org.scion.jpan.internal;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.ScionUtil;
 
 /**
  * ScionAddress is an InetAddress + ISD/AS information.
  *
  * <p>This class is threadsafe.
  */
-class ScionAddress {
+public class ScionAddress {
   private final long isdAs;
   private final InetAddress ipAddress;
 
@@ -31,7 +33,7 @@ class ScionAddress {
     this.isdAs = isdAs;
   }
 
-  static ScionAddress create(long isdAs, InetAddress address) {
+  public static ScionAddress create(long isdAs, InetAddress address) {
     return new ScionAddress(isdAs, address);
   }
 

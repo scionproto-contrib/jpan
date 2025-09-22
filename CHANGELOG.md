@@ -35,6 +35,9 @@ TODO
 - Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise 
 - TC: ask about port field in SCMP? Or must it be sent from 30041?
 
+- STUN: Always listen for STUN packets (e.g. eternally blocking receive()) 
+  in order to support on-demand STUN (Already DONE?)
+
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
  
@@ -83,6 +86,8 @@ TODO
   [#180](https://github.com/scionproto-contrib/jpan/pull/180)
 - Changed protoc compiler to ConnectRPC buf.
   [#189](https://github.com/scionproto-contrib/jpan/pull/189)
+- Clean-up: Made `ScionAddress` package private and move host file parsing to separate class.
+  [#190](https://github.com/scionproto-contrib/jpan/pull/190)
 
 ### Fixed
 - Post 0.5.0 cleanup

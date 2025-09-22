@@ -47,11 +47,7 @@ public class ScionService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScionService.class.getName());
 
-  private static final String DNS_TXT_KEY = "scion";
   private static final Object LOCK = new Object();
-  private static final String ERR_INVALID_TXT = "Invalid TXT entry: ";
-  private static final String ERR_INVALID_TXT_LOG = ERR_INVALID_TXT + "{}";
-  private static final String ERR_INVALID_TXT_LOG2 = ERR_INVALID_TXT + "{} {}";
   private static ScionService defaultService = null;
 
   private final ScionBootstrapper bootstrapper;
@@ -60,8 +56,6 @@ public class ScionService {
 
   private final boolean minimizeRequests;
   private Thread shutdownHook;
-  private final HostsFileParser hostsFile = new HostsFileParser();
-  private final SimpleCache<String, ScionAddress> scionAddressCache = new SimpleCache<>(100);
 
   protected enum Mode {
     DAEMON,
@@ -345,7 +339,7 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public List<Path> lookupPaths(String hostName, int port) throws ScionException {
-    return getPaths(lookupAddress(hostName), port);
+    return getPaths(AddressLookupService.lookupAddress(hostName, getLocalIsdAs()), port);
   }
 
   /**
@@ -356,7 +350,9 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public List<Path> lookupPaths(InetSocketAddress dstAddr) throws ScionException {
-    return getPaths(lookupAddress(dstAddr.getHostString()), dstAddr.getPort());
+    return getPaths(
+        AddressLookupService.lookupAddress(dstAddr.getHostString(), getLocalIsdAs()),
+        dstAddr.getPort());
   }
 
   /**
@@ -386,155 +382,7 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public long getIsdAs(String hostName) throws ScionException {
-    ScionAddress scionAddress = scionAddressCache.get(hostName);
-    if (scionAddress != null) {
-      return scionAddress.getIsdAs();
-    }
-
-    // Look for TXT in application properties
-    String txtFromProperties = findTxtRecordInProperties(hostName);
-    if (txtFromProperties != null) {
-      Long result = parseTxtRecordToIA(txtFromProperties);
-      if (result != null) {
-        return result;
-      }
-      throw new ScionException(ERR_INVALID_TXT + txtFromProperties);
-    }
-
-    // Check /etc/scion/hosts
-    HostsFileParser.HostEntry entry = hostsFile.find(hostName);
-    if (entry != null) {
-      return entry.getIsdAs();
-    }
-
-    // Use local ISD/AS for localhost addresses
-    if (IPHelper.isLocalhost(hostName)) {
-      return getLocalIsdAs();
-    }
-
-    // DNS lookup
-    Long fromDNS = DNSHelper.queryTXT(hostName, DNS_TXT_KEY, this::parseTxtRecordToIA);
-    if (fromDNS != null) {
-      return fromDNS;
-    }
-
-    throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
-  }
-
-  /**
-   * Uses DNS and hostfiles to look up a SCION enabled IP address for a give host string.
-   *
-   * @param hostName hostName of the host to resolve
-   * @return A ScionAddress
-   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
-   */
-  private ScionAddress lookupAddress(String hostName) throws ScionException {
-    ScionAddress scionAddress = scionAddressCache.get(hostName);
-    if (scionAddress != null) {
-      return scionAddress;
-    }
-
-    // Look for TXT in application properties
-    String txtFromProperties = findTxtRecordInProperties(hostName);
-    if (txtFromProperties != null) {
-      ScionAddress address = parseTxtRecord(txtFromProperties, hostName);
-      if (address == null) {
-        throw new ScionException(ERR_INVALID_TXT + txtFromProperties);
-      }
-      return address;
-    }
-
-    // Check /etc/scion/hosts
-    HostsFileParser.HostEntry entry = hostsFile.find(hostName);
-    if (entry != null) {
-      return ScionAddress.create(entry.getIsdAs(), entry.getAddress());
-    }
-
-    // Use local ISD/AS for localhost addresses
-    byte[] localBytes = IPHelper.lookupLocalhost(hostName);
-    if (localBytes != null) {
-      return ScionAddress.create(getLocalIsdAs(), hostName, localBytes);
-    }
-
-    // DNS lookup
-    ScionAddress fromDNS =
-        DNSHelper.queryTXT(hostName, DNS_TXT_KEY, x -> parseTxtRecord(x, hostName));
-    if (fromDNS != null) {
-      return addToCache(fromDNS);
-    }
-
-    throw new ScionException("No DNS TXT entry \"scion\" found for host: " + hostName);
-  }
-
-  private ScionAddress addToCache(ScionAddress address) {
-    scionAddressCache.put(address.getHostName(), address);
-    scionAddressCache.put(address.getInetAddress().getHostAddress(), address);
-    return address;
-  }
-
-  private String findTxtRecordInProperties(String hostName) throws ScionException {
-    String props = System.getProperty(Constants.DEBUG_PROPERTY_MOCK_DNS_TXT);
-    if (props == null) {
-      return null;
-    }
-    int posHost = props.indexOf(hostName);
-    char nextChar = props.charAt(posHost + hostName.length());
-    char prevChar = posHost <= 0 ? ';' : props.charAt(posHost - 1);
-    if (posHost >= 0
-        && (nextChar == '=' || nextChar == '"')
-        && (prevChar == ';' || prevChar == ',')) {
-      int posStart;
-      int posEnd;
-      if (prevChar == ',') {
-        // This is an IP match, not a host match
-        posStart = props.substring(0, posHost).lastIndexOf("=\"");
-        posEnd = props.indexOf(';', posHost);
-      } else {
-        // normal case: hostname match
-        posStart = props.indexOf('=', posHost + 1);
-        posEnd = props.indexOf(';', posStart + 1);
-      }
-
-      String txtRecord;
-      if (posEnd > 0) {
-        txtRecord = props.substring(posStart + 1, posEnd);
-      } else {
-        txtRecord = props.substring(posStart + 1);
-      }
-      if (!txtRecord.startsWith("\"" + DNS_TXT_KEY + "=") || !txtRecord.endsWith("\"")) {
-        throw new ScionException(ERR_INVALID_TXT + txtRecord);
-      }
-      // No more checking here, we assume that properties are save
-      return txtRecord.substring(DNS_TXT_KEY.length() + 2, txtRecord.length() - 1);
-    }
-    return null;
-  }
-
-  private ScionAddress parseTxtRecord(String txtEntry, String hostName) {
-    // dnsEntry example: "scion=64-2:0:9,129.x.x.x"
-    int posComma = txtEntry.indexOf(',');
-    if (posComma < 0) {
-      LOG.info(ERR_INVALID_TXT_LOG, txtEntry);
-      return null;
-    }
-    try {
-      long isdAs = ScionUtil.parseIA(txtEntry.substring(0, posComma));
-      byte[] bytes = IPHelper.toByteArray(txtEntry.substring(posComma + 1));
-      return ScionAddress.create(isdAs, hostName, bytes);
-    } catch (IllegalArgumentException e) {
-      LOG.info(ERR_INVALID_TXT_LOG2, txtEntry, e.getMessage());
-      return null;
-    }
-  }
-
-  private Long parseTxtRecordToIA(String txtEntry) {
-    // dnsEntry example: "scion=64-2:0:9,129.x.x.x"
-    int posComma = txtEntry.indexOf(',');
-    if (posComma < 0) {
-      LOG.info(ERR_INVALID_TXT_LOG, txtEntry);
-      return null;
-    }
-    return ScionUtil.parseIA(txtEntry.substring(0, posComma));
+    return AddressLookupService.getIsdAs(hostName, getLocalIsdAs());
   }
 
   // Do not expose protobuf types on API!
