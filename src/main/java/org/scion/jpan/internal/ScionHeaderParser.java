@@ -302,7 +302,7 @@ public class ScionHeaderParser {
     }
 
     int pathType = ByteUtil.toUnsigned(data.get(8));
-    if (pathType == InternalConstants.PathTypes.Empty.code()) {
+    if (pathType == InternalConstants.PathTypes.EMPTY.code()) {
       return -1;
     }
 
@@ -461,7 +461,7 @@ public class ScionHeaderParser {
     i0 = ByteUtil.writeInt(i0, 4, 8, trafficClass); // TrafficClass = 0
     i0 = ByteUtil.writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
-    i1 = ByteUtil.writeInt(i1, 0, 8, hdrType.code); // NextHdr = 17 is for UDP OverlayHeader
+    i1 = ByteUtil.writeInt(i1, 0, 8, hdrType.code()); // NextHdr = 17 is for UDP OverlayHeader
     int newHdrLen = (calcLen(pathHeaderLength, sl, dl) - 1) / 4 + 1;
     i1 = ByteUtil.writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
     i1 = ByteUtil.writeInt(i1, 16, 16, userPacketLength); // PayloadLen (+ overlay!)

@@ -29,17 +29,15 @@ import org.scion.jpan.ScionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HostsFileParser {
+class HostsFileParser {
 
   private static final Logger LOG = LoggerFactory.getLogger(HostsFileParser.class);
   private static final String PATH_LINUX = "/etc/scion/hosts;/etc/hosts";
-  private final String propHostsFiles =
-      ScionUtil.getPropertyOrEnv(Constants.PROPERTY_HOSTS_FILES, Constants.ENV_HOSTS_FILES);
 
   // We use hostName/addressString as key.
   private final Map<String, HostEntry> entries = new HashMap<>();
 
-  public static class HostEntry {
+  static class HostEntry {
     private final long isdAs;
     private final InetAddress address;
 
@@ -57,11 +55,16 @@ public class HostsFileParser {
     }
   }
 
-  public HostsFileParser() {
-    init();
+  HostsFileParser() {
+    init(ScionUtil.getPropertyOrEnv(Constants.PROPERTY_HOSTS_FILES, Constants.ENV_HOSTS_FILES));
   }
 
-  private void init() {
+  void refresh() {
+    entries.clear();
+    init(ScionUtil.getPropertyOrEnv(Constants.PROPERTY_HOSTS_FILES, Constants.ENV_HOSTS_FILES));
+  }
+
+  private void init(String propHostsFiles) {
     String hostsFiles;
     String os = System.getProperty("os.name");
     if (propHostsFiles != null && !propHostsFiles.isEmpty()) {
@@ -81,7 +84,7 @@ public class HostsFileParser {
         return;
       }
       try (Stream<String> lines = Files.lines(path)) {
-        lines.forEach((line) -> parseLine(line, path));
+        lines.forEach(line -> parseLine(line, path));
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }

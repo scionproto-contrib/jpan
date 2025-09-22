@@ -58,4 +58,9 @@ public class Config {
         Constants.ENV_NAT_STUN_TIMEOUT_MS,
         Constants.DEFAULT_NAT_STUN_TIMEOUT_MS);
   }
+
+  public static int getPathExpiryMarginSeconds() {
+    return ScionUtil.getPropertyOrEnv(
+        PROPERTY_PATH_EXPIRY_MARGIN, ENV_PATH_EXPIRY_MARGIN, DEFAULT_PATH_EXPIRY_MARGIN);
+  }
 }

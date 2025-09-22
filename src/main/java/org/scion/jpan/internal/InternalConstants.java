@@ -16,6 +16,12 @@ package org.scion.jpan.internal;
 
 public interface InternalConstants {
 
+  /**
+   * Non-public property that allows specifying DNS TXT entries for debugging. Example with two
+   * entries: server1.com="scion=1-ff00:0:110,127.0.0.1";server2.ch="scion=1-ff00:0:112,::1"
+   */
+  static final String DEBUG_PROPERTY_MOCK_DNS_TXT = "DEBUG_SCION_MOCK_DNS_TXT";
+
   interface ParseEnum {
 
     int code();
@@ -33,13 +39,13 @@ public interface InternalConstants {
   }
 
   enum PathTypes implements ParseEnum {
-    Empty(0),
+    EMPTY(0),
     SCION(1),
-    OneHop(2),
+    ONE_HOP(2),
     EPIC(3),
     COLIBRI(4);
 
-    public final int code;
+    private final int code;
 
     PathTypes(int code) {
       this.code = code;
@@ -57,11 +63,11 @@ public interface InternalConstants {
 
   // -- This is a combination of address type and length
   enum AddrTypes implements ParseEnum {
-    IPv4(0x0), //   [0x0] = "IPv4", -- 0000
+    IPV4(0x0), //   [0x0] = "IPv4", -- 0000
     SVC(0x4), // [0x4] = "SVC",  -- 0100
-    IPv6(0x3); // [0x3] = "IPv6", -- 0011
+    IPV6(0x3); // [0x3] = "IPv6", -- 0011
 
-    public final int code;
+    private final int code;
 
     AddrTypes(int code) {
       this.code = code;
@@ -84,7 +90,7 @@ public interface InternalConstants {
     SCMP(202),
     BFD(203);
 
-    public final int code;
+    private final int code;
 
     HdrTypes(int code) {
       this.code = code;

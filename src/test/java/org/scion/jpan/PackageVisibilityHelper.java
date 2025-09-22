@@ -33,7 +33,8 @@ import org.scion.jpan.testutil.MockNetwork;
  */
 public class PackageVisibilityHelper {
 
-  public static final String DEBUG_PROPERTY_DNS_MOCK = Constants.DEBUG_PROPERTY_MOCK_DNS_TXT;
+  public static final String DEBUG_PROPERTY_DNS_MOCK =
+      InternalConstants.DEBUG_PROPERTY_MOCK_DNS_TXT;
 
   public static void setIgnoreEnvironment(boolean flag) {
     Constants.debugIgnoreEnvironment = flag;

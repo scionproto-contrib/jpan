@@ -24,7 +24,7 @@ public class ScmpParser {
 
   public static void buildExtensionHeader(ByteBuffer buffer, InternalConstants.HdrTypes nextHdr) {
     int len = 8;
-    buffer.put(ByteUtil.toByte(nextHdr.code));
+    buffer.put(ByteUtil.toByte(nextHdr.code()));
     buffer.put(ByteUtil.toByte(((len + 3) / 4) - 1));
     buffer.putShort((short) 0); // TODO this should be variable length!
     buffer.putInt(0);

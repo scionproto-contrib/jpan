@@ -27,6 +27,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.DNSHelper;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
@@ -426,6 +427,7 @@ class ScionServiceTest {
     assertTrue(containsTabs(file)); // Check that tabs didn't get removed by autoformatting
     System.setProperty(Constants.PROPERTY_HOSTS_FILES, file.toString());
     MockDaemon.createAndStartDefault();
+    AddressLookupService.refresh(); // refresh default hosts file with new hosts file
     try {
       ScionService service = Scion.defaultService();
       // line 1

@@ -46,11 +46,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private boolean cfgReportFailedValidation = false;
   private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private final ScionService service;
-  private int cfgExpirationSafetyMargin =
-      ScionUtil.getPropertyOrEnv(
-          Constants.PROPERTY_PATH_EXPIRY_MARGIN,
-          Constants.ENV_PATH_EXPIRY_MARGIN,
-          Constants.DEFAULT_PATH_EXPIRY_MARGIN);
+  private int cfgExpirationSafetyMargin = Config.getPathExpiryMarginSeconds();
   private int cfgTrafficClass;
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
