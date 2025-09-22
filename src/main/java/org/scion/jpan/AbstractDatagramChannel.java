@@ -14,6 +14,7 @@
 
 package org.scion.jpan;
 
+import java.awt.*;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
+
+import static org.scion.jpan.internal.PathPolicyHandler.*;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
@@ -51,6 +54,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
+  private final PathPolicyHandler policyHandler;
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel) {
@@ -58,6 +62,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
+    this.policyHandler = PathPolicyHandler.create(service, pathPolicy, RefreshPolicy.POLICY);
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -76,6 +81,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       return this.pathPolicy;
     }
+  }
+
+  protected PathPolicyHandler getPolicyHandler() {
+    return this.policyHandler;
   }
 
   /**
@@ -218,6 +227,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       connectionPath = null;
       natMapping = null;
+      policyHandler.disconnect();
     }
   }
 
@@ -338,6 +348,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
+      getPolicyHandler().connect(path);
       updateConnection((RequestPath) path, false);
       return (C) this;
     }

@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.WeakHashMap;
 import org.scion.jpan.internal.ByteUtil;
 import org.scion.jpan.internal.InternalConstants;
-import org.scion.jpan.internal.PathPolicyHandler;
 import org.scion.jpan.internal.ScionHeaderParser;
 
 import static org.scion.jpan.internal.PathPolicyHandler.*;
@@ -39,12 +38,10 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       new WeakHashMap<>();
   // Store a refreshed paths for every path
   private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
-  private final PathPolicyHandler policyHandler;
 
   protected ScionDatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
       throws IOException {
     super(service, channel);
-    this.policyHandler = PathPolicyHandler.with(service, super.getPathPolicy());
   }
 
   /**
@@ -266,8 +263,8 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @return a new Path if the path was updated, otherwise `null`.
    */
   private RequestPath refreshPath(RequestPath path, RefreshPolicy refreshPolicy) {
-    if (true) {
-      return (RequestPath) policyHandler.getCurrent(refreshPolicy, getCfgExpirationSafetyMargin());
+    if (isConnected()) {
+      return (RequestPath) getPolicyHandler().getCurrent(refreshPolicy, getCfgExpirationSafetyMargin());
     }
 
     int expiryMargin = getCfgExpirationSafetyMargin();
