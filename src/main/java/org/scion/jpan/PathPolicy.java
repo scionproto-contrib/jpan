@@ -128,11 +128,4 @@ public interface PathPolicy {
    * @throws NoSuchElementException if no matching path could be found.
    */
   List<Path> filter(List<Path> paths);
-
-  /**
-   * @return true if the policy has new paths to offer.
-   */
-  default boolean hasNew() {
-    return false;
-  }
 }
