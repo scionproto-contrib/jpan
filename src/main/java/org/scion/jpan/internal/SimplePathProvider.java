@@ -36,6 +36,7 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
   private static final Logger LOG = LoggerFactory.getLogger(SimplePathProvider.class.getName());
   private static final Timer timer = new Timer(true);
 
+  private final TimerTask timerTask;
   private final ScionService service;
   private final long dstIsdAs;
   private final InetSocketAddress dstAddress;
@@ -117,12 +118,14 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
       unusedPaths.put(rank, new Entry(p, rank));
     }
 
-    timer.scheduleAtFixedRate(new TimerTask() {
+    this.timerTask = new TimerTask() {
       @Override
       public void run() {
         refreshAllPaths();
       }
-    }, 10_000, 10_000);
+    };
+
+    timer.scheduleAtFixedRate(timerTask, 10_000, 10_000);
   }
 
   // Synchronized because it is called by timer
@@ -237,6 +240,10 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
     Entry e = usedPaths.remove(key);
     unusedPaths.put(e.rank, e);
     callbacks.remove(key);
+  }
+
+  public void cancel() {
+    timerTask.cancel();
   }
 
   public static class Builder {
