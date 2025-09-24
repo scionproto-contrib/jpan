@@ -17,8 +17,7 @@ package org.scion.jpan.internal;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Predicate;
-import java.util.function.ToDoubleFunction;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.scion.jpan.Path;
 import org.scion.jpan.PathMetadata;
@@ -29,26 +28,31 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The SimplePathProvider simply provides the next best path.
+ * Lifecycle:
+ * 1) create PathProvidwr
+ * 2) register callbacks
+ * 3) connect to destination
+ * 4) disconnectVielleicht
  * @param <K>
  */
 public class SimplePathProvider<K> implements PathProvider2<K> {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimplePathProvider.class.getName());
   private static final Timer timer = new Timer(true);
+  private static final ScheduledThreadPoolExecutor timer2 = new ScheduledThreadPoolExecutor(1);
 
-  private final TimerTask timerTask;
+  private TimerTask timerTask;
   private final ScionService service;
-  private final long dstIsdAs;
-  private final InetSocketAddress dstAddress;
-  private PathPolicy policy;
-  // Ranking function: lower is better. Default: hop count (== latency count)
-  private final ToDoubleFunction<Path> rankingFn = p -> (double) p.getMetadata().getLatencyList().size();
-  private final Predicate<Path> filterFn = (p) -> true;
+  private long dstIsdAs;
+  private InetSocketAddress dstAddress;
+  private PathPolicy pathPolicy;
 
   private final Map<K, PathUpdateCallback> callbacks = new HashMap<>();
   private final Queue<Entry> faultyPaths = new ArrayDeque<>();
   private final TreeMap<Double, Entry> unusedPaths = new TreeMap<>();
   private final Map<K, Entry> usedPaths = new HashMap<>();
+
+  private int configPathPollIntervalMs = 10_000;
 
   private static class Entry {
     Path path;
@@ -62,7 +66,7 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
       this.rank = rank;
 
       // The hashcode should depend on interfaces and ASes, but not on expiration time.
-      pathHashBase = new long[path.getMetadata().getLatencyList().size() * 2];
+      pathHashBase = new long[path.getMetadata().getInterfacesList().size() * 2];
       int n = 0;
       for (PathMetadata.PathInterface i: path.getMetadata().getInterfacesList()) {
         pathHashBase[n++] = i.getIsdAs();
@@ -98,34 +102,15 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
     }
   }
 
-  public static Builder newBuilder(ScionService service, long dstIsdAs, InetSocketAddress dstAddress) {
-    return new Builder(service, dstIsdAs, dstAddress);
+  public static <K> SimplePathProvider<K> create(ScionService service, PathPolicy policy) {
+    return new SimplePathProvider<>(service, policy);
   }
 
-  public static <K> SimplePathProvider<K> create(ScionService service, long dstIsdAs, InetSocketAddress dstAddress, PathPolicy policy) {
-    return new SimplePathProvider<>(service, dstIsdAs, dstAddress, policy);
-  }
-
-  private SimplePathProvider(ScionService service, long dstIsdAs, InetSocketAddress dstAddress, PathPolicy policy) {
+  private SimplePathProvider(ScionService service, PathPolicy policy) {
     this.service = service;
-    this.dstIsdAs = dstIsdAs;
-    this.dstAddress = dstAddress;
-    this.policy = policy;
-
-    int n = 0;
-    for (Path p : policy.filter(service.getPaths(dstIsdAs, dstAddress))) {
-      double rank = n++; // Very simple ranking: preserver ordering provided by PathPolicy
-      unusedPaths.put(rank, new Entry(p, rank));
-    }
-
-    this.timerTask = new TimerTask() {
-      @Override
-      public void run() {
-        refreshAllPaths();
-      }
-    };
-
-    timer.scheduleAtFixedRate(timerTask, 10_000, 10_000);
+    this.dstIsdAs = 0;
+    this.dstAddress = null;
+    this.pathPolicy = policy;
   }
 
   // Synchronized because it is called by timer
@@ -137,7 +122,7 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
     
     // 1) Get new paths from the service
 
-    Set<Path> newPaths2 = new HashSet<>(policy.filter(service.getPaths(dstIsdAs, dstAddress)));
+    Set<Path> newPaths2 = new HashSet<>(pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress)));
     Map<Entry, Entry> newPaths = new HashMap<>();
     int n = 0;
     for (Path p : newPaths2) {
@@ -232,7 +217,9 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
       throw new IllegalArgumentException("Callback with the same key already registered");
     }
     callbacks.put(key, cb);
-    cb.pathsUpdated(getFreePath(key));
+    if (isConnected()) {
+      cb.pathsUpdated(getFreePath(key));
+    }
   }
 
   @Override
@@ -242,43 +229,56 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
     callbacks.remove(key);
   }
 
-  public void cancel() {
-    timerTask.cancel();
+  @Override
+  public synchronized void setPathPolicy(PathPolicy pathPolicy) {
+    this.pathPolicy = pathPolicy;
   }
 
-  public static class Builder {
-    private ScionService service;
-    private long dstIsdAs;
-    private InetSocketAddress dstAddress;
-    private Predicate<Path> filter = p -> true;
-    // Ranking function: lower is better. Default: hop count (== latency count)
-    private ToDoubleFunction<Path> rankingFn = p -> (double) p.getMetadata().getLatencyList().size();
-
-
-    Builder(ScionService service, long dstIsdAs, InetSocketAddress dstAddress) {
-      this.service = service;
-      this.dstIsdAs = dstIsdAs;
-      this.dstAddress = dstAddress;
+  @Override
+  public void connect(long isdAs, InetSocketAddress destination) {
+    if (isConnected()) {
+      throw new IllegalStateException("Path provider is already connected");
+    }
+    this.dstIsdAs = isdAs;
+    this.dstAddress = destination;
+    int n = 0;
+    for (Path p : pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress))) {
+      double rank = n++; // Very simple ranking: preserver ordering provided by PathPolicy
+      unusedPaths.put(rank, new Entry(p, rank));
     }
 
-    public Builder filter(Predicate<Path> filter) {
-      this.filter = filter;
-      return this;
-    }
+    this.timerTask =
+        new TimerTask() {
+          @Override
+          public void run() {
+            try {
+              refreshAllPaths();
+            } catch (Exception e) {
+              LOG.error("Exception in PathProvider timer task", e);
+            }
+          }
+        };
 
-    /**
-     * Set the ranking function. Lower is better.
-     * @param rankingFn The ranking function.
-     * @return The builder.
-     */
-    public Builder ranking(ToDoubleFunction<Path> rankingFn) {
-      this.rankingFn = rankingFn;
-      return this;
-    }
-
-    public <K> SimplePathProvider<K> build() {
-      return new SimplePathProvider<>(service, dstIsdAs, dstAddress, PathPolicy.DEFAULT);
-    }
+    timer.scheduleAtFixedRate(timerTask, configPathPollIntervalMs, configPathPollIntervalMs);
   }
 
+  @Override
+  public void disconnect() {
+//    if (!isConnected()) {
+//      throw new IllegalStateException("Path provider is not connected");
+//    }
+    if (timerTask != null) {
+      timerTask.cancel();
+    }
+    this.timerTask = null;
+    this.dstAddress = null;
+    this.dstIsdAs = 0;
+    this.unusedPaths.clear();
+    this.usedPaths.clear();
+    this.faultyPaths.clear();
+  }
+
+  public boolean isConnected() {
+    return this.dstAddress != null;
+  }
 }

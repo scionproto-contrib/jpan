@@ -15,6 +15,9 @@
 package org.scion.jpan.internal;
 
 import org.scion.jpan.Path;
+import org.scion.jpan.PathPolicy;
+
+import java.net.InetSocketAddress;
 
 public interface PathProvider2<K> {
   /**
@@ -26,6 +29,9 @@ public interface PathProvider2<K> {
 
   /**
    * Register a callback that is invoked when paths are updated.
+   * A typical single-path DatagramChannel will require only one such callback.
+   * If the PAthProvider is connected, see {@link #connect(long, InetSocketAddress)}, it will
+   * immediately invoke the callback with a path.
    * @param key The key to identify the callback. THis is used to unregister the callback.
    * @param cb The callback method.
    */
@@ -36,6 +42,20 @@ public interface PathProvider2<K> {
    * @param key The key used to register the callback.
    */
   void unregisterCallback(K key);
+
+  void setPathPolicy(PathPolicy pathPolicy);
+
+  /**
+   * Initialize the PathProvider with a remote destination and start providing paths.
+   * The path provider will (in this call) request a first set of path and assign on
+   * path to all registered callbacks..
+   */
+  void connect(long isdAs, InetSocketAddress destination);
+
+  /**
+   * Stop the path provider.
+   */
+  void disconnect();
 
   interface PathUpdateCallback {
     void pathsUpdated(Path newPath);
