@@ -14,7 +14,6 @@
 
 package org.scion.jpan;
 
-import java.awt.*;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
@@ -27,8 +26,6 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
-
-import static org.scion.jpan.internal.PathPolicyHandler.*;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
@@ -54,8 +51,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
-  private final PathPolicyHandler policyHandler;
-  private final PathProvider2 pathProvider;
+  private final PathProvider2<AbstractDatagramChannel<C>> pathProvider;
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel) {
@@ -63,14 +59,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
-    this.policyHandler = PathPolicyHandler.create(service, pathPolicy, RefreshPolicy.POLICY);
     if (service != null) {
-      this.pathProvider = SimplePathProvider.create(service, pathPolicy);
+      this.pathProvider = SimplePathProvider.create(service, pathPolicy, 60_000, Config.getPathExpiryMarginSeconds(), SimplePathProvider.ReplaceStrategy.IGNORE_EXPIRED);// TODO SimplePathProvider.ReplaceStrategy.BEST_RANK);
     } else {
       this.pathProvider = null;
     }
     if (pathProvider != null) {
-      pathProvider.registerCallback(this, this::pathUpdateCallback);
+      pathProvider.subscribe(this, this::pathUpdateCallback);
     }
   }
 
@@ -90,10 +85,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       return this.pathPolicy;
     }
-  }
-
-  protected PathPolicyHandler getPolicyHandler() {
-    return this.policyHandler;
   }
 
   protected PathProvider2 getPathProvider() {
@@ -247,7 +238,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       connectionPath = null;
       natMapping = null;
-      policyHandler.disconnect();
       pathProvider.disconnect();
     }
   }
@@ -263,6 +253,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       if (natMapping != null) {
         natMapping.close();
+      }
+      if (pathProvider != null) {
+        pathProvider.unsubscribe(this);
       }
       channel.disconnect();
       channel.close();
@@ -298,6 +291,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         return connect(((ScionSocketAddress) addr).getPath());
       }
       InetSocketAddress destination = (InetSocketAddress) addr;
+
+
+
       Path path = applyFilter(getService().lookupPaths(destination), destination).get(0);
       return connect(path);
     }
@@ -369,8 +365,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      getPolicyHandler().connect(path);
-      getPathProvider().connect(path.getRemoteIsdAs(), path.getRemoteSocketAddress());
+      getPathProvider().connect(path);
       updateConnection((RequestPath) path, false);
       return (C) this;
     }

@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
+import org.scion.jpan.RequestPath;
 
 import java.net.InetSocketAddress;
 
@@ -30,18 +31,18 @@ public interface PathProvider2<K> {
   /**
    * Register a callback that is invoked when paths are updated.
    * A typical single-path DatagramChannel will require only one such callback.
-   * If the PAthProvider is connected, see {@link #connect(long, InetSocketAddress)}, it will
+   * If the PAthProvider is connected, see {@link #connect(Path)}, it will
    * immediately invoke the callback with a path.
    * @param key The key to identify the callback. THis is used to unregister the callback.
    * @param cb The callback method.
    */
-  void registerCallback(K key, PathUpdateCallback cb);
+  void subscribe(K key, PathUpdateCallback cb);
 
   /**
    * Unregister a previously registered callback.
    * @param key The key used to register the callback.
    */
-  void unregisterCallback(K key);
+  void unsubscribe(K key);
 
   void setPathPolicy(PathPolicy pathPolicy);
 
@@ -51,6 +52,14 @@ public interface PathProvider2<K> {
    * path to all registered callbacks..
    */
   void connect(long isdAs, InetSocketAddress destination);
+
+  /**
+   * Initialize the PathProvider with an existing path and start providing paths.
+   * The path provider will (in this call) only request a new set of path if the provided path
+   * is expired. New paths will be requested if the path is expired or about to expire,
+   * if additional subscribers register, or if the path is reported faulty.
+   */
+  void connect(Path path);
 
   /**
    * Stop the path provider.

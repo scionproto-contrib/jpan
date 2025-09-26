@@ -108,6 +108,13 @@ It is still weird: we `connect` with a specific path, but may replace it.
 Maybe have two ScionSocketAddresses, one with path, one without?
 ---> E.g. ScionSocketAddress (w/o path) and ScionPath (with path)?
 
+Decided: Some methods accept a Path as argument. By default, the PathProvider (an consequently the
+channel or socket) will use this path initially, but will replace is with a new path when it 
+expires or brakes.
+The new path is chosen following the PathPolicy. To enforce using a specific path, the user
+can provide a PathPolicy that prefers a specific paths.
+
+
 Also: Have separate Channel implementation for "resolving"? E.g. normal channel does not resolve,
 but a "resolving channel" does?
 

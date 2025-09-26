@@ -267,9 +267,6 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       // TODO getCfgExpirationSafetyMargin
 
       return (RequestPath) getConnectionPath();
-
-
-      //return (RequestPath) getPolicyHandler().getCurrent(refreshPolicy, getCfgExpirationSafetyMargin());
     }
 
     int expiryMargin = getCfgExpirationSafetyMargin();

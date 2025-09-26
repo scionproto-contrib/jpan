@@ -124,7 +124,7 @@ public interface PathPolicy {
 
   /**
    * @param paths A list of candidate paths
-   * @return A list of path ordered by preference (most preferec first).
+   * @return A list of paths ordered by preference (most preferred first).
    * @throws NoSuchElementException if no matching path could be found.
    */
   List<Path> filter(List<Path> paths);

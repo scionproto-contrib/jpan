@@ -80,8 +80,14 @@ TODO
   [#179](https://github.com/scionproto-contrib/jpan/pull/179)
 - Added instructions for getting a path from an IP address.
   [#184](https://github.com/scionproto-contrib/jpan/pull/184)
-- Improve support for dynamic path policies
+- Improve support for dynamic path policies.
   [#171](https://github.com/scionproto-contrib/jpan/pull/171)
+TODO:
+- Test that connect(path) with outdated path triggers daemon call for new paths (not expired).
+- Test that connect(path) with 2nd channel triggers daemon call for new path (multiple)
+- Test that connect(path) faulty path triggers daemon call for new paths.
+- Test proper error message if no paths are available.
+   -> checkPath(currentPath != null) should throw exception ("No paths available [to dst xyz]") 
 
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
