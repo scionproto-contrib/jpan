@@ -91,7 +91,7 @@ TODO
 - Clean-up: Made `ScionAddress` package private and move host file parsing to separate class.
   [#190](https://github.com/scionproto-contrib/jpan/pull/190)
 - Channel `send()` cleanup.
-  [#191](https://github.com/scionproto-contrib/jpan/pull/191)
+  [#192](https://github.com/scionproto-contrib/jpan/pull/192)
 
 ### Fixed
 - Post 0.5.0 cleanup

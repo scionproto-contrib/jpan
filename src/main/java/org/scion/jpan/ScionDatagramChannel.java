@@ -117,12 +117,16 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * <p>If the `destination` is of type {@link InetSocketAddress}, a path lookup is performed.<br>
    * Otherwise, if the `destination` is of type {@link ScionSocketAddress}, the contained path is
    * used directly. The behavior in case of an expired is configurable.<br>
+   * TODO
+   * The behavior can be changed with path policies, for example:<br>
+   * - PathPolicy#SAME_LINK will only provide paths that use the same links as the expired path.<br>
+   * - PathPolicy#NO_NEW_PATH will prevent any path refresh and simply throw an exception if the path is expired.<br>
+   * TODO
+   *
    * - By default, with mode = "OFF", an expired path will simply cause an exception to be thrown.
    * This mode is the least resource intensive and guarantees that no unexpected path is used and
    * that no delay occurs.<br>
    * - In case of mode = "POLICY", the path is refreshed using the channel's path policy. Refreshed
-   * paths are cached for future use.<br>
-   * - In case of mode = "SAME_LINKS", a new path with the same interfaces is looked up. Refreshed
    * paths are cached for future use.<br>
    * See {@link ScionSocketOptions#SCION_PATH_REFRESH}.
    *
@@ -310,7 +314,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       }
       boolean isSame = true;
       for (int i = 0; i < ifs.size(); i++) {
-        // In theory we could compare only the first ISD/AS and then only Interface IDs....
+        // In theory, we could compare only the first ISD/AS and then only Interface IDs....
         PathMetadata.PathInterface if1 = ifs.get(i);
         PathMetadata.PathInterface if2 = reference.get(i);
         if (if1.getIsdAs() != if2.getIsdAs() || if1.getId() != if2.getId()) {
