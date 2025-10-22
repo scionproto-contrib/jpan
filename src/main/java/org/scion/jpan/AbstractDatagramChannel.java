@@ -48,6 +48,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private final ScionService service;
   private int cfgExpirationSafetyMargin = Config.getPathExpiryMarginSeconds();
   private int cfgTrafficClass;
+  private boolean cfgRefreshPaths = true;
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
@@ -543,6 +544,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           return (T) (Boolean) cfgReportFailedValidation;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           return (T) (Integer) cfgExpirationSafetyMargin;
+        } else if (ScionSocketOptions.SCION_PATH_REFRESH.equals(option)) {
+          return (T) (Boolean) cfgRefreshPaths;
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           return (T) (Integer) cfgTrafficClass;
         } else {
@@ -566,6 +569,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           cfgReportFailedValidation = (Boolean) t;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
+        } else if (ScionSocketOptions.SCION_PATH_REFRESH.equals(option)) {
+          cfgRefreshPaths = (Boolean) t;
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {
@@ -587,6 +592,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   protected int getCfgExpirationSafetyMargin() {
     return cfgExpirationSafetyMargin;
+  }
+
+  protected boolean getCfgRefreshPaths() {
+    return cfgRefreshPaths;
   }
 
   private void checkLockedForRead() {

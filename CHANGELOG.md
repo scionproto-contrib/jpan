@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- Deprecate send(PATH)!!!!!
+- Path chaching!!!
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
 - More tests on unordered "destinations" in JSON
 - DHCP bootstrapping
@@ -88,6 +90,8 @@ TODO
   [#189](https://github.com/scionproto-contrib/jpan/pull/189)
 - Clean-up: Made `ScionAddress` package private and move host file parsing to separate class.
   [#190](https://github.com/scionproto-contrib/jpan/pull/190)
+- Channel `send()` cleanup.
+  [#191](https://github.com/scionproto-contrib/jpan/pull/191)
 
 ### Fixed
 - Post 0.5.0 cleanup

@@ -36,7 +36,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     OFF,
     /** Refresh with path along the same links. */
     SAME_LINKS,
-    /** Refresh with path path following path policy. */
+    /** Refresh with a path following path policy. */
     POLICY
   }
 
@@ -114,6 +114,18 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   /**
    * Attempts to send the content of the buffer to the destinationAddress.
    *
+   * <p>If the `destination` is of type {@link InetSocketAddress}, a path lookup is performed.<br>
+   * Otherwise, if the `destination` is of type {@link ScionSocketAddress}, the contained path is
+   * used directly. The behavior in case of an expired is configurable.<br>
+   * - By default, with mode = "OFF", an expired path will simply cause an exception to be thrown.
+   * This mode is the least resource intensive and guarantees that no unexpected path is used and
+   * that no delay occurs.<br>
+   * - In case of mode = "POLICY", the path is refreshed using the channel's path policy. Refreshed
+   * paths are cached for future use.<br>
+   * - In case of mode = "SAME_LINKS", a new path with the same interfaces is looked up. Refreshed
+   * paths are cached for future use.<br>
+   * See {@link ScionSocketOptions#SCION_PATH_REFRESH}.
+   *
    * @param srcBuffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
    *     that the ISD/AS information can be retrieved.
@@ -153,7 +165,9 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
+   * @deprecated
    */
+  @Deprecated // remove in 0.7.0
   public int send(ByteBuffer srcBuffer, Path path) throws IOException {
     return send(srcBuffer, path, RefreshPolicy.SAME_LINKS);
   }
@@ -268,27 +282,23 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @return a new Path if the path was updated, otherwise `null`.
    */
   private RequestPath refreshPath(RequestPath path, RefreshPolicy refreshPolicy) {
+    if (!getCfgRefreshPaths()) {
+      if (Instant.now().getEpochSecond() > path.getMetadata().getExpiration()) {
+        throw new ScionRuntimeException("Path is expired");
+      }
+      return null;
+    }
     int expiryMargin = getCfgExpirationSafetyMargin();
     if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
       return null;
     }
     // expired, get new path
-    List<Path> paths = getService().getPaths(path);
-    switch (refreshPolicy) {
-      case OFF:
-        // let this pass until it is ACTUALLY expired
-        if (Instant.now().getEpochSecond() <= path.getMetadata().getExpiration()) {
-          return path;
-        }
-        throw new ScionRuntimeException("Path is expired");
-      case POLICY:
-        return (RequestPath)
-            applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
-      case SAME_LINKS:
-        return findPathSameLinks(paths, path);
-      default:
-        throw new UnsupportedOperationException();
-    }
+    return (RequestPath)
+        applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
+
+//    if (cfg == 2) {
+//      return findPathSameLinks(getService().getPaths(path), path);
+//    }
   }
 
   private RequestPath findPathSameLinks(List<Path> paths, RequestPath path) {
