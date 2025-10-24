@@ -27,6 +27,8 @@ import org.scion.jpan.internal.ByteUtil;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
 
+import static org.scion.jpan.internal.PathPolicyHandler.*;
+
 public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
 
@@ -248,6 +250,8 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         RequestPath requestPath = (RequestPath) path;
         RequestPath newPath = refreshPath(requestPath);
         if (newPath != null) {
+          // TODO FIX!!! We never use this....
+          //   But it can be useful for send(ScionSocketAddress)!!
           refreshedPaths.put(path, newPath);
           updateConnection(requestPath, true);
         }
@@ -267,6 +271,11 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @return a new Path if the path was updated, otherwise `null`.
    */
   private RequestPath refreshPath(RequestPath path) {
+    if (isConnected()) {
+      // TODO getCfgExpirationSafetyMargin
+
+      return (RequestPath) getConnectionPath();
+    }
     int expiryMargin = getCfgExpirationSafetyMargin();
     if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
       return null;

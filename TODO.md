@@ -57,6 +57,7 @@
 - Make multi-module project for demos & inspector (also channel vs socket?)
   -> see JDO for releasing only some modules for a release.
 - Support authentication for control servers
+- CHeck Socket considerations in Design.md: Java 15 socket, copy buffers, ...
 
 - Remove SHIM
   - Once SHIM is gone: REMOVE topofile requirement from SCIO server:

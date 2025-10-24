@@ -51,13 +51,33 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
+  private final PathProvider3 pathProvider;
 
   protected AbstractDatagramChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel) {
+      ScionService service, java.nio.channels.DatagramChannel udpChannel) {
+    this(
+        service,
+        udpChannel,
+        service == null
+            ? null
+            : SimplePathProvider3.create(
+                service,
+                PathPolicy.DEFAULT,
+                60_000,
+                Config.getPathExpiryMarginSeconds(),
+                SimplePathProvider3.ReplaceStrategy.BEST_RANK));
+  }
+
+  protected AbstractDatagramChannel(
+      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider3 pathProvider) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
+    this.pathProvider = pathProvider;
+    if (pathProvider != null) {
+      pathProvider.subscribe(this::pathUpdateCallback);
+    }
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -78,6 +98,18 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
+  protected PathProvider3 getPathProvider() {
+    return this.pathProvider;
+  }
+
+  private void pathUpdateCallback(Path newPath) {
+    synchronized (stateLock) { // TODO statelock?
+      System.err.println("updateConnection: " + newPath + "    connected=" + isConnected());
+      connectionPath = (RequestPath) newPath;
+      //updateConnection((RequestPath) newPath, true);
+    }
+  }
+
   /**
    * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
    * channel is connected, this method will request a new path using the new policy.
@@ -92,6 +124,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       this.pathPolicy = pathPolicy;
       if (isConnected()) {
+        pathProvider.setPathPolicy(pathPolicy);
         ScionSocketAddress destination = connectionPath.getRemoteSocketAddress();
         connectionPath =
             (RequestPath) applyFilter(getService().getPaths(connectionPath), destination).get(0);
@@ -218,6 +251,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       connectionPath = null;
       natMapping = null;
+      pathProvider.disconnect();
     }
   }
 
@@ -232,6 +266,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       if (natMapping != null) {
         natMapping.close();
+      }
+      if (pathProvider != null) {
+        pathProvider.disconnect();
       }
       channel.disconnect();
       channel.close();
@@ -267,6 +304,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         return connect(((ScionSocketAddress) addr).getPath());
       }
       InetSocketAddress destination = (InetSocketAddress) addr;
+
       Path path = applyFilter(getService().lookupPaths(destination), destination).get(0);
       return connect(path);
     }
@@ -338,7 +376,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      updateConnection((RequestPath) path, false);
+      getPathProvider().connect(path);
+      // TODO updateConnection((RequestPath) path, false);
       return (C) this;
     }
   }

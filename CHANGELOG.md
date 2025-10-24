@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- FIX: JPAN should use 2nd BR as failover when first returns DEAD_LINE exceeded:
+  Caused by: io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 9.997583729s. Name resolution delay 0.000128423 seconds. [closed=[], open=[[buffered_nanos=10009360078, waiting_for_connection]]]
+  at io.grpc.stub.ClientCalls.toStatusRuntimeException(ClientCalls.java:368)
+  at io.grpc.stub.ClientCalls.getUnchecked(ClientCalls.java:349)
+  at io.grpc.stub.ClientCalls.blockingUnaryCall(ClientCalls.java:174)
+  at org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc$SegmentLookupServiceBlockingStub.segments(SegmentLookupServiceGrpc.java:169)
+  at org.scion.jpan.internal.ControlServiceGrpc.segmentsTryAll(ControlServiceGrpc.java:119)
+- FIX: weird 0-0:0 in some paths in PingAll output
+- FIX in README: clean up bootstrap sequence: Remove (debugging only) for some entries (e.g. NAPTR).
+
+- Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - Deprecate send(PATH)!!!!!
 - Path chaching!!!
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
@@ -83,6 +94,23 @@ TODO
 - Added bootstrapping support for DNS-SD
   [#197](https://github.com/scionproto-contrib/jpan/pull/197)
   [#198](https://github.com/scionproto-contrib/jpan/pull/198)
+- Add API for concurrent PathProviders. 
+  [#171](https://github.com/scionproto-contrib/jpan/pull/171)
+  This enables:
+  - Refresh path if expired
+  - Replace path if it causes errors
+  - Replace path if better paths are available
+  - Concurrent probing paths for latency/reliability/MTU...
+TODO:
+- Test that connect(path) with outdated path triggers daemon call for new paths (not expired).
+- Test that connect(path) with 2nd channel triggers daemon call for new path (multiple)
+- Test that connect(path) faulty path triggers daemon call for new paths.
+- Test proper error message if no paths are available.
+   -> checkPath(currentPath != null) should throw exception ("No paths available [to dst xyz]")
+- Replace Exercise: E.g. 
+  - Implement proper minimum MTU probing for paths
+  - Use multiple sockets/channels for concurrent transport. Implement a Meta-PathProvider that
+    implement distinct-paths-provision for multiple sockets/channels. 
 
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`

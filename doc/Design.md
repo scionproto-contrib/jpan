@@ -74,6 +74,98 @@ There are two types of paths (both inherit `Path`, both are (will be) package pr
 `RequestPath` also contains path meta information.
 `ResponsePath` also contains origin IA:IP:port.
 
+## DatagramChannel
+
+### PathPolicy - API Behavior
+
+#### Refresh etc
+
+Relevant methods:
+
+- `read(ByteBuffer dst)`, `write(ByteBuffer src)`: Use connected path.
+   The connected path is automatically refreshed when expired or replaced when broken.
+   Behavior policy: `POLICY` (Use path policy to refresh or replace path)
+- `send(..., ScionSocketAddress dst)`: Send to target address. Ignore connected paths. 
+   Question: should we refresh? Should we cache results? Use policy to refresh?
+   Modifyable ScionSocketAddress that stores refreshed result?
+- `send(..., InetSocketAddress dst)`: Resolve and send to destination. Resolved address
+   is cached. 
+   - Caching could be done in ScionService or we could add any updated path to the ScionSocketAddress.
+
+- The policy needs to be configurable: `REFRESH_OR_REPLACE` (default), `REFRESH`, `NEVER`.
+  The default is `REFRESH_OR_REPLACE` which means:
+    - If path is expired, request a new path with identical links
+    - If path is broken (SCMP error), request a new path 
+  On the server side, we do refresh or replace paths.
+  Since clients should use read/write, we could argue that send/receive is only used by servers,
+  hence we can effectively hardcode the policy to `NEVER`.
+  That would solve all headaches around send/receive. Consequently, we may also disallow
+  automatic resolution of InetSocketAddresses ins send()...?
+    - However, what about client use cases with send()? E.g. a peer-to-peer network?
+      In this case we would expect send() to be used with ScionSocketAddress (with path).
+
+It is still weird: we `connect` with a specific path, but may replace it.
+Maybe have two ScionSocketAddresses, one with path, one without?
+---> E.g. ScionSocketAddress (w/o path) and ScionPath (with path)?
+
+Decided: Some methods accept a Path as argument. By default, the PathProvider (an consequently the
+channel or socket) will use this path initially, but will replace is with a new path when it 
+expires or brakes.
+The new path is chosen following the PathPolicy. To enforce using a specific path, the user
+can provide a PathPolicy that prefers a specific paths.
+
+
+Also: Have separate Channel implementation for "resolving"? E.g. normal channel does not resolve,
+but a "resolving channel" does?
+
+#### Multipathing
+
+ScionDatagramChannel and ScionDatagramSocket should be inherently single-path.
+Multipathing can be implemented on top of that, e.g. by a "MultipathChannel".
+There are several reasons for this:
+- Multiple channels can operate concurrently, improving performance.
+- Multiple Channels can use multiple network interfaces.
+- Multipath requires a lot more logic, such as path selection or path scheduling. This should
+  be done in a separate channel implementation.
+
+However: PathProviders can be costly, e.g. when they are frequently polling for low latency.
+It makes sense if such information could be shared between multiple channels.
+Since PathProviders are customizable, a sharing provider could always be implemented later.
+
+API (`key` can be anything, e.g. a `ScionDatagramChannel` or a user-defined key):
+```java
+interface PathProvider<K> {
+  void reportFaultyPath(K key, Path p);
+  void registerCallback(K key, PathUpdateCallback cb);
+  void unregisterCallback(K key);
+}
+```
+
+This API can be used by a single ScionDatagramChannel to manage multiple paths or by
+multiple channels to manage one (or more?) path each.
+
+For Multipathing, a PathProvider should be able to provide multiple paths.
+This means:
+- PathProviders must be Thread safe
+- PathProviders must be shareable between channels (and sockets) through API methods.
+  The alternative of using the PathProvider stand-alone would make it difficult to report
+  broken paths.
+
+Separation of logic:
+- The PathProviderHandler holds the current paths and triggers refresh/replace.
+- The PathProvider provides new paths when requested.
+
+Dynamics:
+- If a new/better path becomes available, how do we make it available?
+    - The PathProviderHandler could check for new paths when it sends a packet.
+    - The PathProvider could provide a callback mechanism to inform the handler of new paths.
+  In both cases the provider would need to maintain a mapping, either from old-path->better-path or
+  old-path->channel/socket-callback. 
+
+### TODO: SelectableChannel
+
+
+
 ## DatagramSocket
 
 **DatagramSocket is not really supported, please use DatagramChannel instead.**

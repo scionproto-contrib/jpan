@@ -1,0 +1,102 @@
+// Copyright 2025 ETH Zurich
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package org.scion.jpan.internal;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.scion.jpan.*;
+import org.scion.jpan.testutil.MockBootstrapServer;
+import org.scion.jpan.testutil.MockNetwork;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class PathProviderTest {
+
+  private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
+
+  @BeforeEach
+  void beforeEach() {
+    MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+  }
+
+  @AfterEach
+  void afterEach() {
+    MockNetwork.stopTiny();
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+  }
+
+  @Test
+  void replaceExpired() throws InterruptedException {
+    ScionService service = Scion.defaultService();
+    SimplePathProvider3 pp =
+        SimplePathProvider3.create(
+            service, PathPolicy.DEFAULT, 100, 10, SimplePathProvider3.ReplaceStrategy.BEST_RANK);
+
+    AtomicReference<Path> path = new AtomicReference<>();
+    InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
+    p = PackageVisibilityHelper.createExpiredPath(p, 100);
+    path.set(p);
+    // reset counter
+    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
+
+    CountDownLatch barrier = new CountDownLatch(1);
+    pp.subscribe(
+        newPath -> {
+          path.set(newPath);
+          barrier.countDown();
+        });
+    pp.connect(path.get());
+    assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
+
+    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
+    assertNotEquals(p, path.get());
+  }
+
+  @Test
+  void noPathFound() throws InterruptedException {
+    // Test that the provider does not loop when no path is found.
+    ScionService service = Scion.defaultService();
+    SimplePathProvider3 pp =
+        SimplePathProvider3.create(
+            service, PathPolicy.DEFAULT, 100, 10, SimplePathProvider3.ReplaceStrategy.BEST_RANK);
+
+    AtomicReference<Path> path = new AtomicReference<>();
+    Path p = PackageVisibilityHelper.createDummyPath();
+    p = PackageVisibilityHelper.createExpiredPath(p, 100);
+    path.set(p);
+
+    CountDownLatch barrier = new CountDownLatch(1);
+    pp.subscribe(
+        newPath -> {
+          path.set(newPath);
+          barrier.countDown();
+        });
+    pp.connect(path.get());
+    assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
+
+    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
+    // Path is expired, but we keep it because there is no better path
+    assertEquals(p, path.get());
+  }
+}
