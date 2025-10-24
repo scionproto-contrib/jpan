@@ -28,8 +28,6 @@ import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /**
  * Helper class to access package private methods in org.scion.ScionService and ScionPacketHelper.
  */
@@ -131,22 +129,6 @@ public class PackageVisibilityHelper {
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }
-  }
-
-  public static Path createExpiredPath(Path basePath, int expiredSinceSecs) {
-    long now = Instant.now().getEpochSecond();
-    long time = now - expiredSinceSecs;
-    Daemon.Path.Builder builder =
-            Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(time).build());
-    Path expiredPath =
-            PackageVisibilityHelper.createRequestPath110_112(
-                    builder,
-                    basePath.getRemoteIsdAs(),
-                    basePath.getRemoteAddress(),
-                    basePath.getRemotePort(),
-                    basePath.getFirstHopAddress());
-    assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
-    return expiredPath;
   }
 
   public static RequestPath createRequestPath110_110(
