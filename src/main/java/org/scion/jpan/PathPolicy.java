@@ -151,17 +151,15 @@ public interface PathPolicy {
       if (ifs.size() != reference.size()) {
         return false;
       }
-      boolean isSame = true;
       for (int i = 0; i < ifs.size(); i++) {
         // In theory, we could compare only the first ISD/AS and then only Interface IDs....
         PathMetadata.PathInterface if1 = ifs.get(i);
         PathMetadata.PathInterface if2 = reference.get(i);
         if (if1.getIsdAs() != if2.getIsdAs() || if1.getId() != if2.getId()) {
-          isSame = false;
-          break;
+          return false;
         }
       }
-      return isSame;
+      return true;
     }
   }
 

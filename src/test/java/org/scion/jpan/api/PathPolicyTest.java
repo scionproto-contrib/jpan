@@ -132,21 +132,20 @@ class PathPolicyTest {
 
   @Test
   void sameLink() {
-    List<Path> paths4x8 = new PathProvider().getPaths("1-ff00:0:122", "2-ff00:0:221");
-    Path path0 = paths4x8.get(0);
-    assertEquals(4, paths4x8.size());
-    PathPolicy.SameLink policy = new PathPolicy.SameLink(path0);
-    List<Path> filtered = policy.filter(paths4x8);
+    List<Path> paths = createLongMixedList();
+    Path path1 = paths.get(1); // just pick a path
+    PathPolicy.SameLink policy = new PathPolicy.SameLink(path1);
+    List<Path> filtered = policy.filter(paths);
     assertEquals(1, filtered.size());
-    assertEquals(path0, filtered.get(0));
+    assertEquals(path1, filtered.get(0));
 
     // Create path from future that has identical length but different expiration
-    Path newPath = PackageVisibilityHelper.createExpiredPath(path0, -10);
+    Path newPath = PackageVisibilityHelper.createExpiredPath(path1, -10);
     List<Path> newPaths = new ArrayList<>();
     newPaths.add(newPath);
     List<Path> newFiltered = policy.filter(newPaths);
     assertEquals(1, newFiltered.size());
     assertEquals(newPath, newFiltered.get(0));
-    assertNotEquals(path0, newFiltered.get(0));
+    assertNotEquals(path1, newFiltered.get(0));
   }
 }
