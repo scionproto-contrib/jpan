@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
-import java.util.List;
 import java.util.WeakHashMap;
 import org.scion.jpan.internal.ByteUtil;
 import org.scion.jpan.internal.InternalConstants;
@@ -30,15 +29,6 @@ import org.scion.jpan.internal.ScionHeaderParser;
 
 public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
-
-  public enum RefreshPolicy {
-    /** No refresh. */
-    OFF,
-    /** Refresh with path along the same links. */
-    SAME_LINKS,
-    /** Refresh with path path following path policy. */
-    POLICY
-  }
 
   // Store one path per (non-Scion-)destination address
   private final WeakHashMap<InetSocketAddress, RequestPath> resolvedDestinations =
@@ -114,6 +104,14 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   /**
    * Attempts to send the content of the buffer to the destinationAddress.
    *
+   * <p>If the `destination` is of type {@link InetSocketAddress}, a path lookup is performed.<br>
+   * Otherwise, if the `destination` is of type {@link ScionSocketAddress}, the contained path is
+   * used directly.
+   *
+   * <p>When a path expires, it will be automatically refreshed. This behavior can be controlled
+   * with path policies. For example, {@link PathPolicy.SameLink} can be used to ensure that any
+   * refreshed path uses the exactly same links as a previously defined reference path.
+   *
    * @param srcBuffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
    *     that the ISD/AS information can be retrieved.
@@ -128,7 +126,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
     if (destination instanceof ScionSocketAddress) {
-      return send(srcBuffer, ((ScionSocketAddress) destination).getPath(), RefreshPolicy.OFF);
+      return sendInternal(srcBuffer, ((ScionSocketAddress) destination).getPath());
     }
 
     InetSocketAddress dst = (InetSocketAddress) destination;
@@ -140,7 +138,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
         resolvedDestinations.put(dst, path);
       }
     }
-    return send(srcBuffer, path, RefreshPolicy.POLICY);
+    return sendInternal(srcBuffer, path);
   }
 
   /**
@@ -153,16 +151,18 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
+   * @deprecated
    */
+  @Deprecated // remove in 0.7.0
   public int send(ByteBuffer srcBuffer, Path path) throws IOException {
-    return send(srcBuffer, path, RefreshPolicy.SAME_LINKS);
+    return sendInternal(srcBuffer, path);
   }
 
-  private int send(ByteBuffer srcBuffer, Path path, RefreshPolicy refresh) throws IOException {
+  private int sendInternal(ByteBuffer srcBuffer, Path path) throws IOException {
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
-      checkPathAndBuildHeaderUDP(buffer, path, srcBuffer.remaining(), refresh);
+      checkPathAndBuildHeaderUDP(buffer, path, srcBuffer.remaining());
       int headerSize = buffer.position();
       try {
         buffer.put(srcBuffer);
@@ -220,7 +220,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
-      checkPathAndBuildHeaderUDP(buffer, path, len, RefreshPolicy.POLICY);
+      checkPathAndBuildHeaderUDP(buffer, path, len);
       buffer.put(src);
       buffer.flip();
 
@@ -241,12 +241,12 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * @param payloadLength payload length
    * @throws IOException in case of IOException.
    */
-  private void checkPathAndBuildHeaderUDP(
-      ByteBuffer buffer, Path path, int payloadLength, RefreshPolicy rf) throws IOException {
+  private void checkPathAndBuildHeaderUDP(ByteBuffer buffer, Path path, int payloadLength)
+      throws IOException {
     synchronized (super.stateLock()) {
       if (path instanceof RequestPath) {
         RequestPath requestPath = (RequestPath) path;
-        RequestPath newPath = refreshPath(requestPath, rf);
+        RequestPath newPath = refreshPath(requestPath);
         if (newPath != null) {
           refreshedPaths.put(path, newPath);
           updateConnection(requestPath, true);
@@ -264,55 +264,16 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * Checks whether the current path is expired and requests and assigns a new path if required.
    *
    * @param path RequestPath that may need refreshing
-   * @param refreshPolicy Path refresh policy
    * @return a new Path if the path was updated, otherwise `null`.
    */
-  private RequestPath refreshPath(RequestPath path, RefreshPolicy refreshPolicy) {
+  private RequestPath refreshPath(RequestPath path) {
     int expiryMargin = getCfgExpirationSafetyMargin();
     if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
       return null;
     }
     // expired, get new path
-    List<Path> paths = getService().getPaths(path);
-    switch (refreshPolicy) {
-      case OFF:
-        // let this pass until it is ACTUALLY expired
-        if (Instant.now().getEpochSecond() <= path.getMetadata().getExpiration()) {
-          return path;
-        }
-        throw new ScionRuntimeException("Path is expired");
-      case POLICY:
-        return (RequestPath)
-            applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
-      case SAME_LINKS:
-        return findPathSameLinks(paths, path);
-      default:
-        throw new UnsupportedOperationException();
-    }
-  }
-
-  private RequestPath findPathSameLinks(List<Path> paths, RequestPath path) {
-    List<PathMetadata.PathInterface> reference = path.getMetadata().getInterfacesList();
-    for (Path newPath : paths) {
-      List<PathMetadata.PathInterface> ifs = newPath.getMetadata().getInterfacesList();
-      if (ifs.size() != reference.size()) {
-        continue;
-      }
-      boolean isSame = true;
-      for (int i = 0; i < ifs.size(); i++) {
-        // In theory we could compare only the first ISD/AS and then only Interface IDs....
-        PathMetadata.PathInterface if1 = ifs.get(i);
-        PathMetadata.PathInterface if2 = reference.get(i);
-        if (if1.getIsdAs() != if2.getIsdAs() || if1.getId() != if2.getId()) {
-          isSame = false;
-          break;
-        }
-      }
-      if (isSame) {
-        return (RequestPath) newPath;
-      }
-    }
-    return null;
+    return (RequestPath)
+        applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
   }
 
   /**
