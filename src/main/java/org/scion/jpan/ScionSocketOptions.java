@@ -14,9 +14,7 @@
 
 package org.scion.jpan;
 
-import java.net.SocketAddress;
 import java.net.SocketOption;
-import java.nio.ByteBuffer;
 
 /** A home for SCION (SN) channel/socket options. */
 public final class ScionSocketOptions {
@@ -50,28 +48,7 @@ public final class ScionSocketOptions {
 
   /** Set the traffic class SCION header. */
   public static final SocketOption<Integer> SCION_TRAFFIC_CLASS =
-          new SciSocketOption<>("SCION_TRAFFIC_CLASS", Integer.class);
-
-  /**
-   * // TODO invert default!
-   * This affects {@link java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)}.
-   * If the `destination` is of type {@link ScionSocketAddress}, the contained path is
-   * checked whether it is expired. The behavior in case of an expired path is configurable.<br>
-   * - By default, with mode = "FALSE", an expired path will simply cause an exception to be thrown.
-   *   This mode avoid caching paths internally and guarantees that no unexpected path is used and
-   *   that no delay occurs.<br>
-   * - In case of mode = "TRUE", the path is refreshed using the channel's path policy. Refreshed
-   *   paths are cached for future use.<br>
-   * See {@link ScionDatagramChannel#send(ByteBuffer, SocketAddress)}.
-   * <p>
-   * The default value is 'false' (no refresh). <br>
-   * When {@link java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)} is called with a
-   * normal {@link SocketAddress}, or when calling
-   * {@link java.nio.channels.DatagramChannel#write(ByteBuffer)}, the path is cached and refreshed
-   * automatically, regardless of this option.
-   */
-  public static final SocketOption<Boolean> SCION_PATH_REFRESH =
-          new SciSocketOption<>("SCION_PATH_REFRESH_ON_SEND", Boolean.class);
+      new SciSocketOption<>("SCION_TRAFFIC_CLASS", Integer.class);
 
   private ScionSocketOptions() {}
 

@@ -129,4 +129,24 @@ class PathPolicyTest {
     pathsWithDifferentLengths.addAll(paths4x4);
     return pathsWithDifferentLengths;
   }
+
+  @Test
+  void sameLink() {
+    List<Path> paths4x8 = new PathProvider().getPaths("1-ff00:0:122", "2-ff00:0:221");
+    Path path0 = paths4x8.get(0);
+    assertEquals(4, paths4x8.size());
+    PathPolicy.SameLink policy = new PathPolicy.SameLink(path0);
+    List<Path> filtered = policy.filter(paths4x8);
+    assertEquals(1, filtered.size());
+    assertEquals(path0, filtered.get(0));
+
+    // Create path from future that has identical length but different expiration
+    Path newPath = PackageVisibilityHelper.createExpiredPath(path0, -10);
+    List<Path> newPaths = new ArrayList<>();
+    newPaths.add(newPath);
+    List<Path> newFiltered = policy.filter(newPaths);
+    assertEquals(1, newFiltered.size());
+    assertEquals(newPath, newFiltered.get(0));
+    assertNotEquals(path0, newFiltered.get(0));
+  }
 }

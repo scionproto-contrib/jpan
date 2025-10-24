@@ -14,6 +14,8 @@
 
 package org.scion.jpan;
 
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,10 @@ public interface PathPolicy {
   PathPolicy MIN_HOPS = new MinHopCount();
   PathPolicy DEFAULT = MIN_HOPS;
 
+  /**
+   * Simple filter that will do nothing, effectively giving the same order, and the same first path,
+   * as the path source.
+   */
   class First implements PathPolicy {
     public List<Path> filter(List<Path> paths) {
       return paths;
@@ -119,6 +125,43 @@ public interface PathPolicy {
         }
       }
       return true;
+    }
+  }
+
+  /**
+   * This policy allows only paths that use links identical to the reference path. This can be
+   * useful to ensure that a path does not change when refreshed.
+   *
+   * @see ScionDatagramChannel#send(ByteBuffer, SocketAddress)
+   */
+  class SameLink implements PathPolicy {
+    private final List<PathMetadata.PathInterface> reference;
+
+    public SameLink(Path reference) {
+      this.reference = reference.getMetadata().getInterfacesList();
+    }
+
+    @Override
+    public List<Path> filter(List<Path> paths) {
+      return paths.stream().filter(this::checkPath).collect(Collectors.toList());
+    }
+
+    private boolean checkPath(Path path) {
+      List<PathMetadata.PathInterface> ifs = path.getMetadata().getInterfacesList();
+      if (ifs.size() != reference.size()) {
+        return false;
+      }
+      boolean isSame = true;
+      for (int i = 0; i < ifs.size(); i++) {
+        // In theory, we could compare only the first ISD/AS and then only Interface IDs....
+        PathMetadata.PathInterface if1 = ifs.get(i);
+        PathMetadata.PathInterface if2 = reference.get(i);
+        if (if1.getIsdAs() != if2.getIsdAs() || if1.getId() != if2.getId()) {
+          isSame = false;
+          break;
+        }
+      }
+      return isSame;
     }
   }
 

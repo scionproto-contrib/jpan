@@ -16,7 +16,6 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -36,7 +35,6 @@ import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.ExternalIpDiscovery;
 import org.scion.jpan.internal.Util;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -47,39 +45,39 @@ import org.scion.jpan.testutil.PingPongChannelHelper;
 
 class DatagramChannelApiTest {
 
-  private static final int dummyPort = 44444;
+  private static final int DUMMY_PORT = 44444;
   private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
 
   static {
     try {
       dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-      dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
+      dummyAddress = new InetSocketAddress(dummyIPv4, DUMMY_PORT);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
   }
 
   @BeforeEach
-  public void beforeEach() {
+  void beforeEach() {
     MockNetwork.startTiny();
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     MockNetwork.stopTiny();
     MockDNS.clear();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
   }
 
   @Test
   void getLocalAddress_withBind() throws IOException {
-    InetSocketAddress addr = new InetSocketAddress("localhost", dummyPort);
+    InetSocketAddress addr = new InetSocketAddress("localhost", DUMMY_PORT);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open().bind(addr)) {
       assertEquals(addr, channel.getLocalAddress());
     }
@@ -542,7 +540,8 @@ class DatagramChannelApiTest {
     PingPongChannelHelper.Client clientFn =
         (channel, basePath, id) -> {
           // Build a path that is already expired
-          Path expiredPath = createExpiredPath(basePath);
+          Path expiredPath = PackageVisibilityHelper.createExpiredPath(basePath, 10);
+          assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
           sendMethod.accept(channel, expiredPath);
 
           ByteBuffer response = ByteBuffer.allocate(100);
@@ -554,21 +553,6 @@ class DatagramChannelApiTest {
         };
     PingPongChannelHelper pph = PingPongChannelHelper.newBuilder(1, 10, 5).connect(connect).build();
     pph.runPingPong(serverFn, clientFn);
-  }
-
-  private Path createExpiredPath(Path basePath) {
-    long now = Instant.now().getEpochSecond();
-    Daemon.Path.Builder builder =
-        Daemon.Path.newBuilder().setExpiration(Timestamp.newBuilder().setSeconds(now - 10).build());
-    Path expiredPath =
-        PackageVisibilityHelper.createRequestPath110_112(
-            builder,
-            basePath.getRemoteIsdAs(),
-            basePath.getRemoteAddress(),
-            basePath.getRemotePort(),
-            basePath.getFirstHopAddress());
-    assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
-    return expiredPath;
   }
 
   @Test

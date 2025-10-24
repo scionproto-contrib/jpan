@@ -194,6 +194,10 @@ public class PathMetadata {
     return new EpicAuths(protoPath().getEpicAuths());
   }
 
+  Daemon.Path getInternalPath() {
+    return pathProtoc;
+  }
+
   public enum LinkType {
     /** Unspecified link type. */
     UNSPECIFIED, // = 0

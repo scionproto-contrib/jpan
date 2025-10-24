@@ -165,4 +165,14 @@ public class PackageVisibilityHelper {
       Daemon.Path path, long dstIsdAs, InetSocketAddress dst) {
     return RequestPath.create(path, dstIsdAs, dst.getAddress(), dst.getPort());
   }
+
+  public static Path createExpiredPath(Path base, int expiredSinceSecs) {
+    long time = Instant.now().getEpochSecond() - expiredSinceSecs;
+    Daemon.Path proto1 = ((RequestPath) base).getMetadata().getInternalPath();
+    Daemon.Path.Builder builder =
+        Daemon.Path.newBuilder(proto1)
+            .setExpiration(Timestamp.newBuilder().setSeconds(time).build());
+    return RequestPath.create(
+        builder.build(), base.getRemoteIsdAs(), base.getRemoteAddress(), base.getRemotePort());
+  }
 }
