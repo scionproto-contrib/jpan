@@ -50,7 +50,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
-  private final PathProvider3 pathProvider;
+  private final PathProvider pathProvider;
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel udpChannel) {
@@ -59,16 +59,16 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         udpChannel,
         service == null
             ? null
-            : SimplePathProvider3.create(
+            : PathProviderSimple.create(
                 service,
                 PathPolicy.DEFAULT,
                 60_000,
                 Config.getPathExpiryMarginSeconds(),
-                SimplePathProvider3.ReplaceStrategy.BEST_RANK));
+                PathProviderSimple.ReplaceStrategy.BEST_RANK));
   }
 
   protected AbstractDatagramChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider3 pathProvider) {
+      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
@@ -97,7 +97,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected PathProvider3 getPathProvider() {
+  protected PathProvider getPathProvider() {
     return this.pathProvider;
   }
 

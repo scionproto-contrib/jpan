@@ -14,25 +14,46 @@
 
 package org.scion.jpan.internal;
 
+import java.net.InetSocketAddress;
 import org.scion.jpan.Path;
-import org.scion.jpan.ScionService;
+import org.scion.jpan.PathPolicy;
 
 public interface PathProvider {
-  Path getPath();
+  /**
+   * Report a faulty path. A new path will provided immediately (synchronously) if available. A
+   * faulty path will not be provided again any time soon. It may be provided again at a later time.
+   *
+   * @param p Faulty path.
+   */
+  void reportFaultyPath(Path p);
 
-  ScionService getService();
+  /**
+   * Register a callback that is invoked when paths are updated.
+   *
+   * @param cb The callback method.
+   */
+  void subscribe(PathUpdateCallback cb);
 
-  void close();
+  void setPathPolicy(PathPolicy pathPolicy);
 
-  void refresh();
+  /**
+   * Initialize the PathProvider with an existing path and start providing paths. The path provider
+   * will (in this call) only request a new set of path if the provided path is expired. New paths
+   * will be requested if the path is expired or about to expire, if additional subscribers
+   * register, or if the path is reported faulty.
+   *
+   * <p>Contract: the PathProvider must synchronously update subscribed consumers with a new path.
+   */
+  void connect(Path path);
 
-  @FunctionalInterface
-  interface Filter {
-    boolean accept(Path path);
-  }
+  /** Stop the path provider. */
+  void disconnect();
 
-  @FunctionalInterface
-  interface Comparator extends java.util.Comparator<Path> {
-    int compare(Path p1, Path p2);
+  long getIsdAs();
+
+  InetSocketAddress getAddress();
+
+  interface PathUpdateCallback {
+    void pathsUpdated(Path newPath);
   }
 }

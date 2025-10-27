@@ -47,9 +47,9 @@ class PathProviderTest {
   @Test
   void replaceExpired() throws InterruptedException {
     ScionService service = Scion.defaultService();
-    SimplePathProvider3 pp =
-        SimplePathProvider3.create(
-            service, PathPolicy.DEFAULT, 100, 10, SimplePathProvider3.ReplaceStrategy.BEST_RANK);
+    PathProviderSimple pp =
+        PathProviderSimple.create(
+            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
 
     AtomicReference<Path> path = new AtomicReference<>();
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -76,9 +76,9 @@ class PathProviderTest {
   void noPathFound() throws InterruptedException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    SimplePathProvider3 pp =
-        SimplePathProvider3.create(
-            service, PathPolicy.DEFAULT, 100, 10, SimplePathProvider3.ReplaceStrategy.BEST_RANK);
+    PathProviderSimple pp =
+        PathProviderSimple.create(
+            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
 
     AtomicReference<Path> path = new AtomicReference<>();
     Path p = PackageVisibilityHelper.createDummyPath();
