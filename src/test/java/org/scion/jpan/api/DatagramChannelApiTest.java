@@ -389,8 +389,16 @@ class DatagramChannelApiTest {
   void getPathPolicy_filterReturnsEmptyList() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
-      channel.connect(paths.get(0));
+
+      // Create empty path policy
       PathPolicy empty = paths1 -> Collections.emptyList();
+      channel.setPathPolicy(empty);
+
+      // Create expired path
+      Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
+      channel.connect(expired);
+
+      channel.write(ByteBuffer.wrap(new byte[100]));
       Exception e = assertThrows(ScionRuntimeException.class, () -> channel.setPathPolicy(empty));
       assertTrue(e.getMessage().startsWith("No path found to destination"));
     }
@@ -503,11 +511,10 @@ class DatagramChannelApiTest {
           try {
             long oldExpiration = expiringPath.getMetadata().getExpiration();
             assertTrue(Instant.now().getEpochSecond() > oldExpiration);
-            channel.send(sendBuf, expiringPath);
+            channel.send(sendBuf, expiringPath.getRemoteSocketAddress());
             long newExpiration = channel.getMappedPath(expiringPath).getMetadata().getExpiration();
             assertTrue(newExpiration > oldExpiration);
             assertTrue(Instant.now().getEpochSecond() < newExpiration);
-            assertEquals(expiringPath, channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }

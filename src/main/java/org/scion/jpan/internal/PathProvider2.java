@@ -14,10 +14,9 @@
 
 package org.scion.jpan.internal;
 
+import java.net.InetSocketAddress;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
-
-import java.net.InetSocketAddress;
 
 public interface PathProvider2<K> {
   /**

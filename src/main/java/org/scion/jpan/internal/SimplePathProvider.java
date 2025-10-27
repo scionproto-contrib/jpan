@@ -21,7 +21,6 @@ import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.scion.jpan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,8 +104,12 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj) return true;
-      if (obj == null || getClass() != obj.getClass()) return false;
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
       Entry other = (Entry) obj;
       return hashCode == other.hashCode && Arrays.equals(pathHashBase, other.pathHashBase);
     }
@@ -397,7 +400,8 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
     // SHould we have connect() and connect(Path)
 
     // Scenarios:
-    // 1) Multipath: We connect to a destination ISD/AS/IP. Multiple subscribers automatically get paths
+    // 1) Multipath: We connect to a destination ISD/AS/IP. Multiple subscribers automatically get
+    // paths
     //    connect(...) seems unnecessary, maybe without argument?
     // 2) SinglePath with connect(IP): We connect to a specific ISD/AS/IP.
     //    This overrides anything done during subscribe().
@@ -442,8 +446,6 @@ public class SimplePathProvider<K> implements PathProvider2<K> {
     // keeps the API/implementation simple.
     // Concurrent transfer (bandwidth or redundancy) should be done in separate implementations
     // anyway. These would probably require a packet scheduler and not support send(path/IP).
-
-
 
     this.timerTask =
         new TimerTask() {

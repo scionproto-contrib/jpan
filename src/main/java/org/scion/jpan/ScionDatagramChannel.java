@@ -27,8 +27,6 @@ import org.scion.jpan.internal.ByteUtil;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.ScionHeaderParser;
 
-import static org.scion.jpan.internal.PathPolicyHandler.*;
-
 public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
 
@@ -114,6 +112,9 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
    * with path policies. For example, {@link PathPolicy.SameLink} can be used to ensure that any
    * refreshed path uses the exactly same links as a previously defined reference path.
    *
+   * <p>Also, a path can only be refreshed if it was acquired via the ScionService. Paths that stem
+   * from {@link #receive(ByteBuffer)} cannot be refreshed.
+   *
    * @param srcBuffer Data to send
    * @param destination Destination address. This should contain a host name known to the DNS so
    *     that the ISD/AS information can be retrieved.
@@ -164,6 +165,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
+      path = refreshPath(path);
       checkPathAndBuildHeaderUDP(buffer, path, srcBuffer.remaining());
       int headerSize = buffer.position();
       try {
@@ -246,16 +248,6 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   private void checkPathAndBuildHeaderUDP(ByteBuffer buffer, Path path, int payloadLength)
       throws IOException {
     synchronized (super.stateLock()) {
-      if (path instanceof RequestPath) {
-        RequestPath requestPath = (RequestPath) path;
-        RequestPath newPath = refreshPath(requestPath);
-        if (newPath != null) {
-          // TODO FIX!!! We never use this....
-          //   But it can be useful for send(ScionSocketAddress)!!
-          refreshedPaths.put(path, newPath);
-          updateConnection(requestPath, true);
-        }
-      }
       // + 8 for UDP overlay header length
       ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
       buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP, srcPort);
@@ -266,23 +258,32 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
   /**
    * Checks whether the current path is expired and requests and assigns a new path if required.
+   * This is only used for {@link #send(ByteBuffer, SocketAddress)}. Path for {@link
+   * #write(ByteBuffer)} are refreshed by the {@link org.scion.jpan.internal.PathProvider}.
    *
    * @param path RequestPath that may need refreshing
    * @return a new Path if the path was updated, otherwise `null`.
    */
-  private RequestPath refreshPath(RequestPath path) {
-    if (isConnected()) {
-      // TODO getCfgExpirationSafetyMargin
+  private Path refreshPath(Path path) {
+    if (!(path instanceof RequestPath) || !isAboutToExpire(path)) {
+      return path;
+    }
 
-      return (RequestPath) getConnectionPath();
+    // Check cache
+    RequestPath refreshed = refreshedPaths.get(path);
+    if (refreshed != null && !isAboutToExpire(refreshed)) {
+      return refreshed;
     }
-    int expiryMargin = getCfgExpirationSafetyMargin();
-    if (Instant.now().getEpochSecond() + expiryMargin <= path.getMetadata().getExpiration()) {
-      return null;
-    }
+
     // expired, get new path
-    return (RequestPath)
-        applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
+    Path newPath = applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
+    refreshedPaths.put(path, (RequestPath) newPath);
+    return newPath;
+  }
+
+  private boolean isAboutToExpire(Path path) {
+    int expiryMargin = getCfgExpirationSafetyMargin();
+    return Instant.now().getEpochSecond() + expiryMargin > path.getMetadata().getExpiration();
   }
 
   /**

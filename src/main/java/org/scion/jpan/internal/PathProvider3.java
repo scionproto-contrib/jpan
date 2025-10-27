@@ -37,22 +37,21 @@ public interface PathProvider3 {
   void setPathPolicy(PathPolicy pathPolicy);
 
   /**
-   * Initialize the PathProvider with a remote destination and start providing paths. The path
-   * provider will (in this call) request a first set of path and assign on path to all registered
-   * callbacks..
-   */
-  void connect(long isdAs, InetSocketAddress destination);
-
-  /**
    * Initialize the PathProvider with an existing path and start providing paths. The path provider
    * will (in this call) only request a new set of path if the provided path is expired. New paths
    * will be requested if the path is expired or about to expire, if additional subscribers
    * register, or if the path is reported faulty.
+   *
+   * <p>Contract: the PathProvider must synchronously update subscribed consumers with a new path.
    */
   void connect(Path path);
 
   /** Stop the path provider. */
   void disconnect();
+
+  long getIsdAs();
+
+  InetSocketAddress getAddress();
 
   interface PathUpdateCallback {
     void pathsUpdated(Path newPath);

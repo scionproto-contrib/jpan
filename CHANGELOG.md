@@ -95,7 +95,7 @@ TODO
   [#197](https://github.com/scionproto-contrib/jpan/pull/197)
   [#198](https://github.com/scionproto-contrib/jpan/pull/198)
 - Add API for concurrent PathProviders. 
-  [#171](https://github.com/scionproto-contrib/jpan/pull/171)
+  [#191](https://github.com/scionproto-contrib/jpan/pull/191)
   This enables:
   - Refresh path if expired
   - Replace path if it causes errors

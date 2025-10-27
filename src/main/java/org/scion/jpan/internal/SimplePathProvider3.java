@@ -102,8 +102,12 @@ public class SimplePathProvider3 implements PathProvider3 {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj) return true;
-      if (obj == null || getClass() != obj.getClass()) return false;
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
       Entry other = (Entry) obj;
       return hashCode == other.hashCode && Arrays.equals(pathHashBase, other.pathHashBase);
     }
@@ -175,7 +179,10 @@ public class SimplePathProvider3 implements PathProvider3 {
 
     if (newPaths.isEmpty()) {
       LOG.warn("No enough valid path available.");
-      new RuntimeException().printStackTrace();
+      //      if (usedPath != null && isExpired(usedPath.path)) {
+      //        subscriber.pathsUpdated(null);
+      //        usedPath = null;
+      //      }
       return 1000; // TODO!!!
       // TODO replace the ones closest to expiration, try again later.
     }
@@ -192,14 +199,14 @@ public class SimplePathProvider3 implements PathProvider3 {
     // changes.
     // We try to maintain paths until they are expired or faulty.
 
-
     // Clean up faulty list
     Iterator<Entry> faultyIter = faultyPaths.iterator();
     while (faultyIter.hasNext()) {
       Entry e = faultyIter.next();
       Entry newEntry = newPaths.get(e);
       if (newEntry == null) {
-        // TODO why not completely clear the list? Except maybe replace faulty once tih identical refreshed ones?
+        // TODO why not completely clear the list? Except maybe replace faulty once tih identical
+        // refreshed ones?
         faultyIter.remove();
       }
     }
@@ -291,42 +298,24 @@ public class SimplePathProvider3 implements PathProvider3 {
   @Override
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
-  }
-
-  @Override
-  // TODO remove method?!?!?!
-  public void connect(long isdAs, InetSocketAddress destination) {
-    throw new UnsupportedOperationException();
-    //    if (isConnected()) {
-    //      throw new IllegalStateException("Path provider is already connected");
-    //    }
-    //    this.dstIsdAs = isdAs;
-    //    this.dstAddress = destination;
-    //    int n = 0;
-    //    for (Path p : pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress))) {
-    //      double rank = n++; // Very simple ranking: preserver ordering provided by PathPolicy
-    //      unusedPaths.put(rank, new Entry(p, rank));
-    //    }
-    //
-    //    this.timerTask =
-    //        new TimerTask() {
-    //          @Override
-    //          public void run() {
-    //            try {
-    //              refreshAllPaths();
-    //            } catch (Exception e) {
-    //              LOG.error("Exception in PathProvider timer task", e);
-    //            }
-    //          }
-    //        };
-    //
-    //    timer.scheduleAtFixedRate(timerTask, configPathPollIntervalMs, configPathPollIntervalMs);
+    if (isConnected()) {
+      refreshAllPaths();
+      if ((usedPath == null || isExpired(usedPath.path)) && unusedPaths.isEmpty()) {
+        String isdAs = ScionUtil.toStringIA(dstIsdAs);
+        throw new ScionRuntimeException(
+            "No path found to destination: " + isdAs + "," + dstAddress);
+      }
+    }
   }
 
   private boolean aboutToExpire(Path path) {
     // TODO why is expiration part of the metadata? Server paths can also expire!
     long epochSeconds = path.getMetadata().getExpiration();
     return epochSeconds - configExpirationMarginSec < Instant.now().getEpochSecond();
+  }
+
+  private boolean isExpired(Path path) {
+    return path.getMetadata().getExpiration() < Instant.now().getEpochSecond();
   }
 
   @Override
@@ -348,7 +337,8 @@ public class SimplePathProvider3 implements PathProvider3 {
     }
 
     // Scenarios:
-    // 1) Multipath: We connect to a destination ISD/AS/IP. Multiple subscribers automatically get paths
+    // 1) Multipath: We connect to a destination ISD/AS/IP. Multiple subscribers automatically get
+    // paths
     //    connect(...) seems unnecessary, maybe without argument?
     // 2) SinglePath with connect(IP): We connect to a specific ISD/AS/IP.
     //    This overrides anything done during subscribe().
@@ -393,8 +383,6 @@ public class SimplePathProvider3 implements PathProvider3 {
     // keeps the API/implementation simple.
     // Concurrent transfer (bandwidth or redundancy) should be done in separate implementations
     // anyway. These would probably require a packet scheduler and not support send(path/IP).
-
-
 
     this.timerTask =
         new TimerTask() {
@@ -443,12 +431,22 @@ public class SimplePathProvider3 implements PathProvider3 {
       timer.remove(timerTask);
       timerTask.cancel();
     }
-//    this.timerTask = null;
+    //    this.timerTask = null;
     this.dstAddress = null;
     this.dstIsdAs = 0;
     this.unusedPaths.clear();
     this.usedPath = null;
     this.faultyPaths.clear();
+  }
+
+  @Override
+  public long getIsdAs() {
+    return dstIsdAs;
+  }
+
+  @Override
+  public InetSocketAddress getAddress() {
+    return dstAddress;
   }
 
   public boolean isConnected() {

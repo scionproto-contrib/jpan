@@ -97,36 +97,24 @@ import org.scion.jpan.*;
  * - The DPP acts as a path cache. How often should we refresh? -> Good question. <br>
  * - try refreshing. How does it work? At what point can we expect a fresh path from the CS? How
  * close must it be to expiry?<br>
+ * -------------------------- September 2025 -------------------------- What does this class do: -
+ * If connected: provides paths to the connected destination according to the path policy. - ONLY
+ * for request paths / only on client - Behavior: - send(path) -> just use path (maybe check
+ * expiry?) --> DEPRECATE!? Or keep for advanced use, e.g. use specific path or fail..? -> remove. -
+ * send(isa) -> resolve + get path according to policy. Cache multiple providers? Oner per ISA?????
+ * -> Configurable cache size. WARN if it runs out... WEAK? - send(SSA) -> just use path (maybe
+ * check expiry?) - write() -> get path according to policy
  *
+ * <p>- connect(isa) -> resolve and get paths according to policy ???????????????? - connect(SSA) ->
+ * Use path and replace according to policy?? Replace with identical if possible? Otherwise? -
+ * connect(path) -> do same as connect(SSA) or, set has default path (maybe check expiry?) -->
+ * DEPRECATE! - disconnect() -> forget paths + provider
  *
+ * <p>- Different providers: - Single provider -> Single path, no refresh -> RefreshPolicy.OFF -
+ * SingleRenewing provider -> Single path, refresh on expiry -> RefreshPolicy.SAME_LINKS - Renewing
+ * provider -> Multiple paths, use path policy, refresh on expiry -> RefreshPolicy.POLICY
  *
- * -------------------------- September 2025 --------------------------
- * What does this class do:
- * - If connected: provides paths to the connected destination according to the path policy.
- * - ONLY for request paths / only on client
- * - Behavior:
- *   - send(path) -> just use path (maybe check expiry?)
- *            --> DEPRECATE!? Or keep for advanced use, e.g. use specific path or fail..? -> remove.
- *   - send(isa) -> resolve + get path according to policy.
- *                  Cache multiple providers? Oner per ISA?????
- *                  -> Configurable cache size. WARN if it runs out... WEAK?
- *   - send(SSA) -> just use path (maybe check expiry?)
- *   - write() -> get path according to policy
- *
- *   - connect(isa) -> resolve and get paths according to policy ????????????????
- *   - connect(SSA) -> Use path and replace according to policy??
- *                     Replace with identical if possible? Otherwise?
- *   - connect(path) -> do same as connect(SSA) or, set has default path (maybe check expiry?)  --> DEPRECATE!
- *   - disconnect() -> forget paths + provider
- *
- * - Different providers:
- *   - Single provider -> Single path, no refresh -> RefreshPolicy.OFF
- *   - SingleRenewing provider -> Single path, refresh on expiry -> RefreshPolicy.SAME_LINKS
- *   - Renewing provider -> Multiple paths, use path policy, refresh on expiry -> RefreshPolicy.POLICY
- *
- *
- * - PathPolicy
- *   - Should SSA have a path policy?
+ * <p>- PathPolicy - Should SSA have a path policy?
  *
  * @deprecated Needs work.
  */
@@ -157,7 +145,8 @@ public class PathPolicyHandler {
     this.mode = mode;
   }
 
-  public static PathPolicyHandler create(ScionService service, PathPolicy policy, RefreshPolicy mode) {
+  public static PathPolicyHandler create(
+      ScionService service, PathPolicy policy, RefreshPolicy mode) {
     return new PathPolicyHandler(service, policy, mode);
   }
 

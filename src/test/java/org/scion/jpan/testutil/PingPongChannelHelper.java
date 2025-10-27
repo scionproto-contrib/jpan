@@ -32,8 +32,20 @@ public class PingPongChannelHelper extends PingPongHelperBase {
       boolean resetCounters,
       String serverIsdAs,
       InetSocketAddress serverAddress,
-      ScionService service) {
-    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, serverAddress, service);
+      ScionService service,
+      int startUpTimeoutSecs,
+      int runTimeoutSecs) {
+    super(
+        nServers,
+        nClients,
+        nRounds,
+        connect,
+        resetCounters,
+        serverIsdAs,
+        serverAddress,
+        service,
+        startUpTimeoutSecs,
+        runTimeoutSecs);
   }
 
   public static Builder newBuilder(int nServers, int nClients, int nRounds) {
@@ -192,7 +204,9 @@ public class PingPongChannelHelper extends PingPongHelperBase {
           checkCounters,
           serverIsdAs,
           serverAddress,
-          service());
+          service(),
+          timeoutSecStartUp,
+          timeoutSecRun);
     }
 
     public Builder serverBindAddress(InetSocketAddress serverBindAddress) {
