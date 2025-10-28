@@ -27,40 +27,14 @@ import org.slf4j.LoggerFactory;
 /**
  * The SimplePathProvider simply provides the next best path. Lifecycle:<br>
  * 1) create PathProvider <br>
- * 2) subscribe<br>
- * 3) connect<br>
- * 4) disconnect<br>
- * 5) unsubscribe<br>
+ * 2) subscribe()<br>
+ * 3) connect()<br>
+ * 4) disconnect()<br>
+ * 5) unsubscribe()<br>
  *
  * <p>The PathProvider will periodically poll the ScionService for new paths. It will poll for new
  * path either if: a path is about to expire, or if the polling interval elapses, or if there is no
  * path available for a new subscriber.
- *
- * <p>------------------------------------------------------ TODO
- *
- * <p>What does this class do: - If connected: provides paths to the connected destination according
- * to the path policy. <br>
- * - ONLY for request paths / only on client - Behavior: <br>
- * -- send(path) -> just use path (maybe check expiry?) --> DEPRECATE!? Or keep for advanced use,
- * e.g. use specific path or fail..? -> remove. <br>
- * -- send(isa) -> resolve + get path according to policy. Cache multiple providers? Oner per
- * ISA????? -> Configurable cache size. WARN if it runs out... WEAK? -- send(SSA) -> just use path
- * (maybe check expiry?) - write() -> get path according to policy <br>
- *
- * <p>- connect(isa) -> resolve and get paths according to policy ???????????????? <br>
- * - connect(SSA) -> Use path and replace according to policy?? Replace with identical if possible?
- * Otherwise? <br>
- * - connect(path) -> do same as connect(SSA) or, set has default path (maybe check expiry?) -->
- * DEPRECATE! <br>
- * - disconnect() -> forget paths + provider <br>
- *
- * <p>Different providers: <br>
- * - Single provider -> Single path, no refresh -> RefreshPolicy.OFF <br>
- * - SingleRenewing provider -> Single path, refresh on expiry -> RefreshPolicy.SAME_LINKS <br>
- * - Renewing provider -> Multiple paths, use path policy, refresh on expiry -> RefreshPolicy.POLICY
- * <br>
- *
- * <p>- PathPolicy - Should SSA have a path policy? <br>
  */
 public class PathProviderSimple implements PathProvider {
 
@@ -172,18 +146,11 @@ public class PathProviderSimple implements PathProvider {
   }
 
   // Synchronized because it is called by timer
-  private synchronized long refreshAllPaths() {
+  private synchronized boolean refreshAllPaths() {
     if (!isConnected()) {
       // We probably have been disconnected concurrently.
-      return 0; // TODO -1?
+      return false; // TODO -1?
     }
-
-    // Path polling:
-    // - We poll at a fixed interval.
-    // - TODO generally, we should think about doing the polling centrally so that we reuse path
-    //     requests to the same remote AS. Central polling could be done with subscriptions
-    //     or with a central polling timer that consolidates polling to identical remote ASes.
-    long nextExpiration = configPathPollIntervalMs;
 
     // Purpose:
     // 1) Get new paths from the service
@@ -204,7 +171,7 @@ public class PathProviderSimple implements PathProvider {
 
     if (newPaths.isEmpty()) {
       LOG.warn("No enough valid path available.");
-      return 1000; // TODO!!!
+      return true; // TODO!!!
     }
 
     // Clean up faulty list
@@ -262,8 +229,7 @@ public class PathProviderSimple implements PathProvider {
     } else {
       throw new IllegalStateException("Unknown replace strategy");
     }
-
-    return nextExpiration;
+    return true;
   }
 
   private Path getFreePath() {
@@ -341,60 +307,11 @@ public class PathProviderSimple implements PathProvider {
     // use this path
     unusedPaths.put(0.0, new Entry(path, 0.0));
     subscriber.pathsUpdated(getFreePath());
-    long nextExpiration = path.getMetadata().getExpiration();
 
     if (aboutToExpire(path)) {
       // fetch new paths
-      nextExpiration = refreshAllPaths();
+      refreshAllPaths();
     }
-
-    // Scenarios:
-    // 1) Multipath: We connect to a destination ISD/AS/IP. Multiple subscribers automatically get
-    // paths
-    //    connect(...) seems unnecessary, maybe without argument?
-    // 2) SinglePath with connect(IP): We connect to a specific ISD/AS/IP.
-    //    This overrides anything done during subscribe().
-    // 3) SinglePath with connect(Path): We connect with a specific path to ISD/AS/IP.
-    //    Similar to 2) this overrides subscribe(). In addition it sets filters for a specific path.
-    // 4) SinglePath with send(). Should we differ between RequestPath vs ResponsePath?
-    //    No -> This would violate polymorphism and makes it hard to understand...?
-    //    We could just allow automatic renewal....
-
-    // Summary:
-    // - Subscribe: sets ScionService and other settings. Mostly immutable(?)
-    // - Connect: sets ISD/AS/IP
-
-    // Multipath: we should use multiple subscribe(?) and a single connect().
-    //            If we do multipath with a single path, we can do with a single subscribe()
-    //            -> Do we need multiple sockets for multi path? A single socket used concurrently?
-    // - Latency-MP: Can definitely be done with a single socket. SHOULD be done with single socket.
-    // - Redundancy-MP: Can be done with single socket.
-    // - Bandwidth-MP: ....?
-
-    //
-
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // Conclusion 2025-10-10
-    // Most cases will require only a single subscriber.
-    // For sake of simplicity:
-    // We support only one socket/channel per PathProvider. This supports most use-cases and
-    // keeps the API/implementation simple.
-    // Concurrent transfer (bandwidth or redundancy) should be done in separate implementations
-    // anyway. These would probably require a packet scheduler and not support send(path/IP).
 
     this.timerTask =
         new TimerTask() {
@@ -402,7 +319,15 @@ public class PathProviderSimple implements PathProvider {
           public void run() {
             try {
               try {
-                long nextExpiration = refreshAllPaths();
+                refreshAllPaths();
+                // Path polling:
+                // - We poll at a fixed interval.
+                // - TODO generally, we should think about doing the polling centrally so that we reuse path
+                //     requests to the same remote AS. Central polling could be done with subscriptions
+                //     or with a central polling timer that consolidates polling to identical remote ASes.
+                long nextExpiration = configPathPollIntervalMs;
+
+
                 long delaySec =
                     nextExpiration - Instant.now().getEpochSecond() - configExpirationMarginSec;
                 if (timerTask != null) {
@@ -422,10 +347,8 @@ public class PathProviderSimple implements PathProvider {
           }
         };
 
-    long delaySec = nextExpiration - Instant.now().getEpochSecond() - configExpirationMarginSec;
-    // TODO is 100 milliseconds good?
     ScheduledFuture f =
-        timer.schedule(timerTask, delaySec > 0 ? delaySec * 1000L : 100L, TimeUnit.MILLISECONDS);
+        timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
     // TODO consider cancelling via f.cancel()
   }
 
@@ -449,16 +372,6 @@ public class PathProviderSimple implements PathProvider {
     this.unusedPaths.clear();
     this.usedPath = null;
     this.faultyPaths.clear();
-  }
-
-  @Override
-  public long getIsdAs() {
-    return dstIsdAs;
-  }
-
-  @Override
-  public InetSocketAddress getAddress() {
-    return dstAddress;
   }
 
   public boolean isConnected() {

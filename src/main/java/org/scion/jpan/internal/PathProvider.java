@@ -14,7 +14,6 @@
 
 package org.scion.jpan.internal;
 
-import java.net.InetSocketAddress;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
 
@@ -48,10 +47,6 @@ public interface PathProvider {
 
   /** Stop the path provider. */
   void disconnect();
-
-  long getIsdAs();
-
-  InetSocketAddress getAddress();
 
   interface PathUpdateCallback {
     void pathsUpdated(Path newPath);
