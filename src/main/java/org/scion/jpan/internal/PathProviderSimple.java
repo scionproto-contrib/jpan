@@ -16,7 +16,6 @@ package org.scion.jpan.internal;
 
 import java.net.InetSocketAddress;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -36,6 +35,32 @@ import org.slf4j.LoggerFactory;
  * <p>The PathProvider will periodically poll the ScionService for new paths. It will poll for new
  * path either if: a path is about to expire, or if the polling interval elapses, or if there is no
  * path available for a new subscriber.
+ *
+ * <p>------------------------------------------------------ TODO
+ *
+ * <p>What does this class do: - If connected: provides paths to the connected destination according
+ * to the path policy. <br>
+ * - ONLY for request paths / only on client - Behavior: <br>
+ * -- send(path) -> just use path (maybe check expiry?) --> DEPRECATE!? Or keep for advanced use,
+ * e.g. use specific path or fail..? -> remove. <br>
+ * -- send(isa) -> resolve + get path according to policy. Cache multiple providers? Oner per
+ * ISA????? -> Configurable cache size. WARN if it runs out... WEAK? -- send(SSA) -> just use path
+ * (maybe check expiry?) - write() -> get path according to policy <br>
+ *
+ * <p>- connect(isa) -> resolve and get paths according to policy ???????????????? <br>
+ * - connect(SSA) -> Use path and replace according to policy?? Replace with identical if possible?
+ * Otherwise? <br>
+ * - connect(path) -> do same as connect(SSA) or, set has default path (maybe check expiry?) -->
+ * DEPRECATE! <br>
+ * - disconnect() -> forget paths + provider <br>
+ *
+ * <p>Different providers: <br>
+ * - Single provider -> Single path, no refresh -> RefreshPolicy.OFF <br>
+ * - SingleRenewing provider -> Single path, refresh on expiry -> RefreshPolicy.SAME_LINKS <br>
+ * - Renewing provider -> Multiple paths, use path policy, refresh on expiry -> RefreshPolicy.POLICY
+ * <br>
+ *
+ * <p>- PathPolicy - Should SSA have a path policy? <br>
  */
 public class PathProviderSimple implements PathProvider {
 
@@ -66,8 +91,6 @@ public class PathProviderSimple implements PathProvider {
      * Replace with the best ranked path available, but only if the current path is about to expire.
      */
     BEST_RANK_IF_EXPIRED,
-    @Deprecated
-    IGNORE_EXPIRED
   }
 
   private static class Entry {
@@ -154,10 +177,14 @@ public class PathProviderSimple implements PathProvider {
       // We probably have been disconnected concurrently.
       return 0; // TODO -1?
     }
-    if (replaceStrategy == ReplaceStrategy.IGNORE_EXPIRED) {
-      return Instant.now().plus(60, ChronoUnit.SECONDS).getEpochSecond();
-    }
-    long nextExpiration = Long.MAX_VALUE;
+
+    // Path polling:
+    // - We poll at a fixed interval.
+    // - TODO generally, we should think about doing the polling centrally so that we reuse path
+    //     requests to the same remote AS. Central polling could be done with subscriptions
+    //     or with a central polling timer that consolidates polling to identical remote ASes.
+    long nextExpiration = configPathPollIntervalMs;
+
     // Purpose:
     // 1) Get new paths from the service
     // 2) Discard paths that are about to expire
@@ -168,36 +195,17 @@ public class PathProviderSimple implements PathProvider {
     Map<Entry, Entry> newPaths = new HashMap<>();
     int n = 0;
     for (Path p : newPaths2) {
-      // Avoid paths that are about o expire
-      if (!aboutToExpire(p)) {
+      // Avoid paths that are about to expire
+      if (!aboutToExpire(p, configPathPollIntervalMs)) {
         Entry newEntry = new Entry(p, n++);
         newPaths.put(newEntry, newEntry);
-        // TODO measure only expiration of paths that are actually in use?!??!!
-        nextExpiration = Math.min(nextExpiration, p.getMetadata().getExpiration());
       }
     }
 
     if (newPaths.isEmpty()) {
       LOG.warn("No enough valid path available.");
-      //      if (usedPath != null && isExpired(usedPath.path)) {
-      //        subscriber.pathsUpdated(null);
-      //        usedPath = null;
-      //      }
       return 1000; // TODO!!!
-      // TODO replace the ones closest to expiration, try again later.
     }
-
-    // Unused path: Replace list of unused paths with new paths (after removing used paths and
-    // faulty paths)
-    // Used paths: Replace list. Use callback to replace paths.
-    //   Replace immediately if old path is not available anymore.
-    //   Maybe: delay until the path is about to expire before the next path fetching?
-    // Faulty paths: Remove from list if path is not available anymore
-    //   Maybe: try to reuse faulty paths? Depending on ranking?
-
-    // We could simply assign new paths to used paths, but this would cause unnecessary path
-    // changes.
-    // We try to maintain paths until they are expired or faulty.
 
     // Clean up faulty list
     Iterator<Entry> faultyIter = faultyPaths.iterator();
@@ -205,9 +213,11 @@ public class PathProviderSimple implements PathProvider {
       Entry e = faultyIter.next();
       Entry newEntry = newPaths.get(e);
       if (newEntry == null) {
-        // TODO why not completely clear the list? Except maybe replace faulty once tih identical
-        // refreshed ones?
+        // Path has no new version, remove it.
         faultyIter.remove();
+      } else {
+        // In case we retry this path later.
+        e.set(newEntry);
       }
     }
 
@@ -217,6 +227,7 @@ public class PathProviderSimple implements PathProvider {
       unusedPaths.put(e.rank, e);
     }
 
+    // Update path that are currently in use.
     if (replaceStrategy == ReplaceStrategy.EXACT_MATCH) {
       // Check used paths
       if (usedPath != null) {
@@ -259,10 +270,6 @@ public class PathProviderSimple implements PathProvider {
     if (unusedPaths.isEmpty()) {
       // No new path available
       LOG.warn("No free path available.");
-      // TODO can we do this without causing recursive calls?
-      //    -> refreshAllPaths();
-      // TODO fetch new paths, especially if we only have a single path
-      // TODO try using faulty paths that might have recovered
       return null;
     }
     Entry e = unusedPaths.pollFirstEntry().getValue();
@@ -311,7 +318,12 @@ public class PathProviderSimple implements PathProvider {
   private boolean aboutToExpire(Path path) {
     // TODO why is expiration part of the metadata? Server paths can also expire!
     long epochSeconds = path.getMetadata().getExpiration();
-    return epochSeconds - configExpirationMarginSec < Instant.now().getEpochSecond();
+    return epochSeconds < Instant.now().getEpochSecond() + configExpirationMarginSec;
+  }
+
+  private boolean aboutToExpire(Path path, int expirationDelta) {
+    long epochSeconds = path.getMetadata().getExpiration();
+    return epochSeconds < Instant.now().getEpochSecond() + expirationDelta;
   }
 
   private boolean isExpired(Path path) {
