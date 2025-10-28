@@ -17,9 +17,9 @@ package org.scion.jpan.internal;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.scion.jpan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +41,7 @@ public class PathProviderSimple implements PathProvider {
   private static final Logger LOG = LoggerFactory.getLogger(PathProviderSimple.class.getName());
   private static final ScheduledThreadPoolExecutor timer = new ScheduledThreadPoolExecutor(1);
 
-  private TimerTask timerTask;
+  private final TimerTask timerTask;
   private final ScionService service;
   private long dstIsdAs;
   private InetSocketAddress dstAddress;
@@ -143,6 +143,31 @@ public class PathProviderSimple implements PathProvider {
     this.configPathPollIntervalMs = pollIntervalMs;
     this.configExpirationMarginSec = expirationMarginSec;
     this.replaceStrategy = strategy;
+
+    this.timerTask =
+        new TimerTask() {
+          @Override
+          public void run() {
+            boolean restart = true;
+            try {
+              restart = refreshAllPaths();
+              // Path polling:
+              // - We poll at a fixed interval.
+              // - TODO generally, we should think about doing the polling centrally so that we
+              //     reuse path requests to the same remote AS. Central polling could be done with
+              //     subscriptions or with a central polling timer that consolidates polling to
+              //     identical remote ASes.
+            } catch (Exception e) {
+              String time = configPathPollIntervalMs + "ms";
+              LOG.error("Exception in PathProvider timer task, trying again in " + time, e);
+              e.printStackTrace();
+            } finally {
+              if (restart) {
+                timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+              }
+            }
+          }
+        };
   }
 
   // Synchronized because it is called by timer
@@ -171,7 +196,7 @@ public class PathProviderSimple implements PathProvider {
 
     if (newPaths.isEmpty()) {
       LOG.warn("No enough valid path available.");
-      return true; // TODO!!!
+      return true;
     }
 
     // Clean up faulty list
@@ -250,8 +275,8 @@ public class PathProviderSimple implements PathProvider {
       throw new IllegalArgumentException("Path not managed by this provider");
     }
     if (e.path != p) {
-      // TODO ignore?
-      throw new IllegalArgumentException("Path not managed by this provider");
+      LOG.error("Path not managed by this provider");
+      return;
     }
     e.setFaulty(Instant.now());
     faultyPaths.add(e);
@@ -313,60 +338,18 @@ public class PathProviderSimple implements PathProvider {
       refreshAllPaths();
     }
 
-    this.timerTask =
-        new TimerTask() {
-          @Override
-          public void run() {
-            try {
-              try {
-                refreshAllPaths();
-                // Path polling:
-                // - We poll at a fixed interval.
-                // - TODO generally, we should think about doing the polling centrally so that we reuse path
-                //     requests to the same remote AS. Central polling could be done with subscriptions
-                //     or with a central polling timer that consolidates polling to identical remote ASes.
-                long nextExpiration = configPathPollIntervalMs;
-
-
-                long delaySec =
-                    nextExpiration - Instant.now().getEpochSecond() - configExpirationMarginSec;
-                if (timerTask != null) {
-                  timer.schedule(
-                      timerTask, delaySec > 0 ? delaySec * 1000L : 100L, TimeUnit.MILLISECONDS);
-                }
-              } catch (Exception e) {
-                LOG.error("Exception in PathProvider timer task, trying again in 10sec", e);
-                e.printStackTrace();
-                // Trying again in 10sec
-                timer.schedule(timerTask, 10, TimeUnit.SECONDS);
-              }
-            } catch (Throwable t) {
-              LOG.error("Throwable in PathProvider timer task, stopping", t);
-              t.printStackTrace();
-            }
-          }
-        };
-
-    ScheduledFuture f =
-        timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
-    // TODO consider cancelling via f.cancel()
+    timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
   }
 
   @Override
   public synchronized void disconnect() {
-    //    if (!isConnected()) {
-    //      throw new IllegalStateException("Path provider is not connected");
-    //    }
     Entry e = usedPath;
     if (e != null) {
       unusedPaths.put(e.rank, e);
     }
 
-    if (timerTask != null) {
-      timer.remove(timerTask);
-      timerTask.cancel();
-    }
-    //    this.timerTask = null;
+    timer.remove(timerTask);
+    this.timerTask.cancel();
     this.dstAddress = null;
     this.dstIsdAs = 0;
     this.unusedPaths.clear();
