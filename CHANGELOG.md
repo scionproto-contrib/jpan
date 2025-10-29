@@ -102,8 +102,13 @@ TODO
   - Replace path if better paths are available
   - Concurrent probing paths for latency/reliability/MTU...
 TODO:
-  - Document POLLING_INTERVALL
-  - Remove EXPIRY_MARGIN from Channel and/or make it a Provider property?
+  - PATH_POLLING:
+    - Allow setting to infinity, e.g. trigger only when path expires (same link) or no path is left?
+    - Consolidate polling to once every 60seconds per remote AS.
+    - Document POLLING_INTERVAL and implement PROPERTY/ENV reading (is already in Constants)
+  - Remove PathPolicyHandler!
+  - Create new package for Paths with Provider interface and implementations. -> "pathProviders"?
+    Or put into ppl???
 - Test that connect(path) with outdated path triggers daemon call for new paths (not expired).
 - Test that connect(path) with 2nd channel triggers daemon call for new path (multiple)
 - Test that connect(path) faulty path triggers daemon call for new paths.

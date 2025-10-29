@@ -76,35 +76,6 @@ class PathProviderTest {
   }
 
   @Test
-  void noPathFound() throws InterruptedException {
-    // Test that the provider does not loop when no path is found.
-    ScionService service = Scion.defaultService();
-    PathProviderSimple pp =
-        PathProviderSimple.create(
-            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
-
-    AtomicReference<Path> path = new AtomicReference<>();
-    Path p = PackageVisibilityHelper.createDummyPath();
-    p = PackageVisibilityHelper.createExpiredPath(p, 100);
-    path.set(p);
-
-    CountDownLatch barrier = new CountDownLatch(1);
-    pp.subscribe(
-        newPath -> {
-          path.set(newPath);
-          barrier.countDown();
-        });
-    // TODO can we change this test so it actually tests for the timerthread?
-    //   -> It should check what happens if the timer thread suddenly gets no paths.
-    pp.connect(path.get());
-    assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
-
-    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
-    // Path is expired, but we keep it because there is no better path
-    assertEquals(p, path.get());
-  }
-
-  @Test
   void connect_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
