@@ -197,7 +197,7 @@ public class MockDaemon implements AutoCloseable {
       awaitBlock(); // for testing timeouts
       ByteString rawPath1 = ByteString.copyFrom(PATH_RAW_TINY_110_112);
       ByteString rawPath11 = ByteString.copyFrom(PATH_RAW_TINY_110_112_b);
-      long expirySecs = Instant.now().getEpochSecond() + Constants.DEFAULT_PATH_EXPIRY_MARGIN + 5;
+      long expirySecs = Instant.now().getEpochSecond() + 1000;
       Timestamp expiry = Timestamp.newBuilder().setSeconds(expirySecs).build();
       Daemon.PathsResponse.Builder replyBuilder = Daemon.PathsResponse.newBuilder();
       if (req.getSourceIsdAs() == ExamplePacket.SRC_IA
