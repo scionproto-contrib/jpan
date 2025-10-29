@@ -18,7 +18,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;

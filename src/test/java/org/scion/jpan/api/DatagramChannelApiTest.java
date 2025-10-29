@@ -386,7 +386,22 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getPathPolicy_filterReturnsEmptyList() throws IOException {
+  void setPathPolicy_filterReturnsEmptyList() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
+
+      // Create expired path
+      channel.connect(paths.get(0));
+
+      PathPolicy empty = paths1 -> Collections.emptyList();
+      // We expect an exception because there is no path available.
+      Exception e = assertThrows(ScionRuntimeException.class, () -> channel.setPathPolicy(empty));
+      assertTrue(e.getMessage().startsWith("No path found to destination"));
+    }
+  }
+
+  @Test
+  void connect_noPathFound() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
 
@@ -394,12 +409,9 @@ class DatagramChannelApiTest {
       PathPolicy empty = paths1 -> Collections.emptyList();
       channel.setPathPolicy(empty);
 
-      // Create expired path
+      // Create expired path to trigger PathProvider
       Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
-      channel.connect(expired);
-
-      channel.write(ByteBuffer.wrap(new byte[100]));
-      Exception e = assertThrows(ScionRuntimeException.class, () -> channel.setPathPolicy(empty));
+      Exception e = assertThrows(ScionRuntimeException.class, () -> channel.connect(expired));
       assertTrue(e.getMessage().startsWith("No path found to destination"));
     }
   }

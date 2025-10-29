@@ -102,6 +102,8 @@ TODO
   - Replace path if better paths are available
   - Concurrent probing paths for latency/reliability/MTU...
 TODO:
+  - Document POLLING_INTERVALL
+  - Remove EXPIRY_MARGIN from Channel and/or make it a Provider property?
 - Test that connect(path) with outdated path triggers daemon call for new paths (not expired).
 - Test that connect(path) with 2nd channel triggers daemon call for new path (multiple)
 - Test that connect(path) faulty path triggers daemon call for new paths.

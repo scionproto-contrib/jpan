@@ -16,8 +16,11 @@ package org.scion.jpan.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -91,11 +94,52 @@ class PathProviderTest {
           path.set(newPath);
           barrier.countDown();
         });
+    // TODO can we change this test so it actually tests for the timerthread?
+    //   -> It should check what happens if the timer thread suddenly gets no paths.
     pp.connect(path.get());
     assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
 
     assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
     // Path is expired, but we keep it because there is no better path
     assertEquals(p, path.get());
+  }
+
+  @Test
+  void connect_failsIfNoPath() throws IOException {
+    // Test that the provider does not loop when no path is found.
+    ScionService service = Scion.defaultService();
+    PathProviderSimple pp =
+        PathProviderSimple.create(
+            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+    pp.subscribe(newPath -> {});
+
+    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+
+    // Create empty path policy
+    PathPolicy empty = paths1 -> Collections.emptyList();
+    pp.setPathPolicy(empty);
+
+    // Create expired path to trigger PathProvider
+    Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
+    Exception e = assertThrows(ScionRuntimeException.class, () -> pp.connect(expired));
+    assertTrue(e.getMessage().startsWith("No path found to destination"));
+  }
+
+  @Test
+  void setPathPolicy_failsIfNoPath() throws IOException {
+    // Test that the provider does not loop when no path is found.
+    ScionService service = Scion.defaultService();
+    PathProviderSimple pp =
+        PathProviderSimple.create(
+            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+    pp.subscribe(newPath -> {});
+
+    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+    pp.connect(paths.get(0));
+
+    // Create empty path policy
+    PathPolicy empty = paths1 -> Collections.emptyList();
+    Exception e = assertThrows(ScionRuntimeException.class, () -> pp.setPathPolicy(empty));
+    assertTrue(e.getMessage().startsWith("No path found to destination"));
   }
 }

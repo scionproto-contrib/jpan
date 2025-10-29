@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.scion.jpan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -157,6 +156,9 @@ public class PathProviderSimple implements PathProvider {
               //     reuse path requests to the same remote AS. Central polling could be done with
               //     subscriptions or with a central polling timer that consolidates polling to
               //     identical remote ASes.
+              if (usedPath == null) {
+                LOG.warn("No enough valid path available.");
+              }
             } catch (Exception e) {
               String time = configPathPollIntervalMs + "ms";
               LOG.error("Exception in PathProvider timer task, trying again in " + time, e);
@@ -195,7 +197,6 @@ public class PathProviderSimple implements PathProvider {
     }
 
     if (newPaths.isEmpty()) {
-      LOG.warn("No enough valid path available.");
       return true;
     }
 
@@ -297,12 +298,21 @@ public class PathProviderSimple implements PathProvider {
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
     if (isConnected()) {
-      refreshAllPaths();
-      if ((usedPath == null || isExpired(usedPath.path)) && unusedPaths.isEmpty()) {
-        String isdAs = ScionUtil.toStringIA(dstIsdAs);
-        throw new ScionRuntimeException(
-            "No path found to destination: " + isdAs + "," + dstAddress);
+      if (usedPath != null) {
+        // Remove used path if it doesn't fit the policy
+        if (pathPolicy.filter(Collections.singletonList(usedPath.path)).isEmpty()) {
+          usedPath = null;
+        }
       }
+      refreshAllPaths();
+      assertPathExists();
+    }
+  }
+
+  private void assertPathExists() {
+    if ((usedPath == null || isExpired(usedPath.path)) && unusedPaths.isEmpty()) {
+      String isdAs = ScionUtil.toStringIA(dstIsdAs);
+      throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
     }
   }
 
@@ -339,6 +349,8 @@ public class PathProviderSimple implements PathProvider {
     }
 
     timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+
+    assertPathExists();
   }
 
   @Override
