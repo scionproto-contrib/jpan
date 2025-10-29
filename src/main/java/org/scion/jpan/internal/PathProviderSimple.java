@@ -188,7 +188,7 @@ public class PathProviderSimple implements PathProvider {
     int n = 0;
     for (Path p : newPaths2) {
       // Avoid paths that are about to expire
-      if (!aboutToExpire(p, configPathPollIntervalMs)) {
+      if (!aboutToExpireMs(p, configPathPollIntervalMs)) {
         Entry newEntry = new Entry(p, n++);
         newPaths.put(newEntry, newEntry);
       }
@@ -312,9 +312,9 @@ public class PathProviderSimple implements PathProvider {
     return epochSeconds < Instant.now().getEpochSecond() + configExpirationMarginSec;
   }
 
-  private boolean aboutToExpire(Path path, int expirationDelta) {
+  private boolean aboutToExpireMs(Path path, int expirationDeltaMs) {
     long epochSeconds = path.getMetadata().getExpiration();
-    return epochSeconds < Instant.now().getEpochSecond() + expirationDelta;
+    return epochSeconds < Instant.now().getEpochSecond() + expirationDeltaMs / 1000;
   }
 
   private boolean isExpired(Path path) {
@@ -333,7 +333,7 @@ public class PathProviderSimple implements PathProvider {
     unusedPaths.put(0.0, new Entry(path, 0.0));
     subscriber.pathsUpdated(getFreePath());
 
-    if (aboutToExpire(path)) {
+    if (aboutToExpireMs(path, configPathPollIntervalMs)) {
       // fetch new paths
       refreshAllPaths();
     }
