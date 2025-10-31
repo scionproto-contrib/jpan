@@ -25,6 +25,12 @@ TODO
 - FIX: weird 0-0:0 in some paths in PingAll output
 - FIX in README: clean up bootstrap sequence: Remove (debugging only) for some entries (e.g. NAPTR).
 
+- PATH_POLLING:
+  - Consolidate polling to once every 60seconds per remote AS.
+  - Make PAthProvider public API? Later?
+    Create new package for Paths with Provider interface and implementations. -> "pathProviders"?
+    Or put into ppl???
+  - 
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - Deprecate send(PATH)!!!!!
 - Path chaching!!!
@@ -97,28 +103,11 @@ TODO
 - Add API for concurrent PathProviders. 
   [#191](https://github.com/scionproto-contrib/jpan/pull/191)
   This enables:
-  - Refresh path if expired
-  - Replace path if it causes errors
+  - Refresh path if expired (implemented)
+  - Replace path if it causes errors (separate PR)
   - Replace path if better paths are available
-  - Concurrent probing paths for latency/reliability/MTU...
-TODO:
-  - PATH_POLLING:
-    - Allow setting to infinity, e.g. trigger only when path expires (same link) or no path is left?
-    - Consolidate polling to once every 60seconds per remote AS.
-    - Document POLLING_INTERVAL and implement PROPERTY/ENV reading (is already in Constants)
-  - Remove PathPolicyHandler!
-  - Create new package for Paths with Provider interface and implementations. -> "pathProviders"?
-    Or put into ppl???
-- Test that connect(path) with outdated path triggers daemon call for new paths (not expired).
-- Test that connect(path) with 2nd channel triggers daemon call for new path (multiple)
-- Test that connect(path) faulty path triggers daemon call for new paths.
-- Test proper error message if no paths are available.
-   -> checkPath(currentPath != null) should throw exception ("No paths available [to dst xyz]")
-- Replace Exercise: E.g. 
-  - Implement proper minimum MTU probing for paths
-  - Use multiple sockets/channels for concurrent transport. Implement a Meta-PathProvider that
-    implement distinct-paths-provision for multiple sockets/channels. 
-
+  - Concurrent probing paths for latency/reliability/MTU... (separate PR)
+ 
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
   [#180](https://github.com/scionproto-contrib/jpan/pull/180)
