@@ -62,7 +62,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
             : PathProviderSimple.create(
                 service,
                 PathPolicy.DEFAULT,
-                60_000,
                 Config.getPathExpiryMarginSeconds(),
                 PathProviderSimple.ReplaceStrategy.BEST_RANK));
   }
@@ -596,6 +595,9 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           cfgReportFailedValidation = (Boolean) t;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
+          if (pathProvider != null) {
+            pathProvider.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
+          }
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {

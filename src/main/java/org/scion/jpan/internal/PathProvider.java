@@ -48,6 +48,8 @@ public interface PathProvider {
   /** Stop the path provider. */
   void disconnect();
 
+  void setExpirationSafetyMargin(int cfgExpirationSafetyMargin);
+
   interface PathUpdateCallback {
     void pathsUpdated(Path newPath);
   }

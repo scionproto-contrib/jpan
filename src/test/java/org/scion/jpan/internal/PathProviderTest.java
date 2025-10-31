@@ -52,7 +52,7 @@ class PathProviderTest {
     ScionService service = Scion.defaultService();
     PathProviderSimple pp =
         PathProviderSimple.create(
-            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+            service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
 
     AtomicReference<Path> path = new AtomicReference<>();
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -81,7 +81,7 @@ class PathProviderTest {
     ScionService service = Scion.defaultService();
     PathProviderSimple pp =
         PathProviderSimple.create(
-            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+            service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -102,7 +102,7 @@ class PathProviderTest {
     ScionService service = Scion.defaultService();
     PathProviderSimple pp =
         PathProviderSimple.create(
-            service, PathPolicy.DEFAULT, 100, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+            service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);

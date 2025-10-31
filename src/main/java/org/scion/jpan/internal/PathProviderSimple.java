@@ -121,25 +121,17 @@ public class PathProviderSimple implements PathProvider {
   }
 
   public static PathProviderSimple create(
-      ScionService service,
-      PathPolicy policy,
-      int pollIntervalMs,
-      int expirationMarginSec,
-      ReplaceStrategy strategy) {
-    return new PathProviderSimple(service, policy, pollIntervalMs, expirationMarginSec, strategy);
+      ScionService service, PathPolicy policy, int expirationMarginSec, ReplaceStrategy strategy) {
+    return new PathProviderSimple(service, policy, expirationMarginSec, strategy);
   }
 
   private PathProviderSimple(
-      ScionService service,
-      PathPolicy policy,
-      int pollIntervalMs,
-      int expirationMarginSec,
-      ReplaceStrategy strategy) {
+      ScionService service, PathPolicy policy, int expirationMarginSec, ReplaceStrategy strategy) {
     this.service = service;
     this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;
-    this.configPathPollIntervalMs = pollIntervalMs;
+    this.configPathPollIntervalMs = Config.getPathPollingIntervalSeconds() * 1000;
     this.configExpirationMarginSec = expirationMarginSec;
     this.replaceStrategy = strategy;
 
@@ -367,6 +359,11 @@ public class PathProviderSimple implements PathProvider {
     this.unusedPaths.clear();
     this.usedPath = null;
     this.faultyPaths.clear();
+  }
+
+  @Override
+  public void setExpirationSafetyMargin(int cfgExpirationSafetyMargin) {
+    configExpirationMarginSec = cfgExpirationSafetyMargin;
   }
 
   public boolean isConnected() {
