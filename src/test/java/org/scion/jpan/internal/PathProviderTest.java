@@ -48,31 +48,25 @@ class PathProviderTest {
   }
 
   @Test
-  void replaceExpired() throws InterruptedException {
+  void replaceExpired() {
     ScionService service = Scion.defaultService();
     PathProviderSimple pp =
         PathProviderSimple.create(
             service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
 
-    AtomicReference<Path> path = new AtomicReference<>();
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
     p = PackageVisibilityHelper.createExpiredPath(p, 100);
-    path.set(p);
+    SubscriberHelper subscriber = new SubscriberHelper(p);
     // reset counter
     assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
 
-    CountDownLatch barrier = new CountDownLatch(1);
-    pp.subscribe(
-        newPath -> {
-          path.set(newPath);
-          barrier.countDown();
-        });
-    pp.connect(path.get());
-    assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
+    pp.subscribe(subscriber::callback);
+    pp.connect(p);
+    subscriber.await();
 
     assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
-    assertNotEquals(p, path.get());
+    assertNotEquals(p, subscriber.subscribedPath.get());
   }
 
   @Test
@@ -112,5 +106,68 @@ class PathProviderTest {
     PathPolicy empty = paths1 -> Collections.emptyList();
     Exception e = assertThrows(ScionRuntimeException.class, () -> pp.setPathPolicy(empty));
     assertTrue(e.getMessage().startsWith("No path found to destination"));
+  }
+
+  private static class SubscriberHelper {
+    AtomicReference<Path> subscribedPath = new AtomicReference<>();
+    CountDownLatch barrier = new CountDownLatch(1);
+
+    public SubscriberHelper(Path path) {
+      this.subscribedPath.set(path);
+    }
+
+    void callback(Path newPath) {
+      subscribedPath.set(newPath);
+      barrier.countDown();
+    }
+
+    void await() {
+
+      try {
+        assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  @Test
+  void reportFaultyPath() {
+    ScionService service = Scion.defaultService();
+    PathProviderSimple pp =
+        PathProviderSimple.create(
+            service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+
+    InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    List<Path> paths = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr);
+
+    // reset counter
+    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
+
+    SubscriberHelper subscriber = new SubscriberHelper(paths.get(0));
+    pp.subscribe(subscriber::callback);
+
+    pp.connect(paths.get(0));
+    subscriber.await();
+
+    assertEquals(paths.get(0), subscriber.subscribedPath.get());
+
+    // Replace path
+    pp.reportFaultyPath(paths.get(0));
+    assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
+    assertEquals(paths.get(1), subscriber.subscribedPath.get());
+
+    // No change when reporting again
+    pp.reportFaultyPath(paths.get(0));
+    assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
+    assertEquals(paths.get(1), subscriber.subscribedPath.get());
+
+    // Now reporting 2nd path
+    pp.reportFaultyPath(paths.get(1));
+    assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
+    assertNotEquals(paths.get(1), subscriber.subscribedPath.get());
+    assertEquals(paths.get(2), subscriber.subscribedPath.get());
+
+    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
   }
 }
