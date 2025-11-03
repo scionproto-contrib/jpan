@@ -16,6 +16,7 @@ package org.scion.jpan;
 
 import java.net.*;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * A Path is an InetSocketAddress/ISD/AS of a destination host plus a path to that host.
@@ -74,5 +75,19 @@ public abstract class Path {
         + ", pathRaw="
         + Arrays.toString(getRawPath())
         + '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof Path)) {
+      return false;
+    }
+    Path path = (Path) o;
+    return Objects.deepEquals(pathRaw, path.pathRaw) && Objects.equals(dstAddress, path.dstAddress);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(Arrays.hashCode(pathRaw), dstAddress);
   }
 }

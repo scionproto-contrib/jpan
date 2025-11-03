@@ -177,7 +177,7 @@ public class PathProviderSimple implements PathProvider {
     // 3) Consider retry path that were broken
 
     // 1) Get new paths from the service
-    Set<Path> newPaths2 = new HashSet<>(pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress)));
+    List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress));
     Map<Entry, Entry> newPaths = new HashMap<>();
     int n = 0;
     for (Path p : newPaths2) {
@@ -267,7 +267,7 @@ public class PathProviderSimple implements PathProvider {
     if (e == null) {
       throw new IllegalArgumentException("Path not managed by this provider");
     }
-    if (e.path != p) {
+    if (!Objects.equals(e.path, p)) {
       LOG.error("Path not managed by this provider");
       return;
     }

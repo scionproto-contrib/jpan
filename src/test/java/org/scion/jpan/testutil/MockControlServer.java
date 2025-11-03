@@ -131,6 +131,7 @@ public class MockControlServer {
 
   private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
+    final long start = Instant.now().getEpochSecond();
 
     ControlServiceImpl() {}
 
@@ -205,68 +206,82 @@ public class MockControlServer {
     private String key(long ia0, long ia1) {
       return ia0 + " -> " + ia1;
     }
-  }
 
-  private static Seg.SegmentsResponse defaultResponse(long srcIA, long dstIA) {
-    Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
-    if (srcIA == dstIA) {
-      // Single core AS, no paths are available
+    private Seg.SegmentsResponse defaultResponse(long srcIA, long dstIA) {
+      Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
+      if (srcIA == dstIA) {
+        // Single core AS, no paths are available
+        return replyBuilder.build();
+      }
+      // Wildcards are only used for CORE AS, and there is only one core AS in "tiny": 1-ff00:0:110
+      srcIA = ScionUtil.isWildcard(srcIA) ? ScionUtil.parseIA("1-ff00:0:110") : srcIA;
+      dstIA = ScionUtil.isWildcard(dstIA) ? ScionUtil.parseIA("1-ff00:0:110") : dstIA;
+
+      Seg.SegmentsResponse.Segments segments =
+          Seg.SegmentsResponse.Segments.newBuilder()
+              .addSegments(buildSegment(srcIA, dstIA, 1, 2))
+              .addSegments(buildSegment(srcIA, dstIA, 11, 22))
+              .build();
+      if (srcIA == ScionUtil.parseIA("1-ff00:0:110")) {
+        replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_DOWN_VALUE, segments);
+      } else if (dstIA == ScionUtil.parseIA("1-ff00:0:110")) {
+        replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_UP_VALUE, segments);
+      }
       return replyBuilder.build();
     }
-    // Wildcards are only used for CORE AS, and there is only one core AS in "tiny": 1-ff00:0:110
-    srcIA = ScionUtil.isWildcard(srcIA) ? ScionUtil.parseIA("1-ff00:0:110") : srcIA;
-    dstIA = ScionUtil.isWildcard(dstIA) ? ScionUtil.parseIA("1-ff00:0:110") : dstIA;
 
-    ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hop0 =
-        Seg.HopField.newBuilder().setMac(mac0).setIngress(3).setEgress(2).setExpTime(64).build();
-    Seg.HopEntry hopEntry0 =
-        Seg.HopEntry.newBuilder().setHopField(hop0).setIngressMtu(2345).build();
-    Seg.ASEntrySignedBody asSigneBody0 =
-        Seg.ASEntrySignedBody.newBuilder()
-            .setIsdAs(srcIA)
-            .setHopEntry(hopEntry0)
-            .setMtu(4567)
-            .build();
-    Signed.HeaderAndBodyInternal habi0 =
-        Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
-    Signed.SignedMessage sm0 =
-        Signed.SignedMessage.newBuilder().setHeaderAndBody(habi0.toByteString()).build();
-    Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
+    private Seg.PathSegment buildSegment(long srcIA, long dstIA, int ingress, int egress) {
+      ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
+      Seg.HopField hop0 =
+          Seg.HopField.newBuilder()
+              .setMac(mac0)
+              .setIngress(3)
+              .setEgress(egress)
+              .setExpTime(64)
+              .build();
+      Seg.HopEntry hopEntry0 =
+          Seg.HopEntry.newBuilder().setHopField(hop0).setIngressMtu(2345).build();
+      Seg.ASEntrySignedBody asSigneBody0 =
+          Seg.ASEntrySignedBody.newBuilder()
+              .setIsdAs(srcIA)
+              .setHopEntry(hopEntry0)
+              .setMtu(4567)
+              .build();
+      Signed.HeaderAndBodyInternal habi0 =
+          Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
+      Signed.SignedMessage sm0 =
+          Signed.SignedMessage.newBuilder().setHeaderAndBody(habi0.toByteString()).build();
+      Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
 
-    ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-    Seg.HopField hop1 =
-        Seg.HopField.newBuilder().setMac(mac1).setIngress(1).setEgress(0).setExpTime(64).build();
-    Seg.HopEntry hopEntry1 =
-        Seg.HopEntry.newBuilder().setHopField(hop1).setIngressMtu(1234).build();
-    Seg.ASEntrySignedBody asSigneBody1 =
-        Seg.ASEntrySignedBody.newBuilder()
-            .setIsdAs(dstIA)
-            .setHopEntry(hopEntry1)
-            .setMtu(3456)
-            .build();
-    Signed.HeaderAndBodyInternal habi1 =
-        Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
-    Signed.SignedMessage sm1 =
-        Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
-    Seg.ASEntry asEntry1 = Seg.ASEntry.newBuilder().setSigned(sm1).build();
+      ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
+      Seg.HopField hop1 =
+          Seg.HopField.newBuilder()
+              .setMac(mac1)
+              .setIngress(ingress)
+              .setEgress(0)
+              .setExpTime(64)
+              .build();
+      Seg.HopEntry hopEntry1 =
+          Seg.HopEntry.newBuilder().setHopField(hop1).setIngressMtu(1234).build();
+      Seg.ASEntrySignedBody asSigneBody1 =
+          Seg.ASEntrySignedBody.newBuilder()
+              .setIsdAs(dstIA)
+              .setHopEntry(hopEntry1)
+              .setMtu(3456)
+              .build();
+      Signed.HeaderAndBodyInternal habi1 =
+          Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
+      Signed.SignedMessage sm1 =
+          Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
+      Seg.ASEntry asEntry1 = Seg.ASEntry.newBuilder().setSigned(sm1).build();
 
-    long now = Instant.now().getEpochSecond();
-    Seg.SegmentInformation info = Seg.SegmentInformation.newBuilder().setTimestamp(now).build();
-    ByteString infoBS = info.toByteString();
-    Seg.PathSegment pathSegment =
-        Seg.PathSegment.newBuilder()
-            .addAsEntries(asEntry0)
-            .addAsEntries(asEntry1)
-            .setSegmentInfo(infoBS)
-            .build();
-    Seg.SegmentsResponse.Segments segments =
-        Seg.SegmentsResponse.Segments.newBuilder().addSegments(pathSegment).build();
-    if (srcIA == ScionUtil.parseIA("1-ff00:0:110")) {
-      replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_DOWN_VALUE, segments);
-    } else if (dstIA == ScionUtil.parseIA("1-ff00:0:110")) {
-      replyBuilder.putSegments(Seg.SegmentType.SEGMENT_TYPE_UP_VALUE, segments);
+      Seg.SegmentInformation info = Seg.SegmentInformation.newBuilder().setTimestamp(start).build();
+      ByteString infoBS = info.toByteString();
+      return Seg.PathSegment.newBuilder()
+          .addAsEntries(asEntry0)
+          .addAsEntries(asEntry1)
+          .setSegmentInfo(infoBS)
+          .build();
     }
-    return replyBuilder.build();
   }
 }

@@ -54,4 +54,16 @@ public class RequestPath extends Path {
   public PathMetadata getMetadata() {
     return metadata;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    // We do NOT compare the metadata.
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    // We do NOT compare the metadata.
+    return super.hashCode();
+  }
 }

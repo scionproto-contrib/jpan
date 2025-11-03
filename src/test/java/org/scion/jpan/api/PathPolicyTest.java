@@ -146,6 +146,6 @@ class PathPolicyTest {
     List<Path> newFiltered = policy.filter(newPaths);
     assertEquals(1, newFiltered.size());
     assertEquals(newPath, newFiltered.get(0));
-    assertNotEquals(path1, newFiltered.get(0));
+    assertNotSame(path1, newFiltered.get(0));
   }
 }
