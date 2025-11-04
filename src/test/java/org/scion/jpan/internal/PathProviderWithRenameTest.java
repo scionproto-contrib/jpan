@@ -30,7 +30,7 @@ import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
-class PathProviderTest {
+class PathProviderWithRenameTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
   private PathProviderWithRefresh pp = null;
