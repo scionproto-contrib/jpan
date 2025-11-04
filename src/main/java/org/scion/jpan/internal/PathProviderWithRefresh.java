@@ -37,6 +37,9 @@ public class PathProviderWithRefresh implements PathProvider {
   private static final Logger LOG =
       LoggerFactory.getLogger(PathProviderWithRefresh.class.getName());
   private static final ScheduledThreadPoolExecutor timer = new ScheduledThreadPoolExecutor(1);
+  static {
+    timer.setRemoveOnCancelPolicy(true);
+  }
 
   private final Runnable timerTask;
   private Future<?> timerFuture;
@@ -296,8 +299,6 @@ public class PathProviderWithRefresh implements PathProvider {
 
     if (timerFuture != null) {
       timerFuture.cancel(true);
-      // Java bug? cancel() should remove the task, but it doesn't, see timer.getQueue().size()
-      timer.remove(((RunnableScheduledFuture<?>) timerFuture));
       timerFuture = null;
     }
     this.dstAddress = null;
