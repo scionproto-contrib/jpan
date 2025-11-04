@@ -17,6 +17,8 @@ package org.scion.jpan.internal;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.Future;
+import java.util.concurrent.RunnableScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.*;
@@ -24,23 +26,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The SimplePathProvider simply provides the next best path. Lifecycle:<br>
- * 1) create PathProvider <br>
- * 2) subscribe()<br>
- * 3) connect()<br>
- * 4) disconnect()<br>
- * 5) unsubscribe()<br>
+ * The PathProviderWithRefresh will periodically poll the ScionService for new paths. It will poll
+ * for new path either if: a path is about to expire, or if the polling interval elapses, or if
+ * there is no path available for a new subscriber.
  *
- * <p>The PathProvider will periodically poll the ScionService for new paths. It will poll for new
- * path either if: a path is about to expire, or if the polling interval elapses, or if there is no
- * path available for a new subscriber.
+ * @see org.scion.jpan.internal.PathProvider
  */
-public class PathProviderSimple implements PathProvider {
+public class PathProviderWithRefresh implements PathProvider {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PathProviderSimple.class.getName());
+  private static final Logger LOG =
+      LoggerFactory.getLogger(PathProviderWithRefresh.class.getName());
   private static final ScheduledThreadPoolExecutor timer = new ScheduledThreadPoolExecutor(1);
 
-  private final TimerTask timerTask;
+  private final Runnable timerTask;
+  private Future<?> timerFuture;
   private final ScionService service;
   private long dstIsdAs;
   private InetSocketAddress dstAddress;
@@ -108,12 +107,16 @@ public class PathProviderSimple implements PathProvider {
     }
   }
 
-  public static PathProviderSimple create(
+  public static PathProviderWithRefresh create(
       ScionService service, PathPolicy policy, int expirationMarginSec) {
-    return new PathProviderSimple(service, policy, expirationMarginSec);
+    return new PathProviderWithRefresh(service, policy, expirationMarginSec);
   }
 
-  private PathProviderSimple(ScionService service, PathPolicy policy, int expirationMarginSec) {
+  private PathProviderWithRefresh(
+      ScionService service, PathPolicy policy, int expirationMarginSec) {
+    if (service == null) {
+      throw new IllegalArgumentException();
+    }
     this.service = service;
     this.dstIsdAs = 0;
     this.dstAddress = null;
@@ -125,25 +128,17 @@ public class PathProviderSimple implements PathProvider {
         new TimerTask() {
           @Override
           public void run() {
-            boolean restart = true;
             try {
-              restart = refreshAllPaths();
-              // Path polling:
-              // - We poll at a fixed interval.
-              // - TODO generally, we should think about doing the polling centrally so that we
-              //     reuse path requests to the same remote AS. Central polling could be done with
-              //     subscriptions or with a central polling timer that consolidates polling to
-              //     identical remote ASes.
-              if (usedPath == null) {
-                LOG.warn("No enough valid path available.");
+              if (isConnected()) {
+                refreshAllPaths();
               }
             } catch (Exception e) {
               String time = configPathPollIntervalMs + "ms";
-              LOG.error("Exception in PathProvider timer task, trying again in " + time, e);
-              e.printStackTrace();
+              LOG.error("Exception in PathProvider timer task, trying again in {}", time, e);
             } finally {
-              if (restart) {
-                timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+              if (isConnected()) {
+                timerFuture =
+                    timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
               }
             }
           }
@@ -151,16 +146,11 @@ public class PathProviderSimple implements PathProvider {
   }
 
   // Synchronized because it is called by timer
-  private synchronized boolean refreshAllPaths() {
-    if (!isConnected()) {
-      // We probably have been disconnected concurrently.
-      return false; // TODO -1?
-    }
-
+  private synchronized void refreshAllPaths() {
     // Purpose:
     // 1) Get new paths from the service
     // 2) Discard paths that are about to expire
-    // 3) Consider retry path that were broken
+    // 3) Consider retrying path that were broken
 
     // 1) Get new paths from the service
     List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress));
@@ -175,7 +165,7 @@ public class PathProviderSimple implements PathProvider {
     }
 
     if (newPaths.isEmpty()) {
-      return true;
+      return;
     }
 
     // Clean up faulty list
@@ -199,10 +189,7 @@ public class PathProviderSimple implements PathProvider {
     }
 
     // Replace current path with the best available path.
-    if (usedPath != null) { // TODO why usedPath != null?
-      subscriber.updatePath(getFreePath());
-    }
-    return true;
+    subscriber.updatePath(getFreePath());
   }
 
   private Path getFreePath() {
@@ -223,7 +210,8 @@ public class PathProviderSimple implements PathProvider {
       throw new IllegalArgumentException("Path not managed by this provider");
     }
     if (!Objects.equals(e.path, p)) {
-      LOG.error("Path not managed by this provider");
+      // This can happen due to races, e.g. when we receive an error for a path that we stopped
+      // using.
       return;
     }
     e.setFaulty(Instant.now());
@@ -242,15 +230,20 @@ public class PathProviderSimple implements PathProvider {
   }
 
   @Override
+  public synchronized PathPolicy getPathPolicy() {
+    return pathPolicy;
+  }
+
+  @Override
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
     if (isConnected()) {
-      if (usedPath != null) {
-        // Remove used path if it doesn't fit the policy
-        if (pathPolicy.filter(Collections.singletonList(usedPath.path)).isEmpty()) {
-          usedPath = null;
-        }
+      // Remove used path if it doesn't fit the policy
+      if (usedPath != null
+          && pathPolicy.filter(Collections.singletonList(usedPath.path)).isEmpty()) {
+        usedPath = null;
       }
+
       refreshAllPaths();
       assertPathExists();
     }
@@ -261,12 +254,6 @@ public class PathProviderSimple implements PathProvider {
       String isdAs = ScionUtil.toStringIA(dstIsdAs);
       throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
     }
-  }
-
-  private boolean aboutToExpire(Path path) {
-    // TODO why is expiration part of the metadata? Server paths can also expire!
-    long epochSeconds = path.getMetadata().getExpiration();
-    return epochSeconds < Instant.now().getEpochSecond() + configExpirationMarginSec;
   }
 
   private boolean aboutToExpireMs(Path path, int expirationDeltaMs) {
@@ -295,7 +282,7 @@ public class PathProviderSimple implements PathProvider {
       refreshAllPaths();
     }
 
-    timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+    timerFuture = timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
 
     assertPathExists();
   }
@@ -307,8 +294,12 @@ public class PathProviderSimple implements PathProvider {
       unusedPaths.put(e.rank, e);
     }
 
-    timer.remove(timerTask);
-    this.timerTask.cancel();
+    if (timerFuture != null) {
+      timerFuture.cancel(true);
+      // Java bug? cancel() should remove the task, but it doesn't, see timer.getQueue().size()
+      timer.remove(((RunnableScheduledFuture<?>) timerFuture));
+      timerFuture = null;
+    }
     this.dstAddress = null;
     this.dstIsdAs = 0;
     this.unusedPaths.clear();
@@ -323,5 +314,9 @@ public class PathProviderSimple implements PathProvider {
 
   public boolean isConnected() {
     return this.dstAddress != null;
+  }
+
+  static int getQueueSize() {
+    return timer.getQueue().size();
   }
 }

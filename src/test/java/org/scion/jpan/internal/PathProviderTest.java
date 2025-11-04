@@ -24,9 +24,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockNetwork;
@@ -35,7 +33,7 @@ import org.scion.jpan.testutil.MockNetwork2;
 class PathProviderTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
-  private PathProviderSimple pp = null;
+  private PathProviderWithRefresh pp = null;
 
   @BeforeEach
   void beforeEach() {
@@ -52,13 +50,14 @@ class PathProviderTest {
     MockNetwork.stopTiny();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.ENV_PATH_POLLING_INTERVAL_SEC);
+    assertEquals(0, PathProviderWithRefresh.getQueueSize());
   }
 
   @Test
   void autoRefresh() {
     ScionService service = Scion.defaultService();
     System.setProperty(Constants.PROPERTY_PATH_POLLING_INTERVAL_SEC, "1");
-    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
 
     try {
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -90,7 +89,7 @@ class PathProviderTest {
   @Test
   void replaceExpired() {
     ScionService service = Scion.defaultService();
-    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
@@ -111,7 +110,7 @@ class PathProviderTest {
   void connect_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -130,7 +129,7 @@ class PathProviderTest {
   void setPathPolicy_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -170,7 +169,7 @@ class PathProviderTest {
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
 
       ScionService service = Scion.defaultService();
-      pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
+      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
 
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);

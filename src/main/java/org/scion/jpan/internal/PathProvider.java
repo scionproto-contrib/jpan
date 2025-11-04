@@ -17,9 +17,17 @@ package org.scion.jpan.internal;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
 
+/**
+ * A PathProvider provides the next best path. Lifecycle:<br>
+ * 1) create PathProvider <br>
+ * 2) subscribe()<br>
+ * 3) connect()<br>
+ * 4) disconnect()<br>
+ * 5) unsubscribe()<br>
+ */
 public interface PathProvider {
   /**
-   * Report a faulty path. A new path will provided immediately (synchronously) if available. A
+   * Report a faulty path. A new path will be provided immediately (synchronously) if available. A
    * faulty path will not be provided again any time soon. It may be provided again at a later time.
    *
    * @param p Faulty path.
@@ -33,13 +41,14 @@ public interface PathProvider {
    */
   void subscribe(PathUpdateCallback cb);
 
+  PathPolicy getPathPolicy();
+
   void setPathPolicy(PathPolicy pathPolicy);
 
   /**
    * Initialize the PathProvider with an existing path and start providing paths. The path provider
    * will (in this call) only request a new set of path if the provided path is expired. New paths
-   * will be requested if the path is expired or about to expire, if additional subscribers
-   * register, or if the path is reported faulty.
+   * will be requested if the path is expired or about to expire or if the path is reported faulty.
    *
    * <p>Contract: the PathProvider must synchronously update subscribed consumers with a new path.
    */

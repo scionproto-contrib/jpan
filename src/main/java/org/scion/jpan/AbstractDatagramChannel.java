@@ -43,7 +43,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private RequestPath connectionPath;
   private InetAddress localAddress;
   private boolean cfgReportFailedValidation = false;
-  private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private final ScionService service;
   private int cfgExpirationSafetyMargin = Config.getPathExpiryMarginSeconds();
   private int cfgTrafficClass;
@@ -58,8 +57,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         service,
         udpChannel,
         service == null
-            ? null
-            : PathProviderSimple.create(
+            ? PathProviderNoOp.create(PathPolicy.DEFAULT)
+            : PathProviderWithRefresh.create(
                 service, PathPolicy.DEFAULT, Config.getPathExpiryMarginSeconds()));
   }
 
@@ -70,9 +69,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
     this.pathProvider = pathProvider;
-    if (pathProvider != null) {
-      pathProvider.subscribe(this::pathUpdateCallback);
-    }
+    this.pathProvider.subscribe(this::pathUpdateCallback);
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -89,12 +86,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public PathPolicy getPathPolicy() {
     synchronized (stateLock) {
-      return this.pathPolicy;
+      return this.pathProvider.getPathPolicy();
     }
-  }
-
-  protected PathProvider getPathProvider() {
-    return this.pathProvider;
   }
 
   private void pathUpdateCallback(Path newPath) {
@@ -115,10 +108,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    */
   public void setPathPolicy(PathPolicy pathPolicy) {
     synchronized (stateLock) {
-      this.pathPolicy = pathPolicy;
-      if (pathProvider != null) {
-        pathProvider.setPathPolicy(pathPolicy);
-      }
+      this.pathProvider.setPathPolicy(pathPolicy);
     }
   }
 
@@ -255,9 +245,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (natMapping != null) {
         natMapping.close();
       }
-      if (pathProvider != null) {
-        pathProvider.disconnect();
-      }
+      pathProvider.disconnect();
       channel.disconnect();
       channel.close();
       connectionPath = null;
@@ -364,7 +352,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      getPathProvider().connect(path);
+      pathProvider.connect(path);
       return (C) this;
     }
   }
@@ -592,9 +580,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           cfgReportFailedValidation = (Boolean) t;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
-          if (pathProvider != null) {
-            pathProvider.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
-          }
+          pathProvider.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {

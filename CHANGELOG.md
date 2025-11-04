@@ -26,11 +26,16 @@ TODO
 - FIX in README: clean up bootstrap sequence: Remove (debugging only) for some entries (e.g. NAPTR).
 
 - PATH_POLLING:
-  - Consolidate polling to once every 60seconds per remote AS.
+  - Consolidate polling to once every 60 seconds per remote AS.
+    TODO generally, we should think about doing the polling centrally so that we
+    reuse path requests to the same remote AS. Central polling could be done with
+    subscriptions or with a central polling timer that consolidates polling to
+    identical remote ASes.
   - Make PAthProvider public API? Later?
     Create new package for Paths with Provider interface and implementations. -> "pathProviders"?
     Or put into ppl???
-  - 
+- why is expiration part of the metadata? Server paths can also expire!
+  Add Path.isExpiredBy(Instant)
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - Deprecate send(PATH)!!!!!
 - Path chaching!!!
@@ -107,7 +112,13 @@ TODO
   - Replace path if it causes errors (separate PR)
   - Replace path if better paths are available
   - Concurrent probing paths for latency/reliability/MTU... (separate PR)
- 
+ TODO
+  - Ensure (test) that we don;t sellect or connect() path that expire before the next poll.
+  - exception if no path is available 
+  - always instantiate pathPolicy in channel? WIth service=null?
+  - setPathPolicy -> replace usedPath if it is not valid!
+  - connect() Check path with path policy!
+  - Faulty path in NoOp policy: keep path or remove it? Keeping seems to be the better strategy???
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
   [#180](https://github.com/scionproto-contrib/jpan/pull/180)
