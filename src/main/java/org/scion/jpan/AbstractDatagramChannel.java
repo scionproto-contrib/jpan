@@ -60,10 +60,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         service == null
             ? null
             : PathProviderSimple.create(
-                service,
-                PathPolicy.DEFAULT,
-                Config.getPathExpiryMarginSeconds(),
-                PathProviderSimple.ReplaceStrategy.BEST_RANK));
+                service, PathPolicy.DEFAULT, Config.getPathExpiryMarginSeconds()));
   }
 
   protected AbstractDatagramChannel(

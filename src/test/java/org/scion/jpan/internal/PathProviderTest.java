@@ -35,6 +35,7 @@ import org.scion.jpan.testutil.MockNetwork2;
 class PathProviderTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
+  private PathProviderSimple pp = null;
 
   @BeforeEach
   void beforeEach() {
@@ -44,16 +45,52 @@ class PathProviderTest {
 
   @AfterEach
   void afterEach() {
+    if (pp != null) {
+      pp.disconnect();
+      pp = null;
+    }
     MockNetwork.stopTiny();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    System.clearProperty(Constants.ENV_PATH_POLLING_INTERVAL_SEC);
+  }
+
+  @Test
+  void autoRefresh() {
+    ScionService service = Scion.defaultService();
+    System.setProperty(Constants.PROPERTY_PATH_POLLING_INTERVAL_SEC, "1");
+    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
+
+    try {
+      InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+      Path newPath =
+          service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
+      Path expiredPath = PackageVisibilityHelper.createExpiredPath(newPath, 100);
+      SubscriberHelper subscriber = new SubscriberHelper(expiredPath);
+
+      // Initial connect
+      pp.subscribe(subscriber::callback);
+      pp.connect(expiredPath);
+      subscriber.await();
+
+      // Reset and wait for timer thread
+      MockNetwork.getControlServer().getAndResetCallCount();
+      subscriber.subscribedPath.set(null);
+      subscriber.barrier = new CountDownLatch(1);
+      subscriber.await();
+      // Wait for timer
+      assertEquals(expiredPath, subscriber.subscribedPath.get());
+
+      assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
+      assertNotSame(expiredPath, subscriber.subscribedPath.get());
+    } finally {
+      pp.disconnect();
+    }
   }
 
   @Test
   void replaceExpired() {
     ScionService service = Scion.defaultService();
-    PathProviderSimple pp =
-        PathProviderSimple.create(
-            service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
@@ -74,9 +111,7 @@ class PathProviderTest {
   void connect_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    PathProviderSimple pp =
-        PathProviderSimple.create(
-            service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -95,9 +130,7 @@ class PathProviderTest {
   void setPathPolicy_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    PathProviderSimple pp =
-        PathProviderSimple.create(
-            service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+    pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -123,7 +156,6 @@ class PathProviderTest {
     }
 
     void await() {
-
       try {
         assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
       } catch (InterruptedException e) {
@@ -138,9 +170,7 @@ class PathProviderTest {
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
 
       ScionService service = Scion.defaultService();
-      PathProviderSimple pp =
-          PathProviderSimple.create(
-              service, PathPolicy.DEFAULT, 10, PathProviderSimple.ReplaceStrategy.BEST_RANK);
+      pp = PathProviderSimple.create(service, PathPolicy.DEFAULT, 10);
 
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);

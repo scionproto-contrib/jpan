@@ -45,26 +45,14 @@ public class PathProviderSimple implements PathProvider {
   private long dstIsdAs;
   private InetSocketAddress dstAddress;
   private PathPolicy pathPolicy;
-  private final ReplaceStrategy replaceStrategy;
 
   private PathUpdateCallback subscriber;
   private final Queue<Entry> faultyPaths = new ArrayDeque<>();
   private final TreeMap<Double, Entry> unusedPaths = new TreeMap<>();
   private Entry usedPath = null;
 
-  private int configPathPollIntervalMs = 60_000;
-  private int configExpirationMarginSec = 10;
-
-  public enum ReplaceStrategy {
-    /** Try to replace with new version of the same path, otherwise let expire. */
-    EXACT_MATCH,
-    /** Replace with the best ranked path available. */
-    BEST_RANK,
-    /**
-     * Replace with the best ranked path available, but only if the current path is about to expire.
-     */
-    BEST_RANK_IF_EXPIRED,
-  }
+  private final int configPathPollIntervalMs;
+  private int configExpirationMarginSec;
 
   private static class Entry {
     Path path;
@@ -121,19 +109,17 @@ public class PathProviderSimple implements PathProvider {
   }
 
   public static PathProviderSimple create(
-      ScionService service, PathPolicy policy, int expirationMarginSec, ReplaceStrategy strategy) {
-    return new PathProviderSimple(service, policy, expirationMarginSec, strategy);
+      ScionService service, PathPolicy policy, int expirationMarginSec) {
+    return new PathProviderSimple(service, policy, expirationMarginSec);
   }
 
-  private PathProviderSimple(
-      ScionService service, PathPolicy policy, int expirationMarginSec, ReplaceStrategy strategy) {
+  private PathProviderSimple(ScionService service, PathPolicy policy, int expirationMarginSec) {
     this.service = service;
     this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;
     this.configPathPollIntervalMs = Config.getPathPollingIntervalSeconds() * 1000;
     this.configExpirationMarginSec = expirationMarginSec;
-    this.replaceStrategy = strategy;
 
     this.timerTask =
         new TimerTask() {
@@ -212,40 +198,9 @@ public class PathProviderSimple implements PathProvider {
       unusedPaths.put(e.rank, e);
     }
 
-    // Update path that are currently in use.
-    if (replaceStrategy == ReplaceStrategy.EXACT_MATCH) {
-      // Check used paths
-      if (usedPath != null) {
-        Entry newEntry = newPaths.get(usedPath);
-        if (newEntry != null) {
-          usedPath.set(newEntry);
-          newPaths.remove(newEntry);
-        } else {
-          subscriber.pathsUpdated(getFreePath());
-        }
-      }
-    } else if (replaceStrategy == ReplaceStrategy.BEST_RANK_IF_EXPIRED) {
-      // Check used paths
-      if (usedPath != null) {
-        if (aboutToExpire(usedPath.path)) {
-          // Path is about to expire, replace with best ranked path
-          subscriber.pathsUpdated(getFreePath());
-        } else {
-          // Try to find the same path in the new list
-          Entry newEntry = newPaths.get(usedPath);
-          if (newEntry != null) {
-            usedPath.set(newEntry);
-            newPaths.remove(newEntry);
-          }
-        }
-      }
-    } else if (replaceStrategy == ReplaceStrategy.BEST_RANK) {
-      // Replace path with the best available path
-      if (usedPath != null) {
-        subscriber.pathsUpdated(getFreePath());
-      }
-    } else {
-      throw new IllegalStateException("Unknown replace strategy");
+    // Replace current path with the best available path.
+    if (usedPath != null) { // TODO why usedPath != null?
+      subscriber.updatePath(getFreePath());
     }
     return true;
   }
@@ -275,7 +230,7 @@ public class PathProviderSimple implements PathProvider {
     faultyPaths.add(e);
 
     // Find new path
-    subscriber.pathsUpdated(getFreePath());
+    subscriber.updatePath(getFreePath());
   }
 
   @Override
@@ -333,7 +288,7 @@ public class PathProviderSimple implements PathProvider {
 
     // use this path
     unusedPaths.put(0.0, new Entry(path, 0.0));
-    subscriber.pathsUpdated(getFreePath());
+    subscriber.updatePath(getFreePath());
 
     if (aboutToExpireMs(path, configPathPollIntervalMs)) {
       // fetch new paths

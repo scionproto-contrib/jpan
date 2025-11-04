@@ -51,6 +51,6 @@ public interface PathProvider {
   void setExpirationSafetyMargin(int cfgExpirationSafetyMargin);
 
   interface PathUpdateCallback {
-    void pathsUpdated(Path newPath);
+    void updatePath(Path newPath);
   }
 }
