@@ -121,7 +121,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     @Override
     public final void runImpl() throws IOException {
       try (ScionDatagramSocket socket =
-          ScionDatagramSocket.create(new InetSocketAddress(0), serverService)) {
+          ScionDatagramSocket.newBuilder().bind(0).service(serverService).open()) {
         registerStartUpServer((InetSocketAddress) socket.getLocalSocketAddress());
         for (int i = 0; i < nRounds; i++) {
           server.run(socket);
@@ -182,7 +182,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
       start();
       int port = MockNetwork.getTinyServerAddress().getPort();
       try (ScionDatagramSocket socket =
-          ScionDatagramSocket.create(new InetSocketAddress(port), serverService)) {
+          ScionDatagramSocket.newBuilder().bind(port).service(serverService).open()) {
         run(
             (id, nRounds) ->
                 new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),

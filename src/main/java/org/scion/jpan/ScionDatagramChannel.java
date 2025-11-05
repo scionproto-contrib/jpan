@@ -336,10 +336,10 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   }
 
   public static class Builder {
-    private ScionService service;
-    private boolean nullService = false;
-    private PathProvider provider;
-    private DatagramChannel channel;
+    protected ScionService service;
+    protected boolean nullService = false;
+    protected PathProvider provider;
+    protected DatagramChannel channel;
 
     /**
      * @param channel A {@link DatagramChannel} to be used. The default is the plain {@link
@@ -387,7 +387,6 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
       if (provider == null) {
         if (service == null) {
           provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
-
         } else {
           provider = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
         }
