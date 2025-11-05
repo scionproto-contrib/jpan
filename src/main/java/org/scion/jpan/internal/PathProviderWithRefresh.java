@@ -26,8 +26,11 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The PathProviderWithRefresh will periodically poll the ScionService for new paths. It will poll
- * for new path either if: a path is about to expire, or if the polling interval elapses, or if
- * there is no path available for a new subscriber.
+ * for new path either if: a path is "about" to expire, or if the polling interval elapses, or if
+ * there is no path available for a new subscriber.<br>
+ * A path is considered to "about" to expire if it is going to expire its expiration date is before
+ * ( now + {@link Constants#DEFAULT_PATH_EXPIRY_MARGIN} -
+ * {@link Constants#DEFAULT_PATH_POLLING_INTERVAL}).
  *
  * @see org.scion.jpan.internal.PathProvider
  */
@@ -263,7 +266,7 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   private boolean isExpiringInNextPeriod(Path path) {
-    int expirationDeltaMs = configPathPollIntervalMs + configExpirationMarginMs;
+    int expirationDeltaMs = configPathPollIntervalMs - configExpirationMarginMs;
     long epochSeconds = path.getMetadata().getExpiration();
     return epochSeconds < Instant.now().getEpochSecond() + expirationDeltaMs / 1000;
   }
