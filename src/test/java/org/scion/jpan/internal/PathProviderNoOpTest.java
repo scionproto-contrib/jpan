@@ -91,7 +91,6 @@ class PathProviderNoOpTest {
 
   @Test
   void setPathPolicy_failsIfNoPath() throws IOException {
-    // TODO these tests should work for all providers! -> parametrized JUnit test?
     // Test that the provider does not loop when no path is found.
     pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
     pp.subscribe(newPath -> {});

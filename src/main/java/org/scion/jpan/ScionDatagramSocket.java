@@ -82,17 +82,6 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     }
   }
 
-  // "private" to avoid ambiguity with DatagramSocket((SocketAddress) null) -> use create()
-  protected ScionDatagramSocket(
-      ScionService service, DatagramChannel channel, PathProvider provider) throws SocketException {
-    super(new DummyDatagramSocketImpl());
-    try {
-      this.channel = new SelectingDatagramChannel(service, channel, provider);
-    } catch (IOException e) {
-      throw new SocketException(e.getMessage());
-    }
-  }
-
   // "private" for consistency, all non-standard constructors are private -> use create()
   protected ScionDatagramSocket(SocketAddress bindAddress, SelectingDatagramChannel scionChannel)
       throws SocketException {
