@@ -105,6 +105,13 @@ public class PathProviderNoOp implements PathProvider {
     this.dstIsdAs = path.getRemoteIsdAs();
     this.dstAddress = path.getRemoteSocketAddress();
 
+    if (isExpired(path)) {
+      usedPath = null;
+      subscriber.updatePath(null);
+      assertPathExists(); // This will throw an exception
+      return;
+    }
+
     // use this path
     usedPath = path;
     subscriber.updatePath(path);

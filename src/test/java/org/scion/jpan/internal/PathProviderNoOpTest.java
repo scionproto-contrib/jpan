@@ -30,10 +30,10 @@ import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
-class PathProviderWithRenameTest {
+class PathProviderNoOpTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
-  private PathProviderWithRefresh pp = null;
+  private PathProviderNoOp pp = null;
 
   @BeforeEach
   void beforeEach() {
@@ -49,76 +49,32 @@ class PathProviderWithRenameTest {
     }
     MockNetwork.stopTiny();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
-    System.clearProperty(Constants.ENV_PATH_POLLING_INTERVAL_SEC);
-    assertEquals(0, PathProviderWithRefresh.getQueueSize());
   }
 
   @Test
-  void autoRefresh() {
+  void connect_expiredFails() {
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
-
-    try {
-      InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-      Path newPath =
-          service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
-      Path expiredPath = PackageVisibilityHelper.createExpiredPath(newPath, 100);
-      SubscriberHelper subscriber = new SubscriberHelper(expiredPath);
-
-      // Initial connect
-      pp.subscribe(subscriber::callback);
-      pp.connect(expiredPath);
-      subscriber.await();
-
-      // Reset and wait for timer thread
-      MockNetwork.getControlServer().getAndResetCallCount();
-      subscriber.subscribedPath.set(null);
-      subscriber.barrier = new CountDownLatch(1);
-      subscriber.await();
-      // Wait for timer
-      assertEquals(newPath, subscriber.subscribedPath.get());
-
-      // Reset and wait for timer thread (again)
-      MockNetwork.getControlServer().getAndResetCallCount();
-      subscriber.subscribedPath.set(null);
-      subscriber.barrier = new CountDownLatch(1);
-      subscriber.await();
-      // Wait for timer
-      // TODO why compare to expire path?
-      assertEquals(newPath, subscriber.subscribedPath.get());
-
-      assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
-      assertNotSame(expiredPath, subscriber.subscribedPath.get());
-    } finally {
-      pp.disconnect();
-    }
-  }
-
-  @Test
-  void connect_expiredIsReplace() {
-    ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
+    pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
-    p = PackageVisibilityHelper.createExpiredPath(p, 100);
+    Path expired = PackageVisibilityHelper.createExpiredPath(p, 100);
     SubscriberHelper subscriber = new SubscriberHelper(p);
     // reset counter
     assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
 
     pp.subscribe(subscriber::callback);
-    pp.connect(p);
+    Exception e = assertThrows(ScionRuntimeException.class, () -> pp.connect(expired));
     subscriber.await();
-
-    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
-    assertNotSame(p, subscriber.subscribedPath.get());
+    assertTrue(e.getMessage().contains("No path found to destination"));
+    assertNull(subscriber.subscribedPath.get());
+    assertEquals(0, MockNetwork.getControlServer().getAndResetCallCount());
   }
 
   @Test
   void connect_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
-    ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
+    pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -135,9 +91,9 @@ class PathProviderWithRenameTest {
 
   @Test
   void setPathPolicy_failsIfNoPath() throws IOException {
+    // TODO these tests should work for all providers! -> parametrized JUnit test?
     // Test that the provider does not loop when no path is found.
-    ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
+    pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -175,13 +131,10 @@ class PathProviderWithRenameTest {
   void reportFaultyPath() {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
-
       ScionService service = Scion.defaultService();
-      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
-
+      pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
-
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
@@ -189,28 +142,14 @@ class PathProviderWithRenameTest {
       pp.subscribe(subscriber::callback);
 
       // Use expired path to trigger fetching of paths from server
-      pp.connect(PackageVisibilityHelper.createExpiredPath(paths.get(0), 10));
+      pp.connect(paths.get(0));
       subscriber.await();
-
       assertEquals(paths.get(0), subscriber.subscribedPath.get());
 
       // Replace path
       pp.reportFaultyPath(paths.get(0));
-      assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
-      assertEquals(paths.get(1), subscriber.subscribedPath.get());
-
-      // No change when reporting again
-      pp.reportFaultyPath(paths.get(0));
-      assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
-      assertEquals(paths.get(1), subscriber.subscribedPath.get());
-
-      // Now reporting 2nd path
-      pp.reportFaultyPath(paths.get(1));
-      assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
-      assertNotEquals(paths.get(1), subscriber.subscribedPath.get());
-      assertEquals(paths.get(2), subscriber.subscribedPath.get());
-
-      assertEquals(2, nw.getControlServer().getAndResetCallCount());
+      assertNull(subscriber.subscribedPath.get());
+      assertEquals(0, nw.getControlServer().getAndResetCallCount());
     }
   }
 }
