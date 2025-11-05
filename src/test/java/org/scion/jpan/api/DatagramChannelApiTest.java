@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.ExternalIpDiscovery;
+import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.Util;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
@@ -773,5 +775,16 @@ class DatagramChannelApiTest {
     }
     assertEquals(expectedAddress.getPort(), spi.getOverlayHeaderUdp().getSrcPort());
     return 0;
+  }
+
+  @Test
+  void newBuilder_pathProvider() throws IOException {
+    PathPolicy policy = new PathPolicy.MaxBandwith();
+    PathProvider ppNoOp = PathProviderNoOp.create(policy);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.newBuilder().provider(ppNoOp).open()) {
+      assertFalse(channel.isConnected());
+      assertSame(ppNoOp, channel.getPathProvider());
+      assertSame(policy, channel.getPathPolicy());
+    }
   }
 }

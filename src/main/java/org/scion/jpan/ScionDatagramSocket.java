@@ -620,6 +620,10 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 
+  public PathProvider getPathProvider() {
+    return channel.getPathProvider();
+  }
+
   private static class DummyDatagramSocketImpl extends DatagramSocketImpl {
 
     @Override

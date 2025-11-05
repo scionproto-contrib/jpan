@@ -89,6 +89,10 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
+  public PathProvider getPathProvider() {
+    return pathProvider;
+  }
+
   private void pathUpdateCallback(Path newPath) {
     synchronized (stateLock) {
       connectionPath = (RequestPath) newPath;

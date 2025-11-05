@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
+import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.Util;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -807,6 +809,18 @@ class DatagramSocketApiTest {
         client.send(dummyPacket);
         assertFalse(client.isConnected());
       }
+    }
+  }
+
+  @Test
+  void newBuilder_pathProvider() throws IOException {
+    PathPolicy policy = new PathPolicy.MaxBandwith();
+    PathProvider ppNoOp = PathProviderNoOp.create(policy);
+    try (ScionDatagramSocket server =
+        ScionDatagramSocket.newBuilder().bind(dummyPort).provider(ppNoOp).open()) {
+      assertFalse(server.isConnected());
+      assertSame(ppNoOp, server.getPathProvider());
+      assertSame(policy, server.getPathPolicy());
     }
   }
 }
