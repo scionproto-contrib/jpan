@@ -29,8 +29,11 @@ import org.slf4j.LoggerFactory;
  * for new path either if: a path is "about" to expire, or if the polling interval elapses, or if
  * there is no path available for a new subscriber.<br>
  * A path is considered to "about" to expire if it is going to expire its expiration date is before
- * ( now + {@link Constants#DEFAULT_PATH_EXPIRY_MARGIN} -
- * {@link Constants#DEFAULT_PATH_POLLING_INTERVAL}).
+ * ( now + {@link Constants#DEFAULT_PATH_EXPIRY_MARGIN} - {@link
+ * Constants#DEFAULT_PATH_POLLING_INTERVAL}).
+ *
+ * <p>The currently path will be replaced if a "better" path (according to the PathPolicy) is
+ * available, even if the current path is still valid.
  *
  * @see org.scion.jpan.internal.PathProvider
  */
