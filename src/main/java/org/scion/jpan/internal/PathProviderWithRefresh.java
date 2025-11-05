@@ -18,7 +18,6 @@ import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.Future;
-import java.util.concurrent.RunnableScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.*;
@@ -37,6 +36,7 @@ public class PathProviderWithRefresh implements PathProvider {
   private static final Logger LOG =
       LoggerFactory.getLogger(PathProviderWithRefresh.class.getName());
   private static final ScheduledThreadPoolExecutor timer = new ScheduledThreadPoolExecutor(1);
+
   static {
     timer.setRemoveOnCancelPolicy(true);
   }
@@ -54,7 +54,7 @@ public class PathProviderWithRefresh implements PathProvider {
   private Entry usedPath = null;
 
   private final int configPathPollIntervalMs;
-  private int configExpirationMarginSec;
+  private int configExpirationMarginMs;
 
   private static class Entry {
     Path path;
@@ -111,12 +111,20 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   public static PathProviderWithRefresh create(
-      ScionService service, PathPolicy policy, int expirationMarginSec) {
-    return new PathProviderWithRefresh(service, policy, expirationMarginSec);
+      ScionService service, PathPolicy policy, int expirationMarginMs, int pathPollIntervalMs) {
+    return new PathProviderWithRefresh(service, policy, expirationMarginMs, pathPollIntervalMs);
+  }
+
+  public static PathProviderWithRefresh create(ScionService service, PathPolicy policy) {
+    return new PathProviderWithRefresh(
+        service,
+        policy,
+        Config.getPathExpiryMarginSeconds() * 1000,
+        Config.getPathPollingIntervalSeconds() * 1000);
   }
 
   private PathProviderWithRefresh(
-      ScionService service, PathPolicy policy, int expirationMarginSec) {
+      ScionService service, PathPolicy policy, int expirationMarginMs, int pathPollIntervalMs) {
     if (service == null) {
       throw new IllegalArgumentException();
     }
@@ -124,8 +132,8 @@ public class PathProviderWithRefresh implements PathProvider {
     this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;
-    this.configPathPollIntervalMs = Config.getPathPollingIntervalSeconds() * 1000;
-    this.configExpirationMarginSec = expirationMarginSec;
+    this.configPathPollIntervalMs = pathPollIntervalMs;
+    this.configExpirationMarginMs = expirationMarginMs;
 
     this.timerTask =
         new TimerTask() {
@@ -138,11 +146,6 @@ public class PathProviderWithRefresh implements PathProvider {
             } catch (Exception e) {
               String time = configPathPollIntervalMs + "ms";
               LOG.error("Exception in PathProvider timer task, trying again in {}", time, e);
-            } finally {
-              if (isConnected()) {
-                timerFuture =
-                    timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
-              }
             }
           }
         };
@@ -161,7 +164,7 @@ public class PathProviderWithRefresh implements PathProvider {
     int n = 0;
     for (Path p : newPaths2) {
       // Avoid paths that are about to expire
-      if (!aboutToExpireMs(p, configPathPollIntervalMs)) {
+      if (!isExpiringInNextPeriod(p)) {
         Entry newEntry = new Entry(p, n++);
         newPaths.put(newEntry, newEntry);
       }
@@ -259,7 +262,8 @@ public class PathProviderWithRefresh implements PathProvider {
     }
   }
 
-  private boolean aboutToExpireMs(Path path, int expirationDeltaMs) {
+  private boolean isExpiringInNextPeriod(Path path) {
+    int expirationDeltaMs = configPathPollIntervalMs + configExpirationMarginMs;
     long epochSeconds = path.getMetadata().getExpiration();
     return epochSeconds < Instant.now().getEpochSecond() + expirationDeltaMs / 1000;
   }
@@ -280,12 +284,14 @@ public class PathProviderWithRefresh implements PathProvider {
     unusedPaths.put(0.0, new Entry(path, 0.0));
     subscriber.updatePath(getFreePath());
 
-    if (aboutToExpireMs(path, configPathPollIntervalMs)) {
+    if (isExpiringInNextPeriod(path)) {
       // fetch new paths
       refreshAllPaths();
     }
 
-    timerFuture = timer.schedule(timerTask, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+    timerFuture =
+        timer.scheduleAtFixedRate(
+            timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
 
     assertPathExists();
   }
@@ -310,7 +316,7 @@ public class PathProviderWithRefresh implements PathProvider {
 
   @Override
   public void setExpirationSafetyMargin(int cfgExpirationSafetyMargin) {
-    configExpirationMarginSec = cfgExpirationSafetyMargin;
+    configExpirationMarginMs = cfgExpirationSafetyMargin * 1000;
   }
 
   public boolean isConnected() {

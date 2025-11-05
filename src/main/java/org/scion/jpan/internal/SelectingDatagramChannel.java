@@ -35,13 +35,9 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   private final Selector selector;
   private int timeoutMs = 0;
 
-  public SelectingDatagramChannel(ScionService service) throws IOException {
-    this(service, null);
-  }
-
-  public SelectingDatagramChannel(ScionService service, DatagramChannel channel)
-      throws IOException {
-    super(service, channel == null ? DatagramChannel.open() : channel);
+  public SelectingDatagramChannel(
+      ScionService service, DatagramChannel channel, PathProvider provider) throws IOException {
+    super(service, channel == null ? DatagramChannel.open() : channel, provider);
 
     // selector
     DatagramChannel channel2 = channel == null ? DatagramChannel.open() : channel;

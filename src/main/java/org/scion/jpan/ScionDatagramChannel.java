@@ -20,12 +20,11 @@ import java.net.*;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
 import java.util.WeakHashMap;
-import org.scion.jpan.internal.ByteUtil;
-import org.scion.jpan.internal.InternalConstants;
-import org.scion.jpan.internal.ScionHeaderParser;
+import org.scion.jpan.internal.*;
 
 public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
@@ -36,9 +35,23 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   // Store a refreshed paths for every path
   private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
 
+  /**
+   * @param service service
+   * @param channel channel
+   * @throws IOException If an error occurs
+   * @deprecated To be removed for 0.7.0. Please use {@link #ScionDatagramChannel(ScionService,
+   *     DatagramChannel, PathProvider)} or {@link Builder} instead.
+   */
+  @Deprecated // Remove for 0.7.0
   protected ScionDatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
       throws IOException {
     super(service, channel);
+  }
+
+  protected ScionDatagramChannel(
+      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider)
+      throws IOException {
+    super(service, channel, pathProvider);
   }
 
   /**
@@ -75,7 +88,11 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
 
   public static ScionDatagramChannel open(
       ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
-    return new ScionDatagramChannel(service, channel);
+    return new Builder().service(service).channel(channel).open();
+  }
+
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
   // TODO we return `void` here. If we implement SelectableChannel
@@ -315,6 +332,68 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     }
     synchronized (stateLock()) {
       return refreshedPaths.getOrDefault(path, (RequestPath) path);
+    }
+  }
+
+  public static class Builder {
+    private ScionService service;
+    private boolean nullService = false;
+    private PathProvider provider;
+    private DatagramChannel channel;
+
+    /**
+     * @param channel A {@link DatagramChannel} to be used. The default is the plain {@link
+     *     DatagramChannel}.
+     * @return This builder.
+     */
+    public Builder channel(DatagramChannel channel) {
+      this.channel = channel;
+      return this;
+    }
+
+    /**
+     * @param provider A {@link PathProvider} to be used. If the {@link #service(ScionService)} has
+     *     been set to null, the default PathProvider is {@link PathProviderNoOp}, otherwise it is
+     *     {@link PathProviderWithRefresh}.
+     * @return This builder.
+     */
+    public Builder provider(PathProvider provider) {
+      this.provider = provider;
+      return this;
+    }
+
+    /**
+     * @param service A {@link ScionService} to be used. The default is the {@link
+     *     ScionService#defaultService()}. The service can be explicitly set ,to `null` if no
+     *     ScionService should be used.
+     * @return This builder.
+     */
+    public Builder service(ScionService service) {
+      this.service = service;
+      this.nullService = service == null;
+      return this;
+    }
+
+    public ScionDatagramChannel open() throws IOException {
+      // Use defaultService() unless it was set explicitly to null.
+      if (!nullService && service == null) {
+        service = ScionService.defaultService();
+      }
+
+      if (channel == null) {
+        channel = java.nio.channels.DatagramChannel.open();
+      }
+
+      if (provider == null) {
+        if (service == null) {
+          provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
+
+        } else {
+          provider = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+        }
+      }
+
+      return new ScionDatagramChannel(service, channel, provider);
     }
   }
 }

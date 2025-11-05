@@ -58,8 +58,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         udpChannel,
         service == null
             ? PathProviderNoOp.create(PathPolicy.DEFAULT)
-            : PathProviderWithRefresh.create(
-                service, PathPolicy.DEFAULT, Config.getPathExpiryMarginSeconds()));
+            : PathProviderWithRefresh.create(service, PathPolicy.DEFAULT));
   }
 
   protected AbstractDatagramChannel(

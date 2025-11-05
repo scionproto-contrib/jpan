@@ -26,8 +26,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.scion.jpan.internal.SelectingDatagramChannel;
-import org.scion.jpan.internal.SimpleCache;
+import org.scion.jpan.internal.*;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
@@ -80,7 +79,11 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
       throws SocketException {
     super(new DummyDatagramSocketImpl());
     try {
-      this.channel = new SelectingDatagramChannel(service, channel);
+      PathProvider provider =
+          service == null
+              ? PathProviderNoOp.create(PathPolicy.DEFAULT)
+              : PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+      this.channel = new SelectingDatagramChannel(service, channel, provider);
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }

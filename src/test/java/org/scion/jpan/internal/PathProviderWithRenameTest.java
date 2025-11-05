@@ -56,8 +56,7 @@ class PathProviderWithRenameTest {
   @Test
   void autoRefresh() {
     ScionService service = Scion.defaultService();
-    System.setProperty(Constants.PROPERTY_PATH_POLLING_INTERVAL_SEC, "1");
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
 
     try {
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -77,7 +76,16 @@ class PathProviderWithRenameTest {
       subscriber.barrier = new CountDownLatch(1);
       subscriber.await();
       // Wait for timer
-      assertEquals(expiredPath, subscriber.subscribedPath.get());
+      assertEquals(newPath, subscriber.subscribedPath.get());
+
+      // Reset and wait for timer thread (again)
+      MockNetwork.getControlServer().getAndResetCallCount();
+      subscriber.subscribedPath.set(null);
+      subscriber.barrier = new CountDownLatch(1);
+      subscriber.await();
+      // Wait for timer
+      // TODO why compare to expire path?
+      assertEquals(newPath, subscriber.subscribedPath.get());
 
       assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
       assertNotSame(expiredPath, subscriber.subscribedPath.get());
@@ -89,7 +97,7 @@ class PathProviderWithRenameTest {
   @Test
   void replaceExpired() {
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
@@ -110,7 +118,7 @@ class PathProviderWithRenameTest {
   void connect_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -129,7 +137,7 @@ class PathProviderWithRenameTest {
   void setPathPolicy_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
+    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
     pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
@@ -169,7 +177,7 @@ class PathProviderWithRenameTest {
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
 
       ScionService service = Scion.defaultService();
-      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10);
+      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
 
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
