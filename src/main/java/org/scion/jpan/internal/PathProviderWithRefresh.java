@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * ( now + {@link Constants#DEFAULT_PATH_EXPIRY_MARGIN} - {@link
  * Constants#DEFAULT_PATH_POLLING_INTERVAL}).
  *
- * <p>The currently path will be replaced if a "better" path (according to the PathPolicy) is
+ * <p>The current path will be replaced if a "better" path (according to the PathPolicy) is
  * available, even if the current path is still valid.
  *
  * @see org.scion.jpan.internal.PathProvider
@@ -55,12 +55,13 @@ public class PathProviderWithRefresh implements PathProvider {
   private PathPolicy pathPolicy;
 
   private PathUpdateCallback subscriber;
-  private final Queue<Entry> faultyPaths = new ArrayDeque<>();
-  private final TreeMap<Double, Entry> unusedPaths = new TreeMap<>();
+  private final TreeMap<Entry, Entry> faultyPaths = new TreeMap<>(Comparator.comparing(e -> e.timestamp));
+  private final List<Entry> unusedPaths = new ArrayList<>();
   private Entry usedPath = null;
 
   private final int configPathPollIntervalMs;
   private int configExpirationMarginMs;
+  private long lastRefreshMs = -1;
 
   private static class Entry {
     Path path;
@@ -147,7 +148,7 @@ public class PathProviderWithRefresh implements PathProvider {
           public void run() {
             try {
               if (isConnected()) {
-                refreshAllPaths();
+                refreshPaths();
               }
             } catch (Exception e) {
               String time = configPathPollIntervalMs + "ms";
@@ -157,47 +158,59 @@ public class PathProviderWithRefresh implements PathProvider {
         };
   }
 
+  /**
+   * Refresh paths from path server.
+   */
   // Synchronized because it is called by timer
-  private synchronized void refreshAllPaths() {
+  synchronized void refreshPaths() {
     // Purpose:
     // 1) Get new paths from the service
     // 2) Discard paths that are about to expire
-    // 3) Consider retrying path that were broken
+    // 3) Consider retrying path that were broken TODO
 
     // 1) Get new paths from the service
     List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress));
-    Map<Entry, Entry> newPaths = new HashMap<>();
+    lastRefreshMs = System.currentTimeMillis();
+    unusedPaths.clear();
     int n = 0;
     for (Path p : newPaths2) {
       // Avoid paths that are about to expire
       if (!isExpiringInNextPeriod(p)) {
         Entry newEntry = new Entry(p, n++);
-        newPaths.put(newEntry, newEntry);
+        unusedPaths.add(newEntry);
       }
     }
 
-    if (newPaths.isEmpty()) {
+    if (unusedPaths.isEmpty()) {
       return;
     }
 
-    // Clean up faulty list
-    Iterator<Entry> faultyIter = faultyPaths.iterator();
-    while (faultyIter.hasNext()) {
-      Entry e = faultyIter.next();
-      Entry newEntry = newPaths.get(e);
-      if (newEntry == null) {
+    // TODO hashMap for searching/removing
+    // TODO ordered List/map for queueing
+    Queue q;
+
+    for (Entry newEntry : unusedPaths) {
+      Entry faulty = faultyPaths.get(newEntry);
+      if (faulty == null) {
+        // TODO fixme:
+        //   - Order by reporting-time
+        //   - Why is it using the comparator from removal? Is it using the ordering to identify
+        //     Can we use the SimpleCache?
         // Path has no new version, remove it.
-        faultyIter.remove();
+  // TODO      faultyIter.remove();
       } else {
         // In case we retry this path later.
-        e.set(newEntry);
+        faulty.set(newEntry);
       }
     }
 
-    // update unused path.
-    unusedPaths.clear();
-    for (Entry e : newPaths.values()) {
-      unusedPaths.put(e.rank, e);
+    // Clean up faulty list
+    Iterator<Entry> faultyIter = faultyPaths.keySet().iterator();
+    while (faultyIter.hasNext()) {
+      Entry e = faultyIter.next();
+      if (isExpired(e.path)) {
+        faultyIter.remove();
+      }
     }
 
     // Replace current path with the best available path.
@@ -205,12 +218,15 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   private Path getFreePath() {
+    if (unusedPaths.isEmpty() && lastRefreshMs <= 0) {
+      refreshPaths();
+    }
     if (unusedPaths.isEmpty()) {
       // No new path available
       LOG.warn("No free path available.");
       return null;
     }
-    Entry e = unusedPaths.pollFirstEntry().getValue();
+    Entry e = unusedPaths.remove(0);
     usedPath = e;
     return e.path;
   }
@@ -227,7 +243,7 @@ public class PathProviderWithRefresh implements PathProvider {
       return;
     }
     e.setFaulty(Instant.now());
-    faultyPaths.add(e);
+    faultyPaths.put(e, e);
 
     // Find new path
     subscriber.updatePath(getFreePath());
@@ -256,7 +272,7 @@ public class PathProviderWithRefresh implements PathProvider {
         usedPath = null;
       }
 
-      refreshAllPaths();
+      refreshPaths();
       assertPathExists();
     }
   }
@@ -286,13 +302,13 @@ public class PathProviderWithRefresh implements PathProvider {
     this.dstIsdAs = path.getRemoteIsdAs();
     this.dstAddress = path.getRemoteSocketAddress();
 
-    // use this path
-    unusedPaths.put(0.0, new Entry(path, 0.0));
-    subscriber.updatePath(getFreePath());
-
     if (isExpiringInNextPeriod(path)) {
       // fetch new paths
-      refreshAllPaths();
+      refreshPaths();
+    } else {
+      // use this path
+      unusedPaths.add(new Entry(path, 0.0));
+      subscriber.updatePath(getFreePath());
     }
 
     timerFuture =
@@ -306,7 +322,8 @@ public class PathProviderWithRefresh implements PathProvider {
   public synchronized void disconnect() {
     Entry e = usedPath;
     if (e != null) {
-      unusedPaths.put(e.rank, e);
+      unusedPaths.add(e);
+      usedPath = null;
     }
 
     if (timerFuture != null) {
