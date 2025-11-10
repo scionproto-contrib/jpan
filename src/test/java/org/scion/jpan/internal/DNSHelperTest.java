@@ -117,4 +117,31 @@ class DNSHelperTest {
     String output = DNSHelper.reverseAddressForARPA(input);
     assertEquals(expected, output);
   }
+
+  @Test
+  void soaLookup() throws TextParseException {
+    {
+      DNSUtil.installSOA("2.1.in-addr.arpa.", "my-ns-122-133-233-773.inf.hello.test");
+      DNSUtil.installNAPTR("hello.test", new byte[] {1, 2, 2, 2}, 12345);
+      InetAddress subnet = IPHelper.getByAddress(new int[] {1, 2, 0, 0});
+      Name nameSub = DNSHelper.findSearchDomainViaSOALookup(subnet);
+      System.out.println("Name Sub: " + nameSub);
+      System.out.println();
+    }
+
+//    InetAddress addr = IPHelper.getByAddress(new int[]{172, 18, 0, 1});
+//    Name nameAddr = DNSHelper.findSearchDomainViaSOALookup(addr);
+//    System.out.println("Name Addr: " + nameAddr);
+//    System.out.println();
+
+    InetAddress subnet = IPHelper.getByAddress(new int[]{172, 18, 0, 0});
+    Name nameSub = DNSHelper.findSearchDomainViaSOALookup(subnet);
+    System.out.println("Name Sub: " + nameSub);
+    System.out.println();
+
+    InetAddress subnet2 = IPHelper.getByAddress(new int[]{163, 152, 0, 0});
+    Name nameSub2 = DNSHelper.findSearchDomainViaSOALookup(subnet2);
+    System.out.println("Name Sub2: " + nameSub2);
+    System.out.println();
+  }
 }

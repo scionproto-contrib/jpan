@@ -18,10 +18,8 @@ import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.List;
+import java.net.*;
+import java.util.*;
 import java.util.function.Function;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
@@ -207,41 +205,67 @@ public class DNSHelper {
     // - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
 
     try {
+      // Reverse lookup public interface IPs
+      for (InetAddress externalIp : IPHelper.getInterfaceIPs()) {
+        if (!externalIp.isSiteLocalAddress()) {
+          Name domain = findSearchDomainViaPTRLookup(externalIp);
+          if (domain != null) {
+            return domain;
+          }
+        }
+      }
+
       Name reverseLookupHost = Name.fromString("whoami.akamai.net");
       Resolver resolver = new SimpleResolver("zh.akamaitech.net");
 
-      // IPv4
+      // IPv4 reverse lookup
       Lookup lookup4 = newLookup(reverseLookupHost, Type.A);
       lookup4.setResolver(resolver);
       org.xbill.DNS.Record[] records4 = lookup4.run();
       for (org.xbill.DNS.Record record4 : records4) {
-        ARecord arecord = (ARecord) record4;
-        InetAddress localAddress = arecord.getAddress();
-        Name domain = findSearchDomainViaReverseLookup(localAddress);
-        if (domain != null) {
-          return domain;
+        ARecord aRecord = (ARecord) record4;
+        InetAddress localAddress = aRecord.getAddress();
+        if (!localAddress.isSiteLocalAddress()) {
+          Name domain = findSearchDomainViaPTRLookup(localAddress);
+          if (domain != null) {
+            return domain;
+          }
         }
       }
 
+      // IPv6 reverse lookup
       Lookup lookup6 = newLookup(reverseLookupHost, Type.AAAA);
       lookup6.setResolver(resolver);
       org.xbill.DNS.Record[] records6 = lookup6.run();
       for (org.xbill.DNS.Record record6 : records6) {
-        AAAARecord arecord = (AAAARecord) record6;
-        InetAddress localAddress = arecord.getAddress();
-        Name domain = findSearchDomainViaReverseLookup(localAddress);
-        if (domain != null) {
-          return domain;
+        AAAARecord aRecord = (AAAARecord) record6;
+        InetAddress localAddress = aRecord.getAddress();
+        if (!localAddress.isSiteLocalAddress()) {
+          Name domain = findSearchDomainViaPTRLookup(localAddress);
+          if (domain != null) {
+            return domain;
+          }
         }
       }
+
+      // Try reverse lookup on all subnets
+      for (InetAddress subnet : IPHelper.getSubnets()) {
+        if (!subnet.isSiteLocalAddress()) {
+          Name domain = findSearchDomainViaSOALookup(subnet);
+          if (domain != null) {
+            return domain;
+          }
+        }
+      }
+
     } catch (TextParseException | UnknownHostException e) {
       throw new ScionRuntimeException(e);
     }
     return null;
   }
 
-  private static Name findSearchDomainViaReverseLookup(InetAddress address)
-      throws TextParseException {
+  private static Name findSearchDomainViaPTRLookup(InetAddress address)
+          throws TextParseException {
     Name name = Name.fromString(reverseAddressForARPA(address));
     org.xbill.DNS.Record[] records = newLookup(name, Type.PTR).run();
     if (records == null) {
@@ -251,6 +275,40 @@ public class DNSHelper {
       PTRRecord ptrRecord = (PTRRecord) record2;
       Name domain = ptrRecord.getTarget();
       while (true) {
+        if (newLookup(domain, Type.NAPTR).run() != null) {
+          return domain;
+        }
+
+        // Recursively strip subdomains
+        String domStr = domain.toString(false);
+        int pos = domStr.indexOf('.');
+        if (pos <= 0 || pos == domStr.length() - 1) {
+          break;
+        }
+        domain = Name.fromString(domStr.substring(pos + 1));
+      }
+    }
+    return null;
+  }
+
+  static Name findSearchDomainViaSOALookup(InetAddress address)
+          throws TextParseException {
+    Name name = Name.fromString(reverseAddressForARPA(address));
+    // TODO ipv6
+    while (name.toString().startsWith("0.")) {
+      name = Name.fromString(name.toString().substring(2));
+    }
+    // System.out.println("SOA name: " + name);
+    org.xbill.DNS.Record[] records = newLookup(name, Type.SOA).run();
+    if (records == null) {
+      return null;
+    }
+    for (org.xbill.DNS.Record record2 : records) {
+      SOARecord soaRecord = (SOARecord) record2;
+      System.out.println("SOA: host=" + soaRecord.getHost() + " name=" + soaRecord.getName() + "  admin=" + soaRecord.getAdmin());
+      Name domain = soaRecord.getHost();
+      while (true) {
+        System.out.println("SOA: NAPTR lookup on: " + domain);
         if (newLookup(domain, Type.NAPTR).run() != null) {
           return domain;
         }
