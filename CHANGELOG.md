@@ -93,7 +93,7 @@ TODO
 - Channel `send()` cleanup.
   [#192](https://github.com/scionproto-contrib/jpan/pull/192)
 - Bootstrap with reverse lookup now also considers subnet addresses.
-  [#193](https://github.com/scionproto-contrib/jpan/pull/193)
+  [#194](https://github.com/scionproto-contrib/jpan/pull/194)
 
 ### Fixed
 - Post 0.5.0 cleanup
