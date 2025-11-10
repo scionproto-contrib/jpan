@@ -135,27 +135,16 @@ public class DNSUtil {
     // key = "42.42.in-addr.arpa.
     // value = "my-ns-192-168-0-42.my.domain.org"
     try {
-      String[] results = value.split("\\.");
-      ByteBuffer bb = ByteBuffer.allocate(1000);
-      for (String r : results) {
-        bb.put((byte) r.length());
-        bb.put(r.getBytes());
-      }
-      bb.put((byte) 0);
-
-      bb.put((byte) 65);
-      bb.put((byte) 66);
-      bb.put((byte) 0);
-
-      byte[] data = new byte[bb.position()];
-      bb.flip();
-      bb.get(data);
       Name name = Name.fromString(key);
-      // org.xbill.DNS.Record soaRecord2 = SOARecord.newRecord(name, Type.SOA, DClass.IN, 3600, data);
-      org.xbill.DNS.Record soaRecord = SOARecord.fromString(name, Type.SOA, DClass.IN, 3600, "AB AB 2915 10800 3600 60480 300", Name.fromString("hello.a.b."));
+      org.xbill.DNS.Record soaRecord =
+          SOARecord.fromString(
+              name,
+              Type.SOA,
+              DClass.IN,
+              3600,
+              "ns root 2915 10800 3600 60480 300",
+              Name.fromString(value + "."));
       Lookup.getDefaultCache(DClass.IN).addRecord(soaRecord, 10);
-    } catch (TextParseException e) {
-      throw new RuntimeException(e);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
