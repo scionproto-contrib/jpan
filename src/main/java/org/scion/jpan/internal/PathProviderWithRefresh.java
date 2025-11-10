@@ -203,6 +203,7 @@ public class PathProviderWithRefresh implements PathProvider {
         faulty.set(newEntry);
       }
     }
+throw new UnsupportedOperationException(); // FIXME see above
 
     // Clean up faulty list
     Iterator<Entry> faultyIter = faultyPaths.keySet().iterator();
