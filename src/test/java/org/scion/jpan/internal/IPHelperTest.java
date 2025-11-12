@@ -140,7 +140,7 @@ class IPHelperTest {
   @Test
   void toSubnetIPv4() throws UnknownHostException {
     InetAddress i4 =
-            InetAddress.getByAddress(new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 255});
+        InetAddress.getByAddress(new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 255});
     InetAddress sub0 = IPHelper.getByAddress(new int[] {0, 0, 0, 0});
     assertEquals(sub0, IPHelper.toSubnet(i4, 0));
     InetAddress sub8 = IPHelper.getByAddress(new int[] {255, 0, 0, 0});
@@ -159,11 +159,14 @@ class IPHelperTest {
 
   @Test
   void toSubnetIPv6() {
-    InetAddress ip6_1 = IPHelper.getByAddress(new int[] {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1});
+    InetAddress ip6_1 =
+        IPHelper.getByAddress(new int[] {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
     assertEquals(ip6_1, IPHelper.toSubnet(ip6_1, 128));
-    InetAddress sub0 = IPHelper.getByAddress(new int[] {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0});
+    InetAddress sub0 =
+        IPHelper.getByAddress(new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
     assertEquals(sub0, IPHelper.toSubnet(ip6_1, 0));
-    InetAddress sub1 = IPHelper.getByAddress(new int[] {0xA000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0});
+    InetAddress sub1 =
+        IPHelper.getByAddress(new int[] {0xA000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
     assertEquals(sub1, IPHelper.toSubnet(ip6_1, 1));
   }
 
@@ -188,6 +191,5 @@ class IPHelperTest {
           IPHelper.getByAddress(new int[] {a >>> 24, (a >> 16) & 0xFF, (a >> 8) & 0xFF, a & 0xFF});
       assertEquals(sub, IPHelper.toSubnet(ia, pl), "len=" + pl);
     }
-
   }
 }

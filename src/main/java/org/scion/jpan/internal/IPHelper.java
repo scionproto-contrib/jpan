@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-
 import org.scion.jpan.ScionRuntimeException;
 import org.xbill.DNS.Address;
 
@@ -179,24 +178,24 @@ public class IPHelper {
 
   public static InetAddress toSubnet(InetAddress addr, int prefixLength) {
     try {
-        byte[] bytes = addr.getAddress();
-        for (int i = 0; i < bytes.length; i++) {
-          if (prefixLength >= (i + 1) * 8) {
-            // Nothing
-          } else if (prefixLength <= i * 8) {
-            bytes[i] = 0;
-          } else {
-            int ofs = (i+1) * 8 - prefixLength;
-            bytes[i] = (byte) ((bytes[i] & 0xff) & (0xff << ofs));
-          }
+      byte[] bytes = addr.getAddress();
+      for (int i = 0; i < bytes.length; i++) {
+        if (prefixLength >= (i + 1) * 8) {
+          // Nothing
+        } else if (prefixLength <= i * 8) {
+          bytes[i] = 0;
+        } else {
+          int ofs = (i + 1) * 8 - prefixLength;
+          bytes[i] = (byte) ((bytes[i] & 0xff) & (0xff << ofs));
         }
-        return InetAddress.getByAddress(bytes);
+      }
+      return InetAddress.getByAddress(bytes);
     } catch (UnknownHostException e) {
       throw new ScionRuntimeException(e); // Should never happen
     }
   }
 
-  public static Iterable<? extends InetAddress> getInterfaceIPs() {
+  public static Iterable<InetAddress> getInterfaceIPs() {
     List<InetAddress> externalIPs = new ArrayList<>();
     try {
       Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
@@ -209,5 +208,18 @@ public class IPHelper {
       throw new ScionRuntimeException("Error while listing network interfaces.", e);
     }
     return externalIPs;
+  }
+
+  public static String toString(InetSocketAddress address) {
+    if (address == null) {
+      return null;
+    }
+    InetAddress addr = address.getAddress();
+    if (addr instanceof Inet4Address) {
+      return addr.getHostAddress() + ":" + address.getPort();
+    } else if (addr instanceof Inet6Address) {
+      return "[" + addr.getHostAddress() + "]:" + address.getPort();
+    }
+    throw new IllegalArgumentException("Unknown address type: " + address.getClass());
   }
 }

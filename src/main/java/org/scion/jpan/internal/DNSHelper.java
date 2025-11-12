@@ -17,10 +17,10 @@ package org.scion.jpan.internal;
 import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 
-import java.io.IOException;
 import java.net.*;
 import java.util.*;
 import java.util.function.Function;
+import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.slf4j.Logger;
@@ -30,8 +30,9 @@ import org.xbill.DNS.*;
 public class DNSHelper {
 
   private static final Logger LOG = LoggerFactory.getLogger(DNSHelper.class);
-  private static final String STR_X_SCION = "x-sciondiscovery";
-  private static final String STR_X_SCION_TCP = "x-sciondiscovery:tcp";
+  private static final String STR_SRV_TCP_PREFIX = "_sciondiscovery._tcp";
+  private static final String STR_TXT_X_SCION = "x-sciondiscovery";
+  private static final String STR_TXT_X_SCION_TCP = "x-sciondiscovery:tcp";
   private static final String ERR_PARSING_TXT = "Error parsing TXT entry: ";
   private static final String ERR_PARSING_TXT_LOG = ERR_PARSING_TXT + "{}";
   private static final String ERR_PARSING_TXT_LOG2 = ERR_PARSING_TXT + "{} {}";
@@ -84,7 +85,7 @@ public class DNSHelper {
   public static InetAddress queryA(Name hostName) {
     org.xbill.DNS.Record[] recordsA = newLookup(hostName, Type.A).run();
     if (recordsA == null) {
-      throw new ScionRuntimeException("No DNS A entry found for host: " + hostName);
+      return null;
     }
     // just return the first one for now
     return ((ARecord) recordsA[0]).getAddress();
@@ -93,35 +94,39 @@ public class DNSHelper {
   public static InetAddress queryAAAA(Name hostName) {
     org.xbill.DNS.Record[] recordsA = newLookup(hostName, Type.AAAA).run();
     if (recordsA == null) {
-      throw new ScionRuntimeException("No DNS AAAA entry found for host: " + hostName);
+      return null;
     }
     // just return the first one for now
     return ((AAAARecord) recordsA[0]).getAddress();
   }
 
   public static String searchForDiscoveryService() {
+    return IPHelper.toString(searchForDiscoveryService(null));
+  }
+
+  static InetSocketAddress searchForDiscoveryService(Resolver resolver) {
     String searchDomains =
         ScionUtil.getPropertyOrEnv(PROPERTY_DNS_SEARCH_DOMAINS, ENV_DNS_SEARCH_DOMAINS);
     if (searchDomains != null) {
+      LOG.debug("Discovery service search domain from environment: {}", searchDomains);
       for (String domain : searchDomains.split(";")) {
-        LOG.debug(
-            "Checking discovery service domain from environment variable/property: {}", domain);
         try {
-          String a = getScionDiscoveryAddress(Name.fromString(domain));
-          if (a != null) {
-            return a;
+          Name domainName = Name.fromString(domain);
+          InetSocketAddress discovery = getScionDiscoveryAddress(domainName);
+          if (discovery != null) {
+            return discovery;
           }
         } catch (TextParseException e) {
-          throw new ScionRuntimeException(e);
+          LOG.error("Illegal discovery service search domain in environment: {}", domain, e);
         }
       }
     }
 
     List<Name> domains = Lookup.getDefaultSearchPath();
     if (domains.isEmpty()) {
-      Name domain = findSearchDomainViaReverseLookup();
-      if (domain != null) {
-        domains.add(domain);
+      InetSocketAddress discovery = findDiscoveryServiceViaReverseLookup(resolver);
+      if (discovery != null) {
+        return discovery;
       } else {
         LOG.warn(
             "No DNS search domain found. Please check your /etc/resolv.conf or similar."
@@ -132,7 +137,7 @@ public class DNSHelper {
     }
     for (Name domain : domains) {
       LOG.debug("Checking discovery service domain: {}", domain);
-      String address = getScionDiscoveryAddress(domain);
+      InetSocketAddress address = getScionDiscoveryAddress(domain);
       if (address != null) {
         return address;
       }
@@ -140,62 +145,103 @@ public class DNSHelper {
     return null;
   }
 
-  public static String getScionDiscoveryAddress(String hostName) throws IOException {
-    return getScionDiscoveryAddress(Name.fromString(hostName));
+  public static InetSocketAddress getScionDiscoveryAddress(String hostName) {
+    try {
+      Name name = Name.fromString(hostName);
+      return getScionDiscoveryAddress(name);
+    } catch (TextParseException e) {
+      throw new ScionRuntimeException("Error while bootstrapping Scion via DNS: " + e.getMessage());
+    }
   }
 
-  private static String getScionDiscoveryAddress(Name hostName) {
+  private static InetSocketAddress getScionDiscoveryAddress(Name hostName) {
+    InetSocketAddress addr = getScionDiscoveryAddressNAPTR(hostName);
+    if (addr != null) {
+      return addr;
+    }
+    return getScionDiscoveryAddressSRV(hostName);
+  }
+
+  private static InetSocketAddress getScionDiscoveryAddressNAPTR(Name hostName) {
     org.xbill.DNS.Record[] records = newLookup(hostName, Type.NAPTR).run();
     if (records == null) {
-      LOG.debug("Checking discovery service NAPTR: no records found");
+      LOG.debug("Checking discovery service NAPTR: no records found for {}", hostName);
       return null;
     }
 
     for (int i = 0; i < records.length; i++) {
       NAPTRRecord nr = (NAPTRRecord) records[i];
       String naptrService = nr.getService();
-      if (STR_X_SCION_TCP.equals(naptrService)) {
+      if (STR_TXT_X_SCION_TCP.equals(naptrService)) {
         String naptrFlag = nr.getFlags();
         int port = getScionDiscoveryPort(hostName);
         if ("A".equals(naptrFlag)) {
           InetAddress addr = DNSHelper.queryA(nr.getReplacement());
-          return addr.getHostAddress() + ":" + port;
+          return new InetSocketAddress(addr, port);
         }
         if ("AAAA".equals(naptrFlag)) {
           InetAddress addr = DNSHelper.queryAAAA(nr.getReplacement());
-          return "[" + addr.getHostAddress() + "]:" + port;
+          return new InetSocketAddress(addr, port);
         } // keep going and collect more hints
       }
     }
     return null;
   }
 
+  private static InetSocketAddress getScionDiscoveryAddressSRV(Name domain) {
+    // dig +short SRV _sciondiscovery._tcp.ethz.ch
+    Name domainSRV = newName(STR_SRV_TCP_PREFIX, domain);
+    org.xbill.DNS.Record[] records = newLookup(domainSRV, Type.SRV).run();
+    if (records == null) {
+      LOG.debug("Checking discovery service SRV: no records found for {}", domainSRV);
+      return null;
+    }
+
+    for (int i = 0; i < records.length; i++) {
+      SRVRecord nr = (SRVRecord) records[i];
+      InetAddress addr4 = DNSHelper.queryA(nr.getTarget());
+      if (addr4 != null) {
+        return new InetSocketAddress(addr4, nr.getPort());
+      }
+      InetAddress addr6 = DNSHelper.queryAAAA(nr.getTarget());
+      if (addr6 != null) {
+        return new InetSocketAddress(addr6, nr.getPort());
+      }
+    }
+    return null;
+  }
+
   private static int getScionDiscoveryPort(Name hostName) {
+    final Integer INVALID = -1;
     Integer discoveryPort =
         DNSHelper.queryTXT(
             hostName,
-            STR_X_SCION,
+            STR_TXT_X_SCION,
             txtEntry -> {
               try {
                 int port = Integer.parseInt(txtEntry);
                 if (port < 0 || port > 65536) {
                   LOG.info(ERR_PARSING_TXT_LOG, txtEntry);
-                  return null;
+                  return INVALID;
                 }
                 return port;
               } catch (NumberFormatException e) {
                 LOG.info(ERR_PARSING_TXT_LOG2, txtEntry, e.getMessage());
-                return null;
+                return INVALID;
               }
             });
-    if (discoveryPort == null) {
+    if (INVALID.equals(discoveryPort)) {
       throw new ScionRuntimeException(
-          "Could not find valid TXT " + STR_X_SCION + " record for host: " + hostName);
+          "Could not find valid TXT " + STR_TXT_X_SCION + " record for host: " + hostName);
+    }
+    if (discoveryPort == null) {
+      LOG.debug("Could not find valid TXT " + STR_TXT_X_SCION + " record for host: {}", hostName);
+      return Constants.DISCOVERY_DEFAULT_PORT;
     }
     return discoveryPort;
   }
 
-  static Name findSearchDomainViaReverseLookup() {
+  static InetSocketAddress findDiscoveryServiceViaReverseLookup(Resolver resolver) {
     // Idea:
     // We call whoami to get our (external) IP, then reverse lookup the IP to get our
     // external domain. We then strip subdomains from the domain until we get one that
@@ -208,75 +254,101 @@ public class DNSHelper {
       // Reverse lookup public interface IPs
       for (InetAddress externalIp : IPHelper.getInterfaceIPs()) {
         if (!externalIp.isSiteLocalAddress()) {
-          Name domain = findSearchDomainViaPTRLookup(externalIp);
-          if (domain != null) {
-            return domain;
+          InetSocketAddress discovery = findDiscoveryServiceViaPTRLookup(externalIp, resolver);
+          if (discovery != null) {
+            return discovery;
           }
         }
       }
 
       Name reverseLookupHost = Name.fromString("whoami.akamai.net");
-      Resolver resolver = new SimpleResolver("zh.akamaitech.net");
-
-      // IPv4 reverse lookup
-      Lookup lookup4 = newLookup(reverseLookupHost, Type.A);
-      lookup4.setResolver(resolver);
-      org.xbill.DNS.Record[] records4 = lookup4.run();
-      for (org.xbill.DNS.Record record4 : records4) {
-        ARecord aRecord = (ARecord) record4;
-        InetAddress localAddress = aRecord.getAddress();
-        if (!localAddress.isSiteLocalAddress()) {
-          Name domain = findSearchDomainViaPTRLookup(localAddress);
-          if (domain != null) {
-            return domain;
-          }
-        }
+      if (resolver == null) {
+        resolver = new SimpleResolver("zh.akamaitech.net");
       }
 
-      // IPv6 reverse lookup
-      Lookup lookup6 = newLookup(reverseLookupHost, Type.AAAA);
-      lookup6.setResolver(resolver);
-      org.xbill.DNS.Record[] records6 = lookup6.run();
-      for (org.xbill.DNS.Record record6 : records6) {
-        AAAARecord aRecord = (AAAARecord) record6;
-        InetAddress localAddress = aRecord.getAddress();
-        if (!localAddress.isSiteLocalAddress()) {
-          Name domain = findSearchDomainViaPTRLookup(localAddress);
-          if (domain != null) {
-            return domain;
-          }
-        }
+      InetSocketAddress discovery = reverseLookupIPv4(reverseLookupHost, resolver);
+      if (discovery == null) {
+        discovery = reverseLookupIPv6(reverseLookupHost, resolver);
       }
-
-      // Try reverse lookup on all subnets
-      for (InetAddress subnet : IPHelper.getSubnets()) {
-        if (!subnet.isSiteLocalAddress()) {
-          Name domain = findSearchDomainViaSOALookup(subnet);
-          if (domain != null) {
-            return domain;
-          }
-        }
+      if (discovery == null) {
+        // We do this last because subnets may be large and have unrelated search domains.
+        discovery = reverseLookupSubnet(resolver);
       }
+      return discovery;
 
     } catch (TextParseException | UnknownHostException e) {
       throw new ScionRuntimeException(e);
     }
+  }
+
+  static InetSocketAddress reverseLookupIPv4(Name reverseLookupHost, Resolver resolver)
+      throws TextParseException {
+    // IPv4 reverse lookup
+    Lookup lookup4 = newLookup(reverseLookupHost, Type.A, resolver);
+    org.xbill.DNS.Record[] records4 = lookup4.run();
+    if (records4 != null) {
+      for (org.xbill.DNS.Record record4 : records4) {
+        ARecord aRecord = (ARecord) record4;
+        InetAddress localAddress = aRecord.getAddress();
+        if (!localAddress.isSiteLocalAddress()) {
+          InetSocketAddress discovery = findDiscoveryServiceViaPTRLookup(localAddress, resolver);
+          if (discovery != null) {
+            return discovery;
+          }
+        }
+      }
+    }
     return null;
   }
 
-  private static Name findSearchDomainViaPTRLookup(InetAddress address)
-          throws TextParseException {
+  static InetSocketAddress reverseLookupIPv6(Name reverseLookupHost, Resolver resolver)
+      throws TextParseException {
+    // IPv6 reverse lookup
+    Lookup lookup6 = newLookup(reverseLookupHost, Type.AAAA, resolver);
+    org.xbill.DNS.Record[] records6 = lookup6.run();
+    if (records6 != null) {
+      for (org.xbill.DNS.Record record6 : records6) {
+        AAAARecord aRecord = (AAAARecord) record6;
+        InetAddress localAddress = aRecord.getAddress();
+        if (!localAddress.isSiteLocalAddress()) {
+          InetSocketAddress discovery = findDiscoveryServiceViaPTRLookup(localAddress, resolver);
+          if (discovery != null) {
+            return discovery;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  static InetSocketAddress reverseLookupSubnet(Resolver resolver) throws TextParseException {
+    // Try reverse lookup on all subnets.
+    for (InetAddress subnet : IPHelper.getSubnets()) {
+      if (!subnet.isSiteLocalAddress()) {
+        InetSocketAddress discovery = findDiscoveryServiceViaSOALookup(subnet, resolver);
+        if (discovery != null) {
+          return discovery;
+        }
+      }
+    }
+    return null;
+  }
+
+  private static InetSocketAddress findDiscoveryServiceViaPTRLookup(
+      InetAddress address, Resolver resolver) throws TextParseException {
     Name name = Name.fromString(reverseAddressForARPA(address));
-    org.xbill.DNS.Record[] records = newLookup(name, Type.PTR).run();
+    org.xbill.DNS.Record[] records = newLookup(name, Type.PTR, resolver).run();
     if (records == null) {
       return null;
     }
     for (org.xbill.DNS.Record record2 : records) {
       PTRRecord ptrRecord = (PTRRecord) record2;
       Name domain = ptrRecord.getTarget();
+      // TODO use single function for recursive in PTR and SOA lookup
       while (true) {
-        if (newLookup(domain, Type.NAPTR).run() != null) {
-          return domain;
+        InetSocketAddress discovery = checkNaptrAndSrv(domain, resolver);
+        if (discovery != null) {
+          return discovery;
         }
 
         // Recursively strip subdomains
@@ -291,26 +363,26 @@ public class DNSHelper {
     return null;
   }
 
-  static Name findSearchDomainViaSOALookup(InetAddress address)
-          throws TextParseException {
+  static InetSocketAddress findDiscoveryServiceViaSOALookup(InetAddress address, Resolver resolver)
+      throws TextParseException {
     Name name = Name.fromString(reverseAddressForARPA(address));
-    // TODO ipv6
-    while (name.toString().startsWith("0.")) {
-      name = Name.fromString(name.toString().substring(2));
+    // Strip leading zeros
+    if (address instanceof Inet4Address) {
+      while (name.toString().startsWith("0.")) {
+        name = Name.fromString(name.toString().substring(2));
+      }
     }
-    // System.out.println("SOA name: " + name);
     org.xbill.DNS.Record[] records = newLookup(name, Type.SOA).run();
     if (records == null) {
       return null;
     }
     for (org.xbill.DNS.Record record2 : records) {
       SOARecord soaRecord = (SOARecord) record2;
-      System.out.println("SOA: host=" + soaRecord.getHost() + " name=" + soaRecord.getName() + "  admin=" + soaRecord.getAdmin());
       Name domain = soaRecord.getHost();
       while (true) {
-        System.out.println("SOA: NAPTR lookup on: " + domain);
-        if (newLookup(domain, Type.NAPTR).run() != null) {
-          return domain;
+        InetSocketAddress discovery = checkNaptrAndSrv(domain, resolver);
+        if (discovery != null) {
+          return discovery;
         }
 
         // Recursively strip subdomains
@@ -323,6 +395,14 @@ public class DNSHelper {
       }
     }
     return null;
+  }
+
+  static InetSocketAddress checkNaptrAndSrv(Name domain, Resolver resolver) {
+    InetSocketAddress discovery = getScionDiscoveryAddressNAPTR(domain);
+    if (discovery != null) {
+      return discovery;
+    }
+    return getScionDiscoveryAddressSRV(domain);
   }
 
   static String reverseAddressForARPA(InetAddress address) {
@@ -353,5 +433,34 @@ public class DNSHelper {
     // https://github.com/dnsjava/dnsjava/issues/361
     lookup.setHostsFileParser(null);
     return lookup;
+  }
+
+  private static Lookup newLookup(Name name, int type, Resolver resolver) {
+    Lookup lookup = new Lookup(name, type);
+    // Avoid parsing /etc/hosts because this would print a WARNING, see
+    // https://github.com/dnsjava/dnsjava/issues/361
+    lookup.setHostsFileParser(null);
+    if (resolver != null) {
+      lookup.setResolver(resolver);
+    }
+    return lookup;
+  }
+
+  private static Name newName(String str) {
+    try {
+      return Name.fromString(str);
+    } catch (TextParseException e) {
+      LOG.error("Error parsing domain string: {}", str, e);
+      throw new ScionRuntimeException("Error parsing domain string: " + str, e);
+    }
+  }
+
+  private static Name newName(String str, Name domain) {
+    try {
+      return Name.fromString(str, domain);
+    } catch (TextParseException e) {
+      LOG.error("Error parsing domain string: {} + {}", str, domain, e);
+      throw new ScionRuntimeException("Error parsing domain string: " + str + " + " + domain, e);
+    }
   }
 }
