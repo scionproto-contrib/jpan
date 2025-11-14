@@ -14,9 +14,12 @@
 
 package org.scion.jpan.internal;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import org.scion.jpan.ScionRuntimeException;
 import org.xbill.DNS.Address;
 
 public class IPHelper {
@@ -150,5 +153,73 @@ public class IPHelper {
     } catch (UnknownHostException e) {
       throw new IllegalArgumentException(e);
     }
+  }
+
+  public static List<InetAddress> getSubnets() {
+    List<InetAddress> subnets = new ArrayList<>();
+    try {
+      Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+      for (NetworkInterface netint : Collections.list(nets)) {
+        subnets.addAll(getSubnetAddress(netint));
+      }
+    } catch (SocketException e) {
+      throw new ScionRuntimeException("Error while listing network interfaces.", e);
+    }
+    return subnets;
+  }
+
+  public static List<InetAddress> getSubnetAddress(NetworkInterface netint) {
+    List<InetAddress> subnets = new ArrayList<>();
+    for (InterfaceAddress ia : netint.getInterfaceAddresses()) {
+      subnets.add(toSubnet(ia.getAddress(), ia.getNetworkPrefixLength()));
+    }
+    return subnets;
+  }
+
+  public static InetAddress toSubnet(InetAddress addr, int prefixLength) {
+    try {
+      byte[] bytes = addr.getAddress();
+      for (int i = 0; i < bytes.length; i++) {
+        if (prefixLength >= (i + 1) * 8) {
+          // Nothing
+        } else if (prefixLength <= i * 8) {
+          bytes[i] = 0;
+        } else {
+          int ofs = (i + 1) * 8 - prefixLength;
+          bytes[i] = (byte) ((bytes[i] & 0xff) & (0xff << ofs));
+        }
+      }
+      return InetAddress.getByAddress(bytes);
+    } catch (UnknownHostException e) {
+      throw new ScionRuntimeException(e); // Should never happen
+    }
+  }
+
+  public static Iterable<InetAddress> getInterfaceIPs() {
+    List<InetAddress> externalIPs = new ArrayList<>();
+    try {
+      Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+      for (NetworkInterface netint : Collections.list(nets)) {
+        for (InterfaceAddress ia : netint.getInterfaceAddresses()) {
+          externalIPs.add(ia.getAddress());
+        }
+      }
+    } catch (SocketException e) {
+      throw new ScionRuntimeException("Error while listing network interfaces.", e);
+    }
+    return externalIPs;
+  }
+
+  public static String toString(InetSocketAddress address) {
+    if (address == null) {
+      return null;
+    }
+    InetAddress addr = address.getAddress();
+    if (addr instanceof Inet4Address) {
+      return addr.getHostAddress() + ":" + address.getPort();
+    } else if (addr instanceof Inet6Address) {
+      return "[" + addr.getHostAddress() + "]:" + address.getPort();
+    }
+    throw new IllegalArgumentException("Unknown address type: " + address.getClass());
   }
 }

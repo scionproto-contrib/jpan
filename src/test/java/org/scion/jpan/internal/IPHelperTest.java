@@ -136,4 +136,69 @@ class IPHelperTest {
         };
     assertEquals(InetAddress.getByAddress(expectedV6), IPHelper.getByAddress(inputV6));
   }
+
+  @Test
+  void toSubnetIPv4() throws UnknownHostException {
+    InetAddress i4 =
+        InetAddress.getByAddress(new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 255});
+    InetAddress sub0 = IPHelper.getByAddress(new int[] {0, 0, 0, 0});
+    assertEquals(sub0, IPHelper.toSubnet(i4, 0));
+    InetAddress sub8 = IPHelper.getByAddress(new int[] {255, 0, 0, 0});
+    assertEquals(sub8, IPHelper.toSubnet(i4, 8));
+    InetAddress sub16 = IPHelper.getByAddress(new int[] {255, 255, 0, 0});
+    assertEquals(sub16, IPHelper.toSubnet(i4, 16));
+    InetAddress sub24 = IPHelper.getByAddress(new int[] {255, 255, 255, 0});
+    assertEquals(sub24, IPHelper.toSubnet(i4, 24));
+    InetAddress sub32 = IPHelper.getByAddress(new int[] {255, 255, 255, 255});
+    assertEquals(sub32, IPHelper.toSubnet(i4, 32));
+
+    test(i4);
+    test(IPHelper.getByAddress(new int[] {128, 128, 128, 128}));
+    test(IPHelper.getByAddress(new int[] {1, 1, 1, 1}));
+  }
+
+  @Test
+  void toSubnetIPv6() {
+    InetAddress ip6_1 =
+        IPHelper.getByAddress(new int[] {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
+    assertEquals(ip6_1, IPHelper.toSubnet(ip6_1, 128));
+    InetAddress sub0 =
+        IPHelper.getByAddress(new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+    assertEquals(sub0, IPHelper.toSubnet(ip6_1, 0));
+    InetAddress sub1 =
+        IPHelper.getByAddress(new int[] {0xA000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+    assertEquals(sub1, IPHelper.toSubnet(ip6_1, 1));
+  }
+
+  private void test(InetAddress ia) {
+    byte[] ba = ia.getAddress();
+    // IPv4
+    for (int pl = 0; pl <= 32; pl++) {
+      int mask = 0xFFFFFFFF;
+      if (pl == 0) {
+        mask = 0;
+      } else {
+        mask = mask << (32 - pl);
+      }
+      int a = 0;
+      for (int i = 0; i < ba.length; i++) {
+        a <<= 8;
+        a |= Byte.toUnsignedInt(ba[i]);
+      }
+      a &= mask;
+
+      InetAddress sub =
+          IPHelper.getByAddress(new int[] {a >>> 24, (a >> 16) & 0xFF, (a >> 8) & 0xFF, a & 0xFF});
+      assertEquals(sub, IPHelper.toSubnet(ia, pl), "len=" + pl);
+    }
+  }
+
+  @Test
+  void toString_test() {
+    String ip4 = "123.244.0.11:12321";
+    assertEquals(ip4, IPHelper.toString(IPHelper.toInetSocketAddress(ip4)));
+
+    String ip6 = "[123:ffff:0:3:0:0:0:42]:32123";
+    assertEquals(ip6, IPHelper.toString(IPHelper.toInetSocketAddress(ip6)));
+  }
 }

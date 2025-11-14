@@ -129,4 +129,49 @@ public class DNSUtil {
       throw new RuntimeException(e);
     }
   }
+
+  public static void installSOA(String key, String host) {
+    // Example:
+    // key = "42.42.in-addr.arpa.
+    // value = "my-ns-192-168-0-42.my.domain.org"
+    try {
+      Name name = Name.fromString(key);
+      org.xbill.DNS.Record soaRecord =
+          SOARecord.fromString(
+              name,
+              Type.SOA,
+              DClass.IN,
+              3600,
+              host + ". root." + host + ". 2915 10800 3600 60480 300",
+              Name.fromString(host + "."));
+      Lookup.getDefaultCache(DClass.IN).addRecord(soaRecord, 10);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Deprecated
+  public static void installSRV(String key, String value) {
+    installSRV(key, value, 8041);
+  }
+
+  public static void installSRV(String key, String value, int port) {
+    // Example:
+    // key = "42.42.in-addr.arpa.
+    // value = "my-ns-192-168-0-42.my.domain.org"
+    try {
+      Name name = Name.fromString(key);
+      org.xbill.DNS.Record srvRecord =
+          SRVRecord.fromString(
+              name,
+              Type.SRV,
+              DClass.IN,
+              3600,
+              "10 10 " + port + " " + value + ".",
+              Name.fromString(value + "."));
+      Lookup.getDefaultCache(DClass.IN).addRecord(srvRecord, 10);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

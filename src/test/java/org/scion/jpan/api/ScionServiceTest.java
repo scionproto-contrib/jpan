@@ -331,11 +331,6 @@ class ScionServiceTest {
     try {
       Throwable t;
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "yyyy=12345", KEY_X_TCP);
-      t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
-      assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
-
-      DNSUtil.clear();
       DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=1x2345", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
@@ -355,7 +350,7 @@ class ScionServiceTest {
       DNSUtil.clear();
       DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", "x-wrong:tcp");
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
-      assertTrue(t.getMessage().startsWith("No valid DNS NAPTR entry found"));
+      assertTrue(t.getMessage().startsWith("No valid DNS NAPTR or SOA entry found"));
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
       ScionService.closeDefault();

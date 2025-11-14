@@ -92,15 +92,11 @@ public class ScionBootstrapper {
   }
 
   private static String bootstrapViaDNS(String hostName) {
-    try {
-      String addr = DNSHelper.getScionDiscoveryAddress(hostName);
-      if (addr == null) {
-        throw new ScionRuntimeException("No valid DNS NAPTR entry found for host: " + hostName);
-      }
-      return addr;
-    } catch (IOException e) {
-      throw new ScionRuntimeException("Error while bootstrapping Scion via DNS: " + e.getMessage());
+    InetSocketAddress addr = DNSHelper.getScionDiscoveryAddress(hostName, null);
+    if (addr == null) {
+      throw new ScionRuntimeException("No valid DNS NAPTR or SOA entry found for: " + hostName);
     }
+    return IPHelper.toString(addr);
   }
 
   private LocalTopology initLocal() {
@@ -148,9 +144,9 @@ public class ScionBootstrapper {
   public String fetchFile(String resource) {
     try {
       LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
-      URL url = new URL("http://" + topologyResource + "/" + resource);
-      return fetchFile(url);
-    } catch (IOException e) {
+      URI uri = new URI("http://" + topologyResource + "/" + resource);
+      return fetchFile(uri.toURL());
+    } catch (IOException | URISyntaxException e) {
       throw new ScionRuntimeException(
           "While fetching resource '" + resource + "' from " + topologyResource, e);
     }
