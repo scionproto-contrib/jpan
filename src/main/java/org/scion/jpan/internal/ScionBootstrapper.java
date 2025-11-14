@@ -92,7 +92,7 @@ public class ScionBootstrapper {
   }
 
   private static String bootstrapViaDNS(String hostName) {
-    InetSocketAddress addr = DNSHelper.getScionDiscoveryAddress(hostName);
+    InetSocketAddress addr = DNSHelper.getScionDiscoveryAddress(hostName, null);
     if (addr == null) {
       throw new ScionRuntimeException("No valid DNS NAPTR or SOA entry found for: " + hostName);
     }

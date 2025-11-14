@@ -35,7 +35,7 @@ class DNSHelperTest {
   }
 
   @Test
-  void findSearchDomainViaReverseLookup_NAPTR_V4() throws UnknownHostException, TextParseException {
+  void findSearchDomainViaReverseLookup_NAPTR_V4() throws TextParseException {
     //  dig -x 129.132.0.0
     //  ;; QUESTION SECTION:
     //  ;0.0.132.129.in-addr.arpa.	IN	PTR
@@ -98,10 +98,6 @@ class DNSHelperTest {
     DNSUtil.installNAPTR(
         "hello6.test", new byte[] {2, 2, 2, 2, 1, 1, 1, 1, 3, 3, 3, 3, 4, 4, 4, 4}, 12345);
 
-    //    Name domain = DNSHelper.findDiscoveryServiceViaReverseLookup(new MockDNS.MockResolver());
-    //    assertNotNull(domain);
-    //    assertEquals("hello6.test.", domain.toString());
-
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
     assertNotNull(dsAddress);
@@ -109,7 +105,7 @@ class DNSHelperTest {
   }
 
   @Test
-  void testReverseLookup_SOA_SRV_V4() throws UnknownHostException {
+  void testReverseLookup_SOA_SRV_V4() {
     InetAddress subnet = findSubnet(4);
     String arpa = DNSHelper.reverseAddressForARPA(subnet);
     // Strip leading zeros
@@ -221,33 +217,6 @@ class DNSHelperTest {
   //    System.out.println("Name Sub: " + nameSub);
   //    System.out.println();
   //  }
-
-  @Test
-  void removeMeSOA() throws TextParseException {
-    //    InetAddress addr = IPHelper.getByAddress(new int[]{172, 18, 0, 1});
-    //    Name nameAddr = DNSHelper.findSearchDomainViaSOALookup(addr);
-    //    System.out.println("Name Addr: " + nameAddr);
-    //    System.out.println();
-
-    //    InetAddress subnet = IPHelper.getByAddress(new int[] {172, 18, 0, 0});
-    //    Name nameSub = DNSHelper.findSearchDomainViaSOALookup(subnet);
-    //    System.out.println("Name Sub: " + nameSub);
-    //    System.out.println();
-    //
-    //    InetAddress subnet2 = IPHelper.getByAddress(new int[] {163, 152, 0, 0});
-    //    Name nameSub2 = DNSHelper.findSearchDomainViaSOALookup(subnet2);
-    //    System.out.println("Name Sub2: " + nameSub2);
-    //    System.out.println();
-
-    //    InetAddress subnet = IPHelper.getByAddress(new int[] {172, 18, 0, 0});
-    //    Name nameSub = DNSHelper.findSearchDomainViaSOALookup(subnet);
-    //    System.out.println("Name Sub: " + nameSub);
-    //    System.out.println();
-
-    // DNSHelper.findDiscoveryServiceViaSOALookup()
-    InetSocketAddress addr = DNSHelper.checkNaptrAndSrv(Name.fromString("ethz.ch."), null);
-    // System.out.println("addr=" + addr);
-  }
 
   private InetAddress findAddress(int len) {
     for (InetAddress i : IPHelper.getInterfaceIPs()) {

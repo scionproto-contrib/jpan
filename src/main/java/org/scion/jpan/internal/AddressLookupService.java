@@ -80,7 +80,7 @@ public class AddressLookupService {
 
     // DNS lookup
     Long fromDNS =
-        DNSHelper.queryTXT(hostName, DNS_TXT_KEY, AddressLookupService::parseTxtRecordToIA);
+        DNSHelper.queryTXT(hostName, DNS_TXT_KEY, AddressLookupService::parseTxtRecordToIA, null);
     if (fromDNS != null) {
       return fromDNS;
     }
@@ -125,7 +125,7 @@ public class AddressLookupService {
 
     // DNS lookup
     ScionAddress fromDNS =
-        DNSHelper.queryTXT(hostName, DNS_TXT_KEY, x -> parseTxtRecord(x, hostName));
+        DNSHelper.queryTXT(hostName, DNS_TXT_KEY, x -> parseTxtRecord(x, hostName), null);
     if (fromDNS != null) {
       return addToCache(fromDNS);
     }
