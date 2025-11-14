@@ -17,6 +17,7 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import org.junit.jupiter.api.Test;
 
@@ -191,5 +192,14 @@ class IPHelperTest {
           IPHelper.getByAddress(new int[] {a >>> 24, (a >> 16) & 0xFF, (a >> 8) & 0xFF, a & 0xFF});
       assertEquals(sub, IPHelper.toSubnet(ia, pl), "len=" + pl);
     }
+  }
+
+  @Test
+  void toString_test() {
+    String ip4 = "123.244.0.11:12321";
+    assertEquals(ip4, IPHelper.toString(IPHelper.toInetSocketAddress(ip4)));
+
+    String ip6 = "[123:ffff:0:3:0:0:0:42]:32123";
+    assertEquals(ip6, IPHelper.toString(IPHelper.toInetSocketAddress(ip6)));
   }
 }
