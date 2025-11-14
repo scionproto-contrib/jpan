@@ -16,7 +16,6 @@ package org.scion.jpan.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -35,7 +34,7 @@ class DNSHelperTest {
   }
 
   @Test
-  void findSearchDomainViaReverseLookup_NAPTR_V4() throws TextParseException {
+  void findSearchDomainViaReverseLookup_NAPTR_V4() {
     //  dig -x 129.132.0.0
     //  ;; QUESTION SECTION:
     //  ;0.0.132.129.in-addr.arpa.	IN	PTR
@@ -46,13 +45,6 @@ class DNSHelperTest {
     DNSUtil.installAddress("whoami.akamai.net", new byte[] {1, 2, 3, 4});
     DNSUtil.installPTR("4.3.2.1.in-addr.arpa.", "my-dhcp-122-133-233-773.inf.hello.test");
     DNSUtil.installNAPTR("hello.test", new byte[] {2, 2, 2, 2}, 12345);
-
-    Name reverseLookupHost = Name.fromString("whoami.akamai.net"); // TODO
-    // Resolver resolver = new SimpleResolver("zh.akamaitech.net");
-    //    Resolver resolver = new MockDNS.MockResolver();
-    //    Name domain = DNSHelper.reverseLookupIPv4(reverseLookupHost, resolver);
-    //    assertNotNull(domain);
-    //    assertEquals("hello.test.", domain.toString());
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
@@ -70,31 +62,11 @@ class DNSHelperTest {
     //  0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.4.8.7.5.c.e.0.1.c.7.6.0.1.0.0.2.ip6.arpa. 300 IN PTR
     //                2001-67c-10ec-5784-8000--x.x.x.org.
 
-    InetAddress discovery = IPHelper.toInetAddress("[202:202:101:101:303:303:404:404]");
-    DNSUtil.installAddress("whoami.akamai.net", new byte[] {0, 0, 0, 1});
-    DNSUtil.installAddress(
-        "whoami.akamai.net",
-        new byte[] {
-          0x20,
-          0x01,
-          0x06,
-          0x7c,
-          0x10,
-          0xec - 256,
-          0x57,
-          0x84 - 256,
-          0x80 - 256,
-          0x00,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0
-        });
-    DNSUtil.installPTR(
-        "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.4.8.7.5.c.e.0.1.c.7.6.0.1.0.0.2.ip6.arpa.",
-        "my-dhcp-122-133-233-773.inf.hello6.test");
+    InetAddress local = IPHelper.toInetAddress("[201:6c:1ec:5784:8000:0::42]");
+    DNSUtil.installAddress("whoami.akamai.net", local.getAddress());
+
+    String localArpa = DNSHelper.reverseAddressForARPA(local);
+    DNSUtil.installPTR(localArpa, "my-dhcp-122-133-233-773.inf.hello6.test");
     DNSUtil.installNAPTR(
         "hello6.test", new byte[] {2, 2, 2, 2, 1, 1, 1, 1, 3, 3, 3, 3, 4, 4, 4, 4}, 12345);
 
@@ -169,64 +141,11 @@ class DNSHelperTest {
   }
 
   @Test
-  void reverseAddressForARPA_V6() {
-    InetAddress input =
-        IPHelper.getByAddress(
-            new int[] {
-              0x20, 0x01, 0x06, 0x7c, 0x10, 0xec, 0x57, 0x84, 0x80, 0x00, 0, 0, 0, 0, 0, 0
-            });
-    String expected = "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.4.8.7.5.c.e.0.1.c.7.6.0.1.0.0.2.ip6.arpa.";
+  void reverseAddressForARPA_V6() throws UnknownHostException {
+    InetAddress input = IPHelper.toInetAddress("[2001:67c:10ec:5784:8000:0::42]");
+    String expected = "2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.8.4.8.7.5.c.e.0.1.c.7.6.0.1.0.0.2.ip6.arpa.";
     String output = DNSHelper.reverseAddressForARPA(input);
     assertEquals(expected, output);
-  }
-
-  // TODO
-  //  @Test
-  //  void soaLookup_V4() throws TextParseException {
-  //    {
-  //      DNSUtil.installSOA("2.1.in-addr.arpa.", "my-ns-122-133-233-773.inf.hello.test");
-  //      DNSUtil.installNAPTR("hello.test", new byte[] {1, 2, 2, 2}, 12345);
-  //      InetAddress subnet = IPHelper.getByAddress(new int[] {1, 2, 0, 0});
-  //      Name nameSub = DNSHelper.findSearchDomainViaSOALookup(subnet);
-  //      System.out.println("Name Sub: " + nameSub);
-  //      System.out.println();
-  //    }
-  //
-  //    //    InetAddress addr = IPHelper.getByAddress(new int[]{172, 18, 0, 1});
-  //    //    Name nameAddr = DNSHelper.findSearchDomainViaSOALookup(addr);
-  //    //    System.out.println("Name Addr: " + nameAddr);
-  //    //    System.out.println();
-  //
-  //    InetAddress subnet = IPHelper.getByAddress(new int[] {172, 18, 0, 0});
-  //    Name nameSub = DNSHelper.findSearchDomainViaSOALookup(subnet);
-  //    System.out.println("Name Sub: " + nameSub);
-  //    System.out.println();
-  //
-  //    InetAddress subnet2 = IPHelper.getByAddress(new int[] {163, 152, 0, 0});
-  //    Name nameSub2 = DNSHelper.findSearchDomainViaSOALookup(subnet2);
-  //    System.out.println("Name Sub2: " + nameSub2);
-  //    System.out.println();
-  //  }
-  //
-  //  @Test
-  //  void soaLookup_V6() throws TextParseException {
-  //    DNSUtil.installSOA("2.1.in-addr.arpa.", "my-ns-122-133-233-773.inf.hello.test");
-  //    DNSUtil.installNAPTR("hello.test", new byte[] {1, 2, 2, 2}, 12345);
-  //    InetAddress subnet = IPHelper.getByAddress(new int[] {1, 2, 0, 0});
-  //    Name nameSub = DNSHelper.findSearchDomainViaSOALookup(subnet);
-  //    System.out.println("Name Sub: " + nameSub);
-  //    System.out.println();
-  //  }
-
-  private InetAddress findAddress(int len) {
-    for (InetAddress i : IPHelper.getInterfaceIPs()) {
-      if (i instanceof Inet4Address) {
-        return i;
-      }
-    }
-    System.err.println("No IP address available with len = " + len);
-    fail();
-    return null;
   }
 
   private InetAddress findSubnet(int len) {

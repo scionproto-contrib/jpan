@@ -253,41 +253,43 @@ public class DNSHelper {
     // - dig -x 129.132.0.0
     // - OR:   dig TXT whoami.ds.akahelp.net @dns.google.com
 
-    try {
-      // Reverse lookup public interface IPs
-      for (InetAddress externalIp : IPHelper.getInterfaceIPs()) {
-        if (!externalIp.isSiteLocalAddress()) {
-          InetSocketAddress discovery = findDiscoveryServiceViaPTRLookup(externalIp, resolver);
-          if (discovery != null) {
-            return discovery;
-          }
+    // Reverse lookup public interface IPs
+    for (InetAddress externalIp : IPHelper.getInterfaceIPs()) {
+      if (!externalIp.isSiteLocalAddress()) {
+        InetSocketAddress discovery = findDiscoveryServiceViaPTRLookup(externalIp, resolver);
+        if (discovery != null) {
+          return discovery;
         }
       }
-
-      Name reverseLookupHost = newName("whoami.akamai.net");
-      if (resolver == null) {
-        // We can use a custom resolver for Unit tests.
-        resolver = new SimpleResolver("zh.akamaitech.net");
-      }
-
-      InetSocketAddress discovery = reverseLookupIPv4(reverseLookupHost, resolver);
-      if (discovery == null) {
-        discovery = reverseLookupIPv6(reverseLookupHost, resolver);
-      }
-      if (discovery == null) {
-        // We do this last because subnets may be large and have unrelated search domains.
-        discovery = reverseLookupSubnet(resolver);
-      }
-      return discovery;
-
-    } catch (UnknownHostException e) {
-      throw new ScionRuntimeException(e);
     }
+
+    Name reverseLookupHost = newName("whoami.akamai.net");
+    InetSocketAddress discovery = reverseLookupIPv4(reverseLookupHost, resolver);
+    if (discovery == null) {
+      discovery = reverseLookupIPv6(reverseLookupHost, resolver);
+    }
+    if (discovery == null) {
+      // We do this last because subnets may be large and have unrelated search domains.
+      discovery = reverseLookupSubnet(resolver);
+    }
+    return discovery;
+  }
+
+  private static Resolver getWhoamiResolver(Resolver resolver) {
+    if (resolver == null) {
+      // We can use a custom resolver for Unit tests.
+      try {
+        return new SimpleResolver("zh.akamaitech.net");
+      } catch (UnknownHostException e) {
+        throw new ScionRuntimeException(e);
+      }
+    }
+    return resolver;
   }
 
   private static InetSocketAddress reverseLookupIPv4(Name reverseLookupHost, Resolver resolver) {
     // IPv4 reverse lookup
-    Lookup lookup4 = newLookup(reverseLookupHost, Type.A, resolver);
+    Lookup lookup4 = newLookup(reverseLookupHost, Type.A, getWhoamiResolver(resolver));
     org.xbill.DNS.Record[] records4 = lookup4.run();
     if (records4 != null) {
       for (org.xbill.DNS.Record record4 : records4) {
@@ -306,7 +308,7 @@ public class DNSHelper {
 
   private static InetSocketAddress reverseLookupIPv6(Name reverseLookupHost, Resolver resolver) {
     // IPv6 reverse lookup
-    Lookup lookup6 = newLookup(reverseLookupHost, Type.AAAA, resolver);
+    Lookup lookup6 = newLookup(reverseLookupHost, Type.AAAA, getWhoamiResolver(resolver));
     org.xbill.DNS.Record[] records6 = lookup6.run();
     if (records6 != null) {
       for (org.xbill.DNS.Record record6 : records6) {
