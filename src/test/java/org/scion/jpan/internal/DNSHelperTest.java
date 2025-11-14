@@ -151,7 +151,10 @@ class DNSHelperTest {
   private InetAddress findSubnet(int len) {
     for (InetAddress i : IPHelper.getSubnets()) {
       if (i.getAddress().length == len) {
-        return i;
+        System.err.println("SUBNET: " + i + "  " + i.isSiteLocalAddress());
+        if (!i.isSiteLocalAddress()) {
+          return i;
+        }
       }
     }
     System.err.println("No IP address available with len = " + len);
