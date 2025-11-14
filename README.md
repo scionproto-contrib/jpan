@@ -340,26 +340,31 @@ JPAN can be used in standalone mode or with a local daemon.
   library.
 - The daemon is available if you have a [local installation of SCION](https://docs.scion.org/en/latest/dev/run.html).
 
-There are also several methods that allow specifying a local topology file, a topology server 
-address or a different DNS server with a scion NAPTR record. These are only meant for debugging. 
+Without daemon there are several methods for bootstrapping, including several methods of DNS lookup
+or specifying a local topology file or a topology server address. 
 
 The method `Scion.defaultService()` (internally called by `ScionDatagramChannel.open()`) will 
 attempt to get network information in the following order until it succeeds:
-- For debugging: Check for local topology file (if file name is given)
-- For debugging: Check for bootstrap server address (if address is given)
-- For debugging: Check for DNS NAPTR record (if record entry name is given)
+- For debugging: Check for local topology file (if file name is provided)
+- For debugging: Check for bootstrap server address (if address is provided)
+- For debugging: Check for DNS records in non-default DNS server (if DNS server name is provided)
 - Check for to daemon
-- Check search domain (as given in `/etc/resolv.conf`) for topology server
-
-The reason that the daemon is checked last is that it has a default setting (`localhost:30255`) 
-while the other options are skipped if no property or environment variable is defined. 
+- Check search domain (as given in `/etc/resolv.conf`) for topology server:
+  - Detect search domains
+    - Use default OS search domain (e.g. as given in `/etc/resolv.conf`)
+    - Identify public IP from interface list or via whoami. Then lookup domain
+      via PTR or SOA records. 
+  - Detect SCION discovery server (bootstrap server)
+    - NAPTR records
+    - SRV records
+    - Port: TXT record: `"x-sciondiscovery"`
 
 | Option                                        | Java property                       | Environment variable           | Default value   |
 |-----------------------------------------------|-------------------------------------|--------------------------------|-----------------|
 | Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                 | localhost:30255 | 
 | Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`    |                 | 
 | Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`         |                 |
-| Bootstrap DNS NAPTR entry host name           | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`   |                 | 
+| Bootstrap DNS host name (with NAPTR or SRV)   | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`   |                 | 
 | List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`     |                 |
 | NAT/STUN policy, see [here](doc/NAT.md)       | `org.scion.nat`                     | `SCION_NAT`                    | off             |
 | NAT mapping timeout in seconds                | `org.scion.nat.mapping.timeout`     | `SCION_NAT_MAPPING_TIMEOUT`    | 110             |
