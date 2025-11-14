@@ -439,12 +439,7 @@ public class DNSHelper {
   }
 
   private static Name newName(String str) {
-    try {
-      return Name.fromString(str);
-    } catch (TextParseException e) {
-      LOG.error("Error parsing domain string: {}", str, e);
-      throw new ScionRuntimeException("Error parsing domain string: " + str, e);
-    }
+    return newName(str, null);
   }
 
   private static Name newName(String str, Name domain) {
