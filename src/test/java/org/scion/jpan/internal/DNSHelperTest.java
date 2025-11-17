@@ -67,8 +67,8 @@ class DNSHelperTest {
 
     String localArpa = DNSHelper.reverseAddressForARPA(local);
     DNSUtil.installPTR(localArpa, "my-dhcp-122-133-233-773.inf.hello6.test");
-    DNSUtil.installNAPTR(
-        "hello6.test", new byte[] {2, 2, 2, 2, 1, 1, 1, 1, 3, 3, 3, 3, 4, 4, 4, 4}, 12345);
+    InetAddress discovery = IPHelper.toInetAddress("[202:202:101:101:303:303:404:404]");
+    DNSUtil.installNAPTR("hello6.test", discovery.getAddress(), 12345);
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
@@ -86,13 +86,13 @@ class DNSHelperTest {
     }
 
     DNSUtil.installSOA(arpa, "my-ns-122-133-233-773.inf.hello.test");
-    DNSUtil.installNAPTR("hello.test", new byte[] {2, 2, 2, 2}, 12345);
-    DNSUtil.installSRV("_sciondiscovery._tcp.hello.test.", "discovery.test", 12321);
+    DNSUtil.installNAPTR_S("hello.test", "hello-new.test.");
+    DNSUtil.installSRV("hello-new.test.", "discovery.test", 12321);
     DNSUtil.installAddress("discovery.test", new byte[] {2, 2, 2, 2});
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
-    assertEquals("2.2.2.2:12345", IPHelper.toString(dsAddress));
+    assertEquals("2.2.2.2:12321", IPHelper.toString(dsAddress));
   }
 
   @Test
@@ -102,7 +102,8 @@ class DNSHelperTest {
 
     InetAddress discovery = IPHelper.toInetAddress("[202:202:101:101:303:303:404:404]");
     DNSUtil.installSOA(arpa, "my-dhcp-122-133-233-773.inf.hello6.test");
-    DNSUtil.installSRV("_sciondiscovery._tcp.hello6.test.", "discovery6.test", 12121);
+    DNSUtil.installNAPTR_S("hello6.test", "hello6-new.test.");
+    DNSUtil.installSRV("hello6-new.test.", "discovery6.test", 12121);
     DNSUtil.installAddress("discovery6.test", discovery.getAddress());
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
@@ -129,7 +130,7 @@ class DNSHelperTest {
     // 21600
 
     DNSUtil.installSOA(arpa, "my-ns-122-133-233-773.inf.hello.test");
-    DNSUtil.installSRV("_sciondiscovery._tcp.hello.test.", "discovery.test", 12321);
+    DNSUtil.installSRV("hello.test.", "discovery.test", 12321);
     DNSUtil.installAddress("discovery.test", new byte[] {2, 2, 2, 2});
 
     //  dig SRV _sciondiscovery._tcp.xyz.abc.com
@@ -160,7 +161,7 @@ class DNSHelperTest {
 
     InetAddress discovery = IPHelper.toInetAddress("[202:202:101:101:303:303:404:404]");
     DNSUtil.installSOA(arpa, "my-dhcp-122-133-233-773.inf.hello6.test");
-    DNSUtil.installSRV("_sciondiscovery._tcp.hello6.test.", "discovery6.test", 12121);
+    DNSUtil.installSRV("hello6.test.", "discovery6.test", 12121);
     DNSUtil.installAddress("discovery6.test", discovery.getAddress());
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
@@ -186,7 +187,6 @@ class DNSHelperTest {
   private InetAddress findSubnet(int len) {
     for (InetAddress i : IPHelper.getSubnets()) {
       if (i.getAddress().length == len) {
-        System.err.println("SUBNET: " + i + "  " + i.isSiteLocalAddress());
         if (!i.isSiteLocalAddress()) {
           return i;
         }

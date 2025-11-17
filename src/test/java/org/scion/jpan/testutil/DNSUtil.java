@@ -72,8 +72,8 @@ public class DNSUtil {
     }
   }
 
-  public static void installNAPTR_S(String searchDomain) {
-    installNAPTR_only("S", searchDomain, "x-sciondiscovery:tcp", "topohost.x.y.");
+  public static void installNAPTR_S(String searchDomain, String replacement) {
+    installNAPTR_only(searchDomain, "S", "x-sciondiscovery:tcp", replacement);
   }
 
   /**
@@ -181,7 +181,7 @@ public class DNSUtil {
     // key = "42.42.in-addr.arpa.
     // value = "my-ns-192-168-0-42.my.domain.org"
     try {
-      Name name = Name.fromString(key);
+      Name name = Name.fromString("_sciondiscovery._tcp." + key);
       org.xbill.DNS.Record srvRecord =
           SRVRecord.fromString(
               name,
