@@ -53,12 +53,7 @@ public class DNSHelper {
   public static <R> R queryTXT(
       String hostName, String key, Function<String, R> valueParser, Resolver resolver) {
     String nameStr = hostName.endsWith(".") ? hostName : hostName + ".";
-    try {
-      return queryTXT(Name.fromString(nameStr), key, valueParser, resolver);
-    } catch (TextParseException e) {
-      LOG.info(ERR_PARSING_TXT_LOG, e.getMessage());
-    }
-    return null;
+    return queryTXT(newName(nameStr), key, valueParser, resolver);
   }
 
   public static <R> R queryTXT(
@@ -84,7 +79,15 @@ public class DNSHelper {
     return null;
   }
 
-  public static InetAddress queryA(Name hostName, Resolver resolver) {
+  private static InetAddress queryAddress(Name hostName, Resolver resolver) {
+    InetAddress result = queryA(hostName, resolver);
+    if (result != null) {
+      return result;
+    }
+    return queryAAAA(hostName, resolver);
+  }
+
+  private static InetAddress queryA(Name hostName, Resolver resolver) {
     org.xbill.DNS.Record[] recordsA = newLookup(hostName, Type.A, resolver).run();
     if (recordsA == null) {
       return null;
@@ -93,7 +96,7 @@ public class DNSHelper {
     return ((ARecord) recordsA[0]).getAddress();
   }
 
-  public static InetAddress queryAAAA(Name hostName, Resolver resolver) {
+  private static InetAddress queryAAAA(Name hostName, Resolver resolver) {
     org.xbill.DNS.Record[] recordsA = newLookup(hostName, Type.AAAA, resolver).run();
     if (recordsA == null) {
       return null;
@@ -119,6 +122,7 @@ public class DNSHelper {
             return discovery;
           }
         } catch (TextParseException e) {
+          // ignore exception
           LOG.error("Illegal discovery service search domain in environment: {}", domain, e);
         }
       }
@@ -148,12 +152,7 @@ public class DNSHelper {
   }
 
   public static InetSocketAddress getScionDiscoveryAddress(String hostName, Resolver resolver) {
-    try {
-      Name name = Name.fromString(hostName);
-      return getScionDiscoveryAddress(name, resolver);
-    } catch (TextParseException e) {
-      throw new ScionRuntimeException("Error while bootstrapping Scion via DNS: " + e.getMessage());
-    }
+    return getScionDiscoveryAddress(newName(hostName), resolver);
   }
 
   private static InetSocketAddress getScionDiscoveryAddress(Name hostName, Resolver resolver) {
@@ -176,15 +175,20 @@ public class DNSHelper {
       String naptrService = nr.getService();
       if (STR_TXT_X_SCION_TCP.equals(naptrService)) {
         String naptrFlag = nr.getFlags();
-        int port = getScionDiscoveryPort(hostName, resolver);
         if ("A".equals(naptrFlag)) {
-          InetAddress addr = DNSHelper.queryA(nr.getReplacement(), resolver);
-          return new InetSocketAddress(addr, port);
+          int port = getScionDiscoveryPort(hostName, resolver);
+          InetAddress address = queryAddress(nr.getReplacement(), resolver);
+          if (address != null) {
+            return new InetSocketAddress(address, port);
+          }
         }
-        if ("AAAA".equals(naptrFlag)) {
-          InetAddress addr = DNSHelper.queryAAAA(nr.getReplacement(), resolver);
-          return new InetSocketAddress(addr, port);
-        } // keep going and collect more hints
+        if ("S".equals(naptrFlag)) {
+          InetSocketAddress address = getScionDiscoveryAddressSRV(nr.getReplacement(), resolver);
+          if (address != null) {
+            return address;
+          }
+        }
+        LOG.info("Unknown NAPTR flag: {}", naptrFlag);
       }
     }
     return null;
@@ -201,13 +205,9 @@ public class DNSHelper {
 
     for (int i = 0; i < records.length; i++) {
       SRVRecord nr = (SRVRecord) records[i];
-      InetAddress addr4 = DNSHelper.queryA(nr.getTarget(), resolver);
-      if (addr4 != null) {
-        return new InetSocketAddress(addr4, nr.getPort());
-      }
-      InetAddress addr6 = DNSHelper.queryAAAA(nr.getTarget(), resolver);
-      if (addr6 != null) {
-        return new InetSocketAddress(addr6, nr.getPort());
+      InetAddress address = queryAddress(nr.getTarget(), resolver);
+      if (address != null) {
+        return new InetSocketAddress(address, nr.getPort());
       }
     }
     return null;
@@ -381,7 +381,7 @@ public class DNSHelper {
   private static InetSocketAddress iterateSearchDomain(Name domain, Resolver resolver) {
     // Iterate through all elements in the domain to find the actual search domain
     while (true) {
-      InetSocketAddress discovery = checkNaptrAndSrv(domain, resolver);
+      InetSocketAddress discovery = getScionDiscoveryAddress(domain, resolver);
       if (discovery != null) {
         return discovery;
       }
@@ -395,14 +395,6 @@ public class DNSHelper {
       domain = newName(domStr.substring(pos + 1));
     }
     return null;
-  }
-
-  private static InetSocketAddress checkNaptrAndSrv(Name domain, Resolver resolver) {
-    InetSocketAddress discovery = getScionDiscoveryAddressNAPTR(domain, resolver);
-    if (discovery != null) {
-      return discovery;
-    }
-    return getScionDiscoveryAddressSRV(domain, resolver);
   }
 
   static String reverseAddressForARPA(InetAddress address) {

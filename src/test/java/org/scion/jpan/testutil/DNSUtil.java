@@ -58,20 +58,41 @@ public class DNSUtil {
       c.addRecord(txt, 10);
 
       InetAddress addr = InetAddress.getByAddress(topoAddr);
-      String naptrFlag;
       if (addr instanceof Inet4Address) {
         ARecord a = new ARecord(replacement, DClass.IN, 5000, addr);
         c.addRecord(a, 10);
-        naptrFlag = "A";
       } else {
         AAAARecord a = new AAAARecord(replacement, DClass.IN, 5000, addr);
         c.addRecord(a, 10);
-        naptrFlag = "AAAA";
       }
 
-      NAPTRRecord nr2 =
-          new NAPTRRecord(name, DClass.IN, 5000, 1, 1, naptrFlag, naptrKey, "", replacement);
-      c.addRecord(nr2, 10);
+      installNAPTR_only(asHost, "A", naptrKey, "topohost.x.y.");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void installNAPTR_S(String searchDomain) {
+    installNAPTR_only("S", searchDomain, "x-sciondiscovery:tcp", "topohost.x.y.");
+  }
+
+  /**
+   * Install NAPTR Record with "A" or "S" flag.
+   *
+   * @param asHost e.g. dns.mydomain.com
+   * @param flag "A" or "S"
+   * @param naptrKey e.g. "x-sciondiscovery:tcp"
+   * @param replac e.g. discovery.mydomain.com
+   */
+  public static void installNAPTR_only(String asHost, String flag, String naptrKey, String replac) {
+    try {
+      Name name = Name.fromString(asHost + ".");
+      Name replacement = new Name(replac);
+
+      NAPTRRecord nr;
+      nr = new NAPTRRecord(name, DClass.IN, 5000, 1, 1, flag, naptrKey, "", replacement);
+      Cache c = Lookup.getDefaultCache(DClass.IN);
+      c.addRecord(nr, 10);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

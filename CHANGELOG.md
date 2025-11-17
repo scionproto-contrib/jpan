@@ -90,7 +90,7 @@ TODO
   [#190](https://github.com/scionproto-contrib/jpan/pull/190)
 - Channel `send()` cleanup.
   [#192](https://github.com/scionproto-contrib/jpan/pull/192)
-- Bootstrap with reverse lookup now also considers subnet addresses, support for SOA and SRV..
+- Bootstrap with reverse lookup now also considers subnet addresses, support for SOA and SRV.
   [#194](https://github.com/scionproto-contrib/jpan/pull/194)
 
 ### Fixed
@@ -108,6 +108,8 @@ TODO
   [#187](https://github.com/scionproto-contrib/jpan/pull/187)
 - Added timeout for connections to control service and daemon.
   [#174](https://github.com/scionproto-contrib/jpan/issues/174)
+- Fixed bootstrapping for NAPTR "A" IPv6 records and added NAPTR "S" record support.
+  [#195](https://github.com/scionproto-contrib/jpan/pull/195)
   
 ## [0.5.3] - 2025-04-14
 

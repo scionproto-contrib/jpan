@@ -34,7 +34,7 @@ class DNSHelperTest {
   }
 
   @Test
-  void findSearchDomainViaReverseLookup_NAPTR_V4() {
+  void findSearchDomainViaReverseLookup_PTR_NAPTR_A_TXT_V4() {
     //  dig -x 129.132.0.0
     //  ;; QUESTION SECTION:
     //  ;0.0.132.129.in-addr.arpa.	IN	PTR
@@ -52,7 +52,7 @@ class DNSHelperTest {
   }
 
   @Test
-  void findSearchDomainViaReverseLookup_NAPTR_V6() throws UnknownHostException {
+  void findSearchDomainViaReverseLookup_PTR_NAPTR_AAAA_TXT_V6() throws UnknownHostException {
     //  dig -x 2001:67c:10ec:5784:8000::x
     //
     //  ;; QUESTION SECTION:
@@ -74,6 +74,41 @@ class DNSHelperTest {
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
     assertNotNull(dsAddress);
     assertEquals("[202:202:101:101:303:303:404:404]:12345", IPHelper.toString(dsAddress));
+  }
+
+  @Test
+  void findSearchDomainViaReverseLookup_SOA_NAPTR_SRV_V4() {
+    InetAddress subnet = findSubnet(4);
+    String arpa = DNSHelper.reverseAddressForARPA(subnet);
+    // Strip leading zeros
+    while (arpa.startsWith("0.")) {
+      arpa = arpa.substring(2);
+    }
+
+    DNSUtil.installSOA(arpa, "my-ns-122-133-233-773.inf.hello.test");
+    DNSUtil.installNAPTR("hello.test", new byte[] {2, 2, 2, 2}, 12345);
+    DNSUtil.installSRV("_sciondiscovery._tcp.hello.test.", "discovery.test", 12321);
+    DNSUtil.installAddress("discovery.test", new byte[] {2, 2, 2, 2});
+
+    Lookup.setDefaultSearchPath(Collections.emptyList());
+    InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
+    assertEquals("2.2.2.2:12345", IPHelper.toString(dsAddress));
+  }
+
+  @Test
+  void findSearchDomainViaReverseLookup_SOA_NAPTR_SRV_V6() throws UnknownHostException {
+    InetAddress subnet = findSubnet(16);
+    String arpa = DNSHelper.reverseAddressForARPA(subnet);
+
+    InetAddress discovery = IPHelper.toInetAddress("[202:202:101:101:303:303:404:404]");
+    DNSUtil.installSOA(arpa, "my-dhcp-122-133-233-773.inf.hello6.test");
+    DNSUtil.installSRV("_sciondiscovery._tcp.hello6.test.", "discovery6.test", 12121);
+    DNSUtil.installAddress("discovery6.test", discovery.getAddress());
+
+    Lookup.setDefaultSearchPath(Collections.emptyList());
+    InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
+    assertNotNull(dsAddress);
+    assertEquals("[202:202:101:101:303:303:404:404]:12121", IPHelper.toString(dsAddress));
   }
 
   @Test
