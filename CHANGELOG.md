@@ -24,8 +24,9 @@ TODO
 - JSON is not an ordered file format -> Use JSON array for ordering...
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
-- STUN: Always listen for STUN packets (e.g. eternally blocking receive())
-  in order to support on-demand STUN
+- STUN: 
+  - Always listen for STUN packets (e.g. eternally blocking receive()) in order to support on-demand STUN
+  - Validate IP of incoming packets agains known NAT mapped addresses? 
 - Improve PathPolicy API:
   - Chainable PathPolicies (can be done manually or by providing a combinator class)
   - PathProvider/Supplier (e.g. for traceroute policies)
@@ -36,9 +37,6 @@ TODO
   - Merge all methods into one? A single onMessage()???
 - Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise 
 - TC: ask about port field in SCMP? Or must it be sent from 30041?
-
-- STUN: Always listen for STUN packets (e.g. eternally blocking receive()) 
-  in order to support on-demand STUN (Already DONE?)
 
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
