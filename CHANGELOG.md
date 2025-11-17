@@ -110,6 +110,8 @@ TODO
   [#174](https://github.com/scionproto-contrib/jpan/issues/174)
 - Fixed bootstrapping for NAPTR "A" IPv6 records and added NAPTR "S" record support.
   [#195](https://github.com/scionproto-contrib/jpan/pull/195)
+- Fixed bootstrapping: NAPTR "order" and "preference", SRV "priority" and "weight"
+  [#196](https://github.com/scionproto-contrib/jpan/pull/196)
   
 ## [0.5.3] - 2025-04-14
 

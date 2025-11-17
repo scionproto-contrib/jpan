@@ -170,6 +170,12 @@ public class DNSHelper {
       return null;
     }
 
+    // Sort by Order (16bit), then by preference (16bit)
+    Arrays.sort(
+        records,
+        Comparator.comparingLong(
+            r -> ((NAPTRRecord) r).getOrder() * 0xFFL + ((NAPTRRecord) r).getPreference()));
+
     for (int i = 0; i < records.length; i++) {
       NAPTRRecord nr = (NAPTRRecord) records[i];
       String naptrService = nr.getService();
@@ -202,6 +208,10 @@ public class DNSHelper {
       LOG.debug("Checking discovery service SRV: no records found for {}", domainSRV);
       return null;
     }
+
+    // Sort by Order (16bit), then by preference (16bit)
+    // TODO use "weight"
+    Arrays.sort(records, Comparator.comparingLong(r -> ((SRVRecord) r).getPriority()));
 
     for (int i = 0; i < records.length; i++) {
       SRVRecord nr = (SRVRecord) records[i];
