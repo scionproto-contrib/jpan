@@ -355,8 +355,8 @@ attempt to get network information in the following order until it succeeds:
     - Identify public IP from interface list or via whoami. Then lookup domain
       via PTR or SOA records. 
   - Detect SCION discovery server (bootstrap server)
-    - NAPTR records
-    - SRV records
+    - NAPTR records with "A" and "S" flags, IPv4 and IPv6 [RFC 2915]
+    - SRV records, IPv4 and IPv6
     - Port: TXT record: `"x-sciondiscovery"`
 
 | Option                                        | Java property                       | Environment variable           | Default value   |
