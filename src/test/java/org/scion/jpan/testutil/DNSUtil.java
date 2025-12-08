@@ -15,7 +15,6 @@
 package org.scion.jpan.testutil;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import org.xbill.DNS.*;
@@ -44,36 +43,19 @@ public class DNSUtil {
     }
   }
 
-  public static void installNAPTR(String asHost, byte[] topoAddr, int topoPort) {
-    installNAPTR(asHost, topoAddr, "x-sciondiscovery=" + topoPort, "x-sciondiscovery:tcp");
+  public static void bootstrapNAPTR(String asHost, byte[] topoAddr, int topoPort) {
+    bootstrapNAPTR(asHost, topoAddr, "x-sciondiscovery=" + topoPort, "x-sciondiscovery:tcp");
   }
 
-  public static void installNAPTR(String asHost, byte[] topoAddr, String txtStr, String naptrKey) {
-    try {
-      Name name = Name.fromString(asHost + ".");
-      Name replacement = new Name("topohost.x.y.");
-
-      Cache c = Lookup.getDefaultCache(DClass.IN);
-      TXTRecord txt = new TXTRecord(name, DClass.IN, 5000, txtStr);
-      c.addRecord(txt, 10);
-
-      InetAddress addr = InetAddress.getByAddress(topoAddr);
-      if (addr instanceof Inet4Address) {
-        ARecord a = new ARecord(replacement, DClass.IN, 5000, addr);
-        c.addRecord(a, 10);
-      } else {
-        AAAARecord a = new AAAARecord(replacement, DClass.IN, 5000, addr);
-        c.addRecord(a, 10);
-      }
-
-      installNAPTR_only(asHost, "A", naptrKey, "topohost.x.y.");
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  public static void bootstrapNAPTR(
+      String asHost, byte[] topoAddr, String txtStr, String naptrKey) {
+    installTXT(asHost, txtStr);
+    installAddress("topohost.x.y", topoAddr);
+    installNAPTR(asHost, "A", naptrKey, "topohost.x.y.", 1, 1);
   }
 
   public static void installNAPTR_S(String searchDomain, String replacement) {
-    installNAPTR_only(searchDomain, "S", "x-sciondiscovery:tcp", replacement);
+    installNAPTR(searchDomain, "S", "x-sciondiscovery:tcp", replacement, 1, 1);
   }
 
   /**
@@ -82,15 +64,24 @@ public class DNSUtil {
    * @param asHost e.g. dns.mydomain.com
    * @param flag "A" or "S"
    * @param naptrKey e.g. "x-sciondiscovery:tcp"
-   * @param replac e.g. discovery.mydomain.com
+   * @param replacementStr e.g. discovery.mydomain.com
+   * @param order order
+   * @param preference preference
    */
-  public static void installNAPTR_only(String asHost, String flag, String naptrKey, String replac) {
+  public static void installNAPTR(
+      String asHost,
+      String flag,
+      String naptrKey,
+      String replacementStr,
+      int order,
+      int preference) {
     try {
       Name name = Name.fromString(asHost + ".");
-      Name replacement = new Name(replac);
+      Name replacement = new Name(replacementStr);
 
-      NAPTRRecord nr;
-      nr = new NAPTRRecord(name, DClass.IN, 5000, 1, 1, flag, naptrKey, "", replacement);
+      NAPTRRecord nr =
+          new NAPTRRecord(
+              name, DClass.IN, 5000, order, preference, flag, naptrKey, "", replacement);
       Cache c = Lookup.getDefaultCache(DClass.IN);
       c.addRecord(nr, 10);
     } catch (IOException e) {
@@ -177,6 +168,10 @@ public class DNSUtil {
   }
 
   public static void installSRV(String key, String value, int port) {
+    installSRV(key, value, port, 10, 0);
+  }
+
+  public static void installSRV(String key, String value, int port, int priority, int weight) {
     // Example:
     // key = "42.42.in-addr.arpa.
     // value = "my-ns-192-168-0-42.my.domain.org"
@@ -188,7 +183,7 @@ public class DNSUtil {
               Type.SRV,
               DClass.IN,
               3600,
-              "10 10 " + port + " " + value + ".",
+              priority + " " + weight + " " + port + " " + value + ".",
               Name.fromString(value + "."));
       Lookup.getDefaultCache(DClass.IN).addRecord(srvRecord, 10);
     } catch (IOException e) {

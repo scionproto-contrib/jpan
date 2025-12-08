@@ -20,6 +20,7 @@ import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
 import java.net.*;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
@@ -170,6 +171,12 @@ public class DNSHelper {
       return null;
     }
 
+    // Sort by Order (16bit), then by preference (16bit)
+    Arrays.sort(
+        records,
+        Comparator.comparingLong(
+            r -> ((NAPTRRecord) r).getOrder() * 0xFFFFL + ((NAPTRRecord) r).getPreference()));
+
     for (int i = 0; i < records.length; i++) {
       NAPTRRecord nr = (NAPTRRecord) records[i];
       String naptrService = nr.getService();
@@ -203,14 +210,88 @@ public class DNSHelper {
       return null;
     }
 
-    for (int i = 0; i < records.length; i++) {
-      SRVRecord nr = (SRVRecord) records[i];
+    SRVRecord[] srcRecords = orderSrvByWeight(records);
+
+    for (int i = 0; i < srcRecords.length; i++) {
+      SRVRecord nr = srcRecords[i];
       InetAddress address = queryAddress(nr.getTarget(), resolver);
       if (address != null) {
         return new InetSocketAddress(address, nr.getPort());
       }
     }
     return null;
+  }
+
+  private static SRVRecord[] orderSrvByWeight(org.xbill.DNS.Record[] in) {
+    SRVRecord[] records =
+        Arrays.stream(in)
+            .map(r -> (SRVRecord) r)
+            .collect(Collectors.toList())
+            .toArray(new SRVRecord[in.length]);
+
+    // sort by priority and weight
+    // Ordering by weight is useful for all 0-weight entries
+    Arrays.sort(records, Comparator.comparingLong(r -> r.getPriority() * 0xFFFFL + r.getWeight()));
+
+    // Sort by weight -> from https://www.rfc-editor.org/rfc/rfc2782.html
+    //    To select a target to be contacted next, arrange all SRV RRs
+    //            (that have not been ordered yet) in any order, except that all
+    //    those with weight 0 are placed at the beginning of the list.
+    //
+    //    Compute the sum of the weights of those RRs, and with each RR
+    //    associate the running sum in the selected order. Then choose a
+    //    uniform random number between 0 and the sum computed
+    //    (inclusive), and select the RR whose running sum value is the
+    //    first in the selected order which is greater than or equal to
+    //    the random number selected. The target host specified in the
+    //    selected SRV RR is the next one to be contacted by the client.
+    //            Remove this SRV RR from the set of the unordered SRV RRs and
+    //    apply the described algorithm to the unordered SRV RRs to select
+    //    the next target host.  Continue the ordering process until there
+    //    are no unordered SRV RRs.  This process is repeated for each
+    //    Priority.
+
+    for (int i = 0; i < records.length - 1; i++) {
+      SRVRecord sr0 = records[i];
+      SRVRecord sr1 = records[i + 1];
+      if (sr0.getPriority() == sr1.getPriority() && sr0.getPriority() > 0) {
+        // Order by weight.
+        // Find last applicable record
+        int posLast = i + 1;
+        while (posLast < records.length - 1
+            && sr0.getPriority() == records[posLast + 1].getPriority()) {
+          posLast++;
+        }
+
+        // Randomize
+        Random rnd = new Random(System.currentTimeMillis());
+        int[] weights = new int[posLast - i + 1];
+        while (i < posLast) {
+          // Sum of weights
+          int sumOfWeights = 0;
+          for (int j = i; j <= posLast; j++) {
+            sumOfWeights += records[i].getWeight();
+            weights[j] = sumOfWeights;
+          }
+
+          // Select entry
+          int split = rnd.nextInt(sumOfWeights + 1);
+          int posSplit = Arrays.binarySearch(weights, split);
+          if (posSplit < 0) {
+            posSplit = -posSplit - 1;
+          }
+
+          // swap - works also for i==posSplit
+          SRVRecord tmp = records[i];
+          records[i] = records[posSplit];
+          records[posSplit] = tmp;
+
+          i++;
+        }
+      }
+    }
+
+    return records;
   }
 
   private static int getScionDiscoveryPort(Name hostName, Resolver resolver) {

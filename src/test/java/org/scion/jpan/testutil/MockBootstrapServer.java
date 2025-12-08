@@ -65,7 +65,7 @@ public class MockBootstrapServer implements Closeable {
 
     if (installNaptr) {
       InetSocketAddress topoAddr = serverSocket.get();
-      DNSUtil.installNAPTR(TOPO_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+      DNSUtil.bootstrapNAPTR(TOPO_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, TOPO_HOST);
     }
 

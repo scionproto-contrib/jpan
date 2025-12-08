@@ -331,24 +331,24 @@ class ScionServiceTest {
     try {
       Throwable t;
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=1x2345", KEY_X_TCP);
+      DNSUtil.bootstrapNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=1x2345", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=100000", KEY_X_TCP);
+      DNSUtil.bootstrapNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=100000", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("Could not find valid TXT "));
 
       // Valid entry, but invalid port
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", KEY_X_TCP);
+      DNSUtil.bootstrapNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", KEY_X_TCP);
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("While fetching resource 'topology'"));
 
       // Invalid NAPTR key
       DNSUtil.clear();
-      DNSUtil.installNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", "x-wrong:tcp");
+      DNSUtil.bootstrapNAPTR(MockBootstrapServer.TOPO_HOST, ip, KEY_X + "=10000", "x-wrong:tcp");
       t = assertThrows(ScionRuntimeException.class, Scion::defaultService);
       assertTrue(t.getMessage().startsWith("No valid DNS NAPTR or SOA entry found"));
     } finally {
