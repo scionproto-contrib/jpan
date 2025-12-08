@@ -161,7 +161,11 @@ public class DNSHelper {
     if (addr != null) {
       return addr;
     }
-    return getScionDiscoveryAddressSRV(hostName, resolver);
+    addr = getScionDiscoveryAddressSRV(hostName, resolver);
+    if (addr != null) {
+      return addr;
+    }
+    return getScionDiscoveryAddressSD(hostName, resolver);
   }
 
   private static InetSocketAddress getScionDiscoveryAddressNAPTR(Name hostName, Resolver resolver) {
@@ -292,6 +296,31 @@ public class DNSHelper {
     }
 
     return records;
+  }
+
+  /**
+   * Use DNS SD [RFC 6763] to discover the discovery service. It uses PTR -> SRV -> A/AAAA record.
+   *
+   * @param domain Domain name
+   * @param resolver Resolver instance. Can be "null".
+   * @return Discovery service address or null.
+   */
+  private static InetSocketAddress getScionDiscoveryAddressSD(Name domain, Resolver resolver) {
+    Name domainSD = newName(STR_SRV_TCP_PREFIX, domain);
+    org.xbill.DNS.Record[] records = newLookup(domainSD, Type.PTR, resolver).run();
+    if (records == null) {
+      LOG.debug("Checking discovery service SD/PTR: no records found for {}", domain);
+      return null;
+    }
+
+    for (int i = 0; i < records.length; i++) {
+      PTRRecord pr = (PTRRecord) records[i];
+      InetSocketAddress address = getScionDiscoveryAddressSRV(pr.getTarget(), resolver);
+      if (address != null) {
+        return address;
+      }
+    }
+    return null;
   }
 
   private static int getScionDiscoveryPort(Name hostName, Resolver resolver) {
