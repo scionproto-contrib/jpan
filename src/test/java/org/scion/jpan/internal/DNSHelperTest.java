@@ -44,7 +44,7 @@ class DNSHelperTest {
 
     DNSUtil.installAddress("whoami.akamai.net", new byte[] {1, 2, 3, 4});
     DNSUtil.installPTR("4.3.2.1.in-addr.arpa.", "my-dhcp-122-133-233-773.inf.hello.test");
-    DNSUtil.installNAPTR("hello.test", new byte[] {2, 2, 2, 2}, 12345);
+    DNSUtil.bootstrapNAPTR("hello.test", new byte[] {2, 2, 2, 2}, 12345);
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
@@ -68,7 +68,7 @@ class DNSHelperTest {
     String localArpa = DNSHelper.reverseAddressForARPA(local);
     DNSUtil.installPTR(localArpa, "my-dhcp-122-133-233-773.inf.hello6.test");
     InetAddress discovery = IPHelper.toInetAddress("[202:202:101:101:303:303:404:404]");
-    DNSUtil.installNAPTR("hello6.test", discovery.getAddress(), 12345);
+    DNSUtil.bootstrapNAPTR("hello6.test", discovery.getAddress(), 12345);
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
@@ -192,18 +192,15 @@ class DNSHelperTest {
     // The DNS cache processes entries in installation order.
 
     // Unfavorable order
-    DNSUtil.installNAPTR_only(
-        "hello.test", "A", "x-sciondiscovery:tcp", "discovery21.test.", 2, 10);
+    DNSUtil.installNAPTR("hello.test", "A", "x-sciondiscovery:tcp", "discovery21.test.", 2, 10);
     DNSUtil.installAddress("discovery21.test", new byte[] {1, 1, 1, 21});
 
     // Favorable order, unfavorable preference
-    DNSUtil.installNAPTR_only(
-        "hello.test", "A", "x-sciondiscovery:tcp", "discovery12.test.", 1, 20);
+    DNSUtil.installNAPTR("hello.test", "A", "x-sciondiscovery:tcp", "discovery12.test.", 1, 20);
     DNSUtil.installAddress("discovery12.test", new byte[] {1, 1, 1, 12});
 
     // Favorable order + good preference -> This is it!
-    DNSUtil.installNAPTR_only(
-        "hello.test", "A", "x-sciondiscovery:tcp", "discovery11.test.", 1, 10);
+    DNSUtil.installNAPTR("hello.test", "A", "x-sciondiscovery:tcp", "discovery11.test.", 1, 10);
     DNSUtil.installAddress("discovery11.test", new byte[] {1, 1, 1, 11});
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
@@ -219,17 +216,17 @@ class DNSHelperTest {
     // The DNS cache processes entries in installation order.
 
     // Unfavorable order
-    DNSUtil.installNAPTR_only("hello.test", "S", "x-sciondiscovery:tcp", "hi21.test.", 2, 10);
+    DNSUtil.installNAPTR("hello.test", "S", "x-sciondiscovery:tcp", "hi21.test.", 2, 10);
     DNSUtil.installSRV("hi21.test.", "discovery21.test", 20010);
     DNSUtil.installAddress("discovery21.test", new byte[] {1, 1, 1, 21});
 
     // Favorable order, unfavorable preference
-    DNSUtil.installNAPTR_only("hello.test", "S", "x-sciondiscovery:tcp", "hi12.test.", 1, 20);
+    DNSUtil.installNAPTR("hello.test", "S", "x-sciondiscovery:tcp", "hi12.test.", 1, 20);
     DNSUtil.installSRV("hi12.test.", "discovery12.test", 10020);
     DNSUtil.installAddress("discovery12.test", new byte[] {1, 1, 1, 12});
 
     // Favorable order + good preference -> This is it!
-    DNSUtil.installNAPTR_only("hello.test", "S", "x-sciondiscovery:tcp", "hi11.test.", 1, 10);
+    DNSUtil.installNAPTR("hello.test", "S", "x-sciondiscovery:tcp", "hi11.test.", 1, 10);
     DNSUtil.installSRV("hi11.test.", "discovery11.test", 10010);
     DNSUtil.installAddress("discovery11.test", new byte[] {1, 1, 1, 11});
 
