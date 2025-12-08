@@ -357,7 +357,9 @@ attempt to get network information in the following order until it succeeds:
   - Detect SCION discovery server (bootstrap server)
     - NAPTR records with "A" and "S" flags, IPv4 and IPv6 [RFC 2915]
     - SRV records, IPv4 and IPv6 [RFC 2782]
+    - DNS SD via PTR records, IPv4 and IPv6 [RFC 6763]
     - Port: TXT record: `"x-sciondiscovery"`
+    - See also [SCION Bootstrapping](https://docs.scion.org/en/latest/dev/design/endhost-bootstrap.html)
 
 | Option                                        | Java property                       | Environment variable           | Default value   |
 |-----------------------------------------------|-------------------------------------|--------------------------------|-----------------|

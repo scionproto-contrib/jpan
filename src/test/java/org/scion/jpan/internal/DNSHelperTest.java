@@ -259,6 +259,28 @@ class DNSHelperTest {
     assertEquals("1.1.1.1:10010", IPHelper.toString(dsAddress));
   }
 
+  @Test
+  void testSD_DiscoveryLookup() {
+    DNSUtil.installAddress("whoami.akamai.net", new byte[] {1, 2, 3, 4});
+    DNSUtil.installPTR("4.3.2.1.in-addr.arpa.", "my-dhcp-122-133-233-773.inf.hello.test");
+
+    // The DNS cache processes entries in installation order.
+
+    // SD entry [RFC6763]
+    //    _sciondiscovery._tcp.example.com IN PTR SCI-ED._sciondiscovery._tcp.example.com
+    //    SCI-ED._sciondiscovery._tcp.example.com IN SRV 8041 scied-sciondiscovery.example.com
+    //    scied-sciondiscovery.example.com IN A 192.168.1.1
+
+    DNSUtil.installPTR(
+        "_sciondiscovery._tcp.hello.test.", "SCI-ED._sciondiscovery._tcp.hello.test");
+    DNSUtil.installSRV("SCI-ED._sciondiscovery._tcp.hello.test.", "discovery21.test", 10010);
+    DNSUtil.installAddress("discovery21.test", new byte[] {1, 1, 1, 11});
+
+    Lookup.setDefaultSearchPath(Collections.emptyList());
+    InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
+    assertEquals("1.1.1.11:10010", IPHelper.toString(dsAddress));
+  }
+
   private InetAddress findSubnet(int len) {
     for (InetAddress i : IPHelper.getSubnets()) {
       if (i.getAddress().length == len) {
