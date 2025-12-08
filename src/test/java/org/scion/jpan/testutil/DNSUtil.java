@@ -186,6 +186,10 @@ public class DNSUtil {
   }
 
   public static void installSRV(String key, String value, int port) {
+    installSRV(key, value, port, 10, 0);
+  }
+
+  public static void installSRV(String key, String value, int port, int priority, int weight) {
     // Example:
     // key = "42.42.in-addr.arpa.
     // value = "my-ns-192-168-0-42.my.domain.org"
@@ -197,7 +201,7 @@ public class DNSUtil {
               Type.SRV,
               DClass.IN,
               3600,
-              "10 10 " + port + " " + value + ".",
+              priority + " " + weight + " " + port + " " + value + ".",
               Name.fromString(value + "."));
       Lookup.getDefaultCache(DClass.IN).addRecord(srvRecord, 10);
     } catch (IOException e) {

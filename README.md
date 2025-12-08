@@ -90,7 +90,7 @@ Supported:
   (see https://github.com/netsec-ethz/scion-apps)
 - Configurable:
   - daemon address
-  - bootstrapping via topo file, bootstrapper IP, DNS NAPTR entry or /etc/resolv.conf 
+  - bootstrapping via topo file, bootstrapper IP, DNS NAPTR or SRV entry, or /etc/resolv.conf 
   - path expiry
 - Packet inspector for debugging
 - No "dispatcher"
@@ -356,7 +356,7 @@ attempt to get network information in the following order until it succeeds:
       via PTR or SOA records. 
   - Detect SCION discovery server (bootstrap server)
     - NAPTR records with "A" and "S" flags, IPv4 and IPv6 [RFC 2915]
-    - SRV records, IPv4 and IPv6
+    - SRV records, IPv4 and IPv6 [RFC 2782]
     - Port: TXT record: `"x-sciondiscovery"`
 
 | Option                                        | Java property                       | Environment variable           | Default value   |

@@ -258,10 +258,9 @@ public class DNSHelper {
         // Order by weight.
         // Find last applicable record
         int posLast = i + 1;
-        while (posLast < records.length - 1) {
-          if (sr0.getPriority() == records[posLast + 1].getPriority()) {
-            posLast++;
-          }
+        while (posLast < records.length - 1
+            && sr0.getPriority() == records[posLast + 1].getPriority()) {
+          posLast++;
         }
 
         // Randomize
