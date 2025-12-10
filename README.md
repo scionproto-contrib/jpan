@@ -352,8 +352,8 @@ attempt to get network information in the following order until it succeeds:
 - Check search domain (as given in `/etc/resolv.conf`) for topology server:
   - Detect search domains
     - Use default OS search domain (e.g. as given in `/etc/resolv.conf`)
-    - Identify public IP from interface list or via whoami. Then lookup domain
-      via PTR or SOA records. 
+    - Identify public IP from interface list or via whoami. Als check subnet registration. 
+      Then lookup domain via PTR or SOA records. 
   - Detect SCION discovery server (bootstrap server)
     - NAPTR records with "A" and "S" flags, IPv4 and IPv6 [RFC 2915]
     - SRV records, IPv4 and IPv6 [RFC 2782]

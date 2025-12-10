@@ -82,6 +82,7 @@ TODO
   [#184](https://github.com/scionproto-contrib/jpan/pull/184)
 - Added bootstrapping support for DNS-SD
   [#197](https://github.com/scionproto-contrib/jpan/pull/197)
+  [#198](https://github.com/scionproto-contrib/jpan/pull/198)
 
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
