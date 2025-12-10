@@ -28,6 +28,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xbill.DNS.*;
 
+/**
+ * This class encapsulates some DNS queries (TXT record request) as well as provides complex queries
+ * for determining the search domain and discovery server.
+ *
+ * <p>Search domain discovery:<br>
+ * - Check properties<br>
+ * - OS configuration (/etc/resolv.conf, ...)<br>
+ * - Reverse lookup<br>
+ * -- Try own interface IP via PTR<br>
+ * -- Try whoami IPv4 + IPv6 via PTR<br>
+ * -- Try subnet lookup via SOA<br>
+ * -- If reverse lookup succeeded, iterate through (parent) domains until discovery server is found
+ * <br>
+ *
+ * <p>Discovery Server:<br>
+ * - NAPTR records with "A" and "S" flags, IPv4 and IPv6 [RFC 2915]<br>
+ * -- NAPTR->A->A/AAAA (address) + TXT record "x-sciondiscovery" (port)<br>
+ * -- NAPTR->S->SRV<br>
+ * - SRV records, IPv4 and IPv6 [RFC 2782]<br>
+ * - DNS SD via PTR records, IPv4 and IPv6 [RFC 6763]<br>
+ * -- PTR->SRV <br>
+ */
 public class DNSHelper {
 
   private static final Logger LOG = LoggerFactory.getLogger(DNSHelper.class);
