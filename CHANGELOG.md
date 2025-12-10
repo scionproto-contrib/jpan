@@ -119,10 +119,6 @@ TODO
   - Replace path if it causes errors (separate PR)
   - Replace path if better paths are available
   - Concurrent probing paths for latency/reliability/MTU... (separate PR)
- TODO
-  - Ensure (test) that we don't select or connect() path that expire before the next poll.
-  - exception if no path is available 
-  - setPathPolicy -> replace usedPath if it is not valid!
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
   [#180](https://github.com/scionproto-contrib/jpan/pull/180)
