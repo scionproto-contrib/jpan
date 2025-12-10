@@ -55,7 +55,8 @@ public class PathProviderWithRefresh implements PathProvider {
   private PathPolicy pathPolicy;
 
   private PathUpdateCallback subscriber;
-  private final TreeMap<Entry, Entry> faultyPaths = new TreeMap<>(Comparator.comparing(e -> e.timestamp));
+  private final TreeMap<Entry, Entry> faultyPaths =
+      new TreeMap<>(Comparator.comparing(e -> e.timestamp));
   private final List<Entry> unusedPaths = new ArrayList<>();
   private Entry usedPath = null;
 
@@ -158,9 +159,7 @@ public class PathProviderWithRefresh implements PathProvider {
         };
   }
 
-  /**
-   * Refresh paths from path server.
-   */
+  /** Refresh paths from path server. */
   // Synchronized because it is called by timer
   synchronized void refreshPaths() {
     // Purpose:
@@ -197,13 +196,16 @@ public class PathProviderWithRefresh implements PathProvider {
         //   - Why is it using the comparator from removal? Is it using the ordering to identify
         //     Can we use the SimpleCache?
         // Path has no new version, remove it.
-  // TODO      faultyIter.remove();
+        // TODO      faultyIter.remove();
       } else {
         // In case we retry this path later.
         faulty.set(newEntry);
       }
     }
-throw new UnsupportedOperationException(); // FIXME see above
+    if (true) {
+      System.out.println("FIXME: PPWR");
+      // throw new UnsupportedOperationException(); // FIXME see above
+    }
 
     // Clean up faulty list
     Iterator<Entry> faultyIter = faultyPaths.keySet().iterator();

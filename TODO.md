@@ -20,6 +20,7 @@
     path against this failure and try to find a better one. If no better path is found
     we can just drop the packet (default; consistent with UDP behavior) or throw an error. 
     Also: The list of broken paths should be cleaned up once the path is expired (or earlier?). 
+- Look into contacting _all_ path servers! They may have different paths! -> Check! 
 - SCION-Proto questions:
   - FIX: Ask why requesting an UP segment effectively returns a DOWN segment
     (it needs to be reversed + the SegID needs to be XORed)

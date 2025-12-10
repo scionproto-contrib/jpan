@@ -60,9 +60,12 @@ class PathProviderTest {
 
   private PathProvider create(Implementation impl) {
     switch (impl) {
-      case NO_OP: return PathProviderNoOp.create(PathPolicy.DEFAULT);
-      case WITH_REFRESH: return PathProviderWithRefresh.create(Scion.defaultService(), PathPolicy.DEFAULT, 10, 50);
-      default: throw new IllegalArgumentException(impl.name());
+      case NO_OP:
+        return PathProviderNoOp.create(PathPolicy.DEFAULT);
+      case WITH_REFRESH:
+        return PathProviderWithRefresh.create(Scion.defaultService(), PathPolicy.DEFAULT, 10, 50);
+      default:
+        throw new IllegalArgumentException(impl.name());
     }
   }
 
