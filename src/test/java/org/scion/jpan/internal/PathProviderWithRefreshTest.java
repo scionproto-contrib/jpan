@@ -30,7 +30,7 @@ import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
-class PathProviderWithRenameTest {
+class PathProviderWithRefreshTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
   private PathProviderWithRefresh pp = null;
@@ -216,6 +216,14 @@ class PathProviderWithRenameTest {
       assertNotEquals(paths.get(1), subscriber.subscribedPath.get());
       assertEquals(paths.get(2), subscriber.subscribedPath.get());
 
+      assertEquals(2, nw.getControlServer().getAndResetCallCount());
+
+      // Now report _all_ paths a faulty
+      // This should cause a refresh that will put all paths back into business.
+      for (Path p : paths) {
+        pp.reportFaultyPath(p);
+      }
+      assertEquals(paths.get(0), subscriber.subscribedPath.get());
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
     }
   }

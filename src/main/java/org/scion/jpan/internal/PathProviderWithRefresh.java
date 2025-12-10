@@ -61,7 +61,6 @@ public class PathProviderWithRefresh implements PathProvider {
 
   private final int configPathPollIntervalMs;
   private int configExpirationMarginMs;
-  private long lastRefreshMs = -1;
 
   private static class Entry {
     Path path;
@@ -103,17 +102,6 @@ public class PathProviderWithRefresh implements PathProvider {
       }
       Entry other = (Entry) obj;
       return hashCode == other.hashCode && Arrays.equals(pathHashBase, other.pathHashBase);
-    }
-
-    public void set(Entry other) {
-      this.path = other.path;
-      this.rank = other.rank;
-      if (this.timestamp != null
-          || hashCode != other.hashCode
-          || !Arrays.equals(pathHashBase, other.pathHashBase)) {
-        // Preserve faulty timestamp
-        throw new IllegalStateException();
-      }
     }
   }
 
@@ -168,7 +156,6 @@ public class PathProviderWithRefresh implements PathProvider {
 
     // 1) Get new paths from the service
     List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress));
-    lastRefreshMs = System.currentTimeMillis();
     unusedPaths.clear();
     int n = 0;
     for (Path p : newPaths2) {
@@ -180,6 +167,7 @@ public class PathProviderWithRefresh implements PathProvider {
     }
 
     if (unusedPaths.isEmpty()) {
+      LOG.warn("No free path available.");
       return;
     }
 
@@ -204,7 +192,7 @@ public class PathProviderWithRefresh implements PathProvider {
     if (unusedPaths.isEmpty()) {
       // try faulty paths again -> ordered by how long ago they were reported faulty
       faultyPaths.forEach((k, v) -> unusedPaths.add(v));
-      unusedPaths.sort(Comparator.comparing(e -> e.timestamp));
+      unusedPaths.sort(Comparator.comparing(e -> e.rank));
       unusedPaths.forEach(e -> e.timestamp = null);
       faultyPaths.clear();
     }
@@ -220,13 +208,8 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   private void updateSubscriber() {
-    if (unusedPaths.isEmpty() && lastRefreshMs <= 0) {
-      refreshPaths();
-      return;
-    }
     if (unusedPaths.isEmpty()) {
-      // No new path available
-      LOG.warn("No free path available.");
+      refreshPaths();
       return;
     }
     subscriber.updatePath(getFreePath());
