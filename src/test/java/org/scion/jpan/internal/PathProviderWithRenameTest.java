@@ -195,6 +195,9 @@ class PathProviderWithRenameTest {
       assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
       assertEquals(paths.get(1), subscriber.subscribedPath.get());
 
+      // reset counter
+      assertEquals(2, nw.getControlServer().getAndResetCallCount());
+
       // No change when reporting again
       pp.reportFaultyPath(paths.get(0));
       assertNotEquals(paths.get(0), subscriber.subscribedPath.get());

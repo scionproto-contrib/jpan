@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- Implement Bootstrapping: IPv6 NDP: DNS resolver and DNS Search List [RFC6106]
 - FIX: JPAN should use 2nd BR as failover when first returns DEAD_LINE exceeded:
   Caused by: io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 9.997583729s. Name resolution delay 0.000128423 seconds. [closed=[], open=[[buffered_nanos=10009360078, waiting_for_connection]]]
   at io.grpc.stub.ClientCalls.toStatusRuntimeException(ClientCalls.java:368)
@@ -34,6 +35,12 @@ TODO
   - Make PAthProvider public API? Later?
     Create new package for Paths with Provider interface and implementations. -> "pathProviders"?
     Or put into ppl???
+- PathProvider: 
+  - implement timeout after which a faulty path will be tried again. Try it again in PP?
+  - Implement reportFaulty() to take a hint that reports also other paths. E.g. if a link is
+    faulty, all paths with that links should be deselected.
+    -> Keep error for refresh to filter out affected paths during refresh
+  - Move class to public API
 - why is expiration part of the metadata? Server paths can also expire!
   Add Path.isExpiredBy(Instant)
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test

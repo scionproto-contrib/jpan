@@ -55,8 +55,7 @@ public class PathProviderWithRefresh implements PathProvider {
   private PathPolicy pathPolicy;
 
   private PathUpdateCallback subscriber;
-  private final TreeMap<Entry, Entry> faultyPaths =
-      new TreeMap<>(Comparator.comparing(e -> e.timestamp));
+  private final Map<Entry, Entry> faultyPaths = new HashMap<>();
   private final List<Entry> unusedPaths = new ArrayList<>();
   private Entry usedPath = null;
 
@@ -184,36 +183,30 @@ public class PathProviderWithRefresh implements PathProvider {
       return;
     }
 
-    // TODO hashMap for searching/removing
-    // TODO ordered List/map for queueing
-    Queue q;
-
-    for (Entry newEntry : unusedPaths) {
-      Entry faulty = faultyPaths.get(newEntry);
-      if (faulty == null) {
-        // TODO fixme:
-        //   - Order by reporting-time
-        //   - Why is it using the comparator from removal? Is it using the ordering to identify
-        //     Can we use the SimpleCache?
-        // Path has no new version, remove it.
-        // TODO      faultyIter.remove();
-      } else {
+    // We check all new path for whether they were reported faulty.
+    // We also clean up the faulty list so it doesn't remove any paths that were not also
+    // offered in the last request.
+    Set<Entry> faultySet = faultyPaths.keySet();
+    List<Entry> newFaulty = new ArrayList<>();
+    Iterator<Entry> itUnused = unusedPaths.iterator();
+    while (itUnused.hasNext()) {
+      Entry newEntry = itUnused.next();
+      if (faultySet.contains(newEntry)) {
         // In case we retry this path later.
-        faulty.set(newEntry);
+        newFaulty.add(newEntry);
+        // Remove from list of path that are free to use.
+        itUnused.remove();
       }
     }
-    if (true) {
-      System.out.println("FIXME: PPWR");
-      // throw new UnsupportedOperationException(); // FIXME see above
-    }
+    faultyPaths.clear();
+    newFaulty.forEach(e -> faultyPaths.put(e, e));
 
-    // Clean up faulty list
-    Iterator<Entry> faultyIter = faultyPaths.keySet().iterator();
-    while (faultyIter.hasNext()) {
-      Entry e = faultyIter.next();
-      if (isExpired(e.path)) {
-        faultyIter.remove();
-      }
+    if (unusedPaths.isEmpty()) {
+      // try faulty paths again -> ordered by how long ago they were reported faulty
+      faultyPaths.forEach((k, v) -> unusedPaths.add(v));
+      unusedPaths.sort(Comparator.comparing(e -> e.timestamp));
+      unusedPaths.forEach(e -> e.timestamp = null);
+      faultyPaths.clear();
     }
 
     // Replace current path with the best available path.
@@ -221,17 +214,22 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   private Path getFreePath() {
+    Entry e = unusedPaths.remove(0);
+    usedPath = e;
+    return e.path;
+  }
+
+  private void updateSubscriber() {
     if (unusedPaths.isEmpty() && lastRefreshMs <= 0) {
       refreshPaths();
+      return;
     }
     if (unusedPaths.isEmpty()) {
       // No new path available
       LOG.warn("No free path available.");
-      return null;
+      return;
     }
-    Entry e = unusedPaths.remove(0);
-    usedPath = e;
-    return e.path;
+    subscriber.updatePath(getFreePath());
   }
 
   @Override
@@ -249,7 +247,7 @@ public class PathProviderWithRefresh implements PathProvider {
     faultyPaths.put(e, e);
 
     // Find new path
-    subscriber.updatePath(getFreePath());
+    updateSubscriber();
   }
 
   @Override
@@ -311,7 +309,7 @@ public class PathProviderWithRefresh implements PathProvider {
     } else {
       // use this path
       unusedPaths.add(new Entry(path, 0.0));
-      subscriber.updatePath(getFreePath());
+      updateSubscriber();
     }
 
     timerFuture =
