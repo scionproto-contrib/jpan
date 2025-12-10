@@ -69,7 +69,8 @@ class PathProviderTest {
     }
   }
 
-  @Test
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
   void connect_expiredFails() {
     ScionService service = Scion.defaultService();
     pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
@@ -90,7 +91,7 @@ class PathProviderTest {
   }
 
   @ParameterizedTest
-  @EnumSource(Implementation.class) // passing all 12 months
+  @EnumSource(Implementation.class)
   void connect_failsIfNoPath(Implementation impl) throws IOException {
     // Test that the provider does not loop when no path is found.
     pp = create(impl);
@@ -109,7 +110,29 @@ class PathProviderTest {
   }
 
   @ParameterizedTest
-  @EnumSource(Implementation.class) // passing all 12 months
+  @EnumSource(Implementation.class)
+  void connect_failsIfConnected(Implementation impl) throws IOException {
+    pp = create(impl);
+    pp.subscribe(newPath -> {});
+
+    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+    Path path = paths.get(0);
+    pp.connect(path);
+    Exception e = assertThrows(IllegalStateException.class, () -> pp.connect(path));
+    assertTrue(e.getMessage().contains("already connected"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
+  void subscribe_failsIfSubscribed(Implementation impl) {
+    pp = create(impl);
+    pp.subscribe(newPath -> {});
+    Exception e = assertThrows(IllegalStateException.class, () -> pp.subscribe(newPath -> {}));
+    assertTrue(e.getMessage().contains("This PathProvider already has a subscription."));
+  }
+
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
   void setPathPolicy_failsIfNoPath(Implementation impl) throws IOException {
     // Test that the provider does not loop when no path is found.
     pp = create(impl);
@@ -146,7 +169,8 @@ class PathProviderTest {
     }
   }
 
-  @Test
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
   void reportFaultyPath() {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {

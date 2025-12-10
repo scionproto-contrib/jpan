@@ -236,7 +236,7 @@ public class PathProviderWithRefresh implements PathProvider {
   @Override
   public void subscribe(PathUpdateCallback cb) {
     if (subscriber != null) {
-      throw new IllegalStateException();
+      throw new IllegalStateException("This PathProvider already has a subscription.");
     }
     this.subscriber = cb;
   }

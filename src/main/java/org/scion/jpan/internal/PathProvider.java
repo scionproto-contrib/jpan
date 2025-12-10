@@ -38,6 +38,7 @@ public interface PathProvider {
    * Register a callback that is invoked when paths are updated.
    *
    * @param cb The callback method.
+   * @throws IllegalStateException if there is already an active subscription
    */
   void subscribe(PathUpdateCallback cb);
 
@@ -51,6 +52,8 @@ public interface PathProvider {
    * will be requested if the path is expired or about to expire or if the path is reported faulty.
    *
    * <p>Contract: the PathProvider must synchronously update subscribed consumers with a new path.
+   *
+   * @throws IllegalStateException if the PathProvider is already connected
    */
   void connect(Path path);
 
