@@ -42,22 +42,33 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   // Whether we have a connectionPath is independent of whether the underlying channel is connected.
   private RequestPath connectionPath;
   private InetAddress localAddress;
-  private boolean isBoundToAddress = false;
   private boolean cfgReportFailedValidation = false;
-  private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private final ScionService service;
   private int cfgExpirationSafetyMargin = Config.getPathExpiryMarginSeconds();
   private int cfgTrafficClass;
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
+  private final PathProvider pathProvider;
 
   protected AbstractDatagramChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel) {
+      ScionService service, java.nio.channels.DatagramChannel udpChannel) {
+    this(
+        service,
+        udpChannel,
+        service == null
+            ? PathProviderNoOp.create(PathPolicy.DEFAULT)
+            : PathProviderWithRefresh.create(service, PathPolicy.DEFAULT));
+  }
+
+  protected AbstractDatagramChannel(
+      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
+    this.pathProvider = pathProvider;
+    this.pathProvider.subscribe(this::pathUpdateCallback);
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -74,7 +85,17 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
   public PathPolicy getPathPolicy() {
     synchronized (stateLock) {
-      return this.pathPolicy;
+      return this.pathProvider.getPathPolicy();
+    }
+  }
+
+  public PathProvider getPathProvider() {
+    return pathProvider;
+  }
+
+  private void pathUpdateCallback(Path newPath) {
+    synchronized (stateLock) {
+      connectionPath = (RequestPath) newPath;
     }
   }
 
@@ -90,13 +111,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    */
   public void setPathPolicy(PathPolicy pathPolicy) {
     synchronized (stateLock) {
-      this.pathPolicy = pathPolicy;
-      if (isConnected()) {
-        ScionSocketAddress destination = connectionPath.getRemoteSocketAddress();
-        connectionPath =
-            (RequestPath) applyFilter(getService().getPaths(connectionPath), destination).get(0);
-        updateConnection(connectionPath, true);
-      }
+      this.pathProvider.setPathPolicy(pathPolicy);
     }
   }
 
@@ -132,7 +147,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   public C bind(InetSocketAddress address) throws IOException {
     synchronized (stateLock) {
       channel.bind(address);
-      isBoundToAddress = address != null;
       localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
       if (service != null) {
         getNatMapping();
@@ -218,6 +232,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     synchronized (stateLock) {
       connectionPath = null;
       natMapping = null;
+      pathProvider.disconnect();
     }
   }
 
@@ -233,6 +248,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (natMapping != null) {
         natMapping.close();
       }
+      pathProvider.disconnect();
       channel.disconnect();
       channel.close();
       connectionPath = null;
@@ -267,6 +283,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         return connect(((ScionSocketAddress) addr).getPath());
       }
       InetSocketAddress destination = (InetSocketAddress) addr;
+
       Path path = applyFilter(getService().lookupPaths(destination), destination).get(0);
       return connect(path);
     }
@@ -338,7 +355,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      updateConnection((RequestPath) path, false);
+      pathProvider.connect(path);
       return (C) this;
     }
   }
@@ -566,6 +583,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           cfgReportFailedValidation = (Boolean) t;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
+          pathProvider.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {
@@ -674,24 +692,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           hdrType,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
-    }
-  }
-
-  protected void updateConnection(RequestPath newPath, boolean mustBeConnected) {
-    if (mustBeConnected && !isConnected()) {
-      return;
-    }
-    // update connected path
-    connectionPath = newPath;
-    // update local address except if bind() was called with an explicit address!
-    if (!isBoundToAddress) {
-      // This allows us to dynamically switch interfaces if we get a path that prefers a different
-      // interface.
-      //
-      // API: returning the localAddress should return non-ANY if we have a connection
-      //     I.e. getExternalIP() is fine if we have a connection.
-      //     It is NOT fine if we are bound to an explicit IP/port
-      // TODO consider supporting dynamic interface switching
     }
   }
 

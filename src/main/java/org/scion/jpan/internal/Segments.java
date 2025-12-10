@@ -18,7 +18,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
@@ -100,7 +99,7 @@ public class Segments {
       // case A: same AS, return empty path
       Daemon.Path.Builder path = Daemon.Path.newBuilder();
       path.setMtu(localAS.getMtu());
-      path.setExpiration(Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond()).build());
+      path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
       return Collections.singletonList(path.build());
     }
 

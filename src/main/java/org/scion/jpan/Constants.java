@@ -68,6 +68,18 @@ public final class Constants {
   /** Paths are refreshed when their expiry is less than X seconds away. */
   public static final String ENV_PATH_EXPIRY_MARGIN = "SCION_PATH_EXPIRY_MARGIN";
 
+  /** Time (in seconds) before expiration at which a paths is automatically renewed. */
+  public static final int DEFAULT_PATH_EXPIRY_MARGIN = 10;
+
+  /** The path provider will check regularly for new path using this interval (in seconds). */
+  public static final String PROPERTY_PATH_POLLING_INTERVAL_SEC = "org.scion.pathPollIntervalSec";
+
+  /** The path provider will check regularly for new path using this interval (in seconds). */
+  public static final String ENV_PATH_POLLING_INTERVAL_SEC = "SCION_PATH_POLL_INTERVAL_SEC";
+
+  /** Interval (in seconds) between polling request for new or updated paths. */
+  public static final int DEFAULT_PATH_POLLING_INTERVAL = 60;
+
   /**
    * Semicolon separated list of full paths of SCION hosts files. On Linux the default is
    * "/etc/scion/hosts".
@@ -79,9 +91,6 @@ public final class Constants {
    * "/etc/scion/hosts".
    */
   public static final String ENV_HOSTS_FILES = "SCION_HOSTS_FILES";
-
-  /** Time (in seconds) before expiration at which a paths is automatically renewed. */
-  public static final int DEFAULT_PATH_EXPIRY_MARGIN = 10;
 
   /** Enable minimization of segment requests during path construction. */
   public static final String PROPERTY_RESOLVER_MINIMIZE_REQUESTS =

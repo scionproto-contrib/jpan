@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
+import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.Util;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -355,7 +357,7 @@ class DatagramSocketApiTest {
   void getService_non_default() throws IOException {
     ScionService service1 = Scion.defaultService();
     ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-    try (ScionDatagramSocket socket = ScionDatagramSocket.create(service2)) {
+    try (ScionDatagramSocket socket = ScionDatagramSocket.newBuilder().service(service2).open()) {
       assertEquals(service2, socket.getService());
       assertNotEquals(service1, socket.getService());
     }
@@ -364,7 +366,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getService_non_default_null() throws IOException {
-    try (ScionDatagramSocket socket = ScionDatagramSocket.create(null)) {
+    try (ScionDatagramSocket socket = ScionDatagramSocket.newBuilder().service(null).open()) {
       assertNull(socket.getService());
     }
   }
@@ -807,6 +809,18 @@ class DatagramSocketApiTest {
         client.send(dummyPacket);
         assertFalse(client.isConnected());
       }
+    }
+  }
+
+  @Test
+  void newBuilder_pathProvider() throws IOException {
+    PathPolicy policy = new PathPolicy.MaxBandwith();
+    PathProvider ppNoOp = PathProviderNoOp.create(policy);
+    try (ScionDatagramSocket server =
+        ScionDatagramSocket.newBuilder().bind(dummyPort).provider(ppNoOp).open()) {
+      assertFalse(server.isConnected());
+      assertSame(ppNoOp, server.getPathProvider());
+      assertSame(policy, server.getPathPolicy());
     }
   }
 }

@@ -35,8 +35,20 @@ public class PingPongSocketHelper extends PingPongHelperBase {
       boolean resetCounters,
       String serverIsdAs,
       InetSocketAddress serverAddress,
-      ScionService service) {
-    super(nServers, nClients, nRounds, connect, resetCounters, serverIsdAs, serverAddress, service);
+      ScionService service,
+      int startUpTimeoutSecs,
+      int runTimeoutSecs) {
+    super(
+        nServers,
+        nClients,
+        nRounds,
+        connect,
+        resetCounters,
+        serverIsdAs,
+        serverAddress,
+        service,
+        startUpTimeoutSecs,
+        runTimeoutSecs);
   }
 
   public static PingPongSocketHelper.Builder newBuilder(int nServers, int nClients, int nRounds) {
@@ -109,7 +121,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
     @Override
     public final void runImpl() throws IOException {
       try (ScionDatagramSocket socket =
-          ScionDatagramSocket.create(new InetSocketAddress(0), serverService)) {
+          ScionDatagramSocket.newBuilder().bind(0).service(serverService).open()) {
         registerStartUpServer((InetSocketAddress) socket.getLocalSocketAddress());
         for (int i = 0; i < nRounds; i++) {
           server.run(socket);
@@ -170,7 +182,7 @@ public class PingPongSocketHelper extends PingPongHelperBase {
       start();
       int port = MockNetwork.getTinyServerAddress().getPort();
       try (ScionDatagramSocket socket =
-          ScionDatagramSocket.create(new InetSocketAddress(port), serverService)) {
+          ScionDatagramSocket.newBuilder().bind(port).service(serverService).open()) {
         run(
             (id, nRounds) ->
                 new ServerEndpointMT((id % 2 == 0) ? receiverFn : senderFn, socket, id, nRounds),
@@ -217,7 +229,16 @@ public class PingPongSocketHelper extends PingPongHelperBase {
 
     public PingPongSocketHelper build() {
       return new PingPongSocketHelper(
-          nServers, nClients, nRounds, connectClients, checkCounters, serverIsdAs, null, service());
+          nServers,
+          nClients,
+          nRounds,
+          connectClients,
+          checkCounters,
+          serverIsdAs,
+          null,
+          service(),
+          timeoutSecStartUp,
+          timeoutSecRun);
     }
   }
 }

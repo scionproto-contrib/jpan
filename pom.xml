@@ -10,6 +10,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <scion.io-grpc.version>1.75.0</scion.io-grpc.version>
+        <scion.junit.version>5.11.4</scion.junit.version>
         <scion.protobuf.version>4.28.2</scion.protobuf.version>
         <scion.fmt-maven.version>2.23</scion.fmt-maven.version>
         <scion.maven-enforcer-plugin.version>3.5.0</scion.maven-enforcer-plugin.version>
@@ -94,7 +95,14 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.11.4</version>
+            <version>${scion.junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${scion.junit.version}</version>
             <scope>test</scope>
         </dependency>
 

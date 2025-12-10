@@ -63,4 +63,11 @@ public class Config {
     return ScionUtil.getPropertyOrEnv(
         PROPERTY_PATH_EXPIRY_MARGIN, ENV_PATH_EXPIRY_MARGIN, DEFAULT_PATH_EXPIRY_MARGIN);
   }
+
+  public static int getPathPollingIntervalSeconds() {
+    return ScionUtil.getPropertyOrEnv(
+        PROPERTY_PATH_POLLING_INTERVAL_SEC,
+        ENV_PATH_POLLING_INTERVAL_SEC,
+        DEFAULT_PATH_POLLING_INTERVAL);
+  }
 }

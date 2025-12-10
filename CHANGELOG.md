@@ -15,6 +15,35 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
      remote server and not the path itself.  
 
 TODO
+- Implement Bootstrapping: IPv6 NDP: DNS resolver and DNS Search List [RFC6106]
+- FIX: JPAN should use 2nd BR as failover when first returns DEAD_LINE exceeded:
+  Caused by: io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 9.997583729s. Name resolution delay 0.000128423 seconds. [closed=[], open=[[buffered_nanos=10009360078, waiting_for_connection]]]
+  at io.grpc.stub.ClientCalls.toStatusRuntimeException(ClientCalls.java:368)
+  at io.grpc.stub.ClientCalls.getUnchecked(ClientCalls.java:349)
+  at io.grpc.stub.ClientCalls.blockingUnaryCall(ClientCalls.java:174)
+  at org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc$SegmentLookupServiceBlockingStub.segments(SegmentLookupServiceGrpc.java:169)
+  at org.scion.jpan.internal.ControlServiceGrpc.segmentsTryAll(ControlServiceGrpc.java:119)
+- FIX: weird 0-0:0 in some paths in PingAll output
+- FIX in README: clean up bootstrap sequence: Remove (debugging only) for some entries (e.g. NAPTR).
+
+- PATH_POLLING:
+  - Consolidate polling to once every 60 seconds per remote AS.
+    TODO generally, we should think about doing the polling centrally so that we
+    reuse path requests to the same remote AS. Central polling could be done with
+    subscriptions or with a central polling timer that consolidates polling to
+    identical remote ASes.
+  - Make PAthProvider public API? Later?
+    Create new package for Paths with Provider interface and implementations. -> "pathProviders"?
+    Or put into ppl???
+- PathProvider: 
+  - implement timeout after which a faulty path will be tried again. Try it again in PP?
+  - Implement reportFaulty() to take a hint that reports also other paths. E.g. if a link is
+    faulty, all paths with that links should be deselected.
+    -> Keep error for refresh to filter out affected paths during refresh
+  - Move class to public API
+- why is expiration part of the metadata? Server paths can also expire!
+  Add Path.isExpiredBy(Instant)
+- Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - Deprecate send(PATH)!!!!!
 - Path chaching!!!
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
@@ -83,7 +112,13 @@ TODO
 - Added bootstrapping support for DNS-SD
   [#197](https://github.com/scionproto-contrib/jpan/pull/197)
   [#198](https://github.com/scionproto-contrib/jpan/pull/198)
-
+- Add API for concurrent PathProviders. 
+  [#191](https://github.com/scionproto-contrib/jpan/pull/191)
+  This enables:
+  - Refresh path if expired (implemented)
+  - Replace path if it causes errors (separate PR)
+  - Replace path if better paths are available
+  - Concurrent probing paths for latency/reliability/MTU... (separate PR)
 ### Changed
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
   [#180](https://github.com/scionproto-contrib/jpan/pull/180)

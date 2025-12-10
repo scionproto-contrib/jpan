@@ -18,7 +18,6 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,17 +34,6 @@ public class ProtobufPathDemo {
   private final ScionService service;
 
   public static void main(String[] args) {
-    Instant now = Instant.now();
-    System.out.println("Instant now: " + now);
-
-    Instant epochMillis = Instant.ofEpochMilli(System.currentTimeMillis());
-    System.out.println("Epoch millis: " + epochMillis);
-
-    Date date = new Date();
-    System.out.println("Date(): " + date + "  instant:" + date.toInstant());
-
-    System.out.println("UTC epoch sec: " + now.getEpochSecond());
-
     if (true) {
       System.exit(0);
     }

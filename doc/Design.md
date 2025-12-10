@@ -74,6 +74,58 @@ There are two types of paths (both inherit `Path`, both are (will be) package pr
 `RequestPath` also contains path meta information.
 `ResponsePath` also contains origin IA:IP:port.
 
+## DatagramChannel
+
+### PathPolicy - API Behavior
+
+#### Refresh etc
+
+Relevant methods:
+
+- `read(ByteBuffer dst)`, `write(ByteBuffer src)`: Use connected path.
+   The connected path is automatically refreshed when expired or replaced when broken.
+- `send(..., ScionSocketAddress dst)`, `send(..., Path)`, `send(..., InetSocketAddress dst)`:
+  - Ignore connected paths. 
+  - In the case of `InetSocketAdress`: Resolve and send to destination. Resolved address
+    is cached.
+  - In the case of `RequestPath` (client side):
+    Check if path is expired. If expired, the path is refreshed and the refreshed version is cached
+    for future use. This behavior is somewhat configurable: a different `PathPolicy` can be
+    used to limit refresh to identical interface sequences or even to prevent refresh altogether.
+  - In the case of `ResponsePath` (server side):
+    We do not (and cannot) refresh or replace paths.
+  - Send to target address. 
+
+
+#### Multipathing
+
+ScionDatagramChannel and ScionDatagramSocket should be inherently single-path.
+Multipathing can be implemented on top of that, e.g. by a "MultipathChannel".
+There are several reasons for this:
+- Multiple channels can operate concurrently, improving performance.
+- Multiple channels can use multiple network interfaces.
+- Multipath requires a lot more logic, such as path selection or path scheduling. This should
+  be done in a separate channel implementation.
+
+
+#### PathProvider
+
+PathProviders can be costly, e.g. when they are frequently polling for low latency.
+It makes sense if such information could be shared between multiple channels.
+Since PathProviders are customizable, a sharing provider could always be implemented later.
+
+```java
+interface PathProvider<K> {
+  void connect(Path p);
+  void disconnect();
+  void reportFaultyPath(Path p);
+  void subscribe(PathUpdateCallback cb);
+}
+```
+
+### TODO: SelectableChannel
+
+
 ## DatagramSocket
 
 **DatagramSocket is not really supported, please use DatagramChannel instead.**

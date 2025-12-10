@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.ExternalIpDiscovery;
+import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.Util;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
@@ -386,12 +388,32 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getPathPolicy_filterReturnsEmptyList() throws IOException {
+  void setPathPolicy_filterReturnsEmptyList() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
+
+      // Create expired path
       channel.connect(paths.get(0));
+
       PathPolicy empty = paths1 -> Collections.emptyList();
+      // We expect an exception because there is no path available.
       Exception e = assertThrows(ScionRuntimeException.class, () -> channel.setPathPolicy(empty));
+      assertTrue(e.getMessage().startsWith("No path found to destination"));
+    }
+  }
+
+  @Test
+  void connect_noPathFound() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
+
+      // Create empty path policy
+      PathPolicy empty = paths1 -> Collections.emptyList();
+      channel.setPathPolicy(empty);
+
+      // Create expired path to trigger PathProvider
+      Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
+      Exception e = assertThrows(ScionRuntimeException.class, () -> channel.connect(expired));
       assertTrue(e.getMessage().startsWith("No path found to destination"));
     }
   }
@@ -503,11 +525,10 @@ class DatagramChannelApiTest {
           try {
             long oldExpiration = expiringPath.getMetadata().getExpiration();
             assertTrue(Instant.now().getEpochSecond() > oldExpiration);
-            channel.send(sendBuf, expiringPath);
+            channel.send(sendBuf, expiringPath.getRemoteSocketAddress());
             long newExpiration = channel.getMappedPath(expiringPath).getMetadata().getExpiration();
             assertTrue(newExpiration > oldExpiration);
             assertTrue(Instant.now().getEpochSecond() < newExpiration);
-            assertEquals(expiringPath, channel.getConnectionPath());
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
@@ -754,5 +775,16 @@ class DatagramChannelApiTest {
     }
     assertEquals(expectedAddress.getPort(), spi.getOverlayHeaderUdp().getSrcPort());
     return 0;
+  }
+
+  @Test
+  void newBuilder_pathProvider() throws IOException {
+    PathPolicy policy = new PathPolicy.MaxBandwith();
+    PathProvider ppNoOp = PathProviderNoOp.create(policy);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.newBuilder().provider(ppNoOp).open()) {
+      assertFalse(channel.isConnected());
+      assertSame(ppNoOp, channel.getPathProvider());
+      assertSame(policy, channel.getPathPolicy());
+    }
   }
 }

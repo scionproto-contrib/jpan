@@ -26,8 +26,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.scion.jpan.internal.SelectingDatagramChannel;
-import org.scion.jpan.internal.SimpleCache;
+import org.scion.jpan.internal.*;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
@@ -60,7 +59,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   private final Object closeLock = new Object();
 
   public ScionDatagramSocket() throws SocketException {
-    this(new InetSocketAddress(0), Scion.defaultService());
+    this(new InetSocketAddress(0));
   }
 
   public ScionDatagramSocket(int port) throws SocketException {
@@ -72,24 +71,22 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   }
 
   public ScionDatagramSocket(SocketAddress bindAddress) throws SocketException {
-    this(bindAddress, Scion.defaultService());
+    this(bindAddress, createScionChannel());
   }
 
-  // "private" to avoid ambiguity with DatagramSocket((SocketAddress) null) -> use create()
-  protected ScionDatagramSocket(ScionService service, DatagramChannel channel)
-      throws SocketException {
-    super(new DummyDatagramSocketImpl());
+  private static SelectingDatagramChannel createScionChannel() throws SocketException {
     try {
-      this.channel = new SelectingDatagramChannel(service, channel);
+      return SelectingDatagramChannel.newBuilder().open();
     } catch (IOException e) {
       throw new SocketException(e.getMessage());
     }
   }
 
   // "private" for consistency, all non-standard constructors are private -> use create()
-  protected ScionDatagramSocket(SocketAddress bindAddress, ScionService service)
+  protected ScionDatagramSocket(SocketAddress bindAddress, SelectingDatagramChannel scionChannel)
       throws SocketException {
-    this(service, null);
+    super(new DummyDatagramSocketImpl());
+    this.channel = scionChannel;
     // DatagramSockets always immediately bind unless the bindAddress is null.
     if (bindAddress != null) {
       try {
@@ -101,26 +98,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     }
   }
 
-  /**
-   * Creates a ScionDatagramSocket with a specific ScionService instance. Under some circumstances
-   * the ScionService may be 'null', however, this is not recommended. See also {@link
-   * ScionDatagramChannel#open(ScionService)}.
-   *
-   * @param service A ScionService or 'null'.
-   * @return a new socket.
-   */
-  public static ScionDatagramSocket create(ScionService service) throws SocketException {
-    return new ScionDatagramSocket(service, null);
-  }
-
-  public static ScionDatagramSocket create(ScionService service, DatagramChannel channel)
-      throws SocketException {
-    return new ScionDatagramSocket(service, channel);
-  }
-
-  public static ScionDatagramSocket create(SocketAddress bindAddress, ScionService service)
-      throws SocketException {
-    return new ScionDatagramSocket(bindAddress, service);
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
   public static synchronized void setDatagramSocketImplFactory(DatagramSocketImplFactory factory)
@@ -641,6 +620,10 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 
+  public PathProvider getPathProvider() {
+    return channel.getPathProvider();
+  }
+
   private static class DummyDatagramSocketImpl extends DatagramSocketImpl {
 
     @Override
@@ -726,6 +709,79 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     @Override
     public Object getOption(int i) {
       return null;
+    }
+  }
+
+  public static class Builder {
+    private SocketAddress bindAddress;
+    private ScionService service;
+    private boolean nullService = false;
+    private PathProvider provider;
+    private DatagramChannel channel;
+
+    public Builder bind(int port) {
+      return bind(port, null);
+    }
+
+    public Builder bind(int port, InetAddress bindAddress) {
+      return bind(new InetSocketAddress(bindAddress, port));
+    }
+
+    /**
+     * @param bindAddress Bind the socket to this address. The default is "null", resulting in
+     *     binding to 0.0.0.0.
+     * @return This builder.
+     */
+    public Builder bind(SocketAddress bindAddress) {
+      this.bindAddress = bindAddress;
+      return this;
+    }
+
+    /**
+     * @param channel A {@link DatagramChannel} to be used as argument for the internal {@link
+     *     ScionDatagramChannel}. The default is the plain {@link DatagramChannel}.
+     * @return This builder.
+     */
+    public Builder channel(DatagramChannel channel) {
+      this.channel = channel;
+      return this;
+    }
+
+    /**
+     * @param provider A {@link PathProvider} to be used. If the {@link #service(ScionService)} has
+     *     been set to null, the default PathProvider is {@link PathProviderNoOp}, otherwise it is
+     *     {@link PathProviderWithRefresh}.
+     * @return This builder.
+     */
+    public Builder provider(PathProvider provider) {
+      this.provider = provider;
+      return this;
+    }
+
+    /**
+     * @param service A {@link ScionService} to be used. The default is the {@link
+     *     ScionService#defaultService()}. The service can be explicitly set ,to `null` if no
+     *     ScionService should be used.
+     * @return This builder.
+     */
+    public Builder service(ScionService service) {
+      this.service = service;
+      this.nullService = service == null;
+      return this;
+    }
+
+    public ScionDatagramSocket open() throws SocketException {
+      SelectingDatagramChannel.Builder builder = SelectingDatagramChannel.newBuilder();
+      builder.channel(channel);
+      builder.provider(provider);
+      if (nullService || service != null) {
+        builder.service(service);
+      }
+      try {
+        return new ScionDatagramSocket(bindAddress, builder.open());
+      } catch (IOException e) {
+        throw new SocketException(e.getMessage());
+      }
     }
   }
 }

@@ -21,10 +21,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
-import org.scion.jpan.ResponsePath;
-import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionSocketAddress;
+import org.scion.jpan.*;
 
 /**
  * DatagramChannel with support for timeout.
@@ -35,13 +32,13 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   private final Selector selector;
   private int timeoutMs = 0;
 
-  public SelectingDatagramChannel(ScionService service) throws IOException {
-    this(service, null);
+  public static Builder newBuilder() {
+    return new Builder();
   }
 
-  public SelectingDatagramChannel(ScionService service, DatagramChannel channel)
-      throws IOException {
-    super(service, channel == null ? DatagramChannel.open() : channel);
+  public SelectingDatagramChannel(
+      ScionService service, DatagramChannel channel, PathProvider provider) throws IOException {
+    super(service, channel == null ? DatagramChannel.open() : channel, provider);
 
     // selector
     DatagramChannel channel2 = channel == null ? DatagramChannel.open() : channel;
@@ -117,5 +114,29 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   public void close() throws IOException {
     selector.close();
     super.close();
+  }
+
+  public static class Builder extends ScionDatagramChannel.Builder {
+    @Override
+    public SelectingDatagramChannel open() throws IOException {
+      // Use defaultService() unless it was set explicitly to null.
+      if (!nullService && service == null) {
+        service = Scion.defaultService();
+      }
+
+      if (channel == null) {
+        channel = java.nio.channels.DatagramChannel.open();
+      }
+
+      if (provider == null) {
+        if (service == null) {
+          provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
+        } else {
+          provider = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+        }
+      }
+
+      return new SelectingDatagramChannel(service, channel, provider);
+    }
   }
 }

@@ -38,7 +38,6 @@ public class PingPongHelperBase {
   public static final String SERVER_ISD_AS = MockNetwork.TINY_SRV_ISD_AS;
   public static final String SERVER_TOPO = MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json";
 
-  private static final int TIMEOUT = 10; // seconds
   private static final String SERVER_NAME = "ping.pong.org";
   protected final CountDownLatch shutDownBarrier;
 
@@ -53,6 +52,8 @@ public class PingPongHelperBase {
 
   final CountDownLatch startUpBarrierClient;
   final CountDownLatch startUpBarrierServer;
+  final int timeoutSecStartUp;
+  final int timeoutSecRun;
   protected final AtomicInteger nRoundsClient = new AtomicInteger();
   protected final AtomicInteger nRoundsServer = new AtomicInteger();
   protected final ConcurrentLinkedQueue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
@@ -65,7 +66,9 @@ public class PingPongHelperBase {
       boolean checkCounters,
       String serverIsdAs,
       InetSocketAddress serverAddressOrNull,
-      ScionService serverService) {
+      ScionService serverService,
+      int startUpTimeoutSecs,
+      int runTimeoutSecs) {
     this.nClients = nClients;
     this.nServers = nServers;
     this.nRounds = nRounds;
@@ -78,6 +81,8 @@ public class PingPongHelperBase {
     startUpBarrierClient = new CountDownLatch(nClients);
     startUpBarrierServer = new CountDownLatch(nServers);
     shutDownBarrier = new CountDownLatch(nClients + nServers);
+    timeoutSecStartUp = startUpTimeoutSecs;
+    timeoutSecRun = runTimeoutSecs;
     MockNetwork.getAndResetForwardCount();
   }
 
@@ -129,7 +134,7 @@ public class PingPongHelperBase {
         servers[i].start();
       }
       // Wait for server(s) and clients to start
-      if (!startUpBarrierServer.await(1, TimeUnit.SECONDS)) {
+      if (!startUpBarrierServer.await(timeoutSecStartUp, TimeUnit.SECONDS)) {
         throw new RuntimeException("Server startup failed: " + startUpBarrierServer);
       }
       InetSocketAddress serverAddress = servers[0].getLocalAddress();
@@ -143,13 +148,13 @@ public class PingPongHelperBase {
         clients[i].start();
       }
       // Wait for server(s) and clients to start
-      if (!startUpBarrierClient.await(1, TimeUnit.SECONDS)) {
+      if (!startUpBarrierClient.await(timeoutSecStartUp, TimeUnit.SECONDS)) {
         throw new RuntimeException("Client startup failed: " + startUpBarrierClient);
       }
 
       // This enables shutdown in case of an error.
       // Wait for all threads to finish.
-      if (!shutDownBarrier.await(TIMEOUT, TimeUnit.SECONDS)) {
+      if (!shutDownBarrier.await(timeoutSecRun, TimeUnit.SECONDS)) {
         for (Thread client : clients) {
           client.interrupt();
         }
@@ -208,6 +213,8 @@ public class PingPongHelperBase {
     protected String serverIsdAs = SERVER_ISD_AS;
     protected ScionService serverService = null;
     private boolean serverServiceIsSet = false;
+    protected int timeoutSecStartUp = 1;
+    protected int timeoutSecRun = 10;
 
     protected Builder(int nServers, int nClients, int nRounds, boolean connect) {
       this.nClients = nClients;
@@ -243,6 +250,13 @@ public class PingPongHelperBase {
 
     protected ScionService service() {
       return serverServiceIsSet ? serverService : Scion.newServiceWithTopologyFile(SERVER_TOPO);
+    }
+
+    @SuppressWarnings("unchecked")
+    public T timeouts(int startUpTimeoutSecs, int runTimeoutSecs) {
+      timeoutSecStartUp = startUpTimeoutSecs;
+      timeoutSecRun = runTimeoutSecs;
+      return (T) this;
     }
   }
 }
