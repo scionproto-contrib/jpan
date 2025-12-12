@@ -9,7 +9,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <scion.io-grpc.version>1.75.0</scion.io-grpc.version>
+        <scion.io-grpc.version>1.77.0</scion.io-grpc.version>
         <scion.junit.version>5.11.4</scion.junit.version>
         <scion.protobuf.version>4.28.2</scion.protobuf.version>
         <scion.fmt-maven.version>2.23</scion.fmt-maven.version>
@@ -115,7 +115,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.13.1</version>
+            <version>2.13.2</version>
         </dependency>
 
         <dependency>
@@ -143,7 +143,7 @@
         <dependency>
             <groupId>com.google.googlejavaformat</groupId>
             <artifactId>google-java-format</artifactId>
-            <version>1.26.0</version>
+            <version>1.33.0</version>
         </dependency>
 
         <dependency>

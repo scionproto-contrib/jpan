@@ -16,9 +16,9 @@
 2) Release preparation
     - Prepare CHANGELOG
     - Update README.md with reference to latest `.jar`
+    - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
 
 3) Release
-    - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
     - Run `mvn release:clean`
     - Run `mvn release:prepare`. **NOTE** This may take a while to process OWASP CVE.
     - Run `mvn release:perform`
