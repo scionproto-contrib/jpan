@@ -31,7 +31,8 @@ public class ScmpSender implements AutoCloseable {
   private final UnifyingResponseHandler responseHandler = new UnifyingResponseHandler();
   private Consumer<Scmp.ErrorMessage> errorListener = null;
 
-  private ScmpSender(ScionService service, int port, java.nio.channels.DatagramChannel channel) {
+  private ScmpSender(
+      ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
     this.sender =
         ScmpSenderAsync.newBuilder(responseHandler)
             .setService(service)
@@ -229,10 +230,10 @@ public class ScmpSender implements AutoCloseable {
 
   public static class Builder {
     private ScionService service;
-    private int port = -1; // -1 is treated as auto-assign  (similar to port 0)
+    private Integer port = null;
     private java.nio.channels.DatagramChannel channel = null;
 
-    public Builder setLocalPort(int localPort) {
+    public Builder setLocalPort(Integer localPort) {
       this.port = localPort;
       return this;
     }
