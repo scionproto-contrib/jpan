@@ -8,11 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.6.0
-- API do drop current path or even use most diverse one.
-  -> To be called if application detects interruption (but no SCMP errors arrive?)
-  -> Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
+- API to drop current path or even use most diverse one.
+  - To be called if application detects interruption (but no SCMP errors arrive?)
+  - Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
      They may become valid/valuable again. Especially if the problem is actually the 
-     remote server and not the path itself.  
+     remote server and not the path itself.
+  - Make sure that e.g. SCMP does _not_  replace the path with something else! 
 
 TODO
 - Implement Bootstrapping: IPv6 NDP: DNS resolver and DNS Search List [RFC6106]
@@ -130,6 +131,8 @@ TODO
   [#192](https://github.com/scionproto-contrib/jpan/pull/192)
 - Bootstrap with reverse lookup now also considers subnet addresses, support for SOA and SRV.
   [#194](https://github.com/scionproto-contrib/jpan/pull/194)
+- SCMP builder port now accepts `null` to indicate default port
+  [#199](https://github.com/scionproto-contrib/jpan/pull/199)
 
 ### Fixed
 - Post 0.5.0 cleanup

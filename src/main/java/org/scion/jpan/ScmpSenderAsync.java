@@ -30,7 +30,6 @@ import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
 
 public class ScmpSenderAsync implements AutoCloseable {
-  private static final int PORT_NOT_SET = -1;
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
@@ -55,7 +54,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   private ScmpSenderAsync(
       ScionService service,
-      int port,
+      Integer port,
       ResponseHandler handler,
       java.nio.channels.DatagramChannel channel) {
     this.channel = new InternalChannel(service, port, channel);
@@ -199,7 +198,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     private final Selector selector;
 
     protected InternalChannel(
-        ScionService service, int port, java.nio.channels.DatagramChannel channel) {
+        ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
       super(service, channel);
 
       try {
@@ -208,7 +207,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         super.channel().configureBlocking(false);
         super.channel().register(this.selector, SelectionKey.OP_READ);
 
-        if (port == PORT_NOT_SET) {
+        if (port == null || port < 0) {
           ensureBound();
         } else {
           // listen on ANY interface: 0.0.0.0 / [::]
@@ -398,7 +397,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   public static class Builder {
     private ScionService service;
-    private int port = PORT_NOT_SET;
+    private Integer port = null;
     private final ResponseHandler handler;
     private java.nio.channels.DatagramChannel channel = null;
 
@@ -406,7 +405,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       this.handler = handler;
     }
 
-    public Builder setLocalPort(int localPort) {
+    public Builder setLocalPort(Integer localPort) {
       this.port = localPort;
       return this;
     }
