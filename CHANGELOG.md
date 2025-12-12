@@ -166,6 +166,7 @@ Nothing yet
 - Release 0.6.0 preparation
   [#200](https://github.com/scionproto-contrib/jpan/pull/200)
   [#201](https://github.com/scionproto-contrib/jpan/pull/201)
+  [#202](https://github.com/scionproto-contrib/jpan/pull/202)
   
 ## [0.5.3] - 2025-04-14
 
