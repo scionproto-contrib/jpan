@@ -108,6 +108,11 @@ TODO
 
 Nothing yet
 
+### Fixed
+
+- Release 0.6.0 post cleanup
+  [#205](https://github.com/scionproto-contrib/jpan/pull/205)
+
 ## [0.6.0] - 2025-12-12
 
 ### Added
@@ -168,6 +173,7 @@ Nothing yet
   [#201](https://github.com/scionproto-contrib/jpan/pull/201)
   [#202](https://github.com/scionproto-contrib/jpan/pull/202)
   [#203](https://github.com/scionproto-contrib/jpan/pull/203)
+  [#204](https://github.com/scionproto-contrib/jpan/pull/204)
   
 ## [0.5.3] - 2025-04-14
 
