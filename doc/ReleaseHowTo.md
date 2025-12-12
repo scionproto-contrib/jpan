@@ -26,11 +26,9 @@
     - Run `mvn release:clean`
     - Run `mvn release:prepare`
     - Run `mvn release:perform`
-    - Log in to https://s01.oss.sonatype.org,
-        - go to "Staging Repositories" (may take a minute + "Refresh" to appear)
-        - Inspect the release (may take a minute + "Refresh" to appear)
-        - Press "Close" (may take a minute + "Refresh" to be available)
-        - Press "Release" (may take a minute + "Refresh" to be available)
+    - Log in to https://central.sonatype.com
+        - go to "Publish" in the title bar
+        - Press "Release"
     - Confirm that the artifact has become available on https://central.sonatype.com/
       (this may take a few hours).
 
@@ -55,7 +53,7 @@ Upload your key:
 ## Tips
 
 - To avoid storing a password in the settings file you can get user access tokens
-  from https://s01.oss.sonatype.org/#profile;User%20Token
+  from https://central.sonatype.com
 - To verify your gpg passphrase:
   `echo "1234" | gpg --no-use-agent -o /dev/null --local-user <KEYID> -as - && echo "The passphrase was correct!"`
 - To recover from a failed release, use `mvn release:rollback`. This attempts to rollback all
@@ -66,8 +64,8 @@ Upload your key:
 
 Problem:
 `Failed to deploy artifacts: Could not transfer artifact ... from/to ossrh ... Transfer failed for ... 401 Unauthorized`
-Solution: Add the sonatype repo to your local `~/.m2/settings.xml`,
-see https://central.sonatype.org/publish/publish-maven/#distribution-management-and-authentication
+Solution: Check your local `~/.m2/settings.xml`
+See https://central.sonatype.org/publish/publish-portal-maven/
 
 
 
