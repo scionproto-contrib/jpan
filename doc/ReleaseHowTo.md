@@ -14,14 +14,17 @@
     - Make sure to use JDK 8: `java` and `javac`!
 
 2) Release preparation
-    - Chek for updated GitHub actions
+    - Check for updated GitHub actions
     - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
+    - (Run `mvn dependency-check:check -DnvdApiKey=...` (requires Java 11 or later)  ) 
+      -> OWASP CVE checks
+      -> Currently disabled because it causes NPEs  
     - Prepare CHANGELOG
     - Update README.md with reference to latest `.jar`
 
 3) Release
     - Run `mvn release:clean`
-    - Run `mvn release:prepare`. **NOTE** This may take a while to process OWASP CVE.
+    - Run `mvn release:prepare`
     - Run `mvn release:perform`
     - Log in to https://s01.oss.sonatype.org,
         - go to "Staging Repositories" (may take a minute + "Refresh" to appear)
