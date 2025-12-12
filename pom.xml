@@ -356,29 +356,42 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>org.owasp</groupId>-->
+            <!--                <artifactId>dependency-check-maven</artifactId>-->
+            <!--                <version>12.1.9</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <goals>-->
+            <!--                            <goal>check</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
         </plugins>
     </build>
 
     <profiles>
-        <profile>
-            <id>release-prepare</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>12.1.9</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
+        <!-- disabled because it requires Java 11 -->
+        <!--        <profile>-->
+        <!--            <id>release-prepare</id>-->
+        <!--            <build>-->
+        <!--                <plugins>-->
+        <!--                    <plugin>-->
+        <!--                        <groupId>org.owasp</groupId>-->
+        <!--                        <artifactId>dependency-check-maven</artifactId>-->
+        <!--                        <version>12.1.9</version>-->
+        <!--                        <executions>-->
+        <!--                            <execution>-->
+        <!--                                <goals>-->
+        <!--                                    <goal>check</goal>-->
+        <!--                                </goals>-->
+        <!--                            </execution>-->
+        <!--                        </executions>-->
+        <!--                    </plugin>-->
+        <!--                </plugins>-->
+        <!--            </build>-->
+        <!--        </profile>-->
         <profile>
             <id>release-perform</id>
             <build>
