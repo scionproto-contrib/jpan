@@ -14,9 +14,10 @@
     - Make sure to use JDK 8: `java` and `javac`!
 
 2) Release preparation
+    - Chek for updated GitHub actions
+    - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
     - Prepare CHANGELOG
     - Update README.md with reference to latest `.jar`
-    - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
 
 3) Release
     - Run `mvn release:clean`
