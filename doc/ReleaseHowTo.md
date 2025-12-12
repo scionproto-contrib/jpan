@@ -14,11 +14,12 @@
     - Make sure to use JDK 8: `java` and `javac`!
 
 2) Release preparation
+    - Chek for updated GitHub actions
+    - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
     - Prepare CHANGELOG
     - Update README.md with reference to latest `.jar`
 
 3) Release
-    - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
     - Run `mvn release:clean`
     - Run `mvn release:prepare`. **NOTE** This may take a while to process OWASP CVE.
     - Run `mvn release:perform`

@@ -163,6 +163,9 @@ Nothing yet
   [#195](https://github.com/scionproto-contrib/jpan/pull/195)
 - Fixed bootstrapping: NAPTR "order" and "preference", SRV "priority" and "weight"
   [#196](https://github.com/scionproto-contrib/jpan/pull/196)
+- Release 0.6.0 preparation
+  [#200](https://github.com/scionproto-contrib/jpan/pull/200)
+  [#201](https://github.com/scionproto-contrib/jpan/pull/201)
   
 ## [0.5.3] - 2025-04-14
 
