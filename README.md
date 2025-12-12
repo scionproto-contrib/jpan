@@ -18,7 +18,7 @@ The following artifact contains the complete SCION Java implementation:
 <dependency>
     <groupId>org.scion</groupId>
     <artifactId>jpan</artifactId>
-    <version>0.5.3</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
@@ -93,14 +93,10 @@ Supported:
   - bootstrapping via topo file, bootstrapper IP, DNS NAPTR or SRV entry, or /etc/resolv.conf 
   - path expiry
 - Packet inspector for debugging
+- Bootstrapping of discovery service via DNS NAPTR, SRV, SOA, PTR, ...
 - No "dispatcher"
 
-Missing:
-- DatagramChannel support for Selectors
-- Path construction with peering
-- EPIC
-- RHINE
-- ...
+
 
 ## Getting started
 

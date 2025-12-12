@@ -7,13 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### TODO for 0.6.0
+### TODO for 0.7.0
 - API to drop current path or even use most diverse one.
   - To be called if application detects interruption (but no SCMP errors arrive?)
   - Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
      They may become valid/valuable again. Especially if the problem is actually the 
      remote server and not the path itself.
-  - Make sure that e.g. SCMP does _not_  replace the path with something else! 
+  - Make sure that e.g. SCMP does _not_  replace the path with something else!
+- Make PathProvider public 
 
 TODO
 - Implement Bootstrapping: IPv6 NDP: DNS resolver and DNS Search List [RFC6106]
@@ -25,7 +26,6 @@ TODO
   at org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc$SegmentLookupServiceBlockingStub.segments(SegmentLookupServiceGrpc.java:169)
   at org.scion.jpan.internal.ControlServiceGrpc.segmentsTryAll(ControlServiceGrpc.java:119)
 - FIX: weird 0-0:0 in some paths in PingAll output
-- FIX in README: clean up bootstrap sequence: Remove (debugging only) for some entries (e.g. NAPTR).
 
 - PATH_POLLING:
   - Consolidate polling to once every 60 seconds per remote AS.
@@ -105,6 +105,13 @@ TODO
 - Multi-release-jar?
 
 ### Added
+
+Nothing yet
+
+## [0.6.0] - 2025-12-12
+
+### Added
+
 - Support for multiple control servers per AS (fallback), compartmentalize GRPC usage and
   fully switch to OkHttp.
   [#179](https://github.com/scionproto-contrib/jpan/pull/179)
@@ -120,7 +127,9 @@ TODO
   - Replace path if it causes errors (separate PR)
   - Replace path if better paths are available
   - Concurrent probing paths for latency/reliability/MTU... (separate PR)
+
 ### Changed
+
 - **Breaking change** `ScionService.close()` should not declare `throws IOException`
   [#180](https://github.com/scionproto-contrib/jpan/pull/180)
 - Changed protoc compiler to ConnectRPC buf.
@@ -135,6 +144,7 @@ TODO
   [#199](https://github.com/scionproto-contrib/jpan/pull/199)
 
 ### Fixed
+
 - Post 0.5.0 cleanup
   [#176](https://github.com/scionproto-contrib/jpan/pull/176)
 - Use `Range` in `Segments`.
@@ -505,7 +515,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.6.0
 [0.5.3]: https://github.com/scionproto-contrib/jpan/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.5.1
