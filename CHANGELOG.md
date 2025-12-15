@@ -114,6 +114,8 @@ Nothing yet
   [#205](https://github.com/scionproto-contrib/jpan/pull/205)
 - PathProvider may cause application to hang on exit.
   [#206](https://github.com/scionproto-contrib/jpan/pull/206)
+- Release 0.6.1 preparation
+  [#207](https://github.com/scionproto-contrib/jpan/pull/207)
 
 ## [0.6.0] - 2025-12-12
 
@@ -528,7 +530,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/scionproto-contrib/jpan/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.6.0
 [0.5.3]: https://github.com/scionproto-contrib/jpan/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/scionproto-contrib/jpan/compare/v0.5.1...v0.5.2

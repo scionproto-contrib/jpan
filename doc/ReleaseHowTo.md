@@ -3,22 +3,27 @@
 ## Release environment
 
 0) Run integration test
-   - Checkout SCION proto and Start scionproto topology:
-     - `./scion.sh topology -c topology/default.topo`
-     - `./scion.sh run`
-  - Run `ScmpDemoDefault` in `org.scion.jpan.demo`
+    - Run `ShowEchoDemo`
+    - Run `ScmpTracerouteDemo`
+    - Run `ShowPathsDemo`
+    - Checkout SCION proto and Start scionproto topology:
+      - `./scion.sh topology -c topology/default.topo`
+      - `./scion.sh run`
+      - Run `ScmpDemoDefault` in `org.scion.jpan.demo`
+    - Run ScionPacket example from https://github.com/netsec-ethz/scion-java-packet-example
+    - Run PingAll from https://github.com/netsec-ethz/scion-java-multiping
 
 1) Prepare the environment
     - Make sure to have a valid signing key
     - Make sure to have `~/.m2/settings.xml` configured properly
     - Make sure to use JDK 8: `java` and `javac`!
 
-2) Release preparation
+2) Release preparation, create and merge PR with following changes:
     - Check for updated GitHub actions
     - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
-    - (Run `mvn dependency-check:check -DnvdApiKey=...` (requires Java 11 or later)  ) 
-      -> OWASP CVE checks
-      -> Currently disabled because it causes NPEs  
+    - (Run `mvn dependency-check:check -DnvdApiKey=...` (requires Java 11 or later)  )
+      (-> OWASP CVE checks)
+      -> Currently disabled because the plugin causes NPEs  
     - Prepare CHANGELOG
     - Update README.md with reference to latest `.jar`
 
