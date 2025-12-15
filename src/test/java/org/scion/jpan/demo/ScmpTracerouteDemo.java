@@ -95,8 +95,7 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
-          return runDemo(ScionUtil.parseIA("64-2:0:44")); // VEX
-          // runDemo(ScionUtil.parseIA("66-2:0:10")); //singapore
+          runDemo(ScionUtil.parseIA("66-2:0:10")); // singapore
           // runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
         }
