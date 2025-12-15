@@ -108,6 +108,8 @@ TODO
 
 Nothing yet
 
+## [0.6.1] - 2025-12-15
+
 ### Fixed
 
 - Release 0.6.0 post cleanup
