@@ -112,6 +112,8 @@ Nothing yet
 
 - Release 0.6.0 post cleanup
   [#205](https://github.com/scionproto-contrib/jpan/pull/205)
+- PathProvider may cause application to hang on exit.
+  [#206](https://github.com/scionproto-contrib/jpan/pull/206)
 
 ## [0.6.0] - 2025-12-12
 

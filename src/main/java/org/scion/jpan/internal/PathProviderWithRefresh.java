@@ -41,9 +41,17 @@ public class PathProviderWithRefresh implements PathProvider {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(PathProviderWithRefresh.class.getName());
-  private static final ScheduledThreadPoolExecutor timer = new ScheduledThreadPoolExecutor(1);
+  private static final ScheduledThreadPoolExecutor timer;
 
   static {
+    timer =
+        new ScheduledThreadPoolExecutor(
+            1,
+            runnable -> {
+              Thread thread = new Thread(runnable);
+              thread.setDaemon(true);
+              return thread;
+            });
     timer.setRemoveOnCancelPolicy(true);
   }
 
