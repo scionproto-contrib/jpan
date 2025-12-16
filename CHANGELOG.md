@@ -112,6 +112,7 @@ Nothing yet
 
 - Multiple controle services should be all queried if on fails, and retried if all fails,
   regardless of error. Also: some refactoring and support for multiple CS in MockNetworks. 
+  Also: better reuse of channels and stubs.
   [#208](https://github.com/scionproto-contrib/jpan/pull/208)
 
 ## [0.6.1] - 2025-12-15
