@@ -131,7 +131,7 @@ public class MockControlServer {
     unblock();
   }
 
-  public void syncSegmentDB(MockControlServer referenceCS) {
+  public void syncSegmentDatabaseFrom(MockControlServer referenceCS) {
     controlServer.responses.putAll(referenceCS.controlServer.responses);
   }
 

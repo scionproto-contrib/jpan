@@ -29,8 +29,6 @@ import org.scion.jpan.testutil.MockNetwork2;
 
 class ControlServiceTest {
 
-  private static final String TOPO_112 = "topologies/tiny4b/ASff00_0_112/topology.json";
-
   @AfterEach
   void afterEach() {
     Scion.closeDefault();
@@ -44,12 +42,11 @@ class ControlServiceTest {
       long dstIA = ScionUtil.parseIA("1-ff00:0:111");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
       // First control service does not exist, but we should automatically switch to the backup.
-      try (Scion.CloseableService client = Scion.newServiceWithTopologyFile(TOPO_112)) {
-        Exception ex =
-            assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
-        String expected = "Error while connecting to SCION network, no control service available";
-        assertTrue(ex.getMessage().startsWith(expected));
-      }
+      ScionService client = Scion.defaultService();
+      Exception ex =
+          assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+      String expected = "Error while connecting to SCION network, no control service available";
+      assertTrue(ex.getMessage().startsWith(expected));
     }
   }
 
@@ -73,10 +70,9 @@ class ControlServiceTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:111");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     // First control service does not exist, but we should automatically switch to the backup.
-    try (Scion.CloseableService client = Scion.newServiceWithTopologyFile(TOPO_112)) {
-      Path path = client.getPaths(dstIA, dstAddress).get(0);
-      assertNotNull(path);
-    }
+    ScionService client = Scion.defaultService();
+    Path path = client.getPaths(dstIA, dstAddress).get(0);
+    assertNotNull(path);
   }
 
   @Test

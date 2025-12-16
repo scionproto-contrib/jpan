@@ -73,16 +73,8 @@ public class AsInfo {
     }
   }
 
-  public InetSocketAddress getControlServerAddress(int n) {
-    return controlServers.get(n).address;
-  }
-
   public List<InetSocketAddress> getControlServerAddresses() {
     return controlServers.stream().map(ControlService::getAddress).collect(Collectors.toList());
-  }
-
-  public int getControlServerPort(int n) {
-    return controlServers.get(n).address.getPort();
   }
 
   public String getBorderRouterAddressByIA(long remoteIsdAs) {
