@@ -13,4 +13,4 @@ Folders:
 * `tiny` is the "tiny" topology used in the scionproto SCION project
 * `tiny4` is the "tiny4" topology used in the scionproto SCION project,
   except for an additional link between 110 and 112
-* `tiny4b` is similar to "tiny4" but has 5 ASes in total.
+* `tiny4b` is similar to "tiny4" but has 5 ASes in total and AS 112 has two CS.

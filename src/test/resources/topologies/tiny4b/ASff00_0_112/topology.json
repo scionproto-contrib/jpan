@@ -7,6 +7,9 @@
   "control_service": {
     "cs1-ff00_0_112-1": {
       "addr": "127.0.0.34:31018"
+    },
+    "cs1-ff00_0_112-2": {
+      "addr": "127.0.0.34:31019"
     }
   },
   "discovery_service": {

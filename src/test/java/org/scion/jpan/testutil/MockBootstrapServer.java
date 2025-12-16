@@ -26,6 +26,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -109,17 +110,8 @@ public class MockBootstrapServer implements Closeable {
     return serverSocket.get();
   }
 
-  public int getControlServerPort() {
-    return asInfo.getControlServerPort();
-  }
-
-  public InetSocketAddress getControlServerAddress() {
-    try {
-      InetAddress addr = InetAddress.getByName(asInfo.getControlServerIP());
-      return new InetSocketAddress(addr, asInfo.getControlServerPort());
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+  public List<InetSocketAddress> getControlServerAddresses() {
+    return asInfo.getControlServerAddresses();
   }
 
   public String getBorderRouterAddressByIA(long remoteIsdAs) {

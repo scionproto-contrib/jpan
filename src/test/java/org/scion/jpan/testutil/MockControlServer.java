@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
@@ -42,6 +43,7 @@ public class MockControlServer {
   private Server server;
   private ControlServiceImpl controlServer;
   private final Semaphore block = new Semaphore(1);
+  private final AtomicReference<Status> errorToReport = new AtomicReference<>();
 
   private MockControlServer(InetSocketAddress address) {
     this.address = address;
@@ -129,6 +131,14 @@ public class MockControlServer {
     unblock();
   }
 
+  public void syncSegmentDB(MockControlServer referenceCS) {
+    controlServer.responses.putAll(referenceCS.controlServer.responses);
+  }
+
+  public void reportError(Status errorToReport) {
+    this.errorToReport.set(errorToReport);
+  }
+
   private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
     final long start = Instant.now().getEpochSecond();
@@ -149,7 +159,11 @@ public class MockControlServer {
       } else {
         responseObserver.onNext(responses.get(key(req.getSrcIsdAs(), req.getDstIsdAs())));
       }
-      responseObserver.onCompleted();
+      if (errorToReport.get() != null) {
+        responseObserver.onError(new StatusException(errorToReport.getAndSet(null)));
+      } else {
+        responseObserver.onCompleted();
+      }
     }
 
     public void addResponse(

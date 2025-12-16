@@ -173,7 +173,7 @@ class ScionTest {
         service.getPaths(dstIA, dstAddress);
         fail();
       } catch (ScionRuntimeException e) {
-        assertTrue(e.getCause().getMessage().contains("DEADLINE_EXCEEDED"));
+        assertTrue(e.getMessage().contains("DEADLINE_EXCEEDED"));
       }
       MockNetwork.getControlServer().unblock();
     } finally {

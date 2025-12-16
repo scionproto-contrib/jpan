@@ -110,9 +110,7 @@ public class JsonFileParser {
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
         JsonObject cs = e.getValue().getAsJsonObject();
-        as.setControlServer(cs.get("addr").getAsString());
-        // controlServices.add(
-        //     new ScionBootstrapper.ServiceNode(e.getKey(), cs.get("addr").getAsString()));
+        as.addControlServer(cs.get("addr").getAsString());
       }
     }
     return as;

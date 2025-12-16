@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -74,7 +75,7 @@ public class MockNetwork {
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
   private static MockBootstrapServer topoServer;
-  private static MockControlServer controlServer;
+  private static final List<MockControlServer> controlServices = new ArrayList<>();
   static AsInfo asInfo;
 
   private static MockNetwork mock;
@@ -170,11 +171,15 @@ public class MockNetwork {
       case NAPTR:
         topoServer = MockBootstrapServer.start(localTopo, mode == Mode.NAPTR);
         asInfo = topoServer.getASInfo();
-        controlServer = MockControlServer.start(asInfo.getControlServerPort());
+        for (InetSocketAddress cs : asInfo.getControlServerAddresses()) {
+          controlServices.add(MockControlServer.start(cs.getPort()));
+        }
         break;
       case AS_ONLY:
         asInfo = JsonFileParser.parseTopology(Paths.get(localTopo));
-        controlServer = MockControlServer.start(asInfo.getControlServerPort());
+        for (InetSocketAddress cs : asInfo.getControlServerAddresses()) {
+          controlServices.add(MockControlServer.start(cs.getPort()));
+        }
         break;
       case DAEMON:
         asInfo = daemon.getASInfo();
@@ -188,9 +193,8 @@ public class MockNetwork {
   }
 
   public static synchronized void stopTiny() {
-    if (controlServer != null) {
-      controlServer.close();
-    }
+    controlServices.forEach(MockControlServer::close);
+    controlServices.clear();
     if (topoServer != null) {
       topoServer.close();
     }
@@ -292,7 +296,11 @@ public class MockNetwork {
   }
 
   public static MockControlServer getControlServer() {
-    return controlServer;
+    return controlServices.get(0);
+  }
+
+  public static List<MockControlServer> getControlServers() {
+    return Collections.unmodifiableList(controlServices);
   }
 
   public static MockDaemon getDaemon() {
