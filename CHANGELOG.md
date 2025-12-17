@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0
+- Fix deprecation
 - API to drop current path or even use most diverse one.
   - To be called if application detects interruption (but no SCMP errors arrive?)
   - Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
@@ -106,6 +107,8 @@ Nothing yet
   regardless of error. Also: some refactoring and support for multiple CS in MockNetworks. 
   Also: better reuse of channels and stubs.
   [#208](https://github.com/scionproto-contrib/jpan/pull/208)
+- Fixed JUnit warning, cleanup error messages in ControlServiceGrpc
+  [#210](https://github.com/scionproto-contrib/jpan/pull/210)
 
 ## [0.6.1] - 2025-12-15
 

@@ -59,28 +59,22 @@ public class ControlServiceGrpc {
         if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
           String srcIsdAs = ScionUtil.toStringIA(request.getSrcIsdAs());
           String dstIsdAs = ScionUtil.toStringIA(request.getDstIsdAs());
+          String msg = "Error while requesting segments: " + srcIsdAs + " -> " + dstIsdAs;
           if (e.getMessage().contains("TRC not found")) {
-            String msg = srcIsdAs + " / " + dstIsdAs + " -> " + "TRC not found";
+            msg += " -> TRC not found: " + e.getMessage();
             LOG.error(msg);
-            throw new ScionRuntimeException(
-                "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
+            throw new ScionRuntimeException(msg, e);
           }
           if (e.getMessage().contains("invalid request")) {
-            String msg = srcIsdAs + " / " + dstIsdAs + " -> " + "invalid request";
-            // AS not found
-            LOG.info(
-                "Requesting segments: {} -> {} failed (AS unreachable?): {}",
-                srcIsdAs,
-                dstIsdAs,
-                e.getMessage());
+            msg += " -> failed (AS unreachable?): " + e.getMessage();
+            LOG.info(msg);
             throw new ScionRuntimeException(msg, e);
           }
         }
         error = e.getStatus().getCode().toString();
-        LOG.warn(
-            "Error connecting to control service {}: {}", cs.ipString, e.getStatus().getCode());
+        LOG.warn("Error connecting control service {}: {}", cs.ipString, e.getStatus().getCode());
         cs.close();
-        // Move to end of list
+        // Move CS to end of list
         services.add(services.remove(0));
       }
     }
