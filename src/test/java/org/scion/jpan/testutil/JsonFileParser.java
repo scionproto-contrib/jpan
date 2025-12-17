@@ -60,13 +60,6 @@ public class JsonFileParser {
     }
   }
 
-  public static Path toResourcePath(String fileName) {
-    if (fileName == null) {
-      return null;
-    }
-    return toResourcePath(Paths.get(fileName));
-  }
-
   public static AsInfo parseTopology(Path path) {
     return parseTopologyFile(path.resolve("topology.json"));
   }

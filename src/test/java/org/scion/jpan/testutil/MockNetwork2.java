@@ -67,8 +67,8 @@ public class MockNetwork2 implements AutoCloseable {
 
     // Initialize segments
     ScenarioInitializer.init(topo, controlServices.get(0));
-    for (int i = 0; i < controlServices.size(); i++) {
-      controlServices.get(i).syncSegmentDatabaseFrom(controlServices.get(0));
+    for (MockControlServer controlService : controlServices) {
+      controlService.syncSegmentDatabaseFrom(controlServices.get(0));
     }
   }
 

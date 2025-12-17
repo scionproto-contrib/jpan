@@ -156,17 +156,11 @@ public class AsInfo {
 
   public static class ControlService {
     private final String name;
-    private final String addressStr;
     private final InetSocketAddress address;
 
     public ControlService(String name, String addr) {
       this.name = name;
-      this.addressStr = addr;
       this.address = IPHelper.toInetSocketAddress(addr);
-    }
-
-    public String getAddressStr() {
-      return addressStr;
     }
 
     public InetSocketAddress getAddress() {
