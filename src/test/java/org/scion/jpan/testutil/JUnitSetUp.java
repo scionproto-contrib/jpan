@@ -28,10 +28,7 @@ import org.scion.jpan.internal.ExternalIpDiscovery;
 import org.scion.jpan.internal.Shim;
 
 public class JUnitSetUp
-    implements BeforeAllCallback,
-        BeforeEachCallback,
-        AfterEachCallback,
-        ExtensionContext.Store.CloseableResource {
+    implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AutoCloseable {
   private static boolean started = false;
   private static boolean failed = false;
 
