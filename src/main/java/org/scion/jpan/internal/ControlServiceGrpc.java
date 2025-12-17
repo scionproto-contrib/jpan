@@ -60,11 +60,13 @@ public class ControlServiceGrpc {
           String srcIsdAs = ScionUtil.toStringIA(request.getSrcIsdAs());
           String dstIsdAs = ScionUtil.toStringIA(request.getDstIsdAs());
           if (e.getMessage().contains("TRC not found")) {
-            String msg = srcIsdAs + " / " + dstIsdAs;
+            String msg = srcIsdAs + " / " + dstIsdAs + " -> " + "TRC not found";
+            LOG.error(msg);
             throw new ScionRuntimeException(
                 "Error while getting Segments: unknown src/dst ISD-AS: " + msg, e);
           }
           if (e.getMessage().contains("invalid request")) {
+            String msg = srcIsdAs + " / " + dstIsdAs + " -> " + "invalid request";
             // AS not found
             LOG.info(
                 "Requesting segments: {} -> {} failed (AS unreachable?): {}",
@@ -72,7 +74,8 @@ public class ControlServiceGrpc {
                 dstIsdAs,
                 e.getMessage());
             // Return empty result
-            return Seg.SegmentsResponse.newBuilder().build();
+            // return Seg.SegmentsResponse.newBuilder().build();
+            throw new ScionRuntimeException(msg, e);
           }
         }
         error = e.getStatus().getCode().toString();

@@ -81,7 +81,7 @@ class ControlServiceTest {
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       long dstIA = ScionUtil.parseIA("1-ff00:0:111");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-      for (Status status :
+      for (Status error :
           new Status[] {Status.DEADLINE_EXCEEDED, Status.UNAVAILABLE, Status.UNKNOWN}) {
         ScionService client = Scion.defaultService();
         nw.getControlServers().get(0).getAndResetCallCount(); // reset
@@ -90,7 +90,7 @@ class ControlServiceTest {
         assertEquals(3, nw.getControlServers().get(0).getAndResetCallCount());
 
         // Kill CS #1
-        nw.getControlServers().get(0).reportError(status);
+        nw.getControlServers().get(0).reportError(error);
 
         // try again
         // Where does path with BR-2 come from ????
@@ -99,7 +99,7 @@ class ControlServiceTest {
         assertEquals(1, nw.getControlServers().get(0).getAndResetCallCount()); // error
         assertEquals(3, nw.getControlServers().get(1).getAndResetCallCount());
 
-        Scion.closeDefault();
+        ScionService.closeDefault();
       }
     }
   }
@@ -129,9 +129,47 @@ class ControlServiceTest {
       String expected = "Error while connecting to SCION network, no control service available";
       assertTrue(ex.getMessage().startsWith(expected));
 
-      // Restart CS (nothing to do, errors are reported only once by mock CS)
+      // Reenable CS
+      nw.getControlServers().get(0).reportError(null);
+      nw.getControlServers().get(1).reportError(null);
       Path path2 = client.getPaths(dstIA111, dstAddress).get(0);
       assertNotNull(path2);
+    }
+  }
+
+  @Test
+  void testErrorInvalidRequest() {
+    // Test success if 1st CS reports errors during runtime
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+
+      Status status = Status.UNKNOWN.withDescription("invalid request");
+      ScionService client = Scion.defaultService();
+
+      // ingest error
+      nw.getControlServers().get(0).reportError(status);
+      Exception ex =
+          assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+      assertTrue(ex.getMessage().contains("invalid request"));
+    }
+  }
+
+  @Test
+  void testErrorTRC() {
+    // Test success if 1st CS reports errors during runtime
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+
+      Status status = Status.UNKNOWN.withDescription("TRC not found");
+      ScionService client = Scion.defaultService();
+
+      // ingest error
+      nw.getControlServers().get(0).reportError(status);
+      Exception ex =
+          assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+      assertTrue(ex.getMessage().contains("TRC not found"), ex.getMessage());
     }
   }
 }
