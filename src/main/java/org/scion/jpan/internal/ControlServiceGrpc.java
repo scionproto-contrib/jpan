@@ -73,8 +73,6 @@ public class ControlServiceGrpc {
                 srcIsdAs,
                 dstIsdAs,
                 e.getMessage());
-            // Return empty result
-            // return Seg.SegmentsResponse.newBuilder().build();
             throw new ScionRuntimeException(msg, e);
           }
         }

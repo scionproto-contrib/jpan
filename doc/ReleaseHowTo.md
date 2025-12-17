@@ -28,6 +28,7 @@
     - Update README.md with reference to latest `.jar`
 
 3) Release
+    - `git checkout master`
     - Run `mvn release:clean`
     - Run `mvn release:prepare`
     - Run `mvn release:perform`
