@@ -19,13 +19,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.internal.LocalTopology;
 
 public class AsInfo {
   private long isdAs;
-  private String controlServer;
+  private final List<ControlService> controlServers = new ArrayList<>();
   private LocalTopology.DispatcherPortRange portRange;
   private final List<BorderRouter> borderRouters = new ArrayList<>();
 
@@ -49,8 +51,8 @@ public class AsInfo {
     borderRouters.add(borderRouter);
   }
 
-  void setControlServer(String addr) {
-    controlServer = addr;
+  void addControlServer(String addr) {
+    controlServers.add(new ControlService("unnamed", addr));
   }
 
   public void connectWith(AsInfo asInfoRemote) {
@@ -71,12 +73,8 @@ public class AsInfo {
     }
   }
 
-  public String getControlServerIP() {
-    return controlServer.substring(0, controlServer.lastIndexOf(':'));
-  }
-
-  public int getControlServerPort() {
-    return Integer.parseInt(controlServer.substring(controlServer.lastIndexOf(':') + 1));
+  public List<InetSocketAddress> getControlServerAddresses() {
+    return controlServers.stream().map(ControlService::getAddress).collect(Collectors.toList());
   }
 
   public String getBorderRouterAddressByIA(long remoteIsdAs) {
@@ -153,6 +151,20 @@ public class AsInfo {
 
     public BorderRouter getBorderRouter() {
       return borderRouter;
+    }
+  }
+
+  public static class ControlService {
+    private final String name;
+    private final InetSocketAddress address;
+
+    public ControlService(String name, String addr) {
+      this.name = name;
+      this.address = IPHelper.toInetSocketAddress(addr);
+    }
+
+    public InetSocketAddress getAddress() {
+      return address;
     }
   }
 }

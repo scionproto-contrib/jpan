@@ -18,13 +18,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 TODO
 - Implement Bootstrapping: IPv6 NDP: DNS resolver and DNS Search List [RFC6106]
-- FIX: JPAN should use 2nd BR as failover when first returns DEAD_LINE exceeded:
-  Caused by: io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 9.997583729s. Name resolution delay 0.000128423 seconds. [closed=[], open=[[buffered_nanos=10009360078, waiting_for_connection]]]
-  at io.grpc.stub.ClientCalls.toStatusRuntimeException(ClientCalls.java:368)
-  at io.grpc.stub.ClientCalls.getUnchecked(ClientCalls.java:349)
-  at io.grpc.stub.ClientCalls.blockingUnaryCall(ClientCalls.java:174)
-  at org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc$SegmentLookupServiceBlockingStub.segments(SegmentLookupServiceGrpc.java:169)
-  at org.scion.jpan.internal.ControlServiceGrpc.segmentsTryAll(ControlServiceGrpc.java:119)
 - FIX: weird 0-0:0 in some paths in PingAll output
 
 - PATH_POLLING:
@@ -48,10 +41,9 @@ TODO
 - Deprecate send(PATH)!!!!!
 - Path chaching!!!
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
-- More tests on unordered "destinations" in JSON
-- DHCP bootstrapping
 - BIG: extract testframework into separate project -> reuse by others!
 - JSON is not an ordered file format -> Use JSON array for ordering...
+  - More tests on unordered "destinations" in JSON
 - Selectors: PingLatency, ReversePath, ...
 - Authenticate SCMP / EPIC !?!?!?
 - STUN: 
@@ -107,6 +99,13 @@ TODO
 ### Added
 
 Nothing yet
+
+### Fixed
+
+- Multiple control services should be all queried if on fails, and retried if all fails,
+  regardless of error. Also: some refactoring and support for multiple CS in MockNetworks. 
+  Also: better reuse of channels and stubs.
+  [#208](https://github.com/scionproto-contrib/jpan/pull/208)
 
 ## [0.6.1] - 2025-12-15
 

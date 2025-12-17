@@ -60,13 +60,6 @@ public class JsonFileParser {
     }
   }
 
-  public static Path toResourcePath(String fileName) {
-    if (fileName == null) {
-      return null;
-    }
-    return toResourcePath(Paths.get(fileName));
-  }
-
   public static AsInfo parseTopology(Path path) {
     return parseTopologyFile(path.resolve("topology.json"));
   }
@@ -110,9 +103,7 @@ public class JsonFileParser {
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
         JsonObject cs = e.getValue().getAsJsonObject();
-        as.setControlServer(cs.get("addr").getAsString());
-        // controlServices.add(
-        //     new ScionBootstrapper.ServiceNode(e.getKey(), cs.get("addr").getAsString()));
+        as.addControlServer(cs.get("addr").getAsString());
       }
     }
     return as;
