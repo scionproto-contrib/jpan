@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 TODO
 - Implement Bootstrapping: IPv6 NDP: DNS resolver and DNS Search List [RFC6106]
-- FIX: weird 0-0:0 in some paths in PingAll output
 
 - PATH_POLLING:
   - Consolidate polling to once every 60 seconds per remote AS.
