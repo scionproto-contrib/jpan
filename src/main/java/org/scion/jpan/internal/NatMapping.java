@@ -50,7 +50,7 @@ public class NatMapping {
     this.channel = channel;
     this.localIsdAs = localIsdAs;
     this.mode = NatMode.NOT_INITIALIZED;
-    this.timer = new Timer();
+    this.timer = new Timer(true);
     boolean useTimer = Config.useNatMappingKeepAlive();
 
     for (InetSocketAddress brAddress : borderRouters) {
@@ -433,16 +433,9 @@ public class NatMapping {
 
   private class NatMappingTimerTask extends TimerTask {
     private final Entry e;
-    private final Exception e2;
 
     NatMappingTimerTask(Entry e) {
       this.e = e;
-      this.e2 = new RuntimeException();
-    }
-
-    NatMappingTimerTask(Entry e, Exception e2) {
-      this.e = e;
-      this.e2 = e2;
     }
 
     @Override
@@ -463,7 +456,7 @@ public class NatMapping {
         delay = natMappingTimeoutMs;
       }
       // reset timer
-      timer.schedule(new NatMappingTimerTask(e, e2), delay);
+      timer.schedule(new NatMappingTimerTask(e), delay);
     }
   }
 }
