@@ -108,6 +108,8 @@ Nothing yet
   [#208](https://github.com/scionproto-contrib/jpan/pull/208)
 - Fixed JUnit warning, cleanup error messages in ControlServiceGrpc
   [#210](https://github.com/scionproto-contrib/jpan/pull/210)
+- NAT keepalive uses non-dameon timer
+  [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 
 ## [0.6.1] - 2025-12-15
 
