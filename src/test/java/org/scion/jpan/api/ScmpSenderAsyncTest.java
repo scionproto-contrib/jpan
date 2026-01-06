@@ -36,7 +36,7 @@ import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
-public class ScmpSenderAsyncTest {
+class ScmpSenderAsyncTest {
   private static final byte[] PING_ERROR_4_51_HK = {
     0, 0, 0, 1, -54, 35, 0, -80,
     1, 0, 0, 0, 0, 64, 0, 2,
@@ -89,14 +89,14 @@ public class ScmpSenderAsyncTest {
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
     System.clearProperty(Constants.PROPERTY_SHIM);
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     MockNetwork.stopTiny();
     if (!errors.isEmpty()) {
       for (String s : errors) {
@@ -705,13 +705,28 @@ public class ScmpSenderAsyncTest {
 
   private ScmpSenderAsync errorSender(ScmpHandler<?> handler) throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
-    errorChannel.setSendCallback((byteBuffer, socketAddress) -> 0);
+    errorChannel.setSendCallback(
+        (byteBuffer, socketAddress) -> {
+          validate(byteBuffer);
+          return 0;
+        });
     errorChannel.setReceiveCallback(
         buffer -> {
           buffer.put(PING_ERROR_4_51_HK);
+          int pos = buffer.position();
+          int limit = buffer.limit();
+          buffer.flip();
+          validate(buffer);
+          buffer.position(pos);
+          buffer.limit(limit);
           return new InetSocketAddress(MockNetwork.getBorderRouterAddress1().getAddress(), 30041);
         });
     return Scmp.newSenderAsyncBuilder(handler).setDatagramChannel(errorChannel).build();
+  }
+
+  private static void validate(ByteBuffer buf) {
+    String val = ScionHeaderParser.validate(buf);
+    assertNull(val);
   }
 
   private abstract static class ScmpHandler<T> implements ScmpSenderAsync.ResponseHandler {

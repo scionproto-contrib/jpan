@@ -187,7 +187,7 @@ public class ScionPacketInspector {
           Constants.PathTypes.SCION,
           InternalConstants.HdrTypes.SCMP);
     } else {
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException(type.getText());
     }
     pathHeaderScion.write(newData);
     scmpHeader.write(newData);

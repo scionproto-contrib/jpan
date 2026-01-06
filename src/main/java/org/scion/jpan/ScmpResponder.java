@@ -160,8 +160,7 @@ public class ScmpResponder implements AutoCloseable {
           Scmp.Type type = ScmpParser.extractType(buffer);
           log.info("Received SCMP message {} from {}", type, path.getRemoteAddress());
           if (type == Scmp.Type.INFO_128) {
-            Scmp.EchoMessage msg = (Scmp.EchoMessage) Scmp.createMessage(Scmp.Type.INFO_128, path);
-            ScmpParser.consume(buffer, msg);
+            Scmp.EchoMessage msg = (Scmp.EchoMessage) ScmpParser.consume(buffer, path);
 
             if (!checkEchoListener(msg)) {
               continue;

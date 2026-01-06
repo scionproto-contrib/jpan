@@ -68,44 +68,12 @@ public class ScmpParser {
     return Scmp.Type.parse(ByteUtil.toUnsigned(data.get(headerLength)));
   }
 
-  /**
-   * Reads a SCMP message from the packet. Consumes the byte buffer.
-   *
-   * @param data packet data
-   * @param holder SCMP message holder
-   */
-  public static void consume(ByteBuffer data, Scmp.Message holder) {
-    int type = ByteUtil.toUnsigned(data.get());
-    int code = ByteUtil.toUnsigned(data.get());
-    data.getShort(); // checksum
-    // TODO validate checksum
-
-    Scmp.Type st = Scmp.Type.parse(type);
-    Scmp.TypeCode sc = Scmp.TypeCode.parse(type, code);
-    int short1 = ByteUtil.toUnsigned(data.getShort());
-    int short2 = ByteUtil.toUnsigned(data.getShort());
-    holder.setMessageArgs(sc, short1, short2);
-    switch (st) {
-      case INFO_128:
-      case INFO_129:
-        Scmp.EchoMessage echo = (Scmp.EchoMessage) holder;
-        if (echo.getData() == null) {
-          echo.setData(new byte[data.remaining()]);
-        }
-        // If there is an array we can simply reuse it. The length of the
-        // package has already been validated.
-        data.get(echo.getData());
-        break;
-      case INFO_130:
-      case INFO_131:
-        long isdAs = data.getLong();
-        long ifID = data.getLong();
-        Scmp.TracerouteMessage trace = (Scmp.TracerouteMessage) holder;
-        trace.setTracerouteArgs(isdAs, ifID);
-        break;
-      default:
-        break;
-    }
+  public static Scmp.TypeCode extractTypeCode(ByteBuffer data) {
+    // Avoid changing the position!
+    int headerLength = ScionHeaderParser.extractHeaderLength(data);
+    int type = ByteUtil.toUnsigned(data.get(headerLength));
+    int code = ByteUtil.toUnsigned(data.get(headerLength + 1));
+    return Scmp.TypeCode.parse(type, code);
   }
 
   /**
@@ -114,38 +82,36 @@ public class ScmpParser {
    * @param data packet data
    * @return SCMP message
    */
-  public static Scmp.Message consume(ByteBuffer data, ResponsePath path, int packetLength) {
+  public static Scmp.Message consume(ByteBuffer data, ResponsePath path) {
     int type = ByteUtil.toUnsigned(data.get());
     int code = ByteUtil.toUnsigned(data.get());
     data.getShort(); // checksum
     // TODO validate checksum
 
-    Scmp.Type st = Scmp.Type.parse(type);
-    Scmp.TypeCode sc = Scmp.TypeCode.parse(type, code);
-    int short1 = ByteUtil.toUnsigned(data.getShort());
-    int short2 = ByteUtil.toUnsigned(data.getShort());
-    switch (st) {
-      case INFO_128:
-      case INFO_129:
-        Scmp.EchoMessage echo = Scmp.EchoMessage.createEmpty(path);
-        echo.setMessageArgs(sc, short1, short2);
-        echo.setData(new byte[packetLength - data.position()]);
+    Scmp.TypeCode typeCode = Scmp.TypeCode.parse(type, code);
+    int idNo = ByteUtil.toUnsigned(data.getShort());
+    int seqNo = ByteUtil.toUnsigned(data.getShort());
+    switch (typeCode) {
+      case TYPE_128:
+      case TYPE_129:
+        Scmp.EchoMessage echo = Scmp.EchoMessage.create(typeCode, idNo, seqNo, path);
+        echo.setData(new byte[data.remaining()]);
         data.get(echo.getData());
         return echo;
-      case INFO_130:
-      case INFO_131:
+      case TYPE_130:
+      case TYPE_131:
         long isdAs = data.getLong();
         long ifID = data.getLong();
-        Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.createEmpty(path);
-        trace.setMessageArgs(sc, short1, short2);
+        Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.create(typeCode, idNo, seqNo, path);
         trace.setTracerouteArgs(isdAs, ifID);
         return trace;
       default:
-        if (!sc.isError()) {
+        if (!typeCode.isError()) {
           // INFO 200, 201, 255, ...
-          return new Scmp.Message(sc, short1, short2, path);
+          // TODO more data / payload?
+          return new Scmp.Message(typeCode, idNo, seqNo, path);
         }
-        Scmp.ErrorMessage error = Scmp.ErrorMessage.createEmpty(sc, path);
+        Scmp.ErrorMessage error = Scmp.ErrorMessage.createEmpty(typeCode, path);
         byte[] cause = new byte[data.remaining()];
         data.get(cause);
         error.setCause(cause);
