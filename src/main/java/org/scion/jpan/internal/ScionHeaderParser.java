@@ -421,21 +421,71 @@ public class ScionHeaderParser {
     }
     // TODO validate path
 
+    data.position(start + hdrLenBytes);
     if (nextHeader == InternalConstants.HdrTypes.UDP.code()) {
-      // get remote port from UDP overlay
-      data.position(start + hdrLenBytes);
-      int srcPort = Short.toUnsignedInt(data.getShort());
-      int dstPort = Short.toUnsignedInt(data.getShort());
-      if (srcPort == 0) {
-        return PRE + "Invalid source port: " + srcPort;
-      }
-      if (dstPort == 0) {
-        return PRE + "Invalid destination port: " + dstPort; // can this happen?
-      }
-    } else {
-      // TODO validate SCMP etc
+      return validateUDP(data, start);
+    } else if (nextHeader == InternalConstants.HdrTypes.SCMP.code()) {
+      return validateSCMP(data, start, payLoadLen);
     }
+    return PRE + "Unsupported header type: " + nextHeader;
+  }
 
+  private static String validateUDP(ByteBuffer data, int start) {
+    final String PRE = "SCION UDP packet validation failed: ";
+
+    // get remote port from UDP overlay
+    int srcPort = Short.toUnsignedInt(data.getShort());
+    int dstPort = Short.toUnsignedInt(data.getShort());
+    if (srcPort == 0) {
+      return PRE + "Invalid source port: " + srcPort;
+    }
+    if (dstPort == 0) {
+      return PRE + "Invalid destination port: " + dstPort; // can this happen?
+    }
+    // rewind to original offset
+    data.position(start);
+    return null;
+  }
+
+  private static String validateSCMP(ByteBuffer data, int start, int payloadLen) {
+    final String PRE = "SCION SCMP packet validation failed: ";
+
+    int type = ByteUtil.toUnsigned(data.get());
+    int code = ByteUtil.toUnsigned(data.get());
+    data.getShort(); // checksum
+    // TODO validate checksum
+
+    Scmp.TypeCode typeCode = Scmp.TypeCode.parseOrNull(type, code);
+    if (typeCode == null) {
+      return PRE + "Unknown type code: " + type + " / " + code;
+    }
+    switch (typeCode) {
+      case TYPE_128:
+      case TYPE_129:
+        {
+          if (data.remaining() < 4 || data.remaining() != payloadLen - 4) {
+            return PRE + "invalid packet length: " + data.remaining() + " vs " + (payloadLen - 4);
+          }
+          break;
+        }
+      case TYPE_130:
+      case TYPE_131:
+        {
+          if (data.remaining() != 20) {
+            return PRE + "invalid packet length: " + data.remaining();
+          }
+          break;
+        }
+      default:
+        if (!typeCode.isError()) {
+          // INFO 200, 201, 255, ...
+          // TODO more data / payload?
+          return null;
+        }
+        // TODO distinguish 1, 2, 4, 5, 6, 100, 101, 127
+        // TODO e.g. check against 1232 total length
+        break;
+    }
     // rewind to original offset
     data.position(start);
     return null;

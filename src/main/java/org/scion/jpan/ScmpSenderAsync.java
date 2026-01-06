@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
 
 public class ScmpSenderAsync implements AutoCloseable {
@@ -59,12 +58,13 @@ public class ScmpSenderAsync implements AutoCloseable {
       java.nio.channels.DatagramChannel channel) {
     this.channel = new InternalChannel(service, port, channel);
     this.handler = handler;
-    this.receiver = startHandler(this::receiveTask, "ScmpSender-receiver");
+    this.receiver = startHandler();
   }
 
-  private Thread startHandler(Consumer<CountDownLatch> task, String name) {
+  private Thread startHandler() {
+    String name = "ScmpSender-receiver";
     CountDownLatch barrier = new CountDownLatch(1);
-    Thread thread = new Thread(() -> task.accept(barrier), name);
+    Thread thread = new Thread(() -> receiveTask(barrier), name);
     thread.setDaemon(true);
     thread.start();
     try {
@@ -296,7 +296,6 @@ public class ScmpSenderAsync implements AutoCloseable {
         if (validate(buffer)) {
           InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
           ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
-          int packetLength = ScionHeaderParser.extractPacketLength(buffer);
           // From here on we use linear reading using the buffer's position() mechanism
           buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
           // Check for extension headers.
@@ -307,7 +306,7 @@ public class ScmpSenderAsync implements AutoCloseable {
           if (hdrType != InternalConstants.HdrTypes.SCMP) {
             return; // drop
           }
-          handleIncomingScmp(buffer, receivePath, packetLength);
+          handleIncomingScmp(buffer, receivePath);
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
@@ -317,10 +316,10 @@ public class ScmpSenderAsync implements AutoCloseable {
       }
     }
 
-    private void handleIncomingScmp(ByteBuffer buffer, ResponsePath receivePath, int packetLength) {
+    private void handleIncomingScmp(ByteBuffer buffer, ResponsePath receivePath) {
       long currentNanos = System.nanoTime();
       int bufferStart = buffer.position();
-      Scmp.Message msg = ScmpParser.consume(buffer, receivePath, packetLength);
+      Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
         checkListeners(msg);

@@ -30,7 +30,7 @@ import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
-public class ScmpResponderTest {
+class ScmpResponderTest {
   private static final ConcurrentLinkedQueue<String> errors = new ConcurrentLinkedQueue<>();
 
   @BeforeEach
@@ -40,14 +40,14 @@ public class ScmpResponderTest {
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
     System.clearProperty(Constants.PROPERTY_SHIM);
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     MockNetwork.stopTiny();
     if (!errors.isEmpty()) {
       for (String s : errors) {

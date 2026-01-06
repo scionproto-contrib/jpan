@@ -98,7 +98,8 @@ TODO
 
 ### Added
 
-Nothing yet
+- SCMP packet validation (+ SCMP cleanup)
+  [#212](https://github.com/scionproto-contrib/jpan/pull/212)
 
 ### Fixed
 

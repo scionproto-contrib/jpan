@@ -147,6 +147,14 @@ public class Scmp {
     }
 
     public static TypeCode parse(int type, int code) {
+      TypeCode typeCode = parseOrNull(type, code);
+      if (typeCode == null) {
+        throw new IllegalArgumentException("Unknown type/code: " + type + "/" + code);
+      }
+      return typeCode;
+    }
+
+    public static TypeCode parseOrNull(int type, int code) {
       TypeCode[] values = TypeCode.class.getEnumConstants();
       for (int i = 0; i < values.length; i++) {
         TypeCode pe = values[i];
@@ -154,7 +162,7 @@ public class Scmp {
           return pe;
         }
       }
-      throw new IllegalArgumentException("Unknown type/code: " + type + "/" + code);
+      return null;
     }
 
     @Override
@@ -185,10 +193,10 @@ public class Scmp {
   }
 
   public static class Message {
-    private TypeCode typeCode;
-    private int identifier;
-    private int sequenceNumber;
-    private Path path;
+    private final TypeCode typeCode;
+    private final int identifier;
+    private final int sequenceNumber;
+    private final Path path;
 
     /** DO NOT USE! */
     public Message(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
@@ -212,16 +220,6 @@ public class Scmp {
 
     public Path getPath() {
       return path;
-    }
-
-    public void setPath(Path path) {
-      this.path = path;
-    }
-
-    public void setMessageArgs(TypeCode sc, int identifier, int sequenceNumber) {
-      this.typeCode = sc;
-      this.identifier = identifier;
-      this.sequenceNumber = sequenceNumber;
     }
   }
 
@@ -307,8 +305,12 @@ public class Scmp {
       this.data = data;
     }
 
-    public static EchoMessage createEmpty(Path path) {
-      return new EchoMessage(TypeCode.TYPE_128, -1, -1, path, null);
+    public static EchoMessage create(
+        TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+      if (typeCode != TypeCode.TYPE_128 && typeCode != TypeCode.TYPE_129) {
+        throw new IllegalArgumentException("Illegal type for traceroute: " + typeCode);
+      }
+      return new EchoMessage(typeCode, identifier, sequenceNumber, path, null);
     }
 
     public static EchoMessage createRequest(int sequenceNumber, Path path, ByteBuffer payload) {
@@ -351,8 +353,12 @@ public class Scmp {
       this(typeCode, identifier, sequenceNumber, 0, 0, path);
     }
 
-    public static TracerouteMessage createEmpty(Path path) {
-      return new TracerouteMessage(TypeCode.TYPE_130, -1, -1, path);
+    public static TracerouteMessage create(
+        TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+      if (typeCode != TypeCode.TYPE_130 && typeCode != TypeCode.TYPE_131) {
+        throw new IllegalArgumentException("Illegal type for traceroute: " + typeCode);
+      }
+      return new TracerouteMessage(typeCode, identifier, sequenceNumber, path);
     }
 
     public static TracerouteMessage createRequest(int sequenceNumber, Path path) {
@@ -377,19 +383,6 @@ public class Scmp {
     public void setTracerouteArgs(long isdAs, long ifID) {
       this.isdAs = isdAs;
       this.ifID = ifID;
-    }
-  }
-
-  static Scmp.Message createMessage(Type type, Path path) {
-    switch (type) {
-      case INFO_128:
-      case INFO_129:
-        return Scmp.EchoMessage.createEmpty(path);
-      case INFO_130:
-      case INFO_131:
-        return Scmp.TracerouteMessage.createEmpty(path);
-      default:
-        return new Scmp.Message(null, -1, -1, path);
     }
   }
 
