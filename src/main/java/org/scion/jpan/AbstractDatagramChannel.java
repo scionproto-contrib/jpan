@@ -446,7 +446,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return hdrType;
   }
 
-  protected void receiveScmp(ByteBuffer buffer, Path path) {
+  protected void receiveScmp(ByteBuffer buffer, ResponsePath path) {
     checkListeners(ScmpParser.consume(buffer, path));
   }
 

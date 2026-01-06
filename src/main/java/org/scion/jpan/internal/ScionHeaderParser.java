@@ -18,6 +18,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ResponsePath;
+import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.Scmp;
 
 /** Utility methods for reading and writing the Common Header and Address Header. */
@@ -161,8 +162,7 @@ public class ScionHeaderParser {
    * @param data The datagram to read from.
    * @return The destination address or 'null' if no address is available (e.g. SCMP error)
    */
-  public static InetSocketAddress extractDestinationSocketAddress(ByteBuffer data)
-      throws UnknownHostException {
+  public static InetSocketAddress extractDestinationSocketAddress(ByteBuffer data) {
     int start = data.position();
 
     InternalConstants.HdrTypes hdrType = extractNextHeader(data);
@@ -184,7 +184,6 @@ public class ScionHeaderParser {
     data.position(start + 28);
     byte[] bytesDst = new byte[(dl + 1) * 4];
     data.get(bytesDst);
-    InetAddress dstIP = InetAddress.getByAddress(bytesDst);
     int dstPort = extractDstPort(data, start + hdrLenBytes, hdrType);
     if (dstPort < 0) {
       // return null, e.g. for truncated SCMP packets
@@ -193,7 +192,13 @@ public class ScionHeaderParser {
 
     // rewind to original offset
     data.position(start);
-    return new InetSocketAddress(dstIP, dstPort);
+    try {
+      InetAddress dstIP = InetAddress.getByAddress(bytesDst);
+      return new InetSocketAddress(dstIP, dstPort);
+    } catch (UnknownHostException e) {
+      // This should never happen, we create the byte[] ourselves
+      throw new ScionRuntimeException(e);
+    }
   }
 
   private static int extractDstPort(
@@ -425,7 +430,7 @@ public class ScionHeaderParser {
     if (nextHeader == InternalConstants.HdrTypes.UDP.code()) {
       return validateUDP(data, start);
     } else if (nextHeader == InternalConstants.HdrTypes.SCMP.code()) {
-      return validateSCMP(data, start, payLoadLen);
+      return validateSCMP(data, start);
     }
     return PRE + "Unsupported header type: " + nextHeader;
   }
@@ -447,8 +452,12 @@ public class ScionHeaderParser {
     return null;
   }
 
-  private static String validateSCMP(ByteBuffer data, int start, int payloadLen) {
+  private static String validateSCMP(ByteBuffer data, int start) {
     final String PRE = "SCION SCMP packet validation failed: ";
+
+    if (data.limit() - start > 1232) {
+      return PRE + "Length exceeds 1232 bytes: " + (data.limit() - start);
+    }
 
     int type = ByteUtil.toUnsigned(data.get());
     int code = ByteUtil.toUnsigned(data.get());
@@ -462,20 +471,16 @@ public class ScionHeaderParser {
     switch (typeCode) {
       case TYPE_128:
       case TYPE_129:
-        {
-          if (data.remaining() < 4 || data.remaining() != payloadLen - 4) {
-            return PRE + "invalid packet length: " + data.remaining() + " vs " + (payloadLen - 4);
-          }
-          break;
+        if (data.remaining() < 4) {
+          return PRE + "Invalid packet length, expected 8 bytes but got: " + data.remaining();
         }
+        break;
       case TYPE_130:
       case TYPE_131:
-        {
-          if (data.remaining() != 20) {
-            return PRE + "invalid packet length: " + data.remaining();
-          }
-          break;
+        if (data.remaining() != 20) {
+          return PRE + "Invalid packet length, expected 20 bytes bu got: " + data.remaining();
         }
+        break;
       default:
         if (!typeCode.isError()) {
           // INFO 200, 201, 255, ...
@@ -483,7 +488,6 @@ public class ScionHeaderParser {
           return null;
         }
         // TODO distinguish 1, 2, 4, 5, 6, 100, 101, 127
-        // TODO e.g. check against 1232 total length
         break;
     }
     // rewind to original offset

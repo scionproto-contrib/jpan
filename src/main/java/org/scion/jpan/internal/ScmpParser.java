@@ -15,7 +15,6 @@
 package org.scion.jpan.internal;
 
 import java.nio.ByteBuffer;
-import org.scion.jpan.Path;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.Scmp;
 
@@ -75,45 +74,6 @@ public class ScmpParser {
     int type = ByteUtil.toUnsigned(data.get(headerLength));
     int code = ByteUtil.toUnsigned(data.get(headerLength + 1));
     return Scmp.TypeCode.parse(type, code);
-  }
-
-  /**
-   * Reads a SCMP message from the packet. Consumes the byte buffer.
-   *
-   * @param data packet data
-   */
-  public static Scmp.Message consume(ByteBuffer data, Path path) {
-    int type = ByteUtil.toUnsigned(data.get());
-    int code = ByteUtil.toUnsigned(data.get());
-    data.getShort(); // checksum
-    // TODO validate checksum
-
-    Scmp.TypeCode typeCode = Scmp.TypeCode.parse(type, code);
-    int short1 = ByteUtil.toUnsigned(data.getShort());
-    int short2 = ByteUtil.toUnsigned(data.getShort());
-    switch (typeCode) {
-      case TYPE_128:
-      case TYPE_129:
-        Scmp.EchoMessage echo = Scmp.EchoMessage.create(typeCode, short1, short2, path);
-        if (echo.getData() == null) {
-          echo.setData(new byte[data.remaining()]);
-        }
-        // If there is an array we can simply reuse it. The length of the
-        // package has already been validated.
-        data.get(echo.getData());
-        return echo;
-      case TYPE_130:
-      case TYPE_131:
-        long isdAs = data.getLong();
-        long ifID = data.getLong();
-        Scmp.TracerouteMessage trace =
-            Scmp.TracerouteMessage.create(typeCode, short1, short2, path);
-        trace.setTracerouteArgs(isdAs, ifID);
-        return trace;
-      default:
-        // TODO add payload
-        return Scmp.ErrorMessage.createEmpty(typeCode, path);
-    }
   }
 
   /**
