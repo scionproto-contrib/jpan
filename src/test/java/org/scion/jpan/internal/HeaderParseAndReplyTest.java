@@ -224,6 +224,7 @@ class HeaderParseAndReplyTest {
     {
       // Error: invalid SCMP type, e.g. 42
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_131);
+      // Just double-check that we have the correct location
       assertEquals(131, ByteUtil.toUnsigned(data.get(data.limit() - 24)));
       data.put(data.limit() - 24, (byte) 42);
       assertNotNull(ScionHeaderParser.validate(data));
@@ -231,10 +232,27 @@ class HeaderParseAndReplyTest {
     {
       // Error: invalid error code, e.g. 1:11
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_131);
+      // Just double-check that we have the correct location
       assertEquals(131, ByteUtil.toUnsigned(data.get(data.limit() - 24)));
       data.put(data.limit() - 24, (byte) 1);
       data.put(data.limit() - 23, (byte) 11);
       assertNotNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Custom Error: 100
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_131);
+      // Just double-check that we have the correct location
+      assertEquals(131, ByteUtil.toUnsigned(data.get(data.limit() - 24)));
+      data.put(data.limit() - 24, (byte) 100);
+      assertNull(ScionHeaderParser.validate(data)); // Works!
+    }
+    {
+      // Custom SCMP: 200
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_131);
+      // Just double-check that we have the correct location
+      assertEquals(131, ByteUtil.toUnsigned(data.get(data.limit() - 24)));
+      data.put(data.limit() - 24, (byte) 200);
+      assertNull(ScionHeaderParser.validate(data)); // Works!
     }
   }
 

@@ -135,7 +135,7 @@ public class ScmpHeader {
         buffer.putLong(0); // Egress Interface ID
         break;
       default:
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Invalid: " + type + ":" + code);
     }
     // max: 1232
     int payloadLen = Math.min(buffer.position() + errorPayload.length, 1232) - buffer.position();

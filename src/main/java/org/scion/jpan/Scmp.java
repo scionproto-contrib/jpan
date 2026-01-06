@@ -134,7 +134,11 @@ public class Scmp {
     TYPE_128(128, 0, "Echo Request"),
     TYPE_129(129, 0, "Echo Reply"),
     TYPE_130(130, 0, "Traceroute Request"),
-    TYPE_131(131, 0, "Traceroute Reply");
+    TYPE_131(131, 0, "Traceroute Reply"),
+
+    TYPE_200(200, 0, "Private Experimentation"),
+    TYPE_201(201, 0, "Private Experimentation"),
+    TYPE_255(255, 0, "Reserved for expansion of SCMP informational messages");
 
     final int type;
     final int id;
