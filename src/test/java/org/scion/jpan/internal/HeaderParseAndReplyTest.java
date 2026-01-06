@@ -153,6 +153,13 @@ class HeaderParseAndReplyTest {
   }
 
   @Test
+  void extractTypeCode() {
+    ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_4_CODE_51);
+    assertEquals(4, ScmpParser.extractTypeCode(data).type());
+    assertEquals(51, ScmpParser.extractTypeCode(data).code());
+  }
+
+  @Test
   void validateScmp() {
     {
       // Echo: minimum 8 bytes
@@ -274,7 +281,7 @@ class HeaderParseAndReplyTest {
         }
         break;
       default:
-        throw new UnsupportedOperationException();
+        // Nothing
     }
 
     ByteBuffer data = ByteBuffer.allocate(2000);
