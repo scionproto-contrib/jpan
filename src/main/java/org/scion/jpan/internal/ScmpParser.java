@@ -90,18 +90,22 @@ public class ScmpParser {
 
     Scmp.TypeCode typeCode = Scmp.TypeCode.parse(type, code);
     Scmp.Type typeEnum = Scmp.Type.parse(type);
-    int idNo = ByteUtil.toUnsigned(data.getShort());
-    int seqNo = ByteUtil.toUnsigned(data.getShort());
     switch (typeEnum) {
       case INFO_128:
       case INFO_129:
-        Scmp.EchoMessage echo = Scmp.EchoMessage.create(typeCode, idNo, seqNo, path);
-        echo.setData(new byte[data.remaining()]);
-        data.get(echo.getData());
-        return echo;
+        {
+          int idNo = ByteUtil.toUnsigned(data.getShort());
+          int seqNo = ByteUtil.toUnsigned(data.getShort());
+          Scmp.EchoMessage echo = Scmp.EchoMessage.create(typeCode, idNo, seqNo, path);
+          echo.setData(new byte[data.remaining()]);
+          data.get(echo.getData());
+          return echo;
+        }
       case INFO_130:
       case INFO_131:
         {
+          int idNo = ByteUtil.toUnsigned(data.getShort());
+          int seqNo = ByteUtil.toUnsigned(data.getShort());
           long isdAs = data.getLong();
           long ifID = data.getLong();
           Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.create(typeCode, idNo, seqNo, path);
@@ -112,7 +116,7 @@ public class ScmpParser {
       case INFO_201:
       case INFO_255:
         // INFO 200, 201, 255, ...
-        return new Scmp.Message(typeCode, idNo, seqNo, path);
+        return new Scmp.Message(typeCode, 0, 0, path);
       case ERROR_1:
         return readPayload(Scmp.Error1Message.create(typeCode, path), data);
       case ERROR_2:

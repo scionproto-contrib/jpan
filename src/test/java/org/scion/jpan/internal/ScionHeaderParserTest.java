@@ -28,7 +28,7 @@ import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.testutil.ExamplePacket;
 
-class HeaderParseAndReplyTest {
+class ScionHeaderParserTest {
 
   // Original incoming packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
@@ -218,6 +218,18 @@ class HeaderParseAndReplyTest {
 
   @Test
   void validateScmpError() {
+    {
+      // Error 1: max length
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_1_CODE_0);
+      adjustPacketLength(data, 1232);
+      assertNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Error 1: max length + 1
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_1_CODE_0);
+      adjustPacketLength(data, 1232 + 1);
+      assertNotNull(ScionHeaderParser.validate(data));
+    }
     {
       // Error 1: too short
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_1_CODE_0);
