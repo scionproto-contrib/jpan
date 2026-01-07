@@ -38,7 +38,6 @@ class DatagramChannelErrorHandlingTest {
     ScionService.closeDefault();
   }
 
-  @Disabled
   @Test
   void testErrorHandling() throws IOException {
     MockDatagramChannel mock = MockDatagramChannel.open();
