@@ -74,15 +74,15 @@ The central classes of the API are:
 - `Scion`, `ScionUtil`, `ScionConstants`: Utility classes.
 - `ScionSocketOptions`: Options for the `ScionDatagramChannel`.
 - `Scmp`:
-  - `Scmp.createSender(...)` for sending echo and traceroute requests
-  - `Scmp.createReceiver(...)` for receiving and responding to echo requests
+  - `Scmp.newSenderAsyncBuilder(...)` and `Scmp.newSenderBuilder(...)` for sending echo or traceroute requests
+  - `Scmp.newResponderBuilder(...)` for receiving and responding to echo requests
   - `Scmp.Type` and `Scmp.TypeCode` enums with text messages. 
   - `Scmp.ErrorMessage`/`Scmp.EchoMessage`/`Scmp.TracerouteMessage` types
 
 ### Features
 Supported:
-- DatagramChannel support: read(), write(), receive(), send(), bind(), connect(), ...
-- DatagramSocket support
+- `DatagramChannel` support via `ScionDatagramChannel`: `read()`, `write()`, `receive()`, `send()`, `bind()`, `connect()`, ...
+- `DatagramSocket` support via `ScionDatagramSocket`
 - Path selection policies, including path policy language (PPL)
 - Path expiry/refresh
 - Packet validation
@@ -92,6 +92,7 @@ Supported:
   - daemon address
   - bootstrapping via topo file, bootstrapper IP, DNS NAPTR or SRV entry, or /etc/resolv.conf 
   - path expiry
+  - ...
 - Packet inspector for debugging
 - Bootstrapping of discovery service via DNS NAPTR, SRV, SOA, PTR, ...
 - No "dispatcher"
