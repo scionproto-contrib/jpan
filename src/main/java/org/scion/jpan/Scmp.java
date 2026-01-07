@@ -42,18 +42,18 @@ public class Scmp {
     ERROR_4(4, "Parameter Problem", 8),
     ERROR_5(5, "External Interface Down", 20),
     ERROR_6(6, "Internal Connectivity Down", 28),
-    ERROR_100(100, "Private Experimentation", 0),
-    ERROR_101(101, "Private Experimentation", 0),
-    ERROR_127(127, "Reserved for expansion of SCMP error messages", 0),
+    ERROR_100(100, "Private Experimentation", 4),
+    ERROR_101(101, "Private Experimentation", 4),
+    ERROR_127(127, "Reserved for expansion of SCMP error messages", 4),
 
     // SCMP informational messages:
     INFO_128(128, "Echo Request", 8),
     INFO_129(129, "Echo Reply", 8),
     INFO_130(130, "Traceroute Request", 24),
     INFO_131(131, "Traceroute Reply", 24),
-    INFO_200(200, "Private Experimentation", 0),
-    INFO_201(201, "Private Experimentation", 0),
-    INFO_255(255, "Reserved for expansion of SCMP informational messages", 0);
+    INFO_200(200, "Private Experimentation", 4),
+    INFO_201(201, "Private Experimentation", 4),
+    INFO_255(255, "Reserved for expansion of SCMP informational messages", 4);
 
     final int id;
     final String text;
@@ -285,7 +285,7 @@ public class Scmp {
       super(typeCode, 0, 0, path);
     }
 
-    public static ErrorMessage createEmpty(TypeCode typeCode, Path path) {
+    public static ErrorMessage create(TypeCode typeCode, Path path) {
       return new ErrorMessage(typeCode, path);
     }
 
@@ -295,6 +295,108 @@ public class Scmp {
 
     public void setCause(byte[] cause) {
       this.cause = cause;
+    }
+  }
+
+  /** Destination unreachable. */
+  public static class Error1Message extends ErrorMessage {
+    private Error1Message(TypeCode typeCode, Path path) {
+      super(typeCode, path);
+    }
+
+    public static Error1Message create(TypeCode typeCode, Path path) {
+      return new Error1Message(typeCode, path);
+    }
+  }
+
+  /** Packet too big. */
+  public static class Error2Message extends ErrorMessage {
+    private int mtu;
+
+    private Error2Message(TypeCode typeCode, Path path, int mtu) {
+      super(typeCode, path);
+      this.mtu = mtu;
+    }
+
+    public static Error2Message create(TypeCode typeCode, Path path, int mtu) {
+      return new Error2Message(typeCode, path, mtu);
+    }
+
+    public int getMtu() {
+      return mtu;
+    }
+  }
+
+  /** Parameter problem. */
+  public static class Error4Message extends ErrorMessage {
+    private int ppinter;
+
+    private Error4Message(TypeCode typeCode, Path path, int pointer) {
+      super(typeCode, path);
+      this.ppinter = pointer;
+    }
+
+    public static Error4Message create(TypeCode typeCode, Path path, int pointer) {
+      return new Error4Message(typeCode, path, pointer);
+    }
+
+    public int getPointer() {
+      return ppinter;
+    }
+  }
+
+  /** External interface down. */
+  public static class Error5Message extends ErrorMessage {
+    private long isdAs;
+    private long ifId;
+
+    private Error5Message(TypeCode typeCode, Path path, long isdAs, long ifId) {
+      super(typeCode, path);
+      this.isdAs = isdAs;
+      this.ifId = ifId;
+    }
+
+    public static Error5Message create(TypeCode typeCode, Path path, long isdAs, long ifId) {
+      return new Error5Message(typeCode, path, isdAs, ifId);
+    }
+
+    public long getIsdAs() {
+      return isdAs;
+    }
+
+    public long getInterfaceId() {
+      return ifId;
+    }
+  }
+
+  /** Internal Connectivity Down. */
+  public static class Error6Message extends ErrorMessage {
+    private long isdAs;
+    private long ingressId;
+    private long egressId;
+
+    private Error6Message(TypeCode typeCode, Path path, long isdAs, long ingressId, long egressId) {
+      super(typeCode, path);
+      this.isdAs = isdAs;
+      this.ingressId = ingressId;
+      this.egressId = egressId;
+    }
+
+    public static Error6Message create(
+        TypeCode typeCode, Path path, long isdAs, long ingressId, long egressId) {
+      return new Error6Message(typeCode, path, isdAs, ingressId, egressId);
+    }
+
+    public long getIsdAs() {
+      return isdAs;
+    }
+
+    public long getIngressId() {
+      return ingressId;
+    }
+
+    public long getEgressId() {
+      return egressId;
     }
   }
 

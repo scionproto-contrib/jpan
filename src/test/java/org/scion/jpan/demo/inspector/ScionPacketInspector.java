@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import org.scion.jpan.Scmp;
 import org.scion.jpan.internal.InternalConstants;
 
 public class ScionPacketInspector {
@@ -29,7 +28,7 @@ public class ScionPacketInspector {
   private final ScmpHeader scmpHeader = new ScmpHeader();
   private byte[] payload;
 
-  public ScionPacketInspector() {}
+  private ScionPacketInspector() {}
 
   public static ScionPacketInspector createEmpty() {
     return new ScionPacketInspector();
@@ -43,6 +42,10 @@ public class ScionPacketInspector {
       throw new RuntimeException(e);
     }
     return spi;
+  }
+
+  public static ScionPacketInspector wrapReadOnly(byte[] array) {
+    return readPacket(ByteBuffer.wrap(array).asReadOnlyBuffer());
   }
 
   public InetAddress getSourceAddress() throws IOException {
@@ -111,15 +114,10 @@ public class ScionPacketInspector {
       scmpHeader.read(data);
       return false;
     } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
-      // System.out.println("Packet EndToEnd");
       ExtensionHeader e2eHeader = new ExtensionHeader();
       e2eHeader.read(data);
-      // System.out.println(e2eHeader);
       if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
         scmpHeader.read(data);
-        //        System.out.println("SCMP:");
-        //        System.out.println("    type: " + scmpHeader.getType().getText());
-        //        System.out.println("    code: " + scmpHeader.getCode());
       } else {
         System.out.println("Packet: DROPPED not implemented: " + scionHeader.nextHeader().name());
         return false;
@@ -173,22 +171,12 @@ public class ScionPacketInspector {
   }
 
   public void writePacketSCMP(ByteBuffer newData) {
-    Scmp.Type type = scmpHeader.getType();
-    boolean isError = scmpHeader.getCode().isError();
-    if (type == Scmp.Type.INFO_128
-        || type == Scmp.Type.INFO_129
-        || type == Scmp.Type.INFO_130
-        || type == Scmp.Type.INFO_131
-        || isError) {
-      scionHeader.write(
-          newData,
-          scmpHeader.getLength(),
-          pathHeaderScion.length(),
-          Constants.PathTypes.SCION,
-          InternalConstants.HdrTypes.SCMP);
-    } else {
-      throw new UnsupportedOperationException(type.getText());
-    }
+    scionHeader.write(
+        newData,
+        scmpHeader.getLength(),
+        pathHeaderScion.length(),
+        Constants.PathTypes.SCION,
+        InternalConstants.HdrTypes.SCMP);
     pathHeaderScion.write(newData);
     scmpHeader.write(newData);
   }
