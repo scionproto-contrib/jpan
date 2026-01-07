@@ -468,13 +468,15 @@ public class ScionHeaderParser {
     if (typeCode == null) {
       return PRE + "Unknown type code: " + type + " / " + code;
     }
+    Scmp.Type typeEnum = Scmp.Type.parse(type);
+    if (data.remaining() < typeEnum.getHeaderLength() - 4) {
+      return PRE
+          + "Invalid SCMP extension length, expected "
+          + typeEnum.getHeaderLength()
+          + " bytes but got: "
+          + (data.remaining() + 4);
+    }
     switch (typeCode) {
-      case TYPE_128:
-      case TYPE_129:
-        if (data.remaining() < 4) {
-          return PRE + "Invalid packet length, expected 8 bytes but got: " + data.remaining();
-        }
-        break;
       case TYPE_130:
       case TYPE_131:
         if (data.remaining() != 20) {
@@ -482,13 +484,6 @@ public class ScionHeaderParser {
         }
         break;
       default:
-        if (!typeCode.isError()) {
-          // INFO 200, 201, 255, ...
-          // TODO more data / payload?
-          return null;
-        }
-        // TODO distinguish 1, 2, 4, 5, 6, 100, 101, 127
-        break;
     }
     // rewind to original offset
     data.position(start);

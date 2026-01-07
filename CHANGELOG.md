@@ -100,6 +100,8 @@ TODO
 
 - SCMP packet validation (+ SCMP cleanup)
   [#212](https://github.com/scionproto-contrib/jpan/pull/212)
+- SCMP error parsing
+  [#213](https://github.com/scionproto-contrib/jpan/pull/213)
 
 ### Fixed
 

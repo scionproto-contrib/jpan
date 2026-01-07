@@ -16,75 +16,21 @@ package org.scion.jpan.demo.inspector;
 
 import java.nio.ByteBuffer;
 
-public class ByteUtil {
+public class ByteUtil extends org.scion.jpan.internal.ByteUtil {
 
-  /**
-   * Reads some bits from an integer and returns them as another integer, shifted right such that
-   * the least significant extracted bit becomes the least significant bit in the output.
-   *
-   * @param input input
-   * @param bitOffset First bit to read. 0 is the most significant bit, 31 is the least significant
-   *     bit
-   * @param bitCount number of bits to read
-   * @return extracted bits as int.
-   */
-  public static int readInt(int input, int bitOffset, int bitCount) {
-    int mask = (-1) >>> (32 - bitCount);
-    int shift = 32 - bitOffset - bitCount;
-    return (input >>> shift) & mask;
-  }
-
-  public static long readLong(long input, int bitOffset, int bitCount) {
-    long mask = (-1L) >>> (64 - bitCount);
-    int shift = 64 - bitOffset - bitCount;
-    return (input >>> shift) & mask;
-  }
-
-  public static boolean readBoolean(int input, int bitOffset) {
-    int mask = 1;
-    int shift = 32 - bitOffset - 1;
-    return ((input >>> shift) & mask) != 0;
-  }
-
-  public static int writeInt(int dst, int bitOffset, int bitLength, int value) {
-    int mask = value << (32 - bitOffset - bitLength);
-    return dst | mask;
-  }
-
-  public static int write16(int dst, int bitOffset, int value) {
-    int mask = (value & 0xFFFF) << (32 - bitOffset - 16);
-    return dst | mask;
-  }
-
-  public static int writeBool(int dst, int bitOffset, boolean value) {
-    int mask = value ? 1 << (32 - 1 - bitOffset) : 0;
-    return dst | mask;
-  }
-
-  public static long writeInt(long dst, int bitOffset, int bitLength, int value) {
-    long mask = Integer.toUnsignedLong(value) << (64 - bitOffset - bitLength);
-    return dst | mask;
-  }
-
-  public static long writeLong(long dst, int bitOffset, int bitLength, long value) {
-    long mask = value << (64 - bitOffset - bitLength);
-    return dst | mask;
-  }
-
-  public static long writeBool(long dst, int bitOffset, boolean value) {
-    long mask = value ? 1L << (32 - 1 - bitOffset) : 0L;
-    return dst | mask;
+  private ByteUtil() {
+    super();
   }
 
   public static String printHeader(ByteBuffer b) {
-    String NL = System.lineSeparator();
+    String newLine = System.lineSeparator();
     StringBuilder sb = new StringBuilder();
     int pos = b.position();
-    sb.append("Common Header").append(NL);
+    sb.append("Common Header").append(newLine);
     printLine(sb, b);
     printLine(sb, b);
     printLine(sb, b);
-    sb.append("Address Header").append(NL);
+    sb.append("Address Header").append(newLine);
     printLine(sb, b);
     printLine(sb, b);
     printLine(sb, b);
@@ -92,15 +38,15 @@ public class ByteUtil {
     int dlsl = b.getInt(pos + 9);
     int dl = readInt(dlsl << 16, 10, 2);
     int sl = readInt(dlsl << 16, 14, 2);
-    sb.append("  DstHostAddr").append(NL);
+    sb.append("  DstHostAddr").append(newLine);
     for (int i = 0; i < dl + 1; i++) {
       printLine(sb, b);
     }
-    sb.append("  SrcHostAddr").append(NL);
+    sb.append("  SrcHostAddr").append(newLine);
     for (int i = 0; i < sl + 1; i++) {
       printLine(sb, b);
     }
-    sb.append("Path Header").append(NL);
+    sb.append("Path Header").append(newLine);
     int pathHeader = b.getInt();
     b.position(b.position() - 4);
     int segLen0 = readInt(pathHeader, 14, 6);
@@ -108,22 +54,22 @@ public class ByteUtil {
     int segLen2 = readInt(pathHeader, 26, 6);
     printLine(sb, b);
     if (segLen0 > 0) {
-      sb.append("  SegInfo0").append(NL);
+      sb.append("  SegInfo0").append(newLine);
       printLine(sb, b);
       printLine(sb, b);
     }
     if (segLen1 > 0) {
-      sb.append("  SegInfo1").append(NL);
+      sb.append("  SegInfo1").append(newLine);
       printLine(sb, b);
       printLine(sb, b);
     }
     if (segLen2 > 0) {
-      sb.append("  SegInfo2").append(NL);
+      sb.append("  SegInfo2").append(newLine);
       printLine(sb, b);
       printLine(sb, b);
     }
     for (int i = 0; i < segLen0 + segLen1 + segLen2; i++) {
-      sb.append("  HopField ").append(i).append(NL);
+      sb.append("  HopField ").append(i).append(newLine);
       printLine(sb, b);
       printLine(sb, b);
       printLine(sb, b);
@@ -134,7 +80,7 @@ public class ByteUtil {
 
   private static void printLine(StringBuilder sb, ByteBuffer b) {
     int pos = b.position();
-    String NL = System.lineSeparator();
+    String newLine = System.lineSeparator();
     sb.append(String.format("%02d", pos))
         .append("-")
         .append(String.format("%02d", pos + 3))
@@ -143,6 +89,6 @@ public class ByteUtil {
       sb.append(String.format("%02x", Byte.toUnsignedInt(b.get())));
       sb.append(" ");
     }
-    sb.append(NL);
+    sb.append(newLine);
   }
 }

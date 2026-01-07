@@ -38,8 +38,8 @@ public class ScmpHeader {
     checksum = ByteUtil.readInt(i0, 16, 16);
 
     Scmp.Type st = Scmp.Type.parse(type);
-    short1 = org.scion.jpan.internal.ByteUtil.toUnsigned(data.getShort());
-    short2 = org.scion.jpan.internal.ByteUtil.toUnsigned(data.getShort());
+    short1 = ByteUtil.toUnsigned(data.getShort());
+    short2 = ByteUtil.toUnsigned(data.getShort());
     switch (st) {
       case INFO_128:
       case INFO_129:
@@ -67,6 +67,11 @@ public class ScmpHeader {
       case INFO_131:
         writeTraceroute(buffer);
         break;
+      case INFO_200:
+      case INFO_201:
+      case INFO_255:
+        writeScmpHeader(buffer);
+        break;
       default:
         if (getCode().isError()) {
           writeError(buffer);
@@ -80,9 +85,7 @@ public class ScmpHeader {
     if (type != 128 && type != 129) {
       throw new IllegalStateException();
     }
-    buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
-    buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // checksum
+    writeScmpHeader(buffer);
     buffer.putShort((short) short1); // unsigned identifier
     buffer.putShort((short) short2); // unsigned sequenceNumber
     buffer.put(echoUserData);
@@ -92,9 +95,7 @@ public class ScmpHeader {
     if (type != 130 && type != 131) {
       throw new IllegalStateException();
     }
-    buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
-    buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // checksum
+    writeScmpHeader(buffer);
     buffer.putShort((short) short1); // unsigned identifier
     buffer.putShort((short) short2); // unsigned sequenceNumber
 
@@ -113,9 +114,7 @@ public class ScmpHeader {
   }
 
   public void writeError(ByteBuffer buffer) {
-    buffer.put(org.scion.jpan.internal.ByteUtil.toByte(type));
-    buffer.put(org.scion.jpan.internal.ByteUtil.toByte(code));
-    buffer.putShort((short) 0); // checksum
+    writeScmpHeader(buffer);
     switch (type) {
       case 1:
         buffer.putInt(0); // unused
@@ -134,12 +133,22 @@ public class ScmpHeader {
         buffer.putLong(0); // Ingress Interface ID
         buffer.putLong(0); // Egress Interface ID
         break;
+      case 100:
+      case 101:
+      case 127:
+        break;
       default:
         throw new UnsupportedOperationException("Invalid: " + type + ":" + code);
     }
     // max: 1232
     int payloadLen = Math.min(buffer.position() + errorPayload.length, 1232) - buffer.position();
     buffer.put(errorPayload, 0, payloadLen);
+  }
+
+  private void writeScmpHeader(ByteBuffer buffer) {
+    buffer.put(ByteUtil.toByte(type));
+    buffer.put(ByteUtil.toByte(code));
+    buffer.putShort((short) 0); // checksum
   }
 
   @Override

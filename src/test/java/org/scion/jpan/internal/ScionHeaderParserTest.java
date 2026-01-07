@@ -28,7 +28,7 @@ import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.testutil.ExamplePacket;
 
-class HeaderParseAndReplyTest {
+class ScionHeaderParserTest {
 
   // Original incoming packet
   private static final byte[] packetBytes = ExamplePacket.PACKET_BYTES_SERVER_E2E_PING;
@@ -160,65 +160,104 @@ class HeaderParseAndReplyTest {
   }
 
   @Test
-  void validateScmp() {
+  void validateScmpInfo() {
     {
       // Echo: minimum 8 bytes
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_128);
-      setPacketLength(data, -1);
-      data.limit(data.limit() - 1);
+      adjustPacketLength(data, data.limit() - 1);
       assertNotNull(ScionHeaderParser.validate(data));
     }
     {
       // Echo: exact 1232 bytes
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_128);
-      int deltaLength = 1232 - data.limit();
-      setPacketLength(data, deltaLength);
-      data.limit(1232);
+      adjustPacketLength(data, 1232);
       assertNull(ScionHeaderParser.validate(data)); // Works!
     }
     {
-      // Echo: maximum 1232 bytes
+      // Echo: exceed 1232 bytes
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_128);
-      int deltaLength = 1232 - data.limit();
-      setPacketLength(data, deltaLength + 1);
-      data.limit(data.limit() + deltaLength + 1);
+      adjustPacketLength(data, 1232 + 1);
       assertNotNull(ScionHeaderParser.validate(data));
     }
     {
       // Echo: minimum 8 bytes
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_129);
-      setPacketLength(data, -1);
-      data.limit(data.limit() - 1);
+      adjustPacketLength(data, data.limit() - 1);
       assertNotNull(ScionHeaderParser.validate(data));
     }
     {
       // Echo: exact 1232 bytes
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_129);
-      int deltaLength = 1232 - data.limit();
-      setPacketLength(data, deltaLength);
-      data.limit(1232);
+      adjustPacketLength(data, 1232);
       assertNull(ScionHeaderParser.validate(data)); // Works!
     }
     {
-      // Echo: maximum 1232 bytes
+      // Echo: exceed 1232 bytes
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_129);
-      int deltaLength = 1232 - data.limit();
-      setPacketLength(data, deltaLength + 1);
-      data.limit(data.limit() + deltaLength + 1);
+      adjustPacketLength(data, 1232 + 1);
       assertNotNull(ScionHeaderParser.validate(data));
     }
     {
       // Traceroute: no payload!
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_130);
-      setPacketLength(data, +1);
-      data.limit(data.limit() + 1);
+      adjustPacketLength(data, data.limit() + 1);
       assertNotNull(ScionHeaderParser.validate(data));
     }
     {
       // Traceroute: no payload!
       ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_131);
-      setPacketLength(data, +1);
-      data.limit(data.limit() + 1);
+      adjustPacketLength(data, data.limit() + 1);
+      assertNotNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Custom SCMP INFO: 200
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_200);
+      assertNull(ScionHeaderParser.validate(data)); // Works!
+    }
+  }
+
+  @Test
+  void validateScmpError() {
+    {
+      // Error 1: max length
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_1_CODE_0);
+      adjustPacketLength(data, 1232);
+      assertNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Error 1: max length + 1
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_1_CODE_0);
+      adjustPacketLength(data, 1232 + 1);
+      assertNotNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Error 1: too short
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_1_CODE_0);
+      adjustPacketLength(data, data.limit() - 1);
+      assertNotNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Error 2: too short
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_2);
+      adjustPacketLength(data, data.limit() - 1);
+      assertNotNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Error 4: too short
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_4_CODE_0);
+      adjustPacketLength(data, data.limit() - 1);
+      assertNotNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Error 5: too short
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_5);
+      adjustPacketLength(data, data.limit() - 1);
+      assertNotNull(ScionHeaderParser.validate(data));
+    }
+    {
+      // Error 6: too short
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_6);
+      adjustPacketLength(data, data.limit() - 1);
       assertNotNull(ScionHeaderParser.validate(data));
     }
     {
@@ -240,33 +279,25 @@ class HeaderParseAndReplyTest {
     }
     {
       // Custom Error: 100
-      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_131);
+      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_100);
       // Just double-check that we have the correct location
-      assertEquals(131, ByteUtil.toUnsigned(data.get(data.limit() - 24)));
-      data.put(data.limit() - 24, (byte) 100);
-      assertNull(ScionHeaderParser.validate(data)); // Works!
-    }
-    {
-      // Custom SCMP: 200
-      ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_131);
-      // Just double-check that we have the correct location
-      assertEquals(131, ByteUtil.toUnsigned(data.get(data.limit() - 24)));
-      data.put(data.limit() - 24, (byte) 200);
       assertNull(ScionHeaderParser.validate(data)); // Works!
     }
   }
 
-  private void setPacketLength(ByteBuffer data, int delta) {
-    int payload = ByteUtil.toUnsigned(data.getShort(6));
-    data.putShort(6, ByteUtil.toShort(payload + delta));
+  private void adjustPacketLength(ByteBuffer data, int newLength) {
+    int hdrLen = ByteUtil.toUnsigned(data.get(5)) * 4;
+    // Update payload length
+    data.putShort(6, ByteUtil.toShort(newLength - hdrLen));
+    data.limit(newLength);
   }
 
   private ByteBuffer createScmpResponse(Scmp.TypeCode type) {
-    return createScmpResponse(12345, type, null, false);
+    return createScmpResponse(12345, type, new byte[0], false);
   }
 
   private ByteBuffer createScmpResponse(int dstPort, Scmp.TypeCode type) {
-    return createScmpResponse(dstPort, type, null, false);
+    return createScmpResponse(dstPort, type, new byte[0], false);
   }
 
   private ByteBuffer createScmpResponse(

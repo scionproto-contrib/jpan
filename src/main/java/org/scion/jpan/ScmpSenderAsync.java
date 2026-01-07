@@ -227,8 +227,8 @@ public class ScmpSenderAsync implements AutoCloseable {
         int len = 8 + request.getData().length;
         ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
         buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP, srcPort);
-        ScmpParser.buildScmpPing(
-            buffer, Scmp.Type.INFO_128, srcPort.v, request.getSequenceNumber(), request.getData());
+        int sn = request.getSequenceNumber();
+        ScmpParser.buildScmpPing(buffer, Scmp.Type.INFO_128, srcPort.get(), sn, request.getData());
         buffer.flip();
         request.setSizeSent(buffer.remaining());
 

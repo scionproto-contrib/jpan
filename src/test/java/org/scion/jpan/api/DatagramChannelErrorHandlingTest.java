@@ -33,7 +33,7 @@ import org.scion.jpan.testutil.MockNetwork;
 class DatagramChannelErrorHandlingTest {
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
   }
@@ -70,6 +70,7 @@ class DatagramChannelErrorHandlingTest {
 
     } finally {
       mock.close();
+      MockNetwork.stopTiny();
     }
   }
 }

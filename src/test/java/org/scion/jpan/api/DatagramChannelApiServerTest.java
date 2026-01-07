@@ -38,7 +38,7 @@ import org.scion.jpan.testutil.MockNetwork2;
 class DatagramChannelApiServerTest {
 
   @AfterEach
-  public void afterEach() throws IOException {
+  void afterEach() throws IOException {
     MockDaemon.closeDefault();
     MockDNS.clear();
     ScionService.closeDefault();
@@ -161,8 +161,8 @@ class DatagramChannelApiServerTest {
     InetSocketAddress brAddress = IPHelper.toInetSocketAddress(brAddressString);
 
     // prepare packet
-    ScionPacketInspector spi = new ScionPacketInspector();
-    spi.read(ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING));
+    ScionPacketInspector spi =
+        ScionPacketInspector.wrapReadOnly(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
     spi.getScionHeader().setSrcHostAddress(scionSrcBytes);
     InetAddress scionSrcIP = spi.getScionHeader().getSrcHostAddress();
     int scionSrcPort = spi.getOverlayHeaderUdp().getSrcPort();
@@ -223,8 +223,8 @@ class DatagramChannelApiServerTest {
     InetSocketAddress brAddress = IPHelper.toInetSocketAddress(brAddressString);
 
     // prepare packet
-    ScionPacketInspector spi = new ScionPacketInspector();
-    spi.read(ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING));
+    ScionPacketInspector spi =
+        ScionPacketInspector.wrapReadOnly(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
     spi.getScionHeader().setSrcHostAddress(scionSrcBytes);
     InetAddress scionSrcIP = spi.getScionHeader().getSrcHostAddress();
     int scionSrcPort = spi.getOverlayHeaderUdp().getSrcPort();
@@ -267,8 +267,8 @@ class DatagramChannelApiServerTest {
     InetSocketAddress underLaySrc =
         new InetSocketAddress(InetAddress.getByAddress(new byte[] {10, 0, 123, 123}), 12345);
 
-    ScionPacketInspector spi = new ScionPacketInspector();
-    spi.read(ByteBuffer.wrap(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING));
+    ScionPacketInspector spi =
+        ScionPacketInspector.wrapReadOnly(ExamplePacket.PACKET_BYTES_SERVER_E2E_PING);
     spi.getPathHeaderScion().reset(); // set path to []
     InetAddress scionSrcIP = spi.getScionHeader().getSrcHostAddress();
     int scionSrcPort = spi.getOverlayHeaderUdp().getSrcPort();

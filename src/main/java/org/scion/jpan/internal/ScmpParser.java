@@ -89,33 +89,68 @@ public class ScmpParser {
     // TODO validate checksum
 
     Scmp.TypeCode typeCode = Scmp.TypeCode.parse(type, code);
-    int idNo = ByteUtil.toUnsigned(data.getShort());
-    int seqNo = ByteUtil.toUnsigned(data.getShort());
-    switch (typeCode) {
-      case TYPE_128:
-      case TYPE_129:
-        Scmp.EchoMessage echo = Scmp.EchoMessage.create(typeCode, idNo, seqNo, path);
-        echo.setData(new byte[data.remaining()]);
-        data.get(echo.getData());
-        return echo;
-      case TYPE_130:
-      case TYPE_131:
-        long isdAs = data.getLong();
-        long ifID = data.getLong();
-        Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.create(typeCode, idNo, seqNo, path);
-        trace.setTracerouteArgs(isdAs, ifID);
-        return trace;
-      default:
-        if (!typeCode.isError()) {
-          // INFO 200, 201, 255, ...
-          // TODO more data / payload?
-          return new Scmp.Message(typeCode, idNo, seqNo, path);
+    Scmp.Type typeEnum = Scmp.Type.parse(type);
+    switch (typeEnum) {
+      case INFO_128:
+      case INFO_129:
+        {
+          int idNo = ByteUtil.toUnsigned(data.getShort());
+          int seqNo = ByteUtil.toUnsigned(data.getShort());
+          Scmp.EchoMessage echo = Scmp.EchoMessage.create(typeCode, idNo, seqNo, path);
+          echo.setData(new byte[data.remaining()]);
+          data.get(echo.getData());
+          return echo;
         }
-        Scmp.ErrorMessage error = Scmp.ErrorMessage.createEmpty(typeCode, path);
-        byte[] cause = new byte[data.remaining()];
-        data.get(cause);
-        error.setCause(cause);
-        return error;
+      case INFO_130:
+      case INFO_131:
+        {
+          int idNo = ByteUtil.toUnsigned(data.getShort());
+          int seqNo = ByteUtil.toUnsigned(data.getShort());
+          long isdAs = data.getLong();
+          long ifID = data.getLong();
+          Scmp.TracerouteMessage trace = Scmp.TracerouteMessage.create(typeCode, idNo, seqNo, path);
+          trace.setTracerouteArgs(isdAs, ifID);
+          return trace;
+        }
+      case INFO_200:
+      case INFO_201:
+      case INFO_255:
+        // INFO 200, 201, 255, ...
+        return new Scmp.Message(typeCode, 0, 0, path);
+      case ERROR_1:
+        return readPayload(Scmp.Error1Message.create(typeCode, path), data);
+      case ERROR_2:
+        data.getShort(); // reserved
+        int mtu = ByteUtil.toUnsigned(data.getShort());
+        return readPayload(Scmp.Error2Message.create(typeCode, path, mtu), data);
+      case ERROR_4:
+        data.getShort(); // reserved
+        int pointer = ByteUtil.toUnsigned(data.getShort());
+        return readPayload(Scmp.Error4Message.create(typeCode, path, pointer), data);
+      case ERROR_5:
+        {
+          long isdAs = data.getLong();
+          long ifId = data.getLong();
+          return readPayload(Scmp.Error5Message.create(typeCode, path, isdAs, ifId), data);
+        }
+      case ERROR_6:
+        long isdAs = data.getLong();
+        long ingress = data.getLong();
+        long egress = data.getLong();
+        return readPayload(Scmp.Error6Message.create(typeCode, path, isdAs, ingress, egress), data);
+      case ERROR_100:
+      case ERROR_101:
+      case ERROR_127:
+        return readPayload(Scmp.ErrorMessage.create(typeCode, path), data);
+      default:
+        throw new UnsupportedOperationException("TypeCode not supported: " + typeCode);
     }
+  }
+
+  private static Scmp.ErrorMessage readPayload(Scmp.ErrorMessage error, ByteBuffer data) {
+    byte[] cause = new byte[data.remaining()];
+    data.get(cause);
+    error.setCause(cause);
+    return error;
   }
 }
