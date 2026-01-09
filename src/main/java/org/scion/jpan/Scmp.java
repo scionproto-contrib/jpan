@@ -296,6 +296,11 @@ public class Scmp {
     public void setCause(byte[] cause) {
       this.cause = cause;
     }
+
+    @Override
+    public String toString() {
+      return getTypeCode().getText();
+    }
   }
 
   /** Destination unreachable. */
@@ -311,7 +316,7 @@ public class Scmp {
 
   /** Packet too big. */
   public static class Error2Message extends ErrorMessage {
-    private int mtu;
+    private final int mtu;
 
     private Error2Message(TypeCode typeCode, Path path, int mtu) {
       super(typeCode, path);
@@ -329,7 +334,7 @@ public class Scmp {
 
   /** Parameter problem. */
   public static class Error4Message extends ErrorMessage {
-    private int ppinter;
+    private final int ppinter;
 
     private Error4Message(TypeCode typeCode, Path path, int pointer) {
       super(typeCode, path);
@@ -347,8 +352,8 @@ public class Scmp {
 
   /** External interface down. */
   public static class Error5Message extends ErrorMessage {
-    private long isdAs;
-    private long ifId;
+    private final long isdAs;
+    private final long ifId;
 
     private Error5Message(TypeCode typeCode, Path path, long isdAs, long ifId) {
       super(typeCode, path);
@@ -367,13 +372,18 @@ public class Scmp {
     public long getInterfaceId() {
       return ifId;
     }
+
+    @Override
+    public String toString() {
+      return super.toString() + ";ISD/AS=" + ScionUtil.toStringIA(isdAs) + ";IfID=" + ifId;
+    }
   }
 
   /** Internal Connectivity Down. */
   public static class Error6Message extends ErrorMessage {
-    private long isdAs;
-    private long ingressId;
-    private long egressId;
+    private final long isdAs;
+    private final long ingressId;
+    private final long egressId;
 
     private Error6Message(TypeCode typeCode, Path path, long isdAs, long ingressId, long egressId) {
       super(typeCode, path);

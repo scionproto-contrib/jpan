@@ -223,6 +223,11 @@ public class PathProviderWithRefresh implements PathProvider {
     subscriber.updatePath(getFreePath());
   }
 
+  // TODO change to two methods:
+  //   - report faulty external interface (AS, IfID)
+  //   - Report faulty internal connectivity (AS, ingress, egress)
+  //     -> The Provider can then decide how to handle this.
+
   @Override
   public synchronized void reportFaultyPath(Path p) {
     Entry e = usedPath;
