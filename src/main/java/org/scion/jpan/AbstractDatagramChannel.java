@@ -26,10 +26,13 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
   protected static final int DEFAULT_BUFFER_SIZE = 2000;
+  private static final Logger log = LoggerFactory.getLogger(AbstractDatagramChannel.class);
   private final java.nio.channels.DatagramChannel channel;
   private ByteBuffer bufferReceive;
   private ByteBuffer bufferSend;
@@ -446,14 +449,46 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return hdrType;
   }
 
-  protected void receiveScmp(ByteBuffer buffer, ResponsePath path) {
+  protected void receiveScmp(ByteBuffer buffer, ResponsePath path) throws IOException {
     checkListeners(ScmpParser.consume(buffer, path));
   }
 
-  protected void checkListeners(Scmp.Message scmpMsg) {
+  protected void checkListeners(Scmp.Message scmpMsg) throws IOException {
+    /*
+     * Behavior:
+     * Error 1: Destination Unreachable -> throw NoRouteToHost or PortUnreachable
+     * Error 2: PacketTooBig -> throw ProtocolException?
+     * Error 4: ParameterProblem -> throw ProtocolException?
+     * Error 5: External Interface Down: Don't throw, report path as faulty and get next path
+     * Error 6: Internal Connectivity Down: Don't throw, report path as faulty and get next path
+     *
+     * Errors 5 and 6 could throw NoRouteToHost if they run out of paths....
+     */
     synchronized (stateLock) {
       if (errorListener != null && scmpMsg.getTypeCode().isError()) {
         errorListener.accept((Scmp.ErrorMessage) scmpMsg);
+      }
+      switch (scmpMsg.getTypeCode().type()) {
+        case 1:
+          if (scmpMsg.getTypeCode() == Scmp.TypeCode.TYPE_1_CODE_4) {
+            throw new PortUnreachableException(); // TODO
+          }
+          throw new NoRouteToHostException(); // TODO
+        case 2:
+          throw new ProtocolException(); // TODO
+        case 4:
+          throw new ProtocolException(); // TODO
+        case 5:
+        case 6:
+          if (isConnected()) {
+            pathProvider.reportFaultyPath(scmpMsg.getPath());
+          } else {
+            // TODO Maybe ignore? May have been disconnected in the meantime.
+            throw new NoRouteToHostException(scmpMsg.toString());
+          }
+          break;
+        default:
+          log.error("SCMP error not recognized: {}", scmpMsg.getTypeCode());
       }
     }
   }

@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -38,7 +37,6 @@ class DatagramChannelErrorHandlingTest {
     ScionService.closeDefault();
   }
 
-  @Disabled
   @Test
   void testErrorHandling() throws IOException {
     MockDatagramChannel mock = MockDatagramChannel.open();
