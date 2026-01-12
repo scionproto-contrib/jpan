@@ -471,19 +471,21 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       switch (scmpMsg.getTypeCode().type()) {
         case 1:
           if (scmpMsg.getTypeCode() == Scmp.TypeCode.TYPE_1_CODE_4) {
-            throw new PortUnreachableException(); // TODO
+            throw new PortUnreachableException(scmpMsg.toString()); // TODO
           }
-          throw new NoRouteToHostException(); // TODO
+          throw new NoRouteToHostException(scmpMsg.toString()); // TODO
         case 2:
-          throw new ProtocolException(); // TODO
+          throw new ProtocolException(scmpMsg.toString()); // TODO
         case 4:
-          throw new ProtocolException(); // TODO
+          throw new ProtocolException(scmpMsg.toString()); // TODO
         case 5:
         case 6:
           if (isConnected()) {
             pathProvider.reportFaultyPath(scmpMsg.getPath());
           } else {
-            // TODO Maybe ignore? May have been disconnected in the meantime.
+            // We throw an exception here.
+            // Alternatively, we could just swallow the error, after all this is an unreliable
+            // protocol...
             throw new NoRouteToHostException(scmpMsg.toString());
           }
           break;

@@ -312,6 +312,19 @@ public class Scmp {
     public static Error1Message create(TypeCode typeCode, Path path) {
       return new Error1Message(typeCode, path);
     }
+
+    @Override
+    public String toString() {
+      // We do not report port or address here because we the path contains only the sender
+      // of the SCMP message.
+      // The actual destination port/address may be in the "cause", but especially the port
+      // (in the UDP overlay) may have been cut off.
+      return super.toString()
+          + ";reportedBy="
+          + getPath().getRemoteSocketAddress()
+          + ";path="
+          + ScionUtil.toStringPath(getPath().getRawPath());
+    }
   }
 
   /** Packet too big. */
@@ -330,6 +343,11 @@ public class Scmp {
     public int getMtu() {
       return mtu;
     }
+
+    @Override
+    public String toString() {
+      return super.toString() + ";MTU=" + mtu;
+    }
   }
 
   /** Parameter problem. */
@@ -347,6 +365,11 @@ public class Scmp {
 
     public int getPointer() {
       return ppinter;
+    }
+
+    @Override
+    public String toString() {
+      return super.toString() + ";pointer=" + ppinter;
     }
   }
 
@@ -407,6 +430,17 @@ public class Scmp {
 
     public long getEgressId() {
       return egressId;
+    }
+
+    @Override
+    public String toString() {
+      return super.toString()
+          + ";ISD/AS="
+          + ScionUtil.toStringIA(isdAs)
+          + ";ingress="
+          + ingressId
+          + ";egress="
+          + egressId;
     }
   }
 

@@ -20,13 +20,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
+import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -44,49 +44,86 @@ class ScmpErrorHandlingTest {
   }
 
   @Test
-  void testReceiveError1() {
-    Scmp.Message msg = testReceiveError(Scmp.TypeCode.TYPE_1_CODE_0, NoRouteToHostException.class);
+  void testReadError1() {
+    Scmp.Message msg = readError(Scmp.TypeCode.TYPE_1_CODE_0, NoRouteToHostException.class);
     assertInstanceOf(Scmp.Error1Message.class, msg);
+    assertTrue(msg.toString().contains("reportedBy="));
+    assertTrue(msg.toString().contains("path="));
   }
 
   @Test
-  void testReceiveError1_4() {
-    Scmp.Message msg =
-        testReceiveError(Scmp.TypeCode.TYPE_1_CODE_4, PortUnreachableException.class);
+  void testReadError2() {
+    Scmp.Message msg = readError(Scmp.TypeCode.TYPE_2, ProtocolException.class);
+    assertInstanceOf(Scmp.Error2Message.class, msg);
+    assertTrue(msg.toString().contains("MTU="));
+  }
+
+  @Test
+  void testReadError4() {
+    Scmp.Message msg = readError(Scmp.TypeCode.TYPE_4_CODE_0, ProtocolException.class);
+    assertInstanceOf(Scmp.Error4Message.class, msg);
+    assertTrue(msg.toString().contains("pointer="));
+  }
+
+  @Test
+  void testReadError5() {
+    Scmp.Message msg = readError(Scmp.TypeCode.TYPE_5, null);
+    assertInstanceOf(Scmp.Error5Message.class, msg);
+    assertTrue(msg.toString().contains("External Interface Down"));
+  }
+
+  @Test
+  void testReadError6() {
+    Scmp.Message msg = readError(Scmp.TypeCode.TYPE_6, null);
+    assertInstanceOf(Scmp.Error6Message.class, msg);
+    assertTrue(msg.toString().contains("Internal Connectivity Down"));
+  }
+
+  @Test
+  void testReceiveError1() {
+    Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_1_CODE_0, NoRouteToHostException.class);
     assertInstanceOf(Scmp.Error1Message.class, msg);
+    assertTrue(msg.toString().contains("reportedBy="));
+    assertTrue(msg.toString().contains("path="));
   }
 
   @Test
   void testReceiveError2() {
-    Scmp.Message msg = testReceiveError(Scmp.TypeCode.TYPE_2, ProtocolException.class);
+    Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_2, ProtocolException.class);
     assertInstanceOf(Scmp.Error2Message.class, msg);
+    assertTrue(msg.toString().contains("MTU="));
   }
 
   @Test
   void testReceiveError4() {
-    Scmp.Message msg = testReceiveError(Scmp.TypeCode.TYPE_4_CODE_0, ProtocolException.class);
+    Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_4_CODE_0, ProtocolException.class);
     assertInstanceOf(Scmp.Error4Message.class, msg);
+    assertTrue(msg.toString().contains("pointer="));
   }
 
   @Test
   void testReceiveError5() {
-    assertInstanceOf(Scmp.Error5Message.class, testReceiveError(Scmp.TypeCode.TYPE_5, null));
+    Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_5, NoRouteToHostException.class);
+    assertInstanceOf(Scmp.Error5Message.class, msg);
+    assertTrue(msg.toString().contains("External Interface Down"));
   }
 
   @Test
   void testReceiveError6() {
-    assertInstanceOf(Scmp.Error6Message.class, testReceiveError(Scmp.TypeCode.TYPE_6, null));
+    Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_6, NoRouteToHostException.class);
+    assertInstanceOf(Scmp.Error6Message.class, msg);
+    assertTrue(msg.toString().contains("Internal Connectivity Down"));
   }
 
-  private Scmp.ErrorMessage testReceiveError(Scmp.TypeCode typeCode, Class<?> expectedException) {
+  private Scmp.ErrorMessage readError(Scmp.TypeCode typeCode, Class<?> expectedException) {
     MockNetwork.startTiny();
     AtomicReference<Scmp.ErrorMessage> error = new AtomicReference<>();
     try (ScionDatagramChannel channel = errorSender(typeCode)) {
       channel.setScmpErrorListener(error::set);
-      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-      channel.send(ByteBuffer.allocate(0), getPathTo112());
+      channel.connect(getPathTo112());
+      channel.write(ByteBuffer.allocate(0));
       ByteBuffer receive = ByteBuffer.allocate(1000);
-      channel.receive(receive);
+      channel.read(receive);
     } catch (IOException e) {
       if (e.getClass() != expectedException) {
         fail("Unexpected exception: " + e);
@@ -100,68 +137,37 @@ class ScmpErrorHandlingTest {
     return error.get();
   }
 
-  /**
-   * SCMP Error 1 codes: 0 - No route to destination 1 - Communication administratively denied 2 -
-   * Beyond scope of source address 3 - Address unreachable 4 - Port unreachable 5 - Source address
-   * failed ingress/egress policy 6 - Reject route to destination
-   *
-   * <p>TODO it would be realy nice if the channel/socket kept the last packet and resend it.
-   * However, this is not useful, how many packets would it need to keep? Which ones would need to
-   * be resent? Better report an error and indicate that retrying may just work! If we just drop the
-   * error (and only update the path), then the application may think the UDP packet was just lost
-   * and may resent it on it's own! -> Good solution. --> Is there an exception that indicates that
-   * retrying is recommended? No, but if retry is recommended, we just don't throw and instead
-   * simulate UDP packet loss. --> Create mapping: - Not path found -> (NoRouteToHost) -> No retry -
-   * 3: (NoRouteToHost) -> no retry - 4: PortUnreachable -> no retry
-   *
-   * <p>Error 1: All no retry, throw NoRouteToHost or PortUnreachable Error 2: PacketTooBig -> throw
-   * ProtocolException? Error 4: ParameterProblem -> throw ProtocolException? Error 5: External
-   * Interface Down: Do not throw, just report path as faulty and line up next path Error 6:
-   * Internal Connectivity Down: Do not throw, just report path as faulty and line up next path
-   *
-   * <p>Errors 5 and 6 could throw NoRouteToHost if they run out of paths....
-   */
-  @Test
-  void testError1_NoRouteToHostException() {
-    // Error codes 0..3 and 5..6
-    // TODO assertThrows(PortUnreachableException.class, );
-    fail();
-  }
+  private Scmp.ErrorMessage receiveError(Scmp.TypeCode typeCode, Class<?> expectedException) {
+    MockNetwork.startTiny();
+    AtomicReference<Scmp.ErrorMessage> error = new AtomicReference<>();
+    try (ScionDatagramChannel channel = errorSender(typeCode)) {
+      channel.setScmpErrorListener(error::set);
+      channel.send(ByteBuffer.allocate(0), getPathTo112());
+      channel.receive(ByteBuffer.allocate(1000));
+    } catch (IOException e) {
+      if (e.getClass() != expectedException) {
+        fail("Unexpected exception: " + e);
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
 
-  @Test
-  void testError1_PortUnreachable() throws IOException, InterruptedException {
-    // Error code 4
-    // TODO assertThrows(PortUnreachableException.class, );
-
-    DatagramChannel ds = DatagramChannel.open();
-    ByteBuffer bb = ByteBuffer.allocate(1000);
-    InetAddress ip = IPHelper.getByAddress(new int[] {192, 168, 0, 0});
-    InetSocketAddress isa = new InetSocketAddress(ip, 12345);
-    ds.write(ByteBuffer.allocate(0));
-    //    ds.send(bb, isa);
-    //    Thread.sleep(1000);
-    //    ds.send(bb, isa);
-    //    ds.receive(bb);
-    //
-    //    ds.connect(isa);
-    //    ds.write(bb);
-    //    Thread.sleep(1000);
-    //    ds.write(bb);
-    //    ds.read(bb);
-
-    fail();
+    assertNotNull(error.get());
+    assertEquals(typeCode, error.get().getTypeCode());
+    return error.get();
   }
 
   @Test
   void testUseBackupPathOnError() throws IOException {
     MockNetwork.startTiny();
-
     try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_5)) {
       AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
       channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
       channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
-      Path path = getPathTo112();
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dst = IPHelper.toInetSocketAddress("127.0.0.1:" + Constants.SCMP_PORT);
+      Path path = Scion.defaultService().getPaths(dstIA, dst).get(0);
 
       // Try with send()
       channel.send(ByteBuffer.allocate(0), path);
@@ -173,8 +179,7 @@ class ScmpErrorHandlingTest {
       channel.connect(path.getRemoteSocketAddress());
       assertEquals(path, channel.getConnectionPath());
       channel.write(ByteBuffer.allocate(0));
-      ByteBuffer receive2 = ByteBuffer.allocate(1000);
-      channel.read(receive2);
+      channel.read(ByteBuffer.allocate(1000));
       // Path should have changed
       assertNotEquals(path, channel.getConnectionPath());
 
@@ -182,14 +187,41 @@ class ScmpErrorHandlingTest {
     } finally {
       MockNetwork.stopTiny();
     }
-    fail();
   }
 
-  @Disabled
   @Test
-  void testNoBackupPath() {
+  void testNoBackupPath() throws IOException {
     // Test what happens if no backup path is available.
-    // -> Retry failed path?
+    // We have two path, we let both fail
+    MockNetwork.startTiny();
+    try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_5)) {
+      AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
+      channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dst = IPHelper.toInetSocketAddress("127.0.0.1:" + Constants.SCMP_PORT);
+      Path path = Scion.defaultService().getPaths(dstIA, dst).get(0);
+
+      // First try
+      channel.connect(path.getRemoteSocketAddress());
+      assertEquals(path, channel.getConnectionPath());
+      channel.write(ByteBuffer.allocate(0));
+      channel.read(ByteBuffer.allocate(1000));
+      // Path should have changed
+      assertNotEquals(path, channel.getConnectionPath());
+
+      // Try again with connected path
+      channel.write(ByteBuffer.allocate(0));
+      channel.read(ByteBuffer.allocate(1000));
+      // Path should have changed
+      assertNotEquals(path, channel.getConnectionPath());
+
+      assertTrue(listenerWasTriggered.get());
+    } finally {
+      MockNetwork.stopTiny();
+    }
+
     fail();
   }
 
@@ -208,9 +240,15 @@ class ScmpErrorHandlingTest {
   }
 
   private Path getPathTo112() {
-    InetAddress brIP = IPHelper.getByAddress(new int[] {127, 0, 0, 2});
-    InetSocketAddress br = new InetSocketAddress(brIP, 12345);
-    return PackageVisibilityHelper.createMockRequestPath(br);
+    InetAddress firstHopIP = IPHelper.getByAddress(new int[] {127, 0, 0, 2});
+    InetSocketAddress firstHop = new InetSocketAddress(firstHopIP, 12345);
+
+    return PackageVisibilityHelper.createDummyPath(
+        ScionUtil.parseIA("1-ff00:0:112"),
+        new byte[] {127, 0, 0, 1},
+        Constants.SCMP_PORT,
+        ExamplePacket.PATH_RAW_TINY_110_112,
+        firstHop);
   }
 
   private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode) throws IOException {
