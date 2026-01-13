@@ -116,34 +116,41 @@ class ScmpErrorHandlingTest {
   }
 
   private Scmp.ErrorMessage readError(Scmp.TypeCode typeCode, Class<?> expectedException) {
-    MockNetwork.startTiny();
-    AtomicReference<Scmp.ErrorMessage> error = new AtomicReference<>();
-    try (ScionDatagramChannel channel = errorSender(typeCode)) {
-      channel.setScmpErrorListener(error::set);
-      channel.connect(getPathTo112());
-      channel.write(ByteBuffer.allocate(0));
-      ByteBuffer receive = ByteBuffer.allocate(1000);
-      channel.read(receive);
-    } catch (IOException e) {
-      if (e.getClass() != expectedException) {
-        fail("Unexpected exception: " + e);
-      }
-    } finally {
-      MockNetwork.stopTiny();
-    }
-
-    assertNotNull(error.get());
-    assertEquals(typeCode, error.get().getTypeCode());
-    return error.get();
+    // test read() / write()
+    return testError(
+        typeCode,
+        expectedException,
+        (channel) -> {
+          channel.connect(getPathTo112());
+          channel.write(ByteBuffer.allocate(0));
+          ByteBuffer receive = ByteBuffer.allocate(1000);
+          channel.read(receive);
+        });
   }
 
   private Scmp.ErrorMessage receiveError(Scmp.TypeCode typeCode, Class<?> expectedException) {
+    // Test send() / receive()
+    return testError(
+        typeCode,
+        expectedException,
+        (channel) -> {
+          channel.send(ByteBuffer.allocate(0), getPathTo112());
+          channel.receive(ByteBuffer.allocate(1000));
+        });
+  }
+
+  private interface ErrorTask {
+    void consume(ScionDatagramChannel channel) throws IOException;
+  }
+
+  private Scmp.ErrorMessage testError(
+      Scmp.TypeCode typeCode, Class<?> expectedException, ErrorTask task) {
+    // test read() /write()
     MockNetwork.startTiny();
     AtomicReference<Scmp.ErrorMessage> error = new AtomicReference<>();
     try (ScionDatagramChannel channel = errorSender(typeCode)) {
       channel.setScmpErrorListener(error::set);
-      channel.send(ByteBuffer.allocate(0), getPathTo112());
-      channel.receive(ByteBuffer.allocate(1000));
+      task.consume(channel);
     } catch (IOException e) {
       if (e.getClass() != expectedException) {
         fail("Unexpected exception: " + e);
@@ -221,8 +228,6 @@ class ScmpErrorHandlingTest {
     } finally {
       MockNetwork.stopTiny();
     }
-
-    fail();
   }
 
   @Disabled
