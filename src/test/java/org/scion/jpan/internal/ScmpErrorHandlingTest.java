@@ -52,6 +52,14 @@ class ScmpErrorHandlingTest {
   }
 
   @Test
+  void testReadError1_4() {
+    Scmp.Message msg = readError(Scmp.TypeCode.TYPE_1_CODE_4, PortUnreachableException.class);
+    assertInstanceOf(Scmp.Error1Message.class, msg);
+    assertTrue(msg.toString().contains("reportedBy="));
+    assertTrue(msg.toString().contains("path="));
+  }
+
+  @Test
   void testReadError2() {
     Scmp.Message msg = readError(Scmp.TypeCode.TYPE_2, ProtocolException.class);
     assertInstanceOf(Scmp.Error2Message.class, msg);
@@ -82,6 +90,14 @@ class ScmpErrorHandlingTest {
   @Test
   void testReceiveError1() {
     Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_1_CODE_0, NoRouteToHostException.class);
+    assertInstanceOf(Scmp.Error1Message.class, msg);
+    assertTrue(msg.toString().contains("reportedBy="));
+    assertTrue(msg.toString().contains("path="));
+  }
+
+  @Test
+  void testReceiveError1_4() {
+    Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_1_CODE_4, PortUnreachableException.class);
     assertInstanceOf(Scmp.Error1Message.class, msg);
     assertTrue(msg.toString().contains("reportedBy="));
     assertTrue(msg.toString().contains("path="));
