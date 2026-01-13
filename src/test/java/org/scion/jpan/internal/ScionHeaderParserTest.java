@@ -155,7 +155,7 @@ class ScionHeaderParserTest {
   @Test
   void extractTypeCode() {
     ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_4_CODE_51);
-    assertEquals(4, ScmpParser.extractTypeCode(data).type());
+    assertEquals(4, ScmpParser.extractTypeCode(data).type().id());
     assertEquals(51, ScmpParser.extractTypeCode(data).code());
   }
 

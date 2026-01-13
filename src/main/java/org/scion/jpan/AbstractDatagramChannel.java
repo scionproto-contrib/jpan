@@ -26,13 +26,10 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
 
   protected static final int DEFAULT_BUFFER_SIZE = 2000;
-  private static final Logger log = LoggerFactory.getLogger(AbstractDatagramChannel.class);
   private final java.nio.channels.DatagramChannel channel;
   private ByteBuffer bufferReceive;
   private ByteBuffer bufferSend;
@@ -469,17 +466,17 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         errorListener.accept((Scmp.ErrorMessage) scmpMsg);
       }
       switch (scmpMsg.getTypeCode().type()) {
-        case 1:
+        case ERROR_1:
           if (scmpMsg.getTypeCode() == Scmp.TypeCode.TYPE_1_CODE_4) {
-            throw new PortUnreachableException(scmpMsg.toString()); // TODO
+            throw new PortUnreachableException(scmpMsg.toString());
           }
-          throw new NoRouteToHostException(scmpMsg.toString()); // TODO
-        case 2:
-          throw new ProtocolException(scmpMsg.toString()); // TODO
-        case 4:
-          throw new ProtocolException(scmpMsg.toString()); // TODO
-        case 5:
-        case 6:
+          throw new NoRouteToHostException(scmpMsg.toString());
+        case ERROR_2:
+          throw new ProtocolException(scmpMsg.toString());
+        case ERROR_4:
+          throw new ProtocolException(scmpMsg.toString());
+        case ERROR_5:
+        case ERROR_6:
           if (isConnected()) {
             pathProvider.reportFaultyPath(scmpMsg.getPath());
           } else {
@@ -490,7 +487,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           }
           break;
         default:
-          log.error("SCMP error not recognized: {}", scmpMsg.getTypeCode());
+          // ignore
       }
     }
   }

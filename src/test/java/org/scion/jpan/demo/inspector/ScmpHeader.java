@@ -166,7 +166,7 @@ public class ScmpHeader {
 
   public void setCode(Scmp.TypeCode code) {
     this.code = code.code();
-    this.type = code.type();
+    this.type = code.type().id();
   }
 
   public byte[] getUserData() {

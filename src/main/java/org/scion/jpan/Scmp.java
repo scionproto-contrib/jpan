@@ -140,12 +140,12 @@ public class Scmp {
     TYPE_201(201, 0, "Private Experimentation"),
     TYPE_255(255, 0, "Reserved for expansion of SCMP informational messages");
 
-    final int type;
+    final Type type;
     final int id;
     final String text;
 
     TypeCode(int type, int code, String text) {
-      this.type = type;
+      this.type = Type.parse(type);
       this.id = code;
       this.text = text;
     }
@@ -162,7 +162,7 @@ public class Scmp {
       TypeCode[] values = TypeCode.class.getEnumConstants();
       for (int i = 0; i < values.length; i++) {
         TypeCode pe = values[i];
-        if (pe.id() == code && pe.type == type) {
+        if (pe.id() == code && pe.type.id() == type) {
           return pe;
         }
       }
@@ -178,7 +178,7 @@ public class Scmp {
       return id;
     }
 
-    public int type() {
+    public Type type() {
       return type;
     }
 
@@ -187,7 +187,7 @@ public class Scmp {
     }
 
     public boolean isError() {
-      return type >= Type.ERROR_1.id && type <= Type.ERROR_127.id;
+      return type.id >= Type.ERROR_1.id && type.id <= Type.ERROR_127.id;
     }
 
     @Override

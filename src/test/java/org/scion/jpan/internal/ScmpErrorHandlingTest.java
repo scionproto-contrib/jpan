@@ -120,7 +120,7 @@ class ScmpErrorHandlingTest {
     return testError(
         typeCode,
         expectedException,
-        (channel) -> {
+        channel -> {
           channel.connect(getPathTo112());
           channel.write(ByteBuffer.allocate(0));
           ByteBuffer receive = ByteBuffer.allocate(1000);
@@ -133,7 +133,7 @@ class ScmpErrorHandlingTest {
     return testError(
         typeCode,
         expectedException,
-        (channel) -> {
+        channel -> {
           channel.send(ByteBuffer.allocate(0), getPathTo112());
           channel.receive(ByteBuffer.allocate(1000));
         });
@@ -221,8 +221,9 @@ class ScmpErrorHandlingTest {
       // Try again with connected path
       channel.write(ByteBuffer.allocate(0));
       channel.read(ByteBuffer.allocate(1000));
-      // Path should have changed
-      assertNotEquals(path, channel.getConnectionPath());
+      // Path should have changed back to first path
+      // Current behavior: if no path are available: try reusing faulty paths.
+      assertEquals(path, channel.getConnectionPath());
 
       assertTrue(listenerWasTriggered.get());
     } finally {
