@@ -82,6 +82,10 @@ public class Scmp {
       return headerLength;
     }
 
+    public boolean isInfo() {
+      return id >= 128;
+    }
+
     @Override
     public String toString() {
       return id + ":'" + text + '\'';

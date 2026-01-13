@@ -72,7 +72,7 @@ public class ScionHeaderParser {
    */
   public static ResponsePath extractResponsePath(
       ByteBuffer data, InetSocketAddress firstHopAddress) {
-    int pos = data.position();
+    int start = data.position();
 
     int i1 = data.getInt(4);
     int i2 = data.getInt(8);
@@ -130,16 +130,27 @@ public class ScionHeaderParser {
       srcPort = Short.toUnsignedInt(data.getShort());
       dstPort = Short.toUnsignedInt(data.getShort());
     } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
-      data.position(hdrLenBytes + 4);
-      // ports will be swapped further down
-      dstPort = Short.toUnsignedInt(data.getShort());
-      srcPort = Constants.SCMP_PORT;
+      switch (Scmp.Type.parse(Byte.toUnsignedInt(data.get(hdrLenBytes)))) {
+        case INFO_128:
+        case INFO_129:
+        case INFO_130:
+        case INFO_131:
+          data.position(hdrLenBytes + 4);
+          // ports will be swapped further down
+          dstPort = Short.toUnsignedInt(data.getShort());
+          srcPort = Constants.SCMP_PORT;
+          break;
+        default:
+          // All errors and 200, 201, 255
+          dstPort = 0;
+          srcPort = 0;
+      }
     } else {
       throw new UnsupportedOperationException();
     }
 
     // rewind to original offset
-    data.position(pos);
+    data.position(start);
     // Swap src and dst.
     return ResponsePath.create(
         path, dstIsdAs, dstIP, dstPort, srcIsdAs, srcIP, srcPort, firstHopAddress);

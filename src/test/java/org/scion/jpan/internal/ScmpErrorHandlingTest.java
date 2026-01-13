@@ -64,6 +64,7 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = readError(Scmp.TypeCode.TYPE_2, ProtocolException.class);
     assertInstanceOf(Scmp.Error2Message.class, msg);
     assertTrue(msg.toString().contains("MTU="));
+    assertEquals(1200, ((Scmp.Error2Message) msg).getMtu());
   }
 
   @Test
@@ -71,6 +72,7 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = readError(Scmp.TypeCode.TYPE_4_CODE_0, ProtocolException.class);
     assertInstanceOf(Scmp.Error4Message.class, msg);
     assertTrue(msg.toString().contains("pointer="));
+    assertEquals(42, ((Scmp.Error4Message) msg).getPointer());
   }
 
   @Test
@@ -78,6 +80,8 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = readError(Scmp.TypeCode.TYPE_5, null);
     assertInstanceOf(Scmp.Error5Message.class, msg);
     assertTrue(msg.toString().contains("External Interface Down"));
+    assertEquals(123, ((Scmp.Error5Message) msg).getIsdAs());
+    assertEquals(85, ((Scmp.Error5Message) msg).getInterfaceId());
   }
 
   @Test
@@ -85,6 +89,21 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = readError(Scmp.TypeCode.TYPE_6, null);
     assertInstanceOf(Scmp.Error6Message.class, msg);
     assertTrue(msg.toString().contains("Internal Connectivity Down"));
+    assertEquals(125, ((Scmp.Error6Message) msg).getIsdAs());
+    assertEquals(83, ((Scmp.Error6Message) msg).getIngressId());
+    assertEquals(38, ((Scmp.Error6Message) msg).getEgressId());
+  }
+
+  @Test
+  void testReadErrorExperimental() {
+    Scmp.Message msg = readError(Scmp.TypeCode.TYPE_101, null);
+    assertInstanceOf(Scmp.ErrorMessage.class, msg);
+    assertEquals(Scmp.TypeCode.TYPE_101, msg.getTypeCode());
+  }
+
+  @Test
+  void testReadInfoExperimental() {
+    assertNull(readError(Scmp.TypeCode.TYPE_201, null));
   }
 
   @Test
@@ -108,6 +127,7 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_2, ProtocolException.class);
     assertInstanceOf(Scmp.Error2Message.class, msg);
     assertTrue(msg.toString().contains("MTU="));
+    assertEquals(1200, ((Scmp.Error2Message) msg).getMtu());
   }
 
   @Test
@@ -115,6 +135,7 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_4_CODE_0, ProtocolException.class);
     assertInstanceOf(Scmp.Error4Message.class, msg);
     assertTrue(msg.toString().contains("pointer="));
+    assertEquals(42, ((Scmp.Error4Message) msg).getPointer());
   }
 
   @Test
@@ -122,6 +143,8 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_5, NoRouteToHostException.class);
     assertInstanceOf(Scmp.Error5Message.class, msg);
     assertTrue(msg.toString().contains("External Interface Down"));
+    assertEquals(123, ((Scmp.Error5Message) msg).getIsdAs());
+    assertEquals(85, ((Scmp.Error5Message) msg).getInterfaceId());
   }
 
   @Test
@@ -129,6 +152,21 @@ class ScmpErrorHandlingTest {
     Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_6, NoRouteToHostException.class);
     assertInstanceOf(Scmp.Error6Message.class, msg);
     assertTrue(msg.toString().contains("Internal Connectivity Down"));
+    assertEquals(125, ((Scmp.Error6Message) msg).getIsdAs());
+    assertEquals(83, ((Scmp.Error6Message) msg).getIngressId());
+    assertEquals(38, ((Scmp.Error6Message) msg).getEgressId());
+  }
+
+  @Test
+  void testReceiveErrorExperimental() {
+    Scmp.Message msg = receiveError(Scmp.TypeCode.TYPE_101, null);
+    assertInstanceOf(Scmp.ErrorMessage.class, msg);
+    assertEquals(Scmp.TypeCode.TYPE_101, msg.getTypeCode());
+  }
+
+  @Test
+  void testReceiveInfoExperimental() {
+    assertNull(receiveError(Scmp.TypeCode.TYPE_201, null));
   }
 
   private Scmp.ErrorMessage readError(Scmp.TypeCode typeCode, Class<?> expectedException) {
@@ -175,8 +213,12 @@ class ScmpErrorHandlingTest {
       MockNetwork.stopTiny();
     }
 
-    assertNotNull(error.get());
-    assertEquals(typeCode, error.get().getTypeCode());
+    if (typeCode.isError()) {
+      assertNotNull(error.get());
+      assertEquals(typeCode, error.get().getTypeCode());
+    } else {
+      assertNull(error.get());
+    }
     return error.get();
   }
 
@@ -254,13 +296,6 @@ class ScmpErrorHandlingTest {
     fail();
   }
 
-  @Disabled
-  @Test
-  void testExperimentalPacketHandling() {
-    // Test that the channel/socket/responder/shim work fine with experimental packets, e.g. 200
-    fail();
-  }
-
   private Path getPathTo112() {
     InetAddress firstHopIP = IPHelper.getByAddress(new int[] {127, 0, 0, 2});
     InetSocketAddress firstHop = new InetSocketAddress(firstHopIP, 12345);
@@ -299,6 +334,24 @@ class ScmpErrorHandlingTest {
     ScionPacketInspector spi = ScionPacketInspector.readPacket(orig);
     spi.reversePath();
     spi.getScmpHeader().setCode(errorCode);
+    switch (errorCode.type()) {
+      case ERROR_2:
+        // MTU
+        spi.getScmpHeader().setDataShort(0, 1200);
+        break;
+      case ERROR_4:
+        // pointer
+        spi.getScmpHeader().setDataShort(0, 42);
+        break;
+      case ERROR_5:
+        spi.getScmpHeader().setDataLong(123, 85, 0);
+        break;
+      case ERROR_6:
+        spi.getScmpHeader().setDataLong(125, 83, 38);
+        break;
+      default:
+        // nothing
+    }
     spi.writePacketSCMP(response);
   }
 }

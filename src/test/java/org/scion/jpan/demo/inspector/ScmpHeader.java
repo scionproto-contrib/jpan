@@ -24,8 +24,11 @@ public class ScmpHeader {
   private int code;
   // 48 bit
   private int checksum;
+  private int short0;
   private int short1;
-  private int short2;
+  private long long0;
+  private long long1;
+  private long long2;
   private byte[] echoUserData = new byte[0];
   private byte[] errorPayload = new byte[0];
   private long traceIsdAs;
@@ -38,8 +41,8 @@ public class ScmpHeader {
     checksum = ByteUtil.readInt(i0, 16, 16);
 
     Scmp.Type st = Scmp.Type.parse(type);
+    short0 = ByteUtil.toUnsigned(data.getShort());
     short1 = ByteUtil.toUnsigned(data.getShort());
-    short2 = ByteUtil.toUnsigned(data.getShort());
     switch (st) {
       case INFO_128:
       case INFO_129:
@@ -86,8 +89,8 @@ public class ScmpHeader {
       throw new IllegalStateException();
     }
     writeScmpHeader(buffer);
-    buffer.putShort((short) short1); // unsigned identifier
-    buffer.putShort((short) short2); // unsigned sequenceNumber
+    buffer.putShort((short) short0); // unsigned identifier
+    buffer.putShort((short) short1); // unsigned sequenceNumber
     buffer.put(echoUserData);
   }
 
@@ -96,8 +99,8 @@ public class ScmpHeader {
       throw new IllegalStateException();
     }
     writeScmpHeader(buffer);
-    buffer.putShort((short) short1); // unsigned identifier
-    buffer.putShort((short) short2); // unsigned sequenceNumber
+    buffer.putShort((short) short0); // unsigned identifier
+    buffer.putShort((short) short1); // unsigned sequenceNumber
 
     // add 16 byte placeholder
     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -122,16 +125,16 @@ public class ScmpHeader {
       case 2:
       case 4:
         buffer.putShort((short) 0); // reserved
-        buffer.putShort((short) short2); // 2: MTU; 4: pointer
+        buffer.putShort((short) short1); // 2: MTU; 4: pointer
         break;
       case 5:
-        buffer.putLong(0); // ISD/AS
-        buffer.putLong(0); // Interface ID
+        buffer.putLong(long0); // ISD/AS
+        buffer.putLong(long1); // Interface ID
         break;
       case 6:
-        buffer.putLong(0); // ISD/AS
-        buffer.putLong(0); // Ingress Interface ID
-        buffer.putLong(0); // Egress Interface ID
+        buffer.putLong(long0); // ISD/AS
+        buffer.putLong(long1); // Ingress Interface ID
+        buffer.putLong(long2); // Egress Interface ID
         break;
       case 100:
       case 101:
@@ -179,7 +182,7 @@ public class ScmpHeader {
   }
 
   public void setIdentifier(int identifier) {
-    this.short1 = identifier;
+    this.short0 = identifier;
   }
 
   public void setErrorPayload(byte[] payload) {
@@ -191,5 +194,16 @@ public class ScmpHeader {
       throw new IllegalStateException();
     }
     return Scmp.Type.parse(type).getHeaderLength() + echoUserData.length + errorPayload.length;
+  }
+
+  public void setDataLong(long l0, long l1, long l2) {
+    this.long0 = l0;
+    this.long1 = l1;
+    this.long2 = l2;
+  }
+
+  public void setDataShort(int s0, int s1) {
+    this.short0 = s0;
+    this.short1 = s1;
   }
 }
