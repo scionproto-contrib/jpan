@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.7.0
 - Fix deprecation
+- API!!!!
+  A Path should NOT have a remote Address! 
+  - Remove remoteAddress from Path.equals()
+  - Remove getRemote(Socket)Address and especially getRemotePort()
+  - Remove send(path)...
+  - BUT: What do we call a Path with associated remote(/local) addresses? 
 - API to drop current path or even use most diverse one.
   - To be called if application detects interruption (but no SCMP errors arrive?)
   - Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 

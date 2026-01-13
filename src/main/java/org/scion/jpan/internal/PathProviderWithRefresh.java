@@ -81,14 +81,19 @@ public class PathProviderWithRefresh implements PathProvider {
       this.path = path;
       this.rank = rank;
 
+      pathHashBase = calcHashBase(path);
+      hashCode = Arrays.hashCode(pathHashBase);
+    }
+
+    private long[] calcHashBase(Path path) {
       // The hashcode should depend on interfaces and ASes, but not on expiration time.
-      pathHashBase = new long[path.getMetadata().getInterfacesList().size() * 2];
+      long[] ret = new long[path.getMetadata().getInterfacesList().size() * 2];
       int n = 0;
       for (PathMetadata.PathInterface i : path.getMetadata().getInterfacesList()) {
-        pathHashBase[n++] = i.getIsdAs();
-        pathHashBase[n++] = i.getId();
+        ret[n++] = i.getIsdAs();
+        ret[n++] = i.getId();
       }
-      hashCode = Arrays.hashCode(pathHashBase);
+      return ret;
     }
 
     void setFaulty(Instant timestamp) {
@@ -110,6 +115,21 @@ public class PathProviderWithRefresh implements PathProvider {
       }
       Entry other = (Entry) obj;
       return hashCode == other.hashCode && Arrays.equals(pathHashBase, other.pathHashBase);
+    }
+
+    /**
+     * @param p Path
+     * @return 'true' iff both paths have the same ISD/AS sequence and interface IDs. MAC codes,
+     *     expiration dates and IP/port are ignored.
+     */
+    public boolean pathEquals(Path p) {
+      if (Objects.deepEquals(path.getRawPath(), p.getRawPath())) {
+        // The usual case, this is the same object or at least identical raw path (including
+        // expiration dates).
+        return true;
+      }
+      long[] hashBase2 = calcHashBase(p);
+      return Objects.deepEquals(pathHashBase, hashBase2);
     }
   }
 
@@ -234,7 +254,7 @@ public class PathProviderWithRefresh implements PathProvider {
     if (e == null) {
       throw new IllegalArgumentException("Path not managed by this provider");
     }
-    if (!Objects.equals(e.path, p)) {
+    if (!e.pathEquals(p)) {
       // This can happen due to races, e.g. when we receive an error for a path that we stopped
       // using.
       return;
