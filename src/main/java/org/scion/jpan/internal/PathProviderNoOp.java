@@ -17,6 +17,7 @@ package org.scion.jpan.internal;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.ToDoubleFunction;
 import org.scion.jpan.*;
 
 /**
@@ -54,6 +55,48 @@ public class PathProviderNoOp implements PathProvider {
 
     // No path available
     subscriber.updatePath(null);
+  }
+
+  @Override
+  public synchronized void reportError(Scmp.ErrorMessage error) {
+    if (usedPath == null) {
+      return;
+    }
+
+    long faultyIsdAs;
+    long ifId1;
+    Long ifId2 = null;
+    if (error instanceof Scmp.Error5Message) {
+      Scmp.Error5Message error5 = (Scmp.Error5Message) error;
+      faultyIsdAs = error5.getIsdAs();
+      ifId1 = error5.getInterfaceId();
+    } else if (error instanceof Scmp.Error6Message) {
+      Scmp.Error6Message error6 = (Scmp.Error6Message) error;
+      faultyIsdAs = error6.getIsdAs();
+      ifId1 = error6.getIngressId();
+      ifId2 = error6.getEgressId();
+    } else {
+      return;
+    }
+
+    PathMetadata usedMeta = usedPath.getMetadata();
+    if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
+        || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
+      usedPath = null;
+
+      // No path available
+      subscriber.updatePath(null);
+    }
+  }
+
+  @Override
+  public void reprioritizePaths(ToDoubleFunction<Path> confidenceFn) {
+    if (usedPath != null && confidenceFn.applyAsDouble(usedPath) < 0.5) {
+      usedPath = null;
+
+      // No path available
+      subscriber.updatePath(null);
+    }
   }
 
   @Override

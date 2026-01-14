@@ -219,5 +219,16 @@ public class ScionUtil {
     return (isdAs >>> 48) << 48;
   }
 
+  public static boolean isPathUsingInterface(PathMetadata meta, long isdAs, long ifId) {
+    int nInterfaces = meta.getInterfacesList().size();
+    for (int i = 0; i < nInterfaces; i++) {
+      PathMetadata.PathInterface pIf = meta.getInterfacesList().get(i);
+      if (pIf.getIsdAs() == isdAs && pIf.getId() == ifId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private ScionUtil() {}
 }

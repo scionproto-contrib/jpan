@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.ToDoubleFunction;
 import org.scion.jpan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,10 +244,86 @@ public class PathProviderWithRefresh implements PathProvider {
     subscriber.updatePath(getFreePath());
   }
 
-  // TODO change to two methods:
-  //   - report faulty external interface (AS, IfID)
-  //   - Report faulty internal connectivity (AS, ingress, egress)
-  //     -> The Provider can then decide how to handle this.
+  /**
+   * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
+   * that use the ISD/AS and at least one of the interfaces that are reported in the error.
+   *
+   * <p>A more advanced algorithm could also de-rank any path through an affected AS, even if other
+   * interfaces are used (especially if internal connectivity is affected) or when the AS is
+   * addressed through a different ISD.
+   *
+   * @param error The SCMP error.
+   */
+  @Override
+  public synchronized void reportError(Scmp.ErrorMessage error) {
+    long faultyIsdAs;
+    long ifId1;
+    Long ifId2 = null;
+    if (error instanceof Scmp.Error5Message) {
+      Scmp.Error5Message error5 = (Scmp.Error5Message) error;
+      faultyIsdAs = error5.getIsdAs();
+      ifId1 = error5.getInterfaceId();
+    } else if (error instanceof Scmp.Error6Message) {
+      Scmp.Error6Message error6 = (Scmp.Error6Message) error;
+      faultyIsdAs = error6.getIsdAs();
+      ifId1 = error6.getIngressId();
+      ifId2 = error6.getEgressId();
+    } else {
+      return;
+    }
+
+    Iterator<Entry> unusedIter = unusedPaths.iterator();
+    while (unusedIter.hasNext()) {
+      Entry e = unusedIter.next();
+      PathMetadata meta = usedPath.path.getMetadata();
+      if (ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1)
+          || (ifId2 != null && ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1))) {
+        unusedIter.remove();
+        e.setFaulty(Instant.now());
+        faultyPaths.put(e, e);
+      }
+    }
+
+    PathMetadata usedMeta = usedPath.path.getMetadata();
+    if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
+        || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
+      Entry e = usedPath;
+      e.setFaulty(Instant.now());
+      faultyPaths.put(e, e);
+    }
+
+    // Find new path
+    updateSubscriber();
+  }
+
+  /**
+   * Reprioritize paths using the provided filter function. The filter function should return values
+   * between 0 and 1 (exclusive) that reflect the confidence into a path. A value below 0.5
+   * indicates that a path should not be used anymore.
+   *
+   * @param confidenceFn Confidence function
+   */
+  @Override
+  public synchronized void reprioritizePaths(ToDoubleFunction<Path> confidenceFn) {
+    Iterator<Entry> unusedIter = unusedPaths.iterator();
+    while (unusedIter.hasNext()) {
+      Entry e = unusedIter.next();
+      if (confidenceFn.applyAsDouble(e.path) < 0.5) {
+        unusedIter.remove();
+        e.setFaulty(Instant.now());
+        faultyPaths.put(e, e);
+      }
+    }
+
+    if (confidenceFn.applyAsDouble(usedPath.path) < 0.5) {
+      Entry e = usedPath;
+      e.setFaulty(Instant.now());
+      faultyPaths.put(e, e);
+    }
+
+    // Find new path
+    updateSubscriber();
+  }
 
   @Override
   public synchronized void reportFaultyPath(Path p) {

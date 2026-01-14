@@ -14,8 +14,10 @@
 
 package org.scion.jpan.internal;
 
+import java.util.function.ToDoubleFunction;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
+import org.scion.jpan.Scmp;
 
 /**
  * A PathProvider provides the next best path. Lifecycle:<br>
@@ -33,6 +35,27 @@ public interface PathProvider {
    * @param p Faulty path.
    */
   void reportFaultyPath(Path p);
+
+  /**
+   * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
+   * that use the ISD/AS and at least one of the interfaces that are reported in the error.
+   *
+   * <p>A more advanced algorithm could also de-rank any path through an affected AS, even if other
+   * interfaces are used (especially if internal connectivity is affected) or when the AS is
+   * addressed through a different ISD.
+   *
+   * @param error The SCMP error.
+   */
+  void reportError(Scmp.ErrorMessage error);
+
+  /**
+   * Reprioritize paths using the provided filter function. The filter function should return values
+   * between 0 and 1 (exclusive) that reflect the confidence into a path. A value below 0.5
+   * indicates that a path should not be used anymore.
+   *
+   * @param confidenceFn Confidence function
+   */
+  void reprioritizePaths(ToDoubleFunction<Path> confidenceFn);
 
   /**
    * Register a callback that is invoked when paths are updated.

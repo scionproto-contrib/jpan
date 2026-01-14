@@ -293,6 +293,13 @@ class ScmpErrorHandlingTest {
   @Test
   void testLinkErrorAvoidsAllAffectedPaths() {
     // Test that a link error removes all path that use that link
+
+    // TODO decide!
+    //  - Use simplistic reportError() with some code duplication for error handling
+    //  - Use ErrorHandler (move Default to ScmpErrorHandler.createDefaul())
+    //    -> More overhead, much more extensible; probably overengineered.
+
+    // When testing, do a little sleep to ensure different timestamps on Entry?
     fail();
   }
 
