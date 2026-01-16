@@ -26,7 +26,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockBootstrapServer;
@@ -256,10 +255,6 @@ class PathProviderWithRefreshTest {
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
-      for (Path p : paths) System.out.println("path - l: " + ScionUtil.toStringPath(p.getRawPath()));
-      System.out.println("path - e: " + ScionUtil.toStringPath(subscriber.subscribedPath.get().getRawPath()));
-
-
       // No change when reporting again
       pp.reportError(createError5(paths.get(0)));
       assertNotEquals(paths.get(0), subscriber.subscribedPath.get());
@@ -302,12 +297,16 @@ class PathProviderWithRefreshTest {
       // 3: [494>103 104>5 3>502 503>450 453>3]
       // To test Error 6, we reverse the path ordering by ordering them by maximum hops.
       // Then, we can test error 6 to remove the first two path at once.
-      PathPolicy mostHops = paths -> paths.stream()
-              .sorted(Comparator.comparing(path -> -path.getMetadata().getInterfacesList().size()))
-              .collect(Collectors.toList());
+      PathPolicy mostHops =
+          paths ->
+              paths.stream()
+                  .sorted(
+                      Comparator.comparing(path -> -path.getMetadata().getInterfacesList().size()))
+                  .collect(Collectors.toList());
       pp = PathProviderWithRefresh.create(service, mostHops, 1000, 5000);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-      List<Path> paths = mostHops.filter(service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr));
+      List<Path> paths =
+          mostHops.filter(service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr));
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
