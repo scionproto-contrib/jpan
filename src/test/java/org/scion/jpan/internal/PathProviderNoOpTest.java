@@ -129,94 +129,32 @@ class PathProviderNoOpTest {
 
   @Test
   void reportFaultyPath() {
-    testError((pathProvider, path) -> pathProvider.reportFaultyPath(path));
-    //    MockNetwork.stopTiny();
-    //    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112"))
-    // {
-    //      ScionService service = Scion.defaultService();
-    //      pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
-    //      InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),
-    // 12345);
-    //      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
-    //      // reset counter
-    //      assertEquals(2, nw.getControlServer().getAndResetCallCount());
-    //
-    //      SubscriberHelper subscriber = new SubscriberHelper(paths.get(0));
-    //      pp.subscribe(subscriber::callback);
-    //
-    //      // Use expired path to trigger fetching of paths from server
-    //      pp.connect(paths.get(0));
-    //      subscriber.await();
-    //      assertEquals(paths.get(0), subscriber.subscribedPath.get());
-    //
-    //      // Replace path
-    //      pp.reportFaultyPath(paths.get(0));
-    //      assertNull(subscriber.subscribedPath.get());
-    //      assertEquals(0, nw.getControlServer().getAndResetCallCount());
-    //    }
+    testError(PathProvider::reportFaultyPath);
+  }
+
+  @Test
+  void reportError_NoException_NothingChanges() {
+    // Check that other errors do not have an effect or cause an exception
+    testError(
+        (pathProvider, path) -> pathProvider.reportError(Scmp.Error2Message.create(path, 1200)),
+        false);
   }
 
   @Test
   void reportError5() {
     testError((pathProvider, path) -> pathProvider.reportError(createError5(path)));
-
-    //    MockNetwork.stopTiny();
-    //    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112"))
-    // {
-    //      ScionService service = Scion.defaultService();
-    //      pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
-    //      InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),
-    // 12345);
-    //      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
-    //      // reset counter
-    //      assertEquals(2, nw.getControlServer().getAndResetCallCount());
-    //
-    //      SubscriberHelper subscriber = new SubscriberHelper(paths.get(0));
-    //      pp.subscribe(subscriber::callback);
-    //
-    //      // Use expired path to trigger fetching of paths from server
-    //      pp.connect(paths.get(0));
-    //      subscriber.await();
-    //      assertEquals(paths.get(0), subscriber.subscribedPath.get());
-    //
-    //      // Replace path
-    //      pp.reportError(createError5(paths.get(0)));
-    //      assertNull(subscriber.subscribedPath.get());
-    //      assertEquals(0, nw.getControlServer().getAndResetCallCount());
-    //    }
   }
 
   @Test
   void reportError6() {
-    //    MockNetwork.stopTiny();
-    //    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112"))
-    // {
-    //      ScionService service = Scion.defaultService();
-    //      pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
-    //      InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(),
-    // 12345);
-    //      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
-    //      // reset counter
-    //      assertEquals(2, nw.getControlServer().getAndResetCallCount());
-    //
-    //      SubscriberHelper subscriber = new SubscriberHelper(paths.get(0));
-    //      pp.subscribe(subscriber::callback);
-    //
-    //      // Use expired path to trigger fetching of paths from server
-    //      pp.connect(paths.get(0));
-    //      subscriber.await();
-    //      assertEquals(paths.get(0), subscriber.subscribedPath.get());
-    //
-    //      // Replace path
-    //      pp.reportError(createError6(paths.get(0)));
-    //      assertNull(subscriber.subscribedPath.get());
-    //      assertEquals(0, nw.getControlServer().getAndResetCallCount());
-    //    }
-
     testError((pathProvider, path) -> pathProvider.reportError(createError6(path)));
   }
 
   private void testError(BiConsumer<PathProvider, Path> test) {
+    testError(test, true);
+  }
+
+  private void testError(BiConsumer<PathProvider, Path> test, boolean expectNull) {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
@@ -235,9 +173,12 @@ class PathProviderNoOpTest {
       assertEquals(paths.get(0), subscriber.subscribedPath.get());
 
       // Replace path
-      // pp.reportError(createError6(paths.get(0)));
       test.accept(pp, paths.get(0));
-      assertNull(subscriber.subscribedPath.get());
+      if (expectNull) {
+        assertNull(subscriber.subscribedPath.get());
+      } else {
+        assertEquals(paths.get(0), subscriber.subscribedPath.get());
+      }
       assertEquals(0, nw.getControlServer().getAndResetCallCount());
     }
   }
@@ -245,7 +186,7 @@ class PathProviderNoOpTest {
   private Scmp.Error5Message createError5(Path errorPath) {
     // All paths use a different ingress interface here.
     PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfacesList().get(5);
-    return Scmp.Error5Message.create(Scmp.TypeCode.TYPE_5, errorPath, pif.getIsdAs(), pif.getId());
+    return Scmp.Error5Message.create(errorPath, pif.getIsdAs(), pif.getId());
   }
 
   private Scmp.Error6Message createError6(Path errorPath) {
@@ -253,7 +194,6 @@ class PathProviderNoOpTest {
     PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfacesList().get(3);
     PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfacesList().get(4);
     assertEquals(pifIn.getIsdAs(), pifEg.getIsdAs());
-    return Scmp.Error6Message.create(
-        Scmp.TypeCode.TYPE_6, errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
+    return Scmp.Error6Message.create(errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
   }
 }

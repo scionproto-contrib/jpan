@@ -230,6 +230,34 @@ class PathProviderWithRefreshTest {
   }
 
   @Test
+  void reportError_noChange() {
+    MockNetwork.stopTiny();
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 1000, 5000);
+      InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
+      // reset counter
+      assertEquals(2, nw.getControlServer().getAndResetCallCount());
+
+      SubscriberHelper subscriber = new SubscriberHelper(paths.get(0));
+      pp.subscribe(subscriber::callback);
+
+      pp.connect(paths.get(0));
+      pp.refreshPaths(); // Explicitly refresh path ro fill PathProvide with full path list
+      assertEquals(paths.get(0), subscriber.subscribedPath.get());
+
+      // Replace path
+      pp.reportError(Scmp.Error2Message.create(paths.get(0), 1200));
+      // Assert that nothing changed and no error occurred
+      assertEquals(paths.get(0), subscriber.subscribedPath.get());
+
+      // reset counter
+      assertEquals(2, nw.getControlServer().getAndResetCallCount());
+    }
+  }
+
+  @Test
   void reportError5() {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
@@ -345,7 +373,7 @@ class PathProviderWithRefreshTest {
   private Scmp.Error5Message createError5(Path errorPath) {
     // All paths use a different ingress interface here.
     PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfacesList().get(5);
-    return Scmp.Error5Message.create(Scmp.TypeCode.TYPE_5, errorPath, pif.getIsdAs(), pif.getId());
+    return Scmp.Error5Message.create(errorPath, pif.getIsdAs(), pif.getId());
   }
 
   private Scmp.Error6Message createError6_7_8(Path errorPath) {
@@ -353,7 +381,6 @@ class PathProviderWithRefreshTest {
     PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfacesList().get(7);
     PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfacesList().get(8);
     assertEquals(pifIn.getIsdAs(), pifEg.getIsdAs());
-    return Scmp.Error6Message.create(
-        Scmp.TypeCode.TYPE_6, errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
+    return Scmp.Error6Message.create(errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
   }
 }

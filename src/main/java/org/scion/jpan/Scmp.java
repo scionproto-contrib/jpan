@@ -331,13 +331,13 @@ public class Scmp {
   public static class Error2Message extends ErrorMessage {
     private final int mtu;
 
-    private Error2Message(TypeCode typeCode, Path path, int mtu) {
-      super(typeCode, path);
+    private Error2Message(Path path, int mtu) {
+      super(TypeCode.TYPE_2, path);
       this.mtu = mtu;
     }
 
-    public static Error2Message create(TypeCode typeCode, Path path, int mtu) {
-      return new Error2Message(typeCode, path, mtu);
+    public static Error2Message create(Path path, int mtu) {
+      return new Error2Message(path, mtu);
     }
 
     public int getMtu() {
@@ -378,14 +378,14 @@ public class Scmp {
     private final long isdAs;
     private final long ifId;
 
-    private Error5Message(TypeCode typeCode, Path path, long isdAs, long ifId) {
-      super(typeCode, path);
+    private Error5Message(Path path, long isdAs, long ifId) {
+      super(TypeCode.TYPE_5, path);
       this.isdAs = isdAs;
       this.ifId = ifId;
     }
 
-    public static Error5Message create(TypeCode typeCode, Path path, long isdAs, long ifId) {
-      return new Error5Message(typeCode, path, isdAs, ifId);
+    public static Error5Message create(Path path, long isdAs, long ifId) {
+      return new Error5Message(path, isdAs, ifId);
     }
 
     public long getIsdAs() {
@@ -408,16 +408,15 @@ public class Scmp {
     private final long ingressId;
     private final long egressId;
 
-    private Error6Message(TypeCode typeCode, Path path, long isdAs, long ingressId, long egressId) {
-      super(typeCode, path);
+    private Error6Message(Path path, long isdAs, long ingressId, long egressId) {
+      super(TypeCode.TYPE_6, path);
       this.isdAs = isdAs;
       this.ingressId = ingressId;
       this.egressId = egressId;
     }
 
-    public static Error6Message create(
-        TypeCode typeCode, Path path, long isdAs, long ingressId, long egressId) {
-      return new Error6Message(typeCode, path, isdAs, ingressId, egressId);
+    public static Error6Message create(Path path, long isdAs, long ingressId, long egressId) {
+      return new Error6Message(path, isdAs, ingressId, egressId);
     }
 
     public long getIsdAs() {
