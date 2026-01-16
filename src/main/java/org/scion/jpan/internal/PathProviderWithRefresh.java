@@ -274,9 +274,9 @@ public class PathProviderWithRefresh implements PathProvider {
     Iterator<Entry> unusedIter = unusedPaths.iterator();
     while (unusedIter.hasNext()) {
       Entry e = unusedIter.next();
-      PathMetadata meta = usedPath.path.getMetadata();
+      PathMetadata meta = e.path.getMetadata();
       if (ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1)
-          || (ifId2 != null && ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1))) {
+          || (ifId2 != null && ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId2))) {
         unusedIter.remove();
         e.setFaulty(Instant.now());
         faultyPaths.put(e, e);
@@ -287,12 +287,12 @@ public class PathProviderWithRefresh implements PathProvider {
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
         || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
       Entry e = usedPath;
+      usedPath = null;
       e.setFaulty(Instant.now());
       faultyPaths.put(e, e);
+      // Find new path
+      updateSubscriber();
     }
-
-    // Find new path
-    updateSubscriber();
   }
 
   @Override
