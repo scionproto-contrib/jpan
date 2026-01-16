@@ -87,7 +87,7 @@ TODO
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
     e.g. configureBlocking()
 - Config-ify PROPERTIES etc 
-- Cache paths --> We already do some caching with ScionDatagramChannel::resolvedDetinations
+- Cache paths --> We already do some caching with ScionDatagramChannel::resolvedDestinations
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
@@ -108,6 +108,8 @@ TODO
   [#212](https://github.com/scionproto-contrib/jpan/pull/212)
 - SCMP error parsing
   [#213](https://github.com/scionproto-contrib/jpan/pull/213)
+- SCMP error handling, e.g. switch path in case of SCMP errors 5 or 6.
+  [#214](https://github.com/scionproto-contrib/jpan/pull/214)
 
 ### Fixed
 
@@ -117,7 +119,7 @@ TODO
   [#208](https://github.com/scionproto-contrib/jpan/pull/208)
 - Fixed JUnit warning, cleanup error messages in ControlServiceGrpc
   [#210](https://github.com/scionproto-contrib/jpan/pull/210)
-- NAT keepalive uses non-dameon timer
+- NAT keepalive uses non-daemon timer
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 
 ## [0.6.1] - 2025-12-15
