@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0
-- Fix deprecation
 - API!!!!
   A Path should NOT have a remote Address! 
   - Remove remoteAddress from Path.equals()
@@ -45,7 +44,7 @@ TODO
   Add Path.isExpiredBy(Instant)
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - Deprecate send(PATH)!!!!!
-- Path chaching!!!
+- Path caching!!!
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
 - BIG: extract testframework into separate project -> reuse by others!
 - JSON is not an ordered file format -> Use JSON array for ordering...
@@ -121,6 +120,12 @@ TODO
   [#210](https://github.com/scionproto-contrib/jpan/pull/210)
 - NAT keepalive uses non-daemon timer
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
+
+### Removed
+
+- Removed some deprecated methods.
+  [#215](https://github.com/scionproto-contrib/jpan/pull/215)
+
 
 ## [0.6.1] - 2025-12-15
 

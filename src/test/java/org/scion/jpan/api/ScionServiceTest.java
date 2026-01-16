@@ -390,11 +390,8 @@ class ScionServiceTest {
     try (MockBootstrapServer topo =
         MockBootstrapServer.start(MockBootstrapServer.TOPO_TINY_110, true)) {
       ScionService service = Scion.defaultService();
-      Exception ex =
-          assertThrows(ScionException.class, () -> service.lookupAndGetPath(host, 123, null));
+      Exception ex = assertThrows(ScionException.class, () -> service.lookupPaths(host, 123));
       assertTrue(ex.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
-      Exception ex2 = assertThrows(ScionException.class, () -> service.lookupPaths(host, 123));
-      assertTrue(ex2.getMessage().startsWith("Invalid TXT entry"), ex.getMessage());
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
       ScionService.closeDefault();
