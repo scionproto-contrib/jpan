@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
-import java.util.function.ToDoubleFunction;
 import org.scion.jpan.*;
 
 /**
@@ -82,16 +81,6 @@ public class PathProviderNoOp implements PathProvider {
     PathMetadata usedMeta = usedPath.getMetadata();
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
         || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
-      usedPath = null;
-
-      // No path available
-      subscriber.updatePath(null);
-    }
-  }
-
-  @Override
-  public void reprioritizePaths(ToDoubleFunction<Path> confidenceFn) {
-    if (usedPath != null && confidenceFn.applyAsDouble(usedPath) < 0.5) {
       usedPath = null;
 
       // No path available

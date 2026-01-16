@@ -20,7 +20,6 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.ToDoubleFunction;
 import org.scion.jpan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -287,35 +286,6 @@ public class PathProviderWithRefresh implements PathProvider {
     PathMetadata usedMeta = usedPath.path.getMetadata();
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
         || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
-      Entry e = usedPath;
-      e.setFaulty(Instant.now());
-      faultyPaths.put(e, e);
-    }
-
-    // Find new path
-    updateSubscriber();
-  }
-
-  /**
-   * Reprioritize paths using the provided filter function. The filter function should return values
-   * between 0 and 1 (exclusive) that reflect the confidence into a path. A value below 0.5
-   * indicates that a path should not be used anymore.
-   *
-   * @param confidenceFn Confidence function
-   */
-  @Override
-  public synchronized void reprioritizePaths(ToDoubleFunction<Path> confidenceFn) {
-    Iterator<Entry> unusedIter = unusedPaths.iterator();
-    while (unusedIter.hasNext()) {
-      Entry e = unusedIter.next();
-      if (confidenceFn.applyAsDouble(e.path) < 0.5) {
-        unusedIter.remove();
-        e.setFaulty(Instant.now());
-        faultyPaths.put(e, e);
-      }
-    }
-
-    if (confidenceFn.applyAsDouble(usedPath.path) < 0.5) {
       Entry e = usedPath;
       e.setFaulty(Instant.now());
       faultyPaths.put(e, e);

@@ -50,7 +50,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
   private final PathProvider pathProvider;
-  private final ScmpErrorHandler scmpErrorHandler;
 
   protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel udpChannel) {
@@ -70,7 +69,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     this.bufferSend = ByteBuffer.allocateDirect(2000);
     this.pathProvider = pathProvider;
     this.pathProvider.subscribe(this::pathUpdateCallback);
-    this.scmpErrorHandler = DefaultErrorHandler.create(pathProvider);
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -467,9 +465,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
       if (errorListener != null && scmpMsg.getTypeCode().isError()) {
         errorListener.accept((Scmp.ErrorMessage) scmpMsg);
       }
-      //      if (scmpMsg instanceof Scmp.ErrorMessage) {
-      //        scmpErrorHandler.handle(((Scmp.ErrorMessage) scmpMsg), isConnected());
-      //      }
       switch (scmpMsg.getTypeCode().type()) {
         case ERROR_1:
           if (scmpMsg.getTypeCode() == Scmp.TypeCode.TYPE_1_CODE_4) {
@@ -483,7 +478,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         case ERROR_5:
         case ERROR_6:
           if (isConnected()) {
-            // pathProvider.reportFaultyPath(scmpMsg.getPath());
             pathProvider.reportError((Scmp.ErrorMessage) scmpMsg);
           } else {
             // We throw an exception here.

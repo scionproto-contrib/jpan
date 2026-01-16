@@ -14,7 +14,6 @@
 
 package org.scion.jpan.internal;
 
-import java.util.function.ToDoubleFunction;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
 import org.scion.jpan.Scmp;
@@ -33,7 +32,10 @@ public interface PathProvider {
    * faulty path will not be provided again any time soon. It may be provided again at a later time.
    *
    * @param p Faulty path.
+   * @deprecated deprecated in favor of {@link #reportError(Scmp.ErrorMessage)}. To be removed after
+   *     0.7.0 release.
    */
+  @Deprecated
   void reportFaultyPath(Path p);
 
   /**
@@ -47,15 +49,6 @@ public interface PathProvider {
    * @param error The SCMP error.
    */
   void reportError(Scmp.ErrorMessage error);
-
-  /**
-   * Reprioritize paths using the provided filter function. The filter function should return values
-   * between 0 and 1 (exclusive) that reflect the confidence into a path. A value below 0.5
-   * indicates that a path should not be used anymore.
-   *
-   * @param confidenceFn Confidence function
-   */
-  void reprioritizePaths(ToDoubleFunction<Path> confidenceFn);
 
   /**
    * Register a callback that is invoked when paths are updated.
