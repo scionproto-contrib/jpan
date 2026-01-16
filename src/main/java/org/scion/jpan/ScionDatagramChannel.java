@@ -35,19 +35,6 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
   // Store a refreshed paths for every path
   private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
 
-  /**
-   * @param service service
-   * @param channel channel
-   * @throws IOException If an error occurs
-   * @deprecated To be removed for 0.7.0. Please use {@link #ScionDatagramChannel(ScionService,
-   *     DatagramChannel, PathProvider)} or {@link Builder} instead.
-   */
-  @Deprecated // Remove for 0.7.0
-  protected ScionDatagramChannel(ScionService service, java.nio.channels.DatagramChannel channel)
-      throws IOException {
-    super(service, channel);
-  }
-
   protected ScionDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider)
       throws IOException {

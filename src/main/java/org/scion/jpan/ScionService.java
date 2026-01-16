@@ -298,43 +298,6 @@ public class ScionService {
    *
    * @param hostName Destination host name
    * @param port Destination port
-   * @param policy Path policy. 'null' means PathPolicy.DEFAULT.
-   * @return All paths returned by the path service.
-   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
-   * @deprecated Use {@link #lookupPaths(String, int)} instead.
-   */
-  @Deprecated // TODO remove for 0.6.0
-  public Path lookupAndGetPath(String hostName, int port, PathPolicy policy) throws ScionException {
-    if (policy == null) {
-      policy = PathPolicy.DEFAULT;
-    }
-    List<Path> paths = policy.filter(lookupPaths(hostName, port));
-    return paths.isEmpty() ? null : paths.get(0);
-  }
-
-  /**
-   * Resolves the address to a SCION address, request paths, and selects a path using the policy.
-   *
-   * @param dstAddr Destination address
-   * @param policy Path policy. 'null' means PathPolicy.DEFAULT.
-   * @return All paths returned by the path service.
-   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
-   * @deprecated Use {@link #lookupPaths(InetSocketAddress)} instead.
-   */
-  @Deprecated // TODO remove for 0.6.0
-  public Path lookupAndGetPath(InetSocketAddress dstAddr, PathPolicy policy) throws ScionException {
-    if (policy == null) {
-      policy = PathPolicy.DEFAULT;
-    }
-    List<Path> paths = policy.filter(lookupPaths(dstAddr));
-    return paths.isEmpty() ? null : paths.get(0);
-  }
-
-  /**
-   * Resolves the address to a SCION address, request paths, and selects a path using the policy.
-   *
-   * @param hostName Destination host name
-   * @param port Destination port
    * @return All paths returned by the path service.
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
