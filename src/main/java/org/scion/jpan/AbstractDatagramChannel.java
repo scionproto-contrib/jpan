@@ -483,7 +483,8 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
         case ERROR_5:
         case ERROR_6:
           if (isConnected()) {
-            pathProvider.reportFaultyPath(scmpMsg.getPath());
+            // pathProvider.reportFaultyPath(scmpMsg.getPath());
+            pathProvider.reportError((Scmp.ErrorMessage) scmpMsg);
           } else {
             // We throw an exception here.
             // Alternatively, we could just swallow the error, after all this is an unreliable
