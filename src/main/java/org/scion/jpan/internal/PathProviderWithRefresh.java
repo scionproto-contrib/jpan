@@ -81,14 +81,19 @@ public class PathProviderWithRefresh implements PathProvider {
       this.path = path;
       this.rank = rank;
 
+      pathHashBase = calcHashBase(path);
+      hashCode = Arrays.hashCode(pathHashBase);
+    }
+
+    private long[] calcHashBase(Path path) {
       // The hashcode should depend on interfaces and ASes, but not on expiration time.
-      pathHashBase = new long[path.getMetadata().getInterfacesList().size() * 2];
+      long[] ret = new long[path.getMetadata().getInterfacesList().size() * 2];
       int n = 0;
       for (PathMetadata.PathInterface i : path.getMetadata().getInterfacesList()) {
-        pathHashBase[n++] = i.getIsdAs();
-        pathHashBase[n++] = i.getId();
+        ret[n++] = i.getIsdAs();
+        ret[n++] = i.getId();
       }
-      hashCode = Arrays.hashCode(pathHashBase);
+      return ret;
     }
 
     void setFaulty(Instant timestamp) {
@@ -110,6 +115,21 @@ public class PathProviderWithRefresh implements PathProvider {
       }
       Entry other = (Entry) obj;
       return hashCode == other.hashCode && Arrays.equals(pathHashBase, other.pathHashBase);
+    }
+
+    /**
+     * @param p Path
+     * @return 'true' iff both paths have the same ISD/AS sequence and interface IDs. MAC codes,
+     *     expiration dates and IP/port are ignored.
+     */
+    public boolean pathEquals(Path p) {
+      if (Objects.deepEquals(path.getRawPath(), p.getRawPath())) {
+        // The usual case, this is the same object or at least identical raw path (including
+        // expiration dates).
+        return true;
+      }
+      long[] hashBase2 = calcHashBase(p);
+      return Objects.deepEquals(pathHashBase, hashBase2);
     }
   }
 
@@ -223,13 +243,65 @@ public class PathProviderWithRefresh implements PathProvider {
     subscriber.updatePath(getFreePath());
   }
 
+  /**
+   * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
+   * that use the ISD/AS and at least one of the interfaces that are reported in the error.
+   *
+   * <p>A more advanced algorithm could also de-rank any path through an affected AS, even if other
+   * interfaces are used (especially if internal connectivity is affected) or when the AS is
+   * addressed through a different ISD.
+   *
+   * @param error The SCMP error.
+   */
+  @Override
+  public synchronized void reportError(Scmp.ErrorMessage error) {
+    long faultyIsdAs;
+    long ifId1;
+    Long ifId2 = null;
+    if (error instanceof Scmp.Error5Message) {
+      Scmp.Error5Message error5 = (Scmp.Error5Message) error;
+      faultyIsdAs = error5.getIsdAs();
+      ifId1 = error5.getInterfaceId();
+    } else if (error instanceof Scmp.Error6Message) {
+      Scmp.Error6Message error6 = (Scmp.Error6Message) error;
+      faultyIsdAs = error6.getIsdAs();
+      ifId1 = error6.getIngressId();
+      ifId2 = error6.getEgressId();
+    } else {
+      return;
+    }
+
+    Iterator<Entry> unusedIter = unusedPaths.iterator();
+    while (unusedIter.hasNext()) {
+      Entry e = unusedIter.next();
+      PathMetadata meta = e.path.getMetadata();
+      if (ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1)
+          || (ifId2 != null && ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId2))) {
+        unusedIter.remove();
+        e.setFaulty(Instant.now());
+        faultyPaths.put(e, e);
+      }
+    }
+
+    PathMetadata usedMeta = usedPath.path.getMetadata();
+    if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
+        || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
+      Entry e = usedPath;
+      usedPath = null;
+      e.setFaulty(Instant.now());
+      faultyPaths.put(e, e);
+      // Find new path
+      updateSubscriber();
+    }
+  }
+
   @Override
   public synchronized void reportFaultyPath(Path p) {
     Entry e = usedPath;
     if (e == null) {
       throw new IllegalArgumentException("Path not managed by this provider");
     }
-    if (!Objects.equals(e.path, p)) {
+    if (!e.pathEquals(p)) {
       // This can happen due to races, e.g. when we receive an error for a path that we stopped
       // using.
       return;

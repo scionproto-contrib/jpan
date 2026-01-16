@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockBootstrapServer;
@@ -128,6 +129,32 @@ class PathProviderNoOpTest {
 
   @Test
   void reportFaultyPath() {
+    testError(PathProvider::reportFaultyPath);
+  }
+
+  @Test
+  void reportError_NoException_NothingChanges() {
+    // Check that other errors do not have an effect or cause an exception
+    testError(
+        (pathProvider, path) -> pathProvider.reportError(Scmp.Error2Message.create(path, 1200)),
+        false);
+  }
+
+  @Test
+  void reportError5() {
+    testError((pathProvider, path) -> pathProvider.reportError(createError5(path)));
+  }
+
+  @Test
+  void reportError6() {
+    testError((pathProvider, path) -> pathProvider.reportError(createError6(path)));
+  }
+
+  private void testError(BiConsumer<PathProvider, Path> test) {
+    testError(test, true);
+  }
+
+  private void testError(BiConsumer<PathProvider, Path> test, boolean expectNull) {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
@@ -146,9 +173,27 @@ class PathProviderNoOpTest {
       assertEquals(paths.get(0), subscriber.subscribedPath.get());
 
       // Replace path
-      pp.reportFaultyPath(paths.get(0));
-      assertNull(subscriber.subscribedPath.get());
+      test.accept(pp, paths.get(0));
+      if (expectNull) {
+        assertNull(subscriber.subscribedPath.get());
+      } else {
+        assertEquals(paths.get(0), subscriber.subscribedPath.get());
+      }
       assertEquals(0, nw.getControlServer().getAndResetCallCount());
     }
+  }
+
+  private Scmp.Error5Message createError5(Path errorPath) {
+    // All paths use a different ingress interface here.
+    PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfacesList().get(5);
+    return Scmp.Error5Message.create(errorPath, pif.getIsdAs(), pif.getId());
+  }
+
+  private Scmp.Error6Message createError6(Path errorPath) {
+    // interfaces 7 and 8 are unique/common to the first two paths.
+    PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfacesList().get(3);
+    PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfacesList().get(4);
+    assertEquals(pifIn.getIsdAs(), pifEg.getIsdAs());
+    return Scmp.Error6Message.create(errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
   }
 }

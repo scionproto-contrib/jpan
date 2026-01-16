@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.7.0
 - Fix deprecation
+- API!!!!
+  A Path should NOT have a remote Address! 
+  - Remove remoteAddress from Path.equals()
+  - Remove getRemote(Socket)Address and especially getRemotePort()
+  - Remove send(path)...
+  - BUT: What do we call a Path with associated remote(/local) addresses? 
 - API to drop current path or even use most diverse one.
   - To be called if application detects interruption (but no SCMP errors arrive?)
   - Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
@@ -81,7 +87,7 @@ TODO
   - Requires improved MockChannel that can handle STUN requests (even if returning no packet)
     e.g. configureBlocking()
 - Config-ify PROPERTIES etc 
-- Cache paths --> We already do some caching with ScionDatagramChannel::resolvedDetinations
+- Cache paths --> We already do some caching with ScionDatagramChannel::resolvedDestinations
 - Fix @Disabled tests
 - Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
   fix/113 has packet captures for two of these errors in SCMPTest.java 
@@ -102,6 +108,8 @@ TODO
   [#212](https://github.com/scionproto-contrib/jpan/pull/212)
 - SCMP error parsing
   [#213](https://github.com/scionproto-contrib/jpan/pull/213)
+- SCMP error handling, e.g. switch path in case of SCMP errors 5 or 6.
+  [#214](https://github.com/scionproto-contrib/jpan/pull/214)
 
 ### Fixed
 
@@ -111,7 +119,7 @@ TODO
   [#208](https://github.com/scionproto-contrib/jpan/pull/208)
 - Fixed JUnit warning, cleanup error messages in ControlServiceGrpc
   [#210](https://github.com/scionproto-contrib/jpan/pull/210)
-- NAT keepalive uses non-dameon timer
+- NAT keepalive uses non-daemon timer
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 
 ## [0.6.1] - 2025-12-15

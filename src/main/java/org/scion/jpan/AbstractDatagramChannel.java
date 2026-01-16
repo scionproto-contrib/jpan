@@ -446,14 +446,48 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     return hdrType;
   }
 
-  protected void receiveScmp(ByteBuffer buffer, ResponsePath path) {
+  protected void receiveScmp(ByteBuffer buffer, ResponsePath path) throws IOException {
     checkListeners(ScmpParser.consume(buffer, path));
   }
 
-  protected void checkListeners(Scmp.Message scmpMsg) {
+  protected void checkListeners(Scmp.Message scmpMsg) throws IOException {
+    /*
+     * Behavior:
+     * Error 1: Destination Unreachable -> throw NoRouteToHost or PortUnreachable
+     * Error 2: PacketTooBig -> throw ProtocolException?
+     * Error 4: ParameterProblem -> throw ProtocolException?
+     * Error 5: External Interface Down: Don't throw, report path as faulty and get next path
+     * Error 6: Internal Connectivity Down: Don't throw, report path as faulty and get next path
+     *
+     * Errors 5 and 6 could throw NoRouteToHost if they run out of paths....
+     */
     synchronized (stateLock) {
       if (errorListener != null && scmpMsg.getTypeCode().isError()) {
         errorListener.accept((Scmp.ErrorMessage) scmpMsg);
+      }
+      switch (scmpMsg.getTypeCode().type()) {
+        case ERROR_1:
+          if (scmpMsg.getTypeCode() == Scmp.TypeCode.TYPE_1_CODE_4) {
+            throw new PortUnreachableException(scmpMsg.toString());
+          }
+          throw new NoRouteToHostException(scmpMsg.toString());
+        case ERROR_2:
+          throw new ProtocolException(scmpMsg.toString());
+        case ERROR_4:
+          throw new ProtocolException(scmpMsg.toString());
+        case ERROR_5:
+        case ERROR_6:
+          if (isConnected()) {
+            pathProvider.reportError((Scmp.ErrorMessage) scmpMsg);
+          } else {
+            // We throw an exception here.
+            // Alternatively, we could just swallow the error, after all this is an unreliable
+            // protocol...
+            throw new NoRouteToHostException(scmpMsg.toString());
+          }
+          break;
+        default:
+          // ignore
       }
     }
   }

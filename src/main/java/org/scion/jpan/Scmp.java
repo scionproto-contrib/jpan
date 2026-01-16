@@ -140,12 +140,12 @@ public class Scmp {
     TYPE_201(201, 0, "Private Experimentation"),
     TYPE_255(255, 0, "Reserved for expansion of SCMP informational messages");
 
-    final int type;
+    final Type type;
     final int id;
     final String text;
 
     TypeCode(int type, int code, String text) {
-      this.type = type;
+      this.type = Type.parse(type);
       this.id = code;
       this.text = text;
     }
@@ -162,7 +162,7 @@ public class Scmp {
       TypeCode[] values = TypeCode.class.getEnumConstants();
       for (int i = 0; i < values.length; i++) {
         TypeCode pe = values[i];
-        if (pe.id() == code && pe.type == type) {
+        if (pe.id() == code && pe.type.id() == type) {
           return pe;
         }
       }
@@ -178,7 +178,7 @@ public class Scmp {
       return id;
     }
 
-    public int type() {
+    public Type type() {
       return type;
     }
 
@@ -187,7 +187,7 @@ public class Scmp {
     }
 
     public boolean isError() {
-      return type >= Type.ERROR_1.id && type <= Type.ERROR_127.id;
+      return type.id >= Type.ERROR_1.id && type.id <= Type.ERROR_127.id;
     }
 
     @Override
@@ -296,6 +296,11 @@ public class Scmp {
     public void setCause(byte[] cause) {
       this.cause = cause;
     }
+
+    @Override
+    public String toString() {
+      return getTypeCode().getText();
+    }
   }
 
   /** Destination unreachable. */
@@ -307,29 +312,47 @@ public class Scmp {
     public static Error1Message create(TypeCode typeCode, Path path) {
       return new Error1Message(typeCode, path);
     }
+
+    @Override
+    public String toString() {
+      // We do not report port or address here because we the path contains only the sender
+      // of the SCMP message.
+      // The actual destination port/address may be in the "cause", but especially the port
+      // (in the UDP overlay) may have been cut off.
+      return super.toString()
+          + ";reportedBy="
+          + getPath().getRemoteSocketAddress()
+          + ";path="
+          + ScionUtil.toStringPath(getPath().getRawPath());
+    }
   }
 
   /** Packet too big. */
   public static class Error2Message extends ErrorMessage {
-    private int mtu;
+    private final int mtu;
 
-    private Error2Message(TypeCode typeCode, Path path, int mtu) {
-      super(typeCode, path);
+    private Error2Message(Path path, int mtu) {
+      super(TypeCode.TYPE_2, path);
       this.mtu = mtu;
     }
 
-    public static Error2Message create(TypeCode typeCode, Path path, int mtu) {
-      return new Error2Message(typeCode, path, mtu);
+    public static Error2Message create(Path path, int mtu) {
+      return new Error2Message(path, mtu);
     }
 
     public int getMtu() {
       return mtu;
     }
+
+    @Override
+    public String toString() {
+      return super.toString() + ";MTU=" + mtu;
+    }
   }
 
   /** Parameter problem. */
   public static class Error4Message extends ErrorMessage {
-    private int ppinter;
+    private final int ppinter;
 
     private Error4Message(TypeCode typeCode, Path path, int pointer) {
       super(typeCode, path);
@@ -343,21 +366,26 @@ public class Scmp {
     public int getPointer() {
       return ppinter;
     }
+
+    @Override
+    public String toString() {
+      return super.toString() + ";pointer=" + ppinter;
+    }
   }
 
   /** External interface down. */
   public static class Error5Message extends ErrorMessage {
-    private long isdAs;
-    private long ifId;
+    private final long isdAs;
+    private final long ifId;
 
-    private Error5Message(TypeCode typeCode, Path path, long isdAs, long ifId) {
-      super(typeCode, path);
+    private Error5Message(Path path, long isdAs, long ifId) {
+      super(TypeCode.TYPE_5, path);
       this.isdAs = isdAs;
       this.ifId = ifId;
     }
 
-    public static Error5Message create(TypeCode typeCode, Path path, long isdAs, long ifId) {
-      return new Error5Message(typeCode, path, isdAs, ifId);
+    public static Error5Message create(Path path, long isdAs, long ifId) {
+      return new Error5Message(path, isdAs, ifId);
     }
 
     public long getIsdAs() {
@@ -367,24 +395,28 @@ public class Scmp {
     public long getInterfaceId() {
       return ifId;
     }
+
+    @Override
+    public String toString() {
+      return super.toString() + ";ISD/AS=" + ScionUtil.toStringIA(isdAs) + ";IfID=" + ifId;
+    }
   }
 
   /** Internal Connectivity Down. */
   public static class Error6Message extends ErrorMessage {
-    private long isdAs;
-    private long ingressId;
-    private long egressId;
+    private final long isdAs;
+    private final long ingressId;
+    private final long egressId;
 
-    private Error6Message(TypeCode typeCode, Path path, long isdAs, long ingressId, long egressId) {
-      super(typeCode, path);
+    private Error6Message(Path path, long isdAs, long ingressId, long egressId) {
+      super(TypeCode.TYPE_6, path);
       this.isdAs = isdAs;
       this.ingressId = ingressId;
       this.egressId = egressId;
     }
 
-    public static Error6Message create(
-        TypeCode typeCode, Path path, long isdAs, long ingressId, long egressId) {
-      return new Error6Message(typeCode, path, isdAs, ingressId, egressId);
+    public static Error6Message create(Path path, long isdAs, long ingressId, long egressId) {
+      return new Error6Message(path, isdAs, ingressId, egressId);
     }
 
     public long getIsdAs() {
@@ -397,6 +429,17 @@ public class Scmp {
 
     public long getEgressId() {
       return egressId;
+    }
+
+    @Override
+    public String toString() {
+      return super.toString()
+          + ";ISD/AS="
+          + ScionUtil.toStringIA(isdAs)
+          + ";ingress="
+          + ingressId
+          + ";egress="
+          + egressId;
     }
   }
 

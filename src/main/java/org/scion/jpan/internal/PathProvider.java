@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
+import org.scion.jpan.Scmp;
 
 /**
  * A PathProvider provides the next best path. Lifecycle:<br>
@@ -31,8 +32,23 @@ public interface PathProvider {
    * faulty path will not be provided again any time soon. It may be provided again at a later time.
    *
    * @param p Faulty path.
+   * @deprecated deprecated in favor of {@link #reportError(Scmp.ErrorMessage)}. To be removed after
+   *     0.7.0 release.
    */
+  @Deprecated
   void reportFaultyPath(Path p);
+
+  /**
+   * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
+   * that use the ISD/AS and at least one of the interfaces that are reported in the error.
+   *
+   * <p>A more advanced algorithm could also de-rank any path through an affected AS, even if other
+   * interfaces are used (especially if internal connectivity is affected) or when the AS is
+   * addressed through a different ISD.
+   *
+   * @param error The SCMP error.
+   */
+  void reportError(Scmp.ErrorMessage error);
 
   /**
    * Register a callback that is invoked when paths are updated.

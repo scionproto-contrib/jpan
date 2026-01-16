@@ -122,7 +122,7 @@ public class ScmpParser {
       case ERROR_2:
         data.getShort(); // reserved
         int mtu = ByteUtil.toUnsigned(data.getShort());
-        return readPayload(Scmp.Error2Message.create(typeCode, path, mtu), data);
+        return readPayload(Scmp.Error2Message.create(path, mtu), data);
       case ERROR_4:
         data.getShort(); // reserved
         int pointer = ByteUtil.toUnsigned(data.getShort());
@@ -131,13 +131,13 @@ public class ScmpParser {
         {
           long isdAs = data.getLong();
           long ifId = data.getLong();
-          return readPayload(Scmp.Error5Message.create(typeCode, path, isdAs, ifId), data);
+          return readPayload(Scmp.Error5Message.create(path, isdAs, ifId), data);
         }
       case ERROR_6:
         long isdAs = data.getLong();
         long ingress = data.getLong();
         long egress = data.getLong();
-        return readPayload(Scmp.Error6Message.create(typeCode, path, isdAs, ingress, egress), data);
+        return readPayload(Scmp.Error6Message.create(path, isdAs, ingress, egress), data);
       case ERROR_100:
       case ERROR_101:
       case ERROR_127:

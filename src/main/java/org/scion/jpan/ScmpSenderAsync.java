@@ -316,7 +316,8 @@ public class ScmpSenderAsync implements AutoCloseable {
       }
     }
 
-    private void handleIncomingScmp(ByteBuffer buffer, ResponsePath receivePath) {
+    private void handleIncomingScmp(ByteBuffer buffer, ResponsePath receivePath)
+        throws IOException {
       long currentNanos = System.nanoTime();
       int bufferStart = buffer.position();
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
