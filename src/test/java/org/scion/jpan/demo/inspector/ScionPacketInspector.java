@@ -106,14 +106,14 @@ public class ScionPacketInspector {
     }
 
     // Overlay header
-    if (scionHeader.nextHeaderId() == Constants.HdrTypes.UDP.code()) {
+    if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
       overlayHeaderUdp.read(data);
-    } else if (scionHeader.nextHeaderId() == Constants.HdrTypes.SCMP.code()) {
+    } else if (scionHeader.nextHeader() == Constants.HdrTypes.SCMP) {
       int offset = scionHeader.hdrLenBytes();
       data.position(offset);
       scmpHeader.read(data);
       return false;
-    } else if (scionHeader.nextHeaderId() == Constants.HdrTypes.END_TO_END.code()) {
+    } else if (scionHeader.nextHeader() == Constants.HdrTypes.END_TO_END) {
       ExtensionHeader e2eHeader = new ExtensionHeader();
       e2eHeader.read(data);
       if (e2eHeader.nextHdr() == Constants.HdrTypes.SCMP) {
@@ -124,14 +124,13 @@ public class ScionPacketInspector {
       }
       return false;
     } else {
-      // Unknown (custom?) protocol type. Just read the rest of the packet
-      payload = new byte[data.remaining()];
-      data.get(payload);
+      System.out.println("Packet: DROPPED unknown: " + scionHeader.nextHeader().name());
       return false;
     }
 
     payload = new byte[getPayloadLength()];
     data.get(payload);
+
     return true;
   }
 
@@ -158,7 +157,7 @@ public class ScionPacketInspector {
   public void reversePath() {
     scionHeader.reverse();
     pathHeaderScion.reverse();
-    if (scionHeader.nextHeaderId() == Constants.HdrTypes.UDP.code()) {
+    if (scionHeader.nextHeader() == Constants.HdrTypes.UDP) {
       overlayHeaderUdp.reverse();
     }
   }
@@ -177,16 +176,9 @@ public class ScionPacketInspector {
         scmpHeader.getLength(),
         pathHeaderScion.length(),
         Constants.PathTypes.SCION,
-        InternalConstants.HdrTypes.SCMP.code());
+        InternalConstants.HdrTypes.SCMP);
     pathHeaderScion.write(newData);
     scmpHeader.write(newData);
-  }
-
-  public void writePacketCUSTOM(ByteBuffer newData, int hdrTypeId) {
-    scionHeader.write(
-        newData, payload.length, pathHeaderScion.length(), Constants.PathTypes.SCION, hdrTypeId);
-    pathHeaderScion.write(newData);
-    newData.put(payload);
   }
 
   public ScmpHeader getScmpHeader() {

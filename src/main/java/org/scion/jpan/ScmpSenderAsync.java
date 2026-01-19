@@ -228,8 +228,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
         ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
-        buildHeader(
-            buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP.code(), srcPort);
+        buildHeader(buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP, srcPort);
         int sn = request.getSequenceNumber();
         ScmpParser.buildScmpPing(buffer, Scmp.Type.INFO_128, srcPort.get(), sn, request.getData());
         buffer.flip();
@@ -250,7 +249,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         // TracerouteHeader = 24
         int len = 24;
         ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
-        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP.code(), srcPort);
+        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP, srcPort);
         int interfaceNumber = request.getSequenceNumber();
         ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, srcPort.get(), interfaceNumber);
         buffer.flip();

@@ -93,7 +93,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
-      ResponsePath receivePath = receiveFromChannel(buffer, InternalConstants.HdrTypes.UDP.code());
+      ResponsePath receivePath = receiveFromChannel(buffer, InternalConstants.HdrTypes.UDP);
       if (receivePath == null) {
         return null; // non-blocking, nothing available
       }
@@ -254,7 +254,7 @@ public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramC
     synchronized (super.stateLock()) {
       // + 8 for UDP overlay header length
       ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
-      buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP.code(), srcPort);
+      buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP, srcPort);
       int dstPort = path.getRemotePort();
       ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort.get(), dstPort);
     }

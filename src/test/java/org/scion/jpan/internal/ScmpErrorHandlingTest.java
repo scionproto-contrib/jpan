@@ -27,6 +27,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDatagramChannel;
+import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
 class ScmpErrorHandlingTest {
@@ -329,6 +330,10 @@ class ScmpErrorHandlingTest {
     return Scion.defaultService().getPaths(dstIA, dst).get(0);
   }
 
+  //  private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode) throws IOException {
+  //    return errorSender(errorCode, null);
+  //  }
+
   private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode, Path errorPath)
       throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
@@ -346,8 +351,11 @@ class ScmpErrorHandlingTest {
           }
           buffer.put(response);
           response.clear();
-          // This is simply to make it work with MockNetwork2
-          return errorPath.getFirstHopAddress();
+          if (errorPath != null) {
+            // This is simply to make it work with MockNetwork2
+            return errorPath.getFirstHopAddress();
+          }
+          return new InetSocketAddress(MockNetwork.getBorderRouterAddress1().getAddress(), 30041);
         });
     return ScionDatagramChannel.newBuilder().channel(errorChannel).open();
   }

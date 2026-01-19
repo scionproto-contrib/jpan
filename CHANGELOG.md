@@ -109,8 +109,8 @@ TODO
   [#213](https://github.com/scionproto-contrib/jpan/pull/213)
 - SCMP error handling, e.g. switch path in case of SCMP errors 5 or 6.
   [#214](https://github.com/scionproto-contrib/jpan/pull/214)
-- Ensure extensibility of AbstractChannel for protocols other than UDP.
-  [#217](https://github.com/scionproto-contrib/jpan/pull/217)
+- SCMP and PathProvider clean up.
+  [#216](https://github.com/scionproto-contrib/jpan/pull/216)
 
 ### Fixed
 
@@ -127,8 +127,6 @@ TODO
 
 - Removed some deprecated methods.
   [#215](https://github.com/scionproto-contrib/jpan/pull/215)
-- SCMP and PathProvider clean up.
-  [#216](https://github.com/scionproto-contrib/jpan/pull/216)
 
 
 ## [0.6.1] - 2025-12-15
