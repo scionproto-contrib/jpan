@@ -89,7 +89,7 @@ class HeaderComposeTest {
         srcAddress,
         dstIA,
         dstAddress,
-        InternalConstants.HdrTypes.UDP,
+        InternalConstants.HdrTypes.UDP.code(),
         0);
     ScionHeaderParser.writePath(p, path);
 

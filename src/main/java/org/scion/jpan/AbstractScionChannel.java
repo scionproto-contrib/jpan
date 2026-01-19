@@ -27,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
 
-abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
+abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
   protected static final int DEFAULT_BUFFER_SIZE = 2000;
   private final java.nio.channels.DatagramChannel channel;
@@ -51,7 +51,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private NatMapping natMapping = null;
   private final PathProvider pathProvider;
 
-  protected AbstractDatagramChannel(
+  protected AbstractScionChannel(
       ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider) {
     this.channel = channel;
     this.service = service;
@@ -362,8 +362,14 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
     }
   }
 
-  protected ResponsePath receiveFromChannel(
-      ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
+  /**
+   * @param buffer Buffer that can take the data of the incoming packet
+   * @param expectedHdrTypeId E.g. SCMP(202) or UDP (17)
+   * @return Pth that can be used for responding to the packet
+   * @throws IOException In case of error, including SCMP errors.
+   */
+  protected ResponsePath receiveFromChannel(ByteBuffer buffer, int expectedHdrTypeId)
+      throws IOException {
     ensureBound();
     ensureNatMapping(); // This can be necessary after having called disconnect()
     while (true) {
@@ -395,11 +401,13 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
 
       InetSocketAddress firstHopAddress = getFirstHopAddress(buffer, srcAddress);
       ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, firstHopAddress);
-      if (hdrType == expectedHdrType) {
+      if (hdrType.code() == expectedHdrTypeId) {
         return path;
+      } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+        receiveScmp(buffer, path);
+      } else {
+        // drop silently
       }
-      // Must be an error...
-      receiveScmp(buffer, path);
     }
   }
 
@@ -667,15 +675,11 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
    * @param buffer The output buffer
    * @param path path
    * @param payloadLength payload length
-   * @param hdrType Header type e.g. SCMP
+   * @param hdrTypeId Header type e.g. SCMP(202) or UDP (17)
    * @throws IOException in case of IOException.
    */
   protected void buildHeader(
-      ByteBuffer buffer,
-      Path path,
-      int payloadLength,
-      InternalConstants.HdrTypes hdrType,
-      ByteUtil.MutInt port)
+      ByteBuffer buffer, Path path, int payloadLength, int hdrTypeId, ByteUtil.MutInt port)
       throws IOException {
     synchronized (stateLock) {
       // We need to be bound to a local port in order to have a valid local address.
@@ -709,7 +713,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           srcAddress.getAddress(),
           path.getRemoteIsdAs(),
           path.getRemoteAddress().getAddress(),
-          hdrType,
+          hdrTypeId,
           cfgTrafficClass);
       ScionHeaderParser.writePath(buffer, rawPath);
     }

@@ -20,9 +20,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import java.time.Instant;
 import java.util.List;
 import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.ScionHeaderParser;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -170,5 +172,12 @@ public class PackageVisibilityHelper {
             .setExpiration(Timestamp.newBuilder().setSeconds(time).build());
     return RequestPath.create(
         builder.build(), base.getRemoteIsdAs(), base.getRemoteAddress(), base.getRemotePort());
+  }
+
+  public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
+    protected AbstractChannel(
+        ScionService service, DatagramChannel channel, PathProvider pathProvider) {
+      super(service, channel, pathProvider);
+    }
   }
 }

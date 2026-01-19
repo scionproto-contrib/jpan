@@ -137,7 +137,8 @@ public class ScionHeader {
 
   public void write(
       ByteBuffer data, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
-    write(data, userPacketLength + 8, pathHeaderLength, pathType, InternalConstants.HdrTypes.UDP);
+    int hdrTypeId = InternalConstants.HdrTypes.UDP.code();
+    write(data, userPacketLength + 8, pathHeaderLength, pathType, hdrTypeId);
   }
 
   public void adjustPayloadLength(ByteBuffer data, int payloadLength) {
@@ -150,7 +151,7 @@ public class ScionHeader {
       int userPacketLength,
       int pathHeaderLength,
       Constants.PathTypes pathType,
-      InternalConstants.HdrTypes hdrType) {
+      int hdrTypeId) {
     this.pathType = pathType.code();
     int i0 = 0;
     int i1 = 0;
@@ -159,7 +160,7 @@ public class ScionHeader {
     i0 = ByteUtil.writeInt(i0, 4, 8, 0); // TrafficClass = 0
     i0 = ByteUtil.writeInt(i0, 12, 20, 1); // FlowID = 1
     data.putInt(i0);
-    i1 = ByteUtil.writeInt(i1, 0, 8, hdrType.code()); // NextHdr = 17
+    i1 = ByteUtil.writeInt(i1, 0, 8, hdrTypeId); // NextHdr = 17
     int newHdrLen = (calcLen(pathHeaderLength) - 1) / 4 + 1;
     i1 = ByteUtil.writeInt(i1, 8, 8, newHdrLen); // HdrLen = bytes/4
     i1 = ByteUtil.writeInt(i1, 16, 16, userPacketLength); // PayloadLen
@@ -317,6 +318,10 @@ public class ScionHeader {
 
   public Constants.HdrTypes nextHeader() {
     return Constants.HdrTypes.parse(nextHeader);
+  }
+
+  public int nextHeaderId() {
+    return nextHeader;
   }
 
   public int getTrafficClass() {
