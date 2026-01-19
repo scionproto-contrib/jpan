@@ -90,7 +90,9 @@ public class ScmpResponder implements AutoCloseable {
     private final Shim shim;
 
     protected InternalChannel(ScionService service, int port, DatagramChannel channel, Shim shim) {
-      super(service, channel);
+      // We provide the no-op PathProvider. SCMP channels are never connected, so the
+      // PathProvider will never be used.
+      super(service, channel, PathProviderNoOp.create(PathPolicy.DEFAULT));
       this.shim = shim;
       this.port = port;
       try {

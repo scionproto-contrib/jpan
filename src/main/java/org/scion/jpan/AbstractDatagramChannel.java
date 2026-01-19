@@ -52,16 +52,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private final PathProvider pathProvider;
 
   protected AbstractDatagramChannel(
-      ScionService service, java.nio.channels.DatagramChannel udpChannel) {
-    this(
-        service,
-        udpChannel,
-        service == null
-            ? PathProviderNoOp.create(PathPolicy.DEFAULT)
-            : PathProviderWithRefresh.create(service, PathPolicy.DEFAULT));
-  }
-
-  protected AbstractDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider) {
     this.channel = channel;
     this.service = service;
@@ -472,7 +462,6 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
           }
           throw new NoRouteToHostException(scmpMsg.toString());
         case ERROR_2:
-          throw new ProtocolException(scmpMsg.toString());
         case ERROR_4:
           throw new ProtocolException(scmpMsg.toString());
         case ERROR_5:

@@ -199,7 +199,9 @@ public class ScmpSenderAsync implements AutoCloseable {
 
     protected InternalChannel(
         ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
-      super(service, channel);
+      // We provide the no-op PathProvider. SCMP channels are never connected, so the
+      // PathProvider will never be used.
+      super(service, channel, PathProviderNoOp.create(PathPolicy.DEFAULT));
 
       try {
         // selector
