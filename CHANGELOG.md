@@ -109,6 +109,8 @@ TODO
   [#213](https://github.com/scionproto-contrib/jpan/pull/213)
 - SCMP error handling, e.g. switch path in case of SCMP errors 5 or 6.
   [#214](https://github.com/scionproto-contrib/jpan/pull/214)
+- SCMP and PathProvider clean up.
+  [#216](https://github.com/scionproto-contrib/jpan/pull/216)
 
 ### Fixed
 

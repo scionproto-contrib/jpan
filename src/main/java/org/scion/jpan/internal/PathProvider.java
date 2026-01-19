@@ -23,6 +23,7 @@ import org.scion.jpan.Scmp;
  * 1) create PathProvider <br>
  * 2) subscribe()<br>
  * 3) connect()<br>
+ * 3a) (reportError() if one is received)<br>
  * 4) disconnect()<br>
  * 5) unsubscribe()<br>
  */
