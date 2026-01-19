@@ -26,7 +26,7 @@ import java.time.Instant;
 import java.util.WeakHashMap;
 import org.scion.jpan.internal.*;
 
-public class ScionDatagramChannel extends AbstractDatagramChannel<ScionDatagramChannel>
+public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
 
   // Store one path per (non-Scion-)destination address

@@ -27,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
 
-abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> implements Closeable {
+abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
   protected static final int DEFAULT_BUFFER_SIZE = 2000;
   private final java.nio.channels.DatagramChannel channel;
@@ -51,7 +51,7 @@ abstract class AbstractDatagramChannel<C extends AbstractDatagramChannel<?>> imp
   private NatMapping natMapping = null;
   private final PathProvider pathProvider;
 
-  protected AbstractDatagramChannel(
+  protected AbstractScionChannel(
       ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider) {
     this.channel = channel;
     this.service = service;

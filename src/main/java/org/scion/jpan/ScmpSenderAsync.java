@@ -194,7 +194,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     channel.setOption(option, t);
   }
 
-  private class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
+  private class InternalChannel extends AbstractScionChannel<InternalChannel> {
     private final Selector selector;
 
     protected InternalChannel(

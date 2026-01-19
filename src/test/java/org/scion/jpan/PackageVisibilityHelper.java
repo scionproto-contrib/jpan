@@ -174,7 +174,7 @@ public class PackageVisibilityHelper {
         builder.build(), base.getRemoteIsdAs(), base.getRemoteAddress(), base.getRemotePort());
   }
 
-  public abstract static class AbstractChannel extends AbstractDatagramChannel<AbstractChannel> {
+  public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
     protected AbstractChannel(
         ScionService service, DatagramChannel channel, PathProvider pathProvider) {
       super(service, channel, pathProvider);

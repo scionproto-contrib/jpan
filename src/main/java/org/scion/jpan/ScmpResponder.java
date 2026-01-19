@@ -83,7 +83,7 @@ public class ScmpResponder implements AutoCloseable {
     this.channel.sendEchoResponses();
   }
 
-  private static class InternalChannel extends AbstractDatagramChannel<InternalChannel> {
+  private static class InternalChannel extends AbstractScionChannel<InternalChannel> {
     private final Selector selector;
     private Predicate<Scmp.EchoMessage> echoListener;
     private final int port;
