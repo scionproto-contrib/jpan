@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### TODO for 0.7.0
+### TODO for 0.7.0 and beyond
+- P-ISD - SCIONPROTO
+  - We need to define use cases. 
+    - Do we really need automatic switching between ISDs?
+      - If yes, what are the switching conditions?
+    - SCIERA: Use private ISD if possible, otherwise public ISD (requires RANKING)
+      --> This is a very solid use case, but how many other are there like SCIERA? 
+    - SSFN: Application dependent? No switching necessary ever?
+    - Backup ISD: Automatic switching to other ISD is 1st is unavailable (requires RANKING)
+  - scionproto supports multiple P-ISDs simply by running everything in parallel, including 
+    separate daemons or loading separate topology files into the application.
+    THe actual SCION UDP socket can be used for multiple ISDs, because it simply takes a path
+    and send out the the packet.
+    --> Bootstrapping is still a problem, how do we get multiple topology files?
+    Multiple New-endhost-APIs?- 
+  - Possible refactorings:
+    - Design bootstrapping (not necessary for shared CS)
+    - Multi-ISD topology file? May work, but needs adaptation of staticInfoConfig.json.
+    - Single vs multiple daemons?
+      - Considered in new daemon-less API in scionproto? 
+    - Somehow we need to support seamless switching in endhosts. If one ISD is unavailable, we 
+      should try the other one? Is that a valid scenario? Is it worth putting a lot of work into?
+      --> "Backup" scenario.
 - API!!!!
   A Path should NOT have a remote Address! 
   - Remove remoteAddress from Path.equals()
@@ -100,6 +122,8 @@ TODO
 - Bootstrap with DHCP - Check Book page 327, chapter 13.2
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
+
+## 0.7.0 - WIP
 
 ### Added
 
