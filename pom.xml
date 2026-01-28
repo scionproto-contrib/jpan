@@ -107,6 +107,14 @@
             <version>2.13.2</version>
         </dependency>
 
+        <!-- For 5.x.x we must use either okhttp-jvm or okhttp-android, see https://github.com/square/okhttp -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <!--            <version>5.3.2</version>-->
+            <version>4.12.0</version>
+        </dependency>
+
         <dependency>
             <groupId>io.grpc</groupId>
             <!-- TODO We are not using the (netty) shaded version because it causes problem with
@@ -179,7 +187,7 @@
                                 </outputTarget>
                                 <outputTarget>
                                     <type>grpc-java</type>
-                                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.59.0
+                                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.77.1
                                     </pluginArtifact>
                                 </outputTarget>
                             </outputTargets>

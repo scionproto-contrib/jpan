@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
+- Add SCION discovery extension?! -> seg_extension.proto and daemon.proto
 - P-ISD - SCIONPROTO
   - We need to define use cases. 
     - Do we really need automatic switching between ISDs?

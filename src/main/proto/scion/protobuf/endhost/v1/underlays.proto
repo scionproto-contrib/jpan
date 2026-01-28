@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+option java_package = "org.scion.jpan.proto.endhost";
+
+package endhost.api_service.v1;
+
+// ListUnderlaysRequest is used to discover available transport underlays.
+message ListUnderlaysRequest {
+  // Include the underlays for the provided ISD-AS. This can be left empty or set to 0 which
+  // indicates that the requester wants the underlay information for all possible local SCION ASes.
+  optional uint64 isd_as = 1;
+}
+
+// ListUnderlaysResponse contains information about available underlays. At least one underlay
+// must be present for endhosts to use.
+message ListUnderlaysResponse {
+  // The UDP/IP underlay of the AS.
+  optional UdpUnderlay udp = 1;
+
+  // The SNAP underlay of the AS.
+  optional SnapUnderlay snap = 2;
+
+  // Any future underlay goes here.
+}
+
+// The UDP/IP underlay consisting of the available SCION routers.
+message UdpUnderlay {
+  // The list of available SCION routers.
+  repeated Router routers = 1;
+}
+
+// Router represents a SCION routers internal interface and the associated SCION interface IDs.
+message Router {
+  // The ISD-AS identifier
+  uint64 isd_as = 1;
+
+  // The UDP endpoint (host:port) of the internal interface.
+  string address = 2;
+
+  // The list of external SCION interface IDs on that router.
+  repeated uint32 interfaces = 3;
+}
+
+// The SNAP underlay consisting of the available SNAPs.
+message SnapUnderlay {
+  // The list of available SNAPs.
+  repeated Snap snaps = 1;
+}
+
+// SNAP represents a SNAP control plane API.
+message Snap {
+  // The address (host:port) of the SNAP control plane API. This can be the same
+  // as the SCION endhost API endpoint.
+  string address = 1;
+
+  // The ISD-ASes of the SNAP.
+  repeated uint64 isd_ases = 2;
+}
