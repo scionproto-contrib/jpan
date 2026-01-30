@@ -136,6 +136,8 @@ TODO
   [#214](https://github.com/scionproto-contrib/jpan/pull/214)
 - Ensure extensibility of AbstractChannel for protocols other than UDP.
   [#217](https://github.com/scionproto-contrib/jpan/pull/217)
+- Support for new endhost API
+  [#218](https://github.com/scionproto-contrib/jpan/pull/218)
 
 ### Fixed
 
