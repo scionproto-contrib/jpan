@@ -23,7 +23,7 @@ import java.util.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockDNS;
 import org.xbill.DNS.*;

@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.IPHelper;
 import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.util.IPHelper;
 
 public class AsInfo {
   private long isdAs;

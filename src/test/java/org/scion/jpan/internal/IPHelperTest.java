@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.internal.util.IPHelper;
 
 class IPHelperTest {
 

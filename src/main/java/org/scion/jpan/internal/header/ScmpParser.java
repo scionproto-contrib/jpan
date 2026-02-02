@@ -17,14 +17,13 @@ package org.scion.jpan.internal.header;
 import java.nio.ByteBuffer;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.Scmp;
-import org.scion.jpan.internal.ByteUtil;
-import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.util.ByteUtil;
 
 public class ScmpParser {
 
   private ScmpParser() {}
 
-  public static void buildExtensionHeader(ByteBuffer buffer, InternalConstants.HdrTypes nextHdr) {
+  public static void buildExtensionHeader(ByteBuffer buffer, HeaderConstants.HdrTypes nextHdr) {
     int len = 8;
     buffer.put(ByteUtil.toByte(nextHdr.code()));
     buffer.put(ByteUtil.toByte(((len + 3) / 4) - 1));

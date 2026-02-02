@@ -20,8 +20,7 @@ import org.scion.jpan.Constants;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.Scmp;
-import org.scion.jpan.internal.ByteUtil;
-import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.util.ByteUtil;
 
 /** Utility methods for reading and writing the Common Header and Address Header. */
 public class ScionHeaderParser {
@@ -79,7 +78,7 @@ public class ScionHeaderParser {
     int i1 = data.getInt(4);
     int i2 = data.getInt(8);
     int nextHeader = ByteUtil.readInt(i1, 0, 8);
-    InternalConstants.HdrTypes hdrType = InternalConstants.HdrTypes.parse(nextHeader);
+    HeaderConstants.HdrTypes hdrType = HeaderConstants.HdrTypes.parse(nextHeader);
     int hdrLen = ByteUtil.readInt(i1, 8, 8);
     int hdrLenBytes = hdrLen * 4;
     int dl = ByteUtil.readInt(i2, 10, 2);
@@ -127,11 +126,11 @@ public class ScionHeaderParser {
     data.position(hdrLenBytes);
     int srcPort;
     int dstPort;
-    if (hdrType == InternalConstants.HdrTypes.UDP) {
+    if (hdrType == HeaderConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
       srcPort = Short.toUnsignedInt(data.getShort());
       dstPort = Short.toUnsignedInt(data.getShort());
-    } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+    } else if (hdrType == HeaderConstants.HdrTypes.SCMP) {
       switch (Scmp.Type.parse(Byte.toUnsignedInt(data.get(hdrLenBytes)))) {
         case INFO_128:
         case INFO_129:
@@ -164,9 +163,9 @@ public class ScionHeaderParser {
    * @param data The datagram to read from.
    * @return The type of the next header.
    */
-  public static InternalConstants.HdrTypes extractNextHeader(ByteBuffer data) {
+  public static HeaderConstants.HdrTypes extractNextHeader(ByteBuffer data) {
     int nextHeader = ByteUtil.toUnsigned(data.get(data.position() + 4));
-    return InternalConstants.HdrTypes.parse(nextHeader);
+    return HeaderConstants.HdrTypes.parse(nextHeader);
   }
 
   /**
@@ -178,7 +177,7 @@ public class ScionHeaderParser {
   public static InetSocketAddress extractDestinationSocketAddress(ByteBuffer data) {
     int start = data.position();
 
-    InternalConstants.HdrTypes hdrType = extractNextHeader(data);
+    HeaderConstants.HdrTypes hdrType = extractNextHeader(data);
 
     int i1 = data.getInt(start + 4); // nextHeader, hdrLen, payLoadLen
     int i2 = data.getInt(start + 8); // pathType, dt, dl, st, sl
@@ -215,13 +214,13 @@ public class ScionHeaderParser {
   }
 
   private static int extractDstPort(
-      ByteBuffer data, int hdrOffset, InternalConstants.HdrTypes hdrType) {
+      ByteBuffer data, int hdrOffset, HeaderConstants.HdrTypes hdrType) {
     int dstPort;
-    if (hdrType == InternalConstants.HdrTypes.UDP) {
+    if (hdrType == HeaderConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
       data.position(hdrOffset + 2);
       dstPort = Short.toUnsignedInt(data.getShort());
-    } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+    } else if (hdrType == HeaderConstants.HdrTypes.SCMP) {
       // get remote port from SCMP header
       data.position(hdrOffset);
       int type = ByteUtil.toUnsigned(data.get());
@@ -250,13 +249,13 @@ public class ScionHeaderParser {
   }
 
   private static int extractSrcPort(
-      ByteBuffer data, int hdrOffset, InternalConstants.HdrTypes hdrType) {
+      ByteBuffer data, int hdrOffset, HeaderConstants.HdrTypes hdrType) {
     int dstPort;
-    if (hdrType == InternalConstants.HdrTypes.UDP) {
+    if (hdrType == HeaderConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
       data.position(hdrOffset);
       dstPort = Short.toUnsignedInt(data.getShort());
-    } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+    } else if (hdrType == HeaderConstants.HdrTypes.SCMP) {
       // get remote port from SCMP header
       data.position(hdrOffset);
       int type = ByteUtil.toUnsigned(data.get());
@@ -286,7 +285,7 @@ public class ScionHeaderParser {
         // truncated payload
         return -1;
       }
-      InternalConstants.HdrTypes hdrType = extractNextHeader(data);
+      HeaderConstants.HdrTypes hdrType = extractNextHeader(data);
       return extractSrcPort(data, hdrLenBytes, hdrType);
     } catch (Exception e) {
       return -1;
@@ -314,13 +313,13 @@ public class ScionHeaderParser {
    */
   public static int extractPathHeaderPosition(ByteBuffer data) {
     int nextHeader = ByteUtil.toUnsigned(data.get(4));
-    if (nextHeader != InternalConstants.HdrTypes.UDP.code()
-        && nextHeader != InternalConstants.HdrTypes.SCMP.code()) {
+    if (nextHeader != HeaderConstants.HdrTypes.UDP.code()
+        && nextHeader != HeaderConstants.HdrTypes.SCMP.code()) {
       throw new UnsupportedOperationException("This method supports only UDP and SCMP headers");
     }
 
     int pathType = ByteUtil.toUnsigned(data.get(8));
-    if (pathType == InternalConstants.PathTypes.EMPTY.code()) {
+    if (pathType == HeaderConstants.PathTypes.EMPTY.code()) {
       return -1;
     }
 
@@ -355,10 +354,10 @@ public class ScionHeaderParser {
     // int trafficLClass = readInt(i0, 4, 8);
     // int flowId = readInt(i0, 12, 20);
     int nextHeader = ByteUtil.readInt(i1, 0, 8);
-    if (nextHeader != InternalConstants.HdrTypes.UDP.code()
-        && nextHeader != InternalConstants.HdrTypes.HOP_BY_HOP.code()
-        && nextHeader != InternalConstants.HdrTypes.END_TO_END.code()
-        && nextHeader != InternalConstants.HdrTypes.SCMP.code()) {
+    if (nextHeader != HeaderConstants.HdrTypes.UDP.code()
+        && nextHeader != HeaderConstants.HdrTypes.HOP_BY_HOP.code()
+        && nextHeader != HeaderConstants.HdrTypes.END_TO_END.code()
+        && nextHeader != HeaderConstants.HdrTypes.SCMP.code()) {
       return PRE + "nextHeader: expected {17, 200, 201, 202}, got " + nextHeader;
     }
     int hdrLen = ByteUtil.readInt(i1, 8, 8);
@@ -440,9 +439,9 @@ public class ScionHeaderParser {
     // TODO validate path
 
     data.position(start + hdrLenBytes);
-    if (nextHeader == InternalConstants.HdrTypes.UDP.code()) {
+    if (nextHeader == HeaderConstants.HdrTypes.UDP.code()) {
       return validateUDP(data, start);
-    } else if (nextHeader == InternalConstants.HdrTypes.SCMP.code()) {
+    } else if (nextHeader == HeaderConstants.HdrTypes.SCMP.code()) {
       return validateSCMP(data, start);
     }
     return PRE + "Unsupported header type: " + nextHeader;

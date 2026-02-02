@@ -15,8 +15,7 @@
 package org.scion.jpan.internal.header;
 
 import java.nio.ByteBuffer;
-import org.scion.jpan.internal.ByteUtil;
-import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.util.ByteUtil;
 
 public class ExtensionHeader {
   // 8 bit
@@ -57,8 +56,8 @@ public class ExtensionHeader {
         + '}';
   }
 
-  public InternalConstants.HdrTypes nextHdr() {
-    return InternalConstants.HdrTypes.parse(nextHdr);
+  public HeaderConstants.HdrTypes nextHdr() {
+    return HeaderConstants.HdrTypes.parse(nextHdr);
   }
 
   public int getExtLenBytes() {

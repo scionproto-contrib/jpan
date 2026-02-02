@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.nio.ByteBuffer;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockNetwork2;
 

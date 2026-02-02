@@ -18,8 +18,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.scion.jpan.internal.MultiMap;
 import org.scion.jpan.internal.header.PathRawParserLight;
+import org.scion.jpan.internal.util.MultiMap;
 import org.scion.jpan.proto.daemon.Daemon;
 
 class PathDuplicationFilter {

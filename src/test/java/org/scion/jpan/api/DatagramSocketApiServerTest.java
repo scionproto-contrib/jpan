@@ -23,7 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
-import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.AsInfo;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.JsonFileParser;

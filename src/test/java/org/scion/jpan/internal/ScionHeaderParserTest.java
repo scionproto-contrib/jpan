@@ -28,6 +28,7 @@ import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.testutil.ExamplePacket;
 
 class ScionHeaderParserTest {

@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

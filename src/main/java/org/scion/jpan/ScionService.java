@@ -30,6 +30,7 @@ import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.DaemonServiceGrpc;
 import org.scion.jpan.internal.paths.Segments;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

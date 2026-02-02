@@ -16,6 +16,9 @@ package org.scion.jpan.internal;
 
 import org.scion.jpan.*;
 import org.scion.jpan.internal.bootstrap.DNSHelper;
+import org.scion.jpan.internal.header.HeaderConstants;
+import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.internal.util.SimpleCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,7 +167,7 @@ public class AddressLookupService {
   }
 
   private static String findTxtRecordInProperties(String hostName) throws ScionException {
-    String props = System.getProperty(InternalConstants.DEBUG_PROPERTY_MOCK_DNS_TXT);
+    String props = System.getProperty(HeaderConstants.DEBUG_PROPERTY_MOCK_DNS_TXT);
     if (props == null) {
       return null;
     }

@@ -16,7 +16,7 @@ package org.scion.jpan.internal.header;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import org.scion.jpan.internal.ByteUtil;
+import org.scion.jpan.internal.util.ByteUtil;
 
 public class PathHeaderParser {
   private PathHeaderParser() {}

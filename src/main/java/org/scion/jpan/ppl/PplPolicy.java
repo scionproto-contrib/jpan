@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Stream;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -24,8 +24,8 @@ import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 import org.scion.jpan.internal.AddressLookupService;
-import org.scion.jpan.internal.ExternalIpDiscovery;
 import org.scion.jpan.internal.Shim;
+import org.scion.jpan.internal.util.ExternalIpDiscovery;
 
 public class JUnitSetUp
     implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AutoCloseable {

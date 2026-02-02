@@ -17,6 +17,7 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.internal.util.ByteUtil;
 
 class ByteUtilTest {
 

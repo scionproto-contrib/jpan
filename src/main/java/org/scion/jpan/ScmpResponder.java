@@ -25,8 +25,10 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +127,7 @@ public class ScmpResponder implements AutoCloseable {
             InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
             buffer.flip();
             if (validate(buffer)) {
-              InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+              HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
               // From here on we use linear reading using the buffer's position() mechanism
               buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
               // Check for extension headers.
@@ -133,7 +135,7 @@ public class ScmpResponder implements AutoCloseable {
               // wrapped in extensions headers.
               hdrType = receiveExtensionHeader(buffer, hdrType);
 
-              if (hdrType != InternalConstants.HdrTypes.SCMP) {
+              if (hdrType != HeaderConstants.HdrTypes.SCMP) {
                 if (shim != null) {
                   shim.forward(buffer, super.channel());
                 }
@@ -173,8 +175,7 @@ public class ScmpResponder implements AutoCloseable {
             // EchoHeader = 8 + data
             int len = 8 + msg.getData().length;
             ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
-            buildHeader(
-                buffer, msg.getPath(), len, InternalConstants.HdrTypes.SCMP.code(), srcPort);
+            buildHeader(buffer, msg.getPath(), len, HeaderConstants.HdrTypes.SCMP.code(), srcPort);
             ScmpParser.buildScmpPing(
                 buffer, Scmp.Type.INFO_129, srcPort.get(), msg.getSequenceNumber(), msg.getData());
             buffer.flip();

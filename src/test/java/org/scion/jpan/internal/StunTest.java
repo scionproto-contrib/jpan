@@ -23,6 +23,7 @@ import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.testutil.MockNetwork;
 
 class StunTest {

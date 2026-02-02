@@ -24,6 +24,8 @@ import java.util.Random;
 import java.util.function.Predicate;
 import java.util.zip.CRC32;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.header.HeaderConstants;
+import org.scion.jpan.internal.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -385,7 +387,7 @@ public class STUN {
     out.put(addrBytes);
   }
 
-  enum Type implements InternalConstants.ParseEnum {
+  enum Type implements HeaderConstants.ParseEnum {
     // https://datatracker.ietf.org/doc/html/rfc3489#section-11.2
     // https://datatracker.ietf.org/doc/html/rfc5389#section-15
     // https://datatracker.ietf.org/doc/html/rfc5389#section-18.2
@@ -429,7 +431,7 @@ public class STUN {
     }
 
     public static Type parse(int id) {
-      return InternalConstants.ParseEnum.parse(Type.class, id);
+      return HeaderConstants.ParseEnum.parse(Type.class, id);
     }
 
     @Override

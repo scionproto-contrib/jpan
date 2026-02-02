@@ -25,7 +25,9 @@ import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
 import java.util.WeakHashMap;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.util.ByteUtil;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
@@ -94,7 +96,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
-      ResponsePath receivePath = receiveFromChannel(buffer, InternalConstants.HdrTypes.UDP.code());
+      ResponsePath receivePath = receiveFromChannel(buffer, HeaderConstants.HdrTypes.UDP.code());
       if (receivePath == null) {
         return null; // non-blocking, nothing available
       }
@@ -255,7 +257,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     synchronized (super.stateLock()) {
       // + 8 for UDP overlay header length
       ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
-      buildHeader(buffer, path, payloadLength + 8, InternalConstants.HdrTypes.UDP.code(), srcPort);
+      buildHeader(buffer, path, payloadLength + 8, HeaderConstants.HdrTypes.UDP.code(), srcPort);
       int dstPort = path.getRemotePort();
       ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort.get(), dstPort);
     }

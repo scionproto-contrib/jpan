@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.util.SimpleCache;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.

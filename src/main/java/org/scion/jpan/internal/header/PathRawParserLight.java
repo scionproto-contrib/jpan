@@ -14,11 +14,11 @@
 
 package org.scion.jpan.internal.header;
 
-import static org.scion.jpan.internal.ByteUtil.readBoolean;
-import static org.scion.jpan.internal.ByteUtil.readInt;
+import static org.scion.jpan.internal.util.ByteUtil.readBoolean;
+import static org.scion.jpan.internal.util.ByteUtil.readInt;
 
 import java.nio.ByteBuffer;
-import org.scion.jpan.internal.ByteUtil;
+import org.scion.jpan.internal.util.ByteUtil;
 
 /** A lightweight stateless parser for raw paths. */
 public class PathRawParserLight {

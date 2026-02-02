@@ -26,6 +26,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork2;
 
