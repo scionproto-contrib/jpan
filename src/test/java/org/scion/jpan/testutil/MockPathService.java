@@ -16,7 +16,6 @@ package org.scion.jpan.testutil;
 
 import com.google.protobuf.ByteString;
 import io.grpc.*;
-import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -30,23 +29,20 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import okhttp3.MediaType;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import io.grpc.okhttp.OkHttpServerBuilder;
+import io.grpc.okhttp.OkHttpServerProvider;
+import okhttp3.*;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.scion.jpan.testutil.MockNetwork.barrier;
 
 public class MockPathService {
 
@@ -54,10 +50,11 @@ public class MockPathService {
   private static final Logger logger = LoggerFactory.getLogger(MockPathService.class.getName());
   private final AtomicInteger callCount = new AtomicInteger();
   private final InetSocketAddress address;
-  private Server server;
   private PathServiceImpl pathService;
+  private ExecutorService service;
   private final Semaphore block = new Semaphore(1);
   private final AtomicReference<Status> errorToReport = new AtomicReference<>();
+  private static final CountDownLatch barrier = new CountDownLatch(1);
 
   private MockPathService(InetSocketAddress address) {
     this.address = address;
@@ -65,26 +62,22 @@ public class MockPathService {
 
   public static MockPathService start(int port) {
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
-    try {
-      return new MockPathService(addr).startInternal();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    return new MockPathService(addr).startInternal();
   }
 
   public int getAndResetCallCount() {
     return callCount.getAndSet(0);
   }
 
-  private MockPathService startInternal() throws IOException {
-    int port = address.getPort();
+  private MockPathService startInternal() {
     pathService = new MockPathService.PathServiceImpl();
-    // TODO
-//    server =
-//        Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
-//            .addService(pathService)
-//            .build()
-//            .start();
+    service = Executors.newFixedThreadPool(2);
+    service.execute(pathService);
+    try {
+      barrier.await();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
     logger.info("Server started, listening on {}", address);
 
     Runtime.getRuntime()
@@ -92,7 +85,8 @@ public class MockPathService {
             new Thread(
                 () -> {
                   try {
-                    server.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+                    service.shutdown();
+                    service.awaitTermination(5, TimeUnit.SECONDS);
                   } catch (InterruptedException e) {
                     e.printStackTrace(System.err);
                   }
@@ -101,17 +95,17 @@ public class MockPathService {
   }
 
   public void close() {
-    server.shutdown();
+    pathService.shutdown();
     try {
-      if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
-        server.shutdownNow();
-        if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
+      if (!service.awaitTermination(5, TimeUnit.SECONDS)) {
+        service.shutdownNow();
+        if (!service.awaitTermination(5, TimeUnit.SECONDS)) {
           logger.error("Path service did not terminate");
         }
       }
       logger.info("Path service shut down");
     } catch (InterruptedException ie) {
-      server.shutdownNow();
+      service.shutdownNow();
       Thread.currentThread().interrupt();
     }
   }
@@ -126,7 +120,7 @@ public class MockPathService {
   }
 
   public int getPort() {
-    return server.getPort();
+    return address.getPort();
   }
 
   public void block() {
@@ -154,14 +148,15 @@ public class MockPathService {
     this.errorToReport.set(errorToReport);
   }
 
-  private class PathServiceImpl {
+  private class PathServiceImpl implements Runnable {
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
     final long start = Instant.now().getEpochSecond();
 
     PathServiceImpl() {}
 
-    void serve() {
-
+    @Override
+    public void run() {
+      System.out.println("PS started");
       // TODO should we use the connectRPC library to create a server for UNARY calls (using
       //     a protofile service entry)?
 
@@ -176,8 +171,10 @@ public class MockPathService {
         logger.info("Topology server started on port {}", chnLocal.getLocalAddress());
         barrier.countDown();
         while (true) {
+          System.out.println("PS waiting: " + address);
           SocketChannel ss = chnLocal.accept();
           ss.read(buffer);
+          System.out.println("PS received");
           SocketAddress srcAddress = ss.getRemoteAddress();
 
           buffer.flip();
@@ -189,17 +186,40 @@ public class MockPathService {
           String resource = request.substring(request.indexOf(" ") + 1, request.indexOf(" HTTP"));
           String listService = "/scion.endhost.v1.PathService/ListPaths";
           if (listService.equals(resource)) {
+            System.out.println("PS received ListPaths");
             logger.info("Bootstrap server serves file to {}", srcAddress);
             callCount.incrementAndGet();
 
             System.out.println("Request: " + request);
+            System.out.println("Request: " + request.length());
 
-            long srcIA = 42;
-            long dstIA = 42;
 
             Path.ListSegmentsResponse protoResponse;
             String protoError = null;
 
+            int posLen = request.indexOf("Content-Length: ") + 16;
+            // int posLenEnd = request.indexOf("Host:", posLen) - 2;
+            int posLenEnd = request.indexOf("\r", posLen);
+            String sub = request.substring(posLen, posLenEnd);
+            System.out.println("----'" + sub  + "'----");
+            int len = Integer.parseInt(request.substring(posLen, posLenEnd));
+            System.out.println("len = " + len);
+
+//            OkHttpServerProvider sp = new OkHttpServerProvider();
+//            OkHttpServerBuilder sb = OkHttpServerBuilder.forPort(48080);
+//            sb.
+//            Server server = sb.build();
+//            server.start();
+//
+//            Request hr = new Request.Builder().
+
+            buffer.position(buffer.limit() - len);
+            Path.ListSegmentsRequest r = Path.ListSegmentsRequest.parseFrom(buffer);
+            System.out.println("r=" + r);
+            System.out.println("r=" + r);
+
+            long srcIA = r.getSrcIsdAs();
+            long dstIA = r.getDstIsdAs();
 
             logger.info("Segment request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
             callCount.incrementAndGet();
@@ -220,10 +240,24 @@ public class MockPathService {
               return;
             }
 
+            String apiAddress = IPHelper.toString(address);
+           RequestBody requestBody = RequestBody.create(r.toByteArray());
+           Request hr =
+                    new Request.Builder()
+                            .url("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths")
+                            .addHeader("Content-type", "application/proto")
+                            //            .addHeader("User-Agent", "OkHttp Bot")
+                            .post(requestBody)
+                            .build();
             ResponseBody responseBody = ResponseBody.create(protoResponse.toByteArray(), MediaType.get("application/proto"));
-            Response response = new Response.Builder().body(responseBody).addHeader("Content-type", "application/proto").build();
+            Response response = new Response.Builder().body(responseBody).addHeader("Content-type", "application/proto").code(200).request(hr).protocol(Protocol.HTTP_1_1)
+                    .message(new String(protoResponse.toByteArray())).build();
+
+            System.out.println("Response xxx: " + new String(protoResponse.toByteArray()));
             System.out.println("Response msg: " + response.message());
             System.out.println("Response toS: " + response.toString());
+
+            System.out.println("RRRRR: " + responseBody.string());
 
 
 //            Request request =
@@ -235,11 +269,15 @@ public class MockPathService {
 //                            .build();
 
 
-
+            //String strResponse = "HTTP/1.1 201 Created\r";
+            String strResponse = "HTTP/1.1 200 OK\r";
+            strResponse += "Content-Type: application/proto";
+            strResponse += "Length: " + protoResponse.toByteArray().length; // TODO!!!!
 
             buffer.clear();
-            // buffer.put(createMessage(topologyFile).getBytes());
             buffer.put(response.message().getBytes());
+//            buffer.put(strResponse.getBytes());
+//            buffer.put(protoResponse.toByteArray());
             buffer.flip();
             ss.write(buffer);
           } else {
@@ -254,8 +292,13 @@ public class MockPathService {
         logger.error(e.getMessage());
         throw new RuntimeException(e);
       } finally {
+        System.out.println("PS stopping");
         logger.info("Shutting down topology server");
       }
+    }
+
+    void shutdown() {
+
     }
 
     private String createMessage(String content) {

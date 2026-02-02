@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.paths;
 
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
@@ -25,6 +25,7 @@ import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
+import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,10 @@ public class PathServiceRpc {
     }
     throw new ScionRuntimeException(
         "Error while connecting to SCION network, no control service available: " + error);
+  }
+
+  public List<Daemon.Path> getPaths(long srcIsdAs, long dstIsdAs) {
+    return null;
   }
 
   private class ControlService {

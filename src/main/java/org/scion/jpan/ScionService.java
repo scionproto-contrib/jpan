@@ -29,6 +29,7 @@ import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.DaemonServiceGrpc;
+import org.scion.jpan.internal.paths.PathServiceRpc;
 import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
@@ -254,30 +255,6 @@ public class ScionService {
     return ScionDatagramChannel.open(this, channel);
   }
 
-  private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
-    if (daemonService != null) {
-      return getPathListDaemon(srcIsdAs, dstIsdAs);
-    }
-    return getPathListCS(srcIsdAs, dstIsdAs);
-  }
-
-  // do not expose proto types on API
-  List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
-    Daemon.PathsRequest request =
-        Daemon.PathsRequest.newBuilder()
-            .setSourceIsdAs(srcIsdAs)
-            .setDestinationIsdAs(dstIsdAs)
-            .build();
-
-    Daemon.PathsResponse response;
-    try {
-      response = daemonService.paths(request);
-    } catch (StatusRuntimeException e) {
-      throw new ScionRuntimeException(e);
-    }
-
-    return response.getPathsList();
-  }
 
   /**
    * Request paths from the local ISD/AS to the destination.
@@ -370,17 +347,44 @@ public class ScionService {
     return AddressLookupService.getIsdAs(hostName, getLocalIsdAs());
   }
 
+  private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
+    List<Daemon.Path> list;
+    if (pathService != null) {
+      list = pathService.getPaths(srcIsdAs, dstIsdAs);
+    } else if (daemonService != null) {
+      list = getPathListDaemon(srcIsdAs, dstIsdAs);
+    } else {
+      list = getPathListCS(srcIsdAs, dstIsdAs);
+    }
+    if (LOG.isInfoEnabled()) {
+      LOG.info(
+              "Path found between {} and {}: {}",
+              ScionUtil.toStringIA(srcIsdAs),
+              ScionUtil.toStringIA(dstIsdAs),
+              list.size());
+    }
+    return list;
+  }
+
+  // do not expose proto types on API
+  List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
+    Daemon.PathsRequest request =
+            Daemon.PathsRequest.newBuilder()
+                    .setSourceIsdAs(srcIsdAs)
+                    .setDestinationIsdAs(dstIsdAs)
+                    .build();
+    try {
+      return daemonService.paths(request).getPathsList();
+    } catch (StatusRuntimeException e) {
+      throw new ScionRuntimeException(e);
+    }
+  }
+
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> list =
-        Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
-    if (LOG.isInfoEnabled()) {
-      LOG.info(
-          "Path found between {} and {}: {}",
-          ScionUtil.toStringIA(srcIsdAs),
-          ScionUtil.toStringIA(dstIsdAs),
-          list.size());
-    }
+            Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
+
     return list;
   }
 

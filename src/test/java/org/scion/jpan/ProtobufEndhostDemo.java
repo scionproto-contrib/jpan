@@ -31,6 +31,7 @@ import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.experimental.SegDetachedExtensions;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
+import org.scion.jpan.testutil.MockNetwork2;
 
 /** Small demo that requests and prints segments requested from a control service. */
 public class ProtobufEndhostDemo {
@@ -41,8 +42,8 @@ public class ProtobufEndhostDemo {
   private static final String neaETH = "192.168.53.19:48080";
 
   public static void main(String[] args) throws ScionException {
-    ProtobufEndhostDemo demo = new ProtobufEndhostDemo(neaETH);
-    demo.getSegments(iaETH, iaETH_CORE);
+//    ProtobufEndhostDemo demo = new ProtobufEndhostDemo(neaETH);
+//    demo.getSegments(iaETH, iaETH_CORE);
     // demo.getSegments(ScionUtil.toWildcard(iaETH), ScionUtil.toWildcard(iaAnapayaHK));
     // ProtobufEndhostDemo demo = new ProtobufEndhostDemo(csAddr110_minimal);
     //    ProtobufEndhostDemo demo = new ProtobufEndhostDemo();
@@ -50,6 +51,10 @@ public class ProtobufEndhostDemo {
     // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      ProtobufEndhostDemo demo2 = new ProtobufEndhostDemo("127.0.0.1:48080");
+      demo2.getSegments(ia112, ia110);
+    }
   }
 
   private Path.ListSegmentsResponse sendRequest(long srcIA, long dstIA) throws IOException {
@@ -65,12 +70,12 @@ public class ProtobufEndhostDemo {
             .post(requestBody)
             .build();
 
+    System.out.println("Sending request: " + request);
+    System.out.println("             to: " + apiAddress);
     try (Response response = httpClient.newCall(request).execute()) {
-
       if (!response.isSuccessful()) {
         throw new IOException("Unexpected code " + response);
       }
-
       return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
     }
   }
@@ -108,9 +113,9 @@ public class ProtobufEndhostDemo {
             + " / "
             + r.getDownSegmentsList().size());
     System.out.println("        nextPageToken=" + r.getNextPageToken());
-    print("UP: ", r.getUpSegmentsList());
-    print("CORE: ", r.getCoreSegmentsList());
-    print("DOWN: ", r.getDownSegmentsList());
+    print("UP", r.getUpSegmentsList());
+    print("CORE", r.getCoreSegmentsList());
+    print("DOWN", r.getDownSegmentsList());
   }
 
   private static void print(String label, List<Seg.PathSegment> list) throws ScionException {
