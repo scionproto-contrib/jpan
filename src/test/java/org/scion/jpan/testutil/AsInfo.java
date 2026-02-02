@@ -22,24 +22,24 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.IPHelper;
-import org.scion.jpan.internal.LocalTopology;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.util.IPHelper;
 
 public class AsInfo {
   private long isdAs;
   private final List<ControlService> controlServers = new ArrayList<>();
-  private LocalTopology.DispatcherPortRange portRange;
+  private LocalAS.DispatcherPortRange portRange;
   private final List<BorderRouter> borderRouters = new ArrayList<>();
 
   void setIsdAs(long isdAs) {
     this.isdAs = isdAs;
   }
 
-  void setPortRange(LocalTopology.DispatcherPortRange portRange) {
+  void setPortRange(LocalAS.DispatcherPortRange portRange) {
     this.portRange = portRange;
   }
 
-  LocalTopology.DispatcherPortRange getPortRange() {
+  LocalAS.DispatcherPortRange getPortRange() {
     return this.portRange;
   }
 

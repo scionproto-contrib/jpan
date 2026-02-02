@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.header.HeaderConstants;
 
 public class ScionPacketInspector {
   private final ScionHeader scionHeader = new ScionHeader();
@@ -177,7 +177,7 @@ public class ScionPacketInspector {
         scmpHeader.getLength(),
         pathHeaderScion.length(),
         Constants.PathTypes.SCION,
-        InternalConstants.HdrTypes.SCMP.code());
+        HeaderConstants.HdrTypes.SCMP.code());
     pathHeaderScion.write(newData);
     scmpHeader.write(newData);
   }

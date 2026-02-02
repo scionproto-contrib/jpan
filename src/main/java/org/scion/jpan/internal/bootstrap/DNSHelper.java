@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.bootstrap;
 
 import static org.scion.jpan.Constants.ENV_DNS_SEARCH_DOMAINS;
 import static org.scion.jpan.Constants.PROPERTY_DNS_SEARCH_DOMAINS;
@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xbill.DNS.*;

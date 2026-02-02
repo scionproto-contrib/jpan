@@ -33,6 +33,7 @@ import org.scion.jpan.demo.inspector.PathHeaderScion;
 import org.scion.jpan.demo.inspector.ScionHeader;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockNetwork;

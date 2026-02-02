@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.scion.jpan.internal.PathHeaderParser;
+import org.scion.jpan.internal.header.PathHeaderParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

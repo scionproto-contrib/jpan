@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.ppl.PplPathFilter;
 import org.scion.jpan.ppl.PplPolicy;
 import org.scion.jpan.proto.daemon.Daemon;

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.bootstrap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,7 +21,9 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockDNS;
 import org.xbill.DNS.*;
@@ -48,7 +50,7 @@ class DNSHelperTest {
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
-    assertEquals("2.2.2.2:12345", IPHelper.toString(dsAddress));
+    Assertions.assertEquals("2.2.2.2:12345", IPHelper.toString(dsAddress));
   }
 
   @Test

@@ -26,6 +26,14 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.header.ExtensionHeader;
+import org.scion.jpan.internal.header.HeaderConstants;
+import org.scion.jpan.internal.header.PathRawParserLight;
+import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.internal.util.Config;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
@@ -162,7 +170,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   protected void ensureBound() throws IOException {
     synchronized (stateLock) {
       if (localAddress == null) {
-        LocalTopology.DispatcherPortRange ports = getService().getLocalPortRange();
+        LocalAS.DispatcherPortRange ports = getService().getLocalPortRange();
         if (ports.hasPortRange()) {
           // This is a bit ugly, we iterate through all ports to find a free one.
           int min = ports.getPortMin();
@@ -391,7 +399,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         continue;
       }
 
-      InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+      HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
       // From here on we use linear reading using the buffer's position() mechanism
       buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
       // Check for extension headers.
@@ -403,7 +411,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, firstHopAddress);
       if (hdrType.code() == expectedHdrTypeId) {
         return path;
-      } else if (hdrType == InternalConstants.HdrTypes.SCMP) {
+      } else if (hdrType == HeaderConstants.HdrTypes.SCMP) {
         receiveScmp(buffer, path);
       } else {
         // drop silently
@@ -430,14 +438,14 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     return srcAddress;
   }
 
-  protected static InternalConstants.HdrTypes receiveExtensionHeader(
-      ByteBuffer buffer, InternalConstants.HdrTypes hdrType) {
-    if (hdrType == InternalConstants.HdrTypes.END_TO_END
-        || hdrType == InternalConstants.HdrTypes.HOP_BY_HOP) {
+  protected static HeaderConstants.HdrTypes receiveExtensionHeader(
+      ByteBuffer buffer, HeaderConstants.HdrTypes hdrType) {
+    if (hdrType == HeaderConstants.HdrTypes.END_TO_END
+        || hdrType == HeaderConstants.HdrTypes.HOP_BY_HOP) {
       ExtensionHeader extHdr = ExtensionHeader.consume(buffer);
       // Currently we are not doing much here except hoping for an SCMP header
       hdrType = extHdr.nextHdr();
-      if (hdrType != InternalConstants.HdrTypes.SCMP) {
+      if (hdrType != HeaderConstants.HdrTypes.SCMP) {
         throw new UnsupportedOperationException("Extension header not supported: " + hdrType);
       }
     }

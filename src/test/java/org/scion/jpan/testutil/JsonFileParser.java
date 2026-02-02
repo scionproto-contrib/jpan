@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.IPHelper;
-import org.scion.jpan.internal.LocalTopology;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.util.IPHelper;
 
 public class JsonFileParser {
 
@@ -74,7 +74,7 @@ public class JsonFileParser {
       // localMtu = safeGet(o, "mtu").getAsInt();
       JsonElement dispatchedPorts = o.get("dispatched_ports");
       if (dispatchedPorts == null) {
-        as.setPortRange(LocalTopology.DispatcherPortRange.createEmpty());
+        as.setPortRange(LocalAS.DispatcherPortRange.createEmpty());
       } else {
         as.setPortRange(parsePortRange(dispatchedPorts.getAsString()));
       }
@@ -117,14 +117,14 @@ public class JsonFileParser {
     return e;
   }
 
-  private static LocalTopology.DispatcherPortRange parsePortRange(String v) {
+  private static LocalAS.DispatcherPortRange parsePortRange(String v) {
     if (v.startsWith("\"") && v.endsWith("\"")) {
       v = v.substring(1, v.length() - 2);
     }
     if ("-".equals(v)) {
-      return LocalTopology.DispatcherPortRange.createEmpty();
+      return LocalAS.DispatcherPortRange.createEmpty();
     } else if ("all".equalsIgnoreCase(v)) {
-      return LocalTopology.DispatcherPortRange.createAll();
+      return LocalAS.DispatcherPortRange.createAll();
     } else {
       String[] sa = v.split("-");
       if (sa.length != 2) {
@@ -135,7 +135,7 @@ public class JsonFileParser {
       if (portMin < 1 || portMax < 1 || portMax > 65535 || portMin > portMax) {
         throw new ScionRuntimeException("Illegal port values in topo file dispatched_ports: " + v);
       }
-      return LocalTopology.DispatcherPortRange.create(portMin, portMax);
+      return LocalAS.DispatcherPortRange.create(portMin, portMax);
     }
   }
 

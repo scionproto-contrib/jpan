@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.header.HeaderConstants;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
@@ -89,7 +91,7 @@ class HeaderComposeTest {
         srcAddress,
         dstIA,
         dstAddress,
-        InternalConstants.HdrTypes.UDP.code(),
+        HeaderConstants.HdrTypes.UDP.code(),
         0);
     ScionHeaderParser.writePath(p, path);
 

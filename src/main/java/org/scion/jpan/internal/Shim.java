@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

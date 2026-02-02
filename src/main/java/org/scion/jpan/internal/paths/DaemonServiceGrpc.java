@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.paths;
 
 import com.google.protobuf.Empty;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

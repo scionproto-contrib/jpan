@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.paths;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -22,6 +22,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.internal.util.MultiMap;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -64,7 +67,7 @@ public class Segments {
    * destination is CORE or not.
    *
    * @param service Segment lookup service
-   * @param bootstrapper Bootstrapper
+   * @param localAS local AS info
    * @param srcIsdAs source ISD/AS
    * @param dstIsdAs destination ISD/AS
    * @param minimizeLookups If 'true', this attempts to reduce the number of segment request when
@@ -76,19 +79,19 @@ public class Segments {
    */
   public static List<Daemon.Path> getPaths(
       ControlServiceGrpc service,
-      ScionBootstrapper bootstrapper,
+      LocalAS localAS,
       long srcIsdAs,
       long dstIsdAs,
       boolean minimizeLookups) {
-    LocalTopology localAS = bootstrapper.getLocalTopology();
-    List<Daemon.Path> path = getPaths(service, localAS, srcIsdAs, dstIsdAs, minimizeLookups);
+    List<Daemon.Path> path =
+        getPathsInternal(service, localAS, srcIsdAs, dstIsdAs, minimizeLookups);
     path.sort(Comparator.comparingInt(Daemon.Path::getInterfacesCount));
     return path;
   }
 
-  private static List<Daemon.Path> getPaths(
+  private static List<Daemon.Path> getPathsInternal(
       ControlServiceGrpc service,
-      LocalTopology localAS,
+      LocalAS localAS,
       long srcIsdAs,
       long dstIsdAs,
       boolean minimizeLookups) {
@@ -184,7 +187,7 @@ public class Segments {
       List<PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
-      LocalTopology localAS) {
+      LocalAS localAS) {
     int code = !segmentsUp.isEmpty() ? 4 : 0;
     code |= !segmentsCore.isEmpty() ? 2 : 0;
     code |= !segmentsDown.isEmpty() ? 1 : 0;
@@ -228,7 +231,7 @@ public class Segments {
   private static void combineSegment(
       PathDuplicationFilter paths,
       List<PathSegment> segments,
-      LocalTopology localAS,
+      LocalAS localAS,
       long srcIsdAs,
       long dstIsdAs) {
     for (PathSegment pathSegment : segments) {
@@ -253,7 +256,7 @@ public class Segments {
       List<PathSegment> segments1,
       long srcIsdAs,
       long dstIsdAs,
-      LocalTopology localAS) {
+      LocalAS localAS) {
     // Map IsdAs to pathSegment
     MultiMap<Long, PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
@@ -272,7 +275,7 @@ public class Segments {
       List<PathSegment> segmentsDown,
       long srcIsdAs,
       long dstIsdAs,
-      LocalTopology localAS) {
+      LocalAS localAS) {
     // Map IsdAs to pathSegment
     MultiMap<Long, PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
     MultiMap<Long, PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
@@ -304,7 +307,7 @@ public class Segments {
       List<PathSegment> segmentsUp,
       PathSegment segCore,
       List<PathSegment> segmentsDown,
-      LocalTopology localAS,
+      LocalAS localAS,
       long dstIA) {
     for (PathSegment segUp : segmentsUp) {
       for (PathSegment segDown : segmentsDown) {
@@ -314,7 +317,7 @@ public class Segments {
   }
 
   private static void buildPath(
-      PathDuplicationFilter paths, LocalTopology localAS, long dstIsdAs, PathSegment... segments) {
+      PathDuplicationFilter paths, LocalAS localAS, long dstIsdAs, PathSegment... segments) {
     Daemon.Path.Builder path = Daemon.Path.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 

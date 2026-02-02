@@ -22,6 +22,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.header.HeaderConstants;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 
 /**
  * DatagramChannel with support for timeout.
@@ -56,7 +58,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   }
 
   private ResponsePath receiveFromTimeoutChannel(
-      ByteBuffer buffer, InternalConstants.HdrTypes expectedHdrType) throws IOException {
+      ByteBuffer buffer, HeaderConstants.HdrTypes expectedHdrType) throws IOException {
     while (true) {
       buffer.clear();
       if (selector.select(timeoutMs) == 0) {
@@ -72,7 +74,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
           InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
           buffer.flip();
           if (validate(buffer)) {
-            InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+            HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
             // From here on we use linear reading using the buffer's position() mechanism
             buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
             // Check for extension headers.
@@ -98,7 +100,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
-      ResponsePath receivePath = receiveFromTimeoutChannel(buffer, InternalConstants.HdrTypes.UDP);
+      ResponsePath receivePath = receiveFromTimeoutChannel(buffer, HeaderConstants.HdrTypes.UDP);
       if (receivePath == null) {
         return null; // non-blocking, nothing available
       }

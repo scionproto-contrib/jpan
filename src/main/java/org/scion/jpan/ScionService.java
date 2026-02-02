@@ -21,10 +21,16 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.bootstrap.DNSHelper;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
+import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.paths.DaemonServiceGrpc;
+import org.scion.jpan.internal.paths.Segments;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +56,7 @@ public class ScionService {
   private static final Object LOCK = new Object();
   private static ScionService defaultService = null;
 
-  private final ScionBootstrapper bootstrapper;
+  private final LocalAS localAS;
   private final ControlServiceGrpc controlService;
   private final DaemonServiceGrpc daemonService;
 
@@ -75,7 +81,7 @@ public class ScionService {
       daemonService = DaemonServiceGrpc.create(addressOrHost);
       controlService = null;
       try {
-        bootstrapper = ScionBootstrapper.createViaDaemon(daemonService);
+        localAS = ScionBootstrapper.fromDaemon(daemonService);
       } catch (RuntimeException e) {
         // If this fails for whatever reason we want to make sure that the channel is closed.
         close();
@@ -84,17 +90,16 @@ public class ScionService {
     } else {
       LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
-        bootstrapper = ScionBootstrapper.createViaDns(addressOrHost);
+        localAS = ScionBootstrapper.fromDns(addressOrHost);
       } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
-        bootstrapper = ScionBootstrapper.createViaBootstrapServerIP(addressOrHost);
+        localAS = ScionBootstrapper.fromBootstrapServerIP(addressOrHost);
       } else if (mode == Mode.BOOTSTRAP_TOPO_FILE) {
-        java.nio.file.Path file = Paths.get(addressOrHost);
-        bootstrapper = ScionBootstrapper.createViaTopoFile(file);
+        localAS = ScionBootstrapper.fromTopoFile(addressOrHost);
       } else {
         throw new UnsupportedOperationException();
       }
       daemonService = null;
-      controlService = ControlServiceGrpc.create(bootstrapper.getLocalTopology());
+      controlService = ControlServiceGrpc.create(localAS);
     }
     shutdownHook = addShutdownHook();
     try {
@@ -336,7 +341,7 @@ public class ScionService {
   }
 
   public long getLocalIsdAs() {
-    return bootstrapper.getLocalTopology().getIsdAs();
+    return localAS.getIsdAs();
   }
 
   /**
@@ -351,7 +356,7 @@ public class ScionService {
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> list =
-        Segments.getPaths(controlService, bootstrapper, srcIsdAs, dstIsdAs, minimizeRequests);
+        Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
     if (LOG.isInfoEnabled()) {
       LOG.info(
           "Path found between {} and {}: {}",
@@ -372,18 +377,18 @@ public class ScionService {
    */
   NatMapping getNatMapping(DatagramChannel channel) {
     List<InetSocketAddress> interfaces =
-        bootstrapper.getLocalTopology().getBorderRouters().stream()
-            .map(LocalTopology.BorderRouter::getInternalAddress)
+        localAS.getBorderRouters().stream()
+            .map(LocalAS.BorderRouter::getInternalAddress)
             .collect(Collectors.toList());
     return NatMapping.createMapping(getLocalIsdAs(), channel, interfaces);
   }
 
-  LocalTopology.DispatcherPortRange getLocalPortRange() {
-    return bootstrapper.getLocalTopology().getPortRange();
+  LocalAS.DispatcherPortRange getLocalPortRange() {
+    return localAS.getPortRange();
   }
 
   InetSocketAddress getBorderRouterAddress(int interfaceID) {
-    return bootstrapper.getLocalTopology().getBorderRouterAddress(interfaceID);
+    return localAS.getBorderRouterAddress(interfaceID);
   }
 
   ControlServiceGrpc getControlServiceConnection() {

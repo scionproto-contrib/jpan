@@ -17,7 +17,7 @@ package org.scion.jpan;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import org.scion.jpan.internal.PathRawParser;
+import org.scion.jpan.internal.header.PathRawParser;
 
 /** Scion utility functions. */
 public class ScionUtil {

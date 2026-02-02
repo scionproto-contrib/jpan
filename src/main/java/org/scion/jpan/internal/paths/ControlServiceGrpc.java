@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.paths;
 
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.slf4j.Logger;
@@ -33,14 +35,14 @@ public class ControlServiceGrpc {
   private final List<ControlService> services = new ArrayList<>();
   private final int deadLineMs;
 
-  public static ControlServiceGrpc create(LocalTopology localAS) {
+  public static ControlServiceGrpc create(LocalAS localAS) {
     return new ControlServiceGrpc(localAS);
   }
 
-  private ControlServiceGrpc(LocalTopology localAS) {
+  private ControlServiceGrpc(LocalAS localAS) {
     this.deadLineMs = Config.getControlPlaneTimeoutMs();
-    for (LocalTopology.ServiceNode node : localAS.getControlServices()) {
-      services.add(new ControlService(node.ipString));
+    for (LocalAS.ServiceNode node : localAS.getControlServices()) {
+      services.add(new ControlService(node.getIpString()));
     }
   }
 

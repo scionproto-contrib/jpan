@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.header;
 
 import java.nio.ByteBuffer;
+import org.scion.jpan.internal.util.ByteUtil;
 
 public class ExtensionHeader {
   // 8 bit
@@ -55,8 +56,8 @@ public class ExtensionHeader {
         + '}';
   }
 
-  public InternalConstants.HdrTypes nextHdr() {
-    return InternalConstants.HdrTypes.parse(nextHdr);
+  public HeaderConstants.HdrTypes nextHdr() {
+    return HeaderConstants.HdrTypes.parse(nextHdr);
   }
 
   public int getExtLenBytes() {

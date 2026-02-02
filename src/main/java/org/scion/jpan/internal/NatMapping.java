@@ -23,6 +23,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.internal.util.ExternalIpDiscovery;
+import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.paths;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.scion.jpan.internal.header.PathRawParserLight;
+import org.scion.jpan.internal.util.MultiMap;
 import org.scion.jpan.proto.daemon.Daemon;
 
 class PathDuplicationFilter {

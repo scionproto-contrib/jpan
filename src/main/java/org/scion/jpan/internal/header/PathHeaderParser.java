@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.header;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import org.scion.jpan.internal.util.ByteUtil;
 
 public class PathHeaderParser {
   private PathHeaderParser() {}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.util;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -22,6 +22,7 @@ import java.nio.channels.DatagramChannel;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.NatMapping;
 
 /**
  * This class provides utility functions to detect the external IP address of a device that is used

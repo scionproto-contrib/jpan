@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.InternalConstants;
+import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.testutil.TestUtil;
 
 /** Class for reading, writing and storing the Common Header and Address Header. */
@@ -137,7 +137,7 @@ public class ScionHeader {
 
   public void write(
       ByteBuffer data, int userPacketLength, int pathHeaderLength, Constants.PathTypes pathType) {
-    int hdrTypeId = InternalConstants.HdrTypes.UDP.code();
+    int hdrTypeId = HeaderConstants.HdrTypes.UDP.code();
     write(data, userPacketLength + 8, pathHeaderLength, pathType, hdrTypeId);
   }
 

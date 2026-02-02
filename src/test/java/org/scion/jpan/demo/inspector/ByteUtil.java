@@ -16,7 +16,7 @@ package org.scion.jpan.demo.inspector;
 
 import java.nio.ByteBuffer;
 
-public class ByteUtil extends org.scion.jpan.internal.ByteUtil {
+public class ByteUtil extends org.scion.jpan.internal.util.ByteUtil {
 
   private ByteUtil() {
     super();

@@ -14,8 +14,8 @@
 
 package org.scion.jpan.testutil;
 
-import static org.scion.jpan.internal.LocalTopology.BorderRouter;
-import static org.scion.jpan.internal.LocalTopology.BorderRouterInterface;
+import static org.scion.jpan.internal.bootstrap.LocalAS.BorderRouter;
+import static org.scion.jpan.internal.bootstrap.LocalAS.BorderRouterInterface;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.LocalTopology;
+import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.crypto.Signed;
@@ -49,7 +49,7 @@ public class Scenario {
   protected static final long ZERO = ScionUtil.parseIA("0-0:0:0");
   private static final Map<String, Scenario> scenarios = new ConcurrentHashMap<>();
   private final Map<Long, String> daemons = new HashMap<>();
-  private final Map<Long, LocalTopology> topologies = new HashMap<>();
+  private final Map<Long, LocalAS> topologies = new HashMap<>();
   private final Map<Long, StaticInfo> staticInfo = new HashMap<>();
   /// isd/as -> ingress -> egress -> hopcount
   private final List<SegmentEntry> segmentDb = new ArrayList<>();
@@ -153,7 +153,7 @@ public class Scenario {
   }
 
   public InetSocketAddress getControlServer(long isdAs) {
-    LocalTopology topo = topologies.get(isdAs);
+    LocalAS topo = topologies.get(isdAs);
     String addr = topo.getControlServerAddress();
     int separate = addr.lastIndexOf(':');
     String ip = addr.substring(0, separate);
@@ -195,7 +195,7 @@ public class Scenario {
 
   private void readAS(Path asPath) {
     Path topoFile = Paths.get(asPath.toString(), "topology.json");
-    LocalTopology topo = LocalTopology.create(readFile(topoFile));
+    LocalAS topo = LocalAS.create(readFile(topoFile), null);
     topologies.put(topo.getIsdAs(), topo);
 
     Path infoFile = Paths.get(asPath.toString(), "staticInfoConfig.json");
@@ -227,12 +227,12 @@ public class Scenario {
   }
 
   private void buildSegments() {
-    List<LocalTopology> cores = new ArrayList<>();
-    topologies.values().stream().filter(LocalTopology::isCoreAs).forEach(cores::add);
-    for (LocalTopology core : cores) {
+    List<LocalAS> cores = new ArrayList<>();
+    topologies.values().stream().filter(LocalAS::isCoreAs).forEach(cores::add);
+    for (LocalAS core : cores) {
       for (BorderRouter br : core.getBorderRouters()) {
         for (BorderRouterInterface brIf : br.getInterfaces()) {
-          LocalTopology nextAs = topologies.get(brIf.getIsdAs());
+          LocalAS nextAs = topologies.get(brIf.getIsdAs());
           // Choose some "random" segment ID
           int segmentId = 10000 + brIf.getId();
           if (nextAs.isCoreAs()) {
@@ -246,7 +246,7 @@ public class Scenario {
   }
 
   private void buildSegment(
-      LocalTopology parent, BorderRouterInterface parentIf, String linkType, int segmentId) {
+      LocalAS parent, BorderRouterInterface parentIf, String linkType, int segmentId) {
     long now = Instant.now().getEpochSecond();
     Seg.SegmentInformation info =
         Seg.SegmentInformation.newBuilder().setSegmentId(segmentId).setTimestamp(now).build();
@@ -259,10 +259,10 @@ public class Scenario {
       Seg.PathSegment.Builder builder,
       String linkType,
       long rootIsdAs,
-      LocalTopology prevAs,
+      LocalAS prevAs,
       int prevIngress,
       BorderRouterInterface parentIf) {
-    LocalTopology local = topologies.get(parentIf.getIsdAs());
+    LocalAS local = topologies.get(parentIf.getIsdAs());
     boolean isCore = BorderRouterInterface.CORE.equals(linkType);
 
     // Build ingoing entry

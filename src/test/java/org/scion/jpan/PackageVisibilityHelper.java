@@ -23,9 +23,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.time.Instant;
 import java.util.List;
-import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.internal.ScionHeaderParser;
+import org.scion.jpan.internal.header.HeaderConstants;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
@@ -35,8 +35,7 @@ import org.scion.jpan.testutil.MockNetwork;
  */
 public class PackageVisibilityHelper {
 
-  public static final String DEBUG_PROPERTY_DNS_MOCK =
-      InternalConstants.DEBUG_PROPERTY_MOCK_DNS_TXT;
+  public static final String DEBUG_PROPERTY_DNS_MOCK = HeaderConstants.DEBUG_PROPERTY_MOCK_DNS_TXT;
 
   public static void setIgnoreEnvironment(boolean flag) {
     Constants.debugIgnoreEnvironment = flag;
@@ -50,7 +49,7 @@ public class PackageVisibilityHelper {
     return ss.getPathListDaemon(srcIsdAs, dstIsdAs);
   }
 
-  public static InternalConstants.HdrTypes getNextHdr(ByteBuffer packet) {
+  public static HeaderConstants.HdrTypes getNextHdr(ByteBuffer packet) {
     return ScionHeaderParser.extractNextHeader(packet);
   }
 

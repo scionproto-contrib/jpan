@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.bootstrap;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -25,14 +25,16 @@ import java.util.*;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.paths.DaemonServiceGrpc;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Parse a topology file into a local topology. */
-public class LocalTopology {
+public class LocalAS {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LocalTopology.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(LocalAS.class.getName());
 
   private final List<ServiceNode> controlServices = new ArrayList<>();
   private final List<ServiceNode> discoveryServices = new ArrayList<>();
@@ -42,19 +44,24 @@ public class LocalTopology {
   private boolean isCoreAs;
   private int localMtu;
   private DispatcherPortRange portRange;
+  private final TrcStore trcStore;
 
-  public static synchronized LocalTopology create(String topologyFile) {
-    LocalTopology topo = new LocalTopology();
+  public static synchronized LocalAS create(String topologyFile, TrcStore trcStore) {
+    LocalAS topo = new LocalAS(trcStore);
     topo.parseTopologyFile(topologyFile);
     topo.initInterfaceIDs();
     return topo;
   }
 
-  public static synchronized LocalTopology create(DaemonServiceGrpc daemonService) {
-    LocalTopology topo = new LocalTopology();
+  public static synchronized LocalAS create(DaemonServiceGrpc daemonService, TrcStore trcStore) {
+    LocalAS topo = new LocalAS(trcStore);
     topo.interrogateDaemon(daemonService);
     topo.initInterfaceIDs();
     return topo;
+  }
+
+  private LocalAS(TrcStore trcStore) {
+    this.trcStore = trcStore;
   }
 
   private static JsonElement safeGet(JsonObject o, String name) {
@@ -345,6 +352,10 @@ public class LocalTopology {
     ServiceNode(String name, String ipString) {
       this.name = name;
       this.ipString = ipString;
+    }
+
+    public String getIpString() {
+      return ipString;
     }
 
     @Override

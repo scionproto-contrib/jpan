@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.bootstrap;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,6 +26,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.paths.DaemonServiceGrpc;
+import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,27 +41,8 @@ public class ScionBootstrapper {
   private static final Logger LOG = LoggerFactory.getLogger(ScionBootstrapper.class.getName());
   private static final String TOPOLOGY_ENDPOINT = "topology";
   private static final Duration httpRequestTimeout = Duration.of(2, ChronoUnit.SECONDS);
-  private final String topologyResource;
-  private final LocalTopology localAS;
-  private final GlobalTopology world;
 
-  protected ScionBootstrapper(String topologyServiceAddress) {
-    this.topologyResource = IPHelper.ensurePortOrDefault(topologyServiceAddress, 8041);
-    this.localAS = initLocal();
-    this.world = initGlobal();
-  }
-
-  protected ScionBootstrapper(java.nio.file.Path file) {
-    this.topologyResource = file.toString();
-    this.localAS = this.init(file);
-    this.world = GlobalTopology.createEmpty();
-  }
-
-  protected ScionBootstrapper(DaemonServiceGrpc daemonService) {
-    this.topologyResource = null;
-    this.localAS = LocalTopology.create(daemonService);
-    this.world = GlobalTopology.createEmpty();
-  }
+  private ScionBootstrapper() {}
 
   /**
    * Returns the default instance of the ScionService. The default instance is connected to the
@@ -67,51 +50,33 @@ public class ScionBootstrapper {
    *
    * @return default instance
    */
-  public static synchronized ScionBootstrapper createViaDns(String host) {
-    return new ScionBootstrapper(bootstrapViaDNS(host));
-  }
-
-  public static synchronized ScionBootstrapper createViaBootstrapServerIP(String hostAndPort) {
-    return new ScionBootstrapper(hostAndPort);
-  }
-
-  public static synchronized ScionBootstrapper createViaTopoFile(java.nio.file.Path file) {
-    return new ScionBootstrapper(file);
-  }
-
-  public static synchronized ScionBootstrapper createViaDaemon(DaemonServiceGrpc daemonService) {
-    return new ScionBootstrapper(daemonService);
-  }
-
-  public LocalTopology getLocalTopology() {
-    return localAS;
-  }
-
-  public GlobalTopology getGlobalTopology() {
-    return world;
-  }
-
-  private static String bootstrapViaDNS(String hostName) {
-    InetSocketAddress addr = DNSHelper.getScionDiscoveryAddress(hostName, null);
-    if (addr == null) {
+  public static synchronized LocalAS fromDns(String hostName) {
+    InetSocketAddress address = DNSHelper.getScionDiscoveryAddress(hostName, null);
+    if (address == null) {
       throw new ScionRuntimeException("No valid DNS NAPTR or SOA entry found for: " + hostName);
     }
-    return IPHelper.toString(addr);
+    return fromBootstrapServerIP(IPHelper.toString(address));
   }
 
-  private LocalTopology initLocal() {
-    return LocalTopology.create(fetchFile(TOPOLOGY_ENDPOINT));
+  public static synchronized LocalAS fromBootstrapServerIP(String topoHostAndPort) {
+    String topoServer = IPHelper.ensurePortOrDefault(topoHostAndPort, 8041);
+    return LocalAS.create(fetchFile(topoServer, TOPOLOGY_ENDPOINT), TrcStore.create(topoServer));
   }
 
-  private GlobalTopology initGlobal() {
-    return GlobalTopology.create(this);
+  public static synchronized LocalAS fromTopoFile(String fileName) {
+    java.nio.file.Path file = Paths.get(fileName);
+    return readTopoFile(file);
   }
 
-  private LocalTopology init(java.nio.file.Path file) {
+  public static synchronized LocalAS fromDaemon(DaemonServiceGrpc daemonService) {
+    return LocalAS.create(daemonService, TrcStore.createEmpty());
+  }
+
+  private static LocalAS readTopoFile(java.nio.file.Path file) {
     try {
       if (!Files.exists(file)) {
         // fallback, try resource folder
-        ClassLoader classLoader = getClass().getClassLoader();
+        ClassLoader classLoader = ScionBootstrapper.class.getClassLoader();
         URL resource = classLoader.getResource(file.toString());
         if (resource != null) {
           file = Paths.get(resource.toURI());
@@ -127,21 +92,14 @@ public class ScionBootstrapper {
     } catch (IOException e) {
       throw new ScionRuntimeException("Error reading topology file: " + file.toAbsolutePath(), e);
     }
-    LocalTopology topo = LocalTopology.create(contentBuilder.toString());
+    LocalAS topo = LocalAS.create(contentBuilder.toString(), TrcStore.createEmpty());
     if (topo.getControlServices().isEmpty()) {
       throw new ScionRuntimeException("No control service found in topology file: " + file);
     }
     return topo;
   }
 
-  public void refreshTopology() {
-    // TODO check timeout from NAPTR record
-    // TODO verify local DNS?? How?
-    // init();
-    throw new UnsupportedOperationException();
-  }
-
-  public String fetchFile(String resource) {
+  public static String fetchFile(String topologyResource, String resource) {
     try {
       LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
       URI uri = new URI("http://" + topologyResource + "/" + resource);

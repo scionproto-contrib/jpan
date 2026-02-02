@@ -27,6 +27,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.header.HeaderConstants;
+import org.scion.jpan.internal.header.PathHeaderParser;
+import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.util.ByteUtil;
 
 public class ScmpSenderAsync implements AutoCloseable {
   private int timeOutMs = 1000;
@@ -228,8 +233,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         // EchoHeader = 8 + data
         int len = 8 + request.getData().length;
         ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
-        buildHeader(
-            buffer, request.getPath(), len, InternalConstants.HdrTypes.SCMP.code(), srcPort);
+        buildHeader(buffer, request.getPath(), len, HeaderConstants.HdrTypes.SCMP.code(), srcPort);
         int sn = request.getSequenceNumber();
         ScmpParser.buildScmpPing(buffer, Scmp.Type.INFO_128, srcPort.get(), sn, request.getData());
         buffer.flip();
@@ -250,7 +254,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         // TracerouteHeader = 24
         int len = 24;
         ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
-        buildHeader(buffer, path, len, InternalConstants.HdrTypes.SCMP.code(), srcPort);
+        buildHeader(buffer, path, len, HeaderConstants.HdrTypes.SCMP.code(), srcPort);
         int interfaceNumber = request.getSequenceNumber();
         ScmpParser.buildScmpTraceroute(buffer, Scmp.Type.INFO_130, srcPort.get(), interfaceNumber);
         buffer.flip();
@@ -297,7 +301,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
         buffer.flip();
         if (validate(buffer)) {
-          InternalConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+          HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
           ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
           // From here on we use linear reading using the buffer's position() mechanism
           buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
@@ -306,7 +310,7 @@ public class ScmpSenderAsync implements AutoCloseable {
           // wrapped in extensions headers.
           hdrType = receiveExtensionHeader(buffer, hdrType);
 
-          if (hdrType != InternalConstants.HdrTypes.SCMP) {
+          if (hdrType != HeaderConstants.HdrTypes.SCMP) {
             return; // drop
           }
           handleIncomingScmp(buffer, receivePath);

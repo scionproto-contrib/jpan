@@ -33,10 +33,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
-import org.scion.jpan.internal.ExternalIpDiscovery;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
-import org.scion.jpan.internal.Util;
+import org.scion.jpan.internal.util.ExternalIpDiscovery;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -44,6 +43,7 @@ import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongChannelHelper;
+import org.scion.jpan.testutil.TestUtil;
 
 class DatagramChannelApiTest {
 
@@ -593,7 +593,7 @@ class DatagramChannelApiTest {
       assertNull(channel.getConnectionPath());
 
       // send should NOT set a path
-      if (Util.getJavaMajorVersion() >= 14) {
+      if (TestUtil.getJavaMajorVersion() >= 14) {
         // This fails because of disconnect(), see https://bugs.openjdk.org/browse/JDK-8231880
         channel.send(buffer, path);
         assertNull(channel.getConnectionPath());
