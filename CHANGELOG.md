@@ -147,6 +147,11 @@ TODO
 - NAT keepalive uses non-daemon timer
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 
+### Changes
+
+- Refactor bootstrapping and AS info
+  [#219](https://github.com/scionproto-contrib/jpan/pull/219)
+
 ### Removed
 
 - Removed some deprecated methods.

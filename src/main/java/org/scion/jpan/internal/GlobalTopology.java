@@ -33,17 +33,17 @@ public class GlobalTopology {
    */
   private final boolean isEmpty;
 
-  private GlobalTopology(ScionBootstrapper server) {
-    if (server == null) {
+  private GlobalTopology(String topologyServer) {
+    if (topologyServer == null) {
       this.isEmpty = true;
     } else {
       this.isEmpty = false;
-      getTrcFiles(server);
+      getTrcFiles(topologyServer);
     }
   }
 
-  public static synchronized GlobalTopology create(ScionBootstrapper server) {
-    return new GlobalTopology(server);
+  public static synchronized GlobalTopology create(String topologyResource) {
+    return new GlobalTopology(topologyResource);
   }
 
   public static GlobalTopology createEmpty() {
@@ -76,13 +76,13 @@ public class GlobalTopology {
     return Optional.of(false);
   }
 
-  private void getTrcFiles(ScionBootstrapper server) {
-    String filesString = server.fetchFile("trcs");
+  private void getTrcFiles(String topologyServer) {
+    String filesString = ScionBootstrapper.fetchFile(topologyServer, "trcs");
     parseTrcFiles(filesString);
 
     for (Isd isd : world.values()) {
       String fileName = "isd" + isd.isd + "-b" + isd.baseNumber + "-s" + isd.serialNumber;
-      String file = server.fetchFile("trcs/" + fileName);
+      String file = ScionBootstrapper.fetchFile(topologyServer, "trcs/" + fileName);
       parseTrcFile(file, isd);
     }
   }

@@ -43,22 +43,10 @@ public class ScionBootstrapper {
   private final LocalTopology localAS;
   private final GlobalTopology world;
 
-  protected ScionBootstrapper(String topologyServiceAddress) {
-    this.topologyResource = IPHelper.ensurePortOrDefault(topologyServiceAddress, 8041);
-    this.localAS = initLocal();
-    this.world = initGlobal();
-  }
-
-  protected ScionBootstrapper(java.nio.file.Path file) {
-    this.topologyResource = file.toString();
-    this.localAS = this.init(file);
-    this.world = GlobalTopology.createEmpty();
-  }
-
-  protected ScionBootstrapper(DaemonServiceGrpc daemonService) {
-    this.topologyResource = null;
-    this.localAS = LocalTopology.create(daemonService);
-    this.world = GlobalTopology.createEmpty();
+  protected ScionBootstrapper(String topology, LocalTopology local, GlobalTopology global) {
+    this.topologyResource = topology;
+    this.localAS = local;
+    this.world = global;
   }
 
   /**
@@ -68,19 +56,23 @@ public class ScionBootstrapper {
    * @return default instance
    */
   public static synchronized ScionBootstrapper createViaDns(String host) {
-    return new ScionBootstrapper(bootstrapViaDNS(host));
+    return createViaBootstrapServerIP(bootstrapViaDNS(host));
   }
 
-  public static synchronized ScionBootstrapper createViaBootstrapServerIP(String hostAndPort) {
-    return new ScionBootstrapper(hostAndPort);
+  public static synchronized ScionBootstrapper createViaBootstrapServerIP(String topoHostAndPort) {
+    String topoServer = IPHelper.ensurePortOrDefault(topoHostAndPort, 8041);
+    LocalTopology localAS = LocalTopology.create(fetchFile(topoServer, TOPOLOGY_ENDPOINT));
+    return new ScionBootstrapper(topoServer, localAS, GlobalTopology.create(topoServer));
   }
 
   public static synchronized ScionBootstrapper createViaTopoFile(java.nio.file.Path file) {
-    return new ScionBootstrapper(file);
+    LocalTopology localAS = readTopoFile(file);
+    return new ScionBootstrapper(file.toString(), localAS, GlobalTopology.createEmpty());
   }
 
   public static synchronized ScionBootstrapper createViaDaemon(DaemonServiceGrpc daemonService) {
-    return new ScionBootstrapper(daemonService);
+    LocalTopology localAS = LocalTopology.create(daemonService);
+    return new ScionBootstrapper(null, localAS, GlobalTopology.createEmpty());
   }
 
   public LocalTopology getLocalTopology() {
@@ -99,19 +91,11 @@ public class ScionBootstrapper {
     return IPHelper.toString(addr);
   }
 
-  private LocalTopology initLocal() {
-    return LocalTopology.create(fetchFile(TOPOLOGY_ENDPOINT));
-  }
-
-  private GlobalTopology initGlobal() {
-    return GlobalTopology.create(this);
-  }
-
-  private LocalTopology init(java.nio.file.Path file) {
+  private static LocalTopology readTopoFile(java.nio.file.Path file) {
     try {
       if (!Files.exists(file)) {
         // fallback, try resource folder
-        ClassLoader classLoader = getClass().getClassLoader();
+        ClassLoader classLoader = ScionBootstrapper.class.getClassLoader();
         URL resource = classLoader.getResource(file.toString());
         if (resource != null) {
           file = Paths.get(resource.toURI());
@@ -141,7 +125,7 @@ public class ScionBootstrapper {
     throw new UnsupportedOperationException();
   }
 
-  public String fetchFile(String resource) {
+  public static String fetchFile(String topologyResource, String resource) {
     try {
       LOG.info("Fetching resource from bootstrap server: {} {}", topologyResource, resource);
       URI uri = new URI("http://" + topologyResource + "/" + resource);
