@@ -149,7 +149,7 @@ TODO
 
 ### Changes
 
-- Refactor bootstrapping and AS info
+- Refactor bootstrapping, AS info, and rearrange internal classes.
   [#219](https://github.com/scionproto-contrib/jpan/pull/219)
 
 ### Removed
