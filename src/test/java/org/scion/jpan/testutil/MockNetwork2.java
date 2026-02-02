@@ -27,6 +27,7 @@ public class MockNetwork2 implements AutoCloseable {
   public static final String AS_HOST = "my-as-host-test.org";
   private final MockBootstrapServer topoServer;
   private final List<MockControlServer> controlServices = new ArrayList<>();
+  private final MockPathService pathService;
 
   public enum Topology {
     DEFAULT("topologies/default/", ScenarioInitializer::addResponsesScionprotoDefault),
@@ -62,6 +63,7 @@ public class MockNetwork2 implements AutoCloseable {
     for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
       controlServices.add(MockControlServer.start(csAddress.getPort()));
     }
+    pathService = MockPathService.start(MockPathService.DEFAULT_PORT);
     String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
 
@@ -70,6 +72,7 @@ public class MockNetwork2 implements AutoCloseable {
     for (MockControlServer controlService : controlServices) {
       controlService.syncSegmentDatabaseFrom(controlServices.get(0));
     }
+    pathService.syncSegmentDatabaseFrom(controlServices.get(0));
   }
 
   public void reset() {
@@ -99,5 +102,9 @@ public class MockNetwork2 implements AutoCloseable {
 
   public List<MockControlServer> getControlServers() {
     return Collections.unmodifiableList(controlServices);
+  }
+
+  public MockPathService getPathService() {
+    return pathService;
   }
 }

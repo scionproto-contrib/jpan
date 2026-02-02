@@ -106,6 +106,10 @@ public class MockControlServer {
     this.controlServer.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
   }
 
+  public Map<String, Seg.SegmentsResponse> getSegments() {
+    return controlServer.responses;
+  }
+
   public void clearSegments() {
     this.controlServer.clearSegments();
   }

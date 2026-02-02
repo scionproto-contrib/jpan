@@ -58,6 +58,7 @@ public class ScionService {
 
   private final LocalAS localAS;
   private final ControlServiceGrpc controlService;
+  private final PathServiceRpc pathService;
   private final DaemonServiceGrpc daemonService;
 
   private final boolean minimizeRequests;
@@ -67,7 +68,8 @@ public class ScionService {
     DAEMON,
     BOOTSTRAP_SERVER_IP,
     BOOTSTRAP_VIA_DNS,
-    BOOTSTRAP_TOPO_FILE
+    BOOTSTRAP_TOPO_FILE,
+    BOOTSTRAP_PATH_SERVICE
   }
 
   protected ScionService(String addressOrHost, Mode mode) {
@@ -77,9 +79,11 @@ public class ScionService {
             Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
             Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     if (mode == Mode.DAEMON) {
+      LOG.info("Bootstrapping with daemon service: {}", addressOrHost);
       addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
       daemonService = DaemonServiceGrpc.create(addressOrHost);
       controlService = null;
+      pathService = null;
       try {
         localAS = ScionBootstrapper.fromDaemon(daemonService);
       } catch (RuntimeException e) {
@@ -87,6 +91,12 @@ public class ScionService {
         close();
         throw new ScionRuntimeException("Could not connect to daemon at: " + addressOrHost, e);
       }
+    } else if (mode == Mode.BOOTSTRAP_PATH_SERVICE) {
+      LOG.info("Bootstrapping with path service: {}", addressOrHost);
+      bootstrapper = ScionBootstrapper.createViaPathService(addressOrHost);
+      daemonService = null;
+      controlService = null;
+      pathService = PathServiceRpc.create(bootstrapper.getLocalTopology());
     } else {
       LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
@@ -100,6 +110,7 @@ public class ScionService {
       }
       daemonService = null;
       controlService = ControlServiceGrpc.create(localAS);
+      pathService = null;
     }
     shutdownHook = addShutdownHook();
     try {
@@ -144,6 +155,11 @@ public class ScionService {
       if (fileName != null) {
         defaultService = new ScionService(fileName, Mode.BOOTSTRAP_TOPO_FILE);
         return defaultService;
+      }
+
+      String pathService = Config.getPathService();
+      if (pathService != null) {
+        defaultService = new ScionService(pathService, Mode.BOOTSTRAP_PATH_SERVICE);
       }
 
       String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);

@@ -41,7 +41,6 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
@@ -51,6 +50,7 @@ import static org.scion.jpan.testutil.MockNetwork.barrier;
 
 public class MockPathService {
 
+  public static final int DEFAULT_PORT = 48080;
   private static final Logger logger = LoggerFactory.getLogger(MockPathService.class.getName());
   private final AtomicInteger callCount = new AtomicInteger();
   private final InetSocketAddress address;
@@ -146,8 +146,8 @@ public class MockPathService {
     unblock();
   }
 
-  public void syncSegmentDatabaseFrom(MockPathService referenceCS) {
-    pathService.responses.putAll(referenceCS.pathService.responses);
+  public void syncSegmentDatabaseFrom(MockControlServer referenceCS) {
+    pathService.responses.putAll(referenceCS.getSegments());
   }
 
   public void reportError(Status errorToReport) {

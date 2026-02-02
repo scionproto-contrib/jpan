@@ -35,10 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockDaemon;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.TestUtil;
+import org.scion.jpan.testutil.*;
 
 class ScionTest {
 
@@ -79,8 +76,34 @@ class ScionTest {
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
     Scion.closeDefault();
     MockDaemon.closeDefault();
+  }
+
+  @Test
+  void defaultService_pathService() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+
+    // Start daemon just to ensure we are not using it
+    MockDaemon.createAndStartDefault();
+
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, "[::1]:" + MockPathService.DEFAULT_PORT);
+    System.setProperty(Constants.PROPERTY_DAEMON, "[::1]:" + DEFAULT_PORT);
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      // Remove TOPO property that is installed by MockNetwork2
+      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+
+      // TODO also test with daemon available! E.g. start MockDaemon directly?
+      //    TODO remove, MockDaemon is anyway not called...
+      assertEquals(0, MockDaemon.getAndResetCallCount());
+      assertEquals(0, nw.getControlServer().getAndResetCallCount());
+      assertEquals(1, nw.getPathService().getAndResetCallCount());
+    }
   }
 
   @Test

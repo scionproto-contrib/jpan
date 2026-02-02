@@ -60,6 +60,14 @@ public class LocalAS {
     return topo;
   }
 
+  public static LocalAS createForPathService(String pathService) {
+    LocalAS topo = new LocalAS();
+    // topo.interrogatePathService(pathService);
+    if (true) throw new UnsupportedOperationException(pathService);
+    topo.initInterfaceIDs();
+    return topo;
+  }
+
   private LocalAS(TrcStore trcStore) {
     this.trcStore = trcStore;
   }

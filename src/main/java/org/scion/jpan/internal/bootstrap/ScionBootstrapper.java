@@ -72,6 +72,12 @@ public class ScionBootstrapper {
     return LocalAS.create(daemonService, TrcStore.createEmpty());
   }
 
+  public static ScionBootstrapper createViaPathService(String addressOrHost) {
+    LocalAS localAS = LocalAS.createForPathService(addressOrHost);
+    // return new ScionBootstrapper(null, localAS, GlobalTopology.createEmpty());
+    throw new UnsupportedOperationException();
+  }
+
   private static LocalAS readTopoFile(java.nio.file.Path file) {
     try {
       if (!Files.exists(file)) {
