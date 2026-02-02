@@ -22,6 +22,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 
 /**
  * DatagramChannel with support for timeout.

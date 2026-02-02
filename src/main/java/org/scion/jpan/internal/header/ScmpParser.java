@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.header;
 
 import java.nio.ByteBuffer;
 import org.scion.jpan.ResponsePath;
 import org.scion.jpan.Scmp;
+import org.scion.jpan.internal.ByteUtil;
+import org.scion.jpan.internal.InternalConstants;
 
 public class ScmpParser {
 

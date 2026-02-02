@@ -25,7 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import org.scion.jpan.internal.InternalConstants;
 import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.internal.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;

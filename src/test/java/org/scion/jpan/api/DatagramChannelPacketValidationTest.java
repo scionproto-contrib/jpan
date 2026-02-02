@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketOptions;
-import org.scion.jpan.internal.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;

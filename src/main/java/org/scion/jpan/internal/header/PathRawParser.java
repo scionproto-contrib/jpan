@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.header;
 
 import static org.scion.jpan.internal.ByteUtil.readBoolean;
 import static org.scion.jpan.internal.ByteUtil.readInt;

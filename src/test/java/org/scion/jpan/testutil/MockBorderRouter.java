@@ -27,8 +27,8 @@ import org.scion.jpan.Scmp;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.internal.ByteUtil;
-import org.scion.jpan.internal.ScionHeaderParser;
-import org.scion.jpan.internal.ScmpParser;
+import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

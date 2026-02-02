@@ -27,6 +27,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.header.ExtensionHeader;
+import org.scion.jpan.internal.header.PathRawParserLight;
+import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScmpParser;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 

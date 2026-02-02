@@ -25,6 +25,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScmpParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

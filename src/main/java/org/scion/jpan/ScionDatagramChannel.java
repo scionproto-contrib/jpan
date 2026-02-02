@@ -25,6 +25,7 @@ import java.nio.channels.NotYetConnectedException;
 import java.time.Instant;
 import java.util.WeakHashMap;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.header.ScionHeaderParser;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {

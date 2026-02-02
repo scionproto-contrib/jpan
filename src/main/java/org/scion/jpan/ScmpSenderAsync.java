@@ -27,6 +27,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.header.ScmpParser;
 
 public class ScmpSenderAsync implements AutoCloseable {
   private int timeOutMs = 1000;
