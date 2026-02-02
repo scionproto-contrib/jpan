@@ -15,6 +15,7 @@
 package org.scion.jpan.internal;
 
 import org.scion.jpan.*;
+import org.scion.jpan.internal.bootstrap.DNSHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

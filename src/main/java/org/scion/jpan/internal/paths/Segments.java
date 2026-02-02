@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.paths;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -22,6 +22,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.ByteUtil;
+import org.scion.jpan.internal.MultiMap;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;

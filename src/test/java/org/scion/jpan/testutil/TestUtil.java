@@ -143,4 +143,17 @@ public class TestUtil {
       throw new RuntimeException(e);
     }
   }
+
+  public static int getJavaMajorVersion() {
+    String v = System.getProperty("java.version");
+    if (v.startsWith("1.")) {
+      v = v.substring(2, 3);
+    } else {
+      int indexOfDot = v.indexOf(".");
+      if (indexOfDot >= 0) {
+        v = v.substring(0, indexOfDot);
+      }
+    }
+    return Integer.parseInt(v);
+  }
 }

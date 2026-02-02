@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.paths;
 
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.Config;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;

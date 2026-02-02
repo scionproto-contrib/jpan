@@ -26,9 +26,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.internal.DNSHelper;
-import org.scion.jpan.internal.DaemonServiceGrpc;
 import org.scion.jpan.internal.IPHelper;
+import org.scion.jpan.internal.paths.DaemonServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
