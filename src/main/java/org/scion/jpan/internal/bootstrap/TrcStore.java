@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.internal.bootstrap;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -23,7 +23,7 @@ import java.util.*;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 
-public class GlobalTopology {
+public class TrcStore {
 
   private final Map<Integer, Isd> world = new HashMap<>();
 
@@ -33,7 +33,7 @@ public class GlobalTopology {
    */
   private final boolean isEmpty;
 
-  private GlobalTopology(String topologyServer) {
+  private TrcStore(String topologyServer) {
     if (topologyServer == null) {
       this.isEmpty = true;
     } else {
@@ -42,12 +42,12 @@ public class GlobalTopology {
     }
   }
 
-  public static synchronized GlobalTopology create(String topologyResource) {
-    return new GlobalTopology(topologyResource);
+  public static synchronized TrcStore create(String topologyResource) {
+    return new TrcStore(topologyResource);
   }
 
-  public static GlobalTopology createEmpty() {
-    return new GlobalTopology(null);
+  public static TrcStore createEmpty() {
+    return new TrcStore(null);
   }
 
   private static JsonElement safeGet(JsonObject o, String name) {

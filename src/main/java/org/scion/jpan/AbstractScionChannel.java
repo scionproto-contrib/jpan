@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
+import org.scion.jpan.internal.bootstrap.LocalAS;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
@@ -162,7 +163,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   protected void ensureBound() throws IOException {
     synchronized (stateLock) {
       if (localAddress == null) {
-        LocalTopology.DispatcherPortRange ports = getService().getLocalPortRange();
+        LocalAS.DispatcherPortRange ports = getService().getLocalPortRange();
         if (ports.hasPortRange()) {
           // This is a bit ugly, we iterate through all ports to find a free one.
           int min = ports.getPortMin();
