@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
@@ -90,8 +89,7 @@ public class ScionService {
       } else if (mode == Mode.BOOTSTRAP_SERVER_IP) {
         localAS = ScionBootstrapper.fromBootstrapServerIP(addressOrHost);
       } else if (mode == Mode.BOOTSTRAP_TOPO_FILE) {
-        java.nio.file.Path file = Paths.get(addressOrHost);
-        localAS = ScionBootstrapper.fromTopoFile(file);
+        localAS = ScionBootstrapper.fromTopoFile(addressOrHost);
       } else {
         throw new UnsupportedOperationException();
       }

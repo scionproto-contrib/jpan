@@ -16,7 +16,6 @@ package org.scion.jpan;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.nio.file.Paths;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.internal.bootstrap.LocalAS;
@@ -32,8 +31,7 @@ class ScionBootstrapperTest {
 
   @Test
   void testTiny110() {
-    java.nio.file.Path topoFile = Paths.get("topologies/tiny4/ASff00_0_110/topology.json");
-    LocalAS topo = ScionBootstrapper.fromTopoFile(topoFile);
+    LocalAS topo = ScionBootstrapper.fromTopoFile("topologies/tiny4/ASff00_0_110/topology.json");
 
     assertEquals(ScionUtil.parseIA("1-ff00:0:110"), topo.getIsdAs());
     assertEquals("127.0.0.11:31000", topo.getControlServerAddress());

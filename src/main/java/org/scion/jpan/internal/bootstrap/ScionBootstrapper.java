@@ -64,7 +64,8 @@ public class ScionBootstrapper {
     return LocalAS.create(fetchFile(topoServer, TOPOLOGY_ENDPOINT), TrcStore.create(topoServer));
   }
 
-  public static synchronized LocalAS fromTopoFile(java.nio.file.Path file) {
+  public static synchronized LocalAS fromTopoFile(String fileName) {
+    java.nio.file.Path file = Paths.get(fileName);
     return readTopoFile(file);
   }
 
