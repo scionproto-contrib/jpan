@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
 import org.slf4j.Logger;
@@ -33,14 +35,14 @@ public class PathServiceRpc {
   private final List<ControlService> services = new ArrayList<>();
   private final int deadLineMs;
 
-  public static PathServiceRpc create(LocalTopology localAS) {
+  public static PathServiceRpc create(LocalAS localAS) {
     return new PathServiceRpc(localAS);
   }
 
-  private PathServiceRpc(LocalTopology localAS) {
+  private PathServiceRpc(LocalAS localAS) {
     this.deadLineMs = Config.getControlPlaneTimeoutMs();
-    for (LocalTopology.ServiceNode node : localAS.getControlServices()) {
-      services.add(new ControlService(node.ipString));
+    for (LocalAS.ServiceNode node : localAS.getControlServices()) {
+      services.add(new ControlService(node.getIpString()));
     }
   }
 

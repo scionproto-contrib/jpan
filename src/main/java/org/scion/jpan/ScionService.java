@@ -30,6 +30,7 @@ import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.DaemonServiceGrpc;
 import org.scion.jpan.internal.paths.Segments;
+import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
@@ -93,10 +94,10 @@ public class ScionService {
       }
     } else if (mode == Mode.BOOTSTRAP_PATH_SERVICE) {
       LOG.info("Bootstrapping with path service: {}", addressOrHost);
-      bootstrapper = ScionBootstrapper.createViaPathService(addressOrHost);
+      localAS = ScionBootstrapper.fromPathService(addressOrHost);
       daemonService = null;
       controlService = null;
-      pathService = PathServiceRpc.create(bootstrapper.getLocalTopology());
+      pathService = PathServiceRpc.create(localAS);
     } else {
       LOG.info("Bootstrapping with control service: mode={} target={}", mode.name(), addressOrHost);
       if (mode == Mode.BOOTSTRAP_VIA_DNS) {
