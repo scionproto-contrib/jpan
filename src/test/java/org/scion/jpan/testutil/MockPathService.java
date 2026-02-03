@@ -15,29 +15,20 @@
 package org.scion.jpan.testutil;
 
 import com.google.protobuf.ByteString;
+import fi.iki.elonen.NanoHTTPD;
 import io.grpc.*;
-
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
+import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import io.grpc.okhttp.OkHttpServerBuilder;
-import io.grpc.okhttp.OkHttpServerProvider;
-import okhttp3.*;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
@@ -47,67 +38,44 @@ import org.slf4j.LoggerFactory;
 public class MockPathService {
 
   public static final int DEFAULT_PORT = 48080;
+  private static final String MIME = "application/proto";
   private static final Logger logger = LoggerFactory.getLogger(MockPathService.class.getName());
   private final AtomicInteger callCount = new AtomicInteger();
-  private final InetSocketAddress address;
   private PathServiceImpl pathService;
-  private ExecutorService service;
   private final Semaphore block = new Semaphore(1);
   private final AtomicReference<Status> errorToReport = new AtomicReference<>();
-  private static final CountDownLatch barrier = new CountDownLatch(1);
 
-  private MockPathService(InetSocketAddress address) {
-    this.address = address;
-  }
+  private MockPathService() {}
 
   public static MockPathService start(int port) {
-    InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
-    return new MockPathService(addr).startInternal();
+    return new MockPathService().startInternal(port);
   }
 
   public int getAndResetCallCount() {
     return callCount.getAndSet(0);
   }
 
-  private MockPathService startInternal() {
-    pathService = new MockPathService.PathServiceImpl();
-    service = Executors.newFixedThreadPool(2);
-    service.execute(pathService);
+  private MockPathService startInternal(int port) {
     try {
-      barrier.await();
-    } catch (InterruptedException e) {
+      pathService = new MockPathService.PathServiceImpl(port);
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    logger.info("Server started, listening on {}", address);
 
-    Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread(
-                () -> {
-                  try {
-                    service.shutdown();
-                    service.awaitTermination(5, TimeUnit.SECONDS);
-                  } catch (InterruptedException e) {
-                    e.printStackTrace(System.err);
-                  }
-                }));
+    // Wait for server to start
+    while (!pathService.wasStarted()) {
+      TestUtil.sleep(1);
+    }
+
+    logger.info("Path service started, listening on port {}", port);
+
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> pathService.stop()));
     return this;
   }
 
   public void close() {
-    pathService.shutdown();
-    try {
-      if (!service.awaitTermination(5, TimeUnit.SECONDS)) {
-        service.shutdownNow();
-        if (!service.awaitTermination(5, TimeUnit.SECONDS)) {
-          logger.error("Path service did not terminate");
-        }
-      }
-      logger.info("Path service shut down");
-    } catch (InterruptedException ie) {
-      service.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
+    pathService.stop();
+    logger.info("Path service shut down");
   }
 
   public void addResponse(
@@ -120,7 +88,7 @@ public class MockPathService {
   }
 
   public int getPort() {
-    return address.getPort();
+    return pathService.getListeningPort();
   }
 
   public void block() {
@@ -148,197 +116,78 @@ public class MockPathService {
     this.errorToReport.set(errorToReport);
   }
 
-  private class PathServiceImpl implements Runnable {
+  private class PathServiceImpl extends NanoHTTPD {
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
     final long start = Instant.now().getEpochSecond();
 
-    PathServiceImpl() {}
+    public PathServiceImpl(int port) throws IOException {
+      super(port);
+      start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+    }
 
     @Override
-    public void run() {
-      System.out.println("PS started");
-      // TODO should we use the connectRPC library to create a server for UNARY calls (using
-      //     a protofile service entry)?
+    public Response serve(IHTTPSession session) {
+      logger.info("Path service started on port {}", super.getListeningPort());
+      if (session.getMethod() != Method.POST) {
+        return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME, "POST expected");
+      }
 
-      try (ServerSocketChannel chnLocal = ServerSocketChannel.open()) {
-        // Explicit binding to "localhost" to avoid automatic binding to IPv6 which is not
-        // supported by GitHub CI (https://github.com/actions/runner-images/issues/668).
-        //InetSocketAddress local =
-          //  new InetSocketAddress(InetAddress.getLoopbackAddress(), address.getPort());
-        chnLocal.bind(address);
-        chnLocal.configureBlocking(true);
-        ByteBuffer buffer = ByteBuffer.allocate(66000);
-        logger.info("Topology server started on port {}", chnLocal.getLocalAddress());
-        barrier.countDown();
-        while (true) {
-          System.out.println("PS waiting: " + address);
-          SocketChannel ss = chnLocal.accept();
-          ss.read(buffer);
-          System.out.println("PS received");
-          SocketAddress srcAddress = ss.getRemoteAddress();
+      InputStream inputStream = session.getInputStream();
+      String resource = session.getUri();
+      String listService = "/scion.endhost.v1.PathService/ListPaths";
+      if (listService.equals(resource)) {
+        logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
+        callCount.incrementAndGet();
 
-          buffer.flip();
-
-          // Expected:
-          //   "GET /topology HTTP/1.1"
-          //   "GET /trcs HTTP/1.1"
-          String request = Charset.defaultCharset().decode(buffer).toString();
-          String resource = request.substring(request.indexOf(" ") + 1, request.indexOf(" HTTP"));
-          String listService = "/scion.endhost.v1.PathService/ListPaths";
-          if (listService.equals(resource)) {
-            System.out.println("PS received ListPaths");
-            logger.info("Bootstrap server serves file to {}", srcAddress);
-            callCount.incrementAndGet();
-
-            System.out.println("Request: " + request);
-            System.out.println("Request: " + request.length());
-
-
-            Path.ListSegmentsResponse protoResponse;
-            String protoError = null;
-
-            int posLen = request.indexOf("Content-Length: ") + 16;
-            // int posLenEnd = request.indexOf("Host:", posLen) - 2;
-            int posLenEnd = request.indexOf("\r", posLen);
-            String sub = request.substring(posLen, posLenEnd);
-            System.out.println("----'" + sub  + "'----");
-            int len = Integer.parseInt(request.substring(posLen, posLenEnd));
-            System.out.println("len = " + len);
-
-//            OkHttpServerProvider sp = new OkHttpServerProvider();
-//            OkHttpServerBuilder sb = OkHttpServerBuilder.forPort(48080);
-//            sb.
-//            Server server = sb.build();
-//            server.start();
-//
-//            Request hr = new Request.Builder().
-
-            buffer.position(buffer.limit() - len);
-            Path.ListSegmentsRequest r = Path.ListSegmentsRequest.parseFrom(buffer);
-            System.out.println("r=" + r);
-            System.out.println("r=" + r);
-
-            long srcIA = r.getSrcIsdAs();
-            long dstIA = r.getDstIsdAs();
-
-            logger.info("Segment request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
-            callCount.incrementAndGet();
-            awaitBlock(); // for testing timeouts
-
-            if (responses.isEmpty()) {
-              protoResponse = defaultResponse(srcIA, dstIA);
-            } else {
-              protoResponse = toResponse(srcIA, dstIA);
-            }
-            if (errorToReport.get() != null) {
-              protoResponse = null;
-              protoError = ".....ERROR: " + errorToReport;
-            }
-
-            if (protoError != null) {
-              // TODO send error
-              return;
-            }
-
-            String apiAddress = IPHelper.toString(address);
-           RequestBody requestBody = RequestBody.create(r.toByteArray());
-           Request hr =
-                    new Request.Builder()
-                            .url("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths")
-                            .addHeader("Content-type", "application/proto")
-                            //            .addHeader("User-Agent", "OkHttp Bot")
-                            .post(requestBody)
-                            .build();
-            ResponseBody responseBody = ResponseBody.create(protoResponse.toByteArray(), MediaType.get("application/proto"));
-            Response response = new Response.Builder().body(responseBody).addHeader("Content-type", "application/proto").code(200).request(hr).protocol(Protocol.HTTP_1_1)
-                    .message(new String(protoResponse.toByteArray())).build();
-
-            System.out.println("Response xxx: " + new String(protoResponse.toByteArray()));
-            System.out.println("Response msg: " + response.message());
-            System.out.println("Response toS: " + response.toString());
-
-            System.out.println("RRRRR: " + responseBody.string());
-
-
-//            Request request =
-//                    new Request.Builder()
-//                            .url("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths")
-//                            .addHeader("Content-type", "application/proto")
-//                            //            .addHeader("User-Agent", "OkHttp Bot")
-//                            .post(requestBody)
-//                            .build();
-
-
-            //String strResponse = "HTTP/1.1 201 Created\r";
-            String strResponse = "HTTP/1.1 200 OK\r";
-            strResponse += "Content-Type: application/proto";
-            strResponse += "Length: " + protoResponse.toByteArray().length; // TODO!!!!
-
-            buffer.clear();
-            buffer.put(response.message().getBytes());
-//            buffer.put(strResponse.getBytes());
-//            buffer.put(protoResponse.toByteArray());
-            buffer.flip();
-            ss.write(buffer);
-          } else {
-            logger.warn("Illegal request: {}", request);
-          }
-          buffer.clear();
+        Path.ListSegmentsRequest request;
+        try {
+          ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
+          Channels.newChannel(inputStream).read(byteBuffer);
+          byteBuffer.flip();
+          request = Path.ListSegmentsRequest.parseFrom(byteBuffer);
+        } catch (IOException e) {
+          logger.error(e.getMessage());
+          throw new RuntimeException(e);
         }
 
-      } catch (ClosedByInterruptException e) {
-        throw new RuntimeException(e);
-      } catch (IOException e) {
-        logger.error(e.getMessage());
-        throw new RuntimeException(e);
-      } finally {
-        System.out.println("PS stopping");
-        logger.info("Shutting down topology server");
+        long srcIA = request.getSrcIsdAs();
+        long dstIA = request.getDstIsdAs();
+
+        logger.info(
+            "Path request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
+        callCount.incrementAndGet();
+        awaitBlock(); // for testing timeouts
+
+        Path.ListSegmentsResponse protoResponse;
+        if (responses.isEmpty()) {
+          protoResponse = defaultResponse(srcIA, dstIA);
+        } else {
+          protoResponse = toResponse(srcIA, dstIA);
+        }
+
+        if (errorToReport.get() != null) {
+          return newFixedLengthResponse(
+              Response.Status.BAD_REQUEST, MIME, "ERROR: " + errorToReport.get());
+        }
+
+        InputStream targetStream = new ByteArrayInputStream(protoResponse.toByteArray());
+        return newFixedLengthResponse(
+            Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
+      } else {
+        logger.warn("Illegal request: {}", session.getUri());
+        return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME, "9");
       }
     }
-
-    void shutdown() {
-
-    }
-
-    private String createMessage(String content) {
-      return "HTTP/1.1 200 OK\n"
-              + "Connection: close\n"
-              + "Content-Type: text/plain\n"
-              + "Content-Length:"
-              + content.length()
-              + "\n"
-              + "\n"
-              + content
-              + "\n";
-    }
-
-//    @Override
-//    public void segments(
-//        Seg.SegmentsRequest req, StreamObserver<Seg.SegmentsResponse> responseObserver) {
-//      String srcIsdAsStr = ScionUtil.toStringIA(req.getSrcIsdAs());
-//      String dstIsdAsStr = ScionUtil.toStringIA(req.getDstIsdAs());
-//      logger.info("Segment request: {} -> {}", srcIsdAsStr, dstIsdAsStr);
-//      callCount.incrementAndGet();
-//      awaitBlock(); // for testing timeouts
-//
-//      if (responses.isEmpty()) {
-//        responseObserver.onNext(defaultResponse(req.getSrcIsdAs(), req.getDstIsdAs()));
-//      } else {
-//        responseObserver.onNext(responses.get(key(req.getSrcIsdAs(), req.getDstIsdAs())));
-//      }
-//      if (errorToReport.get() != null) {
-//        responseObserver.onError(new StatusException(errorToReport.getAndSet(null)));
-//      } else {
-//        responseObserver.onCompleted();
-//      }
-//    }
 
     private Path.ListSegmentsResponse toResponse(long srcIA, long dstIA) {
       Path.ListSegmentsResponse.Builder responseBuilder = Path.ListSegmentsResponse.newBuilder();
 
       // TODO use controlService.respponses
       Seg.SegmentsResponse cs = responses.get(key(srcIA, dstIA));
+      if (cs == null) {
+        throw new IllegalArgumentException(
+            "Not found: " + ScionUtil.toStringIA(srcIA) + " -> " + ScionUtil.toStringIA(dstIA));
+      }
       for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> e : cs.getSegmentsMap().entrySet()) {
         switch (e.getKey()) {
           case 1:

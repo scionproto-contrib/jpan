@@ -20,6 +20,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import io.grpc.*;
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.time.Instant;
 import java.util.*;
 import okhttp3.OkHttpClient;
@@ -42,8 +47,16 @@ public class ProtobufEndhostDemo {
   private static final String neaETH = "192.168.53.19:48080";
 
   public static void main(String[] args) throws ScionException {
-//    ProtobufEndhostDemo demo = new ProtobufEndhostDemo(neaETH);
-//    demo.getSegments(iaETH, iaETH_CORE);
+    //    ProtobufEndhostDemo demo = new ProtobufEndhostDemo(neaETH);
+    //    demo.getSegments(iaETH, iaETH_CORE);
+
+    // response.toString():
+    // Response{protocol=http/1.1, code=200, message=OK,
+    // url=http://192.168.53.19:48080/scion.endhost.v1.PathService/ListPaths}
+    // Mock:
+    // Response{protocol=http/1.1, code=200, message=OK,
+    // url=http://127.0.0.1:48080/scion.endhost.v1.PathService/ListPaths}
+
     // demo.getSegments(ScionUtil.toWildcard(iaETH), ScionUtil.toWildcard(iaAnapayaHK));
     // ProtobufEndhostDemo demo = new ProtobufEndhostDemo(csAddr110_minimal);
     //    ProtobufEndhostDemo demo = new ProtobufEndhostDemo();
@@ -51,13 +64,71 @@ public class ProtobufEndhostDemo {
     // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-      ProtobufEndhostDemo demo2 = new ProtobufEndhostDemo("127.0.0.1:48080");
-      demo2.getSegments(ia112, ia110);
-    }
+        try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+          ProtobufEndhostDemo demo2 = new ProtobufEndhostDemo("127.0.0.1:48080");
+          demo2.getSegments(ia112, ia110);
+        }
+//    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
+//      ProtobufEndhostDemo demo2 = new ProtobufEndhostDemo("127.0.0.1:48080");
+//      demo2.getSegments(ia112, ia221);
+//    }
   }
 
   private Path.ListSegmentsResponse sendRequest(long srcIA, long dstIA) throws IOException {
+    Path.ListSegmentsRequest protoRequest =
+            Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
+
+    final String charset = "UTF-8";
+    // Create the connection
+    URI uri = URI.create("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths");
+    HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+    connection.setDoOutput(true);
+    connection.setRequestProperty("Accept-Charset", charset);
+    connection.setRequestProperty("Content-type", "application/proto");
+
+    // Write to the connection
+    System.out.println("Sending request: " + connection);
+    System.out.println("             to: " + apiAddress);
+    DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+    output.write(protoRequest.toByteArray());
+    output.close();
+
+    // Check the error stream first, if this is null then there have been no issues with the request
+    InputStream inputStream = connection.getErrorStream();
+    if (inputStream == null)
+      inputStream = connection.getInputStream();
+
+    // Read everything from our stream
+    BufferedReader responseReader = new BufferedReader(new InputStreamReader(inputStream, charset));
+
+    char[] ca = new char[100_000];
+    int caLen = responseReader.read(ca);
+    byte[] ba = new byte[caLen];
+    for (int i = 0; i < caLen; i++) {
+      //Character c = ca[i];
+      //Integer.
+      ba[i] = (byte) ca[i];
+    }
+
+//    String inputLine;
+//    StringBuilder responseB = new StringBuilder();
+//    while ((inputLine = responseReader.readLine()) != null) {
+//      responseB.append(inputLine).append("\n");
+//    }
+    responseReader.close();
+
+//    String response = responseB.toString();
+    String response = new String(ba);
+    System.out.println("Client received len: " + response.length());
+    System.out.println("Client received msg: " + response);
+    System.out.println("Client received str: " + response);
+//      if (!response.isSuccessful()) {
+//        throw new IOException("Unexpected code " + response);
+//      }
+    return Path.ListSegmentsResponse.newBuilder().mergeFrom(ba).build();
+  }
+
+  private Path.ListSegmentsResponse sendRequest2(long srcIA, long dstIA) throws IOException {
     Path.ListSegmentsRequest protoRequest =
         Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
     RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
@@ -73,6 +144,12 @@ public class ProtobufEndhostDemo {
     System.out.println("Sending request: " + request);
     System.out.println("             to: " + apiAddress);
     try (Response response = httpClient.newCall(request).execute()) {
+//      String bodyStr = response.body().string();
+//      System.out.println("Client received len: " + bodyStr.length());
+//      System.out.println("Client received msg: " + bodyStr);
+      System.out.println("Client received len: " + response.message().length());
+      System.out.println("Client received msg: " + response.message());
+      System.out.println("Client received str: " + response);
       if (!response.isSuccessful()) {
         throw new IOException("Unexpected code " + response);
       }
@@ -97,7 +174,7 @@ public class ProtobufEndhostDemo {
 
     Path.ListSegmentsResponse response;
     try {
-      response = sendRequest(srcIsdAs, dstIsdAs);
+      response = sendRequest2(srcIsdAs, dstIsdAs);
     } catch (IOException e) {
       throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
     }
