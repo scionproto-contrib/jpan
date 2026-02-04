@@ -1,17 +1,8 @@
 version: v2
-managed:
-  enabled: true
-  override:
-    - file_option: go_package_prefix
-      value: github.com/bufbuild/buf-examples/gen
 plugins:
   - remote: buf.build/protocolbuffers/java
-    out: gen
-    opt: paths=source_relative
-#  - remote: buf.build/connectrpc/gosimple
-#    out: gen
-#    opt:
-#      - paths=source_relative
-#      - simple
+    out: src/main/java
+  - remote: buf.build/connectrpc/kotlin
+    out: app/src/main/java
 inputs:
   - directory: src/main/proto

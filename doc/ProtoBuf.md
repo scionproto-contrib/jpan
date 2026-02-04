@@ -18,7 +18,8 @@ go install github.com/bufbuild/buf/cmd/buf@v1.65.0
 
 
 
-
+https://connectrpc.com/docs/kotlin/getting-started/
+Java code gen.
 
 
 
