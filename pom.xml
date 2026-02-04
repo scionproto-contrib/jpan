@@ -102,6 +102,12 @@
         </dependency>
 
         <dependency>
+            <groupId>me.ivovk</groupId>
+            <artifactId>connect-rpc-java-netty</artifactId>
+            <version>0.2.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.13.2</version>

@@ -16,14 +16,21 @@ package org.scion.jpan;
 
 import static org.scion.jpan.demo.DemoConstants.*;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Timestamp;
+import build.buf.gen.connectrpc.conformance.v1.*;
+import com.google.protobuf.*;
 import io.grpc.*;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import me.ivovk.connect_rpc_java.core.grpc.ClientCalls;
+import me.ivovk.connect_rpc_java.netty.ConnectNettyChannelBuilder;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -33,10 +40,11 @@ import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.experimental.SegDetachedExtensions;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
+import org.scion.jpan.proto.endhost.PathServiceGrpc;
 import org.scion.jpan.testutil.MockNetwork2;
 
 /** Small demo that requests and prints segments requested from a control service. */
-public class ProtobufEndhostDemo {
+public class ProtobufEndhostDemo2 {
 
   private final OkHttpClient httpClient;
   private final String apiAddress;
@@ -62,7 +70,7 @@ public class ProtobufEndhostDemo {
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-      ProtobufEndhostDemo demo2 = new ProtobufEndhostDemo("127.0.0.1:48080");
+      ProtobufEndhostDemo2 demo2 = new ProtobufEndhostDemo2("127.0.0.1:48080");
       demo2.getSegments(ia112, ia110);
     }
     //    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112"))
@@ -76,55 +84,214 @@ public class ProtobufEndhostDemo {
     Path.ListSegmentsRequest protoRequest =
         Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
 
-    final String charset = "UTF-8";
-    // Create the connection
-    URI uri = URI.create("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths");
-    HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-    connection.setDoOutput(true);
-    connection.setRequestProperty("Accept-Charset", charset);
-    connection.setRequestProperty("Content-type", "application/proto");
+    // Create a ConnectRPC client
+    ManagedChannel channel = ConnectNettyChannelBuilder.forAddress("localhost", 48080).build();
 
-    // Write to the connection
-    System.out.println("Sending request: " + connection);
-    System.out.println("             to: " + apiAddress);
-    DataOutputStream output = new DataOutputStream(connection.getOutputStream());
-    output.write(protoRequest.toByteArray());
-    output.close();
+    ConformanceServiceGrpc.getUnaryMethod();
 
-    // Check the error stream first, if this is null then there have been no issues with the request
-    InputStream inputStream = connection.getErrorStream();
-    if (inputStream == null) {
-      inputStream = connection.getInputStream();
+
+    MethodDescriptor.Marshaller<Path.ListSegmentsRequest> reqMar = new MethodDescriptor.Marshaller<Path.ListSegmentsRequest>() {
+      @Override
+      public InputStream stream(Path.ListSegmentsRequest o) {
+        return null;
+      }
+
+      @Override
+      public Path.ListSegmentsRequest parse(InputStream inputStream) {
+        return null;
+      }
+    };
+    MethodDescriptor.Marshaller<Path.ListSegmentsResponse> respMar = new MethodDescriptor.Marshaller<Path.ListSegmentsResponse>() {
+      @Override
+      public InputStream stream(Path.ListSegmentsResponse o) {
+        return null;
+      }
+
+      @Override
+      public Path.ListSegmentsResponse parse(InputStream inputStream) {
+        return null;
+      }
+    };
+    MethodDescriptor<Path.ListSegmentsRequest, Path.ListSegmentsResponse> md =
+            MethodDescriptor
+                    .<Path.ListSegmentsRequest, Path.ListSegmentsResponse>newBuilder()
+                    .setFullMethodName("HelloMethod")
+                    .setRequestMarshaller(reqMar)
+                    .setResponseMarshaller(respMar)
+                    .setType(MethodDescriptor.MethodType.UNARY)
+                    .build();
+    Metadata meta = new Metadata();
+    CompletableFuture<ClientCalls.Response<Path.ListSegmentsResponse>> future = ClientCalls.unaryCall(channel, md, CallOptions.DEFAULT, meta, protoRequest);
+    try {
+      ClientCalls.Response<Path.ListSegmentsResponse> fRep = future.get();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
     }
 
-    // Read everything from our stream
-    BufferedReader responseReader = new BufferedReader(new InputStreamReader(inputStream, charset));
 
-    char[] ca = new char[100_000];
-    int caLen = responseReader.read(ca);
-    byte[] ba = new byte[caLen];
-    for (int i = 0; i < caLen; i++) {
-      // Character c = ca[i];
-      // Integer.
-      ba[i] = (byte) ca[i];
+    PathServiceGrpc.PathServiceBlockingStub stub = PathServiceGrpc.newBlockingStub(channel);
+
+    // Make a call
+    try {
+      Path.ListSegmentsRequest request = Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(1).setDstIsdAs(2).build();
+      Path.ListSegmentsResponse response = stub.listPaths(request);
+      System.out.println("Client received greeting: {}" + response.toString());
+      return response;
+    } catch (Exception e) {
+      throw new RuntimeException("Client call failed: ", e);
+    } finally {
+      try {
+        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+      System.out.println("Client channel shut down");
     }
 
-    //    String inputLine;
-    //    StringBuilder responseB = new StringBuilder();
-    //    while ((inputLine = responseReader.readLine()) != null) {
-    //      responseB.append(inputLine).append("\n");
-    //    }
-    responseReader.close();
 
-    //    String response = responseB.toString();
-    String response = new String(ba);
-    System.out.println("Client received len: " + response.length());
-    System.out.println("Client received msg: " + response);
-    System.out.println("Client received str: " + response);
-    //      if (!response.isSuccessful()) {
-    //        throw new IOException("Unexpected code " + response);
-    //      }
-    return Path.ListSegmentsResponse.newBuilder().mergeFrom(ba).build();
+//    class MyRequest implements UnaryRequestOrBuilder {
+//
+//      Path.ListSegmentsRequest r = protoRequest;
+//      Path.ListSegmentsResponse re;
+//
+//      @Override
+//      public boolean hasResponseDefinition() {
+//        return false;
+//      }
+//
+//      @Override
+//      public UnaryResponseDefinition getResponseDefinition() {
+//        return null;
+//      }
+//
+//      @Override
+//      public UnaryResponseDefinitionOrBuilder getResponseDefinitionOrBuilder() {
+//        return Path.ListSegmentsResponse.newBuilder();
+//      }
+//
+//      @Override
+//      public ByteString getRequestData() {
+//        return r.toByteString();
+//      }
+//
+//      @Override
+//      public Message getDefaultInstanceForType() {
+//        return null;
+//      }
+//
+//      @Override
+//      public boolean isInitialized() {
+//        return r.isInitialized();
+//      }
+//
+//      @Override
+//      public List<String> findInitializationErrors() {
+//        return r.findInitializationErrors();
+//      }
+//
+//      @Override
+//      public String getInitializationErrorString() {
+//        return r.getInitializationErrorString();
+//      }
+//
+//      @Override
+//      public Descriptors.Descriptor getDescriptorForType() {
+//        return r.getDescriptorForType();
+//      }
+//
+//      @Override
+//      public Map<Descriptors.FieldDescriptor, Object> getAllFields() {
+//        return r.getAllFields();
+//      }
+//
+//      @Override
+//      public boolean hasOneof(Descriptors.OneofDescriptor oneof) {
+//        return r.hasOneof(oneof);
+//      }
+//
+//      @Override
+//      public Descriptors.FieldDescriptor getOneofFieldDescriptor(Descriptors.OneofDescriptor oneof) {
+//        return r.getOneofFieldDescriptor(oneof);
+//      }
+//
+//      @Override
+//      public boolean hasField(Descriptors.FieldDescriptor field) {
+//        return r.hasField(field);
+//      }
+//
+//      @Override
+//      public Object getField(Descriptors.FieldDescriptor field) {
+//        return r.getField(field);
+//      }
+//
+//      @Override
+//      public int getRepeatedFieldCount(Descriptors.FieldDescriptor field) {
+//        return r.getRepeatedFieldCount(field);
+//      }
+//
+//      @Override
+//      public Object getRepeatedField(Descriptors.FieldDescriptor field, int index) {
+//        return r.getField(field, index);
+//      }
+//
+//      @Override
+//      public UnknownFieldSet getUnknownFields() {
+//        return r.getUnknownFields();
+//      }
+//    }
+
+
+//    final String charset = "UTF-8";
+//    // Create the connection
+//    URI uri = URI.create("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths");
+//    HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+//    connection.setDoOutput(true);
+//    connection.setRequestProperty("Accept-Charset", charset);
+//    connection.setRequestProperty("Content-type", "application/proto");
+//
+//    // Write to the connection
+//    System.out.println("Sending request: " + connection);
+//    System.out.println("             to: " + apiAddress);
+//    DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+//    output.write(protoRequest.toByteArray());
+//    output.close();
+//
+//    // Check the error stream first, if this is null then there have been no issues with the request
+//    InputStream inputStream = connection.getErrorStream();
+//    if (inputStream == null) {
+//      inputStream = connection.getInputStream();
+//    }
+//
+//    // Read everything from our stream
+//    BufferedReader responseReader = new BufferedReader(new InputStreamReader(inputStream, charset));
+//
+//    char[] ca = new char[100_000];
+//    int caLen = responseReader.read(ca);
+//    byte[] ba = new byte[caLen];
+//    for (int i = 0; i < caLen; i++) {
+//      // Character c = ca[i];
+//      // Integer.
+//      ba[i] = (byte) ca[i];
+//    }
+//
+//    //    String inputLine;
+//    //    StringBuilder responseB = new StringBuilder();
+//    //    while ((inputLine = responseReader.readLine()) != null) {
+//    //      responseB.append(inputLine).append("\n");
+//    //    }
+//    responseReader.close();
+//
+//    //    String response = responseB.toString();
+//    String response = new String(ba);
+//    System.out.println("Client received len: " + response.length());
+//    System.out.println("Client received msg: " + response);
+//    System.out.println("Client received str: " + response);
+//    //      if (!response.isSuccessful()) {
+//    //        throw new IOException("Unexpected code " + response);
+//    //      }
+//    return Path.ListSegmentsResponse.newBuilder().mergeFrom(ba).build();
   }
 
   private Path.ListSegmentsResponse sendRequest2(long srcIA, long dstIA) throws IOException {
@@ -156,7 +323,7 @@ public class ProtobufEndhostDemo {
     }
   }
 
-  public ProtobufEndhostDemo(String apiAddress) {
+  public ProtobufEndhostDemo2(String apiAddress) {
     httpClient = new OkHttpClient();
     this.apiAddress = apiAddress;
   }
@@ -173,7 +340,7 @@ public class ProtobufEndhostDemo {
 
     Path.ListSegmentsResponse response;
     try {
-      response = sendRequest2(srcIsdAs, dstIsdAs);
+      response = sendRequest(srcIsdAs, dstIsdAs);
     } catch (IOException e) {
       throw new ScionException("Error while getting Segment info: " + e.getMessage(), e);
     }

@@ -24,7 +24,6 @@ import java.net.InetSocketAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockNetwork2;
 
 class PathServiceTest {

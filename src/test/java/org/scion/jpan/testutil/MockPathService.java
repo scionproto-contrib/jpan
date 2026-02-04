@@ -25,7 +25,8 @@ import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.ScionUtil;
@@ -144,6 +145,7 @@ public class MockPathService {
           ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
           Channels.newChannel(inputStream).read(byteBuffer);
           byteBuffer.flip();
+          System.out.println("SERVER: " + new String(byteBuffer.array()));
           request = Path.ListSegmentsRequest.parseFrom(byteBuffer);
         } catch (IOException e) {
           logger.error(e.getMessage());

@@ -35,7 +35,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
-import org.scion.jpan.testutil.*;
+import org.scion.jpan.testutil.MockBootstrapServer;
+import org.scion.jpan.testutil.MockDaemon;
+import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockNetwork2;
+import org.scion.jpan.testutil.MockPathService;
+import org.scion.jpan.testutil.TestUtil;
 
 class ScionTest {
 
@@ -89,7 +94,8 @@ class ScionTest {
     // Start daemon just to ensure we are not using it
     MockDaemon.createAndStartDefault();
 
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, "[::1]:" + MockPathService.DEFAULT_PORT);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, "[::1]:" + MockPathService.DEFAULT_PORT);
     System.setProperty(Constants.PROPERTY_DAEMON, "[::1]:" + DEFAULT_PORT);
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       // Remove TOPO property that is installed by MockNetwork2

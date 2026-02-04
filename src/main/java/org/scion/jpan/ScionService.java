@@ -255,7 +255,6 @@ public class ScionService {
     return ScionDatagramChannel.open(this, channel);
   }
 
-
   /**
    * Request paths from the local ISD/AS to the destination.
    *
@@ -358,10 +357,10 @@ public class ScionService {
     }
     if (LOG.isInfoEnabled()) {
       LOG.info(
-              "Path found between {} and {}: {}",
-              ScionUtil.toStringIA(srcIsdAs),
-              ScionUtil.toStringIA(dstIsdAs),
-              list.size());
+          "Path found between {} and {}: {}",
+          ScionUtil.toStringIA(srcIsdAs),
+          ScionUtil.toStringIA(dstIsdAs),
+          list.size());
     }
     return list;
   }
@@ -369,10 +368,10 @@ public class ScionService {
   // do not expose proto types on API
   List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
     Daemon.PathsRequest request =
-            Daemon.PathsRequest.newBuilder()
-                    .setSourceIsdAs(srcIsdAs)
-                    .setDestinationIsdAs(dstIsdAs)
-                    .build();
+        Daemon.PathsRequest.newBuilder()
+            .setSourceIsdAs(srcIsdAs)
+            .setDestinationIsdAs(dstIsdAs)
+            .build();
     try {
       return daemonService.paths(request).getPathsList();
     } catch (StatusRuntimeException e) {
@@ -383,7 +382,7 @@ public class ScionService {
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> list =
-            Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
+        Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
 
     return list;
   }

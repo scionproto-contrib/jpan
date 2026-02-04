@@ -63,7 +63,9 @@ public class LocalAS {
   public static LocalAS createForPathService(String pathService, TrcStore trcStore) {
     LocalAS topo = new LocalAS(trcStore);
     // topo.interrogatePathService(pathService);
-    if (true) throw new UnsupportedOperationException(pathService);
+    if (true) {
+      throw new UnsupportedOperationException(pathService);
+    }
     topo.initInterfaceIDs();
     return topo;
   }
