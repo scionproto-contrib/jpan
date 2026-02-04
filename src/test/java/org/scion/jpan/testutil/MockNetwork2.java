@@ -60,10 +60,10 @@ public class MockNetwork2 implements AutoCloseable {
     topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
-      controlServices.add(MockControlServer.start(csAddress.getPort()));
-    }
     pathService = MockPathService.start(MockPathService.DEFAULT_PORT);
+    for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
+      controlServices.add(MockControlServer.start(csAddress.getPort(), pathService));
+    }
     String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
 
@@ -72,19 +72,21 @@ public class MockNetwork2 implements AutoCloseable {
     for (MockControlServer controlService : controlServices) {
       controlService.syncSegmentDatabaseFrom(controlServices.get(0));
     }
-    pathService.syncSegmentDatabaseFrom(controlServices.get(0));
   }
 
   public void reset() {
     controlServices.forEach(MockControlServer::clearSegments);
+    pathService.clearSegments();
     topoServer.getAndResetCallCount();
     controlServices.forEach(MockControlServer::getAndResetCallCount);
+    pathService.getAndResetCallCount();
   }
 
   @Override
   public void close() {
     controlServices.forEach(MockControlServer::close);
     controlServices.clear();
+    pathService.close();
     topoServer.close();
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);

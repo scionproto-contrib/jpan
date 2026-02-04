@@ -23,8 +23,10 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -109,16 +111,14 @@ public class MockPathService {
     unblock();
   }
 
-  public void syncSegmentDatabaseFrom(MockControlServer referenceCS) {
-    pathService.responses.putAll(referenceCS.getSegments());
-  }
-
   public void reportError(Status errorToReport) {
     this.errorToReport.set(errorToReport);
   }
 
   private class PathServiceImpl extends NanoHTTPD {
-    final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
+    final Map<String, List<Seg.PathSegment>> responsesUP = new ConcurrentHashMap<>();
+    final Map<String, List<Seg.PathSegment>> responsesCORE = new ConcurrentHashMap<>();
+    final Map<String, List<Seg.PathSegment>> responsesDOWN = new ConcurrentHashMap<>();
     final long start = Instant.now().getEpochSecond();
 
     public PathServiceImpl(int port) throws IOException {
@@ -161,7 +161,7 @@ public class MockPathService {
         awaitBlock(); // for testing timeouts
 
         Path.ListSegmentsResponse protoResponse;
-        if (responses.isEmpty()) {
+        if (responsesUP.isEmpty() && responsesCORE.isEmpty() && responsesDOWN.isEmpty()) {
           protoResponse = defaultResponse(srcIA, dstIA);
         } else {
           protoResponse = toResponse(srcIA, dstIA);
@@ -183,26 +183,50 @@ public class MockPathService {
 
     private Path.ListSegmentsResponse toResponse(long srcIA, long dstIA) {
       Path.ListSegmentsResponse.Builder responseBuilder = Path.ListSegmentsResponse.newBuilder();
-
-      // TODO use controlService.respponses
-      Seg.SegmentsResponse cs = responses.get(key(srcIA, dstIA));
-      if (cs == null) {
-        throw new IllegalArgumentException(
-            "Not found: " + ScionUtil.toStringIA(srcIA) + " -> " + ScionUtil.toStringIA(dstIA));
+      // Find UP
+      Set<Long> localCORE = new HashSet<>();
+      Set<Long> remoteCORE = new HashSet<>();
+      for (Map.Entry<String, List<Seg.PathSegment>> e : responsesUP.entrySet()) {
+        String[] s = e.getKey().split(" -> ");
+        long ia1 = Long.parseLong(s[0]);
+        long ia2 = Long.parseLong(s[1]);
+        System.out.println(
+            "  up check: " + ScionUtil.toStringIA(ia1) + " -> " + ScionUtil.toStringIA(ia2));
+        if (ia1 == srcIA) {
+          System.out.println("      up check: ++");
+          localCORE.add(ia2);
+          responseBuilder.addAllUpSegments(e.getValue());
+        }
       }
-      for (Map.Entry<Integer, Seg.SegmentsResponse.Segments> e : cs.getSegmentsMap().entrySet()) {
-        switch (e.getKey()) {
-          case 1:
-            responseBuilder.addAllUpSegments(e.getValue().getSegmentsList());
-            break;
-          case 2:
-            responseBuilder.addAllCoreSegments(e.getValue().getSegmentsList());
-            break;
-          case 3:
-            responseBuilder.addAllDownSegments(e.getValue().getSegmentsList());
-            break;
-          default:
-            throw new UnsupportedOperationException("key=" + e.getKey());
+      // Find DOWN
+      for (Map.Entry<String, List<Seg.PathSegment>> e : responsesDOWN.entrySet()) {
+        String[] s = e.getKey().split(" -> ");
+        long ia1 = Long.parseLong(s[0]);
+        long ia2 = Long.parseLong(s[1]);
+        System.out.println(
+            "  down check: " + ScionUtil.toStringIA(ia1) + " -> " + ScionUtil.toStringIA(ia2));
+        if (ia2 == dstIA) {
+          System.out.println("      down check: ++");
+          remoteCORE.add(ia1);
+          responseBuilder.addAllDownSegments(e.getValue());
+        }
+        if (ia1 == dstIA) {
+          System.out.println("      down check: ++");
+          remoteCORE.add(ia2);
+          responseBuilder.addAllDownSegments(e.getValue());
+        }
+      }
+      // Find CORE
+      for (Map.Entry<String, List<Seg.PathSegment>> e : responsesCORE.entrySet()) {
+        String[] s = e.getKey().split(" -> ");
+        long ia1 = Long.parseLong(s[0]);
+        long ia2 = Long.parseLong(s[1]);
+        System.out.println(
+            "  core check: " + ScionUtil.toStringIA(ia1) + " -> " + ScionUtil.toStringIA(ia2));
+        if ((localCORE.contains(ia1) && remoteCORE.contains(ia2))
+            || localCORE.contains(ia2) && remoteCORE.contains(ia1)) {
+          System.out.println("      core check: ++");
+          responseBuilder.addAllCoreSegments(e.getValue());
         }
       }
       return responseBuilder.build();
@@ -214,49 +238,46 @@ public class MockPathService {
         long dstIA,
         boolean dstIsCore,
         Seg.SegmentsResponse response) {
-      long maskISD = -1L << 48;
-      long srcWildcard = srcIA & maskISD;
-      long dstWildcard = dstIA & maskISD;
-      addResponse(key(srcIA, dstIA), response);
-      if (dstIsCore) {
-        addResponse(key(srcIA, dstWildcard), response);
-      }
-      if (srcIsCore) {
-        addResponse(key(srcWildcard, dstIA), response);
-      }
+      Map<Integer, Seg.SegmentsResponse.Segments> map = response.getSegmentsMap();
       if (srcIsCore && dstIsCore) {
-        addResponse(key(srcWildcard, dstWildcard), response);
+        responsesCORE.put(key(srcIA, dstIA), map.get(3).getSegmentsList());
+      } else if (dstIsCore && map.containsKey(1)) {
+        responsesUP.put(key(srcIA, dstIA), map.get(1).getSegmentsList());
+      } else if (srcIsCore && map.containsKey(2)) {
+        responsesDOWN.put(key(srcIA, dstIA), map.get(2).getSegmentsList());
       }
     }
 
-    private void addResponse(String key, Seg.SegmentsResponse response) {
-      if (!responses.containsKey(key)) {
-        responses.put(key, response);
-        return;
-      }
-      // merge new response with existing response
-      Seg.SegmentsResponse existing = responses.get(key);
-      int existingKey = existing.getSegmentsMap().entrySet().iterator().next().getKey();
-      int newKey = response.getSegmentsMap().entrySet().iterator().next().getKey();
-      if (newKey != existingKey) {
-        throw new UnsupportedOperationException();
-      }
-      List<Seg.PathSegment> listExisting =
-          existing.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
-      List<Seg.PathSegment> listNew =
-          response.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
-      Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
-      Seg.SegmentsResponse.Segments.Builder segmentsBuilder =
-          Seg.SegmentsResponse.Segments.newBuilder();
-      segmentsBuilder.addAllSegments(listExisting);
-      segmentsBuilder.addAllSegments(listNew);
-
-      replyBuilder.putSegments(existingKey, segmentsBuilder.build());
-      responses.put(key, replyBuilder.build());
-    }
+    //    private void addResponse(String key, Seg.SegmentsResponse response) {
+    //      if (!responses.containsKey(key)) {
+    //        responses.put(key, response);
+    //        return;
+    //      }
+    //      // merge new response with existing response
+    //      Seg.SegmentsResponse existing = responses.get(key);
+    //      int existingKey = existing.getSegmentsMap().entrySet().iterator().next().getKey();
+    //      int newKey = response.getSegmentsMap().entrySet().iterator().next().getKey();
+    //      if (newKey != existingKey) {
+    //        throw new UnsupportedOperationException();
+    //      }
+    //      List<Seg.PathSegment> listExisting =
+    //          existing.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
+    //      List<Seg.PathSegment> listNew =
+    //          response.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
+    //      Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
+    //      Seg.SegmentsResponse.Segments.Builder segmentsBuilder =
+    //          Seg.SegmentsResponse.Segments.newBuilder();
+    //      segmentsBuilder.addAllSegments(listExisting);
+    //      segmentsBuilder.addAllSegments(listNew);
+    //
+    //      replyBuilder.putSegments(existingKey, segmentsBuilder.build());
+    //      responses.put(key, replyBuilder.build());
+    //    }
 
     public void clearSegments() {
-      responses.clear();
+      responsesUP.clear();
+      responsesCORE.clear();
+      responsesDOWN.clear();
     }
 
     private String key(long ia0, long ia1) {

@@ -44,15 +44,21 @@ public class MockControlServer {
   private ControlServiceImpl controlServer;
   private final Semaphore block = new Semaphore(1);
   private final AtomicReference<Status> errorToReport = new AtomicReference<>();
+  private final MockPathService pathService;
 
-  private MockControlServer(InetSocketAddress address) {
+  private MockControlServer(InetSocketAddress address, MockPathService pathServide) {
     this.address = address;
+    this.pathService = pathServide;
   }
 
   public static MockControlServer start(int port) {
+    return start(port, null);
+  }
+
+  public static MockControlServer start(int port, MockPathService pathService) {
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
     try {
-      return new MockControlServer(addr).startInternal();
+      return new MockControlServer(addr, pathService).startInternal();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -188,6 +194,9 @@ public class MockControlServer {
       }
       if (srcIsCore && dstIsCore) {
         addResponse(key(srcWildcard, dstWildcard), response);
+      }
+      if (pathService != null) {
+        pathService.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
       }
     }
 

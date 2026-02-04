@@ -44,7 +44,7 @@ class PathServiceTest {
       ScionService client = Scion.defaultService();
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
-      String expected = "Error while connecting to SCION network, no control service available";
+      String expected = "Error while connecting to SCION network, no path service available";
       assertTrue(ex.getMessage().startsWith(expected));
     }
   }
