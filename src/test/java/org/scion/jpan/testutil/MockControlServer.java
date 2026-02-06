@@ -106,6 +106,10 @@ public class MockControlServer {
     this.controlServer.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
   }
 
+  public Map<String, Seg.SegmentsResponse> getSegments() {
+    return controlServer.responses;
+  }
+
   public void clearSegments() {
     this.controlServer.clearSegments();
   }
@@ -131,10 +135,6 @@ public class MockControlServer {
     unblock();
   }
 
-  public void syncSegmentDatabaseFrom(MockControlServer referenceCS) {
-    controlServer.responses.putAll(referenceCS.controlServer.responses);
-  }
-
   public void reportError(Status errorToReport) {
     this.errorToReport.set(errorToReport);
   }
@@ -155,8 +155,10 @@ public class MockControlServer {
       awaitBlock(); // for testing timeouts
 
       if (responses.isEmpty()) {
+        // MockNetwork
         responseObserver.onNext(defaultResponse(req.getSrcIsdAs(), req.getDstIsdAs()));
       } else {
+        // MockNetwork2
         responseObserver.onNext(responses.get(key(req.getSrcIsdAs(), req.getDstIsdAs())));
       }
       if (errorToReport.get() != null) {

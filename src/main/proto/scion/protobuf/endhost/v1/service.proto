@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option java_package = "org.scion.jpan.proto.endhost";
+
+package scion.endhost.v1;
+
+import "scion/protobuf/control_plane/v1/seg.proto";
+import "scion/protobuf/endhost/v1/path.proto";
+
+service PathService {
+  // Segments returns all segments that match the request.
+  rpc ListPaths(.endhost.api_service.v1.ListSegmentsRequest) returns (.endhost.api_service.v1.ListSegmentsResponse) {}
+}

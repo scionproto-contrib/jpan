@@ -345,6 +345,7 @@ attempt to get network information in the following order until it succeeds:
 - For debugging: Check for local topology file (if file name is provided)
 - For debugging: Check for bootstrap server address (if address is provided)
 - For debugging: Check for DNS records in non-default DNS server (if DNS server name is provided)
+- Check for path service (new endhost API) 
 - Check for to daemon
 - Check search domain (as given in `/etc/resolv.conf`) for topology server:
   - Detect search domains
@@ -358,19 +359,20 @@ attempt to get network information in the following order until it succeeds:
     - Port: TXT record: `"x-sciondiscovery"`
     - See also [SCION Bootstrapping](https://docs.scion.org/en/latest/dev/design/endhost-bootstrap.html)
 
-| Option                                        | Java property                       | Environment variable           | Default value   |
-|-----------------------------------------------|-------------------------------------|--------------------------------|-----------------|
-| Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                 | localhost:30255 | 
-| Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`    |                 | 
-| Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`         |                 |
-| Bootstrap DNS host name (with NAPTR or SRV)   | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`   |                 | 
-| List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`     |                 |
-| NAT/STUN policy, see [here](doc/NAT.md)       | `org.scion.nat`                     | `SCION_NAT`                    | off             |
-| NAT mapping timeout in seconds                | `org.scion.nat.mapping.timeout`     | `SCION_NAT_MAPPING_TIMEOUT`    | 110             |
-| Send NAT mapping keep-alive packets           | `org.scion.nat.mapping.keepalive`   | `SCION_NAT_MAPPING_KEEPALIVE`  | false           |
-| STUN server                                   | `org.scion.nat.stun.server`         | `SCION_NAT_STUN_SERVER`        |                 |
-| STUN response timeout in milliseconds         | `org.scion.nat.stun.timeout`        | `SCION_NAT_STUN_TIMEOUT`       | 10              |
-| Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS`  | true            |
+| Option                                        | Java property                       | Environment variable            | Default value   |
+|-----------------------------------------------|-------------------------------------|---------------------------------|-----------------|
+| Daemon port, IP, or IP:port                   | `org.scion.daemon`                  | `SCION_DAEMON`                  | localhost:30255 | 
+| Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`     |                 | 
+| Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`          |                 |
+| Bootstrap DNS host name (with NAPTR or SRV)   | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`    |                 | 
+| Bootstrap new endhost API                     | `org.scion.bootstrap.pathservice`   | `SCION_BOOTSTRAP_PATH_SERVICE`  |                 | 
+| List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`      |                 |
+| NAT/STUN policy, see [here](doc/NAT.md)       | `org.scion.nat`                     | `SCION_NAT`                     | off             |
+| NAT mapping timeout in seconds                | `org.scion.nat.mapping.timeout`     | `SCION_NAT_MAPPING_TIMEOUT`     | 110             |
+| Send NAT mapping keep-alive packets           | `org.scion.nat.mapping.keepalive`   | `SCION_NAT_MAPPING_KEEPALIVE`   | false           |
+| STUN server                                   | `org.scion.nat.stun.server`         | `SCION_NAT_STUN_SERVER`         |                 |
+| STUN response timeout in milliseconds         | `org.scion.nat.stun.timeout`        | `SCION_NAT_STUN_TIMEOUT`        | 10              |
+| Use OS search domains, e.g. /etc/resolv.conf  | `org.scion.test.useOsSearchDomains` | `SCION_USE_OS_SEARCH_DOMAINS`   | true            |
 
 
 ### DNS

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
+- Add SCION discovery extension?! -> seg_extension.proto and daemon.proto
 - P-ISD - SCIONPROTO
   - We need to define use cases. 
     - Do we really need automatic switching between ISDs?
@@ -66,7 +67,7 @@ TODO
   Add Path.isExpiredBy(Instant)
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - Deprecate send(PATH)!!!!!
-- Path caching!!!
+- Path caching!!! -> Cache validity e.g. 1 minute ensures that new path become available quickly
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
 - BIG: extract testframework into separate project -> reuse by others!
 - JSON is not an ordered file format -> Use JSON array for ordering...
@@ -135,6 +136,8 @@ TODO
   [#214](https://github.com/scionproto-contrib/jpan/pull/214)
 - Ensure extensibility of AbstractChannel for protocols other than UDP.
   [#217](https://github.com/scionproto-contrib/jpan/pull/217)
+- Support for new endhost API
+  [#218](https://github.com/scionproto-contrib/jpan/pull/218)
 
 ### Fixed
 

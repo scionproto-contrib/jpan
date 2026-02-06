@@ -21,12 +21,14 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.proto.control_plane.Seg;
 
 /** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
   public static final String AS_HOST = "my-as-host-test.org";
   private final MockBootstrapServer topoServer;
   private final List<MockControlServer> controlServices = new ArrayList<>();
+  private final MockPathService pathService;
 
   public enum Topology {
     DEFAULT("topologies/default/", ScenarioInitializer::addResponsesScionprotoDefault),
@@ -59,6 +61,7 @@ public class MockNetwork2 implements AutoCloseable {
     topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
+    pathService = MockPathService.start(MockPathService.DEFAULT_PORT);
     for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
       controlServices.add(MockControlServer.start(csAddress.getPort()));
     }
@@ -66,22 +69,22 @@ public class MockNetwork2 implements AutoCloseable {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
 
     // Initialize segments
-    ScenarioInitializer.init(topo, controlServices.get(0));
-    for (MockControlServer controlService : controlServices) {
-      controlService.syncSegmentDatabaseFrom(controlServices.get(0));
-    }
+    ScenarioInitializer.init(topo, this);
   }
 
   public void reset() {
     controlServices.forEach(MockControlServer::clearSegments);
-    topoServer.getAndResetCallCount();
     controlServices.forEach(MockControlServer::getAndResetCallCount);
+    pathService.clearSegments();
+    pathService.getAndResetCallCount();
+    topoServer.getAndResetCallCount();
   }
 
   @Override
   public void close() {
     controlServices.forEach(MockControlServer::close);
     controlServices.clear();
+    pathService.close();
     topoServer.close();
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
@@ -99,5 +102,15 @@ public class MockNetwork2 implements AutoCloseable {
 
   public List<MockControlServer> getControlServers() {
     return Collections.unmodifiableList(controlServices);
+  }
+
+  public MockPathService getPathService() {
+    return pathService;
+  }
+
+  public void addResponse(
+      long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore, Seg.SegmentsResponse response) {
+    controlServices.forEach(c -> c.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response));
+    pathService.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
   }
 }

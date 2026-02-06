@@ -57,15 +57,15 @@ public class ScenarioInitializer {
   /** ISD 2 - non-core AS */
   protected static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
 
-  private final MockControlServer controlServer;
+  private final MockNetwork2 controlServer;
   private final Scenario scenario;
 
-  public static void init(MockNetwork2.Topology topo, MockControlServer controlServer) {
+  public static void init(MockNetwork2.Topology topo, MockNetwork2 controlServer) {
     ScenarioInitializer si = new ScenarioInitializer(topo.configDir(), controlServer);
     topo.initializer().accept(si);
   }
 
-  private ScenarioInitializer(String cfg, MockControlServer controlServer) {
+  private ScenarioInitializer(String cfg, MockNetwork2 controlServer) {
     this.scenario = Scenario.readFrom(cfg);
     this.controlServer = controlServer;
   }

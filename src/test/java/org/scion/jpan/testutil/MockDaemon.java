@@ -77,13 +77,17 @@ public class MockDaemon implements AutoCloseable {
     return new MockDaemon(DEFAULT_ADDRESS, borderRouter);
   }
 
-  public static void createAndStartDefault() throws IOException {
+  public static void createAndStartDefault() {
     if (DEFAULT != null) {
       throw new NullPointerException();
     }
     setEnvironment();
     DEFAULT = new MockDaemon(DEFAULT_ADDRESS);
-    DEFAULT.start();
+    try {
+      DEFAULT.start();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static void closeDefault() throws IOException {
