@@ -27,10 +27,10 @@ public class LocalAS {
   private final List<ServiceNode> discoveryServices;
   private final List<BorderRouter> borderRouters;
   private final Map<Integer, BorderRouter> interfaceIDs;
-  private long localIsdAs;
-  private boolean isCoreAs;
-  private int localMtu;
-  private DispatcherPortRange portRange;
+  private final long localIsdAs;
+  private final boolean isCoreAs;
+  private final int localMtu;
+  private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
 
   LocalAS(
