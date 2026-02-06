@@ -14,11 +14,10 @@
 
 package org.scion.jpan.internal.bootstrap;
 
-import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Parse a topology file into a local topology. */
+/** Get topology info from a path service. */
 public class LocalAsFromPathService {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalAsFromPathService.class.getName());
