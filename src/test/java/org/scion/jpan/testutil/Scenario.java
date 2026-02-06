@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.bootstrap.LocalAsFromFile;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.crypto.Signed;
@@ -195,7 +196,7 @@ public class Scenario {
 
   private void readAS(Path asPath) {
     Path topoFile = Paths.get(asPath.toString(), "topology.json");
-    LocalAS topo = LocalAS.create(readFile(topoFile), null);
+    LocalAS topo = LocalAsFromFile.create(readFile(topoFile), null);
     topologies.put(topo.getIsdAs(), topo);
 
     Path infoFile = Paths.get(asPath.toString(), "staticInfoConfig.json");

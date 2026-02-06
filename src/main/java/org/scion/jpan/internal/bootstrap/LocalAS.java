@@ -36,42 +36,74 @@ public class LocalAS {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalAS.class.getName());
 
-  private final List<ServiceNode> controlServices = new ArrayList<>();
-  private final List<ServiceNode> discoveryServices = new ArrayList<>();
-  private final List<BorderRouter> borderRouters = new ArrayList<>();
-  private final Map<Integer, BorderRouter> interfaceIDs = new HashMap<>();
+  private final List<ServiceNode> controlServices;
+  private final List<ServiceNode> discoveryServices;
+  private final List<BorderRouter> borderRouters;
+  private final Map<Integer, BorderRouter> interfaceIDs;
   private long localIsdAs;
   private boolean isCoreAs;
   private int localMtu;
   private DispatcherPortRange portRange;
   private final TrcStore trcStore;
 
-  public static synchronized LocalAS create(String topologyFile, TrcStore trcStore) {
-    LocalAS topo = new LocalAS(trcStore);
-    topo.parseTopologyFile(topologyFile);
-    topo.initInterfaceIDs();
-    return topo;
-  }
+  //  public static synchronized LocalAS create(String topologyFile, TrcStore trcStore) {
+  //    LocalAS localAS = new LocalAS(trcStore);
+  //    localAS.parseTopologyFile(topologyFile);
+  //    localAS.initInterfaceIDs();
+  //    return localAS;
+  //  }
+  //
+  //  public static synchronized LocalAS create(DaemonServiceGrpc daemonService, TrcStore trcStore)
+  // {
+  //    LocalAS localAS = new LocalAS(trcStore);
+  //    localAS.initializeFromDaemon(daemonService);
+  //    localAS.initInterfaceIDs();
+  //    return localAS;
+  //  }
 
-  public static synchronized LocalAS create(DaemonServiceGrpc daemonService, TrcStore trcStore) {
-    LocalAS topo = new LocalAS(trcStore);
-    topo.interrogateDaemon(daemonService);
-    topo.initInterfaceIDs();
-    return topo;
-  }
+  //  public static LocalAS createForPathService(String pathService, TrcStore trcStore) {
+  //    LocalAS localAS = new LocalAS(trcStore);
+  //    localAS.initializeFromPathService(pathService);
+  //    if (true) {
+  //      throw new UnsupportedOperationException(pathService);
+  //    }
+  //    localAS.initInterfaceIDs();
+  //    return localAS;
+  //  }
+  //
+  //  protected LocalAS(TrcStore trcStore) {
+  //    this.trcStore = trcStore;
+  //  }
 
-  public static LocalAS createForPathService(String pathService, TrcStore trcStore) {
-    LocalAS topo = new LocalAS(trcStore);
-    // topo.interrogatePathService(pathService);
-    if (true) {
-      throw new UnsupportedOperationException(pathService);
-    }
-    topo.initInterfaceIDs();
-    return topo;
-  }
-
-  private LocalAS(TrcStore trcStore) {
+  LocalAS(
+      long localIsdAs,
+      boolean isCoreAs,
+      int localMtu,
+      DispatcherPortRange portRange,
+      List<ServiceNode> controlServices,
+      List<ServiceNode> discoveryServices,
+      List<BorderRouter> borderRouters,
+      TrcStore trcStore) {
+    this.localIsdAs = localIsdAs;
+    this.isCoreAs = isCoreAs;
+    this.localMtu = localMtu;
+    this.portRange = portRange;
+    this.controlServices = controlServices;
+    this.discoveryServices = discoveryServices;
+    this.borderRouters = borderRouters;
+    this.interfaceIDs = initInterfaceIDs(borderRouters);
     this.trcStore = trcStore;
+  }
+
+  private static Map<Integer, LocalAS.BorderRouter> initInterfaceIDs(
+      List<LocalAS.BorderRouter> borderRouters) {
+    Map<Integer, LocalAS.BorderRouter> interfaceIDs = new HashMap<>();
+    for (LocalAS.BorderRouter br : borderRouters) {
+      for (LocalAS.BorderRouterInterface brIf : br.getInterfaces()) {
+        interfaceIDs.put(brIf.id, br);
+      }
+    }
+    return interfaceIDs;
   }
 
   private static JsonElement safeGet(JsonObject o, String name) {
@@ -197,7 +229,7 @@ public class LocalAS {
     }
   }
 
-  private void interrogateDaemon(DaemonServiceGrpc daemonService) {
+  private void initializeFromDaemon(DaemonServiceGrpc daemonService) {
     Daemon.ASResponse as = readASInfo(daemonService);
     this.localIsdAs = as.getIsdAs();
     this.localMtu = as.getMtu();
@@ -306,6 +338,10 @@ public class LocalAS {
 
     public Iterable<BorderRouterInterface> getInterfaces() {
       return interfaces;
+    }
+
+    void addInterface(BorderRouterInterface borderRouterInterface) {
+      interfaces.add(borderRouterInterface);
     }
   }
 
