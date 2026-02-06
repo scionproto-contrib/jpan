@@ -44,21 +44,15 @@ public class MockControlServer {
   private ControlServiceImpl controlServer;
   private final Semaphore block = new Semaphore(1);
   private final AtomicReference<Status> errorToReport = new AtomicReference<>();
-  private final MockPathService pathService;
 
-  private MockControlServer(InetSocketAddress address, MockPathService pathServide) {
+  private MockControlServer(InetSocketAddress address) {
     this.address = address;
-    this.pathService = pathServide;
   }
 
   public static MockControlServer start(int port) {
-    return start(port, null);
-  }
-
-  public static MockControlServer start(int port, MockPathService pathService) {
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
     try {
-      return new MockControlServer(addr, pathService).startInternal();
+      return new MockControlServer(addr).startInternal();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -141,10 +135,6 @@ public class MockControlServer {
     unblock();
   }
 
-  public void syncSegmentDatabaseFrom(MockControlServer referenceCS) {
-    controlServer.responses.putAll(referenceCS.controlServer.responses);
-  }
-
   public void reportError(Status errorToReport) {
     this.errorToReport.set(errorToReport);
   }
@@ -165,8 +155,10 @@ public class MockControlServer {
       awaitBlock(); // for testing timeouts
 
       if (responses.isEmpty()) {
+        // MockNetwork
         responseObserver.onNext(defaultResponse(req.getSrcIsdAs(), req.getDstIsdAs()));
       } else {
+        // MockNetwork2
         responseObserver.onNext(responses.get(key(req.getSrcIsdAs(), req.getDstIsdAs())));
       }
       if (errorToReport.get() != null) {
@@ -194,9 +186,6 @@ public class MockControlServer {
       }
       if (srcIsCore && dstIsCore) {
         addResponse(key(srcWildcard, dstWildcard), response);
-      }
-      if (pathService != null) {
-        pathService.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
       }
     }
 

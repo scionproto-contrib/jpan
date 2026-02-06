@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.proto.control_plane.Seg;
 
 /** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
@@ -62,24 +63,21 @@ public class MockNetwork2 implements AutoCloseable {
     DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
     pathService = MockPathService.start(MockPathService.DEFAULT_PORT);
     for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
-      controlServices.add(MockControlServer.start(csAddress.getPort(), pathService));
+      controlServices.add(MockControlServer.start(csAddress.getPort()));
     }
     String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
 
     // Initialize segments
-    ScenarioInitializer.init(topo, controlServices.get(0));
-    for (MockControlServer controlService : controlServices) {
-      controlService.syncSegmentDatabaseFrom(controlServices.get(0));
-    }
+    ScenarioInitializer.init(topo, this);
   }
 
   public void reset() {
     controlServices.forEach(MockControlServer::clearSegments);
-    pathService.clearSegments();
-    topoServer.getAndResetCallCount();
     controlServices.forEach(MockControlServer::getAndResetCallCount);
+    pathService.clearSegments();
     pathService.getAndResetCallCount();
+    topoServer.getAndResetCallCount();
   }
 
   @Override
@@ -108,5 +106,11 @@ public class MockNetwork2 implements AutoCloseable {
 
   public MockPathService getPathService() {
     return pathService;
+  }
+
+  public void addResponse(
+      long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore, Seg.SegmentsResponse response) {
+    controlServices.forEach(c -> c.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response));
+    pathService.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
   }
 }
