@@ -18,7 +18,7 @@ import static org.scion.jpan.demo.DemoConstants.*;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
-import io.grpc.*;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -36,7 +36,7 @@ import org.scion.jpan.proto.endhost.Path;
 import org.scion.jpan.testutil.MockNetwork2;
 
 /** Small demo that requests and prints segments requested from a control service. */
-public class ProtobufEndhostDemo {
+public class EndhostApiPathDemo {
 
   private final OkHttpClient httpClient;
   private final String apiAddress;
@@ -44,7 +44,7 @@ public class ProtobufEndhostDemo {
   private static final String neaETH = "192.168.53.19:48080";
 
   public static void main(String[] args) throws ScionException {
-    //    ProtobufEndhostDemo demo = new ProtobufEndhostDemo(neaETH);
+    //    EndhostApiPathDemo demo = new EndhostApiPathDemo(neaETH);
     //    demo.getSegments(iaETH, iaETH_CORE);
 
     // response.toString():
@@ -55,18 +55,18 @@ public class ProtobufEndhostDemo {
     // url=http://127.0.0.1:48080/scion.endhost.v1.PathService/ListPaths}
 
     // demo.getSegments(ScionUtil.toWildcard(iaETH), ScionUtil.toWildcard(iaAnapayaHK));
-    // ProtobufEndhostDemo demo = new ProtobufEndhostDemo(csAddr110_minimal);
-    //    ProtobufEndhostDemo demo = new ProtobufEndhostDemo();
+    // EndhostApiPathDemo demo = new EndhostApiPathDemo(csAddr110_minimal);
+    //    EndhostApiPathDemo demo = new EndhostApiPathDemo();
     //    demo.getSegments(ia220, ScionUtil.parseIA("2-ff00:0:222"));
     // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
     //    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-    //      ProtobufEndhostDemo demo2 = new ProtobufEndhostDemo("127.0.0.1:48080");
+    //      EndhostApiPathDemo demo2 = new EndhostApiPathDemo("127.0.0.1:48080");
     //      demo2.getSegments(ia112, ia110);
     //    }
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
-      ProtobufEndhostDemo demo2 = new ProtobufEndhostDemo("127.0.0.1:48080");
+      EndhostApiPathDemo demo2 = new EndhostApiPathDemo("127.0.0.1:48080");
       demo2.getSegments(ia112, ia221);
     }
   }
@@ -155,7 +155,7 @@ public class ProtobufEndhostDemo {
     }
   }
 
-  public ProtobufEndhostDemo(String apiAddress) {
+  public EndhostApiPathDemo(String apiAddress) {
     httpClient = new OkHttpClient();
     this.apiAddress = apiAddress;
   }

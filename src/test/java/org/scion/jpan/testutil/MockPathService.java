@@ -35,6 +35,7 @@ import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
+import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,11 +48,14 @@ public class MockPathService {
   private PathServiceImpl pathService;
   private final Semaphore block = new Semaphore(1);
   private final AtomicReference<Status> errorToReport = new AtomicReference<>();
+  private final AsInfo asInfo;
 
-  private MockPathService() {}
+  private MockPathService(AsInfo asInfo) {
+    this.asInfo = asInfo;
+  }
 
-  public static MockPathService start(int port) {
-    return new MockPathService().startInternal(port);
+  public static MockPathService start(int port, AsInfo asInfo) {
+    return new MockPathService(asInfo).startInternal(port);
   }
 
   public int getAndResetCallCount() {
@@ -133,52 +137,98 @@ public class MockPathService {
         return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME, "POST expected");
       }
 
-      InputStream inputStream = session.getInputStream();
+      if (errorToReport.get() != null) {
+        return newFixedLengthResponse(
+                Response.Status.BAD_REQUEST, MIME, "ERROR: " + errorToReport.get());
+      }
+
       String resource = session.getUri();
       String listService = "/scion.endhost.v1.PathService/ListPaths";
+      String underlayService = "/scion.endhost.v1.UnderlayService/ListUnderlays";
       if (listService.equals(resource)) {
-        logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
-        callCount.incrementAndGet();
-
-        Path.ListSegmentsRequest request;
-        try {
-          ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
-          Channels.newChannel(inputStream).read(byteBuffer);
-          byteBuffer.flip();
-          System.out.println("SERVER: " + new String(byteBuffer.array()));
-          request = Path.ListSegmentsRequest.parseFrom(byteBuffer);
-        } catch (IOException e) {
-          logger.error(e.getMessage());
-          throw new RuntimeException(e);
-        }
-
-        long srcIA = request.getSrcIsdAs();
-        long dstIA = request.getDstIsdAs();
-
-        logger.info(
-            "Path request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
-        callCount.incrementAndGet();
-        awaitBlock(); // for testing timeouts
-
-        Path.ListSegmentsResponse protoResponse;
-        if (responsesUP.isEmpty() && responsesCORE.isEmpty() && responsesDOWN.isEmpty()) {
-          protoResponse = defaultResponse(srcIA, dstIA);
-        } else {
-          protoResponse = toResponse(srcIA, dstIA);
-        }
-
-        if (errorToReport.get() != null) {
-          return newFixedLengthResponse(
-              Response.Status.BAD_REQUEST, MIME, "ERROR: " + errorToReport.get());
-        }
-
-        InputStream targetStream = new ByteArrayInputStream(protoResponse.toByteArray());
-        return newFixedLengthResponse(
-            Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
+        return handlePathRequest(session);
+      } else if (underlayService.equals(resource)) {
+        return handleUnderlayRequest(session);
       } else {
         logger.warn("Illegal request: {}", session.getUri());
         return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME, "9");
       }
+    }
+
+    private Response handlePathRequest(IHTTPSession session) {
+      logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
+      callCount.incrementAndGet();
+
+      Path.ListSegmentsRequest request;
+      try {
+        InputStream inputStream = session.getInputStream();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
+        Channels.newChannel(inputStream).read(byteBuffer);
+        byteBuffer.flip();
+        System.out.println("SERVER: " + new String(byteBuffer.array()));
+        request = Path.ListSegmentsRequest.parseFrom(byteBuffer);
+      } catch (IOException e) {
+        logger.error(e.getMessage());
+        throw new RuntimeException(e);
+      }
+
+      long srcIA = request.getSrcIsdAs();
+      long dstIA = request.getDstIsdAs();
+
+      logger.info(
+          "Path request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
+      callCount.incrementAndGet();
+      awaitBlock(); // for testing timeouts
+
+      Path.ListSegmentsResponse protoResponse;
+      if (responsesUP.isEmpty() && responsesCORE.isEmpty() && responsesDOWN.isEmpty()) {
+        protoResponse = defaultResponse(srcIA, dstIA);
+      } else {
+        protoResponse = toResponse(srcIA, dstIA);
+      }
+
+      InputStream targetStream = new ByteArrayInputStream(protoResponse.toByteArray());
+      return newFixedLengthResponse(
+          Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
+    }
+
+    private Response handleUnderlayRequest(IHTTPSession session) {
+      logger.info("Path server serves underlay to {}", session.getRemoteIpAddress());
+      callCount.incrementAndGet();
+
+      Underlays.ListUnderlaysRequest request;
+      try {
+        InputStream inputStream = session.getInputStream();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
+        Channels.newChannel(inputStream).read(byteBuffer);
+        byteBuffer.flip();
+        System.out.println("SERVER: " + new String(byteBuffer.array()));
+        request = Underlays.ListUnderlaysRequest.parseFrom(byteBuffer);
+      } catch (IOException e) {
+        logger.error(e.getMessage());
+        throw new RuntimeException(e);
+      }
+
+      logger.info("Underlay request: ... ISD/AS = {}", ScionUtil.toStringIA(request.getIsdAs()));
+      callCount.incrementAndGet();
+      awaitBlock(); // for testing timeouts
+
+      Underlays.ListUnderlaysResponse.Builder b = Underlays.ListUnderlaysResponse.newBuilder();
+      Underlays.UdpUnderlay.Builder udp = Underlays.UdpUnderlay.newBuilder();
+      for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
+        Underlays.Router.Builder router = Underlays.Router.newBuilder();
+        router.setIsdAs(asInfo.getIsdAs());
+        for (AsInfo.BorderRouterInterface bri : br.getInterfaces()) {
+          router.addInterfaces(bri.id);
+        }
+        udp.addRouters(router.build());
+      }
+      b.setUdp(udp);
+
+      Underlays.ListUnderlaysResponse protoResponse = b.build();
+      InputStream targetStream = new ByteArrayInputStream(protoResponse.toByteArray());
+      return newFixedLengthResponse(
+              Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
     }
 
     private Path.ListSegmentsResponse toResponse(long srcIA, long dstIA) {
@@ -247,32 +297,6 @@ public class MockPathService {
         responsesDOWN.put(key(srcIA, dstIA), map.get(2).getSegmentsList());
       }
     }
-
-    //    private void addResponse(String key, Seg.SegmentsResponse response) {
-    //      if (!responses.containsKey(key)) {
-    //        responses.put(key, response);
-    //        return;
-    //      }
-    //      // merge new response with existing response
-    //      Seg.SegmentsResponse existing = responses.get(key);
-    //      int existingKey = existing.getSegmentsMap().entrySet().iterator().next().getKey();
-    //      int newKey = response.getSegmentsMap().entrySet().iterator().next().getKey();
-    //      if (newKey != existingKey) {
-    //        throw new UnsupportedOperationException();
-    //      }
-    //      List<Seg.PathSegment> listExisting =
-    //          existing.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
-    //      List<Seg.PathSegment> listNew =
-    //          response.getSegmentsMap().entrySet().iterator().next().getValue().getSegmentsList();
-    //      Seg.SegmentsResponse.Builder replyBuilder = Seg.SegmentsResponse.newBuilder();
-    //      Seg.SegmentsResponse.Segments.Builder segmentsBuilder =
-    //          Seg.SegmentsResponse.Segments.newBuilder();
-    //      segmentsBuilder.addAllSegments(listExisting);
-    //      segmentsBuilder.addAllSegments(listNew);
-    //
-    //      replyBuilder.putSegments(existingKey, segmentsBuilder.build());
-    //      responses.put(key, replyBuilder.build());
-    //    }
 
     public void clearSegments() {
       responsesUP.clear();

@@ -8,7 +8,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
+- SCMP responder must not send to broadcast addesses etc, see SCMP processing rules.
+- Add PingPong demo to integration tests. Move Integration tests to separate folder.
 - Add SCION discovery extension?! -> seg_extension.proto and daemon.proto
+- Java 17: 
+  - DNS injection
+  - Better HTML requests
+  - Modules
+  - OkHttp 5.2 or later requires modules (?)
 - P-ISD - SCIONPROTO
   - We need to define use cases. 
     - Do we really need automatic switching between ISDs?
