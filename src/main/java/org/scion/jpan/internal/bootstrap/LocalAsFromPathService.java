@@ -18,11 +18,15 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.endhost.Path;
+import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Get topology info from a path service. */
 public class LocalAsFromPathService {
@@ -30,80 +34,68 @@ public class LocalAsFromPathService {
   private static final Logger LOG = LoggerFactory.getLogger(LocalAsFromPathService.class.getName());
 
   public static LocalAS create(String pathService, TrcStore trcStore) {
-    //    Daemon.ASResponse as = readASInfo(daemonService);
-    //    this.localIsdAs = as.getIsdAs();
-    //    this.localMtu = as.getMtu();
-    //    this.isCoreAs = as.getCore();
-    //    this.portRange = readLocalPortRange(daemonService);
-    //    this.borderRouters.addAll(readBorderRouterAddresses(daemonService));
-    return null;
+    Underlays.ListUnderlaysResponse u = query(pathService);
+    if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
+      LOG.warn("No underlay available");
+      return new LocalAS(0, false, 1200, null, null, null, null, trcStore);
+    }
+    long isdAs = u.getUdp().getRoutersList().get(0).getIsdAs();
+    List<LocalAS.BorderRouter> brList = getBorderRouterList(u);
+    return new LocalAS(
+        isdAs,
+        false, // TODO?
+        1200, // TODO
+        LocalAS.DispatcherPortRange.createEmpty(), // TODO
+        null,
+        null,
+        brList,
+        trcStore);
   }
 
-//  private void query() {
-//    OkHttpClient httpClient = new OkHttpClient();
-//    String apiAddress;
-//
-//
-//
-//    Path.ListSegmentsRequest protoRequest =
-//            Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
-//    RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
-//
-//    Request request =
-//            new Request.Builder()
-//                    .url("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths")
-//                    .addHeader("Content-type", "application/proto")
-//                    //            .addHeader("User-Agent", "OkHttp Bot")
-//                    .post(requestBody)
-//                    .build();
-//
-//    System.out.println("Sending request: " + request);
-//    System.out.println("             to: " + apiAddress);
-//    try (Response response = httpClient.newCall(request).execute()) {
-//      //      String bodyStr = response.body().string();
-//      //      System.out.println("Client received len: " + bodyStr.length());
-//      //      System.out.println("Client received msg: " + bodyStr);
-//      System.out.println("Client received len: " + response.message().length());
-//      System.out.println("Client received msg: " + response.message());
-//      System.out.println("Client received str: " + response);
-//      if (!response.isSuccessful()) {
-//        throw new IOException("Unexpected code " + response);
-//      }
-//      return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
-//    }
-//  }
-//
-//  private void queryPath() {
-//    OkHttpClient httpClient = new OkHttpClient();
-//    String apiAddress;
-//
-//
-//
-//    Path.ListSegmentsRequest protoRequest =
-//            Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
-//    RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
-//
-//    Request request =
-//            new Request.Builder()
-//                    .url("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths")
-//                    .addHeader("Content-type", "application/proto")
-//                    //            .addHeader("User-Agent", "OkHttp Bot")
-//                    .post(requestBody)
-//                    .build();
-//
-//    System.out.println("Sending request: " + request);
-//    System.out.println("             to: " + apiAddress);
-//    try (Response response = httpClient.newCall(request).execute()) {
-//      //      String bodyStr = response.body().string();
-//      //      System.out.println("Client received len: " + bodyStr.length());
-//      //      System.out.println("Client received msg: " + bodyStr);
-//      System.out.println("Client received len: " + response.message().length());
-//      System.out.println("Client received msg: " + response.message());
-//      System.out.println("Client received str: " + response);
-//      if (!response.isSuccessful()) {
-//        throw new IOException("Unexpected code " + response);
-//      }
-//      return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
-//    }
-//  }
+  private static List<LocalAS.BorderRouter> getBorderRouterList(Underlays.ListUnderlaysResponse u) {
+    List<LocalAS.BorderRouter> list = new ArrayList<>();
+    for (Underlays.Router r : u.getUdp().getRoutersList()) {
+      LocalAS.BorderRouter br = new LocalAS.BorderRouter("name", r.getAddress(), new ArrayList<>());
+      for (Integer i : r.getInterfacesList()) {
+        // TODO values?
+        br.addInterface(new LocalAS.BorderRouterInterface(i, "unknown", "unknown", 0, 0, ""));
+      }
+      list.add(br);
+    }
+    return list;
+  }
+
+  private static Underlays.ListUnderlaysResponse query(String apiAddress) {
+    OkHttpClient httpClient = new OkHttpClient();
+    Underlays.ListUnderlaysRequest protoRequest =
+        Underlays.ListUnderlaysRequest.newBuilder().build();
+    RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
+
+    Request request =
+        new Request.Builder()
+            .url("http://" + apiAddress + "/scion.endhost.v1.UnderlayService/ListUnderlays")
+            .addHeader("Content-type", "application/proto")
+            //            .addHeader("User-Agent", "OkHttp Bot")
+            .post(requestBody)
+            .build();
+
+    System.out.println("Sending request: " + request);
+    System.out.println("             to: " + apiAddress);
+    try (Response response = httpClient.newCall(request).execute()) {
+      //      String bodyStr = response.body().string();
+      //      System.out.println("Client received len: " + bodyStr.length());
+      //      System.out.println("Client received msg: " + bodyStr);
+      System.out.println("Client received len: " + response.message().length());
+      System.out.println("Client received msg: " + response.message());
+      System.out.println("Client received str: " + response);
+      if (!response.isSuccessful()) {
+        throw new IOException("Unexpected code " + response);
+      }
+      return Underlays.ListUnderlaysResponse.newBuilder()
+          .mergeFrom(response.body().bytes())
+          .build();
+    } catch (IOException e) {
+      throw new ScionRuntimeException("ERROR contacting path service: " + apiAddress);
+    }
+  }
 }
