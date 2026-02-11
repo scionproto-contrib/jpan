@@ -29,6 +29,8 @@ public class LocalAsFromDaemon {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalAsFromDaemon.class.getName());
 
+  private LocalAsFromDaemon() {}
+
   public static LocalAS create(DaemonServiceGrpc daemonService, TrcStore trcStore) {
     Daemon.ASResponse as = readASInfo(daemonService);
     return new LocalAS(

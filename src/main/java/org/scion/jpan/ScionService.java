@@ -162,6 +162,7 @@ public class ScionService {
       String pathService = Config.getPathService();
       if (pathService != null) {
         defaultService = new ScionService(pathService, Mode.BOOTSTRAP_PATH_SERVICE);
+        return defaultService;
       }
 
       String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
@@ -349,7 +350,7 @@ public class ScionService {
   private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> list;
     if (pathService != null) {
-      list = pathService.getPaths(srcIsdAs, dstIsdAs);
+      list = Segments.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
     } else if (daemonService != null) {
       list = getPathListDaemon(srcIsdAs, dstIsdAs);
     } else {

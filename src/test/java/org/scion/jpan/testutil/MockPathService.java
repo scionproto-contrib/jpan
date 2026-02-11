@@ -139,7 +139,7 @@ public class MockPathService {
 
       if (errorToReport.get() != null) {
         return newFixedLengthResponse(
-                Response.Status.BAD_REQUEST, MIME, "ERROR: " + errorToReport.get());
+            Response.Status.BAD_REQUEST, MIME, "ERROR: " + errorToReport.get());
       }
 
       String resource = session.getUri();
@@ -158,6 +158,7 @@ public class MockPathService {
     private Response handlePathRequest(IHTTPSession session) {
       logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
       callCount.incrementAndGet();
+      awaitBlock(); // for testing timeouts
 
       Path.ListSegmentsRequest request;
       try {
@@ -177,8 +178,6 @@ public class MockPathService {
 
       logger.info(
           "Path request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
-      callCount.incrementAndGet();
-      awaitBlock(); // for testing timeouts
 
       Path.ListSegmentsResponse protoResponse;
       if (responsesUP.isEmpty() && responsesCORE.isEmpty() && responsesDOWN.isEmpty()) {
@@ -195,6 +194,7 @@ public class MockPathService {
     private Response handleUnderlayRequest(IHTTPSession session) {
       logger.info("Path server serves underlay to {}", session.getRemoteIpAddress());
       callCount.incrementAndGet();
+      awaitBlock(); // for testing timeouts
 
       Underlays.ListUnderlaysRequest request;
       try {
@@ -210,14 +210,13 @@ public class MockPathService {
       }
 
       logger.info("Underlay request: ... ISD/AS = {}", ScionUtil.toStringIA(request.getIsdAs()));
-      callCount.incrementAndGet();
-      awaitBlock(); // for testing timeouts
 
       Underlays.ListUnderlaysResponse.Builder b = Underlays.ListUnderlaysResponse.newBuilder();
       Underlays.UdpUnderlay.Builder udp = Underlays.UdpUnderlay.newBuilder();
       for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
         Underlays.Router.Builder router = Underlays.Router.newBuilder();
         router.setIsdAs(asInfo.getIsdAs());
+        router.setAddress(br.getInternalAddress());
         for (AsInfo.BorderRouterInterface bri : br.getInterfaces()) {
           router.addInterfaces(bri.id);
         }
@@ -228,7 +227,7 @@ public class MockPathService {
       Underlays.ListUnderlaysResponse protoResponse = b.build();
       InputStream targetStream = new ByteArrayInputStream(protoResponse.toByteArray());
       return newFixedLengthResponse(
-              Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
+          Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
     }
 
     private Path.ListSegmentsResponse toResponse(long srcIA, long dstIA) {

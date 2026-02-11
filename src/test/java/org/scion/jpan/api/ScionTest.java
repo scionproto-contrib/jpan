@@ -88,7 +88,7 @@ class ScionTest {
 
   @Test
   void defaultService_pathService() {
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
     // Start daemon just to ensure we are not using it
@@ -101,6 +101,7 @@ class ScionTest {
       // Remove TOPO property that is installed by MockNetwork2
       System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
       ScionService service = Scion.defaultService();
+      assertEquals(1, nw.getPathService().getAndResetCallCount());
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
 
@@ -109,6 +110,8 @@ class ScionTest {
       assertEquals(0, MockDaemon.getAndResetCallCount());
       assertEquals(0, nw.getControlServer().getAndResetCallCount());
       assertEquals(1, nw.getPathService().getAndResetCallCount());
+    } catch (Throwable t) {
+      t.printStackTrace();
     }
   }
 

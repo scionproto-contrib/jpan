@@ -14,19 +14,17 @@
 
 package org.scion.jpan.internal.bootstrap;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.proto.endhost.Path;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /** Get topology info from a path service. */
 public class LocalAsFromPathService {
@@ -40,16 +38,23 @@ public class LocalAsFromPathService {
       return new LocalAS(0, false, 1200, null, null, null, null, trcStore);
     }
     long isdAs = u.getUdp().getRoutersList().get(0).getIsdAs();
+    List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
     List<LocalAS.BorderRouter> brList = getBorderRouterList(u);
     return new LocalAS(
         isdAs,
         false, // TODO?
         1200, // TODO
         LocalAS.DispatcherPortRange.createEmpty(), // TODO
-        null,
+        snList,
         null,
         brList,
         trcStore);
+  }
+
+  private static List<LocalAS.ServiceNode> getServiceNodeList(String pathServiceAddress) {
+    List<LocalAS.ServiceNode> list = new ArrayList<>();
+    list.add(new LocalAS.ServiceNode("path service", pathServiceAddress));
+    return list;
   }
 
   private static List<LocalAS.BorderRouter> getBorderRouterList(Underlays.ListUnderlaysResponse u) {

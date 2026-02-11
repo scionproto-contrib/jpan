@@ -17,7 +17,6 @@ package org.scion.jpan;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
-
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -106,7 +105,7 @@ public class EndhostApiUnderlayDemo {
 
   private Underlays.ListUnderlaysResponse sendRequest2() throws IOException {
     Underlays.ListUnderlaysRequest protoRequest =
-            Underlays.ListUnderlaysRequest.newBuilder().build();
+        Underlays.ListUnderlaysRequest.newBuilder().build();
     RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
 
     Request request =
@@ -129,7 +128,9 @@ public class EndhostApiUnderlayDemo {
       if (!response.isSuccessful()) {
         throw new IOException("Unexpected code " + response);
       }
-      return Underlays.ListUnderlaysResponse.newBuilder().mergeFrom(response.body().bytes()).build();
+      return Underlays.ListUnderlaysResponse.newBuilder()
+          .mergeFrom(response.body().bytes())
+          .build();
     }
   }
 
@@ -139,8 +140,7 @@ public class EndhostApiUnderlayDemo {
   }
 
   private void getSegments() throws ScionException {
-    System.out.println(
-        "Requesting underlay information from: " + apiAddress);
+    System.out.println("Requesting underlay information from: " + apiAddress);
 
     Underlays.ListUnderlaysResponse response;
     try {
@@ -151,21 +151,18 @@ public class EndhostApiUnderlayDemo {
     print(response);
   }
 
-  private static void print(Underlays.ListUnderlaysResponse  r) {
-    System.out.println(
-        "Response SNAP / UDP = "
-            + r.hasSnap()
-            + " / "
-            + r.hasUdp());
+  private static void print(Underlays.ListUnderlaysResponse r) {
+    System.out.println("Response SNAP / UDP = " + r.hasSnap() + " / " + r.hasUdp());
     System.out.println("SNAP:");
     for (Underlays.Snap s : r.getSnap().getSnapsList()) {
       System.out.println("  SNAP address: " + s.getAddress());
     }
     System.out.println("UDP:");
     for (Underlays.Router u : r.getUdp().getRoutersList()) {
-      System.out.println(  "  Router: " + ScionUtil.toStringIA(u.getIsdAs()) + " / " + u.getAddress());
+      System.out.println(
+          "  Router: " + ScionUtil.toStringIA(u.getIsdAs()) + " / " + u.getAddress());
       for (Integer ifId : u.getInterfacesList()) {
-        System.out.println(  "    Interface: " + ifId);
+        System.out.println("    Interface: " + ifId);
       }
     }
   }

@@ -18,7 +18,6 @@ import static org.scion.jpan.demo.DemoConstants.*;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
-
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;

@@ -14,18 +14,17 @@
 
 package org.scion.jpan.internal.paths;
 
-import io.grpc.*;
-import io.grpc.okhttp.OkHttpChannelBuilder;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.Config;
-import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.proto.control_plane.SegmentLookupServiceGrpc;
-import org.scion.jpan.proto.daemon.Daemon;
+import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,7 @@ public class PathServiceRpc {
 
   private static final Logger LOG = LoggerFactory.getLogger(PathServiceRpc.class.getName());
 
-  private final List<ControlService> services = new ArrayList<>();
+  private final List<PathService> services = new ArrayList<>();
   private final int deadLineMs;
 
   public static PathServiceRpc create(LocalAS localAS) {
@@ -43,93 +42,89 @@ public class PathServiceRpc {
   private PathServiceRpc(LocalAS localAS) {
     this.deadLineMs = Config.getControlPlaneTimeoutMs();
     for (LocalAS.ServiceNode node : localAS.getControlServices()) {
-      services.add(new ControlService(node.getIpString()));
+      services.add(new PathService(node.getIpString()));
     }
   }
 
   public void close() {
-    services.forEach(ControlService::close);
+    services.forEach(PathService::close);
   }
 
-  public synchronized Seg.SegmentsResponse segments(Seg.SegmentsRequest request) {
+  public synchronized Path.ListSegmentsResponse segments(long srcIA, long dstIA) {
+    Path.ListSegmentsRequest protoRequest =
+        Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
+    RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
+
     String error = "No control services found in topology";
     for (int i = 0; i < services.size(); i++) {
-      ControlService cs = services.get(0); // Always get the first one!
-      cs.init();
-      try {
-        return cs.getStub().segments(request);
-      } catch (StatusRuntimeException e) {
-        if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
-          String srcIsdAs = ScionUtil.toStringIA(request.getSrcIsdAs());
-          String dstIsdAs = ScionUtil.toStringIA(request.getDstIsdAs());
-          String msg = "Error while requesting segments: " + srcIsdAs + " -> " + dstIsdAs;
-          if (e.getMessage().contains("TRC not found")) {
-            msg += " -> TRC not found: " + e.getMessage();
-            LOG.error(msg);
-            throw new ScionRuntimeException(msg, e);
-          }
-          if (e.getMessage().contains("invalid request")) {
-            msg += " -> failed (AS unreachable?): " + e.getMessage();
-            LOG.info(msg);
-            throw new ScionRuntimeException(msg, e);
-          }
+      PathService ps = services.get(0); // Always get the first one!
+      ps.init();
+      Request request =
+          new Request.Builder()
+              .url("http://" + ps.address + "/scion.endhost.v1.PathService/ListPaths")
+              .addHeader("Content-type", "application/proto")
+              //            .addHeader("User-Agent", "OkHttp Bot")
+              .post(requestBody)
+              .build();
+
+      System.out.println("Sending request: " + request);
+      System.out.println("             to: " + ps.address);
+      try (Response response = ps.httpClient.newCall(request).execute()) {
+        System.out.println("Client received len: " + response.message().length());
+        System.out.println("Client received msg: " + response.message());
+        System.out.println("Client received str: " + response);
+        if (!response.isSuccessful()) {
+          LOG.warn("While connecting path service {}: code={}", ps.address, response.code());
+          throw new IOException("Unexpected code " + response.code());
         }
-        error = e.getStatus().getCode().toString();
-        LOG.warn("Error connecting control service {}: {}", cs.ipString, e.getStatus().getCode());
-        cs.close();
+        return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
+      } catch (IOException e) {
+        //        if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
+        //          String msg = "Error while requesting segments: " + srcIA + " -> " + dstIA;
+        //          if (e.getMessage().contains("TRC not found")) {
+        //            msg += " -> TRC not found: " + e.getMessage();
+        //            LOG.error(msg);
+        //            throw new ScionRuntimeException(msg, e);
+        //          }
+        //          if (e.getMessage().contains("invalid request")) {
+        //            msg += " -> failed (AS unreachable?): " + e.getMessage();
+        //            LOG.info(msg);
+        //            throw new ScionRuntimeException(msg, e);
+        //          }
+        //        }
+        error = e.getMessage();
+        LOG.warn("Error connecting path service {}: {}", ps.address, error);
+        ps.close();
         // Move CS to end of list
         services.add(services.remove(0));
       }
     }
+
     throw new ScionRuntimeException(
-        "Error while connecting to SCION network, no control service available: " + error);
+        "Error while connecting to SCION network, no path service available: " + error);
   }
 
-  public List<Daemon.Path> getPaths(long srcIsdAs, long dstIsdAs) {
-    return null;
-  }
+  private static class PathService {
+    private final String address;
+    private OkHttpClient httpClient;
 
-  private class ControlService {
-    private final String ipString;
-    private ManagedChannel channel;
-    private SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub grpcStub;
-
-    public ControlService(String ipString) {
-      this.ipString = ipString;
+    public PathService(String address) {
+      this.address = address;
     }
 
     void init() {
-      if (channel != null) {
+      if (httpClient != null) {
         return;
       }
-      LOG.info("Bootstrapping with control service: {}", ipString);
-      // TODO InsecureChannelCredentials: Implement authentication!
-      // We are using OkHttp instead of Netty for Android compatibility
-      channel =
-          OkHttpChannelBuilder.forTarget(ipString, InsecureChannelCredentials.create()).build();
-      grpcStub = SegmentLookupServiceGrpc.newBlockingStub(channel);
-    }
-
-    SegmentLookupServiceGrpc.SegmentLookupServiceBlockingStub getStub() {
-      // This is a deadline, not a timeout. It counts from the time the "with..." is called.
-      // See also https://github.com/grpc/grpc-java/issues/1495
-      // and https://github.com/grpc/grpc-java/issues/4305#issuecomment-378770067
-      return grpcStub.withDeadlineAfter(deadLineMs, TimeUnit.MILLISECONDS);
+      LOG.info("Bootstrapping with path service: {}", address);
+      httpClient = new OkHttpClient();
     }
 
     void close() {
-      try {
-        if (channel != null
-            && !channel.shutdown().awaitTermination(1, TimeUnit.SECONDS)
-            && !channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS)) {
-          LOG.error("Failed to shut down ScionService gRPC ManagedChannel");
-        }
-        if (channel != null) {
-          channel = null;
-        }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new ScionRuntimeException(e);
+      if (httpClient != null) {
+        httpClient.dispatcher().cancelAll();
+        httpClient.connectionPool().evictAll();
+        httpClient = null;
       }
     }
   }
