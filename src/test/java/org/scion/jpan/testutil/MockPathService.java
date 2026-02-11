@@ -41,7 +41,8 @@ import org.slf4j.LoggerFactory;
 
 public class MockPathService {
 
-  public static final int DEFAULT_PORT = 48080;
+  public static final int DEFAULT_PORT_0 = 48080;
+  public static final int DEFAULT_PORT_1 = 58080;
   private static final String MIME = "application/proto";
   private static final Logger logger = LoggerFactory.getLogger(MockPathService.class.getName());
   private final AtomicInteger callCount = new AtomicInteger();
@@ -166,7 +167,6 @@ public class MockPathService {
         ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
         Channels.newChannel(inputStream).read(byteBuffer);
         byteBuffer.flip();
-        System.out.println("SERVER: " + new String(byteBuffer.array()));
         request = Path.ListSegmentsRequest.parseFrom(byteBuffer);
       } catch (IOException e) {
         logger.error(e.getMessage());
@@ -202,7 +202,6 @@ public class MockPathService {
         ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
         Channels.newChannel(inputStream).read(byteBuffer);
         byteBuffer.flip();
-        System.out.println("SERVER: " + new String(byteBuffer.array()));
         request = Underlays.ListUnderlaysRequest.parseFrom(byteBuffer);
       } catch (IOException e) {
         logger.error(e.getMessage());
@@ -239,8 +238,6 @@ public class MockPathService {
         String[] s = e.getKey().split(" -> ");
         long ia1 = Long.parseLong(s[0]);
         long ia2 = Long.parseLong(s[1]);
-        System.out.println(
-            "  up check: " + ScionUtil.toStringIA(ia1) + " -> " + ScionUtil.toStringIA(ia2));
         if (ia1 == srcIA) {
           System.out.println("      up check: ++");
           localCORE.add(ia2);

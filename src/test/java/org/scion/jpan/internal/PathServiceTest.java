@@ -24,7 +24,9 @@ import java.net.InetSocketAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.testutil.MockControlServer;
 import org.scion.jpan.testutil.MockNetwork2;
+import org.scion.jpan.testutil.MockPathService;
 
 class PathServiceTest {
 
@@ -34,41 +36,54 @@ class PathServiceTest {
   }
 
   @Test
-  void testControlServiceFailure_NoCS() {
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+  void testPathServiceFailure_NoPsDuringInit() {
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       // Kill CS
-      nw.getPathService().close();
-      long dstIA = ScionUtil.parseIA("1-ff00:0:111");
-      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-      // First control service does not exist, but we should automatically switch to the backup.
-      ScionService client = Scion.defaultService();
-      Exception ex =
-          assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
-      String expected = "Error while connecting to SCION network, no path service available";
-      assertTrue(ex.getMessage().startsWith(expected));
+      nw.getControlServers().forEach(MockControlServer::close);
+      nw.getPathServices().forEach(MockPathService::close);
+      Exception ex = assertThrows(ScionRuntimeException.class, Scion::defaultService);
+      assertTrue(ex.getMessage().startsWith("Path services unreachable:"), ex.getMessage());
     }
   }
 
   @Test
-  void testControlServiceMissing_Backup() {
-    // Test success if one CS is down.
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-      // Kill CS #1
-      nw.getControlServers().get(0).close();
-      checkControlService();
-    }
+  void testPathServiceFailure_NoPsDuringPathQuery() {
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      ScionService client = Scion.defaultService();
 
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-      // Kill CS #2
-      nw.getControlServers().get(1).close();
-      checkControlService();
+      // Kill CS
+      nw.getControlServers().forEach(MockControlServer::close);
+      nw.getPathServices().forEach(MockPathService::close);
+
+      Exception ex =
+          assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+      String expected = "Error while connecting to SCION network, no path service available";
+      assertTrue(ex.getMessage().startsWith(expected), ex.getMessage());
     }
   }
 
-  private void checkControlService() {
+  @Test
+  void testPathServiceMissing_Backup() {
+    // Test success if one CS is down.
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      // Kill PS #1
+      nw.getPathServices().get(0).close();
+      checkPathService();
+    }
+
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      // Kill CS #2
+      nw.getPathServices().get(1).close();
+      checkPathService();
+    }
+  }
+
+  private void checkPathService() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:111");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-    // First control service does not exist, but we should automatically switch to the backup.
+    // First path service does not exist, but we should automatically switch to the backup.
     ScionService client = Scion.defaultService();
     Path path = client.getPaths(dstIA, dstAddress).get(0);
     assertNotNull(path);
@@ -125,7 +140,7 @@ class PathServiceTest {
       nw.getControlServers().get(1).reportError(Status.UNAVAILABLE);
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA111, dstAddress));
-      String expected = "Error while connecting to SCION network, no control service available";
+      String expected = "Error while connecting to SCION network, no path service available";
       assertTrue(ex.getMessage().startsWith(expected));
 
       // Reenable CS

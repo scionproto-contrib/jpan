@@ -28,7 +28,7 @@ public class MockNetwork2 implements AutoCloseable {
   public static final String AS_HOST = "my-as-host-test.org";
   private final MockBootstrapServer topoServer;
   private final List<MockControlServer> controlServices = new ArrayList<>();
-  private final MockPathService pathService;
+  private final List<MockPathService> pathServices = new ArrayList<>();
 
   public enum Topology {
     DEFAULT("topologies/default/", ScenarioInitializer::addResponsesScionprotoDefault),
@@ -54,19 +54,31 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   public static MockNetwork2 start(Topology topo, String topoOfLocalAS) {
-    return new MockNetwork2(topo, topoOfLocalAS);
+    return new MockNetwork2(topo, topoOfLocalAS, false);
   }
 
-  private MockNetwork2(Topology topo, String topoOfLocalAS) {
+  public static MockNetwork2 startPS(Topology topo, String topoOfLocalAS) {
+    return new MockNetwork2(topo, topoOfLocalAS, true);
+  }
+
+  private MockNetwork2(Topology topo, String topoOfLocalAS, boolean usePathService) {
     topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
     InetSocketAddress topoAddr = topoServer.getAddress();
     DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-    pathService = MockPathService.start(MockPathService.DEFAULT_PORT, topoServer.getASInfo());
+    pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_0, topoServer.getASInfo()));
+    pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_1, topoServer.getASInfo()));
     for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
       controlServices.add(MockControlServer.start(csAddress.getPort()));
     }
-    String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
+
+    if (usePathService) {
+      String ps0 = "[::1]:" + MockPathService.DEFAULT_PORT_0;
+      String ps1 = "127.0.0.1:" + MockPathService.DEFAULT_PORT_1;
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, ps0 + ";" + ps1);
+    } else {
+      String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
+    }
 
     // Initialize segments
     ScenarioInitializer.init(topo, this);
@@ -75,8 +87,8 @@ public class MockNetwork2 implements AutoCloseable {
   public void reset() {
     controlServices.forEach(MockControlServer::clearSegments);
     controlServices.forEach(MockControlServer::getAndResetCallCount);
-    pathService.clearSegments();
-    pathService.getAndResetCallCount();
+    pathServices.forEach(MockPathService::clearSegments);
+    pathServices.forEach(MockPathService::getAndResetCallCount);
     topoServer.getAndResetCallCount();
   }
 
@@ -84,7 +96,7 @@ public class MockNetwork2 implements AutoCloseable {
   public void close() {
     controlServices.forEach(MockControlServer::close);
     controlServices.clear();
-    pathService.close();
+    pathServices.forEach(MockPathService::close);
     topoServer.close();
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
@@ -104,13 +116,17 @@ public class MockNetwork2 implements AutoCloseable {
     return Collections.unmodifiableList(controlServices);
   }
 
+  public List<MockPathService> getPathServices() {
+    return pathServices;
+  }
+
   public MockPathService getPathService() {
-    return pathService;
+    return pathServices.get(0);
   }
 
   public void addResponse(
       long srcIA, boolean srcIsCore, long dstIA, boolean dstIsCore, Seg.SegmentsResponse response) {
     controlServices.forEach(c -> c.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response));
-    pathService.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response);
+    pathServices.forEach(p -> p.addResponse(srcIA, srcIsCore, dstIA, dstIsCore, response));
   }
 }

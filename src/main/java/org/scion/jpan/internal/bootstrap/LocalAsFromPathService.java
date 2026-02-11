@@ -32,13 +32,13 @@ public class LocalAsFromPathService {
   private static final Logger LOG = LoggerFactory.getLogger(LocalAsFromPathService.class.getName());
 
   public static LocalAS create(String pathService, TrcStore trcStore) {
-    Underlays.ListUnderlaysResponse u = query(pathService);
+    List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
+    Underlays.ListUnderlaysResponse u = query(snList, pathService);
     if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
       LOG.warn("No underlay available");
       return new LocalAS(0, false, 1200, null, null, null, null, trcStore);
     }
     long isdAs = u.getUdp().getRoutersList().get(0).getIsdAs();
-    List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
     List<LocalAS.BorderRouter> brList = getBorderRouterList(u);
     return new LocalAS(
         isdAs,
@@ -51,9 +51,12 @@ public class LocalAsFromPathService {
         trcStore);
   }
 
-  private static List<LocalAS.ServiceNode> getServiceNodeList(String pathServiceAddress) {
+  private static List<LocalAS.ServiceNode> getServiceNodeList(String pathServiceAddresses) {
     List<LocalAS.ServiceNode> list = new ArrayList<>();
-    list.add(new LocalAS.ServiceNode("path service", pathServiceAddress));
+    String[] addresses = pathServiceAddresses.split(";");
+    for (String address : addresses) {
+      list.add(new LocalAS.ServiceNode("path service", address));
+    }
     return list;
   }
 
@@ -70,7 +73,19 @@ public class LocalAsFromPathService {
     return list;
   }
 
-  private static Underlays.ListUnderlaysResponse query(String apiAddress) {
+  private static Underlays.ListUnderlaysResponse query(List<LocalAS.ServiceNode> nodes, String in) {
+    for (LocalAS.ServiceNode node : nodes) {
+      try {
+        return query(node.getIpString());
+      } catch (IOException e) {
+        LOG.warn("ERROR contacting path service: {}", node.getIpString());
+      }
+    }
+    LOG.error("Path services unreachable: {}", in);
+    throw new ScionRuntimeException("Path services unreachable: " + in);
+  }
+
+  private static Underlays.ListUnderlaysResponse query(String apiAddress) throws IOException {
     OkHttpClient httpClient = new OkHttpClient();
     Underlays.ListUnderlaysRequest protoRequest =
         Underlays.ListUnderlaysRequest.newBuilder().build();
@@ -99,8 +114,6 @@ public class LocalAsFromPathService {
       return Underlays.ListUnderlaysResponse.newBuilder()
           .mergeFrom(response.body().bytes())
           .build();
-    } catch (IOException e) {
-      throw new ScionRuntimeException("ERROR contacting path service: " + apiAddress);
     }
   }
 }

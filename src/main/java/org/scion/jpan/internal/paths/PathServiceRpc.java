@@ -70,9 +70,9 @@ public class PathServiceRpc {
       System.out.println("Sending request: " + request);
       System.out.println("             to: " + ps.address);
       try (Response response = ps.httpClient.newCall(request).execute()) {
-        System.out.println("Client received len: " + response.message().length());
-        System.out.println("Client received msg: " + response.message());
-        System.out.println("Client received str: " + response);
+        //        System.out.println("Client received len: " + response.message().length());
+        //        System.out.println("Client received msg: " + response.message());
+        //        System.out.println("Client received str: " + response);
         if (!response.isSuccessful()) {
           LOG.warn("While connecting path service {}: code={}", ps.address, response.code());
           throw new IOException("Unexpected code " + response.code());

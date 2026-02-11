@@ -39,7 +39,6 @@ import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
-import org.scion.jpan.testutil.MockPathService;
 import org.scion.jpan.testutil.TestUtil;
 
 class ScionTest {
@@ -94,12 +93,9 @@ class ScionTest {
     // Start daemon just to ensure we are not using it
     MockDaemon.createAndStartDefault();
 
-    System.setProperty(
-        Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, "[::1]:" + MockPathService.DEFAULT_PORT);
+    // TODO remove property
     System.setProperty(Constants.PROPERTY_DAEMON, "[::1]:" + DEFAULT_PORT);
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-      // Remove TOPO property that is installed by MockNetwork2
-      System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
       assertEquals(1, nw.getPathService().getAndResetCallCount());
       Path path = service.getPaths(dstIA, dstAddress).get(0);
