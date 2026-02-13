@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
-- SCMP responder must not send to broadcast addesses etc, see SCMP processing rules.
+- Deprecate ScionService.getLocalIsdAs(). Also: build header with src-IA from path!
+- Implement `send(PathProvider)`? Useful e.g. for a browser that connects to many
+  servers.
+- SCMP responder must not send to broadcast addresses etc, see SCMP processing rules.
 - Add PingPong demo to integration tests. Move Integration tests to separate folder.
 - Add SCION discovery extension?! -> seg_extension.proto and daemon.proto
 - Java 17: 
