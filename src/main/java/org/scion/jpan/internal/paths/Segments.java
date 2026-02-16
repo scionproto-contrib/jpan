@@ -273,10 +273,10 @@ public class Segments {
         .getUpSegmentsList()
         .forEach(path -> segments[0].add(new PathSegment(path, SegmentType.UP)));
     response
-        .getUpSegmentsList()
+        .getCoreSegmentsList()
         .forEach(path -> segments[1].add(new PathSegment(path, SegmentType.CORE)));
     response
-        .getUpSegmentsList()
+        .getDownSegmentsList()
         .forEach(path -> segments[2].add(new PathSegment(path, SegmentType.DOWN)));
     return segments;
   }

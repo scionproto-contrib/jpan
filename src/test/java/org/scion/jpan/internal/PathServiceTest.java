@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.grpc.Status;
+import fi.iki.elonen.NanoHTTPD;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -90,28 +90,34 @@ class PathServiceTest {
   }
 
   @Test
-  void testControlServiceWorksThenFails_Backup() {
-    // Test success if 1st CS reports errors during runtime
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-      long dstIA = ScionUtil.parseIA("1-ff00:0:111");
-      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-      for (Status error :
-          new Status[] {Status.DEADLINE_EXCEEDED, Status.UNAVAILABLE, Status.UNKNOWN}) {
+  void testPathServiceWorksThenFails_Backup() {
+    for (NanoHTTPD.Response.Status error :
+        new NanoHTTPD.Response.Status[] {
+          NanoHTTPD.Response.Status.BAD_REQUEST,
+          NanoHTTPD.Response.Status.INTERNAL_ERROR,
+          NanoHTTPD.Response.Status.UNAUTHORIZED,
+          NanoHTTPD.Response.Status.FORBIDDEN,
+          NanoHTTPD.Response.Status.NOT_FOUND
+        }) {
+      // Test success if 1st CS reports errors during runtime
+      try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+        long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+        InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
         ScionService client = Scion.defaultService();
-        nw.getControlServers().get(0).getAndResetCallCount(); // reset
+        nw.getPathServices().get(0).getAndResetCallCount(); // reset
         Path path = client.getPaths(dstIA, dstAddress).get(0);
         assertNotNull(path);
-        assertEquals(3, nw.getControlServers().get(0).getAndResetCallCount());
+        assertEquals(1, nw.getPathServices().get(0).getAndResetCallCount());
 
         // Kill CS #1
-        nw.getControlServers().get(0).reportError(error);
+        nw.getPathServices().get(0).reportError(error);
 
         // try again
         // Where does path with BR-2 come from ????
         Path path2 = client.getPaths(dstIA, dstAddress).get(0);
         assertNotNull(path2);
-        assertEquals(1, nw.getControlServers().get(0).getAndResetCallCount()); // error
-        assertEquals(3, nw.getControlServers().get(1).getAndResetCallCount());
+        assertEquals(1, nw.getPathServices().get(0).getAndResetCallCount()); // error
+        assertEquals(1, nw.getPathServices().get(1).getAndResetCallCount());
 
         ScionService.closeDefault();
       }
@@ -119,10 +125,10 @@ class PathServiceTest {
   }
 
   @Test
-  void testControlServiceFailure_PrimaryWorksThenFails() {
+  void testPathServiceFailure_PrimaryWorksThenFails() {
     // CS works, then fails, then 2nd CS fails, then work again.
     // This tests that failed CS services are retried if all services fail
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       long dstIA110 = ScionUtil.parseIA("1-ff00:0:110");
       long dstIA111 = ScionUtil.parseIA("1-ff00:0:111");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
@@ -132,20 +138,20 @@ class PathServiceTest {
       assertNotNull(path);
 
       // Kill CS - ask for different AS do avoid getting a cached path or similar.
-      nw.getControlServers().get(0).reportError(Status.UNAVAILABLE);
+      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.NOT_FOUND);
       // Should still works
       client.getPaths(dstIA111, dstAddress);
       // Kill 2nd CS (have both report errors)
-      nw.getControlServers().get(0).reportError(Status.UNAVAILABLE);
-      nw.getControlServers().get(1).reportError(Status.UNAVAILABLE);
+      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.NOT_FOUND);
+      nw.getPathServices().get(1).reportError(NanoHTTPD.Response.Status.NOT_FOUND);
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA111, dstAddress));
       String expected = "Error while connecting to SCION network, no path service available";
       assertTrue(ex.getMessage().startsWith(expected));
 
-      // Reenable CS
-      nw.getControlServers().get(0).reportError(null);
-      nw.getControlServers().get(1).reportError(null);
+      // Re-enable CS
+      nw.getPathServices().get(0).reportError(null);
+      nw.getPathServices().get(1).reportError(null);
       Path path2 = client.getPaths(dstIA111, dstAddress).get(0);
       assertNotNull(path2);
     }
@@ -153,16 +159,15 @@ class PathServiceTest {
 
   @Test
   void testErrorInvalidRequest() {
-    // Test success if 1st CS reports errors during runtime
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+    // Test success if 1st PS reports errors during runtime
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       long dstIA = ScionUtil.parseIA("1-ff00:0:111");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
-      Status status = Status.UNKNOWN.withDescription("invalid request");
       ScionService client = Scion.defaultService();
 
       // ingest error
-      nw.getControlServers().get(0).reportError(status);
+      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.BAD_REQUEST);
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
       assertTrue(ex.getMessage().contains("invalid request"));
@@ -172,15 +177,16 @@ class PathServiceTest {
   @Test
   void testErrorTRC() {
     // Test success if 1st CS reports errors during runtime
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       long dstIA = ScionUtil.parseIA("1-ff00:0:111");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
-      Status status = Status.UNKNOWN.withDescription("TRC not found");
+      NanoHTTPD.Response.Status status =
+          NanoHTTPD.Response.Status.NOT_FOUND; // TODO .withDescription("TRC not found");
       ScionService client = Scion.defaultService();
 
       // ingest error
-      nw.getControlServers().get(0).reportError(status);
+      nw.getPathServices().get(0).reportError(status);
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
       assertTrue(ex.getMessage().contains("TRC not found"), ex.getMessage());

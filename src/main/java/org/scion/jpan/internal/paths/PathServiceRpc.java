@@ -21,6 +21,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.Config;
@@ -70,12 +71,12 @@ public class PathServiceRpc {
       System.out.println("Sending request: " + request);
       System.out.println("             to: " + ps.address);
       try (Response response = ps.httpClient.newCall(request).execute()) {
-        //        System.out.println("Client received len: " + response.message().length());
-        //        System.out.println("Client received msg: " + response.message());
-        //        System.out.println("Client received str: " + response);
         if (!response.isSuccessful()) {
-          LOG.warn("While connecting path service {}: code={}", ps.address, response.code());
-          throw new IOException("Unexpected code " + response.code());
+          ResponseBody body = response.body();
+          String str = body != null ? body.string() : null;
+          LOG.warn(
+              "While connecting path service {}: code={} msg={}", ps.address, response.code(), str);
+          throw new IOException("Unexpected code " + response.code() + ": " + str);
         }
         return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
       } catch (IOException e) {

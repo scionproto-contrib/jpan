@@ -16,7 +16,6 @@ package org.scion.jpan.testutil;
 
 import com.google.protobuf.ByteString;
 import fi.iki.elonen.NanoHTTPD;
-import io.grpc.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,7 +47,7 @@ public class MockPathService {
   private final AtomicInteger callCount = new AtomicInteger();
   private PathServiceImpl pathService;
   private final Semaphore block = new Semaphore(1);
-  private final AtomicReference<Status> errorToReport = new AtomicReference<>();
+  private final AtomicReference<NanoHTTPD.Response.Status> errorToReport = new AtomicReference<>();
   private final AsInfo asInfo;
 
   private MockPathService(AsInfo asInfo) {
@@ -116,7 +115,7 @@ public class MockPathService {
     unblock();
   }
 
-  public void reportError(Status errorToReport) {
+  public void reportError(NanoHTTPD.Response.Status errorToReport) {
     this.errorToReport.set(errorToReport);
   }
 
@@ -134,13 +133,24 @@ public class MockPathService {
     @Override
     public Response serve(IHTTPSession session) {
       logger.info("Path service started on port {}", super.getListeningPort());
+      callCount.incrementAndGet();
       if (session.getMethod() != Method.POST) {
-        return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME, "POST expected");
+        return newFixedLengthResponse(
+            Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, "POST expected");
       }
 
       if (errorToReport.get() != null) {
-        return newFixedLengthResponse(
-            Response.Status.BAD_REQUEST, MIME, "ERROR: " + errorToReport.get());
+        NanoHTTPD.Response.Status error = errorToReport.getAndSet(null);
+        try {
+          // We have to empty the stream to avoid NanoHTTPD throwing an exception.
+          if (session.getInputStream().skip(1_000_000) < 1) {
+            throw new IOException();
+          }
+        } catch (IOException e) {
+          e.printStackTrace(); // should never happen
+        }
+        // TODO extra text?
+        return newFixedLengthResponse(error, NanoHTTPD.MIME_PLAINTEXT, error.getDescription());
       }
 
       String resource = session.getUri();
@@ -152,13 +162,12 @@ public class MockPathService {
         return handleUnderlayRequest(session);
       } else {
         logger.warn("Illegal request: {}", session.getUri());
-        return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME, "9");
+        return newFixedLengthResponse(Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, "9");
       }
     }
 
     private Response handlePathRequest(IHTTPSession session) {
       logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
-      callCount.incrementAndGet();
       awaitBlock(); // for testing timeouts
 
       Path.ListSegmentsRequest request;
@@ -170,22 +179,16 @@ public class MockPathService {
         request = Path.ListSegmentsRequest.parseFrom(byteBuffer);
       } catch (IOException e) {
         logger.error(e.getMessage());
-        throw new RuntimeException(e);
+        return newFixedLengthResponse(
+            Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, e.getMessage());
       }
 
       long srcIA = request.getSrcIsdAs();
       long dstIA = request.getDstIsdAs();
-
       logger.info(
           "Path request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
 
-      Path.ListSegmentsResponse protoResponse;
-      if (responsesUP.isEmpty() && responsesCORE.isEmpty() && responsesDOWN.isEmpty()) {
-        protoResponse = defaultResponse(srcIA, dstIA);
-      } else {
-        protoResponse = toResponse(srcIA, dstIA);
-      }
-
+      Path.ListSegmentsResponse protoResponse = toResponse(srcIA, dstIA);
       InputStream targetStream = new ByteArrayInputStream(protoResponse.toByteArray());
       return newFixedLengthResponse(
           Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
@@ -193,7 +196,6 @@ public class MockPathService {
 
     private Response handleUnderlayRequest(IHTTPSession session) {
       logger.info("Path server serves underlay to {}", session.getRemoteIpAddress());
-      callCount.incrementAndGet();
       awaitBlock(); // for testing timeouts
 
       Underlays.ListUnderlaysRequest request;
@@ -205,7 +207,8 @@ public class MockPathService {
         request = Underlays.ListUnderlaysRequest.parseFrom(byteBuffer);
       } catch (IOException e) {
         logger.error(e.getMessage());
-        throw new RuntimeException(e);
+        return newFixedLengthResponse(
+            Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, e.getMessage());
       }
 
       logger.info("Underlay request: ... ISD/AS = {}", ScionUtil.toStringIA(request.getIsdAs()));
@@ -254,11 +257,6 @@ public class MockPathService {
         if (ia2 == dstIA) {
           System.out.println("      down check: ++");
           remoteCORE.add(ia1);
-          responseBuilder.addAllDownSegments(e.getValue());
-        }
-        if (ia1 == dstIA) {
-          System.out.println("      down check: ++");
-          remoteCORE.add(ia2);
           responseBuilder.addAllDownSegments(e.getValue());
         }
       }
