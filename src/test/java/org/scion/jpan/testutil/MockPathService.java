@@ -14,7 +14,6 @@
 
 package org.scion.jpan.testutil;
 
-import com.google.protobuf.ByteString;
 import fi.iki.elonen.NanoHTTPD;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
@@ -149,7 +147,6 @@ public class MockPathService {
         } catch (IOException e) {
           e.printStackTrace(); // should never happen
         }
-        // TODO extra text?
         return newFixedLengthResponse(error, NanoHTTPD.MIME_PLAINTEXT, error.getDescription());
       }
 
@@ -187,11 +184,28 @@ public class MockPathService {
       long dstIA = request.getDstIsdAs();
       logger.info(
           "Path request: {} -> {}", ScionUtil.toStringIA(srcIA), ScionUtil.toStringIA(dstIA));
+      if (srcIA == 0 || dstIA == 0) {
+        String src = ScionUtil.toStringIA(srcIA);
+        String dst = ScionUtil.toStringIA(dstIA);
+        return newFixedLengthResponse(
+            Response.Status.BAD_REQUEST,
+            NanoHTTPD.MIME_PLAINTEXT,
+            "Illegal arguments: " + src + " -> " + dst);
+      }
 
-      Path.ListSegmentsResponse protoResponse = toResponse(srcIA, dstIA);
-      InputStream targetStream = new ByteArrayInputStream(protoResponse.toByteArray());
-      return newFixedLengthResponse(
-          Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
+      Path.ListSegmentsResponse r = toResponse(srcIA, dstIA);
+      // Report error if ISD/AS was not found
+      if (r.getUpSegmentsCount() + r.getCoreSegmentsCount() + r.getDownSegmentsCount() == 0) {
+        String src = ScionUtil.toStringIA(srcIA);
+        String dst = ScionUtil.toStringIA(dstIA);
+        return newFixedLengthResponse(
+            Response.Status.INTERNAL_ERROR,
+            NanoHTTPD.MIME_PLAINTEXT,
+            "Not found: " + src + " -> " + dst);
+      }
+
+      InputStream targetStream = new ByteArrayInputStream(r.toByteArray());
+      return newFixedLengthResponse(Response.Status.OK, MIME, targetStream, r.toByteArray().length);
     }
 
     private Response handleUnderlayRequest(IHTTPSession session) {
@@ -242,7 +256,6 @@ public class MockPathService {
         long ia1 = Long.parseLong(s[0]);
         long ia2 = Long.parseLong(s[1]);
         if (ia1 == srcIA) {
-          System.out.println("      up check: ++");
           localCORE.add(ia2);
           responseBuilder.addAllUpSegments(e.getValue());
         }
@@ -252,10 +265,7 @@ public class MockPathService {
         String[] s = e.getKey().split(" -> ");
         long ia1 = Long.parseLong(s[0]);
         long ia2 = Long.parseLong(s[1]);
-        System.out.println(
-            "  down check: " + ScionUtil.toStringIA(ia1) + " -> " + ScionUtil.toStringIA(ia2));
         if (ia2 == dstIA) {
-          System.out.println("      down check: ++");
           remoteCORE.add(ia1);
           responseBuilder.addAllDownSegments(e.getValue());
         }
@@ -265,11 +275,8 @@ public class MockPathService {
         String[] s = e.getKey().split(" -> ");
         long ia1 = Long.parseLong(s[0]);
         long ia2 = Long.parseLong(s[1]);
-        System.out.println(
-            "  core check: " + ScionUtil.toStringIA(ia1) + " -> " + ScionUtil.toStringIA(ia2));
         if ((localCORE.contains(ia1) && remoteCORE.contains(ia2))
             || localCORE.contains(ia2) && remoteCORE.contains(ia1)) {
-          System.out.println("      core check: ++");
           responseBuilder.addAllCoreSegments(e.getValue());
         }
       }
@@ -300,80 +307,6 @@ public class MockPathService {
 
     private String key(long ia0, long ia1) {
       return ia0 + " -> " + ia1;
-    }
-
-    private Path.ListSegmentsResponse defaultResponse(long srcIA, long dstIA) {
-      Path.ListSegmentsResponse.Builder responseBuilder = Path.ListSegmentsResponse.newBuilder();
-      if (srcIA == dstIA) {
-        // Single core AS, no paths are available
-        return responseBuilder.build();
-      }
-      // Wildcards are only used for CORE AS, and there is only one core AS in "tiny": 1-ff00:0:110
-      srcIA = ScionUtil.isWildcard(srcIA) ? ScionUtil.parseIA("1-ff00:0:110") : srcIA;
-      dstIA = ScionUtil.isWildcard(dstIA) ? ScionUtil.parseIA("1-ff00:0:110") : dstIA;
-
-      if (srcIA == ScionUtil.parseIA("1-ff00:0:110")) {
-        responseBuilder.addDownSegments(buildSegment(srcIA, dstIA, 1, 2));
-        responseBuilder.addDownSegments(buildSegment(srcIA, dstIA, 11, 22));
-      } else if (dstIA == ScionUtil.parseIA("1-ff00:0:110")) {
-        responseBuilder.addUpSegments(buildSegment(srcIA, dstIA, 1, 2));
-        responseBuilder.addUpSegments(buildSegment(srcIA, dstIA, 11, 22));
-      }
-      return responseBuilder.build();
-    }
-
-    private Seg.PathSegment buildSegment(long srcIA, long dstIA, int ingress, int egress) {
-      ByteString mac0 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-      Seg.HopField hop0 =
-          Seg.HopField.newBuilder()
-              .setMac(mac0)
-              .setIngress(3)
-              .setEgress(egress)
-              .setExpTime(64)
-              .build();
-      Seg.HopEntry hopEntry0 =
-          Seg.HopEntry.newBuilder().setHopField(hop0).setIngressMtu(2345).build();
-      Seg.ASEntrySignedBody asSigneBody0 =
-          Seg.ASEntrySignedBody.newBuilder()
-              .setIsdAs(srcIA)
-              .setHopEntry(hopEntry0)
-              .setMtu(4567)
-              .build();
-      Signed.HeaderAndBodyInternal habi0 =
-          Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody0.toByteString()).build();
-      Signed.SignedMessage sm0 =
-          Signed.SignedMessage.newBuilder().setHeaderAndBody(habi0.toByteString()).build();
-      Seg.ASEntry asEntry0 = Seg.ASEntry.newBuilder().setSigned(sm0).build();
-
-      ByteString mac1 = ByteString.copyFrom(new byte[] {1, 2, 3, 4, 5, 6});
-      Seg.HopField hop1 =
-          Seg.HopField.newBuilder()
-              .setMac(mac1)
-              .setIngress(ingress)
-              .setEgress(0)
-              .setExpTime(64)
-              .build();
-      Seg.HopEntry hopEntry1 =
-          Seg.HopEntry.newBuilder().setHopField(hop1).setIngressMtu(1234).build();
-      Seg.ASEntrySignedBody asSigneBody1 =
-          Seg.ASEntrySignedBody.newBuilder()
-              .setIsdAs(dstIA)
-              .setHopEntry(hopEntry1)
-              .setMtu(3456)
-              .build();
-      Signed.HeaderAndBodyInternal habi1 =
-          Signed.HeaderAndBodyInternal.newBuilder().setBody(asSigneBody1.toByteString()).build();
-      Signed.SignedMessage sm1 =
-          Signed.SignedMessage.newBuilder().setHeaderAndBody(habi1.toByteString()).build();
-      Seg.ASEntry asEntry1 = Seg.ASEntry.newBuilder().setSigned(sm1).build();
-
-      Seg.SegmentInformation info = Seg.SegmentInformation.newBuilder().setTimestamp(start).build();
-      ByteString infoBS = info.toByteString();
-      return Seg.PathSegment.newBuilder()
-          .addAsEntries(asEntry0)
-          .addAsEntries(asEntry1)
-          .setSegmentInfo(infoBS)
-          .build();
     }
   }
 }

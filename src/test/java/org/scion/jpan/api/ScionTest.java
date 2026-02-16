@@ -104,7 +104,7 @@ class ScionTest {
       // TODO also test with daemon available! E.g. start MockDaemon directly?
       //    TODO remove, MockDaemon is anyway not called...
       assertEquals(0, MockDaemon.getAndResetCallCount());
-      assertEquals(0, nw.getControlServer().getAndResetCallCount());
+      assertEquals(0, nw.getControlServers().size());
       assertEquals(1, nw.getPathService().getAndResetCallCount());
     } catch (Throwable t) {
       t.printStackTrace();

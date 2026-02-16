@@ -193,10 +193,8 @@ public class Segments {
    */
   public static List<Daemon.Path> getPaths(
       PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
-    List<Daemon.Path> path = getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
-    // TODO sort?
-    // path.sort(Comparator.comparingInt(Daemon.Path::getInterfacesCount));
-    return path;
+    // We do not sort the paths here, we kind of rely on the order given by the path service
+    return getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
   }
 
   private static List<Daemon.Path> getPathsInternal(
@@ -213,6 +211,7 @@ public class Segments {
     return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS);
   }
 
+  @SuppressWarnings("unchecked")
   private static List<PathSegment>[] getSegments(
       PathServiceRpc segmentStub, long srcIsdAs, long dstIsdAs) {
     if (LOG.isInfoEnabled()) {

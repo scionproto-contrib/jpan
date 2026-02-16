@@ -148,6 +148,7 @@ TODO
   [#217](https://github.com/scionproto-contrib/jpan/pull/217)
 - Support for new endhost API
   [#218](https://github.com/scionproto-contrib/jpan/pull/218)
+  - TODO encapsulate in HTTP into separate class
 
 ### Fixed
 

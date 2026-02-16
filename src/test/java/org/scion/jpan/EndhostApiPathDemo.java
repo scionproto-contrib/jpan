@@ -32,7 +32,6 @@ import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.experimental.SegDetachedExtensions;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.endhost.Path;
-import org.scion.jpan.testutil.MockNetwork2;
 
 /** Small demo that requests and prints segments requested from a control service. */
 public class EndhostApiPathDemo {
@@ -43,8 +42,8 @@ public class EndhostApiPathDemo {
   private static final String neaETH = "192.168.53.19:48080";
 
   public static void main(String[] args) throws ScionException {
-    //    EndhostApiPathDemo demo = new EndhostApiPathDemo(neaETH);
-    //    demo.getSegments(iaETH, iaETH_CORE);
+    EndhostApiPathDemo demo = new EndhostApiPathDemo(neaETH);
+    demo.getSegments(iaETH, iaETH_CORE);
 
     // response.toString():
     // Response{protocol=http/1.1, code=200, message=OK,
@@ -60,14 +59,16 @@ public class EndhostApiPathDemo {
     // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
-    //    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+    //    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112"))
+    // {
     //      EndhostApiPathDemo demo2 = new EndhostApiPathDemo("127.0.0.1:48080");
     //      demo2.getSegments(ia112, ia110);
     //    }
-    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
-      EndhostApiPathDemo demo2 = new EndhostApiPathDemo("127.0.0.1:48080");
-      demo2.getSegments(ia112, ia221);
-    }
+    //    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.DEFAULT,
+    // "ASff00_0_112")) {
+    //      EndhostApiPathDemo demo2 = new EndhostApiPathDemo("127.0.0.1:48080");
+    //      demo2.getSegments(ia112, ia221);
+    //    }
   }
 
   private Path.ListSegmentsResponse sendRequest(long srcIA, long dstIA) throws IOException {

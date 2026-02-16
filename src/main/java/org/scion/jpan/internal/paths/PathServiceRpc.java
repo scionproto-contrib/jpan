@@ -14,6 +14,8 @@
 
 package org.scion.jpan.internal.paths;
 
+import static com.ibm.icu.text.PluralRules.Operand.e;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,31 +70,29 @@ public class PathServiceRpc {
               .post(requestBody)
               .build();
 
-      System.out.println("Sending request: " + request);
-      System.out.println("             to: " + ps.address);
       try (Response response = ps.httpClient.newCall(request).execute()) {
         if (!response.isSuccessful()) {
           ResponseBody body = response.body();
           String str = body != null ? body.string() : null;
+          if (response.code() == 400) {
+            String msg = "Error while requesting segments: " + srcIA + " -> " + dstIA;
+            msg += " -> BAD_REQUEST: " + response.message();
+            LOG.info(msg);
+            throw new ScionRuntimeException(msg);
+          }
+          if (response.code() == 500) {
+            String msg = "Error while requesting segments: " + srcIA + " -> " + dstIA;
+            msg += " -> INTERNAL_SERVER_ERROR -> failed (AS unreachable?): " + response.message();
+            LOG.info(msg);
+            throw new ScionRuntimeException(msg);
+          }
+
           LOG.warn(
               "While connecting path service {}: code={} msg={}", ps.address, response.code(), str);
           throw new IOException("Unexpected code " + response.code() + ": " + str);
         }
         return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
       } catch (IOException e) {
-        //        if (e.getStatus().getCode().equals(Status.Code.UNKNOWN)) {
-        //          String msg = "Error while requesting segments: " + srcIA + " -> " + dstIA;
-        //          if (e.getMessage().contains("TRC not found")) {
-        //            msg += " -> TRC not found: " + e.getMessage();
-        //            LOG.error(msg);
-        //            throw new ScionRuntimeException(msg, e);
-        //          }
-        //          if (e.getMessage().contains("invalid request")) {
-        //            msg += " -> failed (AS unreachable?): " + e.getMessage();
-        //            LOG.info(msg);
-        //            throw new ScionRuntimeException(msg, e);
-        //          }
-        //        }
         error = e.getMessage();
         LOG.warn("Error connecting path service {}: {}", ps.address, error);
         ps.close();

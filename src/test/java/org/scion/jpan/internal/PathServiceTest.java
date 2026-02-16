@@ -114,11 +114,18 @@ class PathServiceTest {
         nw.getPathServices().get(0).reportError(error);
 
         // try again
-        // Where does path with BR-2 come from ????
-        Path path2 = client.getPaths(dstIA, dstAddress).get(0);
-        assertNotNull(path2);
-        assertEquals(1, nw.getPathServices().get(0).getAndResetCallCount()); // error
-        assertEquals(1, nw.getPathServices().get(1).getAndResetCallCount());
+        if (error == NanoHTTPD.Response.Status.BAD_REQUEST
+            || error == NanoHTTPD.Response.Status.INTERNAL_ERROR) {
+          assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+          assertEquals(1, nw.getPathServices().get(0).getAndResetCallCount()); // error
+          // Also 0, because with these errors we don't try again
+          assertEquals(0, nw.getPathServices().get(0).getAndResetCallCount());
+        } else {
+          Path path2 = client.getPaths(dstIA, dstAddress).get(0);
+          assertNotNull(path2);
+          assertEquals(1, nw.getPathServices().get(0).getAndResetCallCount()); // error
+          assertEquals(1, nw.getPathServices().get(1).getAndResetCallCount());
+        }
 
         ScionService.closeDefault();
       }
@@ -159,19 +166,31 @@ class PathServiceTest {
   }
 
   @Test
-  void testErrorInvalidRequest() {
+  void testErrorInvalidRequest_IsdAs_0000() {
     // Test success if 1st PS reports errors during runtime
     try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
-      long dstIA = ScionUtil.parseIA("1-ff00:0:111");
+      long dstIA = 0;
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
-
       ScionService client = Scion.defaultService();
-
-      // ingest error
-      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.BAD_REQUEST);
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
-      assertTrue(ex.getMessage().contains("invalid request"));
+      assertTrue(ex.getMessage().contains("BAD_REQUEST"), ex.getMessage());
+    }
+  }
+
+  @Test
+  void testErrorInvalidRequest_IsdAs_xxxxx() {
+    // Test success if 1st PS reports errors during runtime
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      long dstIA = ScionUtil.parseIA("12345-54321");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      ScionService client = Scion.defaultService();
+
+      // We force error 500 because our MOCK is to simple to do that
+      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.INTERNAL_ERROR);
+      Exception ex =
+          assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
+      assertTrue(ex.getMessage().contains("INTERNAL_SERVER_ERROR"), ex.getMessage());
     }
   }
 
