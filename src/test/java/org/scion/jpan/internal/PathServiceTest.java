@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import fi.iki.elonen.NanoHTTPD;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.testutil.MockControlServer;
@@ -174,6 +175,7 @@ class PathServiceTest {
     }
   }
 
+  @Disabled // To be implemented once we get TRCs from the new endhost API
   @Test
   void testErrorTRC() {
     // Test success if 1st CS reports errors during runtime

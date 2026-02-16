@@ -185,70 +185,29 @@ public class Segments {
   /**
    * See {@link #getPaths(ControlServiceGrpc, LocalAS, long, long, boolean)}.
    *
-   * @param service
-   * @param localAS
-   * @param srcIsdAs
-   * @param dstIsdAs
-   * @return
+   * @param service PathService
+   * @param localAS localAS number // TODO remove!!
+   * @param srcIsdAs source ISD/AS
+   * @param dstIsdAs destination ISD/AS
+   * @return list of paths
    */
   public static List<Daemon.Path> getPaths(
       PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> path = getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
+    // TODO sort?
+    // path.sort(Comparator.comparingInt(Daemon.Path::getInterfacesCount));
     return path;
   }
 
   private static List<Daemon.Path> getPathsInternal(
       PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
-    //    long srcWildcard = ScionUtil.toWildcard(srcIsdAs);
-    //    long dstWildcard = ScionUtil.toWildcard(dstIsdAs);
-
     if (srcIsdAs == dstIsdAs) {
-      // case A: same AS, return empty path
+      // same AS, return empty path
       Daemon.Path.Builder path = Daemon.Path.newBuilder();
       path.setMtu(localAS.getMtu());
       path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
       return Collections.singletonList(path.build());
     }
-
-    //    // First, if necessary, try to get UP segments
-    //    List<PathSegment> segmentsUp = Collections.emptyList();
-    //    if (!localAS.isCoreAs()) {
-    //      // get UP segments
-    //      segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
-    //      if (segmentsUp.isEmpty()) {
-    //        return Collections.emptyList();
-    //      }
-    //      if (minimizeLookups) {
-    //        List<PathSegment> directUp = filterForIsdAs(segmentsUp, dstIsdAs);
-    //        if (!directUp.isEmpty()) {
-    //          // DST is core or on-path
-    //          PathDuplicationFilter paths = new PathDuplicationFilter();
-    //          combineSegment(paths, directUp, localAS, srcIsdAs, dstIsdAs);
-    //          return paths.getPaths();
-    //        }
-    //      }
-    //    }
-    //
-    //    // Next, we look for core segments.
-    //    // Even if the DST is reachable without a CORE segment (e.g. it is directly a reachable
-    // leaf)
-    //    // we still should look at core segments because they may offer additional paths.
-    //    List<PathSegment> segmentsCore = getSegments(service, srcWildcard, dstWildcard);
-    //    if (ScionUtil.extractIsd(srcIsdAs) != ScionUtil.extractIsd(dstIsdAs)
-    //            && segmentsCore.isEmpty()) {
-    //      return Collections.emptyList();
-    //    }
-    //    if (localAS.isCoreAs()) {
-    //      // SRC is core, we can disregard all CORE segments that don't end with SRC
-    //      segmentsCore = filterForEndIsdAs(segmentsCore, srcIsdAs);
-    //    }
-    //    // For CORE we ensure that dstIsdAs is at the END of a segment, not somewhere in the
-    // middle
-    //    if (endsWithIsdAs(segmentsCore, dstIsdAs)) {
-    //      // dst is CORE
-    //      return combineSegments(
-    //              segmentsUp, segmentsCore, Collections.emptyList(), srcIsdAs, dstIsdAs, localAS);
-    //    }
 
     List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
     return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS);

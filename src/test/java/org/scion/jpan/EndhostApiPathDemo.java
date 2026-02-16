@@ -60,11 +60,11 @@ public class EndhostApiPathDemo {
     // demo.getSegments(DemoConstants.ia110, DemoConstants.ia1111);
     // demo.getSegments(toWildcard(ia121), ia121);
     // demo.getSegments(toWildcard(ia120), toWildcard(ia210));
-    //    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+    //    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
     //      EndhostApiPathDemo demo2 = new EndhostApiPathDemo("127.0.0.1:48080");
     //      demo2.getSegments(ia112, ia110);
     //    }
-    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       EndhostApiPathDemo demo2 = new EndhostApiPathDemo("127.0.0.1:48080");
       demo2.getSegments(ia112, ia221);
     }
