@@ -20,8 +20,6 @@ import com.google.gson.JsonObject;
 import java.util.*;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Parse a topology file into a local topology. */
 public class LocalAsFromFile {

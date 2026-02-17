@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -121,7 +120,6 @@ public class MockPathService {
     final Map<String, List<Seg.PathSegment>> responsesUP = new ConcurrentHashMap<>();
     final Map<String, List<Seg.PathSegment>> responsesCORE = new ConcurrentHashMap<>();
     final Map<String, List<Seg.PathSegment>> responsesDOWN = new ConcurrentHashMap<>();
-    final long start = Instant.now().getEpochSecond();
 
     public PathServiceImpl(int port) throws IOException {
       super(port);

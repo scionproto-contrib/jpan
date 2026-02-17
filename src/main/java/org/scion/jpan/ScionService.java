@@ -382,10 +382,7 @@ public class ScionService {
 
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
-    List<Daemon.Path> list =
-        Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
-
-    return list;
+    return Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
   }
 
   /**
