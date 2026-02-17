@@ -64,7 +64,7 @@ public class MockPathService {
     try {
       pathService = new MockPathService.PathServiceImpl(port);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("port=" + port, e);
     }
 
     // Wait for server to start

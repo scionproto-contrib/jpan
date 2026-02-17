@@ -202,18 +202,14 @@ public class MockNetwork {
     MockDNS.clear();
 
     if (daemon != null) {
-      try {
-        daemon.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      daemon.close();
       daemon = null;
     }
 
     if (routers != null) {
       try {
         routers.shutdownNow();
-        // Wait a while for tasks to respond to being cancelled
+        // Wait a while for tasks to respond to being canceled
         if (!routers.awaitTermination(5, TimeUnit.SECONDS)) {
           logger.error("Router did not terminate");
         }

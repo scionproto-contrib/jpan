@@ -44,7 +44,7 @@ public class MockDaemon implements AutoCloseable {
       new InetSocketAddress(DEFAULT_IP, DEFAULT_PORT);
   public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
 
-  public static MockDaemon DEFAULT = null;
+  private static MockDaemon defaultInstance = null;
 
   private final InetSocketAddress address;
   private Server server;
@@ -78,22 +78,22 @@ public class MockDaemon implements AutoCloseable {
   }
 
   public static void createAndStartDefault() {
-    if (DEFAULT != null) {
+    if (defaultInstance != null) {
       throw new NullPointerException();
     }
     setEnvironment();
-    DEFAULT = new MockDaemon(DEFAULT_ADDRESS);
+    defaultInstance = new MockDaemon(DEFAULT_ADDRESS);
     try {
-      DEFAULT.start();
+      defaultInstance.start();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public static void closeDefault() throws IOException {
-    if (DEFAULT != null) {
-      DEFAULT.close();
-      DEFAULT = null;
+  public static void closeDefault() {
+    if (defaultInstance != null) {
+      defaultInstance.close();
+      defaultInstance = null;
     }
     System.clearProperty(Constants.PROPERTY_DAEMON);
   }
@@ -136,14 +136,14 @@ public class MockDaemon implements AutoCloseable {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     if (server != null) {
       server.shutdown(); // Disable new tasks from being submitted
       try {
         // Wait a while for existing tasks to terminate
         if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
           server.shutdownNow(); // Cancel currently executing tasks
-          // Wait a while for tasks to respond to being cancelled
+          // Wait a while for tasks to respond to being canceled
           if (!server.awaitTermination(5, TimeUnit.SECONDS)) {
             logger.error("Daemon server did not terminate");
           }

@@ -75,7 +75,7 @@ class ScionTest {
   }
 
   @AfterEach
-  void afterEach() throws IOException {
+  void afterEach() {
     System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
@@ -92,27 +92,26 @@ class ScionTest {
 
     // Start daemon just to ensure we are not using it
     MockDaemon.createAndStartDefault();
+    System.setProperty(Constants.PROPERTY_DAEMON, MockDaemon.DEFAULT_ADDRESS_STR);
 
-    // TODO remove property
-    System.setProperty(Constants.PROPERTY_DAEMON, "[::1]:" + DEFAULT_PORT);
     try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
       assertEquals(1, nw.getPathService().getAndResetCallCount());
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
 
-      // TODO also test with daemon available! E.g. start MockDaemon directly?
-      //    TODO remove, MockDaemon is anyway not called...
       assertEquals(0, MockDaemon.getAndResetCallCount());
       assertEquals(0, nw.getControlServers().size());
       assertEquals(1, nw.getPathService().getAndResetCallCount());
     } catch (Throwable t) {
       t.printStackTrace();
+    } finally {
+      MockDaemon.closeDefault();
     }
   }
 
   @Test
-  void defaultService_daemon() throws IOException {
+  void defaultService_daemon() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
@@ -131,7 +130,7 @@ class ScionTest {
   }
 
   @Test
-  void defaultService_daemon_error_address() throws IOException {
+  void defaultService_daemon_error_address() {
     MockDaemon.createAndStartDefault();
     System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.234:123");
     try {
