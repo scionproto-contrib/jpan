@@ -31,6 +31,10 @@ public class RequestPath extends Path {
     return new RequestPath(path, dstIsdAs, dstIP, dstPort);
   }
 
+  static RequestPath create(PathMetadata metadata, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    return new RequestPath(metadata, dstIsdAs, dstIP, dstPort);
+  }
+
   @Override
   public Path copy(InetAddress dstIP, int dstPort) {
     return new RequestPath(metadata, getRemoteIsdAs(), dstIP, dstPort);

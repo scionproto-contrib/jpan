@@ -167,6 +167,9 @@ TODO
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
   [#219](https://github.com/scionproto-contrib/jpan/pull/219)
+- Refactor PathMetadata to remove dependency on Daemon.Path and
+  add local ISD/AS information.
+  [#220](https://github.com/scionproto-contrib/jpan/pull/220)
 
 ### Removed
 

@@ -31,17 +31,60 @@ import org.scion.jpan.proto.daemon.Daemon;
  */
 public class PathMetadata {
 
-  private final Daemon.Path pathProtoc;
   private final byte[] pathRaw;
   // We store the first hop separately to void creating unnecessary objects.
   private final InetSocketAddress firstHop;
+
+  private final Interface firstInterface;
+  private final List<PathInterface> pathInterfaces;
+  private final int mtu;
+  private final long expiration;
+  private final List<Integer> latencyList;
+  private final List<Long> bandwidthList;
+  private final List<GeoCoordinates> geoList;
+  private final List<LinkType> linkTypeList;
+  private final List<Integer> internalHopList;
+  private final List<String> notesList;
+  private final EpicAuths epicAuths;
+
+  static Builder newBuilder() {
+    return new Builder();
+  }
 
   static PathMetadata create(Daemon.Path path, InetAddress dstIP, int dstPort) {
     return new PathMetadata(path, dstIP, dstPort);
   }
 
+  private PathMetadata(
+      byte[] pathRaw,
+      InetSocketAddress firstHop,
+      Interface firstInterface,
+      List<PathInterface> pathInterfaces,
+      int mtu,
+      long expiration,
+      List<Integer> latencyList,
+      List<Long> bandwidthList,
+      List<GeoCoordinates> geoList,
+      List<LinkType> linkTypeList,
+      List<Integer> internalHopList,
+      List<String> notesList,
+      EpicAuths epicAuths) {
+    this.pathRaw = pathRaw;
+    this.firstHop = firstHop;
+    this.firstInterface = firstInterface;
+    this.pathInterfaces = pathInterfaces;
+    this.mtu = mtu;
+    this.expiration = expiration;
+    this.latencyList = latencyList;
+    this.bandwidthList = bandwidthList;
+    this.geoList = geoList;
+    this.linkTypeList = linkTypeList;
+    this.internalHopList = internalHopList;
+    this.notesList = notesList;
+    this.epicAuths = epicAuths;
+  }
+
   private PathMetadata(Daemon.Path path, InetAddress dstIP, int dstPort) {
-    this.pathProtoc = path;
     this.pathRaw = path.getRaw().toByteArray();
     // path length 0 means "local AS"
     if (getRawPath().length == 0) {
@@ -49,6 +92,34 @@ public class PathMetadata {
     } else {
       firstHop = getFirstHopAddress(path);
     }
+
+    pathInterfaces =
+        Collections.unmodifiableList(
+            path.getInterfacesList().stream().map(PathInterface::new).collect(Collectors.toList()));
+    firstInterface = new Interface(path.getInterface());
+    mtu = path.getMtu();
+    expiration = path.getExpiration().getSeconds();
+    latencyList =
+        Collections.unmodifiableList(
+            path.getLatencyList().stream()
+                .map(
+                    time ->
+                        (time.getSeconds() < 0 || time.getNanos() < 0)
+                            ? -1
+                            : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
+                .collect(Collectors.toList()));
+    bandwidthList = path.getBandwidthList();
+    geoList =
+        Collections.unmodifiableList(
+            path.getGeoList().stream().map(GeoCoordinates::new).collect(Collectors.toList()));
+    linkTypeList =
+        Collections.unmodifiableList(
+            path.getLinkTypeList().stream()
+                .map(linkType -> LinkType.values()[linkType.getNumber()])
+                .collect(Collectors.toList()));
+    internalHopList = path.getInternalHopsList();
+    notesList = path.getNotesList();
+    epicAuths = new EpicAuths(path.getEpicAuths());
   }
 
   private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
@@ -64,15 +135,6 @@ public class PathMetadata {
     }
   }
 
-  private Daemon.Path protoPath() {
-    if (pathProtoc == null) {
-      throw new IllegalStateException(
-          "Information is only available for paths that"
-              + " were retrieved directly from a path server.");
-    }
-    return pathProtoc;
-  }
-
   public InetSocketAddress getFirstHopAddress() {
     return firstHop;
   }
@@ -86,7 +148,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public Interface getInterface() {
-    return new Interface(protoPath().getInterface());
+    return firstInterface;
   }
 
   /**
@@ -94,10 +156,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public List<PathInterface> getInterfacesList() {
-    return Collections.unmodifiableList(
-        protoPath().getInterfacesList().stream()
-            .map(PathInterface::new)
-            .collect(Collectors.toList()));
+    return pathInterfaces;
   }
 
   /**
@@ -105,7 +164,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public int getMtu() {
-    return protoPath().getMtu();
+    return mtu;
   }
 
   /**
@@ -113,7 +172,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public long getExpiration() {
-    return protoPath().getExpiration().getSeconds();
+    return expiration;
   }
 
   /**
@@ -123,14 +182,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public List<Integer> getLatencyList() {
-    return Collections.unmodifiableList(
-        protoPath().getLatencyList().stream()
-            .map(
-                time ->
-                    (time.getSeconds() < 0 || time.getNanos() < 0)
-                        ? -1
-                        : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
-            .collect(Collectors.toList()));
+    return latencyList;
   }
 
   /**
@@ -140,7 +192,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public List<Long> getBandwidthList() {
-    return protoPath().getBandwidthList();
+    return bandwidthList;
   }
 
   /**
@@ -150,8 +202,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public List<GeoCoordinates> getGeoList() {
-    return Collections.unmodifiableList(
-        protoPath().getGeoList().stream().map(GeoCoordinates::new).collect(Collectors.toList()));
+    return geoList;
   }
 
   /**
@@ -160,10 +211,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public List<LinkType> getLinkTypeList() {
-    return Collections.unmodifiableList(
-        protoPath().getLinkTypeList().stream()
-            .map(linkType -> LinkType.values()[linkType.getNumber()])
-            .collect(Collectors.toList()));
+    return linkTypeList;
   }
 
   /**
@@ -174,7 +222,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public List<Integer> getInternalHopsList() {
-    return protoPath().getInternalHopsList();
+    return internalHopList;
   }
 
   /**
@@ -183,7 +231,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public List<String> getNotesList() {
-    return protoPath().getNotesList();
+    return notesList;
   }
 
   /**
@@ -191,11 +239,7 @@ public class PathMetadata {
    * @throws IllegalStateException if this is path is only a raw path
    */
   public EpicAuths getEpicAuths() {
-    return new EpicAuths(protoPath().getEpicAuths());
-  }
-
-  Daemon.Path getInternalPath() {
-    return pathProtoc;
+    return epicAuths;
   }
 
   public enum LinkType {
@@ -303,6 +347,63 @@ public class PathMetadata {
      */
     public String getAddress() {
       return address;
+    }
+  }
+
+  public static class Builder {
+    private byte[] pathRaw;
+    // We store the first hop separately to void creating unnecessary objects.
+    private InetSocketAddress firstHop;
+
+    private Interface firstInterface;
+    private List<PathInterface> pathInterfaces;
+    private int mtu;
+    private long expiration;
+    private List<Integer> latencyList;
+    private List<Long> bandwidthList;
+    private List<GeoCoordinates> geoList;
+    private List<LinkType> linkTypeList;
+    private List<Integer> internalHopList;
+    private List<String> notesList;
+    private EpicAuths epicAuths;
+
+    public Builder from(PathMetadata other) {
+      pathRaw = other.pathRaw;
+      firstHop = other.firstHop;
+      firstInterface = other.firstInterface;
+      pathInterfaces = other.pathInterfaces;
+      mtu = other.mtu;
+      expiration = other.expiration;
+      latencyList = other.latencyList;
+      bandwidthList = other.bandwidthList;
+      geoList = other.geoList;
+      linkTypeList = other.linkTypeList;
+      internalHopList = other.internalHopList;
+      notesList = other.notesList;
+      epicAuths = other.epicAuths;
+      return this;
+    }
+
+    public Builder setExpiration(long expiration) {
+      this.expiration = expiration;
+      return this;
+    }
+
+    public PathMetadata build() {
+      return new PathMetadata(
+          pathRaw,
+          firstHop,
+          firstInterface,
+          pathInterfaces,
+          mtu,
+          expiration,
+          latencyList,
+          bandwidthList,
+          geoList,
+          linkTypeList,
+          internalHopList,
+          notesList,
+          epicAuths);
     }
   }
 }

@@ -706,6 +706,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         port.set(rPath.getLocalPort());
       } else {
         checkService();
+        RequestPath rPath = (RequestPath) path;
         srcIsdAs = getService().getLocalIsdAs();
         InetSocketAddress src = getSourceAddress(path);
         srcAddress = src.getAddress();

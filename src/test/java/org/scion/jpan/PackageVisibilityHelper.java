@@ -165,12 +165,8 @@ public class PackageVisibilityHelper {
 
   public static Path createExpiredPath(Path base, int expiredSinceSecs) {
     long time = Instant.now().getEpochSecond() - expiredSinceSecs;
-    Daemon.Path proto1 = ((RequestPath) base).getMetadata().getInternalPath();
-    Daemon.Path.Builder builder =
-        Daemon.Path.newBuilder(proto1)
-            .setExpiration(Timestamp.newBuilder().setSeconds(time).build());
-    return RequestPath.create(
-        builder.build(), base.getRemoteIsdAs(), base.getRemoteAddress(), base.getRemotePort());
+    PathMetadata m = PathMetadata.newBuilder().from(base.getMetadata()).setExpiration(time).build();
+    return RequestPath.create(m, base.getRemoteIsdAs(), base.getRemoteAddress(), base.getRemotePort());
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
