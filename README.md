@@ -365,7 +365,7 @@ attempt to get network information in the following order until it succeeds:
 | Bootstrap topology file path                  | `org.scion.bootstrap.topoFile`      | `SCION_BOOTSTRAP_TOPO_FILE`     |                 | 
 | Bootstrap server host + port (typically 8041) | `org.scion.bootstrap.host`          | `SCION_BOOTSTRAP_HOST`          |                 |
 | Bootstrap DNS host name (with NAPTR or SRV)   | `org.scion.bootstrap.naptr.name`    | `SCION_BOOTSTRAP_NAPTR_NAME`    |                 | 
-| Bootstrap new endhost API                     | `org.scion.bootstrap.pathservice`   | `SCION_BOOTSTRAP_PATH_SERVICE`  |                 | 
+| Bootstrap with path service (new endhost API) | `org.scion.bootstrap.pathservice`   | `SCION_BOOTSTRAP_PATH_SERVICE`  |                 | 
 | List of DNS search domains                    | `org.scion.dnsSearchDomains`        | `SCION_DNS_SEARCH_DOMAINS`      |                 |
 | NAT/STUN policy, see [here](doc/NAT.md)       | `org.scion.nat`                     | `SCION_NAT`                     | off             |
 | NAT mapping timeout in seconds                | `org.scion.nat.mapping.timeout`     | `SCION_NAT_MAPPING_TIMEOUT`     | 110             |

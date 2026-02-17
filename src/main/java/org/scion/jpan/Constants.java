@@ -48,10 +48,8 @@ public final class Constants {
   /** path/file name for topology file. */
   public static final String ENV_BOOTSTRAP_TOPO_FILE = "SCION_BOOTSTRAP_TOPO_FILE";
 
-  // `org.scion.bootstrap.pathservice`   | `SCION_BOOTSTRAP_PATH_SERVICE`
-
   /** Address of the path service with the new endhost API. */
-  public static final String PROPERTY_BOOTSTRAP_PATH_SERVICE = "org.scion.bootstrap.pethService";
+  public static final String PROPERTY_BOOTSTRAP_PATH_SERVICE = "org.scion.bootstrap.pathService";
 
   /** Address of the path service with the new endhost API. */
   public static final String ENV_BOOTSTRAP_PATH_SERVICE = "SCION_BOOTSTRAP_PATH_SERVICE";

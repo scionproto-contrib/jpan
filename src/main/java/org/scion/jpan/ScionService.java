@@ -358,7 +358,7 @@ public class ScionService {
     }
     if (LOG.isInfoEnabled()) {
       LOG.info(
-          "Path found between {} and {}: {}",
+          "Paths found between {} and {}: {}",
           ScionUtil.toStringIA(srcIsdAs),
           ScionUtil.toStringIA(dstIsdAs),
           list.size());

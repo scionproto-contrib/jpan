@@ -1,4 +1,4 @@
-// Copyright 2025 ETH Zurich
+// Copyright 2026 ETH Zurich
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
@@ -68,15 +69,17 @@ public class PathServiceRpc {
       try (Response response = ps.httpClient.newCall(request).execute()) {
         ResponseBody body = response.body();
         if (!response.isSuccessful() || body == null) {
+          String srcIsdAs = ScionUtil.toStringIA(srcIA);
+          String dstIsdAs = ScionUtil.toStringIA(dstIA);
           String str = body != null ? body.string() : null;
           if (response.code() == 400) {
-            String msg = "Error while requesting segments: " + srcIA + " -> " + dstIA;
+            String msg = "Error while requesting segments: " + srcIsdAs + " -> " + dstIsdAs;
             msg += " -> BAD_REQUEST: " + response.message();
             LOG.info(msg);
             throw new ScionRuntimeException(msg);
           }
           if (response.code() == 500) {
-            String msg = "Error while requesting segments: " + srcIA + " -> " + dstIA;
+            String msg = "Error while requesting segments: " + srcIsdAs + " -> " + dstIsdAs;
             msg += " -> INTERNAL_SERVER_ERROR -> failed (AS unreachable?): " + response.message();
             LOG.info(msg);
             throw new ScionRuntimeException(msg);
