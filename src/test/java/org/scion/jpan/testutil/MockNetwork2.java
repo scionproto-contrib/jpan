@@ -15,6 +15,8 @@
 package org.scion.jpan.testutil;
 
 import java.net.InetSocketAddress;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -62,19 +64,21 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   private MockNetwork2(Topology topo, String topoOfLocalAS, boolean usePathService) {
-    topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
-    InetSocketAddress topoAddr = topoServer.getAddress();
-    DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
-
-    if (usePathService) {
+  if (usePathService) {
+      topoServer = null;
+      Path path = Paths.get(topo.configDir + topoOfLocalAS);
+      AsInfo asInfo = JsonFileParser.parseTopology(path);
       pathServices.add(
-          MockPathService.start(MockPathService.DEFAULT_PORT_0, topoServer.getASInfo()));
+          MockPathService.start(MockPathService.DEFAULT_PORT_0, asInfo));
       pathServices.add(
-          MockPathService.start(MockPathService.DEFAULT_PORT_1, topoServer.getASInfo()));
+          MockPathService.start(MockPathService.DEFAULT_PORT_1, asInfo));
       String ps0 = "[::1]:" + MockPathService.DEFAULT_PORT_0;
       String ps1 = "127.0.0.1:" + MockPathService.DEFAULT_PORT_1;
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, ps0 + ";" + ps1);
     } else {
+      topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
+      InetSocketAddress topoAddr = topoServer.getAddress();
+      DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
         controlServices.add(MockControlServer.start(csAddress.getPort()));
       }
@@ -91,7 +95,9 @@ public class MockNetwork2 implements AutoCloseable {
     controlServices.forEach(MockControlServer::getAndResetCallCount);
     pathServices.forEach(MockPathService::clearSegments);
     pathServices.forEach(MockPathService::getAndResetCallCount);
-    topoServer.getAndResetCallCount();
+    if (topoServer != null) {
+      topoServer.getAndResetCallCount();
+    }
   }
 
   @Override
@@ -99,7 +105,9 @@ public class MockNetwork2 implements AutoCloseable {
     controlServices.forEach(MockControlServer::close);
     controlServices.clear();
     pathServices.forEach(MockPathService::close);
-    topoServer.close();
+    if (topoServer != null) {
+      topoServer.close();
+    }
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
