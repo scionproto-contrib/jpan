@@ -28,6 +28,7 @@ import org.scion.jpan.internal.util.MultiMap;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
 import org.scion.jpan.proto.daemon.Daemon;
+import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,6 +180,63 @@ public class Segments {
       LOG.info("Segments found of type {}: {}", type.name(), seg.getValue().getSegmentsCount());
     }
     return pathSegments;
+  }
+
+  /**
+   * See {@link #getPaths(ControlServiceGrpc, LocalAS, long, long, boolean)}.
+   *
+   * @param service PathService
+   * @param localAS localAS number // TODO remove!!
+   * @param srcIsdAs source ISD/AS
+   * @param dstIsdAs destination ISD/AS
+   * @return list of paths
+   */
+  public static List<Daemon.Path> getPaths(
+      PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
+    // We do not sort the paths here, we kind of rely on the order given by the path service
+    return getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
+  }
+
+  private static List<Daemon.Path> getPathsInternal(
+      PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
+    if (srcIsdAs == dstIsdAs) {
+      // same AS, return empty path
+      Daemon.Path.Builder path = Daemon.Path.newBuilder();
+      path.setMtu(localAS.getMtu());
+      path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
+      return Collections.singletonList(path.build());
+    }
+
+    List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
+    return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<PathSegment>[] getSegments(
+      PathServiceRpc segmentStub, long srcIsdAs, long dstIsdAs) {
+    if (LOG.isInfoEnabled()) {
+      LOG.info(
+          "Requesting segments: {} {}",
+          ScionUtil.toStringIA(srcIsdAs),
+          ScionUtil.toStringIA(dstIsdAs));
+    }
+    long t0 = System.nanoTime();
+    Path.ListSegmentsResponse response = segmentStub.segments(srcIsdAs, dstIsdAs);
+    long t1 = System.nanoTime();
+    LOG.info("Segment request took {} ms.", (t1 - t0) / 1_000_000);
+
+    List<PathSegment>[] segments =
+        new List[] {new ArrayList<>(), new ArrayList<>(), new ArrayList<>()};
+    response
+        .getUpSegmentsList()
+        .forEach(path -> segments[0].add(new PathSegment(path, SegmentType.UP)));
+    response
+        .getCoreSegmentsList()
+        .forEach(path -> segments[1].add(new PathSegment(path, SegmentType.CORE)));
+    response
+        .getDownSegmentsList()
+        .forEach(path -> segments[2].add(new PathSegment(path, SegmentType.DOWN)));
+    return segments;
   }
 
   private static List<Daemon.Path> combineSegments(

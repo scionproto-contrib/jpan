@@ -129,7 +129,7 @@ class ControlServiceTest {
       String expected = "Error while connecting to SCION network, no control service available";
       assertTrue(ex.getMessage().startsWith(expected));
 
-      // Reenable CS
+      // Re-enable CS
       nw.getControlServers().get(0).reportError(null);
       nw.getControlServers().get(1).reportError(null);
       Path path2 = client.getPaths(dstIA111, dstAddress).get(0);

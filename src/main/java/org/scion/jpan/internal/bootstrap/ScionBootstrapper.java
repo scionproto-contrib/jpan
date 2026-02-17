@@ -60,7 +60,8 @@ public class ScionBootstrapper {
 
   public static synchronized LocalAS fromBootstrapServerIP(String topoHostAndPort) {
     String topoServer = IPHelper.ensurePortOrDefault(topoHostAndPort, 8041);
-    return LocalAS.create(fetchFile(topoServer, TOPOLOGY_ENDPOINT), TrcStore.create(topoServer));
+    return LocalAsFromFile.create(
+        fetchFile(topoServer, TOPOLOGY_ENDPOINT), TrcStore.create(topoServer));
   }
 
   public static synchronized LocalAS fromTopoFile(String fileName) {
@@ -69,7 +70,11 @@ public class ScionBootstrapper {
   }
 
   public static synchronized LocalAS fromDaemon(DaemonServiceGrpc daemonService) {
-    return LocalAS.create(daemonService, TrcStore.createEmpty());
+    return LocalAsFromDaemon.create(daemonService, TrcStore.createEmpty());
+  }
+
+  public static synchronized LocalAS fromPathService(String addressOrHost) {
+    return LocalAsFromPathService.create(addressOrHost, TrcStore.createEmpty());
   }
 
   private static LocalAS readTopoFile(java.nio.file.Path file) {
@@ -92,7 +97,7 @@ public class ScionBootstrapper {
     } catch (IOException e) {
       throw new ScionRuntimeException("Error reading topology file: " + file.toAbsolutePath(), e);
     }
-    LocalAS topo = LocalAS.create(contentBuilder.toString(), TrcStore.createEmpty());
+    LocalAS topo = LocalAsFromFile.create(contentBuilder.toString(), TrcStore.createEmpty());
     if (topo.getControlServices().isEmpty()) {
       throw new ScionRuntimeException("No control service found in topology file: " + file);
     }

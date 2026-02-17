@@ -32,6 +32,10 @@ public class Config {
     return (int) (milliSeconds);
   }
 
+  public static String getPathService() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_PATH_SERVICE, ENV_BOOTSTRAP_PATH_SERVICE);
+  }
+
   public static String getNat() {
     return ScionUtil.getPropertyOrEnv(PROPERTY_NAT, ENV_NAT, DEFAULT_NAT).toUpperCase();
   }

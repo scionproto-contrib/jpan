@@ -48,6 +48,12 @@ public final class Constants {
   /** path/file name for topology file. */
   public static final String ENV_BOOTSTRAP_TOPO_FILE = "SCION_BOOTSTRAP_TOPO_FILE";
 
+  /** Address of the path service with the new endhost API. */
+  public static final String PROPERTY_BOOTSTRAP_PATH_SERVICE = "org.scion.bootstrap.pathService";
+
+  /** Address of the path service with the new endhost API. */
+  public static final String ENV_BOOTSTRAP_PATH_SERVICE = "SCION_BOOTSTRAP_PATH_SERVICE";
+
   /**
    * Timeout for calls to control plane services, such as the path service, in milliseconds. The
    * default is 10000 ms = 10 seconds.

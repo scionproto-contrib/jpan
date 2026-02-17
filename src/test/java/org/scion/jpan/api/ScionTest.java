@@ -38,6 +38,7 @@ import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.TestUtil;
 
 class ScionTest {
@@ -74,17 +75,43 @@ class ScionTest {
   }
 
   @AfterEach
-  void afterEach() throws IOException {
+  void afterEach() {
     System.clearProperty(Constants.PROPERTY_DAEMON);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_HOST);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
     Scion.closeDefault();
     MockDaemon.closeDefault();
   }
 
   @Test
-  void defaultService_daemon() throws IOException {
+  void defaultService_pathService() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:110");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+
+    // Start daemon just to ensure we are not using it
+    MockDaemon.createAndStartDefault();
+    System.setProperty(Constants.PROPERTY_DAEMON, MockDaemon.DEFAULT_ADDRESS_STR);
+
+    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+      assertEquals(1, nw.getPathService().getAndResetCallCount());
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+
+      assertEquals(0, MockDaemon.getAndResetCallCount());
+      assertEquals(0, nw.getControlServers().size());
+      assertEquals(1, nw.getPathService().getAndResetCallCount());
+    } catch (Throwable t) {
+      t.printStackTrace();
+    } finally {
+      MockDaemon.closeDefault();
+    }
+  }
+
+  @Test
+  void defaultService_daemon() {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
@@ -103,7 +130,7 @@ class ScionTest {
   }
 
   @Test
-  void defaultService_daemon_error_address() throws IOException {
+  void defaultService_daemon_error_address() {
     MockDaemon.createAndStartDefault();
     System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.234:123");
     try {
