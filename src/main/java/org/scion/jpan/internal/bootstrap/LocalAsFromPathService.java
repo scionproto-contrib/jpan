@@ -21,6 +21,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
@@ -30,6 +31,8 @@ import org.slf4j.LoggerFactory;
 public class LocalAsFromPathService {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalAsFromPathService.class.getName());
+
+  private LocalAsFromPathService() {}
 
   public static LocalAS create(String pathService, TrcStore trcStore) {
     List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
@@ -44,7 +47,7 @@ public class LocalAsFromPathService {
         isdAs,
         false, // TODO?
         1200, // TODO
-        LocalAS.DispatcherPortRange.createEmpty(), // TODO
+        LocalAS.DispatcherPortRange.createAll(), // TODO
         snList,
         null,
         brList,
@@ -63,10 +66,9 @@ public class LocalAsFromPathService {
   private static List<LocalAS.BorderRouter> getBorderRouterList(Underlays.ListUnderlaysResponse u) {
     List<LocalAS.BorderRouter> list = new ArrayList<>();
     for (Underlays.Router r : u.getUdp().getRoutersList()) {
-      LocalAS.BorderRouter br = new LocalAS.BorderRouter("name", r.getAddress(), new ArrayList<>());
+      LocalAS.BorderRouter br = new LocalAS.BorderRouter(r.getAddress(), new ArrayList<>());
       for (Integer i : r.getInterfacesList()) {
-        // TODO values?
-        br.addInterface(new LocalAS.BorderRouterInterface(i, "unknown", "unknown", 0, 0, ""));
+        br.addInterface(new LocalAS.BorderRouterInterface(i));
       }
       list.add(br);
     }
@@ -99,21 +101,12 @@ public class LocalAsFromPathService {
             .post(requestBody)
             .build();
 
-    System.out.println("Sending request: " + request);
-    System.out.println("             to: " + apiAddress);
     try (Response response = httpClient.newCall(request).execute()) {
-      //      String bodyStr = response.body().string();
-      //      System.out.println("Client received len: " + bodyStr.length());
-      //      System.out.println("Client received msg: " + bodyStr);
-      System.out.println("Client received len: " + response.message().length());
-      System.out.println("Client received msg: " + response.message());
-      System.out.println("Client received str: " + response);
-      if (!response.isSuccessful()) {
-        throw new IOException("Unexpected code " + response);
+      ResponseBody body = response.body();
+      if (!response.isSuccessful() || body == null) {
+        throw new IOException("Unexpected code " + response.code() + ": " + response.message());
       }
-      return Underlays.ListUnderlaysResponse.newBuilder()
-          .mergeFrom(response.body().bytes())
-          .build();
+      return Underlays.ListUnderlaysResponse.newBuilder().mergeFrom(body.bytes()).build();
     }
   }
 }

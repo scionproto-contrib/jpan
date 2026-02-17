@@ -14,8 +14,6 @@
 
 package org.scion.jpan.internal.paths;
 
-import static com.ibm.icu.text.PluralRules.Operand.e;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +24,6 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.bootstrap.LocalAS;
-import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,14 +33,12 @@ public class PathServiceRpc {
   private static final Logger LOG = LoggerFactory.getLogger(PathServiceRpc.class.getName());
 
   private final List<PathService> services = new ArrayList<>();
-  private final int deadLineMs;
 
   public static PathServiceRpc create(LocalAS localAS) {
     return new PathServiceRpc(localAS);
   }
 
   private PathServiceRpc(LocalAS localAS) {
-    this.deadLineMs = Config.getControlPlaneTimeoutMs();
     for (LocalAS.ServiceNode node : localAS.getControlServices()) {
       services.add(new PathService(node.getIpString()));
     }
@@ -71,8 +66,8 @@ public class PathServiceRpc {
               .build();
 
       try (Response response = ps.httpClient.newCall(request).execute()) {
-        if (!response.isSuccessful()) {
-          ResponseBody body = response.body();
+        ResponseBody body = response.body();
+        if (!response.isSuccessful() || body == null) {
           String str = body != null ? body.string() : null;
           if (response.code() == 400) {
             String msg = "Error while requesting segments: " + srcIA + " -> " + dstIA;
@@ -91,7 +86,7 @@ public class PathServiceRpc {
               "While connecting path service {}: code={} msg={}", ps.address, response.code(), str);
           throw new IOException("Unexpected code " + response.code() + ": " + str);
         }
-        return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
+        return Path.ListSegmentsResponse.newBuilder().mergeFrom(body.bytes()).build();
       } catch (IOException e) {
         error = e.getMessage();
         LOG.warn("Error connecting path service {}: {}", ps.address, error);

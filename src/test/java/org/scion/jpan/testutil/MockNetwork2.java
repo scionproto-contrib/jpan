@@ -64,14 +64,12 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   private MockNetwork2(Topology topo, String topoOfLocalAS, boolean usePathService) {
-  if (usePathService) {
+    if (usePathService) {
       topoServer = null;
       Path path = Paths.get(topo.configDir + topoOfLocalAS);
       AsInfo asInfo = JsonFileParser.parseTopology(path);
-      pathServices.add(
-          MockPathService.start(MockPathService.DEFAULT_PORT_0, asInfo));
-      pathServices.add(
-          MockPathService.start(MockPathService.DEFAULT_PORT_1, asInfo));
+      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_0, asInfo));
+      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_1, asInfo));
       String ps0 = "[::1]:" + MockPathService.DEFAULT_PORT_0;
       String ps1 = "127.0.0.1:" + MockPathService.DEFAULT_PORT_1;
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, ps0 + ";" + ps1);
@@ -105,6 +103,7 @@ public class MockNetwork2 implements AutoCloseable {
     controlServices.forEach(MockControlServer::close);
     controlServices.clear();
     pathServices.forEach(MockPathService::close);
+    pathServices.clear();
     if (topoServer != null) {
       topoServer.close();
     }

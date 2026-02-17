@@ -66,9 +66,7 @@ public class LocalAsFromDaemon {
       int id = (int) (long) e.getKey();
       if (!borderRouterNames.contains(addr)) {
         borderRouterNames.add(addr);
-        LocalAS.BorderRouter br =
-            new LocalAS.BorderRouter(
-                "UnknownName-" + borderRouters.size(), addr, new ArrayList<>());
+        LocalAS.BorderRouter br = new LocalAS.BorderRouter(addr, new ArrayList<>());
         br.addInterface(new LocalAS.BorderRouterInterface(id, addr, null, 0, 0, null));
         borderRouters.add(br);
       }

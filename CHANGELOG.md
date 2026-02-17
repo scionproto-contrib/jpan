@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.7.0 and beyond
 - Deprecate ScionService.getLocalIsdAs(). Also: build header with src-IA from path!
+  - deprecate local MTU ?! 
+  - deprecate ASInfo.isCore() ?
+  - Port range?
 - Implement `send(PathProvider)`? Useful e.g. for a browser that connects to many
   servers.
 - SCMP responder must not send to broadcast addresses etc, see SCMP processing rules.
@@ -148,7 +151,6 @@ TODO
   [#217](https://github.com/scionproto-contrib/jpan/pull/217)
 - Support for new endhost API
   [#218](https://github.com/scionproto-contrib/jpan/pull/218)
-  - TODO encapsulate in HTTP into separate class
 
 ### Fixed
 

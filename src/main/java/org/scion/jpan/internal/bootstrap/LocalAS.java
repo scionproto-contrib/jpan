@@ -124,13 +124,11 @@ public class LocalAS {
   }
 
   public static class BorderRouter {
-    private final String name;
     private final String internalAddressString;
     private final InetSocketAddress internalAddress;
     private final List<BorderRouterInterface> interfaces;
 
-    BorderRouter(String name, String addr, List<BorderRouterInterface> interfaces) {
-      this.name = name;
+    BorderRouter(String addr, List<BorderRouterInterface> interfaces) {
       this.internalAddressString = addr;
       this.internalAddress = IPHelper.toInetSocketAddress(addr);
       this.interfaces = interfaces;
@@ -160,6 +158,7 @@ public class LocalAS {
     final int mtu;
     final String linkTo;
 
+    @Deprecated // Should only be used in Unit tests
     BorderRouterInterface(
         int id, String publicU, String remoteU, long isdAs, int mtu, String linkTo) {
       this.id = id;
@@ -168,6 +167,10 @@ public class LocalAS {
       this.isdAs = isdAs;
       this.mtu = mtu;
       this.linkTo = linkTo;
+    }
+
+    BorderRouterInterface(int id) {
+      this(id, "unknown", "unknown", 0, 1200, "");
     }
 
     public long getIsdAs() {

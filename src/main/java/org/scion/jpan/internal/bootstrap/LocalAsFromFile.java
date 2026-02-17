@@ -26,8 +26,6 @@ import org.slf4j.LoggerFactory;
 /** Parse a topology file into a local topology. */
 public class LocalAsFromFile {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LocalAsFromFile.class.getName());
-
   private LocalAsFromFile() {}
 
   public static LocalAS create(String topologyFile, TrcStore trcStore) {
@@ -65,7 +63,7 @@ public class LocalAsFromFile {
               new LocalAS.BorderRouterInterface(
                   ifId, local.getAsString(), remote.getAsString(), isdAs, mtu, linkTo));
         }
-        borderRouters.add(new LocalAS.BorderRouter(e.getKey(), addr, interfaces));
+        borderRouters.add(new LocalAS.BorderRouter(addr, interfaces));
       }
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
