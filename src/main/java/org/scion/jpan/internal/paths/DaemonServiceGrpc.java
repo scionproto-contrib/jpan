@@ -17,7 +17,10 @@ package org.scion.jpan.internal.paths;
 import com.google.protobuf.Empty;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -93,5 +96,23 @@ public class DaemonServiceGrpc {
 
   public org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub getGrpcStub() {
     return getStub();
+  }
+
+  public Daemon.PathsResponse paths(long srcIsdAs, long dstIsdAs) {
+    Daemon.PathsRequest request =
+        Daemon.PathsRequest.newBuilder()
+            .setSourceIsdAs(srcIsdAs)
+            .setDestinationIsdAs(dstIsdAs)
+            .build();
+    try {
+      return getStub().paths(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionRuntimeException(e);
+    }
+  }
+
+  public List<PathMetadata> pathsAsMetadata(long srcIsdAs, long dstIsdAs) {
+    List<Daemon.Path> dList = paths(srcIsdAs, dstIsdAs).getPathsList();
+    return dList.stream().map(PathMetadata::create).collect(Collectors.toList());
   }
 }

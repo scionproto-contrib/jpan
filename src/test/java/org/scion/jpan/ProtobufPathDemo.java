@@ -77,7 +77,7 @@ public class ProtobufPathDemo {
   }
 
   private void testPathsDaemon(long srcIA, long dstIA) {
-    List<Daemon.Path> paths = service.getPathListDaemon(srcIA, dstIA);
+    List<Daemon.Path> paths = service.getDaemonConnection().paths(srcIA, dstIA).getPathsList();
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       Instant exp = Instant.ofEpochSecond(path.getExpiration().getSeconds());

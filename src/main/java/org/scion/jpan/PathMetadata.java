@@ -14,16 +14,11 @@
 
 package org.scion.jpan;
 
-import java.io.UncheckedIOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 
 /**
@@ -50,7 +45,7 @@ public class PathMetadata {
     return new Builder();
   }
 
-  static PathMetadata create(Daemon.Path path) {
+  public static PathMetadata create(Daemon.Path path) {
     return new PathMetadata(path);
   }
 
@@ -111,19 +106,6 @@ public class PathMetadata {
     internalHopList = path.getInternalHopsList();
     notesList = path.getNotesList();
     epicAuths = new EpicAuths(path.getEpicAuths());
-  }
-
-  private InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
-    try {
-      String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
-      int splitIndex = underlayAddressString.lastIndexOf(':');
-      InetAddress ip = IPHelper.toInetAddress(underlayAddressString.substring(0, splitIndex));
-      int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
-      return new InetSocketAddress(ip, port);
-    } catch (UnknownHostException e) {
-      // This really should never happen, the first hop is a literal IP address.
-      throw new UncheckedIOException(e);
-    }
   }
 
   public byte[] getRawPath() {

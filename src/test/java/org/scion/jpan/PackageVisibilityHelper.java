@@ -26,6 +26,9 @@ import java.util.List;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.paths.Segments;
+import org.scion.jpan.internal.paths.SegmentsNew;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
@@ -42,7 +45,23 @@ public class PackageVisibilityHelper {
   }
 
   public static List<Daemon.Path> getPathListCS(ScionService ss, long srcIsdAs, long dstIsdAs) {
-    return ss.getPathListCS(srcIsdAs, dstIsdAs);
+    boolean minimizeRequests =
+        ScionUtil.getPropertyOrEnv(
+            Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS,
+            Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
+            Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
+    ControlServiceGrpc cs = ss.getControlServiceConnection();
+    return Segments.getPaths(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs, minimizeRequests);
+  }
+
+  public static List<PathMetadata> getPathsCS(ScionService ss, long srcIsdAs, long dstIsdAs) {
+    boolean minimizeRequests =
+        ScionUtil.getPropertyOrEnv(
+            Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS,
+            Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
+            Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
+    ControlServiceGrpc cs = ss.getControlServiceConnection();
+    return SegmentsNew.getPaths(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs, minimizeRequests);
   }
 
   public static HeaderConstants.HdrTypes getNextHdr(ByteBuffer packet) {

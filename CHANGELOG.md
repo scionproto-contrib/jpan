@@ -170,6 +170,9 @@ TODO
 - Refactor PathMetadata to remove dependency on Daemon.Path and
   add local ISD/AS information.
   [#220](https://github.com/scionproto-contrib/jpan/pull/220)
+  - Remove Daemon.Path as internal data structure, use PathMetadata instead
+  - Remove proto references from ScionService
+  - Move firstHop from PathMetadata to Path
 
 ### Removed
 

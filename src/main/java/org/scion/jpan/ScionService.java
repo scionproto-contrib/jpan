@@ -16,7 +16,6 @@ package org.scion.jpan;
 
 import static org.scion.jpan.Constants.*;
 
-import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -30,11 +29,9 @@ import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.DaemonServiceGrpc;
 import org.scion.jpan.internal.paths.PathServiceRpc;
-import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.internal.paths.SegmentsNew;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -354,9 +351,9 @@ public class ScionService {
     if (pathService != null) {
       list = SegmentsNew.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
     } else if (daemonService != null) {
-      list = getPathListDaemonNew(srcIsdAs, dstIsdAs);
+      list = daemonService.pathsAsMetadata(srcIsdAs, dstIsdAs);
     } else {
-      list = getPathListCSNew(srcIsdAs, dstIsdAs);
+      list = SegmentsNew.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
     }
     if (LOG.isInfoEnabled()) {
       LOG.info(
@@ -366,46 +363,6 @@ public class ScionService {
           list.size());
     }
     return list;
-  }
-
-  // do not expose proto types on API
-  List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
-    Daemon.PathsRequest request =
-        Daemon.PathsRequest.newBuilder()
-            .setSourceIsdAs(srcIsdAs)
-            .setDestinationIsdAs(dstIsdAs)
-            .build();
-    try {
-      return daemonService.paths(request).getPathsList();
-    } catch (StatusRuntimeException e) {
-      throw new ScionRuntimeException(e);
-    }
-  }
-
-  // do not expose proto types on API
-  List<PathMetadata> getPathListDaemonNew(long srcIsdAs, long dstIsdAs) {
-    Daemon.PathsRequest request =
-        Daemon.PathsRequest.newBuilder()
-            .setSourceIsdAs(srcIsdAs)
-            .setDestinationIsdAs(dstIsdAs)
-            .build();
-    List<Daemon.Path> dList;
-    try {
-      dList = daemonService.paths(request).getPathsList();
-    } catch (StatusRuntimeException e) {
-      throw new ScionRuntimeException(e);
-    }
-    return dList.stream().map(PathMetadata::create).collect(Collectors.toList());
-  }
-
-  // Do not expose protobuf types on API!
-  List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
-    return Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
-  }
-
-  // Do not expose protobuf types on API!
-  List<PathMetadata> getPathListCSNew(long srcIsdAs, long dstIsdAs) {
-    return SegmentsNew.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
   }
 
   /**
@@ -438,5 +395,9 @@ public class ScionService {
 
   DaemonServiceGrpc getDaemonConnection() {
     return daemonService;
+  }
+
+  LocalAS getLocalAS() {
+    return localAS;
   }
 }
