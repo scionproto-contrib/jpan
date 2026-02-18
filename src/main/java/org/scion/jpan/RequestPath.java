@@ -14,8 +14,11 @@
 
 package org.scion.jpan;
 
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 
 /**
@@ -29,34 +32,67 @@ public class RequestPath extends Path {
 
   static RequestPath create(
       Daemon.Path path, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    return new RequestPath(path, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    // path length 0 means "local AS"
+    InetSocketAddress firstHop;
+    if (path.getRaw().isEmpty()) {
+      firstHop = new InetSocketAddress(dstIP, dstPort);
+    } else {
+      firstHop = getFirstHopAddress(path);
+    }
+    return new RequestPath(path, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 
   static RequestPath create(
       PathMetadata metadata, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    return new RequestPath(metadata, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    // path length 0 means "local AS"
+    InetSocketAddress firstHop;
+    if (metadata.getRawPath().length == 0) {
+      firstHop = new InetSocketAddress(dstIP, dstPort);
+    } else {
+      firstHop = IPHelper.toInetSocketAddress(metadata.getInterface().getAddress());
+    }
+    return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 
   @Override
   public Path copy(InetAddress dstIP, int dstPort) {
-    return new RequestPath(metadata, getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
+    return new RequestPath(
+        metadata, getFirstHopAddress(), getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
   }
 
   private RequestPath(
-      Daemon.Path path, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(path.getRaw().toByteArray(), srcIsdAs, dstIsdAs, dstIP, dstPort);
-    this.metadata = PathMetadata.create(path, dstIP, dstPort);
+      Daemon.Path path,
+      InetSocketAddress firstHop,
+      long srcIsdAs,
+      long dstIsdAs,
+      InetAddress dstIP,
+      int dstPort) {
+    super(path.getRaw().toByteArray(), firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    this.metadata = PathMetadata.create(path);
   }
 
   private RequestPath(
-      PathMetadata metadata, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(metadata.getRawPath(), srcIsdAs, dstIsdAs, dstIP, dstPort);
+      PathMetadata metadata,
+      InetSocketAddress firstHop,
+      long srcIsdAs,
+      long dstIsdAs,
+      InetAddress dstIP,
+      int dstPort) {
+    super(metadata.getRawPath(), firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
     this.metadata = metadata;
   }
 
-  @Override
-  public InetSocketAddress getFirstHopAddress() {
-    return metadata.getFirstHopAddress();
+  private static InetSocketAddress getFirstHopAddress(Daemon.Path internalPath) {
+    try {
+      String underlayAddressString = internalPath.getInterface().getAddress().getAddress();
+      int splitIndex = underlayAddressString.lastIndexOf(':');
+      InetAddress ip = IPHelper.toInetAddress(underlayAddressString.substring(0, splitIndex));
+      int port = Integer.parseUnsignedInt(underlayAddressString.substring(splitIndex + 1));
+      return new InetSocketAddress(ip, port);
+    } catch (UnknownHostException e) {
+      // This really should never happen, the first hop is a literal IP address.
+      throw new UncheckedIOException(e);
+    }
   }
 
   public PathMetadata getMetadata() {

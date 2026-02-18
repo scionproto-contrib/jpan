@@ -18,6 +18,8 @@ import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,9 +34,6 @@ import org.scion.jpan.proto.daemon.Daemon;
 public class PathMetadata {
 
   private final byte[] pathRaw;
-  // We store the first hop separately to void creating unnecessary objects.
-  private final InetSocketAddress firstHop;
-
   private final Interface firstInterface;
   private final List<PathInterface> pathInterfaces;
   private final int mtu;
@@ -47,17 +46,16 @@ public class PathMetadata {
   private final List<String> notesList;
   private final EpicAuths epicAuths;
 
-  static Builder newBuilder() {
+  public static Builder newBuilder() {
     return new Builder();
   }
 
-  static PathMetadata create(Daemon.Path path, InetAddress dstIP, int dstPort) {
-    return new PathMetadata(path, dstIP, dstPort);
+  static PathMetadata create(Daemon.Path path) {
+    return new PathMetadata(path);
   }
 
   private PathMetadata(
       byte[] pathRaw,
-      InetSocketAddress firstHop,
       Interface firstInterface,
       List<PathInterface> pathInterfaces,
       int mtu,
@@ -70,7 +68,6 @@ public class PathMetadata {
       List<String> notesList,
       EpicAuths epicAuths) {
     this.pathRaw = pathRaw;
-    this.firstHop = firstHop;
     this.firstInterface = firstInterface;
     this.pathInterfaces = pathInterfaces;
     this.mtu = mtu;
@@ -84,14 +81,8 @@ public class PathMetadata {
     this.epicAuths = epicAuths;
   }
 
-  private PathMetadata(Daemon.Path path, InetAddress dstIP, int dstPort) {
+  private PathMetadata(Daemon.Path path) {
     this.pathRaw = path.getRaw().toByteArray();
-    // path length 0 means "local AS"
-    if (getRawPath().length == 0) {
-      firstHop = new InetSocketAddress(dstIP, dstPort);
-    } else {
-      firstHop = getFirstHopAddress(path);
-    }
 
     pathInterfaces =
         Collections.unmodifiableList(
@@ -133,10 +124,6 @@ public class PathMetadata {
       // This really should never happen, the first hop is a literal IP address.
       throw new UncheckedIOException(e);
     }
-  }
-
-  public InetSocketAddress getFirstHopAddress() {
-    return firstHop;
   }
 
   public byte[] getRawPath() {
@@ -277,8 +264,17 @@ public class PathMetadata {
     }
   }
 
+  /** Address of the first hop, e.g., 192.0.2.1:10000 or [2001:db8::1]:10000 . */
   public static class Interface {
     private final String address;
+
+    public static Interface create(String address) {
+      return new Interface(address);
+    }
+
+    private Interface(String address) {
+      this.address = address;
+    }
 
     private Interface(Daemon.Interface inter) {
       this.address = inter.getAddress().getAddress();
@@ -294,8 +290,16 @@ public class PathMetadata {
 
   public static class PathInterface {
     private final long isdAs;
-
     private final long id;
+
+    public static PathInterface create(long isdAs, long id) {
+      return new PathInterface(isdAs, id);
+    }
+
+    private PathInterface(long isdAs, long id) {
+      this.isdAs = isdAs;
+      this.id = id;
+    }
 
     private PathInterface(Daemon.PathInterface pathInterface) {
       this.isdAs = pathInterface.getIsdAs();
@@ -321,6 +325,16 @@ public class PathMetadata {
     private final float latitude;
     private final float longitude;
     private final String address;
+
+    public static GeoCoordinates create(float latitude, float longitude, String address) {
+      return new GeoCoordinates(latitude, longitude, address);
+    }
+
+    private GeoCoordinates(float latitude, float longitude, String address) {
+      this.latitude = latitude;
+      this.longitude = longitude;
+      this.address = address;
+    }
 
     private GeoCoordinates(Daemon.GeoCoordinates geoCoordinates) {
       this.latitude = geoCoordinates.getLatitude();
@@ -351,26 +365,22 @@ public class PathMetadata {
   }
 
   public static class Builder {
-    private byte[] pathRaw;
-    // We store the first hop separately to void creating unnecessary objects.
-    private InetSocketAddress firstHop;
-
-    private Interface firstInterface;
-    private List<PathInterface> pathInterfaces;
+    private byte[] pathRaw = {};
+    private Interface localInterface;
+    private List<PathInterface> pathInterfaces = new ArrayList<>();
     private int mtu;
     private long expiration;
-    private List<Integer> latencyList;
-    private List<Long> bandwidthList;
-    private List<GeoCoordinates> geoList;
-    private List<LinkType> linkTypeList;
-    private List<Integer> internalHopList;
-    private List<String> notesList;
+    private List<Integer> latencyList = new ArrayList<>();
+    private List<Long> bandwidthList = new ArrayList<>();
+    private List<GeoCoordinates> geoList = new ArrayList<>();
+    private List<LinkType> linkTypeList = new ArrayList<>();
+    private List<Integer> internalHopList = new ArrayList<>();
+    private List<String> notesList = new ArrayList<>();
     private EpicAuths epicAuths;
 
     public Builder from(PathMetadata other) {
       pathRaw = other.pathRaw;
-      firstHop = other.firstHop;
-      firstInterface = other.firstInterface;
+      localInterface = other.firstInterface;
       pathInterfaces = other.pathInterfaces;
       mtu = other.mtu;
       expiration = other.expiration;
@@ -384,16 +394,52 @@ public class PathMetadata {
       return this;
     }
 
+    public long getExpiration() {
+      return expiration;
+    }
+
     public Builder setExpiration(long expiration) {
       this.expiration = expiration;
+      return this;
+    }
+
+    public Builder setLocalInterface(Interface interfaceAddr) {
+      this.localInterface = interfaceAddr;
+      return this;
+    }
+
+    public List<PathInterface> getInterfaces() {
+      return pathInterfaces;
+    }
+
+    public int getMtu() {
+      return mtu;
+    }
+
+    public Builder setMtu(int mtu) {
+      this.mtu = mtu;
+      return this;
+    }
+
+    public byte[] getRaw() {
+      return pathRaw;
+    }
+
+    public Builder setRaw(byte[] raw) {
+      this.pathRaw = raw;
+      return this;
+    }
+
+    public Builder setRaw(ByteBuffer rawBB) {
+      pathRaw = new byte[rawBB.remaining()];
+      rawBB.get(pathRaw);
       return this;
     }
 
     public PathMetadata build() {
       return new PathMetadata(
           pathRaw,
-          firstHop,
-          firstInterface,
+          localInterface,
           pathInterfaces,
           mtu,
           expiration,
@@ -404,6 +450,34 @@ public class PathMetadata {
           internalHopList,
           notesList,
           epicAuths);
+    }
+
+    public void addLatency(int latencyMilliSeconds) {
+      latencyList.add(latencyMilliSeconds);
+    }
+
+    public void addBandwidth(long bandwidth) {
+      bandwidthList.add(bandwidth);
+    }
+
+    public void addGeo(GeoCoordinates geo) {
+      geoList.add(geo);
+    }
+
+    public void addLinkType(LinkType linkType) {
+      linkTypeList.add(linkType);
+    }
+
+    public void addInternalHops(int i) {
+      internalHopList.add(i);
+    }
+
+    public void addNotes(String note) {
+      notesList.add(note);
+    }
+
+    public void addInterfaces(PathInterface pathInterface) {
+      pathInterfaces.add(pathInterface);
     }
   }
 }

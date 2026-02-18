@@ -31,6 +31,7 @@ import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.DaemonServiceGrpc;
 import org.scion.jpan.internal.paths.PathServiceRpc;
 import org.scion.jpan.internal.paths.Segments;
+import org.scion.jpan.internal.paths.SegmentsNew;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -325,9 +326,9 @@ public class ScionService {
    */
   private List<Path> getPaths(ScionAddress dstAddress, int dstPort) {
     long srcIsdAs = getLocalIsdAs();
-    List<Daemon.Path> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
+    List<PathMetadata> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
     List<Path> scionPaths = new ArrayList<>(paths.size());
-    for (Daemon.Path path : paths) {
+    for (PathMetadata path : paths) {
       scionPaths.add(
           RequestPath.create(
               path, srcIsdAs, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
@@ -348,14 +349,14 @@ public class ScionService {
     return AddressLookupService.getIsdAs(hostName, getLocalIsdAs());
   }
 
-  private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
-    List<Daemon.Path> list;
+  private List<PathMetadata> getPathList(long srcIsdAs, long dstIsdAs) {
+    List<PathMetadata> list;
     if (pathService != null) {
-      list = Segments.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
+      list = SegmentsNew.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
     } else if (daemonService != null) {
-      list = getPathListDaemon(srcIsdAs, dstIsdAs);
+      list = getPathListDaemonNew(srcIsdAs, dstIsdAs);
     } else {
-      list = getPathListCS(srcIsdAs, dstIsdAs);
+      list = getPathListCSNew(srcIsdAs, dstIsdAs);
     }
     if (LOG.isInfoEnabled()) {
       LOG.info(
@@ -381,9 +382,30 @@ public class ScionService {
     }
   }
 
+  // do not expose proto types on API
+  List<PathMetadata> getPathListDaemonNew(long srcIsdAs, long dstIsdAs) {
+    Daemon.PathsRequest request =
+        Daemon.PathsRequest.newBuilder()
+            .setSourceIsdAs(srcIsdAs)
+            .setDestinationIsdAs(dstIsdAs)
+            .build();
+    List<Daemon.Path> dList;
+    try {
+      dList = daemonService.paths(request).getPathsList();
+    } catch (StatusRuntimeException e) {
+      throw new ScionRuntimeException(e);
+    }
+    return dList.stream().map(PathMetadata::create).collect(Collectors.toList());
+  }
+
   // Do not expose protobuf types on API!
   List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
     return Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
+  }
+
+  // Do not expose protobuf types on API!
+  List<PathMetadata> getPathListCSNew(long srcIsdAs, long dstIsdAs) {
+    return SegmentsNew.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
   }
 
   /**

@@ -45,10 +45,6 @@ public class PackageVisibilityHelper {
     return ss.getPathListCS(srcIsdAs, dstIsdAs);
   }
 
-  public List<Daemon.Path> getPathListDaemon(ScionService ss, long srcIsdAs, long dstIsdAs) {
-    return ss.getPathListDaemon(srcIsdAs, dstIsdAs);
-  }
-
   public static HeaderConstants.HdrTypes getNextHdr(ByteBuffer packet) {
     return ScionHeaderParser.extractNextHeader(packet);
   }
