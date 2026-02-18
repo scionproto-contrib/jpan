@@ -128,11 +128,11 @@ public class DaemonServiceGrpc {
     b.setMtu(path.getMtu());
     b.setExpiration(path.getExpiration().getSeconds());
     for (Duration time : path.getLatencyList()) {
-      int l =
+      int milliSeconds =
           (time.getSeconds() < 0 || time.getNanos() < 0)
               ? -1
               : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000);
-      b.addLatency(l);
+      b.addLatency(milliSeconds);
     }
     path.getBandwidthList().forEach(b::addBandwidth);
     for (Daemon.GeoCoordinates g : path.getGeoList()) {
