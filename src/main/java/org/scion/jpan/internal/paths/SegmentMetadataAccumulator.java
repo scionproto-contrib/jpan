@@ -14,17 +14,18 @@
 
 package org.scion.jpan.internal.paths;
 
-import com.google.protobuf.Duration;
+import static org.scion.jpan.PathMetadata.*;
+
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
-import org.scion.jpan.proto.daemon.Daemon;
 
 class SegmentMetadataAccumulator {
 
   private SegmentMetadataAccumulator() {}
 
   static void writeStaticInfoMetadata(
-      Daemon.Path.Builder path, Segments.PathSegment[] pathSegments, Segments.Range[] ranges) {
+      PathMetadata.Builder path, Segments.PathSegment[] pathSegments, Segments.Range[] ranges) {
     // Stitching metadata is not trivial.
     // Some quirks:
     // - The segments contain internal bandwidth & latency metadata. However, they contain
@@ -70,7 +71,7 @@ class SegmentMetadataAccumulator {
   }
 
   private static void writeStaticInfoMetadata(
-      Daemon.Path.Builder path,
+      PathMetadata.Builder path,
       Seg.ASEntrySignedBody body,
       Segments.Range range,
       boolean addIsdAs,
@@ -82,16 +83,16 @@ class SegmentMetadataAccumulator {
     long id2 = hopField.getIngress();
     if (!ext.hasStaticInfo()) {
       if (id1 != 0) {
-        path.addLatency(toDuration(null));
+        path.addLatency(toMillis(null));
         path.addBandwidth(0);
         path.addGeo(toGeo(null));
       }
       if (id2 != 0) {
-        path.addLinkType(Daemon.LinkType.LINK_TYPE_UNSPECIFIED);
+        path.addLinkType(LinkType.UNSPECIFIED);
         path.addGeo(toGeo(null));
       }
       if (addIntraInfo) {
-        path.addLatency(toDuration(null));
+        path.addLatency(toMillis(null));
         path.addBandwidth(0);
         path.addInternalHops(0);
       }
@@ -106,7 +107,7 @@ class SegmentMetadataAccumulator {
     if (reversed) {
       if (id1 != 0) {
         if (sie.getLatency().getInterMap().containsKey(id1)) {
-          path.addLatency(toDuration(sie.getLatency().getInterMap().get(id1)));
+          path.addLatency(toMillis(sie.getLatency().getInterMap().get(id1)));
         }
         Long bw = sie.getBandwidth().getInterMap().get(id1);
         path.addBandwidth(bw == null ? 0 : bw);
@@ -119,9 +120,9 @@ class SegmentMetadataAccumulator {
 
     if (addIntraInfo) {
       if (!sie.getLatency().getIntraMap().isEmpty()) {
-        path.addLatency(toDuration(sie.getLatency().getIntraMap().values().iterator().next()));
+        path.addLatency(toMillis(sie.getLatency().getIntraMap().values().iterator().next()));
       } else {
-        path.addLatency(toDuration(null));
+        path.addLatency(toMillis(null));
       }
       if (!sie.getBandwidth().getIntraMap().isEmpty()) {
         path.addBandwidth(sie.getBandwidth().getIntraMap().values().iterator().next());
@@ -149,7 +150,7 @@ class SegmentMetadataAccumulator {
         path.addGeo(toGeo(sie.getGeoMap().get(id2)));
       }
       if (id1 != 0) {
-        Duration latency = toDuration(sie.getLatency().getInterMap().getOrDefault(id1, null));
+        int latency = toMillis(sie.getLatency().getInterMap().getOrDefault(id1, null));
         path.addLatency(latency);
         Long bw = sie.getBandwidth().getInterMap().get(id1);
         path.addBandwidth(bw == null ? 0 : bw);
@@ -162,42 +163,36 @@ class SegmentMetadataAccumulator {
     }
   }
 
-  private static Duration toDuration(Integer micros) {
+  private static int toMillis(Integer micros) {
     if (micros == null) {
-      return Duration.newBuilder().setSeconds(-1).setNanos(-1).build();
+      return -1;
     }
-    int secs = micros / 1_000_000;
-    int nanos = (micros % 1_000_000) * 1_000;
-    return Duration.newBuilder().setSeconds(secs).setNanos(nanos).build();
+    return micros / 1000;
   }
 
-  private static Daemon.GeoCoordinates toGeo(SegExtensions.GeoCoordinates geo) {
+  private static GeoCoordinates toGeo(SegExtensions.GeoCoordinates geo) {
     if (geo == null) {
-      return Daemon.GeoCoordinates.newBuilder().build();
+      return GeoCoordinates.create(0, 0, "");
     }
-    return Daemon.GeoCoordinates.newBuilder()
-        .setLatitude(geo.getLatitude())
-        .setLongitude(geo.getLongitude())
-        .setAddress(geo.getAddress())
-        .build();
+    return GeoCoordinates.create(geo.getLatitude(), geo.getLongitude(), geo.getAddress());
   }
 
-  private static Daemon.LinkType toLinkType(SegExtensions.LinkType lt) {
+  private static LinkType toLinkType(SegExtensions.LinkType lt) {
     if (lt == null) {
-      return Daemon.LinkType.LINK_TYPE_UNSPECIFIED;
+      return LinkType.UNSPECIFIED;
     }
     switch (lt) {
       case LINK_TYPE_UNSPECIFIED:
-        return Daemon.LinkType.LINK_TYPE_UNSPECIFIED;
+        return LinkType.UNSPECIFIED;
       case LINK_TYPE_DIRECT:
-        return Daemon.LinkType.LINK_TYPE_DIRECT;
+        return LinkType.DIRECT;
       case LINK_TYPE_MULTI_HOP:
-        return Daemon.LinkType.LINK_TYPE_MULTI_HOP;
+        return LinkType.MULTI_HOP;
       case LINK_TYPE_OPEN_NET:
-        return Daemon.LinkType.LINK_TYPE_OPEN_NET;
+        return LinkType.OPEN_NET;
       case UNRECOGNIZED:
       default:
-        return Daemon.LinkType.UNRECOGNIZED;
+        return LinkType.UNSPECIFIED;
     }
   }
 }

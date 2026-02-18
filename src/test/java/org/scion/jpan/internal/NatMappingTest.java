@@ -56,12 +56,11 @@ class NatMappingTest {
     System.setProperty(Constants.PROPERTY_NAT, "Hello!");
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       List<InetSocketAddress> brs = new ArrayList<>();
       brs.add(new InetSocketAddress("127.0.0.1", 55555));
       Exception e =
           assertThrows(
-              IllegalArgumentException.class, () -> NatMapping.createMapping(isdAs, channel, brs));
+              IllegalArgumentException.class, () -> NatMapping.createMapping(channel, brs));
       assertTrue(e.getMessage().startsWith("Illegal value for NAT config: "));
     }
   }
@@ -73,10 +72,9 @@ class NatMappingTest {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = ExamplePacket.PATH_IPV4;
       NatMapping natMapping =
-          NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          NatMapping.createMapping(channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
@@ -91,10 +89,9 @@ class NatMappingTest {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       NatMapping natMapping =
-          NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          NatMapping.createMapping(channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
@@ -109,11 +106,10 @@ class NatMappingTest {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       InetSocketAddress remoteHost = IPHelper.toInetSocketAddress("127.0.0.1:23456");
       Path path = createLocalPath(remoteHost);
       NatMapping natMapping =
-          NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          NatMapping.createMapping(channel, MockNetwork.getBorderRouterAddresses());
       InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
@@ -127,10 +123,9 @@ class NatMappingTest {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
       InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       InetSocketAddress remoteHost = IPHelper.toInetSocketAddress("127.0.0.1:23456");
       Path path = createLocalPath(remoteHost);
-      NatMapping natMapping = NatMapping.createMapping(isdAs, channel, Collections.emptyList());
+      NatMapping natMapping = NatMapping.createMapping(channel, Collections.emptyList());
       InetSocketAddress src = natMapping.getMappedAddress(path);
       assertEquals(local, src);
       assertFalse(src.getAddress().isAnyLocalAddress());
@@ -145,10 +140,9 @@ class NatMappingTest {
     MockNetwork.disableStun();
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       NatMapping natMapping =
-          NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          NatMapping.createMapping(channel, MockNetwork.getBorderRouterAddresses());
       Exception e =
           assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path));
       assertEquals("No mapped source for: " + path.getFirstHopAddress(), e.getMessage());
@@ -165,9 +159,8 @@ class NatMappingTest {
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12555));
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(firstHop);
-      NatMapping natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      NatMapping natMapping = NatMapping.createMapping(channel, brs);
       assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path));
     }
   }
@@ -228,8 +221,7 @@ class NatMappingTest {
       throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(bind);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      NatMapping natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      NatMapping natMapping = NatMapping.createMapping(channel, brs);
       return natMapping.getMappedAddress(path);
     }
   }
@@ -364,8 +356,7 @@ class NatMappingTest {
     NatMapping natMapping = null;
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(local);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      natMapping = NatMapping.createMapping(channel, brs);
       // Two initial requests
       assertEquals(1, MockNetwork.getAndResetStunCount());
       TestUtil.sleep(150);
@@ -396,8 +387,7 @@ class NatMappingTest {
     NatMapping natMapping = null;
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(local);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      natMapping = NatMapping.createMapping(channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
       TestUtil.sleep(150);
@@ -427,8 +417,7 @@ class NatMappingTest {
     NatMapping natMapping = null;
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(local);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      natMapping = NatMapping.createMapping(channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
       // One keep alive per IP
@@ -454,8 +443,7 @@ class NatMappingTest {
     NatMapping natMapping = null;
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(local);
-      long isdAs = ScionUtil.parseIA("1-ff00:0:123");
-      natMapping = NatMapping.createMapping(isdAs, channel, brs);
+      natMapping = NatMapping.createMapping(channel, brs);
       // Two initial requests
       assertEquals(2, MockNetwork.getAndResetStunCount());
       // Reset timer after 500ms
@@ -651,10 +639,9 @@ class NatMappingTest {
   void testIllegalStateException() throws IOException {
     try (DatagramChannel channel = DatagramChannel.open()) {
       channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-      long isdAs = ScionUtil.parseIA("1-ff00:0:110");
       Path path = createPath(MockNetwork.getBorderRouterAddress1());
       NatMapping natMapping =
-          NatMapping.createMapping(isdAs, channel, MockNetwork.getBorderRouterAddresses());
+          NatMapping.createMapping(channel, MockNetwork.getBorderRouterAddresses());
       Exception e =
           assertThrows(IllegalStateException.class, () -> natMapping.getMappedAddress(path));
       assertEquals("No mapped source for: " + path.getFirstHopAddress(), e.getMessage());
@@ -665,13 +652,19 @@ class NatMappingTest {
     long isdAs = ScionUtil.parseIA("1-ff00:0:110");
     byte[] remoteIP = remoteHost.getAddress().getAddress();
     return PackageVisibilityHelper.createDummyPath(
-        isdAs, remoteIP, remoteHost.getPort(), new byte[] {}, remoteHost);
+        isdAs, isdAs, remoteIP, remoteHost.getPort(), new byte[] {}, remoteHost);
   }
 
   private RequestPath createPath(InetSocketAddress firstHop) {
-    long isdAs = ScionUtil.parseIA("1-ff00:0:112");
+    long srcIsdAs = ScionUtil.parseIA("1-ff00:0:110");
+    long dstIsdAs = ScionUtil.parseIA("1-ff00:0:112");
     return PackageVisibilityHelper.createDummyPath(
-        isdAs, new byte[] {127, 0, 0, 1}, 54321, ExamplePacket.PATH_RAW_TINY_110_112, firstHop);
+        srcIsdAs,
+        dstIsdAs,
+        new byte[] {127, 0, 0, 1},
+        54321,
+        ExamplePacket.PATH_RAW_TINY_110_112,
+        firstHop);
   }
 
   private void awaitStunCount(int nExpected, int timeoutMs) {

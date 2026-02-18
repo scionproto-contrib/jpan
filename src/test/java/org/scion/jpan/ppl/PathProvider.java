@@ -14,8 +14,6 @@
 
 package org.scion.jpan.ppl;
 
-import com.google.protobuf.Duration;
-import com.google.protobuf.Timestamp;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -24,8 +22,8 @@ import java.util.List;
 import java.util.Random;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.proto.daemon.Daemon;
 
 public class PathProvider {
 
@@ -90,29 +88,28 @@ public class PathProvider {
   public List<Path> getPaths(InetSocketAddress dst, long srcIsdAs, long dstIsdAs) {
     List<Path> paths = new ArrayList<>();
     for (SnetPath snetPath : getPaths(srcIsdAs, dstIsdAs)) {
-      Daemon.Path path = protoPathFrom(snetPath);
-      paths.add(PackageVisibilityHelper.createRequestPath(path, dstIsdAs, dst));
+      PathMetadata path = newPathFrom(snetPath);
+      paths.add(PackageVisibilityHelper.createRequestPath(path, srcIsdAs, dstIsdAs, dst));
     }
     return paths;
   }
 
-  private Daemon.Path protoPathFrom(SnetPath snetPath) {
-    Daemon.Path.Builder path = Daemon.Path.newBuilder();
+  private PathMetadata newPathFrom(SnetPath snetPath) {
+    PathMetadata.Builder path = PathMetadata.newBuilder();
     Random rnd = new Random();
     long now = System.currentTimeMillis() / 1000;
-    path.setExpiration(Timestamp.newBuilder().setSeconds(now + rnd.nextInt(3600)).build());
+    path.setExpiration(now + rnd.nextInt(3600));
     path.setMtu(1000 + rnd.nextInt(1000));
-    // path.setInterface(Daemon.PathInterface.newBuilder().setAddress(Daemon.Address.getDefaultInstance()));
+    // path.setInterface(PathInterface.create(Daemon.Address.getDefaultInstance()));
     for (PathInterface pathIntf : snetPath.pathIntfs) {
-      path.addInterfaces(
-          Daemon.PathInterface.newBuilder().setId(pathIntf.ID).setIsdAs(pathIntf.IA));
+      path.addInterfaces(PathMetadata.PathInterface.create(pathIntf.IA, pathIntf.ID));
       if (rnd.nextInt(20) > 2) {
         // We should add them per AS, not per interface....!!!
-        path.addLatency(Duration.newBuilder().setNanos(rnd.nextInt(1_000_000_000)).build());
+        path.addLatency(rnd.nextInt(1_000));
         // We should add them per AS, not per interface....!!!
         path.addBandwidth(rnd.nextInt(1_000_000_000));
       } else {
-        path.addLatency(Duration.newBuilder().setNanos(-1).build());
+        path.addLatency(-1);
         path.addBandwidth(0);
       }
     }

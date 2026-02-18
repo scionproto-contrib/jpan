@@ -152,7 +152,7 @@ public class ShowpathsDemo {
 
     PathMetadata meta = path.getMetadata();
     sb.append("    MTU: ").append(meta.getMtu()).append(NL);
-    sb.append("    NextHop: ").append(meta.getFirstHopAddress().getHostString()).append(NL);
+    sb.append("    NextHop: ").append(path.getFirstHopAddress().getHostString()).append(NL);
     sb.append("    Expires: ").append(toStringExpiry(meta)).append(NL);
     sb.append("    Latency: ").append(toStringLatency(meta)).append(NL);
     sb.append("    Bandwidth: ").append(toStringBandwidth(meta)).append(NL);

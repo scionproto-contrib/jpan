@@ -38,7 +38,6 @@ public class NatMapping {
 
   private static final Logger log = LoggerFactory.getLogger(NatMapping.class);
 
-  private final long localIsdAs;
   private NatMode mode;
   private Entry commonAddress;
   private final Map<InetSocketAddress, Entry> sourceIPs = new HashMap<>();
@@ -49,10 +48,8 @@ public class NatMapping {
   private final int natMappingTimeoutMs = Config.getNatMappingTimeoutMs(); // seconds
   private final int stunTimeoutMs = Config.getStunTimeoutMs();
 
-  private NatMapping(
-      DatagramChannel channel, long localIsdAs, List<InetSocketAddress> borderRouters) {
+  private NatMapping(DatagramChannel channel, List<InetSocketAddress> borderRouters) {
     this.channel = channel;
-    this.localIsdAs = localIsdAs;
     this.mode = NatMode.NOT_INITIALIZED;
     this.timer = new Timer(true);
     boolean useTimer = Config.useNatMappingKeepAlive();
@@ -116,7 +113,7 @@ public class NatMapping {
     Entry entry = sourceIPs.get(path.getFirstHopAddress());
     if (entry == null) {
       // This is not a known border router, the destination is presumably in the local AS
-      if (path.getRemoteIsdAs() == localIsdAs) {
+      if (path.getRemoteIsdAs() == path.getLocalIsdAs()) {
         return commonAddress.getMappedSource(); // TODO this is weird.
       }
       throw new IllegalArgumentException("Unknown border router: " + path.getFirstHopAddress());
@@ -175,13 +172,13 @@ public class NatMapping {
   }
 
   public static NatMapping createMapping(
-      long localIsdAs, DatagramChannel channel, List<InetSocketAddress> borderRouters) {
+      DatagramChannel channel, List<InetSocketAddress> borderRouters) {
     if (borderRouters.isEmpty()) {
       log.warn("No border routers found in local topology information.");
     }
 
     // ASInfo entry
-    NatMapping natMapping = new NatMapping(channel, localIsdAs, borderRouters);
+    NatMapping natMapping = new NatMapping(channel, borderRouters);
 
     // detect addresses
     try {

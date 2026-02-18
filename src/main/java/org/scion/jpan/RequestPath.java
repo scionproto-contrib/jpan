@@ -16,7 +16,7 @@ package org.scion.jpan;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import org.scion.jpan.proto.daemon.Daemon;
+import org.scion.jpan.internal.util.IPHelper;
 
 /**
  * A RequestPath is a Path with additional meta information such as bandwidth, latency or geo
@@ -27,28 +27,33 @@ public class RequestPath extends Path {
 
   private final PathMetadata metadata;
 
-  static RequestPath create(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    return new RequestPath(path, dstIsdAs, dstIP, dstPort);
+  static RequestPath create(
+      PathMetadata metadata, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    // path length 0 means "local AS"
+    InetSocketAddress firstHop;
+    if (metadata.getRawPath().length == 0) {
+      firstHop = new InetSocketAddress(dstIP, dstPort);
+    } else {
+      firstHop = IPHelper.toInetSocketAddress(metadata.getInterface().getAddress());
+    }
+    return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 
   @Override
   public Path copy(InetAddress dstIP, int dstPort) {
-    return new RequestPath(metadata, getRemoteIsdAs(), dstIP, dstPort);
+    return new RequestPath(
+        metadata, getFirstHopAddress(), getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
   }
 
-  private RequestPath(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
-    this.metadata = PathMetadata.create(path, dstIP, dstPort);
-  }
-
-  private RequestPath(PathMetadata metadata, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(metadata.getRawPath(), dstIsdAs, dstIP, dstPort);
+  private RequestPath(
+      PathMetadata metadata,
+      InetSocketAddress firstHop,
+      long srcIsdAs,
+      long dstIsdAs,
+      InetAddress dstIP,
+      int dstPort) {
+    super(metadata.getRawPath(), firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
     this.metadata = metadata;
-  }
-
-  @Override
-  public InetSocketAddress getFirstHopAddress() {
-    return metadata.getFirstHopAddress();
   }
 
   public PathMetadata getMetadata() {

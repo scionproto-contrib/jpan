@@ -222,7 +222,7 @@ class ShimTest {
     long localIA = ScionUtil.parseIA("1-ff00:0:110");
     InetAddress dstAddr = InetAddress.getLoopbackAddress();
     return PackageVisibilityHelper.createDummyPath(
-        localIA, dstAddr, Constants.SCMP_PORT, new byte[0], firstHop);
+        localIA, localIA, dstAddr, Constants.SCMP_PORT, new byte[0], firstHop);
   }
 
   @Test

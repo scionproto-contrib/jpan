@@ -16,7 +16,6 @@ package org.scion.jpan;
 
 import static org.scion.jpan.Constants.*;
 
-import io.grpc.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -33,7 +32,6 @@ import org.scion.jpan.internal.paths.PathServiceRpc;
 import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -325,11 +323,12 @@ public class ScionService {
    */
   private List<Path> getPaths(ScionAddress dstAddress, int dstPort) {
     long srcIsdAs = getLocalIsdAs();
-    List<Daemon.Path> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
+    List<PathMetadata> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
     List<Path> scionPaths = new ArrayList<>(paths.size());
-    for (Daemon.Path path : paths) {
+    for (PathMetadata path : paths) {
       scionPaths.add(
-          RequestPath.create(path, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
+          RequestPath.create(
+              path, srcIsdAs, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
     }
     return scionPaths;
   }
@@ -347,14 +346,14 @@ public class ScionService {
     return AddressLookupService.getIsdAs(hostName, getLocalIsdAs());
   }
 
-  private List<Daemon.Path> getPathList(long srcIsdAs, long dstIsdAs) {
-    List<Daemon.Path> list;
+  private List<PathMetadata> getPathList(long srcIsdAs, long dstIsdAs) {
+    List<PathMetadata> list;
     if (pathService != null) {
       list = Segments.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
     } else if (daemonService != null) {
-      list = getPathListDaemon(srcIsdAs, dstIsdAs);
+      list = daemonService.pathsAsMetadata(srcIsdAs, dstIsdAs);
     } else {
-      list = getPathListCS(srcIsdAs, dstIsdAs);
+      list = Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
     }
     if (LOG.isInfoEnabled()) {
       LOG.info(
@@ -364,25 +363,6 @@ public class ScionService {
           list.size());
     }
     return list;
-  }
-
-  // do not expose proto types on API
-  List<Daemon.Path> getPathListDaemon(long srcIsdAs, long dstIsdAs) {
-    Daemon.PathsRequest request =
-        Daemon.PathsRequest.newBuilder()
-            .setSourceIsdAs(srcIsdAs)
-            .setDestinationIsdAs(dstIsdAs)
-            .build();
-    try {
-      return daemonService.paths(request).getPathsList();
-    } catch (StatusRuntimeException e) {
-      throw new ScionRuntimeException(e);
-    }
-  }
-
-  // Do not expose protobuf types on API!
-  List<Daemon.Path> getPathListCS(long srcIsdAs, long dstIsdAs) {
-    return Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
   }
 
   /**
@@ -398,7 +378,7 @@ public class ScionService {
         localAS.getBorderRouters().stream()
             .map(LocalAS.BorderRouter::getInternalAddress)
             .collect(Collectors.toList());
-    return NatMapping.createMapping(getLocalIsdAs(), channel, interfaces);
+    return NatMapping.createMapping(channel, interfaces);
   }
 
   LocalAS.DispatcherPortRange getLocalPortRange() {
@@ -415,5 +395,9 @@ public class ScionService {
 
   DaemonServiceGrpc getDaemonConnection() {
     return daemonService;
+  }
+
+  LocalAS getLocalAS() {
+    return localAS;
   }
 }

@@ -17,14 +17,13 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -67,9 +66,9 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
   }
 
   @Test
-  void caseB_Up() throws IOException {
+  void caseB_Up() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_110);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_110);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 1-ff00:0:110 --sciond 127.0.0.27:30255
@@ -88,8 +87,8 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
         69, 0, 63, 0, 0, 0, 1, 76, -83, 19, -68, 60, 119
       };
 
-      Daemon.Path path = paths.get(0);
-      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      PathMetadata path = paths.get(0);
+      ByteBuffer rawBB = ByteBuffer.wrap(path.getRawPath()).asReadOnlyBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
       checkInfo(rawBB, 18215, 0);
       checkHopField(rawBB, 41, 0);
@@ -97,22 +96,22 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
       assertEquals(0, rawBB.remaining());
 
       // compare with recorded byte[]
-      checkRaw(raw, path.getRaw().toByteArray());
+      checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop110, path.getInterface().getAddress().getAddress());
+      assertEquals(firstHop110, path.getInterface().getAddress());
       checkInterface(path, 0, 41, "1-ff00:0:111");
       checkInterface(path, 1, 1, "1-ff00:0:110");
-      assertEquals(2, path.getInterfacesCount());
+      assertEquals(2, path.getInterfacesList().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertTrue(network.getControlServer().getAndResetCallCount() <= 3);
   }
 
   @Test
-  void caseE_UpDown() throws IOException {
+  void caseE_UpDown() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_111, AS_112);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_112);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 1-ff00:0:112 --sciond 127.0.0.27:30255
@@ -138,8 +137,8 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
         63, 0, 0, 0, 22, -109, -47, -27, 63, 7, 61, 0, 63, 0, 11, 0, 0, -17, 105, -34, 80, 32, 26
       };
 
-      Daemon.Path path = paths.get(1);
-      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      PathMetadata path = paths.get(1);
+      ByteBuffer rawBB = ByteBuffer.wrap(path.getRawPath()).asReadOnlyBuffer();
       checkMetaHeader(rawBB, 2, 2, 0);
       checkInfo(rawBB, 18215, 0);
       checkInfo(rawBB, 10022, 1);
@@ -150,15 +149,15 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
       assertEquals(0, rawBB.remaining());
 
       // compare with recorded byte[]
-      checkRaw(raw, path.getRaw().toByteArray());
+      checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop110, path.getInterface().getAddress().getAddress());
+      assertEquals(firstHop110, path.getInterface().getAddress());
       checkInterface(path, 0, 41, "1-ff00:0:111");
       checkInterface(path, 1, 1, "1-ff00:0:110");
       checkInterface(path, 2, 22, "1-ff00:0:110");
       checkInterface(path, 3, 11, "1-ff00:0:112");
-      assertEquals(4, path.getInterfacesCount());
+      assertEquals(4, path.getInterfacesList().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertTrue(network.getControlServer().getAndResetCallCount() <= 3);

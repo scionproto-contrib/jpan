@@ -16,11 +16,9 @@ package org.scion.jpan.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockNetwork2;
 
 class SegmentMinimalMetadataMissingTest {
@@ -37,36 +35,36 @@ class SegmentMinimalMetadataMissingTest {
   private static final String TOPO_1121 = TOPO_DIR + "ASff00_0_1121/topology.json";
 
   @Test
-  void testCore_110_120() throws IOException {
+  void testCore_110_120() {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_110")) {
 
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_120);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_110, AS_120);
         assertNotNull(paths);
         assertEquals(1, paths.size());
 
-        Daemon.Path path = paths.get(0);
+        PathMetadata path = paths.get(0);
         assertEquals(1, path.getBandwidthList().size());
         assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0).getNanos());
+        assertEquals(-1, path.getLatencyList().get(0));
       }
     }
   }
 
   @Test
-  void testDown_120_121() throws IOException {
+  void testDown_120_121() {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_120")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_121);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_120, AS_121);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
-        Daemon.Path path = paths.get(0);
+        PathMetadata path = paths.get(0);
         assertEquals(1, path.getBandwidthList().size());
         assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(1, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0).getNanos());
+        assertEquals(-1, path.getLatencyList().get(0));
       }
     }
 
@@ -102,22 +100,22 @@ class SegmentMinimalMetadataMissingTest {
   }
 
   @Test
-  void testUp_112_110() throws IOException {
+  void testUp_112_110() {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_1121")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_1121)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_1121, AS_110);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_1121, AS_110);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
-        Daemon.Path path = paths.get(0);
+        PathMetadata path = paths.get(0);
         assertEquals(3, path.getBandwidthList().size());
         assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(0, path.getBandwidthList().get(1));
         assertEquals(0, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0).getNanos());
-        assertEquals(-1, path.getLatencyList().get(1).getNanos());
-        assertEquals(-1, path.getLatencyList().get(2).getNanos());
+        assertEquals(-1, path.getLatencyList().get(0));
+        assertEquals(-1, path.getLatencyList().get(1));
+        assertEquals(-1, path.getLatencyList().get(2));
       }
     }
 
@@ -142,22 +140,22 @@ class SegmentMinimalMetadataMissingTest {
   }
 
   @Test
-  void testDown_110_1121() throws IOException {
+  void testDown_110_1121() {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_110")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
-        List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_110, AS_1121);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_110, AS_1121);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
-        Daemon.Path path = paths.get(0);
+        PathMetadata path = paths.get(0);
         assertEquals(3, path.getBandwidthList().size());
         assertEquals(0, path.getBandwidthList().get(0));
         assertEquals(0, path.getBandwidthList().get(1));
         assertEquals(0, path.getBandwidthList().get(2));
         assertEquals(3, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0).getNanos());
-        assertEquals(-1, path.getLatencyList().get(1).getNanos());
-        assertEquals(-1, path.getLatencyList().get(2).getNanos());
+        assertEquals(-1, path.getLatencyList().get(0));
+        assertEquals(-1, path.getLatencyList().get(1));
+        assertEquals(-1, path.getLatencyList().get(2));
       }
     }
 
