@@ -40,7 +40,7 @@ class HeaderComposeTest {
   private Scion.CloseableService pathService = null;
 
   @BeforeAll
-  static void beforeAll() throws IOException {
+  static void beforeAll() {
     MockDaemon.createAndStartDefault();
   }
 
@@ -54,7 +54,7 @@ class HeaderComposeTest {
   }
 
   @AfterAll
-  static void afterAll() throws IOException {
+  static void afterAll() {
     MockDaemon.closeDefault();
     // Defensive clean up
     ScionService.closeDefault();
@@ -68,6 +68,7 @@ class HeaderComposeTest {
 
     // User side
     int dstPort = 8080;
+    long srcIA = ScionUtil.parseIA("1-ff00:0:110");
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     String msg = "Hello scion";
     ByteBuffer userPacket = ByteBuffer.allocate(msg.length());
@@ -79,7 +80,6 @@ class HeaderComposeTest {
 
     // Socket internal - compose header data
     pathService = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
-    long srcIA = pathService.getLocalIsdAs();
     byte[] path = pathService.getPaths(dstIA, dstSocketAddress).get(0).getRawPath();
 
     // Socket internal = write header
