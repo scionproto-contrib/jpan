@@ -53,7 +53,7 @@ public class PackageVisibilityHelper {
     return ScionHeaderParser.extractNextHeader(packet);
   }
 
-  public static InetSocketAddress getDstAddress(ByteBuffer packet) throws UnknownHostException {
+  public static InetSocketAddress getDstAddress(ByteBuffer packet) {
     return ScionHeaderParser.extractDestinationSocketAddress(packet);
   }
 

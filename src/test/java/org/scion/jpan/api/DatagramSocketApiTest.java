@@ -69,18 +69,18 @@ class DatagramSocketApiTest {
   }
 
   @BeforeEach
-  public void beforeEach() throws IOException {
+  void beforeEach() {
     MockDaemon.createAndStartDefault();
   }
 
   @AfterEach
-  public void afterEach() throws IOException {
+  void afterEach() {
     MockDaemon.closeDefault();
     MockDNS.clear();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
   }
@@ -159,8 +159,8 @@ class DatagramSocketApiTest {
 
   @Test
   void send_requiresAddressWithScionCorrectTxt() {
-    String TXT = "\"XXXscion=1-ff00:0:110,127.0.0.55\"";
-    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "127.0.0.55=" + TXT);
+    String valueTXT = "\"XXXscion=1-ff00:0:110,127.0.0.55\"";
+    System.setProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK, "127.0.0.55=" + valueTXT);
     InetSocketAddress addr = new InetSocketAddress("127.0.0.55", 30255);
     DatagramPacket packet = new DatagramPacket(new byte[100], 100, addr);
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
@@ -312,12 +312,6 @@ class DatagramSocketApiTest {
 
   @Test
   void bind() throws IOException {
-    //    try (java.net.DatagramSocket socket = new java.net.DatagramSocket(null)) {
-    //      assertNull(socket.getLocalSocketAddress());
-    //      socket.bind(null);
-    //      InetSocketAddress address2 = (InetSocketAddress) socket.getLocalSocketAddress();
-    //      assertTrue(address2.getPort() > 0);
-    //    }
     try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       assertNull(socket.getLocalSocketAddress());
       socket.bind(null);
@@ -328,10 +322,6 @@ class DatagramSocketApiTest {
 
   @Test
   void bind_fails() throws IOException {
-    //    try (java.net.DatagramSocket socket = new java.net.DatagramSocket()) {
-    //      Exception ex = assertThrows(SocketException.class, () -> socket.bind(null));
-    //      assertTrue(ex.getMessage().contains("already bound"));
-    //    }
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       Exception ex = assertThrows(SocketException.class, () -> socket.bind(null));
       assertTrue(ex.getMessage().contains("already bound"));
@@ -528,25 +518,25 @@ class DatagramSocketApiTest {
 
   @Disabled
   @Test
-  void send_AddressResolve_reverseLookupIPv4() throws IOException {
+  void send_AddressResolve_reverseLookupIPv4() {
     // TODO
   }
 
   @Disabled
   @Test
-  void send_AddressResolve_reverseLookupIPv6() throws IOException {
+  void send_AddressResolve_reverseLookupIPv6() {
     // TODO
   }
 
   @Disabled
   @Test
-  void send_AddressResolve_no_resolve_necessary() throws IOException {
+  void send_AddressResolve_no_resolve_necessary() {
     // TODO
   }
 
   @Disabled
   @Test
-  void send_AddressResolve_resolve_failure() throws IOException {
+  void send_AddressResolve_resolve_failure() {
     // TODO
   }
 
@@ -585,7 +575,7 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void send_connected_expiredRequestPath() throws IOException {
+  void send_connected_expiredRequestPath() {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(
         (socket, expiredPath) -> {
@@ -605,7 +595,7 @@ class DatagramSocketApiTest {
         });
   }
 
-  private void testExpired(BiConsumer<ScionDatagramSocket, Path> sendMethod) throws IOException {
+  private void testExpired(BiConsumer<ScionDatagramSocket, Path> sendMethod) {
     MockDaemon.closeDefault(); // We don't need the daemon here
     PingPongSocketHelper.Server serverFn = PingPongSocketHelper::defaultServer;
     PingPongSocketHelper.Client clientFn =
