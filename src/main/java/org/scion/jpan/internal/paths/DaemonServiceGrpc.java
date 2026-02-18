@@ -14,6 +14,7 @@
 
 package org.scion.jpan.internal.paths;
 
+import com.google.protobuf.Duration;
 import com.google.protobuf.Empty;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
@@ -33,7 +34,7 @@ public class DaemonServiceGrpc {
 
   private ManagedChannel channel;
   private org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub grpcStub;
-  private int deadLineMs;
+  private final int deadLineMs;
 
   public static DaemonServiceGrpc create(String addressOrHost) {
     return new DaemonServiceGrpc(addressOrHost);
@@ -113,6 +114,40 @@ public class DaemonServiceGrpc {
 
   public List<PathMetadata> pathsAsMetadata(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> dList = paths(srcIsdAs, dstIsdAs).getPathsList();
-    return dList.stream().map(PathMetadata::create).collect(Collectors.toList());
+    return dList.stream().map(DaemonServiceGrpc::toPathMetadata).collect(Collectors.toList());
+  }
+
+  private static PathMetadata toPathMetadata(Daemon.Path path) {
+    PathMetadata.Builder b = PathMetadata.newBuilder();
+    b.setRaw(path.getRaw().toByteArray());
+    path.getInterfacesList().stream()
+        .map(pi -> PathMetadata.PathInterface.create(pi.getIsdAs(), pi.getId()))
+        .forEach(b::addInterfaces);
+    b.setLocalInterface(
+        PathMetadata.Interface.create(path.getInterface().getAddress().getAddress()));
+    b.setMtu(path.getMtu());
+    b.setExpiration(path.getExpiration().getSeconds());
+    for (Duration time : path.getLatencyList()) {
+      int l =
+          (time.getSeconds() < 0 || time.getNanos() < 0)
+              ? -1
+              : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000);
+      b.addLatency(l);
+    }
+    path.getBandwidthList().forEach(b::addBandwidth);
+    for (Daemon.GeoCoordinates g : path.getGeoList()) {
+      b.addGeo(
+          PathMetadata.GeoCoordinates.create(g.getLatitude(), g.getLongitude(), g.getAddress()));
+    }
+    for (Daemon.LinkType linkType : path.getLinkTypeList()) {
+      b.addLinkType(PathMetadata.LinkType.values()[linkType.getNumber()]);
+    }
+    path.getInternalHopsList().forEach(b::addInternalHops);
+    path.getNotesList().forEach(b::addNotes);
+    b.setEpicAuths(
+        PathMetadata.EpicAuths.create(
+            path.getEpicAuths().getAuthPhvf().toByteArray(),
+            path.getEpicAuths().getAuthLhvf().toByteArray()));
+    return b.build();
   }
 }

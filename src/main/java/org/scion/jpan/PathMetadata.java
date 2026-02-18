@@ -16,10 +16,7 @@ package org.scion.jpan;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.scion.jpan.proto.daemon.Daemon;
 
 /**
  * PathMetadata contains the raw path and meta information such as bandwidth, latency or geo
@@ -43,10 +40,6 @@ public class PathMetadata {
 
   public static Builder newBuilder() {
     return new Builder();
-  }
-
-  public static PathMetadata create(Daemon.Path path) {
-    return new PathMetadata(path);
   }
 
   private PathMetadata(
@@ -74,38 +67,6 @@ public class PathMetadata {
     this.internalHopList = internalHopList;
     this.notesList = notesList;
     this.epicAuths = epicAuths;
-  }
-
-  private PathMetadata(Daemon.Path path) {
-    this.pathRaw = path.getRaw().toByteArray();
-
-    pathInterfaces =
-        Collections.unmodifiableList(
-            path.getInterfacesList().stream().map(PathInterface::new).collect(Collectors.toList()));
-    firstInterface = new Interface(path.getInterface());
-    mtu = path.getMtu();
-    expiration = path.getExpiration().getSeconds();
-    latencyList =
-        Collections.unmodifiableList(
-            path.getLatencyList().stream()
-                .map(
-                    time ->
-                        (time.getSeconds() < 0 || time.getNanos() < 0)
-                            ? -1
-                            : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000))
-                .collect(Collectors.toList()));
-    bandwidthList = path.getBandwidthList();
-    geoList =
-        Collections.unmodifiableList(
-            path.getGeoList().stream().map(GeoCoordinates::new).collect(Collectors.toList()));
-    linkTypeList =
-        Collections.unmodifiableList(
-            path.getLinkTypeList().stream()
-                .map(linkType -> LinkType.values()[linkType.getNumber()])
-                .collect(Collectors.toList()));
-    internalHopList = path.getInternalHopsList();
-    notesList = path.getNotesList();
-    epicAuths = new EpicAuths(path.getEpicAuths());
   }
 
   public byte[] getRawPath() {
@@ -226,9 +187,13 @@ public class PathMetadata {
     private final byte[] authPhvf;
     private final byte[] authLhvf;
 
-    private EpicAuths(Daemon.EpicAuths epicAuths) {
-      this.authPhvf = epicAuths.getAuthPhvf().toByteArray();
-      this.authLhvf = epicAuths.getAuthLhvf().toByteArray();
+    public static EpicAuths create(byte[] authPhvf, byte[] authLhvf) {
+      return new EpicAuths(authPhvf, authLhvf);
+    }
+
+    private EpicAuths(byte[] authPhvf, byte[] authLhvf) {
+      this.authPhvf = authPhvf;
+      this.authLhvf = authLhvf;
     }
 
     /**
@@ -258,10 +223,6 @@ public class PathMetadata {
       this.address = address;
     }
 
-    private Interface(Daemon.Interface inter) {
-      this.address = inter.getAddress().getAddress();
-    }
-
     /**
      * @return Underlay address to exit through the interface.
      */
@@ -281,11 +242,6 @@ public class PathMetadata {
     private PathInterface(long isdAs, long id) {
       this.isdAs = isdAs;
       this.id = id;
-    }
-
-    private PathInterface(Daemon.PathInterface pathInterface) {
-      this.isdAs = pathInterface.getIsdAs();
-      this.id = pathInterface.getId();
     }
 
     /**
@@ -316,12 +272,6 @@ public class PathMetadata {
       this.latitude = latitude;
       this.longitude = longitude;
       this.address = address;
-    }
-
-    private GeoCoordinates(Daemon.GeoCoordinates geoCoordinates) {
-      this.latitude = geoCoordinates.getLatitude();
-      this.longitude = geoCoordinates.getLongitude();
-      this.address = geoCoordinates.getAddress();
     }
 
     /**
@@ -415,6 +365,11 @@ public class PathMetadata {
     public Builder setRaw(ByteBuffer rawBB) {
       pathRaw = new byte[rawBB.remaining()];
       rawBB.get(pathRaw);
+      return this;
+    }
+
+    public Builder setEpicAuths(EpicAuths epicAuths) {
+      this.epicAuths = epicAuths;
       return this;
     }
 
