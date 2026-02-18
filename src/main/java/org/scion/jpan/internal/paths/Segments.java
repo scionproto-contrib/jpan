@@ -27,7 +27,6 @@ import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.MultiMap;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -519,7 +518,6 @@ public class Segments {
         long ifID1 = reversed ? hopField.getIngress() : hopField.getEgress();
         path.addInterfaces(PathMetadata.PathInterface.create(body.getIsdAs(), ifID1));
 
-        Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
         int pos2 = pos + range.increment();
         Seg.ASEntrySignedBody body2 = pathSegment.getAsEntries(pos2);
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
