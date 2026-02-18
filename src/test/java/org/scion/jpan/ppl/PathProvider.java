@@ -91,7 +91,7 @@ public class PathProvider {
     List<Path> paths = new ArrayList<>();
     for (SnetPath snetPath : getPaths(srcIsdAs, dstIsdAs)) {
       Daemon.Path path = protoPathFrom(snetPath);
-      paths.add(PackageVisibilityHelper.createRequestPath(path, dstIsdAs, dst));
+      paths.add(PackageVisibilityHelper.createRequestPath(path, srcIsdAs, dstIsdAs, dst));
     }
     return paths;
   }

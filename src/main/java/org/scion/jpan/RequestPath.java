@@ -27,26 +27,30 @@ public class RequestPath extends Path {
 
   private final PathMetadata metadata;
 
-  static RequestPath create(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    return new RequestPath(path, dstIsdAs, dstIP, dstPort);
+  static RequestPath create(
+      Daemon.Path path, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    return new RequestPath(path, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 
-  static RequestPath create(PathMetadata metadata, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    return new RequestPath(metadata, dstIsdAs, dstIP, dstPort);
+  static RequestPath create(
+      PathMetadata metadata, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    return new RequestPath(metadata, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 
   @Override
   public Path copy(InetAddress dstIP, int dstPort) {
-    return new RequestPath(metadata, getRemoteIsdAs(), dstIP, dstPort);
+    return new RequestPath(metadata, getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
   }
 
-  private RequestPath(Daemon.Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(path.getRaw().toByteArray(), dstIsdAs, dstIP, dstPort);
+  private RequestPath(
+      Daemon.Path path, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    super(path.getRaw().toByteArray(), srcIsdAs, dstIsdAs, dstIP, dstPort);
     this.metadata = PathMetadata.create(path, dstIP, dstPort);
   }
 
-  private RequestPath(PathMetadata metadata, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    super(metadata.getRawPath(), dstIsdAs, dstIP, dstPort);
+  private RequestPath(
+      PathMetadata metadata, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
+    super(metadata.getRawPath(), srcIsdAs, dstIsdAs, dstIP, dstPort);
     this.metadata = metadata;
   }
 

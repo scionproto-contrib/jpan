@@ -38,6 +38,7 @@ class ScmpErrorHandlingTest {
     InetSocketAddress firstHop = new InetSocketAddress(firstHopIP, 12345);
     Path p =
         PackageVisibilityHelper.createDummyPath(
+            ScionUtil.parseIA("1-ff00:0:110"),
             ScionUtil.parseIA("1-ff00:0:112"),
             new byte[] {127, 0, 0, 1},
             Constants.SCMP_PORT,

@@ -29,7 +29,6 @@ public class ResponsePath extends Path {
 
   private final InetSocketAddress firstHopAddress;
   // The ResponsePath gets source information from the incoming packet.
-  private final long srcIsdAs;
   private final InetAddress srcAddress;
   private final int srcPort;
 
@@ -68,9 +67,8 @@ public class ResponsePath extends Path {
       InetAddress dstIP,
       int dstPort,
       InetSocketAddress firstHopAddress) {
-    super(rawPath, dstIsdAs, dstIP, dstPort);
+    super(rawPath, srcIsdAs, dstIsdAs, dstIP, dstPort);
     this.firstHopAddress = firstHopAddress;
-    this.srcIsdAs = srcIsdAs;
     this.srcAddress = srcIP;
     this.srcPort = srcPort;
   }
@@ -79,7 +77,7 @@ public class ResponsePath extends Path {
   public Path copy(InetAddress dstIP, int dstPort) {
     return new ResponsePath(
         getRawPath(),
-        srcIsdAs,
+        getLocalIsdAs(),
         srcAddress,
         srcPort,
         getRemoteIsdAs(),
@@ -98,10 +96,6 @@ public class ResponsePath extends Path {
     return null;
   }
 
-  public long getLocalIsdAs() {
-    return srcIsdAs;
-  }
-
   public InetAddress getLocalAddress() {
     return srcAddress;
   }
@@ -113,9 +107,7 @@ public class ResponsePath extends Path {
   @Override
   public String toString() {
     return "ResponsePath{"
-        + ", localIsdAs="
-        + srcIsdAs
-        + ", localAddress="
+        + "localAddress="
         + srcAddress
         + ", localPort="
         + srcPort

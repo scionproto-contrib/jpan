@@ -157,8 +157,9 @@ class PathPolicyLanguageTest {
 
   private RequestPath createPath(InetSocketAddress addr, String... str) {
     Daemon.Path protoPath = createProtoPath(str);
+    long srcIsdAs = ScionUtil.parseIA(str[0]);
     long dstIsdAs = ScionUtil.parseIA(str[str.length - 1]);
-    return PackageVisibilityHelper.createRequestPath(protoPath, dstIsdAs, addr);
+    return PackageVisibilityHelper.createRequestPath(protoPath, srcIsdAs, dstIsdAs, addr);
   }
 
   @Test

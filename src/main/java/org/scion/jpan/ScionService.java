@@ -329,7 +329,8 @@ public class ScionService {
     List<Path> scionPaths = new ArrayList<>(paths.size());
     for (Daemon.Path path : paths) {
       scionPaths.add(
-          RequestPath.create(path, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
+          RequestPath.create(
+              path, srcIsdAs, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
     }
     return scionPaths;
   }
@@ -398,7 +399,7 @@ public class ScionService {
         localAS.getBorderRouters().stream()
             .map(LocalAS.BorderRouter::getInternalAddress)
             .collect(Collectors.toList());
-    return NatMapping.createMapping(getLocalIsdAs(), channel, interfaces);
+    return NatMapping.createMapping(channel, interfaces);
   }
 
   LocalAS.DispatcherPortRange getLocalPortRange() {

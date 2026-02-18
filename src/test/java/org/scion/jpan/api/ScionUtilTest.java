@@ -120,7 +120,6 @@ class ScionUtilTest {
   private Path createRequestPathRemote() throws UnknownHostException {
     return PackageVisibilityHelper.createRequestPath110_112(
         Daemon.Path.newBuilder(),
-        ExamplePacket.DST_IA,
         InetAddress.getByAddress(ExamplePacket.DST_HOST),
         12345,
         ExamplePacket.FIRST_HOP);

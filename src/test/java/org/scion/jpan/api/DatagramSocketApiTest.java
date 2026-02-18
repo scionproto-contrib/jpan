@@ -632,7 +632,6 @@ class DatagramSocketApiTest {
     Path expiredPath =
         PackageVisibilityHelper.createRequestPath110_112(
             builder,
-            basePath.getRemoteIsdAs(),
             basePath.getRemoteAddress(),
             basePath.getRemotePort(),
             basePath.getFirstHopAddress());

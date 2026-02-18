@@ -70,6 +70,7 @@ public class PackageVisibilityHelper {
       firstHop = MockNetwork.getBorderRouterAddress1();
     }
     return PackageVisibilityHelper.createDummyPath(
+        ScionUtil.parseIA("1-ff00:0:110"),
         ScionUtil.parseIA("1-ff00:0:112"),
         new byte[] {127, 0, 0, 1},
         54321,
@@ -81,23 +82,34 @@ public class PackageVisibilityHelper {
     InetSocketAddress dstAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     try {
       InetAddress dstIP = InetAddress.getByAddress(ExamplePacket.SRC_HOST);
-      return createDummyPath(0, dstIP, 55555, new byte[0], dstAddr);
+      return createDummyPath(0, 0, dstIP, 55555, new byte[0], dstAddr);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }
   }
 
   public static RequestPath createDummyPath(
-      long dstIsdAs, byte[] dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
+      long srcIsdAs,
+      long dstIsdAs,
+      byte[] dstHost,
+      int dstPort,
+      byte[] raw,
+      InetSocketAddress firstHop) {
     try {
-      return createDummyPath(dstIsdAs, InetAddress.getByAddress(dstHost), dstPort, raw, firstHop);
+      return createDummyPath(
+          srcIsdAs, dstIsdAs, InetAddress.getByAddress(dstHost), dstPort, raw, firstHop);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }
   }
 
   public static RequestPath createDummyPath(
-      long dstIsdAs, InetAddress dstHost, int dstPort, byte[] raw, InetSocketAddress firstHop) {
+      long srcIsdAs,
+      long dstIsdAs,
+      InetAddress dstHost,
+      int dstPort,
+      byte[] raw,
+      InetSocketAddress firstHop) {
     ByteString bs = ByteString.copyFrom(raw);
     String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
     Daemon.Interface inter =
@@ -107,7 +119,7 @@ public class PackageVisibilityHelper {
     Timestamp ts = Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond() + 100).build();
     Daemon.Path path =
         Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).setExpiration(ts).build();
-    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
   }
 
   public static ResponsePath createDummyResponsePath(
@@ -131,16 +143,14 @@ public class PackageVisibilityHelper {
   public static RequestPath createRequestPath110_110(
       Daemon.Path.Builder builder, long isdAs, InetAddress dstHost, int dstPort) {
     Daemon.Path path = builder.build();
-    return RequestPath.create(path, isdAs, dstHost, dstPort);
+    return RequestPath.create(path, isdAs, isdAs, dstHost, dstPort);
   }
 
   public static RequestPath createRequestPath110_112(
-      Daemon.Path.Builder builder,
-      long dstIsdAs,
-      InetAddress dstHost,
-      int dstPort,
-      InetSocketAddress firstHop) {
+      Daemon.Path.Builder builder, InetAddress dstHost, int dstPort, InetSocketAddress firstHop) {
     ByteString bs = ByteString.copyFrom(ExamplePacket.PATH_RAW_TINY_110_112);
+    long srcIsdAs = ExamplePacket.SRC_IA;
+    long dstIsdAs = ExamplePacket.DST_IA;
     String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
     Daemon.Interface inter =
         Daemon.Interface.newBuilder()
@@ -150,23 +160,26 @@ public class PackageVisibilityHelper {
         builder
             .setRaw(bs)
             .setInterface(inter)
-            .addInterfaces(
-                Daemon.PathInterface.newBuilder().setId(2).setIsdAs(ExamplePacket.SRC_IA).build())
-            .addInterfaces(
-                Daemon.PathInterface.newBuilder().setId(1).setIsdAs(ExamplePacket.DST_IA).build())
+            .addInterfaces(Daemon.PathInterface.newBuilder().setId(2).setIsdAs(srcIsdAs).build())
+            .addInterfaces(Daemon.PathInterface.newBuilder().setId(1).setIsdAs(dstIsdAs).build())
             .build();
-    return RequestPath.create(path, dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
   }
 
   public static RequestPath createRequestPath(
-      Daemon.Path path, long dstIsdAs, InetSocketAddress dst) {
-    return RequestPath.create(path, dstIsdAs, dst.getAddress(), dst.getPort());
+      Daemon.Path path, long srcIsdAs, long dstIsdAs, InetSocketAddress dst) {
+    return RequestPath.create(path, srcIsdAs, dstIsdAs, dst.getAddress(), dst.getPort());
   }
 
   public static Path createExpiredPath(Path base, int expiredSinceSecs) {
     long time = Instant.now().getEpochSecond() - expiredSinceSecs;
     PathMetadata m = PathMetadata.newBuilder().from(base.getMetadata()).setExpiration(time).build();
-    return RequestPath.create(m, base.getRemoteIsdAs(), base.getRemoteAddress(), base.getRemotePort());
+    return RequestPath.create(
+        m,
+        base.getLocalIsdAs(),
+        base.getRemoteIsdAs(),
+        base.getRemoteAddress(),
+        base.getRemotePort());
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
