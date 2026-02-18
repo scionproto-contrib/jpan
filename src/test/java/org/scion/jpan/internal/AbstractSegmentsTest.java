@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.nio.ByteBuffer;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -93,6 +94,11 @@ public abstract class AbstractSegmentsTest {
   protected static void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
     assertEquals(id, path.getInterfaces(i).getId());
     assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
+  }
+
+  protected static void checkInterface(PathMetadata path, int i, int id, String isdAs) {
+    assertEquals(id, path.getInterfacesList().get(i).getId());
+    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfacesList().get(i).getIsdAs());
   }
 
   /**

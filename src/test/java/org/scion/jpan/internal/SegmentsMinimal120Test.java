@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -25,9 +24,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -70,9 +69,9 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
   }
 
   @Test
-  void caseG_DifferentIsd_CoreDown_1_Hop() throws IOException {
+  void caseG_DifferentIsd_CoreDown_1_Hop() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_211);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_120, AS_211);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 2-ff00:0:211 --sciond 127.0.0.76:30255
@@ -97,8 +96,8 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
         -105, -8, -28
       };
 
-      Daemon.Path path = paths.get(0);
-      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      PathMetadata path = paths.get(0);
+      ByteBuffer rawBB = ByteBuffer.wrap(path.getRawPath()).asReadOnlyBuffer();
       checkMetaHeader(rawBB, 2, 2, 0);
       checkInfo(rawBB, 10619, 0);
       checkInfo(rawBB, 10450, 1);
@@ -109,24 +108,24 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
       assertEquals(0, rawBB.remaining());
 
       // compare with recorded byte[]
-      checkRaw(raw, path.getRaw().toByteArray());
+      checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop210, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop210, path.getInterface().getAddress());
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
       checkInterface(path, 2, 450, "2-ff00:0:210");
       checkInterface(path, 3, 503, "2-ff00:0:211");
-      assertEquals(4, path.getInterfacesCount());
+      assertEquals(4, path.getInterfacesList().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
-  void caseI_DifferentIsd_Core_1_Hop() throws IOException {
+  void caseI_DifferentIsd_Core_1_Hop() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_120, AS_210);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_120, AS_210);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       // $ scion showpaths 2-ff00:0:210 --sciond 127.0.0.76:30255
@@ -145,8 +144,8 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
         -97, 0, 63, 0, 0, 0, 105, 92, -28, 91, 82, -63, 23
       };
 
-      Daemon.Path path = paths.get(0);
-      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      PathMetadata path = paths.get(0);
+      ByteBuffer rawBB = ByteBuffer.wrap(path.getRawPath()).asReadOnlyBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
       checkInfo(rawBB, 10619, 0);
       checkHopField(rawBB, 210, 0);
@@ -154,13 +153,13 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
       assertEquals(0, rawBB.remaining());
 
       // compare with recorded byte[]
-      checkRaw(raw, path.getRaw().toByteArray());
+      checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop210, path.getInterface().getAddress().getAddress());
+      assertEquals(firstFop210, path.getInterface().getAddress());
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
-      assertEquals(2, path.getInterfacesCount());
+      assertEquals(2, path.getInterfacesList().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(1, network.getControlServer().getAndResetCallCount());
