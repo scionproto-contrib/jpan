@@ -149,14 +149,14 @@ public class ProtobufPathDemo {
     ScionService csService =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
     ControlServiceGrpc cs = PackageVisibilityHelper.getControlService(csService);
-    List<Daemon.Path> paths = Segments.getPaths(cs, csService.getLocalAS(), srcIA, dstIA, false);
+    List<PathMetadata> paths = Segments.getPaths(cs, csService.getLocalAS(), srcIA, dstIA, false);
     System.out.println("Paths found: " + paths.size());
-    for (Daemon.Path path : paths) {
+    for (PathMetadata path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
-      System.out.println("Path: interfaces = " + path.getInterface().getAddress().getAddress());
-      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
+      System.out.println("Path: interfaces = " + path.getInterface().getAddress());
+      System.out.println("Path: first hop = " + path.getInterface().getAddress());
       int i = 0;
-      for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
+      for (PathMetadata.PathInterface pathIf : path.getInterfacesList()) {
         System.out.println(
             "    pathIf: "
                 + i
@@ -170,7 +170,7 @@ public class ProtobufPathDemo {
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
       }
-      System.out.println("    raw: " + TestUtil.toStringHex(path.getRaw().toByteArray()));
+      System.out.println("    raw: " + TestUtil.toStringHex(path.getRawPath()));
     }
   }
 

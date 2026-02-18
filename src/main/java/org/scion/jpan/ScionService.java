@@ -29,7 +29,7 @@ import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.DaemonServiceGrpc;
 import org.scion.jpan.internal.paths.PathServiceRpc;
-import org.scion.jpan.internal.paths.SegmentsNew;
+import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
@@ -349,11 +349,11 @@ public class ScionService {
   private List<PathMetadata> getPathList(long srcIsdAs, long dstIsdAs) {
     List<PathMetadata> list;
     if (pathService != null) {
-      list = SegmentsNew.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
+      list = Segments.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
     } else if (daemonService != null) {
       list = daemonService.pathsAsMetadata(srcIsdAs, dstIsdAs);
     } else {
-      list = SegmentsNew.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
+      list = Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
     }
     if (LOG.isInfoEnabled()) {
       LOG.info(

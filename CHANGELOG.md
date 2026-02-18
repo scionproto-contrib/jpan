@@ -177,6 +177,7 @@ TODO
   - Remove proto.daemon from PathMetadata
   - Rename "List" methods in PathMatadata API
   - Set default MTU for PathService to useful value that is recognized as "unknown"
+  - Segments: Use PathMetadata classes instead of local helper classes?
 
 ### Removed
 

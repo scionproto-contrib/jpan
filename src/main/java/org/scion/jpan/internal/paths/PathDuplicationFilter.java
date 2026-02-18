@@ -18,24 +18,24 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.internal.header.PathRawParserLight;
 import org.scion.jpan.internal.util.MultiMap;
-import org.scion.jpan.proto.daemon.Daemon;
 
 class PathDuplicationFilter {
 
   MultiMap<Integer, Entry> paths = new MultiMap<>();
 
   private static class Entry {
-    Daemon.Path path;
+    PathMetadata path;
     int[] interfaces;
 
-    public Entry(Daemon.Path path, int[] interfaces) {
+    public Entry(PathMetadata path, int[] interfaces) {
       this.path = path;
       this.interfaces = interfaces;
     }
 
-    public void update(Daemon.Path path, int[] interfaces) {
+    public void update(PathMetadata path, int[] interfaces) {
       this.path = path;
       this.interfaces = interfaces;
     }
@@ -48,7 +48,7 @@ class PathDuplicationFilter {
    *
    * @param path New path
    */
-  void checkDuplicatePaths(Daemon.Path.Builder path) {
+  void checkDuplicatePaths(PathMetadata.Builder path) {
     // Create a hash code that uses only interface IDs
     int[] interfaces = extractInterfaces(path);
     int hash = Arrays.hashCode(interfaces);
@@ -56,7 +56,7 @@ class PathDuplicationFilter {
       for (Entry storedPath : paths.get(hash)) {
         if (Arrays.equals(interfaces, storedPath.interfaces)) {
           // Which one doe we keep? Compare minimum expiration date.
-          if (path.getExpiration().getSeconds() > storedPath.path.getExpiration().getSeconds()) {
+          if (path.getExpiration() > storedPath.path.getExpiration()) {
             storedPath.update(path.build(), interfaces);
           }
           return;
@@ -67,9 +67,9 @@ class PathDuplicationFilter {
     paths.put(hash, new Entry(path.build(), interfaces));
   }
 
-  public List<Daemon.Path> getPaths() {
+  public List<PathMetadata> getPaths() {
     List<Entry> entries = paths.values();
-    List<Daemon.Path> result = new ArrayList<>(entries.size());
+    List<PathMetadata> result = new ArrayList<>(entries.size());
     for (Entry entry : entries) {
       result.add(entry.path);
     }
@@ -94,8 +94,8 @@ class PathDuplicationFilter {
    * @param path path
    * @return interfaces
    */
-  private static int[] extractInterfaces(Daemon.Path.Builder path) {
-    ByteBuffer raw = path.getRaw().asReadOnlyByteBuffer();
+  private static int[] extractInterfaces(PathMetadata.Builder path) {
+    ByteBuffer raw = ByteBuffer.wrap(path.getRaw());
     int[] segLen = PathRawParserLight.getSegments(raw);
     int segCount = PathRawParserLight.calcSegmentCount(segLen);
     int[] result = new int[PathRawParserLight.extractHopCount(segLen) * 2];

@@ -25,7 +25,7 @@ import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
-import org.scion.jpan.internal.paths.SegmentsNew;
+import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -51,7 +51,7 @@ public class PackageVisibilityHelper {
             Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
             Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     ControlServiceGrpc cs = ss.getControlServiceConnection();
-    return SegmentsNew.getPaths(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs, minimizeRequests);
+    return Segments.getPaths(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs, minimizeRequests);
   }
 
   public static HeaderConstants.HdrTypes getNextHdr(ByteBuffer packet) {

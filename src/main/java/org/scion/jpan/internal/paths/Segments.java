@@ -16,10 +16,10 @@ package org.scion.jpan.internal.paths;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Timestamp;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
@@ -78,19 +78,19 @@ public class Segments {
    *     to, depth-first search as proposed in the Scion book 2022, page 82.
    * @return list of available paths (unordered)
    */
-  public static List<Daemon.Path> getPaths(
+  public static List<PathMetadata> getPaths(
       ControlServiceGrpc service,
       LocalAS localAS,
       long srcIsdAs,
       long dstIsdAs,
       boolean minimizeLookups) {
-    List<Daemon.Path> path =
+    List<PathMetadata> path =
         getPathsInternal(service, localAS, srcIsdAs, dstIsdAs, minimizeLookups);
-    path.sort(Comparator.comparingInt(Daemon.Path::getInterfacesCount));
+    path.sort(Comparator.comparingInt(pm -> pm.getInterfacesList().size()));
     return path;
   }
 
-  private static List<Daemon.Path> getPathsInternal(
+  private static List<PathMetadata> getPathsInternal(
       ControlServiceGrpc service,
       LocalAS localAS,
       long srcIsdAs,
@@ -101,9 +101,9 @@ public class Segments {
 
     if (srcIsdAs == dstIsdAs) {
       // case A: same AS, return empty path
-      Daemon.Path.Builder path = Daemon.Path.newBuilder();
+      PathMetadata.Builder path = PathMetadata.newBuilder();
       path.setMtu(localAS.getMtu());
-      path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
+      path.setExpiration(Long.MAX_VALUE);
       return Collections.singletonList(path.build());
     }
 
@@ -191,19 +191,19 @@ public class Segments {
    * @param dstIsdAs destination ISD/AS
    * @return list of paths
    */
-  public static List<Daemon.Path> getPaths(
+  public static List<PathMetadata> getPaths(
       PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
     // We do not sort the paths here, we kind of rely on the order given by the path service
     return getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
   }
 
-  private static List<Daemon.Path> getPathsInternal(
+  private static List<PathMetadata> getPathsInternal(
       PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
     if (srcIsdAs == dstIsdAs) {
       // same AS, return empty path
-      Daemon.Path.Builder path = Daemon.Path.newBuilder();
+      PathMetadata.Builder path = PathMetadata.newBuilder();
       path.setMtu(localAS.getMtu());
-      path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
+      path.setExpiration(Long.MAX_VALUE);
       return Collections.singletonList(path.build());
     }
 
@@ -239,7 +239,7 @@ public class Segments {
     return segments;
   }
 
-  private static List<Daemon.Path> combineSegments(
+  private static List<PathMetadata> combineSegments(
       List<PathSegment> segmentsUp,
       List<PathSegment> segmentsCore,
       List<PathSegment> segmentsDown,
@@ -376,7 +376,7 @@ public class Segments {
 
   private static void buildPath(
       PathDuplicationFilter paths, LocalAS localAS, long dstIsdAs, PathSegment... segments) {
-    Daemon.Path.Builder path = Daemon.Path.newBuilder();
+    PathMetadata.Builder path = PathMetadata.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
     Range[] ranges = new Range[segments.length]; // [start (inclusive), end (exclusive), increment]
@@ -425,13 +425,12 @@ public class Segments {
     }
 
     raw.flip();
-    path.setRaw(ByteString.copyFrom(raw));
+    path.setRaw(raw);
 
     // First hop
-    String firstHop = localAS.getBorderRouterAddressString((int) path.getInterfaces(0).getId());
-    Daemon.Underlay underlay = Daemon.Underlay.newBuilder().setAddress(firstHop).build();
-    Daemon.Interface interfaceAddr = Daemon.Interface.newBuilder().setAddress(underlay).build();
-    path.setInterface(interfaceAddr);
+    String firstHop =
+        localAS.getBorderRouterAddressString((int) path.getInterfaces().get(0).getId());
+    path.setLocalInterface(PathMetadata.Interface.create(firstHop));
 
     // Metadata
     SegmentMetadataAccumulator.writeStaticInfoMetadata(path, segments, ranges);
@@ -481,13 +480,13 @@ public class Segments {
   }
 
   private static void writeHopFields(
-      Daemon.Path.Builder path,
+      PathMetadata.Builder path,
       ByteBuffer raw,
       int bytePosSegID,
       PathSegment pathSegment,
       Range range) {
     int minExpiry = Integer.MAX_VALUE;
-    path.setExpiration(Timestamp.newBuilder().setSeconds(Long.MAX_VALUE).build());
+    path.setExpiration(Long.MAX_VALUE);
     for (int pos = range.begin(), total = 0;
         pos != range.end();
         pos += range.increment(), total++) {
@@ -517,23 +516,22 @@ public class Segments {
       // Do this for all except last.
       boolean addInterfaces = pos + range.increment() != range.end();
       if (addInterfaces) {
-        Daemon.PathInterface.Builder pib = Daemon.PathInterface.newBuilder();
-        pib.setId(reversed ? hopField.getIngress() : hopField.getEgress());
-        path.addInterfaces(pib.setIsdAs(body.getIsdAs()).build());
+        long ifID1 = reversed ? hopField.getIngress() : hopField.getEgress();
+        path.addInterfaces(PathMetadata.PathInterface.create(body.getIsdAs(), ifID1));
 
         Daemon.PathInterface.Builder pib2 = Daemon.PathInterface.newBuilder();
         int pos2 = pos + range.increment();
         Seg.ASEntrySignedBody body2 = pathSegment.getAsEntries(pos2);
         Seg.HopField hopField2 = body2.getHopEntry().getHopField();
-        pib2.setId(reversed ? hopField2.getEgress() : hopField2.getIngress());
-        path.addInterfaces(pib2.setIsdAs(body2.getIsdAs()).build());
+        long ifID2 = reversed ? hopField2.getEgress() : hopField2.getIngress();
+        path.addInterfaces(PathMetadata.PathInterface.create(body2.getIsdAs(), ifID2));
       }
     }
 
     // expiration
     long time = calcExpTime(pathSegment.info.getTimestamp(), minExpiry);
-    if (time < path.getExpiration().getSeconds()) {
-      path.setExpiration(Timestamp.newBuilder().setSeconds(time).build());
+    if (time < path.getExpiration()) {
+      path.setExpiration(time);
     }
   }
 
