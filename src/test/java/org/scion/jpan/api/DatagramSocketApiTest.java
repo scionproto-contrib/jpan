@@ -16,7 +16,6 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -36,7 +35,6 @@ import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -617,8 +615,7 @@ class DatagramSocketApiTest {
 
   private Path createExpiredPath(Path basePath) {
     long now = Instant.now().getEpochSecond();
-    Timestamp timestamp = Timestamp.newBuilder().setSeconds(now - 10).build();
-    Daemon.Path.Builder builder = Daemon.Path.newBuilder().setExpiration(timestamp);
+    PathMetadata.Builder builder = PathMetadata.newBuilder().setExpiration(now - 10);
     Path expiredPath =
         PackageVisibilityHelper.createRequestPath110_112(
             builder,

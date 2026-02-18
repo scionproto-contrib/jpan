@@ -167,12 +167,16 @@ TODO
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
   [#219](https://github.com/scionproto-contrib/jpan/pull/219)
-- Refactor PathMetadata to remove dependency on Daemon.Path and
-  add local ISD/AS information.
+- Refactoring to use PathMetadata as internal path representation rather than Daemon.Path.
   [#220](https://github.com/scionproto-contrib/jpan/pull/220)
   - Remove Daemon.Path as internal data structure, use PathMetadata instead
   - Remove proto references from ScionService
   - Move firstHop from PathMetadata to Path
+  - Add local ISD/AS to Path
+  TODO
+  - Remove proto.daemon from PathMetadata
+  - Rename "List" methods in PathMatadata API
+  - Set default MTU for PathService to useful value that is recognized as "unknown"
 
 ### Removed
 

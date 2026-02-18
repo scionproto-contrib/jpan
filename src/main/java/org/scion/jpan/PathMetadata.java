@@ -418,6 +418,41 @@ public class PathMetadata {
       return this;
     }
 
+    public Builder addLatency(int latencyMilliSeconds) {
+      latencyList.add(latencyMilliSeconds);
+      return this;
+    }
+
+    public Builder addBandwidth(long bandwidth) {
+      bandwidthList.add(bandwidth);
+      return this;
+    }
+
+    public Builder addGeo(GeoCoordinates geo) {
+      geoList.add(geo);
+      return this;
+    }
+
+    public Builder addLinkType(LinkType linkType) {
+      linkTypeList.add(linkType);
+      return this;
+    }
+
+    public Builder addInternalHops(int i) {
+      internalHopList.add(i);
+      return this;
+    }
+
+    public Builder addNotes(String note) {
+      notesList.add(note);
+      return this;
+    }
+
+    public Builder addInterfaces(PathInterface pathInterface) {
+      pathInterfaces.add(pathInterface);
+      return this;
+    }
+
     public PathMetadata build() {
       return new PathMetadata(
           pathRaw,
@@ -432,34 +467,6 @@ public class PathMetadata {
           internalHopList,
           notesList,
           epicAuths);
-    }
-
-    public void addLatency(int latencyMilliSeconds) {
-      latencyList.add(latencyMilliSeconds);
-    }
-
-    public void addBandwidth(long bandwidth) {
-      bandwidthList.add(bandwidth);
-    }
-
-    public void addGeo(GeoCoordinates geo) {
-      geoList.add(geo);
-    }
-
-    public void addLinkType(LinkType linkType) {
-      linkTypeList.add(linkType);
-    }
-
-    public void addInternalHops(int i) {
-      internalHopList.add(i);
-    }
-
-    public void addNotes(String note) {
-      notesList.add(note);
-    }
-
-    public void addInterfaces(PathInterface pathInterface) {
-      pathInterfaces.add(pathInterface);
     }
   }
 }

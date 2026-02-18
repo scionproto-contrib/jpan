@@ -14,8 +14,6 @@
 
 package org.scion.jpan;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -28,7 +26,6 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.SegmentsNew;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -118,15 +115,15 @@ public class PackageVisibilityHelper {
       int dstPort,
       byte[] raw,
       InetSocketAddress firstHop) {
-    ByteString bs = ByteString.copyFrom(raw);
     String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
-    Daemon.Interface inter =
-        Daemon.Interface.newBuilder()
-            .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHopString).build())
+    PathMetadata.Interface inter = PathMetadata.Interface.create(firstHopString);
+    long ts = Instant.now().getEpochSecond() + 100;
+    PathMetadata path =
+        PathMetadata.newBuilder()
+            .setRaw(raw.clone())
+            .setLocalInterface(inter)
+            .setExpiration(ts)
             .build();
-    Timestamp ts = Timestamp.newBuilder().setSeconds(Instant.now().getEpochSecond() + 100).build();
-    Daemon.Path path =
-        Daemon.Path.newBuilder().setRaw(bs).setInterface(inter).setExpiration(ts).build();
     return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
   }
 
@@ -149,33 +146,28 @@ public class PackageVisibilityHelper {
   }
 
   public static RequestPath createRequestPath110_110(
-      Daemon.Path.Builder builder, long isdAs, InetAddress dstHost, int dstPort) {
-    Daemon.Path path = builder.build();
-    return RequestPath.create(path, isdAs, isdAs, dstHost, dstPort);
+      PathMetadata.Builder builder, long isdAs, InetAddress dstHost, int dstPort) {
+    return RequestPath.create(builder.build(), isdAs, isdAs, dstHost, dstPort);
   }
 
   public static RequestPath createRequestPath110_112(
-      Daemon.Path.Builder builder, InetAddress dstHost, int dstPort, InetSocketAddress firstHop) {
-    ByteString bs = ByteString.copyFrom(ExamplePacket.PATH_RAW_TINY_110_112);
+      PathMetadata.Builder builder, InetAddress dstHost, int dstPort, InetSocketAddress firstHop) {
     long srcIsdAs = ExamplePacket.SRC_IA;
     long dstIsdAs = ExamplePacket.DST_IA;
     String firstHopString = firstHop.getHostString() + ":" + firstHop.getPort();
-    Daemon.Interface inter =
-        Daemon.Interface.newBuilder()
-            .setAddress(Daemon.Underlay.newBuilder().setAddress(firstHopString).build())
-            .build();
-    Daemon.Path path =
+    PathMetadata.Interface inter = PathMetadata.Interface.create(firstHopString);
+    PathMetadata path =
         builder
-            .setRaw(bs)
-            .setInterface(inter)
-            .addInterfaces(Daemon.PathInterface.newBuilder().setId(2).setIsdAs(srcIsdAs).build())
-            .addInterfaces(Daemon.PathInterface.newBuilder().setId(1).setIsdAs(dstIsdAs).build())
+            .setRaw(ExamplePacket.PATH_RAW_TINY_110_112)
+            .setLocalInterface(inter)
+            .addInterfaces(PathMetadata.PathInterface.create(srcIsdAs, 2))
+            .addInterfaces(PathMetadata.PathInterface.create(dstIsdAs, 1))
             .build();
     return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
   }
 
   public static RequestPath createRequestPath(
-      Daemon.Path path, long srcIsdAs, long dstIsdAs, InetSocketAddress dst) {
+      PathMetadata path, long srcIsdAs, long dstIsdAs, InetSocketAddress dst) {
     return RequestPath.create(path, srcIsdAs, dstIsdAs, dst.getAddress(), dst.getPort());
   }
 

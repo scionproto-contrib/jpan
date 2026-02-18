@@ -21,8 +21,8 @@ import java.net.UnknownHostException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.ExamplePacket;
 
 class ScionUtilTest {
@@ -111,7 +111,7 @@ class ScionUtilTest {
 
   private Path createRequestPathLocal() throws UnknownHostException {
     return PackageVisibilityHelper.createRequestPath110_110(
-        Daemon.Path.newBuilder(),
+        PathMetadata.newBuilder(),
         ExamplePacket.SRC_IA,
         InetAddress.getByAddress(ExamplePacket.SRC_HOST),
         12345);
@@ -119,7 +119,7 @@ class ScionUtilTest {
 
   private Path createRequestPathRemote() throws UnknownHostException {
     return PackageVisibilityHelper.createRequestPath110_112(
-        Daemon.Path.newBuilder(),
+        PathMetadata.newBuilder(),
         InetAddress.getByAddress(ExamplePacket.DST_HOST),
         12345,
         ExamplePacket.FIRST_HOP);
