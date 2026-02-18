@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.util.ByteUtil;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.MockNetwork2;
 
 public abstract class AbstractSegmentsTest {
@@ -89,11 +88,6 @@ public abstract class AbstractSegmentsTest {
     assertEquals(egress, rawBB.getShort()); // Hop0 egress
     assertNotEquals(0, rawBB.getShort()); // Hop0 MAC
     assertNotEquals(0, rawBB.getInt()); // Hop0 MAC
-  }
-
-  protected static void checkInterface(Daemon.Path path, int i, int id, String isdAs) {
-    assertEquals(id, path.getInterfaces(i).getId());
-    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces(i).getIsdAs());
   }
 
   protected static void checkInterface(PathMetadata path, int i, int id, String isdAs) {

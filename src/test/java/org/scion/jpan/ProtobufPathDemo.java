@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.scion.jpan.demo.DemoConstants;
+import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.TestUtil;
 
@@ -144,9 +146,10 @@ public class ProtobufPathDemo {
 
   private void testPathsControlService(long srcIA, long dstIA) {
     System.out.println("testPathsControlService()");
-    ScionService csSercice =
+    ScionService csService =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
-    List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(csSercice, srcIA, dstIA);
+    ControlServiceGrpc cs = PackageVisibilityHelper.getControlService(csService);
+    List<Daemon.Path> paths = Segments.getPaths(cs, csService.getLocalAS(), srcIA, dstIA, false);
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
