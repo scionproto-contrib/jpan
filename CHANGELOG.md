@@ -173,9 +173,12 @@ TODO
   - Remove proto references from `ScionService`
   - Move firstHop from `PathMetadata` to `Path`
   - Add local ISD/AS to Path
-  TODO
-  - Test! -> Receive paths with different ISD?!?! -> separate PR? 
-    - also test PathProvider. 
+- Renamed "List" methods in PathMetadata API
+  [#223](https://github.com/scionproto-contrib/jpan/pull/223)
+
+### TODO
+  - Test! -> Receive paths with different ISD?!?! -> separate PR?
+    - also test PathProvider.
     - Test: MTU with new endhost API...
   - Avoid using local ISD/AS in:
     - AddressLookupService
@@ -183,13 +186,11 @@ TODO
     - ScionService
   - Have ScionService return list of known ISDs..? Or remove API?
   - Think about moving address into path
-    - That would simplify Path API (remove response/request) but may 
-      complicate PathProviders...? 
-      Or: ScionAddress has path, but path has no reference to source address? 
+    - That would simplify Path API (remove response/request) but may
+      complicate PathProviders...?
+      Or: ScionAddress has path, but path has no reference to source address?
       Actually: the path is in PathMetadata. not in "Path", so we already have that...
 
-- Renamed "List" methods in PathMetadata API
-[#222](https://github.com/scionproto-contrib/jpan/pull/222)
 
 ### Removed
 
