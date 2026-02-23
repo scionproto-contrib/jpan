@@ -69,7 +69,6 @@ public class LocalAS {
   }
 
   /**
-   *
    * @return 'true' if the local AS is a core AS
    * @deprecated This is not available in the new endhost API
    */
@@ -79,7 +78,6 @@ public class LocalAS {
   }
 
   /**
-   *
    * @return the ISD/AS number of the local AS
    * @deprecated This is not available in the new endhost API
    */
@@ -104,7 +102,6 @@ public class LocalAS {
   }
 
   /**
-   *
    * @return mtu
    * @deprecated This is not available in the new endhost API
    */
