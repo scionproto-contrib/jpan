@@ -186,7 +186,7 @@ TODO
       Actually: the path is in PathMatedata. not in "Path", so we already have that...
 
 - Renamed "List" methods in PathMetadata API
-[#221](https://github.com/scionproto-contrib/jpan/pull/221)
+[#222](https://github.com/scionproto-contrib/jpan/pull/222)
 
 ### Removed
 
