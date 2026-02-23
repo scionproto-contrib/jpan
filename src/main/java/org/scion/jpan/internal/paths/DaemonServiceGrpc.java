@@ -14,10 +14,14 @@
 
 package org.scion.jpan.internal.paths;
 
+import com.google.protobuf.Duration;
 import com.google.protobuf.Empty;
 import io.grpc.*;
 import io.grpc.okhttp.OkHttpChannelBuilder;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.daemon.Daemon;
@@ -30,7 +34,7 @@ public class DaemonServiceGrpc {
 
   private ManagedChannel channel;
   private org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub grpcStub;
-  private int deadLineMs;
+  private final int deadLineMs;
 
   public static DaemonServiceGrpc create(String addressOrHost) {
     return new DaemonServiceGrpc(addressOrHost);
@@ -93,5 +97,57 @@ public class DaemonServiceGrpc {
 
   public org.scion.jpan.proto.daemon.DaemonServiceGrpc.DaemonServiceBlockingStub getGrpcStub() {
     return getStub();
+  }
+
+  public Daemon.PathsResponse paths(long srcIsdAs, long dstIsdAs) {
+    Daemon.PathsRequest request =
+        Daemon.PathsRequest.newBuilder()
+            .setSourceIsdAs(srcIsdAs)
+            .setDestinationIsdAs(dstIsdAs)
+            .build();
+    try {
+      return getStub().paths(request);
+    } catch (StatusRuntimeException e) {
+      throw new ScionRuntimeException(e);
+    }
+  }
+
+  public List<PathMetadata> pathsAsMetadata(long srcIsdAs, long dstIsdAs) {
+    List<Daemon.Path> dList = paths(srcIsdAs, dstIsdAs).getPathsList();
+    return dList.stream().map(DaemonServiceGrpc::toPathMetadata).collect(Collectors.toList());
+  }
+
+  private static PathMetadata toPathMetadata(Daemon.Path path) {
+    PathMetadata.Builder b = PathMetadata.newBuilder();
+    b.setRaw(path.getRaw().toByteArray());
+    path.getInterfacesList().stream()
+        .map(pi -> PathMetadata.PathInterface.create(pi.getIsdAs(), pi.getId()))
+        .forEach(b::addInterfaces);
+    b.setLocalInterface(
+        PathMetadata.Interface.create(path.getInterface().getAddress().getAddress()));
+    b.setMtu(path.getMtu());
+    b.setExpiration(path.getExpiration().getSeconds());
+    for (Duration time : path.getLatencyList()) {
+      int milliSeconds =
+          (time.getSeconds() < 0 || time.getNanos() < 0)
+              ? -1
+              : (int) (time.getSeconds() * 1_000 + time.getNanos() / 1_000_000);
+      b.addLatency(milliSeconds);
+    }
+    path.getBandwidthList().forEach(b::addBandwidth);
+    for (Daemon.GeoCoordinates g : path.getGeoList()) {
+      b.addGeo(
+          PathMetadata.GeoCoordinates.create(g.getLatitude(), g.getLongitude(), g.getAddress()));
+    }
+    for (Daemon.LinkType linkType : path.getLinkTypeList()) {
+      b.addLinkType(PathMetadata.LinkType.values()[linkType.getNumber()]);
+    }
+    path.getInternalHopsList().forEach(b::addInternalHops);
+    path.getNotesList().forEach(b::addNotes);
+    b.setEpicAuths(
+        PathMetadata.EpicAuths.create(
+            path.getEpicAuths().getAuthPhvf().toByteArray(),
+            path.getEpicAuths().getAuthLhvf().toByteArray()));
+    return b.build();
   }
 }

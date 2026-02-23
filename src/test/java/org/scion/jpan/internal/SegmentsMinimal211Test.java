@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
@@ -25,9 +24,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.PathMetadata;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -70,9 +69,9 @@ class SegmentsMinimal211Test extends AbstractSegmentsTest {
   }
 
   @Test
-  void caseB_Up() throws IOException {
+  void caseB_Up() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(ss, AS_211, AS_210);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_211, AS_210);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 2-ff00:0:210 --sciond 127.0.0.99:30255
@@ -91,8 +90,8 @@ class SegmentsMinimal211Test extends AbstractSegmentsTest {
         -105, 0, 63, 0, 0, 1, -62, 24, 79, 52, 50, -112, 53
       };
 
-      Daemon.Path path = paths.get(0);
-      ByteBuffer rawBB = path.getRaw().asReadOnlyByteBuffer();
+      PathMetadata path = paths.get(0);
+      ByteBuffer rawBB = ByteBuffer.wrap(path.getRawPath()).asReadOnlyBuffer();
       checkMetaHeader(rawBB, 2, 0, 0);
       checkInfo(rawBB, 18215, 0);
       checkHopField(rawBB, 503, 0);
@@ -100,13 +99,13 @@ class SegmentsMinimal211Test extends AbstractSegmentsTest {
       assertEquals(0, rawBB.remaining());
 
       // compare with recorded byte[]
-      checkRaw(raw, path.getRaw().toByteArray());
+      checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop210, path.getInterface().getAddress().getAddress());
+      assertEquals(firstHop210, path.getInterface().getAddress());
       checkInterface(path, 0, 503, "2-ff00:0:211");
       checkInterface(path, 1, 450, "2-ff00:0:210");
-      assertEquals(2, path.getInterfacesCount());
+      assertEquals(2, path.getInterfacesList().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertTrue(network.getControlServer().getAndResetCallCount() <= 3);

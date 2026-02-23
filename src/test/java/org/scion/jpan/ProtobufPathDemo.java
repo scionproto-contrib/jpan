@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.scion.jpan.demo.DemoConstants;
+import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.testutil.TestUtil;
 
@@ -77,7 +79,7 @@ public class ProtobufPathDemo {
   }
 
   private void testPathsDaemon(long srcIA, long dstIA) {
-    List<Daemon.Path> paths = service.getPathListDaemon(srcIA, dstIA);
+    List<Daemon.Path> paths = service.getDaemonConnection().paths(srcIA, dstIA).getPathsList();
     System.out.println("Paths found: " + paths.size());
     for (Daemon.Path path : paths) {
       Instant exp = Instant.ofEpochSecond(path.getExpiration().getSeconds());
@@ -144,16 +146,17 @@ public class ProtobufPathDemo {
 
   private void testPathsControlService(long srcIA, long dstIA) {
     System.out.println("testPathsControlService()");
-    ScionService csSercice =
+    ScionService csService =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
-    List<Daemon.Path> paths = PackageVisibilityHelper.getPathListCS(csSercice, srcIA, dstIA);
+    ControlServiceGrpc cs = PackageVisibilityHelper.getControlService(csService);
+    List<PathMetadata> paths = Segments.getPaths(cs, csService.getLocalAS(), srcIA, dstIA, false);
     System.out.println("Paths found: " + paths.size());
-    for (Daemon.Path path : paths) {
+    for (PathMetadata path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
-      System.out.println("Path: interfaces = " + path.getInterface().getAddress().getAddress());
-      System.out.println("Path: first hop = " + path.getInterface().getAddress().getAddress());
+      System.out.println("Path: interfaces = " + path.getInterface().getAddress());
+      System.out.println("Path: first hop = " + path.getInterface().getAddress());
       int i = 0;
-      for (Daemon.PathInterface pathIf : path.getInterfacesList()) {
+      for (PathMetadata.PathInterface pathIf : path.getInterfacesList()) {
         System.out.println(
             "    pathIf: "
                 + i
@@ -167,7 +170,7 @@ public class ProtobufPathDemo {
       for (int hop : path.getInternalHopsList()) {
         System.out.println("    hop: " + i + ": " + hop);
       }
-      System.out.println("    raw: " + TestUtil.toStringHex(path.getRaw().toByteArray()));
+      System.out.println("    raw: " + TestUtil.toStringHex(path.getRawPath()));
     }
   }
 

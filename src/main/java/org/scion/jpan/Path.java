@@ -25,11 +25,21 @@ import java.util.Objects;
  */
 public abstract class Path {
   private final byte[] pathRaw;
+  private final InetSocketAddress firstHop;
+  private final long srcIsdAs;
   private final ScionSocketAddress dstAddress;
 
-  protected Path(byte[] rawPath, long dstIsdAs, InetAddress dstIP, int dstPort) {
+  protected Path(
+      byte[] rawPath,
+      InetSocketAddress firstHop,
+      long srcIsdAs,
+      long dstIsdAs,
+      InetAddress dstIP,
+      int dstPort) {
     this.pathRaw = rawPath;
+    this.firstHop = firstHop;
     this.dstAddress = ScionSocketAddress.from(this, dstIsdAs, dstIP, dstPort);
+    this.srcIsdAs = srcIsdAs;
   }
 
   /**
@@ -45,7 +55,13 @@ public abstract class Path {
     return pathRaw;
   }
 
-  public abstract InetSocketAddress getFirstHopAddress();
+  public InetSocketAddress getFirstHopAddress() {
+    return firstHop;
+  }
+
+  public long getLocalIsdAs() {
+    return srcIsdAs;
+  }
 
   public int getRemotePort() {
     return dstAddress.getPort();
@@ -68,7 +84,9 @@ public abstract class Path {
   @Override
   public String toString() {
     return "Path{"
-        + "rmtAddress="
+        + "localIsdAs="
+        + getLocalIsdAs()
+        + ", rmtAddress="
         + dstAddress
         + ", firstHop="
         + getFirstHopAddress()

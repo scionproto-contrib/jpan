@@ -16,8 +16,6 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.google.protobuf.Duration;
-import com.google.protobuf.Timestamp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
@@ -34,7 +32,6 @@ import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.ppl.PplPathFilter;
 import org.scion.jpan.ppl.PplPolicy;
-import org.scion.jpan.proto.daemon.Daemon;
 
 class PathPolicyLanguageTest {
 
@@ -156,9 +153,10 @@ class PathPolicyLanguageTest {
   }
 
   private RequestPath createPath(InetSocketAddress addr, String... str) {
-    Daemon.Path protoPath = createProtoPath(str);
+    PathMetadata path = createNewPath(str);
+    long srcIsdAs = ScionUtil.parseIA(str[0]);
     long dstIsdAs = ScionUtil.parseIA(str[str.length - 1]);
-    return PackageVisibilityHelper.createRequestPath(protoPath, dstIsdAs, addr);
+    return PackageVisibilityHelper.createRequestPath(path, srcIsdAs, dstIsdAs, addr);
   }
 
   @Test
@@ -200,8 +198,8 @@ class PathPolicyLanguageTest {
    * @param str E.g. "1-ff00:0:110", 1, 2, "1-ff00:0:111", 3, 4, "1-ff00:0:112"
    * @return A path with Metadata but WITHOUT raw path
    */
-  private Daemon.Path createProtoPath(String... str) {
-    Daemon.Path.Builder path = Daemon.Path.newBuilder();
+  private PathMetadata createNewPath(String... str) {
+    PathMetadata.Builder path = PathMetadata.newBuilder();
     int i = 0;
     while (i < str.length) {
       int id1 = -1;
@@ -211,20 +209,17 @@ class PathPolicyLanguageTest {
       long isdAs = ScionUtil.parseIA(str[i++]);
 
       if (id1 >= 0) {
-        path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(isdAs).setId(id1).build());
+        path.addInterfaces(PathMetadata.PathInterface.create(isdAs, id1));
       }
 
       if (i < str.length) {
         int id2 = Integer.parseInt(str[i++]);
-        path.addInterfaces(Daemon.PathInterface.newBuilder().setIsdAs(isdAs).setId(id2).build());
+        path.addInterfaces(PathMetadata.PathInterface.create(isdAs, id2));
       }
     }
 
     long now = Instant.now().getEpochSecond();
-    path.setExpiration(Timestamp.newBuilder().setSeconds(now + 3600).build())
-        .addBandwidth(100_000_000)
-        .setMtu(1280)
-        .addLatency(Duration.newBuilder().setNanos(10_000_000));
+    path.setExpiration(now + 3600).addBandwidth(100_000_000).setMtu(1280).addLatency(10);
 
     return path.build();
   }

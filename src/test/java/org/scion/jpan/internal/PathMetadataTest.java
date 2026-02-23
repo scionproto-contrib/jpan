@@ -41,7 +41,6 @@ public class PathMetadataTest {
     InetAddress ia = InetAddress.getByAddress(ExamplePacket.DST_HOST);
     try (Scion.CloseableService service =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
-      assertNotEquals(ExamplePacket.DST_IA, service.getLocalIsdAs());
       List<Path> paths = service.getPaths(ExamplePacket.DST_IA, ia, 12345);
       Path path = paths.get(0);
       long expSec = path.getMetadata().getExpiration();
@@ -58,7 +57,6 @@ public class PathMetadataTest {
     InetAddress ia = InetAddress.getByAddress(ExamplePacket.DST_HOST);
     try (Scion.CloseableService service =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json")) {
-      assertNotEquals(ExamplePacket.DST_IA, service.getLocalIsdAs());
       List<Path> paths = service.getPaths(ExamplePacket.DST_IA, ia, 12345);
       Path path = paths.get(0);
       long mtu = path.getMetadata().getMtu();
