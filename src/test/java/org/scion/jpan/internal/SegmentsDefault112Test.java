@@ -77,7 +77,7 @@ class SegmentsDefault112Test extends AbstractSegmentsTest {
       // Verify that paths are ordered by lengths
       int maxHopCount = 0;
       for (int i = 0; i < paths.size(); i++) {
-        int hopCount = paths.get(i).getInterfacesList().size();
+        int hopCount = paths.get(i).getInterfaces().size();
         if (hopCount < maxHopCount) {
           fail();
         }

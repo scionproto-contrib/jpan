@@ -349,10 +349,13 @@ public class ScionService {
   private List<PathMetadata> getPathList(long srcIsdAs, long dstIsdAs) {
     List<PathMetadata> list;
     if (pathService != null) {
+      // query path service (new endhost API)
       list = Segments.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
     } else if (daemonService != null) {
+      // query daemon
       list = daemonService.pathsAsMetadata(srcIsdAs, dstIsdAs);
     } else {
+      // query control service
       list = Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
     }
     if (LOG.isInfoEnabled()) {

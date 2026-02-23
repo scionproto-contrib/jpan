@@ -372,7 +372,7 @@ class ScmpErrorHandlingTest {
       case ERROR_5:
         if (errorPath != null) {
           PathMetadata meta = errorPath.getMetadata();
-          PathMetadata.PathInterface pIf = meta.getInterfacesList().get(0);
+          PathMetadata.PathInterface pIf = meta.getInterfaces().get(0);
           spi.getScmpHeader().setDataLong(pIf.getIsdAs(), pIf.getId(), 0);
         } else {
           spi.getScmpHeader().setDataLong(123, 85, 0);
@@ -382,8 +382,8 @@ class ScmpErrorHandlingTest {
         if (errorPath != null) {
           PathMetadata meta = errorPath.getMetadata();
           // Failed ISD/AS = 110
-          PathMetadata.PathInterface pIfIn = meta.getInterfacesList().get(1);
-          PathMetadata.PathInterface pIfEg = meta.getInterfacesList().get(2);
+          PathMetadata.PathInterface pIfIn = meta.getInterfaces().get(1);
+          PathMetadata.PathInterface pIfEg = meta.getInterfaces().get(2);
           assertEquals(pIfIn.getIsdAs(), pIfEg.getIsdAs());
           spi.getScmpHeader().setDataLong(pIfIn.getIsdAs(), pIfIn.getId(), pIfEg.getId());
         } else {

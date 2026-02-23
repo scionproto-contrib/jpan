@@ -34,7 +34,7 @@ public class RequestPath extends Path {
     if (metadata.getRawPath().length == 0) {
       firstHop = new InetSocketAddress(dstIP, dstPort);
     } else {
-      firstHop = IPHelper.toInetSocketAddress(metadata.getInterface().getAddress());
+      firstHop = IPHelper.toInetSocketAddress(metadata.getLocalInterface().getAddress());
     }
     return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }

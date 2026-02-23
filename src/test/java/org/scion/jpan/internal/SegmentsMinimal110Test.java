@@ -73,7 +73,7 @@ class SegmentsMinimal110Test extends AbstractSegmentsTest {
       PathMetadata path = paths.get(0);
       assertEquals(0, path.getRawPath().length);
       assertEquals(1460, path.getMtu());
-      assertEquals(0, path.getInterfacesList().size());
+      assertEquals(0, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(0, network.getControlServer().getAndResetCallCount());
@@ -172,12 +172,12 @@ class SegmentsMinimal110Test extends AbstractSegmentsTest {
 
       assertEquals(1350, path.getMtu());
       String firstHop = network.getTopoServer().getBorderRouterAddressByIA(AS_120);
-      assertEquals(firstHop, path.getInterface().getAddress());
+      assertEquals(firstHop, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 1, "1-ff00:0:110");
       checkInterface(path, 1, 10, "1-ff00:0:120");
       checkInterface(path, 2, 21, "1-ff00:0:120");
       checkInterface(path, 3, 104, "1-ff00:0:121");
-      assertEquals(4, path.getInterfacesList().size());
+      assertEquals(4, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(2, network.getControlServer().getAndResetCallCount());

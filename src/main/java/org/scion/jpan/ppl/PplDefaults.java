@@ -77,7 +77,7 @@ class PplDefaults {
 
   private long getMinBandwidth(Path path) {
     long minBandwidth = Long.MAX_VALUE;
-    for (long bandwidth : path.getMetadata().getBandwidthList()) {
+    for (long bandwidth : path.getMetadata().getBandwidths()) {
       if (bandwidth < minBandwidth) {
         minBandwidth = bandwidth;
       }
@@ -116,28 +116,27 @@ class PplDefaults {
   private Comparator<Path> getPathComparator(String ordering) {
     switch (ordering) {
       case "hops_asc":
-        return Comparator.comparingInt(p -> p.getMetadata().getInterfacesList().size());
+        return Comparator.comparingInt(p -> p.getMetadata().getInterfaces().size());
       case "hops_desc":
         return (p1, p2) ->
             Integer.compare(
-                p2.getMetadata().getInterfacesList().size(),
-                p1.getMetadata().getInterfacesList().size());
+                p2.getMetadata().getInterfaces().size(), p1.getMetadata().getInterfaces().size());
       case "meta_bandwidth_desc":
         // Unknown bw is treated as 0. Empty path is treated as MAX bandwidth
         return (p1, p2) ->
             Long.compare(
-                p2.getMetadata().getBandwidthList().stream()
+                p2.getMetadata().getBandwidths().stream()
                     .mapToLong(Long::longValue)
                     .min()
                     .orElse(Long.MAX_VALUE),
-                p1.getMetadata().getBandwidthList().stream()
+                p1.getMetadata().getBandwidths().stream()
                     .mapToLong(Long::longValue)
                     .min()
                     .orElse(Long.MAX_VALUE));
       case "meta_latency_asc":
         // -1 is mapped to 10000 to ensure that paths with missing latencies are sorted last
         return Comparator.comparingInt(
-            p -> p.getMetadata().getLatencyList().stream().mapToInt(l -> l < 0 ? 10000 : l).sum());
+            p -> p.getMetadata().getLatencies().stream().mapToInt(l -> l < 0 ? 10000 : l).sum());
       default:
         throw new IllegalArgumentException("PPL: unknown ordering: " + ordering);
     }

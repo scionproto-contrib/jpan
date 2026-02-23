@@ -320,7 +320,7 @@ class Sequence {
    * <p>1-ff00:0:133#42 1-ff00:0:120#2,1 1-ff00:0:110#21
    */
   static String getSequence(Path path) {
-    List<PathMetadata.PathInterface> ifaces = path.getMetadata().getInterfacesList();
+    List<PathMetadata.PathInterface> ifaces = path.getMetadata().getInterfaces();
     if (ifaces.size() % 2 != 0) {
       // Path should contain even number of interfaces. 1 for source AS,
       // 1 for destination AS and 2 per each intermediate AS. Invalid paths should

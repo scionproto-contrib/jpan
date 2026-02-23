@@ -44,10 +44,10 @@ class SegmentMinimalMetadataMissingTest {
         assertEquals(1, paths.size());
 
         PathMetadata path = paths.get(0);
-        assertEquals(1, path.getBandwidthList().size());
-        assertEquals(0, path.getBandwidthList().get(0));
-        assertEquals(1, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0));
+        assertEquals(1, path.getBandwidths().size());
+        assertEquals(0, path.getBandwidths().get(0));
+        assertEquals(1, path.getLatencies().size());
+        assertEquals(-1, path.getLatencies().get(0));
       }
     }
   }
@@ -61,10 +61,10 @@ class SegmentMinimalMetadataMissingTest {
         assertFalse(paths.isEmpty());
 
         PathMetadata path = paths.get(0);
-        assertEquals(1, path.getBandwidthList().size());
-        assertEquals(0, path.getBandwidthList().get(0));
-        assertEquals(1, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0));
+        assertEquals(1, path.getBandwidths().size());
+        assertEquals(0, path.getBandwidths().get(0));
+        assertEquals(1, path.getLatencies().size());
+        assertEquals(-1, path.getLatencies().get(0));
       }
     }
 
@@ -108,14 +108,14 @@ class SegmentMinimalMetadataMissingTest {
         assertFalse(paths.isEmpty());
 
         PathMetadata path = paths.get(0);
-        assertEquals(3, path.getBandwidthList().size());
-        assertEquals(0, path.getBandwidthList().get(0));
-        assertEquals(0, path.getBandwidthList().get(1));
-        assertEquals(0, path.getBandwidthList().get(2));
-        assertEquals(3, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0));
-        assertEquals(-1, path.getLatencyList().get(1));
-        assertEquals(-1, path.getLatencyList().get(2));
+        assertEquals(3, path.getBandwidths().size());
+        assertEquals(0, path.getBandwidths().get(0));
+        assertEquals(0, path.getBandwidths().get(1));
+        assertEquals(0, path.getBandwidths().get(2));
+        assertEquals(3, path.getLatencies().size());
+        assertEquals(-1, path.getLatencies().get(0));
+        assertEquals(-1, path.getLatencies().get(1));
+        assertEquals(-1, path.getLatencies().get(2));
       }
     }
 
@@ -148,14 +148,14 @@ class SegmentMinimalMetadataMissingTest {
         assertFalse(paths.isEmpty());
 
         PathMetadata path = paths.get(0);
-        assertEquals(3, path.getBandwidthList().size());
-        assertEquals(0, path.getBandwidthList().get(0));
-        assertEquals(0, path.getBandwidthList().get(1));
-        assertEquals(0, path.getBandwidthList().get(2));
-        assertEquals(3, path.getLatencyList().size());
-        assertEquals(-1, path.getLatencyList().get(0));
-        assertEquals(-1, path.getLatencyList().get(1));
-        assertEquals(-1, path.getLatencyList().get(2));
+        assertEquals(3, path.getBandwidths().size());
+        assertEquals(0, path.getBandwidths().get(0));
+        assertEquals(0, path.getBandwidths().get(1));
+        assertEquals(0, path.getBandwidths().get(2));
+        assertEquals(3, path.getLatencies().size());
+        assertEquals(-1, path.getLatencies().get(0));
+        assertEquals(-1, path.getLatencies().get(1));
+        assertEquals(-1, path.getLatencies().get(2));
       }
     }
 
