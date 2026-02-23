@@ -35,13 +35,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
-import org.scion.jpan.testutil.ExamplePacket;
-import org.scion.jpan.testutil.ManagedThread;
-import org.scion.jpan.testutil.MockDNS;
-import org.scion.jpan.testutil.MockDaemon;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.PingPongSocketHelper;
-import org.scion.jpan.testutil.TestUtil;
+import org.scion.jpan.testutil.*;
 
 class DatagramSocketApiTest {
 
@@ -58,9 +52,10 @@ class DatagramSocketApiTest {
       ipV6Any =
           (Inet6Address)
               InetAddress.getByAddress(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-      dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
+      dummyIPv4 = InetAddress.getByAddress("dummyHostV4", new byte[] {127, 0, 0, 1});
       dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
       dummyPacket = new DatagramPacket(new byte[100], 100, dummyAddress);
+      DNSUtil.installScionTXT(dummyIPv4.getHostName(), "1-ff00:0:110", dummyIPv4.getHostAddress());
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
@@ -81,6 +76,7 @@ class DatagramSocketApiTest {
   static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
+    DNSUtil.clear();
   }
 
   @Test
@@ -393,7 +389,7 @@ class DatagramSocketApiTest {
     // can be circumvented by using socket.getChannel() or socket.getCachedPath().)
     int size = 10;
     try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      SocketAddress serverAddress = server.getLocalSocketAddress();
+      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
 
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
@@ -416,11 +412,23 @@ class DatagramSocketApiTest {
     }
   }
 
+  InetSocketAddress toScionAddress(SocketAddress in) {
+    try {
+      InetAddress ipIn = ((InetSocketAddress)in).getAddress();
+      InetAddress ipOut = InetAddress.getByAddress("myScionAddress", ipIn.getAddress());
+      InetSocketAddress out = new InetSocketAddress(ipOut, ((InetSocketAddress)in).getPort());
+      DNSUtil.installTXT(out, "1-ff00:0:110");
+      return out;
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Test
   void send_wrongAddress() throws IOException {
     int size = 10;
     try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      SocketAddress serverAddress = server.getLocalSocketAddress();
+      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
 
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
@@ -721,7 +729,7 @@ class DatagramSocketApiTest {
     int size = 10;
     try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
       assertFalse(server.isConnected()); // connected sockets do not have a cache
-      SocketAddress serverAddress = server.getLocalSocketAddress();
+      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
       InetSocketAddress clientAddress1;
       InetSocketAddress clientAddress2;
 

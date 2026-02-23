@@ -280,7 +280,7 @@ public class Segments {
       default:
         // We found segments, but they don't form a path. This can happen, for example,
         // when we query for a non-existing AS
-        return paths.getPaths();
+        return Collections.emptyList();
     }
     return paths.getPaths();
   }
@@ -347,7 +347,8 @@ public class Segments {
             downSegments.get(endIAs[1]),
             localAS,
             dstIsdAs);
-      } else if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
+      }
+      if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
         buildPath(
             paths,
             upSegments.get(endIAs[1]),
@@ -417,7 +418,6 @@ public class Segments {
     }
 
     // hop fields
-    path.setMtu(localAS.getMtu());
     for (int i = 0; i < segments.length; i++) {
       // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
       writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i]);
@@ -507,7 +507,7 @@ public class Segments {
         raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
       minExpiry = Math.min(minExpiry, hopField.getExpTime());
-      path.setMtu(Math.min(path.getMtu(), body.getMtu()));
+      path.setMtu(path.hasMtu() ? Math.min(path.getMtu(), body.getMtu()) : body.getMtu());
       if (hopEntry.getIngressMtu() > 0) {
         path.setMtu(Math.min(path.getMtu(), hopEntry.getIngressMtu()));
       }
