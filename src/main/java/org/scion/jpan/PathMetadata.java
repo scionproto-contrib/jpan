@@ -326,10 +326,17 @@ public class PathMetadata {
       return this;
     }
 
+    /**
+     * @return The point in time when this path expires. In seconds since UNIX epoch.
+     */
     public long getExpiration() {
       return expiration;
     }
 
+    /**
+     * @param expiration The point in time when this path expires. In seconds since UNIX epoch.
+     * @return Builder.
+     */
     public Builder setExpiration(long expiration) {
       this.expiration = expiration;
       return this;
