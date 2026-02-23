@@ -177,6 +177,10 @@ TODO
   - Test! -> Receive paths with different ISD?!?! -> separate PR? 
     - also test PathProvider. 
     - Test: MTU with new endhost API...
+  - Avoid using local ISD/AS in:
+    - AddressLookupService
+    - Segments -> get srcIsdAs from segments!
+    - ScionService
   - Have ScionService return list of known ISDs..? Or remove API?
   - Think about moving address into path
     - That would simplify Path API (remove response/request) but may 

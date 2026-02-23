@@ -68,10 +68,21 @@ public class LocalAS {
     return controlServices.get(0).ipString;
   }
 
+  /**
+   *
+   * @return 'true' if the local AS is a core AS
+   * @deprecated This is not available in the new endhost API
+   */
+  @Deprecated
   public boolean isCoreAs() {
     return isCoreAs;
   }
 
+  /**
+   *
+   * @return the ISD/AS number of the local AS
+   * @deprecated This is not available in the new endhost API
+   */
   public long getIsdAs() {
     return localIsdAs;
   }
@@ -92,6 +103,12 @@ public class LocalAS {
     return br.internalAddress;
   }
 
+  /**
+   *
+   * @return mtu
+   * @deprecated This is not available in the new endhost API
+   */
+  @Deprecated
   public int getMtu() {
     return this.localMtu;
   }
