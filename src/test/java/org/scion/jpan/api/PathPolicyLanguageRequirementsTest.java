@@ -37,7 +37,7 @@ class PathPolicyLanguageRequirementsTest {
     assertTrue(filtered.size() < pathsWithDifferentLengths.size());
     for (int i = 0; i < filtered.size(); i++) {
       long localBW = Long.MAX_VALUE;
-      for (long bw : filtered.get(i).getMetadata().getBandwidthList()) {
+      for (long bw : filtered.get(i).getMetadata().getBandwidths()) {
         if (bw <= 0) {
           localBW = 0;
           break;

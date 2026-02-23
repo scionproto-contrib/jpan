@@ -51,8 +51,8 @@ public interface PathPolicy {
       List<Path> result = new ArrayList<>(paths);
       result.sort(
           (p1, p2) -> {
-            int bw1 = Collections.min(p1.getMetadata().getBandwidthList()).intValue();
-            int bw2 = Collections.min(p2.getMetadata().getBandwidthList()).intValue();
+            int bw1 = Collections.min(p1.getMetadata().getBandwidths()).intValue();
+            int bw2 = Collections.min(p2.getMetadata().getBandwidths()).intValue();
             return Integer.compare(bw2, bw1);
           });
       return result;
@@ -67,7 +67,7 @@ public interface PathPolicy {
           .sorted(
               Comparator.comparing(
                   path ->
-                      path.getMetadata().getLatencyList().stream()
+                      path.getMetadata().getLatencies().stream()
                           .mapToLong(l -> l >= 0 ? l : Integer.MAX_VALUE)
                           .reduce(0, Long::sum)))
           .collect(Collectors.toList());
@@ -77,7 +77,7 @@ public interface PathPolicy {
   class MinHopCount implements PathPolicy {
     public List<Path> filter(List<Path> paths) {
       return paths.stream()
-          .sorted(Comparator.comparing(path -> path.getMetadata().getInterfacesList().size()))
+          .sorted(Comparator.comparing(path -> path.getMetadata().getInterfaces().size()))
           .collect(Collectors.toList());
     }
   }
@@ -95,7 +95,7 @@ public interface PathPolicy {
     }
 
     private boolean checkPath(Path path) {
-      for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
+      for (PathMetadata.PathInterface pif : path.getMetadata().getInterfaces()) {
         int isd = ScionUtil.extractIsd(pif.getIsdAs());
         if (!allowedIsds.contains(isd)) {
           return false;
@@ -118,7 +118,7 @@ public interface PathPolicy {
     }
 
     private boolean checkPath(Path path) {
-      for (PathMetadata.PathInterface pif : path.getMetadata().getInterfacesList()) {
+      for (PathMetadata.PathInterface pif : path.getMetadata().getInterfaces()) {
         int isd = ScionUtil.extractIsd(pif.getIsdAs());
         if (disallowedIsds.contains(isd)) {
           return false;
@@ -138,7 +138,7 @@ public interface PathPolicy {
     private final List<PathMetadata.PathInterface> reference;
 
     public SameLink(Path reference) {
-      this.reference = reference.getMetadata().getInterfacesList();
+      this.reference = reference.getMetadata().getInterfaces();
     }
 
     @Override
@@ -147,7 +147,7 @@ public interface PathPolicy {
     }
 
     private boolean checkPath(Path path) {
-      List<PathMetadata.PathInterface> ifs = path.getMetadata().getInterfacesList();
+      List<PathMetadata.PathInterface> ifs = path.getMetadata().getInterfaces();
       if (ifs.size() != reference.size()) {
         return false;
       }

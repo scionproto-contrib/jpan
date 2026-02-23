@@ -77,7 +77,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       PathMetadata path = paths.get(0);
       assertEquals(0, path.getRawPath().length);
       assertEquals(1472, path.getMtu());
-      assertEquals(0, path.getInterfacesList().size());
+      assertEquals(0, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(0, network.getControlServer().getAndResetCallCount());
@@ -121,12 +121,12 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1460, path.getMtu());
-      assertEquals(firstHop, path.getInterface().getAddress());
+      assertEquals(firstHop, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
       checkInterface(path, 2, 111, "1-ff00:0:111");
       checkInterface(path, 3, 2, "1-ff00:0:110");
-      assertEquals(4, path.getInterfacesList().size());
+      assertEquals(4, path.getInterfaces().size());
     }
 
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
@@ -173,12 +173,12 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.41:31024", path.getInterface().getAddress());
+      assertEquals("127.0.0.41:31024", path.getLocalInterface().getAddress());
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
       checkInterface(path, 2, 1112, "1-ff00:0:111");
       checkInterface(path, 3, 234, "1-ff00:0:1112");
-      assertEquals(4, path.getInterfacesList().size());
+      assertEquals(4, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(3, network.getControlServer().getAndResetCallCount());
@@ -232,10 +232,10 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.41:31024", path.getInterface().getAddress());
+      assertEquals("127.0.0.41:31024", path.getLocalInterface().getAddress());
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
-      assertEquals(2, path.getInterfacesList().size());
+      assertEquals(2, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(minRequests ? 1 : 3, network.getControlServer().getAndResetCallCount());
@@ -294,7 +294,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1450, path.getMtu());
-      assertEquals(firstHop, path.getInterface().getAddress());
+      assertEquals(firstHop, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
       checkInterface(path, 2, 111, "1-ff00:0:111");
@@ -303,7 +303,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkInterface(path, 5, 453, "1-ff00:0:112");
       checkInterface(path, 6, 1121, "1-ff00:0:112");
       checkInterface(path, 7, 345, "1-ff00:0:1121");
-      assertEquals(8, path.getInterfacesList().size());
+      assertEquals(8, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(3, network.getControlServer().getAndResetCallCount());

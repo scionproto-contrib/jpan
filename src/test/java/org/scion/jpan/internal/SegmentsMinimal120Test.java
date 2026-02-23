@@ -111,12 +111,12 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop210, path.getInterface().getAddress());
+      assertEquals(firstFop210, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
       checkInterface(path, 2, 450, "2-ff00:0:210");
       checkInterface(path, 3, 503, "2-ff00:0:211");
-      assertEquals(4, path.getInterfacesList().size());
+      assertEquals(4, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(2, network.getControlServer().getAndResetCallCount());
@@ -156,10 +156,10 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop210, path.getInterface().getAddress());
+      assertEquals(firstFop210, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
-      assertEquals(2, path.getInterfacesList().size());
+      assertEquals(2, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertEquals(1, network.getControlServer().getAndResetCallCount());

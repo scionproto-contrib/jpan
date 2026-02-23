@@ -47,10 +47,10 @@ class PathPolicyLanguageOrderingTest {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
     PplPolicy policy = PplPolicy.builder().add("0", ALLOW).ordering("hops_asc").build();
     List<Path> filtered = policy.filter(pathsWithDifferentLengths);
-    assertEquals(2, filtered.get(0).getMetadata().getInterfacesList().size());
+    assertEquals(2, filtered.get(0).getMetadata().getInterfaces().size());
     int prevHops = 2;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
-      int nHops = filtered.get(i).getMetadata().getInterfacesList().size();
+      int nHops = filtered.get(i).getMetadata().getInterfaces().size();
       assertTrue(nHops >= prevHops);
       prevHops = nHops;
     }
@@ -62,10 +62,10 @@ class PathPolicyLanguageOrderingTest {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
     PplPolicy policy = PplPolicy.builder().add("0", ALLOW).ordering("hops_desc").build();
     List<Path> filtered = policy.filter(pathsWithDifferentLengths);
-    assertEquals(8, filtered.get(0).getMetadata().getInterfacesList().size());
+    assertEquals(8, filtered.get(0).getMetadata().getInterfaces().size());
     int prevHops = 20000;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
-      int nHops = filtered.get(i).getMetadata().getInterfacesList().size();
+      int nHops = filtered.get(i).getMetadata().getInterfaces().size();
       assertTrue(nHops <= prevHops);
       prevHops = nHops;
     }
@@ -80,7 +80,7 @@ class PathPolicyLanguageOrderingTest {
     int prevLatency = 0;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
       int localMin = 0;
-      for (Integer lat : filtered.get(i).getMetadata().getLatencyList()) {
+      for (Integer lat : filtered.get(i).getMetadata().getLatencies()) {
         if (lat >= 0) {
           localMin += lat;
         } else {
@@ -88,7 +88,7 @@ class PathPolicyLanguageOrderingTest {
           break;
         }
       }
-      if (filtered.get(i).getMetadata().getLatencyList().isEmpty()) {
+      if (filtered.get(i).getMetadata().getLatencies().isEmpty()) {
         localMin = Integer.MAX_VALUE;
       }
 
@@ -105,7 +105,7 @@ class PathPolicyLanguageOrderingTest {
     long prevBW = Long.MAX_VALUE;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
       long localMax = Long.MAX_VALUE;
-      for (long bw : filtered.get(i).getMetadata().getBandwidthList()) {
+      for (long bw : filtered.get(i).getMetadata().getBandwidths()) {
         if (bw <= 0) {
           localMax = 0;
           break;

@@ -64,8 +64,8 @@ class ACL {
   }
 
   AclAction evalPath(PathMetadata pm) {
-    for (int i = 0; i < pm.getInterfacesList().size(); i++) {
-      PathMetadata.PathInterface iface = pm.getInterfacesList().get(i);
+    for (int i = 0; i < pm.getInterfaces().size(); i++) {
+      PathMetadata.PathInterface iface = pm.getInterfaces().get(i);
       if (evalInterface(iface, i % 2 != 0) == AclAction.DENY) {
         return AclAction.DENY;
       }

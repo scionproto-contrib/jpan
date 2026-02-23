@@ -134,7 +134,7 @@ public class ScmpDemoDefault {
   private static void printPath(Path path) {
     String sb = "Hops: " + ScionUtil.toStringPath(path.getMetadata());
     sb += " MTU: " + path.getMetadata().getMtu();
-    sb += " NextHop: " + path.getMetadata().getInterface().getAddress();
+    sb += " NextHop: " + path.getMetadata().getLocalInterface().getAddress();
     println(sb);
   }
 

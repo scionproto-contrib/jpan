@@ -36,10 +36,10 @@ class PathPolicyTest {
   void minHops() {
     List<Path> pathsWithDifferentLengths = createLongMixedList();
     List<Path> filtered = PathPolicy.MIN_HOPS.filter(pathsWithDifferentLengths);
-    assertEquals(2, filtered.get(0).getMetadata().getInterfacesList().size());
+    assertEquals(2, filtered.get(0).getMetadata().getInterfaces().size());
     int prevHops = 2;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
-      int nHops = filtered.get(i).getMetadata().getInterfacesList().size();
+      int nHops = filtered.get(i).getMetadata().getInterfaces().size();
       assertTrue(nHops >= prevHops);
       prevHops = nHops;
     }
@@ -53,7 +53,7 @@ class PathPolicyTest {
     int prevLatency = 0;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
       int localMin = 0;
-      for (Integer lat : filtered.get(i).getMetadata().getLatencyList()) {
+      for (Integer lat : filtered.get(i).getMetadata().getLatencies()) {
         if (lat >= 0) {
           localMin += lat;
         } else {
@@ -61,7 +61,7 @@ class PathPolicyTest {
           break;
         }
       }
-      if (filtered.get(i).getMetadata().getLatencyList().isEmpty()) {
+      if (filtered.get(i).getMetadata().getLatencies().isEmpty()) {
         localMin = Integer.MAX_VALUE;
       }
 
@@ -77,7 +77,7 @@ class PathPolicyTest {
     long prevBW = Long.MAX_VALUE;
     for (int i = 0; i < pathsWithDifferentLengths.size(); i++) {
       long localMax = Long.MAX_VALUE;
-      for (Long bw : filtered.get(i).getMetadata().getBandwidthList()) {
+      for (Long bw : filtered.get(i).getMetadata().getBandwidths()) {
         if (bw <= 0) {
           localMax = 0;
           break;

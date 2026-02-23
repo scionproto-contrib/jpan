@@ -138,14 +138,14 @@ public class ScionUtil {
    * @return ISD/AS codes and border outer interface IDs along the path.
    */
   public static String toStringPath(PathMetadata meta) {
-    if (meta.getInterfacesList().isEmpty()) {
+    if (meta.getInterfaces().isEmpty()) {
       return "[]";
     }
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    int nInterfaces = meta.getInterfacesList().size();
+    int nInterfaces = meta.getInterfaces().size();
     for (int i = 0; i < nInterfaces; i++) {
-      PathMetadata.PathInterface pIf = meta.getInterfacesList().get(i);
+      PathMetadata.PathInterface pIf = meta.getInterfaces().get(i);
       if (i % 2 == 0) {
         sb.append(ScionUtil.toStringIA(pIf.getIsdAs())).append(" ");
         sb.append(pIf.getId()).append(">");
@@ -153,7 +153,7 @@ public class ScionUtil {
         sb.append(pIf.getId()).append(" ");
       }
     }
-    sb.append(ScionUtil.toStringIA(meta.getInterfacesList().get(nInterfaces - 1).getIsdAs()));
+    sb.append(ScionUtil.toStringIA(meta.getInterfaces().get(nInterfaces - 1).getIsdAs()));
     sb.append("]");
     return sb.toString();
   }
@@ -220,9 +220,9 @@ public class ScionUtil {
   }
 
   public static boolean isPathUsingInterface(PathMetadata meta, long isdAs, long ifId) {
-    int nInterfaces = meta.getInterfacesList().size();
+    int nInterfaces = meta.getInterfaces().size();
     for (int i = 0; i < nInterfaces; i++) {
-      PathMetadata.PathInterface pIf = meta.getInterfacesList().get(i);
+      PathMetadata.PathInterface pIf = meta.getInterfaces().get(i);
       if (pIf.getIsdAs() == isdAs && pIf.getId() == ifId) {
         return true;
       }

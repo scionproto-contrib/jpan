@@ -41,15 +41,15 @@ class PathMetadataTest {
       assertEquals(7, paths.size());
       Path path = paths.get(0);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 6, 1);
-      checkEqual(meta.getInterfacesList(), GET_IAS_AS, 0x1_ff00_0000_0120L, 0x1_ff00_0000_0110L);
-      checkEqual(meta.getBandwidthList(), 100L);
-      checkEqual(meta.getLatencyList(), 101);
+      checkEqual(meta.getInterfaces(), GET_ID, 6, 1);
+      checkEqual(meta.getInterfaces(), GET_IAS_AS, 0x1_ff00_0000_0120L, 0x1_ff00_0000_0110L);
+      checkEqual(meta.getBandwidths(), 100L);
+      checkEqual(meta.getLatencies(), 101);
 
-      checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT);
-      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-6", "geo110-1");
-      checkEqual(meta.getNotesList(), "asdf-1-120", "asdf-1-110");
-      checkEqual(meta.getInternalHopsList());
+      checkEqual(meta.getLinkTypes(), PathMetadata.LinkType.DIRECT);
+      checkEqual(meta.getGeoCoordinates(), GET_ADDR, "geo120-6", "geo110-1");
+      checkEqual(meta.getNotes(), "asdf-1-120", "asdf-1-110");
+      checkEqual(meta.getInternalHops());
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -81,21 +81,21 @@ class PathMetadataTest {
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        if (meta.getInterfacesList().size() == 2 && meta.getInterfacesList().get(0).getId() == 2) {
+        if (meta.getInterfaces().size() == 2 && meta.getInterfaces().get(0).getId() == 2) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 2, 501);
-      checkEqual(meta.getInterfacesList(), GET_IAS_AS, 0x1_ff00_0000_0120L, 0x2_ff00_0000_0220L);
-      checkEqual(meta.getBandwidthList(), 120220L);
-      checkEqual(meta.getLatencyList(), 102);
+      checkEqual(meta.getInterfaces(), GET_ID, 2, 501);
+      checkEqual(meta.getInterfaces(), GET_IAS_AS, 0x1_ff00_0000_0120L, 0x2_ff00_0000_0220L);
+      checkEqual(meta.getBandwidths(), 120220L);
+      checkEqual(meta.getLatencies(), 102);
 
-      checkEqual(meta.getLinkTypeList(), PathMetadata.LinkType.OPEN_NET);
-      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-2", "geo220#501");
-      checkEqual(meta.getNotesList(), "asdf-1-120", "asdf-2-220");
-      checkEqual(meta.getInternalHopsList());
+      checkEqual(meta.getLinkTypes(), PathMetadata.LinkType.OPEN_NET);
+      checkEqual(meta.getGeoCoordinates(), GET_ADDR, "geo120-2", "geo220#501");
+      checkEqual(meta.getNotes(), "asdf-1-120", "asdf-2-220");
+      checkEqual(meta.getInternalHops());
     }
 
     // scion showpaths 2-ff00:0:220 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -139,29 +139,28 @@ class PathMetadataTest {
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        if (meta.getInterfacesList().size() == 4
-            && meta.getInterfacesList().get(0).getId() == 494) {
+        if (meta.getInterfaces().size() == 4 && meta.getInterfaces().get(0).getId() == 494) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 494, 103, 104, 5);
+      checkEqual(meta.getInterfaces(), GET_ID, 494, 103, 104, 5);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_0112L,
           0x1_ff00_0000_0111L,
           0x1_ff00_0000_0111L,
           0x1_ff00_0000_0120L);
-      checkEqual(meta.getBandwidthList(), 11200L, 50L, 11100L);
-      checkEqual(meta.getLatencyList(), 112, 50, 111);
+      checkEqual(meta.getBandwidths(), 11200L, 50L, 11100L);
+      checkEqual(meta.getLatencies(), 112, 50, 111);
 
+      checkEqual(meta.getLinkTypes(), PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.DIRECT);
       checkEqual(
-          meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.DIRECT);
-      checkEqual(meta.getGeoList(), GET_ADDR, "geo112-494", "geo111-103", "geo111-104", "geo120-5");
-      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-111", "asdf-1-120");
-      checkEqual(meta.getInternalHopsList(), 3);
+          meta.getGeoCoordinates(), GET_ADDR, "geo112-494", "geo111-103", "geo111-104", "geo120-5");
+      checkEqual(meta.getNotes(), "asdf-1-112", "asdf-1-111", "asdf-1-120");
+      checkEqual(meta.getInternalHops(), 3);
     }
 
     // scion showpaths 1-ff00:0:120 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
@@ -209,28 +208,28 @@ class PathMetadataTest {
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        if (meta.getInterfacesList().size() == 4 && meta.getInterfacesList().get(0).getId() == 5) {
+        if (meta.getInterfaces().size() == 4 && meta.getInterfaces().get(0).getId() == 5) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 5, 104, 103, 494);
+      checkEqual(meta.getInterfaces(), GET_ID, 5, 104, 103, 494);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_0120L,
           0x1_ff00_0000_0111L,
           0x1_ff00_0000_0111L,
           0x1_ff00_0000_0112L);
-      checkEqual(meta.getBandwidthList(), 11100L, 50L, 11200L);
-      checkEqual(meta.getLatencyList(), 111, 50, 112);
+      checkEqual(meta.getBandwidths(), 11100L, 50L, 11200L);
+      checkEqual(meta.getLatencies(), 111, 50, 112);
 
+      checkEqual(meta.getLinkTypes(), PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.DIRECT);
       checkEqual(
-          meta.getLinkTypeList(), PathMetadata.LinkType.DIRECT, PathMetadata.LinkType.DIRECT);
-      checkEqual(meta.getGeoList(), GET_ADDR, "geo120-5", "geo111-104", "geo111-103", "geo112-494");
-      checkEqual(meta.getNotesList(), "asdf-1-120", "asdf-1-111", "asdf-1-112");
-      checkEqual(meta.getInternalHopsList(), 3);
+          meta.getGeoCoordinates(), GET_ADDR, "geo120-5", "geo111-104", "geo111-103", "geo112-494");
+      checkEqual(meta.getNotes(), "asdf-1-120", "asdf-1-111", "asdf-1-112");
+      checkEqual(meta.getInternalHops(), 3);
     }
 
     // scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -275,16 +274,16 @@ class PathMetadataTest {
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
+        List<PathMetadata.PathInterface> list = meta.getInterfaces();
         if (list.size() == 8 && list.get(0).getId() == 494 && list.get(4).getId() == 2) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 494, 103, 104, 5, 2, 501, 500, 2);
+      checkEqual(meta.getInterfaces(), GET_ID, 494, 103, 104, 5, 2, 501, 500, 2);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_0112L,
           0x1_ff00_0000_0111L,
@@ -294,17 +293,17 @@ class PathMetadataTest {
           0x2_ff00_0000_0220L,
           0x2_ff00_0000_0220L,
           0x2_ff00_0000_0221L);
-      checkEqual(meta.getBandwidthList(), 11200L, 50L, 11100L, 50L, 120220L, 50L, 220221L);
-      checkEqual(meta.getLatencyList(), 112, 50, 111, 50, 102, 50, 101);
+      checkEqual(meta.getBandwidths(), 11200L, 50L, 11100L, 50L, 120220L, 50L, 220221L);
+      checkEqual(meta.getLatencies(), 112, 50, 111, 50, 102, 50, 101);
 
       checkEqual(
-          meta.getLinkTypeList(),
+          meta.getLinkTypes(),
           PathMetadata.LinkType.DIRECT,
           PathMetadata.LinkType.DIRECT,
           PathMetadata.LinkType.OPEN_NET,
           PathMetadata.LinkType.OPEN_NET);
       checkEqual(
-          meta.getGeoList(),
+          meta.getGeoCoordinates(),
           GET_ADDR,
           "geo112-494",
           "geo111-103",
@@ -315,13 +314,8 @@ class PathMetadataTest {
           "geo220#500",
           "geo221-2");
       checkEqual(
-          meta.getNotesList(),
-          "asdf-1-112",
-          "asdf-1-111",
-          "asdf-1-120",
-          "asdf-2-220",
-          "asdf-2-221");
-      checkEqual(meta.getInternalHopsList(), 3, 5, 2);
+          meta.getNotes(), "asdf-1-112", "asdf-1-111", "asdf-1-120", "asdf-2-220", "asdf-2-221");
+      checkEqual(meta.getInternalHops(), 3, 5, 2);
     }
     // 494>103 104>5 2>501
 
@@ -410,16 +404,16 @@ class PathMetadataTest {
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
+        List<PathMetadata.PathInterface> list = meta.getInterfaces();
         if (list.size() == 10 && list.get(0).getId() == 494 && list.get(4).getId() == 2) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 494, 103, 104, 5, 2, 501, 500, 2, 1, 302);
+      checkEqual(meta.getInterfaces(), GET_ID, 494, 103, 104, 5, 2, 501, 500, 2, 1, 302);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_0112L,
           0x1_ff00_0000_0111L,
@@ -432,18 +426,18 @@ class PathMetadataTest {
           0x2_ff00_0000_0221L,
           0x2_ff00_0000_0222L);
       checkEqual(
-          meta.getBandwidthList(), 11200L, 50L, 11100L, 50L, 120220L, 50L, 220221L, 50L, 221222L);
-      checkEqual(meta.getLatencyList(), 112, 50, 111, 50, 102, 50, 101, 50, 101);
+          meta.getBandwidths(), 11200L, 50L, 11100L, 50L, 120220L, 50L, 220221L, 50L, 221222L);
+      checkEqual(meta.getLatencies(), 112, 50, 111, 50, 102, 50, 101, 50, 101);
 
       checkEqual(
-          meta.getLinkTypeList(),
+          meta.getLinkTypes(),
           PathMetadata.LinkType.DIRECT,
           PathMetadata.LinkType.DIRECT,
           PathMetadata.LinkType.OPEN_NET,
           PathMetadata.LinkType.OPEN_NET,
           PathMetadata.LinkType.UNSPECIFIED);
       checkEqual(
-          meta.getGeoList(),
+          meta.getGeoCoordinates(),
           GET_ADDR,
           "geo112-494",
           "geo111-103",
@@ -456,14 +450,14 @@ class PathMetadataTest {
           "geo221-1",
           "");
       checkEqual(
-          meta.getNotesList(),
+          meta.getNotes(),
           "asdf-1-112",
           "asdf-1-111",
           "asdf-1-120",
           "asdf-2-220",
           "asdf-2-221",
           "");
-      checkEqual(meta.getInternalHopsList(), 3, 5, 2, 2);
+      checkEqual(meta.getInternalHops(), 3, 5, 2, 2);
     }
 
     // 494>103 104>5 2>501 500>2 1>302
@@ -500,10 +494,10 @@ class PathMetadataTest {
       assertEquals(1, paths.size());
       Path path = paths.get(0);
       PathMetadata meta = path.getMetadata();
-      assertEquals(8, meta.getInterfacesList().size());
-      checkEqual(meta.getInterfacesList(), GET_ID, 11, 12, 10, 11, 20, 10, 21, 20);
+      assertEquals(8, meta.getInterfaces().size());
+      checkEqual(meta.getInterfaces(), GET_ID, 11, 12, 10, 11, 20, 10, 21, 20);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_FF00_0000_0112L,
           0x1_FF00_0000_0111L,
@@ -514,17 +508,17 @@ class PathMetadataTest {
           0x1_FF00_0000_0120L,
           0x1_FF00_0000_0121L);
 
-      checkEqual(meta.getBandwidthList(), 112111L, 511L, 111110L, 510L, 110120L, 520L, 120121L);
-      checkEqual(meta.getLatencyList(), 112, 12, 111, 10, 120, 20, 121);
+      checkEqual(meta.getBandwidths(), 112111L, 511L, 111110L, 510L, 110120L, 520L, 120121L);
+      checkEqual(meta.getLatencies(), 112, 12, 111, 10, 120, 20, 121);
 
       checkEqual(
-          meta.getLinkTypeList(),
+          meta.getLinkTypes(),
           PathMetadata.LinkType.DIRECT,
           PathMetadata.LinkType.DIRECT,
           PathMetadata.LinkType.MULTI_HOP,
           PathMetadata.LinkType.DIRECT);
       checkEqual(
-          meta.getGeoList(),
+          meta.getGeoCoordinates(),
           GET_ADDR,
           "geo112-11",
           "geo111-112",
@@ -535,13 +529,8 @@ class PathMetadataTest {
           "geo120-121",
           "geo121-20");
       checkEqual(
-          meta.getNotesList(),
-          "asdf-1-112",
-          "asdf-1-111",
-          "asdf-1-110",
-          "asdf-1-120",
-          "asdf-1-121");
-      checkEqual(meta.getInternalHopsList(), 11, 10, 7);
+          meta.getNotes(), "asdf-1-112", "asdf-1-111", "asdf-1-110", "asdf-1-120", "asdf-1-121");
+      checkEqual(meta.getInternalHops(), 11, 10, 7);
     }
     // 494>103 104>5 2>501
 
@@ -630,31 +619,32 @@ class PathMetadataTest {
       Path path = null;
       for (Path p : paths) {
         PathMetadata meta = p.getMetadata();
-        List<PathMetadata.PathInterface> list = meta.getInterfacesList();
+        List<PathMetadata.PathInterface> list = meta.getInterfaces();
         if (list.get(0).getId() == 1) {
           path = p;
         }
       }
       assertNotNull(path);
       PathMetadata meta = path.getMetadata();
-      assertEquals(4, meta.getInterfacesList().size());
-      checkEqual(meta.getInterfacesList(), GET_ID, 1, 2, 1, 41);
+      assertEquals(4, meta.getInterfaces().size());
+      checkEqual(meta.getInterfaces(), GET_ID, 1, 2, 1, 41);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_FF00_0000_0112L,
           0x1_FF00_0000_0110L,
           0x1_FF00_0000_0110L,
           0x1_FF00_0000_0111L);
 
-      checkEqual(meta.getBandwidthList(), 112110L, 510L, 111110L);
-      checkEqual(meta.getLatencyList(), 112, 10, 111);
+      checkEqual(meta.getBandwidths(), 112110L, 510L, 111110L);
+      checkEqual(meta.getLatencies(), 112, 10, 111);
 
       checkEqual(
-          meta.getLinkTypeList(), PathMetadata.LinkType.MULTI_HOP, PathMetadata.LinkType.DIRECT);
-      checkEqual(meta.getGeoList(), GET_ADDR, "geo112-1", "geo110-2", "geo110-1", "geo111-41");
-      checkEqual(meta.getNotesList(), "asdf-1-112", "asdf-1-110", "asdf-1-111");
-      checkEqual(meta.getInternalHopsList(), 10);
+          meta.getLinkTypes(), PathMetadata.LinkType.MULTI_HOP, PathMetadata.LinkType.DIRECT);
+      checkEqual(
+          meta.getGeoCoordinates(), GET_ADDR, "geo112-1", "geo110-2", "geo110-1", "geo111-41");
+      checkEqual(meta.getNotes(), "asdf-1-112", "asdf-1-110", "asdf-1-111");
+      checkEqual(meta.getInternalHops(), 10);
     }
   }
 

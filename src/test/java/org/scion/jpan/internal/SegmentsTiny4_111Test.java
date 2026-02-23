@@ -99,10 +99,10 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop110, path.getInterface().getAddress());
+      assertEquals(firstHop110, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 41, "1-ff00:0:111");
       checkInterface(path, 1, 1, "1-ff00:0:110");
-      assertEquals(2, path.getInterfacesList().size());
+      assertEquals(2, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertTrue(network.getControlServer().getAndResetCallCount() <= 3);
@@ -152,12 +152,12 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop110, path.getInterface().getAddress());
+      assertEquals(firstHop110, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 41, "1-ff00:0:111");
       checkInterface(path, 1, 1, "1-ff00:0:110");
       checkInterface(path, 2, 22, "1-ff00:0:110");
       checkInterface(path, 3, 11, "1-ff00:0:112");
-      assertEquals(4, path.getInterfacesList().size());
+      assertEquals(4, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertTrue(network.getControlServer().getAndResetCallCount() <= 3);

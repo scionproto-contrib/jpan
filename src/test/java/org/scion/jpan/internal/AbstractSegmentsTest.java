@@ -91,8 +91,8 @@ public abstract class AbstractSegmentsTest {
   }
 
   protected static void checkInterface(PathMetadata path, int i, int id, String isdAs) {
-    assertEquals(id, path.getInterfacesList().get(i).getId());
-    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfacesList().get(i).getIsdAs());
+    assertEquals(id, path.getInterfaces().get(i).getId());
+    assertEquals(ScionUtil.parseIA(isdAs), path.getInterfaces().get(i).getIsdAs());
   }
 
   /**

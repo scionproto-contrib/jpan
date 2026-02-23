@@ -88,9 +88,9 @@ public class PathProviderWithRefresh implements PathProvider {
 
     private long[] calcHashBase(Path path) {
       // The hashcode should depend on interfaces and ASes, but not on expiration time.
-      long[] ret = new long[path.getMetadata().getInterfacesList().size() * 2];
+      long[] ret = new long[path.getMetadata().getInterfaces().size() * 2];
       int n = 0;
-      for (PathMetadata.PathInterface i : path.getMetadata().getInterfacesList()) {
+      for (PathMetadata.PathInterface i : path.getMetadata().getInterfaces()) {
         ret[n++] = i.getIsdAs();
         ret[n++] = i.getId();
       }

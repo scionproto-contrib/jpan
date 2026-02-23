@@ -99,10 +99,10 @@ class SegmentsTiny4_110Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop111, path.getInterface().getAddress());
+      assertEquals(firstHop111, path.getLocalInterface().getAddress());
       checkInterface(path, 0, 1, "1-ff00:0:110");
       checkInterface(path, 1, 41, "1-ff00:0:111");
-      assertEquals(2, path.getInterfacesList().size());
+      assertEquals(2, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
     assertTrue(network.getControlServer().getAndResetCallCount() <= 3);

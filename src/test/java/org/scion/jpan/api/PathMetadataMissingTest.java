@@ -41,23 +41,23 @@ class PathMetadataMissingTest {
       assertEquals(1, paths.size());
       Path path = paths.get(0);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 1, 10, 210, 105);
+      checkEqual(meta.getInterfaces(), GET_ID, 1, 10, 210, 105);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_0110L,
           0x1_ff00_0000_0120L,
           0x1_ff00_0000_0120L,
           0x2_ff00_0000_0210L);
-      checkEqual(meta.getBandwidthList(), 0L, 0L, 0L);
-      checkEqual(meta.getLatencyList(), -1, -1, -1);
+      checkEqual(meta.getBandwidths(), 0L, 0L, 0L);
+      checkEqual(meta.getLatencies(), -1, -1, -1);
       checkEqual(
-          meta.getLinkTypeList(),
+          meta.getLinkTypes(),
           PathMetadata.LinkType.UNSPECIFIED,
           PathMetadata.LinkType.UNSPECIFIED);
-      checkEqual(meta.getGeoList(), GET_ADDR, "", "", "", "");
-      checkEqual(meta.getNotesList(), "", "", "");
-      checkEqual(meta.getInternalHopsList(), 0);
+      checkEqual(meta.getGeoCoordinates(), GET_ADDR, "", "", "", "");
+      checkEqual(meta.getNotes(), "", "", "");
+      checkEqual(meta.getInternalHops(), 0);
     }
 
     // scion showpaths 1-ff00:0:110 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -89,24 +89,24 @@ class PathMetadataMissingTest {
       assertEquals(1, paths.size());
       Path path = paths.get(0);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 345, 1121, 453, 3);
+      checkEqual(meta.getInterfaces(), GET_ID, 345, 1121, 453, 3);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_1121L,
           0x1_ff00_0000_0112L,
           0x1_ff00_0000_0112L,
           0x1_ff00_0000_0110L);
-      checkEqual(meta.getBandwidthList(), 0L, 0L, 0L);
-      checkEqual(meta.getLatencyList(), -1, -1, -1);
+      checkEqual(meta.getBandwidths(), 0L, 0L, 0L);
+      checkEqual(meta.getLatencies(), -1, -1, -1);
 
       checkEqual(
-          meta.getLinkTypeList(),
+          meta.getLinkTypes(),
           PathMetadata.LinkType.UNSPECIFIED,
           PathMetadata.LinkType.UNSPECIFIED);
-      checkEqual(meta.getGeoList(), GET_ADDR, "", "", "", "");
-      checkEqual(meta.getNotesList(), "", "", "");
-      checkEqual(meta.getInternalHopsList(), 0);
+      checkEqual(meta.getGeoCoordinates(), GET_ADDR, "", "", "", "");
+      checkEqual(meta.getNotes(), "", "", "");
+      checkEqual(meta.getInternalHops(), 0);
     }
 
     // scion showpaths 1-ff00:0:120 --isd-as 1-ff00:0:112 --sciond 127.0.0.60:30255 --extended
@@ -153,24 +153,24 @@ class PathMetadataMissingTest {
       assertEquals(1, paths.size());
       Path path = paths.get(0);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 3, 453, 1121, 345);
+      checkEqual(meta.getInterfaces(), GET_ID, 3, 453, 1121, 345);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_0110L,
           0x1_ff00_0000_0112L,
           0x1_ff00_0000_0112L,
           0x1_ff00_0000_1121L);
-      checkEqual(meta.getBandwidthList(), 0L, 0L, 0L);
-      checkEqual(meta.getLatencyList(), -1, -1, -1);
+      checkEqual(meta.getBandwidths(), 0L, 0L, 0L);
+      checkEqual(meta.getLatencies(), -1, -1, -1);
 
       checkEqual(
-          meta.getLinkTypeList(),
+          meta.getLinkTypes(),
           PathMetadata.LinkType.UNSPECIFIED,
           PathMetadata.LinkType.UNSPECIFIED);
-      checkEqual(meta.getGeoList(), GET_ADDR, "", "", "", "");
-      checkEqual(meta.getNotesList(), "", "", "");
-      checkEqual(meta.getInternalHopsList(), 0);
+      checkEqual(meta.getGeoCoordinates(), GET_ADDR, "", "", "", "");
+      checkEqual(meta.getNotes(), "", "", "");
+      checkEqual(meta.getInternalHops(), 0);
     }
 
     // scion showpaths 1-ff00:0:112 --isd-as 1-ff00:0:120 --sciond 127.0.0.69:30255 --extended
@@ -214,9 +214,9 @@ class PathMetadataMissingTest {
       assertEquals(1, paths.size());
       Path path = paths.get(0);
       PathMetadata meta = path.getMetadata();
-      checkEqual(meta.getInterfacesList(), GET_ID, 345, 1121, 453, 3, 1, 10, 210, 105, 450, 503);
+      checkEqual(meta.getInterfaces(), GET_ID, 345, 1121, 453, 3, 1, 10, 210, 105, 450, 503);
       checkEqual(
-          meta.getInterfacesList(),
+          meta.getInterfaces(),
           GET_IAS_AS,
           0x1_ff00_0000_1121L,
           0x1_ff00_0000_0112L,
@@ -228,19 +228,19 @@ class PathMetadataMissingTest {
           0x2_ff00_0000_0210L,
           0x2_ff00_0000_0210L,
           0x2_ff00_0000_0211L);
-      checkEqual(meta.getBandwidthList(), 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
-      checkEqual(meta.getLatencyList(), -1, -1, -1, -1, -1, -1, -1, -1, -1);
+      checkEqual(meta.getBandwidths(), 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
+      checkEqual(meta.getLatencies(), -1, -1, -1, -1, -1, -1, -1, -1, -1);
 
       checkEqual(
-          meta.getLinkTypeList(),
+          meta.getLinkTypes(),
           PathMetadata.LinkType.UNSPECIFIED,
           PathMetadata.LinkType.UNSPECIFIED,
           PathMetadata.LinkType.UNSPECIFIED,
           PathMetadata.LinkType.UNSPECIFIED,
           PathMetadata.LinkType.UNSPECIFIED);
-      checkEqual(meta.getGeoList(), GET_ADDR, "", "", "", "", "", "", "", "", "", "");
-      checkEqual(meta.getNotesList(), "", "", "", "", "", "");
-      checkEqual(meta.getInternalHopsList(), 0, 0, 0, 0);
+      checkEqual(meta.getGeoCoordinates(), GET_ADDR, "", "", "", "", "", "", "", "", "", "");
+      checkEqual(meta.getNotes(), "", "", "", "", "", "");
+      checkEqual(meta.getInternalHops(), 0, 0, 0, 0);
     }
     //  scion showpaths 2-ff00:0:211 --sciond 127.0.0.67:30255 --extended
     //  Available paths to 2-ff00:0:211

@@ -85,7 +85,7 @@ public class Segments {
       boolean minimizeLookups) {
     List<PathMetadata> path =
         getPathsInternal(service, localAS, srcIsdAs, dstIsdAs, minimizeLookups);
-    path.sort(Comparator.comparingInt(pm -> pm.getInterfacesList().size()));
+    path.sort(Comparator.comparingInt(pm -> pm.getInterfaces().size()));
     return path;
   }
 
@@ -185,7 +185,7 @@ public class Segments {
    * See {@link #getPaths(ControlServiceGrpc, LocalAS, long, long, boolean)}.
    *
    * @param service PathService
-   * @param localAS localAS number // TODO remove!!
+   * @param localAS This provides the local interface address
    * @param srcIsdAs source ISD/AS
    * @param dstIsdAs destination ISD/AS
    * @return list of paths
