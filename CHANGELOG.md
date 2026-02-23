@@ -175,7 +175,7 @@ TODO
   - Add local ISD/AS to Path
 - Renamed "List" methods in PathMetadata API
   [#223](https://github.com/scionproto-contrib/jpan/pull/223)
-- Endhost API improvements
+- Endhost API improvements -> Remove ISDAS from AddressLookupService
   [#224](https://github.com/scionproto-contrib/jpan/pull/224)
   TODO 
   - fix fixed ISD/AS for DNSUtil in DatagramSocketApiTest 
