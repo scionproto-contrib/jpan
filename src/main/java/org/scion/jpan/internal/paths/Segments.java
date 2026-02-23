@@ -85,7 +85,7 @@ public class Segments {
       boolean minimizeLookups) {
     List<PathMetadata> path =
         getPathsInternal(service, localAS, srcIsdAs, dstIsdAs, minimizeLookups);
-    path.sort(Comparator.comparingInt(pm -> pm.getInterfacesList().size()));
+    path.sort(Comparator.comparingInt(pm -> pm.getInterfaces().size()));
     return path;
   }
 

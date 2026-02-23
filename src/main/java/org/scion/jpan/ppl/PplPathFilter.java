@@ -213,13 +213,13 @@ public class PplPathFilter implements PathPolicy {
   // Returns empty string for paths where the interfaces list is not available.
   private static String fingerprint(Path path) {
     PathMetadata meta = path.getMetadata();
-    if (meta == null || meta.getInterfacesList().isEmpty()) {
+    if (meta == null || meta.getInterfaces().isEmpty()) {
       return "";
     }
     try {
       MessageDigest h = MessageDigest.getInstance("SHA-256");
-      ByteBuffer bb = ByteBuffer.allocate(16 * meta.getInterfacesList().size());
-      for (PathMetadata.PathInterface intf : meta.getInterfacesList()) {
+      ByteBuffer bb = ByteBuffer.allocate(16 * meta.getInterfaces().size());
+      for (PathMetadata.PathInterface intf : meta.getInterfaces()) {
         bb.putLong(intf.getIsdAs());
         bb.putLong(intf.getId());
       }

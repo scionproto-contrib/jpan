@@ -75,23 +75,38 @@ public class PathMetadata {
 
   /**
    * @return Interface for exiting the local AS using this path.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public Interface getLocalInterface() {
+    return firstInterface;
+  }
+
+  /**
+   * @return Interface for exiting the local AS using this path.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public Interface getInterface() {
     return firstInterface;
   }
 
   /**
    * @return The list of interfaces the path is composed of.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public List<PathInterface> getInterfaces() {
+    return pathInterfaces;
+  }
+
+  /**
+   * @return The list of interfaces the path is composed of.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public List<PathInterface> getInterfacesList() {
     return pathInterfaces;
   }
 
   /**
    * @return The maximum transmission unit (MTU) on the path.
-   * @throws IllegalStateException if this is path is only a raw path
    */
   public int getMtu() {
     return mtu;
@@ -99,7 +114,6 @@ public class PathMetadata {
 
   /**
    * @return The point in time when this path expires. In seconds since UNIX epoch.
-   * @throws IllegalStateException if this is path is only a raw path
    */
   public long getExpiration() {
     return expiration;
@@ -109,8 +123,18 @@ public class PathMetadata {
    * @return Latency lists the latencies between any two consecutive interfaces. Entry i describes
    *     the latency between interface i and i+1. Consequently, there are N-1 entries for N
    *     interfaces. A 0-value indicates that the AS did not announce a latency for this hop.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public List<Integer> getLatencies() {
+    return latencyList;
+  }
+
+  /**
+   * @return Latency lists the latencies between any two consecutive interfaces. Entry i describes
+   *     the latency between interface i and i+1. Consequently, there are N-1 entries for N
+   *     interfaces. A 0-value indicates that the AS did not announce a latency for this hop.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public List<Integer> getLatencyList() {
     return latencyList;
   }
@@ -119,8 +143,18 @@ public class PathMetadata {
    * @return Bandwidth lists the bandwidth between any two consecutive interfaces, in Kbit/s. Entry
    *     i describes the bandwidth between interfaces i and i+1. A 0-value indicates that the AS did
    *     not announce a bandwidth for this hop.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public List<Long> getBandwidths() {
+    return bandwidthList;
+  }
+
+  /**
+   * @return Bandwidth lists the bandwidth between any two consecutive interfaces, in Kbit/s. Entry
+   *     i describes the bandwidth between interfaces i and i+1. A 0-value indicates that the AS did
+   *     not announce a bandwidth for this hop.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public List<Long> getBandwidthList() {
     return bandwidthList;
   }
@@ -129,8 +163,18 @@ public class PathMetadata {
    * @return Geo lists the geographical position of the border routers along the path. Entry i
    *     describes the position of the router for interface i. A 0-value indicates that the AS did
    *     not announce a position for this router.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public List<GeoCoordinates> getGeoCoordinates() {
+    return geoList;
+  }
+
+  /**
+   * @return Geo lists the geographical position of the border routers along the path. Entry i
+   *     describes the position of the router for interface i. A 0-value indicates that the AS did
+   *     not announce a position for this router.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public List<GeoCoordinates> getGeoList() {
     return geoList;
   }
@@ -138,8 +182,17 @@ public class PathMetadata {
   /**
    * @return LinkType contains the announced link type of inter-domain links. Entry i describes the
    *     link between interfaces 2*i and 2*i+1.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public List<LinkType> getLinkTypes() {
+    return linkTypeList;
+  }
+
+  /**
+   * @return LinkType contains the announced link type of inter-domain links. Entry i describes the
+   *     link between interfaces 2*i and 2*i+1.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public List<LinkType> getLinkTypeList() {
     return linkTypeList;
   }
@@ -149,8 +202,19 @@ public class PathMetadata {
    *     describes the hop between interfaces 2*i+1 and 2*i+2 in the same AS. Consequently, there
    *     are no entries for the first and last ASes, as these are not traversed completely by the
    *     path.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public List<Integer> getInternalHops() {
+    return internalHopList;
+  }
+
+  /**
+   * @return InternalHops lists the number of AS internal hops for the ASes on path. Entry i
+   *     describes the hop between interfaces 2*i+1 and 2*i+2 in the same AS. Consequently, there
+   *     are no entries for the first and last ASes, as these are not traversed completely by the
+   *     path.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public List<Integer> getInternalHopsList() {
     return internalHopList;
   }
@@ -158,15 +222,23 @@ public class PathMetadata {
   /**
    * @return Notes contains the notes added by ASes on the path, in the order of occurrence. Entry i
    *     is the note of AS i on the path.
-   * @throws IllegalStateException if this is path is only a raw path
    */
+  public List<String> getNotes() {
+    return notesList;
+  }
+
+  /**
+   * @return Notes contains the notes added by ASes on the path, in the order of occurrence. Entry i
+   *     is the note of AS i on the path.
+   * @deprecated TODO to be removed in 0.7.0
+   */
+  @Deprecated
   public List<String> getNotesList() {
     return notesList;
   }
 
   /**
    * @return EpicAuths contains the EPIC authenticators used to calculate the PHVF and LHVF.
-   * @throws IllegalStateException if this is path is only a raw path
    */
   public EpicAuths getEpicAuths() {
     return epicAuths;

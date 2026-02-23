@@ -328,8 +328,7 @@ class PathProviderWithRefreshTest {
       PathPolicy mostHops =
           paths ->
               paths.stream()
-                  .sorted(
-                      Comparator.comparing(path -> -path.getMetadata().getInterfacesList().size()))
+                  .sorted(Comparator.comparing(path -> -path.getMetadata().getInterfaces().size()))
                   .collect(Collectors.toList());
       pp = PathProviderWithRefresh.create(service, mostHops, 1000, 5000);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -372,14 +371,14 @@ class PathProviderWithRefreshTest {
 
   private Scmp.Error5Message createError5(Path errorPath) {
     // All paths use a different ingress interface here.
-    PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfacesList().get(5);
+    PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfaces().get(5);
     return Scmp.Error5Message.create(errorPath, pif.getIsdAs(), pif.getId());
   }
 
   private Scmp.Error6Message createError6_7_8(Path errorPath) {
     // interfaces 7 and 8 are unique/common to the first two paths.
-    PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfacesList().get(7);
-    PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfacesList().get(8);
+    PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfaces().get(7);
+    PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfaces().get(8);
     assertEquals(pifIn.getIsdAs(), pifEg.getIsdAs());
     return Scmp.Error6Message.create(errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
   }

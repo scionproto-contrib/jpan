@@ -121,8 +121,8 @@ class ScionServiceTest {
       assertEquals(dstIA, path.getRemoteIsdAs());
       assertEquals(36, path.getRawPath().length);
 
-      assertEquals("127.0.0.10:31004", path.getMetadata().getInterface().getAddress());
-      assertEquals(2, path.getMetadata().getInterfacesList().size());
+      assertEquals("127.0.0.10:31004", path.getMetadata().getLocalInterface().getAddress());
+      assertEquals(2, path.getMetadata().getInterfaces().size());
 
       // service init + path
       assertEquals(MockNetwork.SERVICE_TO_DAEMON_INIT_CALLS + 1, MockDaemon.getAndResetCallCount());

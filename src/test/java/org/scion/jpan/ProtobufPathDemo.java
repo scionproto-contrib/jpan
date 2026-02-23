@@ -153,10 +153,10 @@ public class ProtobufPathDemo {
     System.out.println("Paths found: " + paths.size());
     for (PathMetadata path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
-      System.out.println("Path: interfaces = " + path.getInterface().getAddress());
-      System.out.println("Path: first hop = " + path.getInterface().getAddress());
+      System.out.println("Path: interfaces = " + path.getLocalInterface().getAddress());
+      System.out.println("Path: first hop = " + path.getLocalInterface().getAddress());
       int i = 0;
-      for (PathMetadata.PathInterface pathIf : path.getInterfacesList()) {
+      for (PathMetadata.PathInterface pathIf : path.getInterfaces()) {
         System.out.println(
             "    pathIf: "
                 + i
@@ -167,7 +167,7 @@ public class ProtobufPathDemo {
                 + "  "
                 + ScionUtil.toStringIA(pathIf.getIsdAs()));
       }
-      for (int hop : path.getInternalHopsList()) {
+      for (int hop : path.getInternalHops()) {
         System.out.println("    hop: " + i + ": " + hop);
       }
       System.out.println("    raw: " + TestUtil.toStringHex(path.getRawPath()));

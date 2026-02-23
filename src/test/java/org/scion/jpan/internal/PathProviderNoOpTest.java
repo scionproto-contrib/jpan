@@ -185,14 +185,14 @@ class PathProviderNoOpTest {
 
   private Scmp.Error5Message createError5(Path errorPath) {
     // All paths use a different ingress interface here.
-    PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfacesList().get(5);
+    PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfaces().get(5);
     return Scmp.Error5Message.create(errorPath, pif.getIsdAs(), pif.getId());
   }
 
   private Scmp.Error6Message createError6(Path errorPath) {
     // interfaces 7 and 8 are unique/common to the first two paths.
-    PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfacesList().get(3);
-    PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfacesList().get(4);
+    PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfaces().get(3);
+    PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfaces().get(4);
     assertEquals(pifIn.getIsdAs(), pifEg.getIsdAs());
     return Scmp.Error6Message.create(errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
   }

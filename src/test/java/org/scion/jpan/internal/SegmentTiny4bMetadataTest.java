@@ -44,10 +44,10 @@ class SegmentTiny4bMetadataTest {
         assertEquals(1, paths.size());
 
         PathMetadata path = paths.get(0);
-        assertEquals(1, path.getBandwidthList().size());
-        assertEquals(110120, path.getBandwidthList().get(0));
-        assertEquals(1, path.getLatencyList().size());
-        assertEquals(120, path.getLatencyList().get(0));
+        assertEquals(1, path.getBandwidths().size());
+        assertEquals(110120, path.getBandwidths().get(0));
+        assertEquals(1, path.getLatencies().size());
+        assertEquals(120, path.getLatencies().get(0));
       }
     }
   }
@@ -62,10 +62,10 @@ class SegmentTiny4bMetadataTest {
         assertEquals(1, paths.size());
 
         PathMetadata path = paths.get(0);
-        assertEquals(1, path.getBandwidthList().size());
-        assertEquals(110120, path.getBandwidthList().get(0));
-        assertEquals(1, path.getLatencyList().size());
-        assertEquals(120, path.getLatencyList().get(0));
+        assertEquals(1, path.getBandwidths().size());
+        assertEquals(110120, path.getBandwidths().get(0));
+        assertEquals(1, path.getLatencies().size());
+        assertEquals(120, path.getLatencies().get(0));
       }
     }
 
@@ -97,10 +97,10 @@ class SegmentTiny4bMetadataTest {
         assertFalse(paths.isEmpty());
 
         PathMetadata path = paths.get(0);
-        assertEquals(1, path.getBandwidthList().size());
-        assertEquals(120121, path.getBandwidthList().get(0));
-        assertEquals(1, path.getLatencyList().size());
-        assertEquals(121, path.getLatencyList().get(0));
+        assertEquals(1, path.getBandwidths().size());
+        assertEquals(120121, path.getBandwidths().get(0));
+        assertEquals(1, path.getLatencies().size());
+        assertEquals(121, path.getLatencies().get(0));
       }
     }
 
@@ -144,14 +144,14 @@ class SegmentTiny4bMetadataTest {
         assertFalse(paths.isEmpty());
 
         PathMetadata path = paths.get(0);
-        assertEquals(3, path.getBandwidthList().size());
-        assertEquals(112111, path.getBandwidthList().get(0));
-        assertEquals(511, path.getBandwidthList().get(1));
-        assertEquals(111110, path.getBandwidthList().get(2));
-        assertEquals(3, path.getLatencyList().size());
-        assertEquals(112, path.getLatencyList().get(0));
-        assertEquals(12, path.getLatencyList().get(1));
-        assertEquals(111, path.getLatencyList().get(2));
+        assertEquals(3, path.getBandwidths().size());
+        assertEquals(112111, path.getBandwidths().get(0));
+        assertEquals(511, path.getBandwidths().get(1));
+        assertEquals(111110, path.getBandwidths().get(2));
+        assertEquals(3, path.getLatencies().size());
+        assertEquals(112, path.getLatencies().get(0));
+        assertEquals(12, path.getLatencies().get(1));
+        assertEquals(111, path.getLatencies().get(2));
       }
     }
 
@@ -184,14 +184,14 @@ class SegmentTiny4bMetadataTest {
         assertFalse(paths.isEmpty());
 
         PathMetadata path = paths.get(0);
-        assertEquals(3, path.getBandwidthList().size());
-        assertEquals(111110, path.getBandwidthList().get(0));
-        assertEquals(511, path.getBandwidthList().get(1));
-        assertEquals(112111, path.getBandwidthList().get(2));
-        assertEquals(3, path.getLatencyList().size());
-        assertEquals(111, path.getLatencyList().get(0));
-        assertEquals(12, path.getLatencyList().get(1));
-        assertEquals(112, path.getLatencyList().get(2));
+        assertEquals(3, path.getBandwidths().size());
+        assertEquals(111110, path.getBandwidths().get(0));
+        assertEquals(511, path.getBandwidths().get(1));
+        assertEquals(112111, path.getBandwidths().get(2));
+        assertEquals(3, path.getLatencies().size());
+        assertEquals(111, path.getLatencies().get(0));
+        assertEquals(12, path.getLatencies().get(1));
+        assertEquals(112, path.getLatencies().get(2));
       }
     }
 
