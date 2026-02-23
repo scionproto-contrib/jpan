@@ -185,7 +185,7 @@ public class Segments {
    * See {@link #getPaths(ControlServiceGrpc, LocalAS, long, long, boolean)}.
    *
    * @param service PathService
-   * @param localAS localAS number // TODO remove!!
+   * @param localAS This provides the local interface address
    * @param srcIsdAs source ISD/AS
    * @param dstIsdAs destination ISD/AS
    * @return list of paths
@@ -201,7 +201,7 @@ public class Segments {
     if (srcIsdAs == dstIsdAs) {
       // same AS, return empty path
       PathMetadata.Builder path = PathMetadata.newBuilder();
-      path.setMtu(localAS.getMtu());
+      path.setMtu(0);
       path.setExpiration(Long.MAX_VALUE);
       return Collections.singletonList(path.build());
     }
@@ -280,7 +280,7 @@ public class Segments {
       default:
         // We found segments, but they don't form a path. This can happen, for example,
         // when we query for a non-existing AS
-        return paths.getPaths();
+        return Collections.emptyList();
     }
     return paths.getPaths();
   }
@@ -293,7 +293,7 @@ public class Segments {
       long dstIsdAs) {
     for (PathSegment pathSegment : segments) {
       if (containsIsdAses(pathSegment, srcIsdAs, dstIsdAs)) {
-        buildPath(paths, localAS, dstIsdAs, pathSegment);
+        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment);
       }
     }
   }
@@ -320,7 +320,7 @@ public class Segments {
     for (PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
       for (PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
-        buildPath(paths, localAS, dstIsdAs, pathSegment0, pathSegment1);
+        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment0, pathSegment1);
       }
     }
   }
@@ -346,14 +346,17 @@ public class Segments {
             pathSeg,
             downSegments.get(endIAs[1]),
             localAS,
+            srcIsdAs,
             dstIsdAs);
-      } else if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
+      }
+      if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
         buildPath(
             paths,
             upSegments.get(endIAs[1]),
             pathSeg,
             downSegments.get(endIAs[0]),
             localAS,
+            srcIsdAs,
             dstIsdAs);
       }
     }
@@ -365,21 +368,26 @@ public class Segments {
       PathSegment segCore,
       List<PathSegment> segmentsDown,
       LocalAS localAS,
+      long srcIA,
       long dstIA) {
     for (PathSegment segUp : segmentsUp) {
       for (PathSegment segDown : segmentsDown) {
-        buildPath(paths, localAS, dstIA, segUp, segCore, segDown);
+        buildPath(paths, localAS, srcIA, dstIA, segUp, segCore, segDown);
       }
     }
   }
 
   private static void buildPath(
-      PathDuplicationFilter paths, LocalAS localAS, long dstIsdAs, PathSegment... segments) {
+      PathDuplicationFilter paths,
+      LocalAS localAS,
+      long srcIsdAs,
+      long dstIsdAs,
+      PathSegment... segments) {
     PathMetadata.Builder path = PathMetadata.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
     Range[] ranges = new Range[segments.length]; // [start (inclusive), end (exclusive), increment]
-    long startIA = localAS.getIsdAs();
+    long startIA = srcIsdAs;
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       ranges[i] = createRange(segments[i], startIA, endingIA);
@@ -391,7 +399,7 @@ public class Segments {
       segments = new PathSegment[] {segments[0]};
       ranges = new Range[] {ranges[0]};
       LOG.debug("Found on-path AS on UP segment.");
-    } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
+    } else if (detectOnPathDown(segments, srcIsdAs, ranges)) {
       segments = new PathSegment[] {segments[segments.length - 1]};
       ranges = new Range[] {ranges[ranges.length - 1]};
       LOG.debug("Found on-path AS on DOWN segment.");
@@ -417,7 +425,6 @@ public class Segments {
     }
 
     // hop fields
-    path.setMtu(localAS.getMtu());
     for (int i = 0; i < segments.length; i++) {
       // bytePosSegID: 6 = 4 bytes path head + 2 byte flag in first info field
       writeHopFields(path, raw, 6 + i * 8, segments[i], ranges[i]);
@@ -507,7 +514,7 @@ public class Segments {
         raw.put(bytePosSegID + 1, ByteUtil.toByte(raw.get(bytePosSegID + 1) ^ mac.byteAt(1)));
       }
       minExpiry = Math.min(minExpiry, hopField.getExpTime());
-      path.setMtu(Math.min(path.getMtu(), body.getMtu()));
+      path.setMtu(path.hasMtu() ? Math.min(path.getMtu(), body.getMtu()) : body.getMtu());
       if (hopEntry.getIngressMtu() > 0) {
         path.setMtu(Math.min(path.getMtu(), hopEntry.getIngressMtu()));
       }

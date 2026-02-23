@@ -369,10 +369,11 @@ public class PathMetadata {
   }
 
   public static class Builder {
+    private static final int MTU_NOT_SET = Integer.MIN_VALUE;
     private byte[] pathRaw = {};
     private Interface localInterface;
     private List<PathInterface> pathInterfaces = new ArrayList<>();
-    private int mtu;
+    private int mtu = MTU_NOT_SET;
     private long expiration;
     private List<Integer> latencyList = new ArrayList<>();
     private List<Long> bandwidthList = new ArrayList<>();
@@ -430,6 +431,10 @@ public class PathMetadata {
     public Builder setMtu(int mtu) {
       this.mtu = mtu;
       return this;
+    }
+
+    public boolean hasMtu() {
+      return mtu != MTU_NOT_SET;
     }
 
     public byte[] getRaw() {
@@ -492,7 +497,7 @@ public class PathMetadata {
           pathRaw,
           localInterface,
           pathInterfaces,
-          mtu,
+          hasMtu() ? mtu : 0,
           expiration,
           latencyList,
           bandwidthList,

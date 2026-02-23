@@ -174,16 +174,15 @@ TODO
   - Move firstHop from `PathMetadata` to `Path`
   - Add local ISD/AS to Path
   TODO
-  - Set default MTU for PathService to useful value that is recognized as "unknown"
-  - Segments: Use PathMetadata classes instead of local helper classes?
   - Test! -> Receive paths with different ISD?!?! -> separate PR? 
     - also test PathProvider. 
+    - Test: MTU with new endhost API...
   - Have ScionService return list of known ISDs..? Or remove API?
   - Think about moving address into path
     - That would simplify Path API (remove response/request) but may 
       complicate PathProviders...? 
-      Or: ScioNAddress has path, but path has no reference to source address? 
-      Actually: the path is in PathMatedata. not in "Path", so we already have that...
+      Or: ScionAddress has path, but path has no reference to source address? 
+      Actually: the path is in PathMetadata. not in "Path", so we already have that...
 
 - Renamed "List" methods in PathMetadata API
 [#222](https://github.com/scionproto-contrib/jpan/pull/222)
