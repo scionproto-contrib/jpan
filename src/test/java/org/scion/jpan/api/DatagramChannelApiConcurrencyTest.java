@@ -28,7 +28,6 @@ import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockDNS;
@@ -40,12 +39,12 @@ class DatagramChannelApiConcurrencyTest {
 
   static {
     dummyAddress = new InetSocketAddress(IPHelper.toInetAddress("myServer", "127.0.0.1"), 32000);
-    DNSUtil.installScionTXT(dummyAddress, "1-ff00:0:110");
   }
 
   @BeforeEach
   void beforeEach() {
     MockDaemon.createAndStartDefault();
+    MockDNS.install("1-ff00:0:110", dummyAddress.getAddress());
   }
 
   @AfterEach

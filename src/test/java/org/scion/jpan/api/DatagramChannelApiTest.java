@@ -261,12 +261,23 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void isConnected_InetSocket() throws IOException {
-    //    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-    //    InetSocketAddress address = new InetSocketAddress("::1", 12345);
-    // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
-    InetSocketAddress address = new InetSocketAddress(IPHelper.toInetAddress("testHost", "127.0.0.1"), 12345);
+  void isConnected_InetSocketV4() throws IOException {
+    InetSocketAddress address =
+            new InetSocketAddress(IPHelper.toInetAddress("test-v4", "127.0.0.1"), 12345);
     MockDNS.install("1-ff00:0:112", address.getAddress());
+    isConnected_InetSocket(address);
+  }
+
+  @Test
+  void isConnected_InetSocketV6() throws IOException {
+    // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
+    InetSocketAddress address =
+            new InetSocketAddress(IPHelper.toInetAddress("test-v6", "::1"), 12345);
+    MockDNS.install("1-ff00:0:112", address.getAddress());
+    isConnected_InetSocket(address);
+  }
+
+  void isConnected_InetSocket(InetSocketAddress address) throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertFalse(channel.isConnected());
       assertNull(channel.getRemoteAddress());

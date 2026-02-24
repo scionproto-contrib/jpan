@@ -16,7 +16,6 @@ package org.scion.jpan.testutil;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.xbill.DNS.*;
 
@@ -90,14 +89,6 @@ public class DNSUtil {
     }
   }
 
-  public static void installScionTXT(InetSocketAddress address, String isdAs) {
-    String name = address.getAddress().getHostName();
-    if (name == null || name.isEmpty()) {
-      throw new IllegalArgumentException();
-    }
-    installScionTXT(name, isdAs, address.getAddress().getHostAddress());
-  }
-
   public static void installScionTXT(String asHost, String isdAs, String ipAddress) {
     installScionTXT(asHost, "scion=" + isdAs + "," + ipAddress);
   }
@@ -169,11 +160,6 @@ public class DNSUtil {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @Deprecated
-  public static void installSRV(String key, String value) {
-    installSRV(key, value, 8041);
   }
 
   public static void installSRV(String key, String value, int port) {

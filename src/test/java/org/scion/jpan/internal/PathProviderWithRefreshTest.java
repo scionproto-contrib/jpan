@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
+import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -49,7 +49,7 @@ class PathProviderWithRefreshTest {
   void beforeEach() {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
-    DNSUtil.installScionTXT(dummyAddress, "1-ff00:0:110");
+    MockDNS.install("1-ff00:0:110", dummyAddress.getAddress());
   }
 
   @AfterEach

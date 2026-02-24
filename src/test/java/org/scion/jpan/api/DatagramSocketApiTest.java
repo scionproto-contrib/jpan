@@ -36,7 +36,6 @@ import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -71,7 +70,7 @@ class DatagramSocketApiTest {
   @BeforeEach
   void beforeEach() {
     MockDaemon.createAndStartDefault();
-    DNSUtil.installScionTXT(dummyIPv4.getHostName(), "1-ff00:0:112", dummyIPv4.getHostAddress());
+    MockDNS.install("1-ff00:0:112", dummyIPv4);
   }
 
   @AfterEach
@@ -84,7 +83,6 @@ class DatagramSocketApiTest {
   static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
-    DNSUtil.clear();
   }
 
   @Test
@@ -249,23 +247,19 @@ class DatagramSocketApiTest {
         new InetSocketAddress(IPHelper.toInetAddress("test-v4", "127.0.0.1"), 12345);
     InetSocketAddress address2 =
         new InetSocketAddress(IPHelper.toInetAddress("test-v4-2", "127.0.0.2"), 22345);
-    DNSUtil.installScionTXT(address, "1-ff00:0:112");
-    DNSUtil.installScionTXT(address2, "1-ff00:0:112");
+    MockDNS.install("1-ff00:0:112", address.getAddress());
+    MockDNS.install("1-ff00:0:112", address2.getAddress());
     isConnected_InetSocket(address, address2);
   }
 
   @Test
   void isConnected_InetSocketV6() throws IOException {
-    //    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-    //    InetSocketAddress address = new InetSocketAddress("::1", 12345);
-    // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
-
     InetSocketAddress address =
         new InetSocketAddress(IPHelper.toInetAddress("test-v6", "::1"), 12345);
     InetSocketAddress address2 =
         new InetSocketAddress(IPHelper.toInetAddress("test-v6-2", "::2"), 22345);
-    DNSUtil.installScionTXT(address, "1-ff00:0:112");
-    DNSUtil.installScionTXT(address2, "1-ff00:0:112");
+    MockDNS.install("1-ff00:0:112", address.getAddress());
+    MockDNS.install("1-ff00:0:112", address2.getAddress());
     isConnected_InetSocket(address, address2);
   }
 
@@ -415,6 +409,7 @@ class DatagramSocketApiTest {
     // introducing problems with concurrent use of Path objects.
     // (in the case of Sockets, Paths are somewhat protected from concurrent usage, but that
     // can be circumvented by using socket.getChannel() or socket.getCachedPath().)
+    MockDNS.clear();
     int size = 10;
     try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
       InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
@@ -459,7 +454,7 @@ class DatagramSocketApiTest {
       InetAddress ipIn = ((InetSocketAddress) in).getAddress();
       InetAddress ipOut = InetAddress.getByAddress("myScionAddress", ipIn.getAddress());
       InetSocketAddress out = new InetSocketAddress(ipOut, ((InetSocketAddress) in).getPort());
-      DNSUtil.installScionTXT(out, "1-ff00:0:110");
+      MockDNS.install("1-ff00:0:110", out.getAddress());
       return out;
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
@@ -687,7 +682,7 @@ class DatagramSocketApiTest {
     String exIP = path.getRemoteAddress().getHostAddress();
     int exPort = path.getRemotePort();
     InetSocketAddress address = new InetSocketAddress(IPHelper.toInetAddress("getConTest", exIP), exPort);
-    DNSUtil.installScionTXT(address, "1-ff00:0:112");
+    MockDNS.install("1-ff00:0:112", address.getAddress());
     DatagramPacket packet = new DatagramPacket(new byte[50], 50, address);
     try (ScionDatagramSocket channel = new ScionDatagramSocket()) {
       assertNull(channel.getConnectionPath());

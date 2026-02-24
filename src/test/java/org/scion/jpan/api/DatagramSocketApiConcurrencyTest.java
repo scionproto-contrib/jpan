@@ -18,9 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 
@@ -42,12 +39,12 @@ class DatagramSocketApiConcurrencyTest {
 
   static {
     dummyAddress = new InetSocketAddress(IPHelper.toInetAddress("myServer", "127.0.0.1"), 32000);
-    DNSUtil.installScionTXT(dummyAddress, "1-ff00:0:110");
   }
 
   @BeforeEach
   void beforeEach() {
     MockDaemon.createAndStartDefault();
+    MockDNS.install("1-ff00:0:110", dummyAddress.getAddress());
   }
 
   @AfterEach

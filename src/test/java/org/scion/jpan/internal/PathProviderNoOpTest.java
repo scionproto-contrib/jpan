@@ -17,7 +17,6 @@ package org.scion.jpan.internal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -29,8 +28,8 @@ import java.util.function.BiConsumer;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
+import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -45,7 +44,7 @@ class PathProviderNoOpTest {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     someAddress = new InetSocketAddress(IPHelper.toInetAddress("myHost","127.0.0.1"), 12345);
-    DNSUtil.installScionTXT(someAddress, "1-ff00:0:110");
+    MockDNS.install("1-ff00:0:110", someAddress.getAddress());
   }
 
   @AfterEach

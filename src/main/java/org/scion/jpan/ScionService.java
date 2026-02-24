@@ -299,7 +299,7 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public List<Path> lookupPaths(String hostName, int port) throws ScionException {
-    return getPaths(AddressLookupService.lookupAddress(hostName, getLocalIsdAs()), port);
+    return getPaths(AddressLookupService.lookupAddress(hostName), port);
   }
 
   /**
@@ -311,7 +311,7 @@ public class ScionService {
    */
   public List<Path> lookupPaths(InetSocketAddress dstAddr) throws ScionException {
     return getPaths(
-        AddressLookupService.lookupAddress(dstAddr.getHostString(), getLocalIsdAs()),
+        AddressLookupService.lookupAddress(dstAddr.getHostString()),
         dstAddr.getPort());
   }
 
@@ -343,7 +343,7 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public long getIsdAs(String hostName) throws ScionException {
-    return AddressLookupService.getIsdAs(hostName, getLocalIsdAs());
+    return AddressLookupService.getIsdAs(hostName);
   }
 
   private List<PathMetadata> getPathList(long srcIsdAs, long dstIsdAs) {
