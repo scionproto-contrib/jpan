@@ -55,7 +55,7 @@ public class AddressLookupService {
    * @return The ISD/AS code for a hostname
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
-  public static long getIsdAs(String hostName, long localIsdAs) throws ScionException {
+  public static long getIsdAs(String hostName) throws ScionException {
     ScionAddress scionAddress = checkCache(hostName);
     if (scionAddress != null) {
       return scionAddress.getIsdAs();
@@ -77,11 +77,6 @@ public class AddressLookupService {
       return entry.getIsdAs();
     }
 
-    // Use local ISD/AS for localhost addresses
-    if (IPHelper.isLocalhost(hostName)) {
-      return localIsdAs;
-    }
-
     // DNS lookup
     Long fromDNS =
         DNSHelper.queryTXT(hostName, DNS_TXT_KEY, AddressLookupService::parseTxtRecordToIA, null);
@@ -99,7 +94,7 @@ public class AddressLookupService {
    * @return A ScionAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
-  public static ScionAddress lookupAddress(String hostName, long localIsdAs) throws ScionException {
+  public static ScionAddress lookupAddress(String hostName) throws ScionException {
     ScionAddress scionAddress = checkCache(hostName);
     if (scionAddress != null) {
       return scionAddress;
@@ -119,12 +114,6 @@ public class AddressLookupService {
     HostsFileParser.HostEntry entry = findHostname(hostName);
     if (entry != null) {
       return ScionAddress.create(entry.getIsdAs(), entry.getAddress());
-    }
-
-    // Use local ISD/AS for localhost addresses
-    byte[] localBytes = IPHelper.lookupLocalhost(hostName);
-    if (localBytes != null) {
-      return ScionAddress.create(localIsdAs, hostName, localBytes);
     }
 
     // DNS lookup

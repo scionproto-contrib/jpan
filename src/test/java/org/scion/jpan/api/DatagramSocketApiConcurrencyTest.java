@@ -18,9 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -31,37 +29,32 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 
 class DatagramSocketApiConcurrencyTest {
 
-  private static final int dummyPort = 32000;
-  private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
 
   static {
-    try {
-      dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-      dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+    dummyAddress = new InetSocketAddress(IPHelper.toInetAddress("myServer", "127.0.0.1"), 32000);
   }
 
   @BeforeEach
-  public void beforeEach() throws IOException {
+  void beforeEach() {
     MockDaemon.createAndStartDefault();
+    MockDNS.install("1-ff00:0:110", dummyAddress.getAddress());
   }
 
   @AfterEach
-  public void afterEach() throws IOException {
+  void afterEach() {
     MockDaemon.closeDefault();
     MockDNS.clear();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
   }

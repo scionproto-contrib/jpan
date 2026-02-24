@@ -23,18 +23,22 @@ import org.scion.jpan.ScionRuntimeException;
 import org.xbill.DNS.Address;
 
 public class IPHelper {
+
+  private static final String LOCALHOST = "localhost";
+  private static final String LOCALHOST_V6 = "ip6-localhost";
+
   private IPHelper() {}
 
   public static boolean isLocalhost(String hostName) {
     return hostName.startsWith("127.0.0.")
         || "::1".equals(hostName)
         || "0:0:0:0:0:0:0:1".equals(hostName)
-        || "localhost".equals(hostName)
-        || "ip6-localhost".equals(hostName);
+        || LOCALHOST.equals(hostName)
+        || LOCALHOST_V6.equals(hostName);
   }
 
   public static byte[] lookupLocalhost(String hostName) {
-    if ("localhost".equals(hostName)) {
+    if (LOCALHOST.equals(hostName)) {
       return new byte[] {127, 0, 0, 1};
     }
     if (hostName.startsWith("127.0.0.")) {
@@ -43,24 +47,32 @@ public class IPHelper {
 
     if ("::1".equals(hostName)
         || "0:0:0:0:0:0:0:1".equals(hostName)
-        || "ip6-localhost".equals(hostName)) {
+        || LOCALHOST_V6.equals(hostName)) {
       return new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
     }
-    return null;
+    throw new IllegalArgumentException("Could not parse localhost name: \"" + hostName + "\"");
   }
 
   public static byte[] toByteArray(String s) {
-    if ("localhost".equals(s)) {
+    byte[] ba = toByteArrayTry(s);
+    if (ba == null || ba.length == 0) {
+      throw new IllegalArgumentException("Could not parse IP address: \"" + s + "\"");
+    }
+    return ba;
+  }
+
+  public static byte[] toByteArrayTry(String s) {
+    if (LOCALHOST.equals(s)) {
       return new byte[] {127, 0, 0, 1};
     }
-    if ("ip6-localhost".equals(s)) {
+    if (LOCALHOST_V6.equals(s)) {
       return new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
     }
     if (s.startsWith("[")) {
       if (s.endsWith("]")) {
         s = s.substring(1, s.length() - 1);
       } else {
-        return null; // Missing closing bracket. Something is wrong.
+        return new byte[0]; // Missing closing bracket. Something is wrong.
       }
     }
     int family = Address.isDottedQuad(s) ? Address.IPv4 : Address.IPv6;
@@ -77,6 +89,15 @@ public class IPHelper {
     return InetAddress.getByAddress(bytes);
   }
 
+  public static InetAddress toInetAddress(String hostName, String ip) {
+    try {
+      byte[] bytes = toByteArray(ip);
+      return InetAddress.getByAddress(hostName, bytes);
+    } catch (UnknownHostException e) {
+      throw new ScionRuntimeException(e);
+    }
+  }
+
   /**
    * @param s IP and port, e.g. 127.0.0.1:8080 or localhost:8080
    * @return InetSocketAddress
@@ -85,8 +106,8 @@ public class IPHelper {
     int posPort = s.lastIndexOf(":");
     try {
       int port = Integer.parseInt(s.substring(posPort + 1));
-      byte[] bytes = toByteArray(s.substring(0, posPort));
-      if (bytes == null) {
+      byte[] bytes = toByteArrayTry(s.substring(0, posPort));
+      if (bytes == null || bytes.length == 0) {
         InetAddress inet = InetAddress.getByName(s.substring(0, posPort));
         return new InetSocketAddress(inet, port);
       }
@@ -199,8 +220,8 @@ public class IPHelper {
     List<InetAddress> externalIPs = new ArrayList<>();
     try {
       Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
-      for (NetworkInterface netint : Collections.list(nets)) {
-        for (InterfaceAddress ia : netint.getInterfaceAddresses()) {
+      for (NetworkInterface netInt : Collections.list(nets)) {
+        for (InterfaceAddress ia : netInt.getInterfaceAddresses()) {
           externalIPs.add(ia.getAddress());
         }
       }
@@ -214,11 +235,11 @@ public class IPHelper {
     if (address == null) {
       return null;
     }
-    InetAddress addr = address.getAddress();
-    if (addr instanceof Inet4Address) {
-      return addr.getHostAddress() + ":" + address.getPort();
-    } else if (addr instanceof Inet6Address) {
-      return "[" + addr.getHostAddress() + "]:" + address.getPort();
+    InetAddress ip = address.getAddress();
+    if (ip instanceof Inet4Address) {
+      return ip.getHostAddress() + ":" + address.getPort();
+    } else if (ip instanceof Inet6Address) {
+      return "[" + ip.getHostAddress() + "]:" + address.getPort();
     }
     throw new IllegalArgumentException("Unknown address type: " + address.getClass());
   }

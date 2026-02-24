@@ -36,6 +36,7 @@ import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.util.ExternalIpDiscovery;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -47,22 +48,17 @@ import org.scion.jpan.testutil.TestUtil;
 
 class DatagramChannelApiTest {
 
-  private static final int DUMMY_PORT = 44444;
-  private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
 
   static {
-    try {
-      dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-      dummyAddress = new InetSocketAddress(dummyIPv4, DUMMY_PORT);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+    InetAddress dummyIPv4 = IPHelper.toInetAddress("dummyHost", "127.0.0.1");
+    dummyAddress = new InetSocketAddress(dummyIPv4, 44444);
   }
 
   @BeforeEach
   void beforeEach() {
     MockNetwork.startTiny();
+    MockDNS.install("1-ff00:0:112", dummyAddress.getAddress());
   }
 
   @AfterEach
@@ -79,7 +75,7 @@ class DatagramChannelApiTest {
 
   @Test
   void getLocalAddress_withBind() throws IOException {
-    InetSocketAddress addr = new InetSocketAddress("localhost", DUMMY_PORT);
+    InetSocketAddress addr = new InetSocketAddress("localhost", 44444);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open().bind(addr)) {
       assertEquals(addr, channel.getLocalAddress());
     }
@@ -241,8 +237,9 @@ class DatagramChannelApiTest {
   }
 
   private void testBlocking(boolean isBlocking, ChannelConsumer fn) throws IOException {
-    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("testIP", "127.0.0.1"), 12345);
+    MockDNS.install("1-ff00:0:112", address.getAddress());
     AtomicBoolean wasBlocking = new AtomicBoolean(true);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(address);
@@ -266,12 +263,23 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void isConnected_InetSocket() throws IOException {
-    //    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
-    //    InetSocketAddress address = new InetSocketAddress("::1", 12345);
+  void isConnected_InetSocketV4() throws IOException {
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("test-v4", "127.0.0.1"), 12345);
+    MockDNS.install("1-ff00:0:112", address.getAddress());
+    isConnected_InetSocket(address);
+  }
+
+  @Test
+  void isConnected_InetSocketV6() throws IOException {
     // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
-    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("test-v6", "::1"), 12345);
+    MockDNS.install("1-ff00:0:112", address.getAddress());
+    isConnected_InetSocket(address);
+  }
+
+  void isConnected_InetSocket(InetSocketAddress address) throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertFalse(channel.isConnected());
       assertNull(channel.getRemoteAddress());
@@ -390,7 +398,7 @@ class DatagramChannelApiTest {
   @Test
   void setPathPolicy_filterReturnsEmptyList() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
+      List<Path> paths = channel.getService().lookupPaths(dummyAddress);
 
       // Create expired path
       channel.connect(paths.get(0));
@@ -405,7 +413,7 @@ class DatagramChannelApiTest {
   @Test
   void connect_noPathFound() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      List<Path> paths = channel.getService().lookupPaths("127.0.0.1", 12345);
+      List<Path> paths = channel.getService().lookupPaths(dummyAddress);
 
       // Create empty path policy
       PathPolicy empty = paths1 -> Collections.emptyList();

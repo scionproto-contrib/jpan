@@ -39,11 +39,15 @@ public class EndhostApiPathDemo {
   private final OkHttpClient httpClient;
   private final String apiAddress;
 
-  private static final String neaETH = "192.168.53.19:48080";
+  private static final String neaETH = "eh.netsec.inf.ethz.ch:8080";
+
+  // private static final String neaETH = "192.168.53.19:48080";
 
   public static void main(String[] args) throws ScionException {
     EndhostApiPathDemo demo = new EndhostApiPathDemo(neaETH);
-    demo.getSegments(iaETH, iaETH_CORE);
+    // demo.getSegments(iaETH, iaETH_CORE);
+    // demo.getSegments(iaETH, ScionUtil.parseIA("66-2:0:145"));
+    demo.getSegments(iaETH, ScionUtil.parseIA("75-1125"));
 
     // response.toString():
     // Response{protocol=http/1.1, code=200, message=OK,
@@ -142,13 +146,12 @@ public class EndhostApiPathDemo {
     System.out.println("Sending request: " + request);
     System.out.println("             to: " + apiAddress);
     try (Response response = httpClient.newCall(request).execute()) {
-      //      String bodyStr = response.body().string();
-      //      System.out.println("Client received len: " + bodyStr.length());
-      //      System.out.println("Client received msg: " + bodyStr);
       System.out.println("Client received len: " + response.message().length());
       System.out.println("Client received msg: " + response.message());
       System.out.println("Client received str: " + response);
       if (!response.isSuccessful()) {
+        String bodyStr = response.body().string();
+        System.out.println("Client received body: " + bodyStr);
         throw new IOException("Unexpected code " + response);
       }
       return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();

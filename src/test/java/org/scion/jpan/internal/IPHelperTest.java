@@ -46,8 +46,11 @@ class IPHelperTest {
     assertArrayEquals(ipv6, IPHelper.lookupLocalhost("0:0:0:0:0:0:0:1"));
     assertArrayEquals(ipv6, IPHelper.lookupLocalhost("ip6-localhost"));
 
-    assertNull(IPHelper.lookupLocalhost("dummy.com"));
-    assertNull(IPHelper.lookupLocalhost("192.168.0.1"));
+    IllegalArgumentException e;
+    e = assertThrows(IllegalArgumentException.class, () -> IPHelper.lookupLocalhost("dummy.com"));
+    assertTrue(e.getMessage().contains("Could not parse localhost name"));
+    e = assertThrows(IllegalArgumentException.class, () -> IPHelper.lookupLocalhost("192.168.0.1"));
+    assertTrue(e.getMessage().contains("Could not parse localhost name"));
   }
 
   @Test
@@ -63,15 +66,22 @@ class IPHelperTest {
     assertArrayEquals(ipv6, IPHelper.toByteArray("[0:0:0:0:0:0:0:1]"));
     assertArrayEquals(ipv6, IPHelper.toByteArray("ip6-localhost"));
 
-    assertNull(IPHelper.toByteArray("dummy.com"));
+    IllegalArgumentException e;
+    e = assertThrows(IllegalArgumentException.class, () -> IPHelper.toByteArray("dummy.com"));
+    assertTrue(e.getMessage().contains("Could not parse IP address"));
+
     assertArrayEquals(new byte[] {1, 2, 3, 4}, IPHelper.toByteArray("1.2.3.4"));
     assertArrayEquals(new byte[] {192 - 256, 168 - 256, 0, 1}, IPHelper.toByteArray("192.168.0.1"));
 
-    assertNull(IPHelper.toByteArray("[::1"));
-    assertNull(IPHelper.toByteArray("::1]"));
+    e = assertThrows(IllegalArgumentException.class, () -> IPHelper.toByteArray("[::1"));
+    assertTrue(e.getMessage().contains("Could not parse IP address"));
+    e = assertThrows(IllegalArgumentException.class, () -> IPHelper.toByteArray("::1]"));
+    assertTrue(e.getMessage().contains("Could not parse IP address"));
 
-    assertNull(IPHelper.toByteArray("127.0.0.1x"));
-    assertNull(IPHelper.toByteArray("[::1x]"));
+    e = assertThrows(IllegalArgumentException.class, () -> IPHelper.toByteArray("127.0.0.1x"));
+    assertTrue(e.getMessage().contains("Could not parse IP address"));
+    e = assertThrows(IllegalArgumentException.class, () -> IPHelper.toByteArray("[::1x]"));
+    assertTrue(e.getMessage().contains("Could not parse IP address"));
   }
 
   @Test
@@ -82,6 +92,20 @@ class IPHelperTest {
 
     byte[] ipv6 = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
     assertArrayEquals(ipv6, IPHelper.toInetAddress("::1").getAddress());
+  }
+
+  @Test
+  void toInetAddress_withHost() {
+    assertArrayEquals(
+        new byte[] {127, 0, 0, 1}, IPHelper.toInetAddress("me", "localhost").getAddress());
+    assertEquals("me", IPHelper.toInetAddress("me", "localhost").getHostName());
+    assertArrayEquals(
+        new byte[] {127, 0, 0, 42}, IPHelper.toInetAddress("you", "127.0.0.42").getAddress());
+    assertEquals("you", IPHelper.toInetAddress("you", "127.0.0.42").getHostName());
+
+    byte[] ipv6 = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+    assertArrayEquals(ipv6, IPHelper.toInetAddress("me6", "::1").getAddress());
+    assertEquals("me6", IPHelper.toInetAddress("me6", "::1").getHostName());
   }
 
   @Test
