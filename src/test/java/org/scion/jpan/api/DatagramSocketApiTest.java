@@ -424,7 +424,8 @@ class DatagramSocketApiTest {
 
       // Modify packet - port
       packet.setPort(packet.getPort() + 1);
-      // Throws exception because this is an IP address that is not in the cache and that  cannot be resolved to a
+      // Throws exception because this is an IP address that is not in the cache and that  cannot be
+      // resolved to a
       // SCION address.
       ScionException e1 = assertThrows(ScionException.class, () -> server.send(packet));
       assertTrue(e1.getMessage().contains("No DNS TXT entry"));
@@ -681,7 +682,8 @@ class DatagramSocketApiTest {
     Path path = ExamplePacket.PATH_IPV4;
     String exIP = path.getRemoteAddress().getHostAddress();
     int exPort = path.getRemotePort();
-    InetSocketAddress address = new InetSocketAddress(IPHelper.toInetAddress("getConTest", exIP), exPort);
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("getConTest", exIP), exPort);
     MockDNS.install("1-ff00:0:112", address.getAddress());
     DatagramPacket packet = new DatagramPacket(new byte[50], 50, address);
     try (ScionDatagramSocket channel = new ScionDatagramSocket()) {

@@ -43,7 +43,7 @@ class PathProviderNoOpTest {
   void beforeEach() {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
-    someAddress = new InetSocketAddress(IPHelper.toInetAddress("myHost","127.0.0.1"), 12345);
+    someAddress = new InetSocketAddress(IPHelper.toInetAddress("myHost", "127.0.0.1"), 12345);
     MockDNS.install("1-ff00:0:110", someAddress.getAddress());
   }
 

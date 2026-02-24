@@ -49,6 +49,7 @@ import org.scion.jpan.testutil.TestUtil;
 class DatagramChannelApiTest {
 
   private static final InetSocketAddress dummyAddress;
+
   static {
     InetAddress dummyIPv4 = IPHelper.toInetAddress("dummyHost", "127.0.0.1");
     dummyAddress = new InetSocketAddress(dummyIPv4, 44444);
@@ -236,7 +237,8 @@ class DatagramChannelApiTest {
   }
 
   private void testBlocking(boolean isBlocking, ChannelConsumer fn) throws IOException {
-    InetSocketAddress address = new InetSocketAddress(IPHelper.toInetAddress("testIP", "127.0.0.1"), 12345);
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("testIP", "127.0.0.1"), 12345);
     MockDNS.install("1-ff00:0:112", address.getAddress());
     AtomicBoolean wasBlocking = new AtomicBoolean(true);
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
@@ -263,7 +265,7 @@ class DatagramChannelApiTest {
   @Test
   void isConnected_InetSocketV4() throws IOException {
     InetSocketAddress address =
-            new InetSocketAddress(IPHelper.toInetAddress("test-v4", "127.0.0.1"), 12345);
+        new InetSocketAddress(IPHelper.toInetAddress("test-v4", "127.0.0.1"), 12345);
     MockDNS.install("1-ff00:0:112", address.getAddress());
     isConnected_InetSocket(address);
   }
@@ -272,7 +274,7 @@ class DatagramChannelApiTest {
   void isConnected_InetSocketV6() throws IOException {
     // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
     InetSocketAddress address =
-            new InetSocketAddress(IPHelper.toInetAddress("test-v6", "::1"), 12345);
+        new InetSocketAddress(IPHelper.toInetAddress("test-v6", "::1"), 12345);
     MockDNS.install("1-ff00:0:112", address.getAddress());
     isConnected_InetSocket(address);
   }

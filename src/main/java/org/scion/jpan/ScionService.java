@@ -310,9 +310,7 @@ public class ScionService {
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
   public List<Path> lookupPaths(InetSocketAddress dstAddr) throws ScionException {
-    return getPaths(
-        AddressLookupService.lookupAddress(dstAddr.getHostString()),
-        dstAddr.getPort());
+    return getPaths(AddressLookupService.lookupAddress(dstAddr.getHostString()), dstAddr.getPort());
   }
 
   /**

@@ -40,12 +40,13 @@ public class EndhostApiPathDemo {
   private final String apiAddress;
 
   private static final String neaETH = "eh.netsec.inf.ethz.ch:8080";
-  //private static final String neaETH = "192.168.53.19:48080";
+
+  // private static final String neaETH = "192.168.53.19:48080";
 
   public static void main(String[] args) throws ScionException {
     EndhostApiPathDemo demo = new EndhostApiPathDemo(neaETH);
-    //demo.getSegments(iaETH, iaETH_CORE);
-    //demo.getSegments(iaETH, ScionUtil.parseIA("66-2:0:145"));
+    // demo.getSegments(iaETH, iaETH_CORE);
+    // demo.getSegments(iaETH, ScionUtil.parseIA("66-2:0:145"));
     demo.getSegments(iaETH, ScionUtil.parseIA("75-1125"));
 
     // response.toString():

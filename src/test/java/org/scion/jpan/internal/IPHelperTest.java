@@ -78,7 +78,7 @@ class IPHelperTest {
   void toInetAddress() throws UnknownHostException {
     assertArrayEquals(new byte[] {127, 0, 0, 1}, IPHelper.toInetAddress("localhost").getAddress());
     assertArrayEquals(
-            new byte[] {127, 0, 0, 42}, IPHelper.toInetAddress("127.0.0.42").getAddress());
+        new byte[] {127, 0, 0, 42}, IPHelper.toInetAddress("127.0.0.42").getAddress());
 
     byte[] ipv6 = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
     assertArrayEquals(ipv6, IPHelper.toInetAddress("::1").getAddress());
@@ -86,10 +86,11 @@ class IPHelperTest {
 
   @Test
   void toInetAddress_withHost() {
-    assertArrayEquals(new byte[] {127, 0, 0, 1}, IPHelper.toInetAddress("me", "localhost").getAddress());
+    assertArrayEquals(
+        new byte[] {127, 0, 0, 1}, IPHelper.toInetAddress("me", "localhost").getAddress());
     assertEquals("me", IPHelper.toInetAddress("me", "localhost").getHostName());
     assertArrayEquals(
-            new byte[] {127, 0, 0, 42}, IPHelper.toInetAddress("you", "127.0.0.42").getAddress());
+        new byte[] {127, 0, 0, 42}, IPHelper.toInetAddress("you", "127.0.0.42").getAddress());
     assertEquals("you", IPHelper.toInetAddress("you", "127.0.0.42").getHostName());
 
     byte[] ipv6 = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
