@@ -177,6 +177,8 @@ TODO
   [#223](https://github.com/scionproto-contrib/jpan/pull/223)
 - Endhost API improvements: Remove ISD/AS from AddressLookupService
   [#224](https://github.com/scionproto-contrib/jpan/pull/224)
+- Endhost API improvements: Segments without srcIsdAs input
+  [#225](https://github.com/scionproto-contrib/jpan/pull/225)
   
 ### TODO
   - Test! -> Receive paths with different ISD?!?! -> separate PR?
