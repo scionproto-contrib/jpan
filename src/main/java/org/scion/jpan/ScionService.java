@@ -335,6 +335,10 @@ public class ScionService {
     return localAS.getIsdAs();
   }
 
+  public List<Long> getLocalIsdAses() {
+    return localAS.getIsdAses();
+  }
+
   /**
    * @param hostName hostName of the host to resolve
    * @return The ISD/AS code for a hostname
