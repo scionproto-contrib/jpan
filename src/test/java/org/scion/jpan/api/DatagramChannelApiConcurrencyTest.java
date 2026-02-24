@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketAddress;
+import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockDNS;
@@ -34,32 +36,26 @@ import org.scion.jpan.testutil.MockDaemon;
 
 class DatagramChannelApiConcurrencyTest {
 
-  private static final int dummyPort = 32000;
-  private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
 
   static {
-    try {
-      dummyIPv4 = InetAddress.getByAddress(new byte[] {127, 0, 0, 1});
-      dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
+    dummyAddress = new InetSocketAddress(IPHelper.toInetAddress("myServer", "127.0.0.1"), 32000);
+    DNSUtil.installScionTXT(dummyAddress, "1-ff00:0:110");
   }
 
   @BeforeEach
-  public void beforeEach() throws IOException {
+  void beforeEach() {
     MockDaemon.createAndStartDefault();
   }
 
   @AfterEach
-  public void afterEach() throws IOException {
+  void afterEach() {
     MockDaemon.closeDefault();
     MockDNS.clear();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
   }

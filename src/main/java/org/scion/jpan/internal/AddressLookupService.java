@@ -124,7 +124,7 @@ public class AddressLookupService {
     // Use local ISD/AS for localhost addresses
     byte[] localBytes = IPHelper.lookupLocalhost(hostName);
     if (localBytes != null) {
-      return ScionAddress.create(localIsdAs, hostName, localBytes);
+//      return ScionAddress.create(localIsdAs, hostName, localBytes);
     }
 
     // DNS lookup

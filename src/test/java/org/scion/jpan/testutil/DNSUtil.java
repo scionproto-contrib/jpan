@@ -50,7 +50,7 @@ public class DNSUtil {
 
   public static void bootstrapNAPTR(
       String asHost, byte[] topoAddr, String txtStr, String naptrKey) {
-    installTXT(asHost, txtStr);
+    installScionTXT(asHost, txtStr);
     installAddress("topohost.x.y", topoAddr);
     installNAPTR(asHost, "A", naptrKey, "topohost.x.y.", 1, 1);
   }
@@ -90,7 +90,7 @@ public class DNSUtil {
     }
   }
 
-  public static void installTXT(InetSocketAddress address, String isdAs) {
+  public static void installScionTXT(InetSocketAddress address, String isdAs) {
     String name = address.getAddress().getHostName();
     if (name == null || name.isEmpty()) {
       throw new IllegalArgumentException();
@@ -99,10 +99,10 @@ public class DNSUtil {
   }
 
   public static void installScionTXT(String asHost, String isdAs, String ipAddress) {
-    installTXT(asHost, "scion=" + isdAs + "," + ipAddress);
+    installScionTXT(asHost, "scion=" + isdAs + "," + ipAddress);
   }
 
-  public static void installTXT(String asHost, String entry) {
+  public static void installScionTXT(String asHost, String entry) {
     try {
       Name name = Name.fromString(asHost + ".");
       Cache c = Lookup.getDefaultCache(DClass.IN);

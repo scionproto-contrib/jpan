@@ -77,6 +77,15 @@ public class IPHelper {
     return InetAddress.getByAddress(bytes);
   }
 
+  public static InetAddress toInetAddress(String hostName, String ip) {
+    try {
+      byte[] bytes = toByteArray(ip);
+      return InetAddress.getByAddress(hostName, bytes);
+    } catch (UnknownHostException e) {
+      throw new ScionRuntimeException(e);
+    }
+  }
+
   /**
    * @param s IP and port, e.g. 127.0.0.1:8080 or localhost:8080
    * @return InetSocketAddress

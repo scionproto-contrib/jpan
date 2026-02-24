@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.DNSUtil;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
@@ -35,12 +37,19 @@ import org.scion.jpan.testutil.MockNetwork2;
 class PathProviderWithRefreshTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
+  private static final InetSocketAddress dummyAddress;
+
+  static {
+    dummyAddress = new InetSocketAddress(IPHelper.toInetAddress("myServer", "127.0.0.1"), 12345);
+  }
+
   private PathProviderWithRefresh pp = null;
 
   @BeforeEach
   void beforeEach() {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    DNSUtil.installScionTXT(dummyAddress, "1-ff00:0:110");
   }
 
   @AfterEach
@@ -122,7 +131,7 @@ class PathProviderWithRefreshTest {
     pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
     pp.subscribe(newPath -> {});
 
-    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -141,7 +150,7 @@ class PathProviderWithRefreshTest {
     pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
     pp.subscribe(newPath -> {});
 
-    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
     pp.connect(paths.get(0));
 
     // Create empty path policy

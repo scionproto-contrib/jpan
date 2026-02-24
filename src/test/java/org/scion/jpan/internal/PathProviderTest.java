@@ -28,19 +28,29 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.MockBootstrapServer;
+import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
 class PathProviderTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
+  private static final InetSocketAddress dummyAddress;
+
+  static {
+    InetAddress dummyIPv4 = IPHelper.toInetAddress("dummyHost", "127.0.0.1");
+    dummyAddress = new InetSocketAddress(dummyIPv4, 44444);
+  }
+
   private PathProvider pp = null;
 
   @BeforeEach
   void beforeEach() {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    MockDNS.install("1-ff00:0:112", dummyAddress.getAddress());
   }
 
   @AfterEach
@@ -97,7 +107,7 @@ class PathProviderTest {
     pp = create(impl);
     pp.subscribe(newPath -> {});
 
-    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -115,7 +125,7 @@ class PathProviderTest {
     pp = create(impl);
     pp.subscribe(newPath -> {});
 
-    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
     Path path = paths.get(0);
     pp.connect(path);
     Exception e = assertThrows(IllegalStateException.class, () -> pp.connect(path));
@@ -138,7 +148,7 @@ class PathProviderTest {
     pp = create(impl);
     pp.subscribe(newPath -> {});
 
-    List<Path> paths = Scion.defaultService().lookupPaths("127.0.0.1", 12345);
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
     pp.connect(paths.get(0));
 
     // Create empty path policy

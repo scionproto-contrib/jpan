@@ -35,13 +35,21 @@ import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
-import org.scion.jpan.testutil.*;
+import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.DNSUtil;
+import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.ManagedThread;
+import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.MockDaemon;
+import org.scion.jpan.testutil.MockNetwork;
+import org.scion.jpan.testutil.PingPongSocketHelper;
+import org.scion.jpan.testutil.TestUtil;
 
 class DatagramSocketApiTest {
 
   private static final Inet4Address ipV4Any;
   private static final Inet6Address ipV6Any;
-  private static final int dummyPort = 44444;
+  private static final int DUMMY_PORT = 44444;
   private static final InetAddress dummyIPv4;
   private static final InetSocketAddress dummyAddress;
   private static final DatagramPacket dummyPacket;
@@ -52,10 +60,9 @@ class DatagramSocketApiTest {
       ipV6Any =
           (Inet6Address)
               InetAddress.getByAddress(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-      dummyIPv4 = InetAddress.getByAddress("dummyHostV4", new byte[] {127, 0, 0, 1});
-      dummyAddress = new InetSocketAddress(dummyIPv4, dummyPort);
+      dummyIPv4 = IPHelper.toInetAddress("dummyHostV4", "127.0.0.1");
+      dummyAddress = new InetSocketAddress(dummyIPv4, DUMMY_PORT);
       dummyPacket = new DatagramPacket(new byte[100], 100, dummyAddress);
-      DNSUtil.installScionTXT(dummyIPv4.getHostName(), "1-ff00:0:110", dummyIPv4.getHostAddress());
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
     }
@@ -64,6 +71,7 @@ class DatagramSocketApiTest {
   @BeforeEach
   void beforeEach() {
     MockDaemon.createAndStartDefault();
+    DNSUtil.installScionTXT(dummyIPv4.getHostName(), "1-ff00:0:112", dummyIPv4.getHostAddress());
   }
 
   @AfterEach
@@ -113,7 +121,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getLocalAddress_withImplicitBind() throws IOException {
-    InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
+    InetSocketAddress address = new InetSocketAddress("localhost", DUMMY_PORT);
     try (ScionDatagramSocket socket = new ScionDatagramSocket(address)) {
       assertTrue(socket.isBound());
       assertEquals(address, socket.getLocalSocketAddress());
@@ -122,7 +130,7 @@ class DatagramSocketApiTest {
 
   @Test
   void getLocalAddress_withExplicitBind() throws IOException {
-    InetSocketAddress address = new InetSocketAddress("localhost", dummyPort);
+    InetSocketAddress address = new InetSocketAddress("localhost", DUMMY_PORT);
     try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       assertFalse(socket.isBound());
       socket.bind(address);
@@ -236,13 +244,33 @@ class DatagramSocketApiTest {
   }
 
   @Test
-  void isConnected_InetSocket() throws IOException {
+  void isConnected_InetSocketV4() throws IOException {
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("test-v4", "127.0.0.1"), 12345);
+    InetSocketAddress address2 =
+        new InetSocketAddress(IPHelper.toInetAddress("test-v4-2", "127.0.0.2"), 22345);
+    DNSUtil.installScionTXT(address, "1-ff00:0:112");
+    DNSUtil.installScionTXT(address2, "1-ff00:0:112");
+    isConnected_InetSocket(address, address2);
+  }
+
+  @Test
+  void isConnected_InetSocketV6() throws IOException {
     //    MockDNS.install("1-ff00:0:112", "ip6-localhost", "::1");
     //    InetSocketAddress address = new InetSocketAddress("::1", 12345);
     // We have to use IPv4 because IPv6 fails on GitHubs Ubuntu CI images.
-    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
-    InetSocketAddress address2 = new InetSocketAddress("127.0.0.2", 22345);
+
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("test-v6", "::1"), 12345);
+    InetSocketAddress address2 =
+        new InetSocketAddress(IPHelper.toInetAddress("test-v6-2", "::2"), 22345);
+    DNSUtil.installScionTXT(address, "1-ff00:0:112");
+    DNSUtil.installScionTXT(address2, "1-ff00:0:112");
+    isConnected_InetSocket(address, address2);
+  }
+
+  private void isConnected_InetSocket(InetSocketAddress address, InetSocketAddress address2)
+      throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertFalse(socket.isConnected());
       assertNull(socket.getRemoteSocketAddress());
@@ -396,28 +424,42 @@ class DatagramSocketApiTest {
         client.send(packet);
       }
 
-      DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
-      SocketAddress clientAddress = packet.getSocketAddress();
+      DatagramPacket packet = new DatagramPacket(new byte[size], size);
       server.receive(packet);
 
       // Modify packet - port
       packet.setPort(packet.getPort() + 1);
-      server.send(packet); // Any exception because ...
+      // Throws exception because this is an IP address that is not in the cache and that  cannot be resolved to a
+      // SCION address.
+      ScionException e1 = assertThrows(ScionException.class, () -> server.send(packet));
+      assertTrue(e1.getMessage().contains("No DNS TXT entry"));
+    }
+  }
 
-      assertFalse(server.isConnected());
-      server.connect(clientAddress);
-      // Once connected, the packet address has to match the connected address.
-      Throwable ex = assertThrows(IllegalArgumentException.class, () -> server.send(packet));
-      assertTrue(ex.getMessage().contains("Packet address does not match connected address"));
+  @Test
+  void send_wrongPort_connected() throws IOException {
+    int size = 10;
+    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
+      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
+
+      try (ScionDatagramSocket client = new ScionDatagramSocket()) {
+        DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
+        client.connect(serverAddress);
+        // Modify packet - port
+        packet.setPort(packet.getPort() + 1);
+        // Once connected, the packet address has to match the connected address.
+        Throwable ex = assertThrows(IllegalArgumentException.class, () -> client.send(packet));
+        assertTrue(ex.getMessage().contains("Packet address does not match connected address"));
+      }
     }
   }
 
   InetSocketAddress toScionAddress(SocketAddress in) {
     try {
-      InetAddress ipIn = ((InetSocketAddress)in).getAddress();
+      InetAddress ipIn = ((InetSocketAddress) in).getAddress();
       InetAddress ipOut = InetAddress.getByAddress("myScionAddress", ipIn.getAddress());
-      InetSocketAddress out = new InetSocketAddress(ipOut, ((InetSocketAddress)in).getPort());
-      DNSUtil.installTXT(out, "1-ff00:0:110");
+      InetSocketAddress out = new InetSocketAddress(ipOut, ((InetSocketAddress) in).getPort());
+      DNSUtil.installScionTXT(out, "1-ff00:0:110");
       return out;
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
@@ -642,7 +684,11 @@ class DatagramSocketApiTest {
   void getConnectionPath() throws IOException {
     // Build fails on MacOS on internal channel.connect("::1") so we use "127.0.0.1"
     Path path = ExamplePacket.PATH_IPV4;
-    DatagramPacket packet = new DatagramPacket(new byte[50], 50, toAddress(path));
+    String exIP = path.getRemoteAddress().getHostAddress();
+    int exPort = path.getRemotePort();
+    InetSocketAddress address = new InetSocketAddress(IPHelper.toInetAddress("getConTest", exIP), exPort);
+    DNSUtil.installScionTXT(address, "1-ff00:0:112");
+    DatagramPacket packet = new DatagramPacket(new byte[50], 50, address);
     try (ScionDatagramSocket channel = new ScionDatagramSocket()) {
       assertNull(channel.getConnectionPath());
       // send should NOT set a path
@@ -791,7 +837,7 @@ class DatagramSocketApiTest {
 
   @Test
   void testBug_doubleSendCausesNPE() throws IOException {
-    try (ScionDatagramSocket server = new ScionDatagramSocket(dummyPort)) {
+    try (ScionDatagramSocket server = new ScionDatagramSocket(DUMMY_PORT)) {
       assertFalse(server.isConnected());
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         assertFalse(client.isConnected());
@@ -811,7 +857,7 @@ class DatagramSocketApiTest {
     PathPolicy policy = new PathPolicy.MaxBandwith();
     PathProvider ppNoOp = PathProviderNoOp.create(policy);
     try (ScionDatagramSocket server =
-        ScionDatagramSocket.newBuilder().bind(dummyPort).provider(ppNoOp).open()) {
+        ScionDatagramSocket.newBuilder().bind(DUMMY_PORT).provider(ppNoOp).open()) {
       assertFalse(server.isConnected());
       assertSame(ppNoOp, server.getPathProvider());
       assertSame(policy, server.getPathPolicy());
