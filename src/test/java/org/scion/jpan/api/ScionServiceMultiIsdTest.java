@@ -14,28 +14,33 @@
 
 package org.scion.jpan.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.protobuf.ByteString;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.io.IOException;
+import java.net.*;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Path;
-import org.scion.jpan.Scion;
-import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionUtil;
+import org.scion.jpan.*;
+import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.internal.PathProviderWithRefresh;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
+import org.scion.jpan.testutil.ManagedThread;
+import org.scion.jpan.testutil.MockDNS;
+import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.MockPathService;
 
+@Disabled
 class ScionServiceMultiIsdTest {
 
   private static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
@@ -57,19 +62,7 @@ class ScionServiceMultiIsdTest {
     // test classes.
     try (MockNetwork2 nw =
         MockNetwork2.startPS(MockNetwork2.Topology.MINIMAL, "ASff00_0_111", "ASff00_0_211")) {
-      nw.getPathServices().forEach(MockPathService::clearSegments);
-
-      long now = Instant.now().getEpochSecond();
-      // Source IA #1: 1-ff00:0:111 -> 1-ff00:0:110 -> 1-ff00:0:120 -> 1-ff00:0:121
-      addUpSegment(nw, AS_111, AS_110, 2, 111, now);
-      addCoreSegment(nw, AS_110, AS_120, 1, 2, now);
-
-      // Source IA #2: 2-ff00:0:211 -> 2-ff00:0:210 -> 1-ff00:0:120 -> 1-ff00:0:121
-      addUpSegment(nw, AS_211, AS_210, 2, 1111, now);
-      addCoreSegment(nw, AS_210, AS_120, 1, 2, now);
-
-      // Shared destination down segment.
-      addDownSegment(nw, AS_120, AS_121, 121, 41, now);
+      installPaths_111_211_to_121(nw);
 
       ScionService service = Scion.defaultService();
       List<Path> paths =
@@ -83,6 +76,173 @@ class ScionServiceMultiIsdTest {
       assertTrue(sourceIsds.contains(ScionUtil.extractIsd(AS_111)));
       assertTrue(sourceIsds.contains(ScionUtil.extractIsd(AS_211)));
     }
+  }
+
+  @Test
+  void send_DatagramChannel_HandlesMultipleLocalIsdNumbers() throws IOException {
+    ManagedThread mt = ManagedThread.newBuilder().build();
+    try (MockNetwork2 nw =
+        MockNetwork2.startPS(MockNetwork2.Topology.MINIMAL, "ASff00_0_111", "ASff00_0_211")) {
+      installPaths_111_211_to_121(nw);
+      nw.startBorderRouters("ASff00_0_121");
+
+      InetSocketAddress serverAddress =
+          new InetSocketAddress(IPHelper.toInetAddress("m-host", "127.0.0.1"), 12345);
+      MockDNS.install("1-ff00:0:121", serverAddress.getAddress());
+      ScionService service = Scion.defaultService();
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:121"), serverAddress);
+
+      // server thread
+      mt.submit(
+          mtn -> {
+            ByteBuffer rcvBuffer = ByteBuffer.allocate(1000);
+            try {
+              try (ScionDatagramChannel server = ScionDatagramChannel.open()) {
+                server.bind(serverAddress);
+                System.err.println("---- rcv 0--- server=" + server.getLocalAddress());
+                mtn.reportStarted();
+                System.err.println("---- rcv 1---");
+                ScionSocketAddress rcvAddr1 = server.receive(rcvBuffer);
+                System.err.println("---- rcv 2---");
+                assertEquals(50, rcvBuffer.remaining());
+                System.err.println("---- rcv 3---");
+                assertEquals(paths.get(0).getLocalIsdAs(), rcvAddr1.getIsdAs());
+                System.err.println("---- rcv 4---");
+                ScionSocketAddress rcvAddr2 = server.receive(rcvBuffer);
+                System.err.println("---- rcv 5---");
+                assertEquals(50, rcvBuffer.remaining());
+                System.err.println("---- rcv 6---");
+                assertEquals(paths.get(1).getLocalIsdAs(), rcvAddr2.getIsdAs());
+                System.err.println("---- rcv 7---");
+              }
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
+          });
+
+      System.err.println("---- send 1---");
+
+      // 1st client - send()
+      try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
+        ByteBuffer buffer = ByteBuffer.allocate(50);
+        buffer.putInt(42);
+        System.err.println("---- send 2--- client = " + paths.get(0).getFirstHopAddress());
+        client.send(buffer, paths.get(0));
+        // client.send(buffer, serverAddress);
+        System.err.println("---- send 3--");
+        client.send(buffer, paths.get(1));
+      }
+      System.err.println("---- send 4---");
+
+      //     mt.join(10000000);
+
+      // 2nd client - write (multi-ISD PAthProvider)
+      // TODO
+      //        ByteBuffer rcvBuffer = ByteBuffer.allocate(100);
+      //        ScionSocketAddress rcvAddr1 = server.receive(rcvBuffer);
+      //        assertEquals(50, rcvBuffer.remaining());
+      //        assertEquals(paths.get(0).getLocalIsdAs(), rcvAddr1.getIsdAs());
+
+      // 2st client - send()
+      PathProvider pp = PathProviderWithRefresh.create(service, PathPolicy.FIRST);
+      //        try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
+      //          client.connect(serverAddress);
+      //          clientAddress1 = client.getLocalAddress();
+      //        }
+      // }
+    } finally {
+      mt.stopNow();
+    }
+    //    // We use 111 and 211 as identifiers for the local AS. In practice, only the ISD should
+    //    // differ and the AS number should be the same, but that would require more changes to the
+    //    // test classes.
+    //    try (MockNetwork2 nw =
+    //                 MockNetwork2.startPS(MockNetwork2.Topology.MINIMAL, "ASff00_0_111",
+    // "ASff00_0_211")) {
+    //      installPaths_111_211_to_121(nw);
+    //
+    //      ScionService service = Scion.defaultService();
+    //      try (ScionDatagramChannel)
+    //
+    //      List<Path> paths =
+    //              service.getPaths(AS_121, new InetSocketAddress(InetAddress.getLoopbackAddress(),
+    // 12345));
+    //
+    //      assertEquals(2, paths.size());
+    //      Set<Integer> sourceIsds =
+    //              paths.stream()
+    //                      .map(path -> ScionUtil.extractIsd(path.getMetadata().getSrcIdsAs()))
+    //                      .collect(Collectors.toSet());
+    //      assertTrue(sourceIsds.contains(ScionUtil.extractIsd(AS_111)));
+    //      assertTrue(sourceIsds.contains(ScionUtil.extractIsd(AS_211)));
+    //    }
+  }
+
+  @Disabled
+  @Test
+  void send_DatagramSocket_HandlesMultipleLocalIsdNumbers() throws IOException {
+    int size = 10;
+    try (MockNetwork2 nw =
+        MockNetwork2.startPS(MockNetwork2.Topology.MINIMAL, "ASff00_0_111", "ASff00_0_211")) {
+      installPaths_111_211_to_121(nw);
+
+      InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+      MockDNS.install("1-ff00:0:121", serverAddress.getAddress());
+      try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
+        assertFalse(server.isConnected()); // connected sockets do not have a cache
+        InetSocketAddress clientAddress1;
+        InetSocketAddress clientAddress2;
+
+        // 1st client
+        try (ScionDatagramSocket client =
+            new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
+          client.connect(serverAddress);
+          assertEquals(
+              server.getLocalSocketAddress(), client.getConnectionPath().getRemoteSocketAddress());
+          clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();
+          DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
+          client.send(packet1);
+        }
+
+        DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
+        server.receive(packet1);
+        // We only compare the port. Depending on the OS, the IP may have changed to 127.0.0.1 or
+        // not.
+        assertEquals(
+            clientAddress1.getPort(), ((InetSocketAddress) packet1.getSocketAddress()).getPort());
+
+        Path path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
+        assertEquals(clientAddress1.getPort(), path1.getRemotePort());
+      }
+    }
+  }
+
+  InetSocketAddress toScionAddress(SocketAddress in) {
+    try {
+      InetAddress ipIn = ((InetSocketAddress) in).getAddress();
+      InetAddress ipOut = InetAddress.getByAddress("myScionAddress", ipIn.getAddress());
+      InetSocketAddress out = new InetSocketAddress(ipOut, ((InetSocketAddress) in).getPort());
+      MockDNS.install("1-ff00:0:110", out.getAddress());
+      return out;
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static void installPaths_111_211_to_121(MockNetwork2 nw) {
+    nw.getPathServices().forEach(MockPathService::clearSegments);
+
+    long now = Instant.now().getEpochSecond();
+    // Source IA #1: 1-ff00:0:111 -> 1-ff00:0:110 -> 1-ff00:0:120 -> 1-ff00:0:121
+    addUpSegment(nw, AS_111, AS_110, 2, 111, now);
+    addCoreSegment(nw, AS_110, AS_120, 1, 2, now);
+
+    // Source IA #2: 2-ff00:0:211 -> 2-ff00:0:210 -> 1-ff00:0:120 -> 1-ff00:0:121
+    addUpSegment(nw, AS_211, AS_210, 2, 1111, now);
+    addCoreSegment(nw, AS_210, AS_120, 1, 2, now);
+
+    // Shared destination down segment.
+    addDownSegment(nw, AS_120, AS_121, 121, 41, now);
   }
 
   private static Seg.SegmentsResponse buildResponse(
