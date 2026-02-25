@@ -325,8 +325,7 @@ public class ScionService {
     List<Path> scionPaths = new ArrayList<>(paths.size());
     for (PathMetadata path : paths) {
       scionPaths.add(
-          RequestPath.create(
-              path, srcIsdAs, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
+          RequestPath.create(path, localAS.getIsdAses(), dstAddress.getInetAddress(), dstPort));
     }
     return scionPaths;
   }
@@ -335,7 +334,7 @@ public class ScionService {
     return localAS.getIsdAs();
   }
 
-  public List<Long> getLocalIsdAses() {
+  public Set<Long> getLocalIsdAses() {
     return localAS.getIsdAses();
   }
 
