@@ -330,7 +330,6 @@ public class ScionService {
   }
 
   /**
-   *
    * @return local ISD/AS. If multiple are available, it will return a random one.
    * @deprecated To be removed in 0.8.0.
    */
