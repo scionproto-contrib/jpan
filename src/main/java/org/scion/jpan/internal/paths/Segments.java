@@ -182,8 +182,8 @@ public class Segments {
   }
 
   /**
-   * Lookup segments, construct paths, and return paths from a path service (new endhost API).
-   * See {@link #getPathsCS(ControlServiceGrpc, LocalAS, long, long, boolean)}.
+   * Lookup segments, construct paths, and return paths from a path service (new endhost API). See
+   * {@link #getPathsCS(ControlServiceGrpc, LocalAS, long, long, boolean)}.
    *
    * @param service PathService
    * @param localAS This provides the local interface address
@@ -299,7 +299,7 @@ public class Segments {
       long dstIsdAs) {
     for (PathSegment pathSegment : segments) {
       if (containsIsdAses(pathSegment, srcIsdAs, dstIsdAs)) {
-        buildPath(paths, localAS, dstIsdAs, pathSegment);
+        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment);
       }
     }
   }
@@ -326,7 +326,7 @@ public class Segments {
     for (PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
       for (PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
-        buildPath(paths, localAS, dstIsdAs, pathSegment0, pathSegment1);
+        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment0, pathSegment1);
       }
     }
   }
@@ -352,6 +352,7 @@ public class Segments {
             pathSeg,
             downSegments.get(endIAs[1]),
             localAS,
+            srcIsdAs,
             dstIsdAs);
       }
       if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
@@ -361,6 +362,7 @@ public class Segments {
             pathSeg,
             downSegments.get(endIAs[0]),
             localAS,
+            srcIsdAs,
             dstIsdAs);
       }
     }
@@ -372,21 +374,26 @@ public class Segments {
       PathSegment segCore,
       List<PathSegment> segmentsDown,
       LocalAS localAS,
+      long srcIsdAs,
       long dstIA) {
     for (PathSegment segUp : segmentsUp) {
       for (PathSegment segDown : segmentsDown) {
-        buildPath(paths, localAS, dstIA, segUp, segCore, segDown);
+        buildPath(paths, localAS, srcIsdAs, dstIA, segUp, segCore, segDown);
       }
     }
   }
 
   private static void buildPath(
-      PathDuplicationFilter paths, LocalAS localAS, long dstIsdAs, PathSegment... segments) {
+      PathDuplicationFilter paths,
+      LocalAS localAS,
+      long srcIsdAs,
+      long dstIsdAs,
+      PathSegment... segments) {
     PathMetadata.Builder path = PathMetadata.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
     Range[] ranges = new Range[segments.length]; // [start (inclusive), end (exclusive), increment]
-    long startIA = localAS.getIsdAs();
+    long startIA = srcIsdAs;
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       ranges[i] = createRange(segments[i], startIA, endingIA);
@@ -398,7 +405,7 @@ public class Segments {
       segments = new PathSegment[] {segments[0]};
       ranges = new Range[] {ranges[0]};
       LOG.debug("Found on-path AS on UP segment.");
-    } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
+    } else if (detectOnPathDown(segments, srcIsdAs, ranges)) {
       segments = new PathSegment[] {segments[segments.length - 1]};
       ranges = new Range[] {ranges[ranges.length - 1]};
       LOG.debug("Found on-path AS on DOWN segment.");
