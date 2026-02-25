@@ -55,7 +55,7 @@ public class Segments {
   private Segments() {}
 
   /**
-   * Lookup segments, construct paths, and return paths.
+   * Lookup segments, construct paths, and return paths from a control service.
    *
    * <p>Implementation notes. The sequence diagrams Fig. 43. and 4.4 in the book (edition 2022)
    * seems to suggest to always request UP, CORE and DOWN, even if paths without CORE are possible.
@@ -77,7 +77,7 @@ public class Segments {
    *     to, depth-first search as proposed in the Scion book 2022, page 82.
    * @return list of available paths (unordered)
    */
-  public static List<PathMetadata> getPaths(
+  public static List<PathMetadata> getPathsCS(
       ControlServiceGrpc service,
       LocalAS localAS,
       long srcIsdAs,
@@ -182,23 +182,24 @@ public class Segments {
   }
 
   /**
-   * See {@link #getPaths(ControlServiceGrpc, LocalAS, long, long, boolean)}.
+   * Lookup segments, construct paths, and return paths from a path service (new endhost API).
+   * See {@link #getPathsCS(ControlServiceGrpc, LocalAS, long, long, boolean)}.
    *
    * @param service PathService
    * @param localAS This provides the local interface address
-   * @param srcIsdAs source ISD/AS
+   * @param srcIsdAses source ISD/AS identifiers
    * @param dstIsdAs destination ISD/AS
    * @return list of paths
    */
-  public static List<PathMetadata> getPaths(
-      PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
+  public static List<PathMetadata> getPathsPS(
+      PathServiceRpc service, LocalAS localAS, Set<Long> srcIsdAses, long dstIsdAs) {
     // We do not sort the paths here, we kind of rely on the order given by the path service
-    return getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
+    return getPathsInternal(service, localAS, srcIsdAses, dstIsdAs);
   }
 
   private static List<PathMetadata> getPathsInternal(
-      PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
-    if (srcIsdAs == dstIsdAs) {
+      PathServiceRpc service, LocalAS localAS, Set<Long> srcIsdAses, long dstIsdAs) {
+    if (srcIsdAses.contains(dstIsdAs)) {
       // same AS, return empty path
       PathMetadata.Builder path = PathMetadata.newBuilder();
       path.setMtu(localAS.getMtu());
@@ -206,8 +207,13 @@ public class Segments {
       return Collections.singletonList(path.build());
     }
 
-    List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
-    return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS);
+    List<PathMetadata> paths = new ArrayList<>();
+    for (Long srcIsdAs : srcIsdAses) {
+      List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
+      paths.addAll(
+          combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS));
+    }
+    return paths;
   }
 
   @SuppressWarnings("unchecked")

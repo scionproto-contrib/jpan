@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     THe actual SCION UDP socket can be used for multiple ISDs, because it simply takes a path
     and send out the the packet.
     --> Bootstrapping is still a problem, how do we get multiple topology files?
-    Multiple New-endhost-APIs?- 
+    Multiple New-endhost-APIs? 
   - Possible refactorings:
     - Design bootstrapping (not necessary for shared CS)
     - Multi-ISD topology file? May work, but needs adaptation of staticInfoConfig.json.
@@ -163,7 +163,7 @@ TODO
 - NAT keepalive uses non-daemon timer
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 
-### Changes
+### Changed
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
   [#219](https://github.com/scionproto-contrib/jpan/pull/219)
@@ -192,6 +192,9 @@ TODO
       complicate PathProviders...?
       Or: ScionAddress has path, but path has no reference to source address?
       Actually: the path is in PathMetadata. not in "Path", so we already have that...
+  - ScionService.getIsdAses(hostName) should return multiple ISDs.
+    But we should keep the original implementation as an option to get
+    only a single ISD/AS, e.g. without querying DNS.
 
 
 ### Removed
