@@ -52,9 +52,12 @@ class ScionServiceMultiIsdTest {
 
   @Test
   void getPaths_pathServiceHandlesMultipleLocalIsdNumbers() {
-    try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.MINIMAL, "ASff00_0_111")) {
+    // We use 111 and 211 as identifiers for the local AS. In practice, only the ISD should
+    // differ and the AS number should be the same, but that would require more changes to the
+    // test classes.
+    try (MockNetwork2 nw =
+        MockNetwork2.startPS(MockNetwork2.Topology.MINIMAL, "ASff00_0_111", "ASff00_0_211")) {
       nw.getPathServices().forEach(MockPathService::clearSegments);
-      nw.getPathServices().forEach(ps -> ps.setCustomIsdAses(Arrays.asList(AS_111, AS_211)));
 
       long now = Instant.now().getEpochSecond();
       // Source IA #1: 1-ff00:0:111 -> 1-ff00:0:110 -> 1-ff00:0:120 -> 1-ff00:0:121

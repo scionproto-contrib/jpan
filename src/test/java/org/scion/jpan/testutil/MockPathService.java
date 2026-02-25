@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,14 +45,14 @@ public class MockPathService {
   private PathServiceImpl pathService;
   private final Semaphore block = new Semaphore(1);
   private final AtomicReference<NanoHTTPD.Response.Status> errorToReport = new AtomicReference<>();
-  private final AsInfo asInfo;
+  private final List<AsInfo> asInfos;
 
-  private MockPathService(AsInfo asInfo) {
-    this.asInfo = asInfo;
+  private MockPathService(List<AsInfo> asInfos) {
+    this.asInfos = asInfos;
   }
 
-  public static MockPathService start(int port, AsInfo asInfo) {
-    return new MockPathService(asInfo).startInternal(port);
+  public static MockPathService start(int port, List<AsInfo> asInfos) {
+    return new MockPathService(asInfos).startInternal(port);
   }
 
   public int getAndResetCallCount() {
@@ -96,10 +95,6 @@ public class MockPathService {
     return pathService.getListeningPort();
   }
 
-  public void setCustomIsdAses(List<Long> isdAses) {
-    pathService.setCustomIsdAses(isdAses);
-  }
-
   public void block() {
     try {
       block.acquire();
@@ -125,7 +120,6 @@ public class MockPathService {
     final Map<String, List<Seg.PathSegment>> responsesUP = new ConcurrentHashMap<>();
     final Map<String, List<Seg.PathSegment>> responsesCORE = new ConcurrentHashMap<>();
     final Map<String, List<Seg.PathSegment>> responsesDOWN = new ConcurrentHashMap<>();
-    private final List<Long> isdAses = new CopyOnWriteArrayList<>();
 
     public PathServiceImpl(int port) throws IOException {
       super(port);
@@ -233,21 +227,16 @@ public class MockPathService {
 
       Underlays.ListUnderlaysResponse.Builder b = Underlays.ListUnderlaysResponse.newBuilder();
       Underlays.UdpUnderlay.Builder udp = Underlays.UdpUnderlay.newBuilder();
-      int i = 0;
-      for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
-        Underlays.Router.Builder router = Underlays.Router.newBuilder();
-        if (isdAses != null && i < isdAses.size()) {
-          // TODO remove: this is a hack to ensure we have border routers with different ISD codes
-          router.setIsdAs(isdAses.get(i));
-        } else {
+      for (AsInfo asInfo : asInfos) {
+        for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
+          Underlays.Router.Builder router = Underlays.Router.newBuilder();
           router.setIsdAs(asInfo.getIsdAs());
+          router.setAddress(br.getInternalAddress());
+          for (AsInfo.BorderRouterInterface bri : br.getInterfaces()) {
+            router.addInterfaces(bri.id);
+          }
+          udp.addRouters(router.build());
         }
-        router.setAddress(br.getInternalAddress());
-        for (AsInfo.BorderRouterInterface bri : br.getInterfaces()) {
-          router.addInterfaces(bri.id);
-        }
-        udp.addRouters(router.build());
-        i++;
       }
       b.setUdp(udp);
 
@@ -314,13 +303,6 @@ public class MockPathService {
       responsesUP.clear();
       responsesCORE.clear();
       responsesDOWN.clear();
-    }
-
-    public void setCustomIsdAses(List<Long> isdAses) {
-      synchronized (this.isdAses) {
-        this.isdAses.clear();
-        this.isdAses.addAll(isdAses);
-      }
     }
 
     private String key(long ia0, long ia1) {

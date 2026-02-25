@@ -56,31 +56,36 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   public static MockNetwork2 start(Topology topo, String topoOfLocalAS) {
-    return new MockNetwork2(topo, topoOfLocalAS, false);
+    return new MockNetwork2(topo, new String[] {topoOfLocalAS}, false);
   }
 
-  public static MockNetwork2 startPS(Topology topo, String topoOfLocalAS) {
+  public static MockNetwork2 startPS(Topology topo, String... topoOfLocalAS) {
+    // This is currently a hack. We cn provide multiple AS numbers, when instead we also want to
+    // be able to provide multiple ISD numbers.
     return new MockNetwork2(topo, topoOfLocalAS, true);
   }
 
-  private MockNetwork2(Topology topo, String topoOfLocalAS, boolean usePathService) {
+  private MockNetwork2(Topology topo, String[] toposOfLocalAS, boolean usePathService) {
     if (usePathService) {
       topoServer = null;
-      Path path = Paths.get(topo.configDir + topoOfLocalAS);
-      AsInfo asInfo = JsonFileParser.parseTopology(path);
-      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_0, asInfo));
-      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_1, asInfo));
+      List<AsInfo> asInfos = new ArrayList<>();
+      for (String topoOfLocalAS : toposOfLocalAS) {
+        Path path = Paths.get(topo.configDir + topoOfLocalAS);
+        asInfos.add(JsonFileParser.parseTopology(path));
+      }
+      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_0, asInfos));
+      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_1, asInfos));
       String ps0 = "[::1]:" + MockPathService.DEFAULT_PORT_0;
       String ps1 = "127.0.0.1:" + MockPathService.DEFAULT_PORT_1;
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, ps0 + ";" + ps1);
     } else {
-      topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
+      topoServer = MockBootstrapServer.start(topo.configDir, toposOfLocalAS[0]);
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
         controlServices.add(MockControlServer.start(csAddress.getPort()));
       }
-      String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
+      String topoFileOfLocalAS = topo.configDir + toposOfLocalAS[0] + "/topology.json";
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
     }
 

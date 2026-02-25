@@ -181,7 +181,7 @@ TODO
   [#225](https://github.com/scionproto-contrib/jpan/pull/225)
   
 ### TODO
-  - Think about having multiple ISD per destination!
+  - Think about having multiple ISD per _destination_!
     - Does that make sense? Should we simply require multiple calls to getPaths()?
     - ScionService.getIsdAses(hostName) should return multiple ISDs.
       But we should keep the original implementation as an option to get
