@@ -614,7 +614,8 @@ class DatagramSocketApiTest {
           String msg = PingPongSocketHelper.MSG;
 
           DatagramPacket packet =
-              new DatagramPacket(msg.getBytes(), msg.length(), toAddress(expiredPath));
+              new DatagramPacket(
+                  msg.getBytes(), msg.length(), expiredPath.getRemoteSocketAddress());
           try {
             socket.send(packet);
             Path newPath = socket.getConnectionPath();
@@ -658,10 +659,6 @@ class DatagramSocketApiTest {
             basePath.getFirstHopAddress());
     assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
     return expiredPath;
-  }
-
-  private static InetSocketAddress toAddress(Path path) {
-    return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
   }
 
   @Test
@@ -769,7 +766,8 @@ class DatagramSocketApiTest {
       try (ScionDatagramSocket client =
           new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
         client.connect(serverAddress);
-        assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
+        assertEquals(
+            server.getLocalSocketAddress(), client.getConnectionPath().getRemoteSocketAddress());
         clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();
         DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet1);
@@ -782,13 +780,14 @@ class DatagramSocketApiTest {
           clientAddress1.getPort(), ((InetSocketAddress) packet1.getSocketAddress()).getPort());
 
       Path path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
+      assertEquals(clientAddress1.getPort(), path1.getRemotePort());
 
       // 2nd client
       try (ScionDatagramSocket client =
           new ScionDatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 12}))) {
         client.connect(serverAddress);
-        assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
+        assertEquals(
+            server.getLocalSocketAddress(), client.getConnectionPath().getRemoteSocketAddress());
         clientAddress2 = (InetSocketAddress) client.getLocalSocketAddress();
         DatagramPacket packet2 = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet2);
@@ -804,10 +803,10 @@ class DatagramSocketApiTest {
 
       // path 1 should still be there
       path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
+      assertEquals(clientAddress1.getPort(), path1.getRemotePort());
       // path 2 should also be there
       Path path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
+      assertEquals(clientAddress2.getPort(), path2.getRemotePort());
 
       // reduce capacity
       server.setPathCacheCapacity(1);
@@ -817,7 +816,7 @@ class DatagramSocketApiTest {
       assertNull(server.getCachedPath((InetSocketAddress) packet1.getSocketAddress()));
       // path 2 should be there
       path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
+      assertEquals(clientAddress2.getPort(), path2.getRemotePort());
     }
   }
 
