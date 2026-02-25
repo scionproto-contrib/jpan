@@ -411,9 +411,9 @@ class DatagramSocketApiTest {
     // can be circumvented by using socket.getChannel() or socket.getCachedPath().)
     MockDNS.clear();
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
-
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet);
@@ -435,9 +435,9 @@ class DatagramSocketApiTest {
   @Test
   void send_wrongPort_connected() throws IOException {
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
-
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.connect(serverAddress);
@@ -450,24 +450,12 @@ class DatagramSocketApiTest {
     }
   }
 
-  InetSocketAddress toScionAddress(SocketAddress in) {
-    try {
-      InetAddress ipIn = ((InetSocketAddress) in).getAddress();
-      InetAddress ipOut = InetAddress.getByAddress("myScionAddress", ipIn.getAddress());
-      InetSocketAddress out = new InetSocketAddress(ipOut, ((InetSocketAddress) in).getPort());
-      MockDNS.install("1-ff00:0:110", out.getAddress());
-      return out;
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   @Test
   void send_wrongAddress() throws IOException {
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
-
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet);
@@ -770,9 +758,10 @@ class DatagramSocketApiTest {
   @Test
   void testPathCache() throws IOException {
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       assertFalse(server.isConnected()); // connected sockets do not have a cache
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
       InetSocketAddress clientAddress1;
       InetSocketAddress clientAddress2;
 
