@@ -149,7 +149,7 @@ public class ProtobufPathDemo {
     ScionService csService =
         Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
     ControlServiceGrpc cs = PackageVisibilityHelper.getControlService(csService);
-    List<PathMetadata> paths = Segments.getPaths(cs, csService.getLocalAS(), srcIA, dstIA, false);
+    List<PathMetadata> paths = Segments.getPathsCS(cs, csService.getLocalAS(), srcIA, dstIA, false);
     System.out.println("Paths found: " + paths.size());
     for (PathMetadata path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());

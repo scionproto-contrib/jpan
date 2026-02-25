@@ -181,6 +181,12 @@ TODO
   [#225](https://github.com/scionproto-contrib/jpan/pull/225)
   
 ### TODO
+  - Think about having multiple ISD per destination!
+    - Does that make sense? Should we simply require multiple calls to getPaths()?
+    - ScionService.getIsdAses(hostName) should return multiple ISDs.
+      But we should keep the original implementation as an option to get
+      only a single ISD/AS, e.g. without querying DNS.
+    - Later?!??!!!!
   - Test! -> Receive paths with different ISD?!?! -> separate PR?
     - also test PathProvider.
     - Test: MTU with new endhost API...
@@ -192,9 +198,6 @@ TODO
       complicate PathProviders...?
       Or: ScionAddress has path, but path has no reference to source address?
       Actually: the path is in PathMetadata. not in "Path", so we already have that...
-  - ScionService.getIsdAses(hostName) should return multiple ISDs.
-    But we should keep the original implementation as an option to get
-    only a single ISD/AS, e.g. without querying DNS.
 
 
 ### Removed
