@@ -233,6 +233,10 @@ public class MockNetwork {
   }
 
   public static boolean useShim() {
+    if (mock == null) {
+      // Probably running MockNetwork2
+      return false;
+    }
     String config = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_SHIM, Constants.ENV_SHIM);
     boolean hasAllPorts = mock.asInfoLocal.getPortRange().hasPortRangeALL();
     return config != null ? Boolean.parseBoolean(config) : !hasAllPorts;

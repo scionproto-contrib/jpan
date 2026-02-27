@@ -30,12 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Path;
-import org.scion.jpan.Scion;
-import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionSocketAddress;
-import org.scion.jpan.ScionUtil;
+import org.scion.jpan.*;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -65,7 +60,9 @@ class ScionServiceMultiIsdTiny4DatagramChannelTest {
 
       serverThread.submit(
           news -> {
-            try (ScionDatagramChannel server = ScionDatagramChannel.open()) {
+            ScionService service110 =
+                Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json");
+            try (ScionDatagramChannel server = ScionDatagramChannel.open(service110)) {
               server.bind(serverAddress);
               news.reportStarted();
               for (int i = 0; i < 2; i++) {

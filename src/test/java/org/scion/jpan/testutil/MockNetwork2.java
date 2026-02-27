@@ -89,7 +89,7 @@ public class MockNetwork2 implements AutoCloseable {
 
   private MockNetwork2(Topology topo, String[] toposOfLocalAS, boolean usePathService) {
     this.topo = topo;
-    routers = Executors.newFixedThreadPool(2);
+    routers = Executors.newCachedThreadPool(); // TODO !!!!! Use FOrkJoinPool?
     if (usePathService) {
       topoServer = null;
       for (String topoOfLocalAS : toposOfLocalAS) {
@@ -143,7 +143,16 @@ public class MockNetwork2 implements AutoCloseable {
               "BR: " + br.getInternalAddress() + " " + ScionUtil.toStringIA(brIf.isdAs)); // TODO
           InetSocketAddress bind1 = IPHelper.toInetSocketAddress(br.getInternalAddress());
           InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
-          brList.add(new MockBorderRouter(brList.size(), bind1, bind2, brIf.id, remoteId, barrier));
+          if (bind1.getPort() < bind2.getPort()) {
+            brList.add(
+                new MockBorderRouter(brList.size(), bind1, bind2, brIf.id, remoteId, barrier));
+          } else {
+            System.err.println(
+                "   Skipping BR: "
+                    + br.getInternalAddress()
+                    + " "
+                    + ScionUtil.toStringIA(brIf.isdAs)); // TODO
+          }
           brAddresses.add(bind1);
         }
       }
