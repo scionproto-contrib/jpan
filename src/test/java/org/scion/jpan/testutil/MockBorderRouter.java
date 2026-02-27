@@ -42,14 +42,22 @@ public class MockBorderRouter implements Runnable {
   private final InetSocketAddress bind2;
   private final int interfaceId1;
   private final int interfaceId2;
+  private final Barrier barrier;
 
-  MockBorderRouter(int id, InetSocketAddress bind1, InetSocketAddress bind2, int ifId1, int ifId2) {
+  MockBorderRouter(
+      int id,
+      InetSocketAddress bind1,
+      InetSocketAddress bind2,
+      int ifId1,
+      int ifId2,
+      Barrier barrier) {
     this.id = id;
     this.name = "BorderRouter-" + id;
     this.bind1 = bind1;
     this.bind2 = bind2;
     this.interfaceId1 = ifId1;
     this.interfaceId2 = ifId2;
+    this.barrier = barrier;
   }
 
   @Override
@@ -63,7 +71,7 @@ public class MockBorderRouter implements Runnable {
       chnLocal.register(selector, SelectionKey.OP_READ, chnRemote);
       chnRemote.register(selector, SelectionKey.OP_READ, chnLocal);
       ByteBuffer buffer = ByteBuffer.allocate(66000);
-      MockNetwork.barrier.countDown();
+      barrier.countDown();
       logger.info("{} started on ports {} <-> {}", name, bind1, bind2);
 
       while (true) {

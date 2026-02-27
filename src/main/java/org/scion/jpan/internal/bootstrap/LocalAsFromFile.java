@@ -17,6 +17,7 @@ package org.scion.jpan.internal.bootstrap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.util.*;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
@@ -35,7 +36,7 @@ public class LocalAsFromFile {
     int localMtu = 0;
     LocalAS.DispatcherPortRange portRange = null;
 
-    JsonElement jsonTree = com.google.gson.JsonParser.parseString(topologyFile);
+    JsonElement jsonTree = JsonParser.parseString(topologyFile);
     if (jsonTree.isJsonObject()) {
       JsonObject o = jsonTree.getAsJsonObject();
       localIsdAs = ScionUtil.parseIA(safeGet(o, "isd_as").getAsString());
@@ -90,7 +91,7 @@ public class LocalAsFromFile {
     }
 
     return new LocalAS(
-        localIsdAs,
+        Collections.singleton(localIsdAs),
         isCoreAs,
         localMtu,
         portRange,

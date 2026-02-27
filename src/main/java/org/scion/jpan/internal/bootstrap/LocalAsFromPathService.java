@@ -16,7 +16,10 @@ package org.scion.jpan.internal.bootstrap;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -39,9 +42,12 @@ public class LocalAsFromPathService {
     Underlays.ListUnderlaysResponse u = query(snList, pathService);
     if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
       LOG.warn("No underlay available");
-      return new LocalAS(0, false, 1200, null, null, null, null, trcStore);
+      return new LocalAS(Collections.emptySet(), false, 1200, null, null, null, null, trcStore);
     }
-    long isdAs = u.getUdp().getRoutersList().get(0).getIsdAs();
+    Set<Long> isdAs =
+        u.getUdp().getRoutersList().stream()
+            .map(Underlays.Router::getIsdAs)
+            .collect(Collectors.toSet());
     List<LocalAS.BorderRouter> brList = getBorderRouterList(u);
     return new LocalAS(
         isdAs,

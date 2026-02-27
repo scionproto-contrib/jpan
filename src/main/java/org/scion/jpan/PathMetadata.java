@@ -244,6 +244,20 @@ public class PathMetadata {
     return epicAuths;
   }
 
+  public long getSrcIdsAs() {
+    if (pathInterfaces.isEmpty()) {
+      return -1;
+    }
+    return pathInterfaces.get(0).isdAs;
+  }
+
+  public long getDstIdsAs() {
+    if (pathInterfaces.isEmpty()) {
+      return -1;
+    }
+    return pathInterfaces.get(pathInterfaces.size() - 1).getIsdAs();
+  }
+
   public enum LinkType {
     /** Unspecified link type. */
     UNSPECIFIED, // = 0

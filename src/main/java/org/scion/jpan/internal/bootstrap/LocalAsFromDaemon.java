@@ -34,7 +34,7 @@ public class LocalAsFromDaemon {
   public static LocalAS create(DaemonServiceGrpc daemonService, TrcStore trcStore) {
     Daemon.ASResponse as = readASInfo(daemonService);
     return new LocalAS(
-        as.getIsdAs(),
+        Collections.singleton(as.getIsdAs()),
         as.getCore(),
         as.getMtu(),
         readLocalPortRange(daemonService),

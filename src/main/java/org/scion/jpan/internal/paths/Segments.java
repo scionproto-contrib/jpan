@@ -55,7 +55,7 @@ public class Segments {
   private Segments() {}
 
   /**
-   * Lookup segments, construct paths, and return paths.
+   * Lookup segments, construct paths, and return paths from a control service.
    *
    * <p>Implementation notes. The sequence diagrams Fig. 43. and 4.4 in the book (edition 2022)
    * seems to suggest to always request UP, CORE and DOWN, even if paths without CORE are possible.
@@ -77,7 +77,7 @@ public class Segments {
    *     to, depth-first search as proposed in the Scion book 2022, page 82.
    * @return list of available paths (unordered)
    */
-  public static List<PathMetadata> getPaths(
+  public static List<PathMetadata> getPathsCS(
       ControlServiceGrpc service,
       LocalAS localAS,
       long srcIsdAs,
@@ -182,23 +182,24 @@ public class Segments {
   }
 
   /**
-   * See {@link #getPaths(ControlServiceGrpc, LocalAS, long, long, boolean)}.
+   * Lookup segments, construct paths, and return paths from a path service (new endhost API). See
+   * {@link #getPathsCS(ControlServiceGrpc, LocalAS, long, long, boolean)}.
    *
    * @param service PathService
    * @param localAS This provides the local interface address
-   * @param srcIsdAs source ISD/AS
+   * @param srcIsdAses source ISD/AS identifiers
    * @param dstIsdAs destination ISD/AS
    * @return list of paths
    */
-  public static List<PathMetadata> getPaths(
-      PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
+  public static List<PathMetadata> getPathsPS(
+      PathServiceRpc service, LocalAS localAS, Set<Long> srcIsdAses, long dstIsdAs) {
     // We do not sort the paths here, we kind of rely on the order given by the path service
-    return getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
+    return getPathsInternal(service, localAS, srcIsdAses, dstIsdAs);
   }
 
   private static List<PathMetadata> getPathsInternal(
-      PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
-    if (srcIsdAs == dstIsdAs) {
+      PathServiceRpc service, LocalAS localAS, Set<Long> srcIsdAses, long dstIsdAs) {
+    if (srcIsdAses.contains(dstIsdAs)) {
       // same AS, return empty path
       PathMetadata.Builder path = PathMetadata.newBuilder();
       path.setMtu(localAS.getMtu());
@@ -206,8 +207,13 @@ public class Segments {
       return Collections.singletonList(path.build());
     }
 
-    List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
-    return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS);
+    List<PathMetadata> paths = new ArrayList<>();
+    for (Long srcIsdAs : srcIsdAses) {
+      List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
+      paths.addAll(
+          combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS));
+    }
+    return paths;
   }
 
   @SuppressWarnings("unchecked")
@@ -293,7 +299,7 @@ public class Segments {
       long dstIsdAs) {
     for (PathSegment pathSegment : segments) {
       if (containsIsdAses(pathSegment, srcIsdAs, dstIsdAs)) {
-        buildPath(paths, localAS, dstIsdAs, pathSegment);
+        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment);
       }
     }
   }
@@ -320,7 +326,7 @@ public class Segments {
     for (PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
       for (PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
-        buildPath(paths, localAS, dstIsdAs, pathSegment0, pathSegment1);
+        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment0, pathSegment1);
       }
     }
   }
@@ -346,6 +352,7 @@ public class Segments {
             pathSeg,
             downSegments.get(endIAs[1]),
             localAS,
+            srcIsdAs,
             dstIsdAs);
       }
       if (upSegments.contains(endIAs[1]) && downSegments.contains(endIAs[0])) {
@@ -355,6 +362,7 @@ public class Segments {
             pathSeg,
             downSegments.get(endIAs[0]),
             localAS,
+            srcIsdAs,
             dstIsdAs);
       }
     }
@@ -366,21 +374,26 @@ public class Segments {
       PathSegment segCore,
       List<PathSegment> segmentsDown,
       LocalAS localAS,
+      long srcIsdAs,
       long dstIA) {
     for (PathSegment segUp : segmentsUp) {
       for (PathSegment segDown : segmentsDown) {
-        buildPath(paths, localAS, dstIA, segUp, segCore, segDown);
+        buildPath(paths, localAS, srcIsdAs, dstIA, segUp, segCore, segDown);
       }
     }
   }
 
   private static void buildPath(
-      PathDuplicationFilter paths, LocalAS localAS, long dstIsdAs, PathSegment... segments) {
+      PathDuplicationFilter paths,
+      LocalAS localAS,
+      long srcIsdAs,
+      long dstIsdAs,
+      PathSegment... segments) {
     PathMetadata.Builder path = PathMetadata.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
     Range[] ranges = new Range[segments.length]; // [start (inclusive), end (exclusive), increment]
-    long startIA = localAS.getIsdAs();
+    long startIA = srcIsdAs;
     final ByteUtil.MutLong endingIA = new ByteUtil.MutLong(-1);
     for (int i = 0; i < segments.length; i++) {
       ranges[i] = createRange(segments[i], startIA, endingIA);
@@ -392,7 +405,7 @@ public class Segments {
       segments = new PathSegment[] {segments[0]};
       ranges = new Range[] {ranges[0]};
       LOG.debug("Found on-path AS on UP segment.");
-    } else if (detectOnPathDown(segments, localAS.getIsdAs(), ranges)) {
+    } else if (detectOnPathDown(segments, srcIsdAs, ranges)) {
       segments = new PathSegment[] {segments[segments.length - 1]};
       ranges = new Range[] {ranges[ranges.length - 1]};
       LOG.debug("Found on-path AS on DOWN segment.");

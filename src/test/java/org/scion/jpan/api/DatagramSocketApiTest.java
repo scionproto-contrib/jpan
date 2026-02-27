@@ -411,9 +411,9 @@ class DatagramSocketApiTest {
     // can be circumvented by using socket.getChannel() or socket.getCachedPath().)
     MockDNS.clear();
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
-
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet);
@@ -435,9 +435,9 @@ class DatagramSocketApiTest {
   @Test
   void send_wrongPort_connected() throws IOException {
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
-
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.connect(serverAddress);
@@ -450,24 +450,12 @@ class DatagramSocketApiTest {
     }
   }
 
-  InetSocketAddress toScionAddress(SocketAddress in) {
-    try {
-      InetAddress ipIn = ((InetSocketAddress) in).getAddress();
-      InetAddress ipOut = InetAddress.getByAddress("myScionAddress", ipIn.getAddress());
-      InetSocketAddress out = new InetSocketAddress(ipOut, ((InetSocketAddress) in).getPort());
-      MockDNS.install("1-ff00:0:110", out.getAddress());
-      return out;
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   @Test
   void send_wrongAddress() throws IOException {
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
-
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       try (ScionDatagramSocket client = new ScionDatagramSocket()) {
         DatagramPacket packet = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet);
@@ -626,7 +614,8 @@ class DatagramSocketApiTest {
           String msg = PingPongSocketHelper.MSG;
 
           DatagramPacket packet =
-              new DatagramPacket(msg.getBytes(), msg.length(), toAddress(expiredPath));
+              new DatagramPacket(
+                  msg.getBytes(), msg.length(), expiredPath.getRemoteSocketAddress());
           try {
             socket.send(packet);
             Path newPath = socket.getConnectionPath();
@@ -670,10 +659,6 @@ class DatagramSocketApiTest {
             basePath.getFirstHopAddress());
     assertTrue(Instant.now().getEpochSecond() > expiredPath.getMetadata().getExpiration());
     return expiredPath;
-  }
-
-  private static InetSocketAddress toAddress(Path path) {
-    return new InetSocketAddress(path.getRemoteAddress(), path.getRemotePort());
   }
 
   @Test
@@ -770,9 +755,10 @@ class DatagramSocketApiTest {
   @Test
   void testPathCache() throws IOException {
     int size = 10;
-    try (ScionDatagramSocket server = new ScionDatagramSocket(MockNetwork.getTinyServerAddress())) {
+    InetSocketAddress serverAddress = MockNetwork.getTinyServerAddress();
+    MockDNS.install("1-ff00:0:110", serverAddress.getAddress());
+    try (ScionDatagramSocket server = new ScionDatagramSocket(serverAddress)) {
       assertFalse(server.isConnected()); // connected sockets do not have a cache
-      InetSocketAddress serverAddress = toScionAddress(server.getLocalSocketAddress());
       InetSocketAddress clientAddress1;
       InetSocketAddress clientAddress2;
 
@@ -780,7 +766,8 @@ class DatagramSocketApiTest {
       try (ScionDatagramSocket client =
           new ScionDatagramSocket(11111, InetAddress.getByAddress(new byte[] {127, 0, 0, 11}))) {
         client.connect(serverAddress);
-        assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
+        assertEquals(
+            server.getLocalSocketAddress(), client.getConnectionPath().getRemoteSocketAddress());
         clientAddress1 = (InetSocketAddress) client.getLocalSocketAddress();
         DatagramPacket packet1 = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet1);
@@ -793,13 +780,14 @@ class DatagramSocketApiTest {
           clientAddress1.getPort(), ((InetSocketAddress) packet1.getSocketAddress()).getPort());
 
       Path path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
+      assertEquals(clientAddress1.getPort(), path1.getRemotePort());
 
       // 2nd client
       try (ScionDatagramSocket client =
           new ScionDatagramSocket(22222, InetAddress.getByAddress(new byte[] {127, 0, 0, 12}))) {
         client.connect(serverAddress);
-        assertEquals(server.getLocalSocketAddress(), toAddress(client.getConnectionPath()));
+        assertEquals(
+            server.getLocalSocketAddress(), client.getConnectionPath().getRemoteSocketAddress());
         clientAddress2 = (InetSocketAddress) client.getLocalSocketAddress();
         DatagramPacket packet2 = new DatagramPacket(new byte[size], size, serverAddress);
         client.send(packet2);
@@ -815,10 +803,10 @@ class DatagramSocketApiTest {
 
       // path 1 should still be there
       path1 = server.getCachedPath((InetSocketAddress) packet1.getSocketAddress());
-      assertEquals(clientAddress1.getPort(), toAddress(path1).getPort());
+      assertEquals(clientAddress1.getPort(), path1.getRemotePort());
       // path 2 should also be there
       Path path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
+      assertEquals(clientAddress2.getPort(), path2.getRemotePort());
 
       // reduce capacity
       server.setPathCacheCapacity(1);
@@ -828,7 +816,7 @@ class DatagramSocketApiTest {
       assertNull(server.getCachedPath((InetSocketAddress) packet1.getSocketAddress()));
       // path 2 should be there
       path2 = server.getCachedPath((InetSocketAddress) packet2.getSocketAddress());
-      assertEquals(clientAddress2.getPort(), toAddress(path2).getPort());
+      assertEquals(clientAddress2.getPort(), path2.getRemotePort());
     }
   }
 

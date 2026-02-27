@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -70,7 +69,7 @@ public class MockNetwork {
   static final AtomicInteger nStunRequests = new AtomicInteger();
   static final AtomicBoolean enableStun = new AtomicBoolean(true);
   static final AtomicReference<Predicate<ByteBuffer>> stunCallback = new AtomicReference<>();
-  static CountDownLatch barrier = null;
+  private static final Barrier barrier = new Barrier();
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
   private static ExecutorService routers = null;
   private static MockDaemon daemon = null;
@@ -138,22 +137,17 @@ public class MockNetwork {
         InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
         brList.add(
             new MockBorderRouter(
-                brList.size(), bind1, bind2, brIf.id, brIf.getRemoteInterface().id));
+                brList.size(), bind1, bind2, brIf.id, brIf.getRemoteInterface().id, barrier));
         mock.localAddress[brList.size() - 1] = bind1;
       }
     }
 
-    barrier = new CountDownLatch(brList.size());
+    barrier.reset(brList.size());
     for (MockBorderRouter br : brList) {
       routers.execute(br);
     }
-    try {
-      if (!barrier.await(1, TimeUnit.SECONDS)) {
-        throw new IllegalStateException("Failed to start border routers.");
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Timeout while waiting for border routers", e);
+    if (!barrier.await(1, TimeUnit.SECONDS)) {
+      throw new IllegalStateException("Failed to start border routers.");
     }
 
     if (mode == Mode.DAEMON) {
@@ -222,6 +216,8 @@ public class MockNetwork {
 
     MockScmpHandler.stop();
 
+    barrier.reset(0);
+
     dropNextPackets.getAndSet(0);
     scmpErrorOnNextPacket.set(null);
     enableStun.set(true);
@@ -237,6 +233,10 @@ public class MockNetwork {
   }
 
   public static boolean useShim() {
+    if (mock == null) {
+      // Probably running MockNetwork2
+      return false;
+    }
     String config = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_SHIM, Constants.ENV_SHIM);
     boolean hasAllPorts = mock.asInfoLocal.getPortRange().hasPortRangeALL();
     return config != null ? Boolean.parseBoolean(config) : !hasAllPorts;

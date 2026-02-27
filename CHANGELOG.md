@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     THe actual SCION UDP socket can be used for multiple ISDs, because it simply takes a path
     and send out the the packet.
     --> Bootstrapping is still a problem, how do we get multiple topology files?
-    Multiple New-endhost-APIs?- 
+    Multiple New-endhost-APIs? 
   - Possible refactorings:
     - Design bootstrapping (not necessary for shared CS)
     - Multi-ISD topology file? May work, but needs adaptation of staticInfoConfig.json.
@@ -163,7 +163,7 @@ TODO
 - NAT keepalive uses non-daemon timer
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 
-### Changes
+### Changed
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
   [#219](https://github.com/scionproto-contrib/jpan/pull/219)
@@ -177,16 +177,22 @@ TODO
   [#223](https://github.com/scionproto-contrib/jpan/pull/223)
 - Endhost API improvements: Remove ISD/AS from AddressLookupService
   [#224](https://github.com/scionproto-contrib/jpan/pull/224)
+- Endhost API improvements: Segments without srcIsdAs input
+  [#225](https://github.com/scionproto-contrib/jpan/pull/225)
   
 ### TODO
+  - Think about having multiple ISD per _destination_!
+    - Does that make sense? Should we simply require multiple calls to getPaths()?
+    - ScionService.getIsdAses(hostName) should return multiple ISDs.
+      But we should keep the original implementation as an option to get
+      only a single ISD/AS, e.g. without querying DNS.
+    - Later?!??!!!!
   - Test! -> Receive paths with different ISD?!?! -> separate PR?
     - also test PathProvider.
     - Test: MTU with new endhost API...
   - Avoid using local ISD/AS in:
-    - AddressLookupService
     - Segments -> get srcIsdAs from segments!
     - ScionService
-  - Have ScionService return list of known ISDs..? Or remove API?
   - Think about moving address into path
     - That would simplify Path API (remove response/request) but may
       complicate PathProviders...?
