@@ -47,6 +47,9 @@ class ScionServiceMultiIsdTiny4DatagramChannelTest {
 
   @Test
   void sendReceive_pathServiceHandlesMultipleLocalSourceAses_tiny4() throws IOException {
+
+    // TODO verufy this test works, e.g. the server receives paths from two different ASes.
+
     ManagedThread serverThread = ManagedThread.newBuilder().build();
     try (MockNetwork2 nw =
             MockNetwork2.startPS(MockNetwork2.Topology.TINY4, "ASff00_0_111", "ASff00_0_112");
