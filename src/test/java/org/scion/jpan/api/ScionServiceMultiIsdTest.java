@@ -43,8 +43,9 @@ import org.scion.jpan.testutil.MockPathService;
 @Disabled
 class ScionServiceMultiIsdTest {
 
-  private static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
   private static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
+  private static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
+  private static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
   private static final long AS_211 = ScionUtil.parseIA("2-ff00:0:211");
   private static final long AS_210 = ScionUtil.parseIA("2-ff00:0:210");
   private static final long AS_120 = ScionUtil.parseIA("1-ff00:0:120");
@@ -75,6 +76,21 @@ class ScionServiceMultiIsdTest {
               .collect(Collectors.toSet());
       assertTrue(sourceIsds.contains(ScionUtil.extractIsd(AS_111)));
       assertTrue(sourceIsds.contains(ScionUtil.extractIsd(AS_211)));
+    }
+  }
+
+  @Test
+  void getPaths_pathServiceHandlesMultipleLocalSourceAses_tiny4() {
+    try (MockNetwork2 nw =
+        MockNetwork2.startPS(MockNetwork2.Topology.TINY4, "ASff00_0_111", "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+      List<Path> paths =
+          service.getPaths(AS_110, new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+
+      assertEquals(2, paths.size());
+      Set<Long> sourceAses = paths.stream().map(Path::getLocalIsdAs).collect(Collectors.toSet());
+      assertTrue(sourceAses.contains(AS_111));
+      assertTrue(sourceAses.contains(AS_112));
     }
   }
 

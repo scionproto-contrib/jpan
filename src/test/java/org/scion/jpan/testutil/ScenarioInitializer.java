@@ -60,9 +60,10 @@ public class ScenarioInitializer {
   private final MockNetwork2 controlServer;
   private final Scenario scenario;
 
-  public static void init(MockNetwork2.Topology topo, MockNetwork2 controlServer) {
+  public static Scenario init(MockNetwork2.Topology topo, MockNetwork2 controlServer) {
     ScenarioInitializer si = new ScenarioInitializer(topo.configDir(), controlServer);
     topo.initializer().accept(si);
+    return si.scenario;
   }
 
   private ScenarioInitializer(String cfg, MockNetwork2 controlServer) {
