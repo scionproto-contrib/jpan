@@ -21,6 +21,7 @@ import com.google.protobuf.Timestamp;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 import okhttp3.OkHttpClient;
@@ -120,7 +121,7 @@ public class EndhostApiPathDemo {
     responseReader.close();
 
     //    String response = responseB.toString();
-    String response = new String(ba);
+    String response = new String(ba, StandardCharsets.UTF_8); // TODO test this again with this UTF8
     System.out.println("Client received len: " + response.length());
     System.out.println("Client received msg: " + response);
     System.out.println("Client received str: " + response);

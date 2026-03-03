@@ -320,19 +320,26 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   private List<Path> getPaths(ScionAddress dstAddress, int dstPort) {
-    long srcIsdAs = getLocalIsdAs();
-    List<PathMetadata> paths = getPathList(srcIsdAs, dstAddress.getIsdAs());
+    List<PathMetadata> paths = getPathList(dstAddress.getIsdAs());
     List<Path> scionPaths = new ArrayList<>(paths.size());
     for (PathMetadata path : paths) {
       scionPaths.add(
-          RequestPath.create(
-              path, srcIsdAs, dstAddress.getIsdAs(), dstAddress.getInetAddress(), dstPort));
+          RequestPath.create(path, localAS.getIsdAses(), dstAddress.getInetAddress(), dstPort));
     }
     return scionPaths;
   }
 
+  /**
+   * @return local ISD/AS. If multiple are available, it will return a random one.
+   * @deprecated To be removed in 0.8.0.
+   */
+  @Deprecated
   public long getLocalIsdAs() {
     return localAS.getIsdAs();
+  }
+
+  public Set<Long> getLocalIsdAses() {
+    return localAS.getIsdAses();
   }
 
   /**
@@ -344,24 +351,21 @@ public class ScionService {
     return AddressLookupService.getIsdAs(hostName);
   }
 
-  private List<PathMetadata> getPathList(long srcIsdAs, long dstIsdAs) {
+  private List<PathMetadata> getPathList(long dstIsdAs) {
     List<PathMetadata> list;
     if (pathService != null) {
       // query path service (new endhost API)
-      list = Segments.getPaths(pathService, localAS, srcIsdAs, dstIsdAs);
+      list = Segments.getPathsPS(pathService, localAS, getLocalIsdAses(), dstIsdAs);
     } else if (daemonService != null) {
       // query daemon
-      list = daemonService.pathsAsMetadata(srcIsdAs, dstIsdAs);
+      list = daemonService.pathsAsMetadata(getLocalIsdAs(), dstIsdAs);
     } else {
       // query control service
-      list = Segments.getPaths(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
+      long srcIsdAs = getLocalIsdAs();
+      list = Segments.getPathsCS(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
     }
     if (LOG.isInfoEnabled()) {
-      LOG.info(
-          "Paths found between {} and {}: {}",
-          ScionUtil.toStringIA(srcIsdAs),
-          ScionUtil.toStringIA(dstIsdAs),
-          list.size());
+      LOG.info("Paths found to {}: {}", ScionUtil.toStringIA(dstIsdAs), list.size());
     }
     return list;
   }

@@ -27,14 +27,14 @@ public class LocalAS {
   private final List<ServiceNode> discoveryServices;
   private final List<BorderRouter> borderRouters;
   private final Map<Integer, BorderRouter> interfaceIDs;
-  private final long localIsdAs;
+  private final Set<Long> localIsdAs;
   private final boolean isCoreAs;
   private final int localMtu;
   private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
 
   LocalAS(
-      long localIsdAs,
+      Set<Long> localIsdAs,
       boolean isCoreAs,
       int localMtu,
       DispatcherPortRange portRange,
@@ -42,7 +42,7 @@ public class LocalAS {
       List<ServiceNode> discoveryServices,
       List<BorderRouter> borderRouters,
       TrcStore trcStore) {
-    this.localIsdAs = localIsdAs;
+    this.localIsdAs = Collections.unmodifiableSet(localIsdAs);
     this.isCoreAs = isCoreAs;
     this.localMtu = localMtu;
     this.portRange = portRange;
@@ -81,7 +81,16 @@ public class LocalAS {
    * @return the ISD/AS number of the local AS
    * @deprecated This is not available in the new endhost API
    */
+  @Deprecated
   public long getIsdAs() {
+    // Just pick a random ISD/AS
+    return localIsdAs.iterator().next();
+  }
+
+  /**
+   * @return the ISD/AS numbers of the local AS
+   */
+  public Set<Long> getIsdAses() {
     return localIsdAs;
   }
 

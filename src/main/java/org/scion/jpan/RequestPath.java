@@ -16,6 +16,7 @@ package org.scion.jpan;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Set;
 import org.scion.jpan.internal.util.IPHelper;
 
 /**
@@ -27,6 +28,7 @@ public class RequestPath extends Path {
 
   private final PathMetadata metadata;
 
+  @Deprecated
   static RequestPath create(
       PathMetadata metadata, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
     // path length 0 means "local AS"
@@ -39,12 +41,35 @@ public class RequestPath extends Path {
     return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 
+  static RequestPath create(
+      PathMetadata metadata, Set<Long> isdAses, InetAddress dstIP, int dstPort) {
+    // path length 0 means "local AS"
+    InetSocketAddress firstHop;
+    long srcIsdAs;
+    long dstIsdAs;
+    if (metadata.getRawPath().length == 0) {
+      firstHop = new InetSocketAddress(dstIP, dstPort);
+      if (isdAses.isEmpty()) {
+        srcIsdAs = 0;
+      } else {
+        srcIsdAs = isdAses.iterator().next();
+      }
+      dstIsdAs = srcIsdAs;
+    } else {
+      firstHop = IPHelper.toInetSocketAddress(metadata.getLocalInterface().getAddress());
+      srcIsdAs = metadata.getSrcIdsAs();
+      dstIsdAs = metadata.getDstIdsAs();
+    }
+    return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+  }
+
   @Override
   public Path copy(InetAddress dstIP, int dstPort) {
     return new RequestPath(
         metadata, getFirstHopAddress(), getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
   }
 
+  @Deprecated
   private RequestPath(
       PathMetadata metadata,
       InetSocketAddress firstHop,
@@ -53,6 +78,18 @@ public class RequestPath extends Path {
       InetAddress dstIP,
       int dstPort) {
     super(metadata.getRawPath(), firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    this.metadata = metadata;
+  }
+
+  private RequestPath(
+      PathMetadata metadata, InetSocketAddress firstHop, InetAddress dstIP, int dstPort) {
+    super(
+        metadata.getRawPath(),
+        firstHop,
+        metadata.getSrcIdsAs(),
+        metadata.getDstIdsAs(),
+        dstIP,
+        dstPort);
     this.metadata = metadata;
   }
 

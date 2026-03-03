@@ -51,6 +51,7 @@ public class Scenario {
   private static final Map<String, Scenario> scenarios = new ConcurrentHashMap<>();
   private final Map<Long, String> daemons = new HashMap<>();
   private final Map<Long, LocalAS> topologies = new HashMap<>();
+  private final Map<Long, Path> topologyPaths = new HashMap<>();
   private final Map<Long, StaticInfo> staticInfo = new HashMap<>();
   /// isd/as -> ingress -> egress -> hopcount
   private final List<SegmentEntry> segmentDb = new ArrayList<>();
@@ -176,6 +177,37 @@ public class Scenario {
     return result;
   }
 
+  public List<AsInfo> createAsInfos() {
+    List<AsInfo> asInfos =
+        topologyPaths.entrySet().stream()
+            .map(entry -> JsonFileParser.parseTopologyAbsolutePath(entry.getValue()))
+            .collect(Collectors.toList());
+
+    // Now "connect" all border routers.
+    // First create list of all border router interfaces, keyed by address
+    Map<String, AsInfo.BorderRouterInterface> remoteInterfaces = new HashMap<>();
+    for (AsInfo asInfo : asInfos) {
+      for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
+        for (AsInfo.BorderRouterInterface brIf : br.getInterfaces()) {
+          // We can use the underlay address as key because it is unique (we ar running on a local)
+          AsInfo.BorderRouterInterface prev = remoteInterfaces.put(brIf.localUnderlay, brIf);
+          if (prev != null) {
+            throw new IllegalStateException("Duplicate underlay address: " + brIf.localUnderlay);
+          }
+        }
+      }
+    }
+
+    for (AsInfo asInfo : asInfos) {
+      for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
+        for (AsInfo.BorderRouterInterface brIf : br.getInterfaces()) {
+          brIf.setRemoteInterface(remoteInterfaces.get(brIf.remoteUnderlay));
+        }
+      }
+    }
+    return asInfos;
+  }
+
   private Scenario(Path file) {
     File parent = file.toFile();
     if (!parent.isDirectory()) {
@@ -198,6 +230,7 @@ public class Scenario {
     Path topoFile = Paths.get(asPath.toString(), "topology.json");
     LocalAS topo = LocalAsFromFile.create(readFile(topoFile), null);
     topologies.put(topo.getIsdAs(), topo);
+    topologyPaths.put(topo.getIsdAs(), topoFile);
 
     Path infoFile = Paths.get(asPath.toString(), "staticInfoConfig.json");
     if (infoFile.toFile().exists()) {

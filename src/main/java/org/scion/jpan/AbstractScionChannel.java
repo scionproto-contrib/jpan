@@ -535,6 +535,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // (the remote host may be running a dispatcher).
       remoteHost = getService().getLocalPortRange().mapToLocalPort(remoteHost);
     }
+    System.err.println("sendRaw: " + remoteHost);
     return channel.send(buffer, remoteHost);
   }
 

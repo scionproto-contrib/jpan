@@ -55,7 +55,7 @@ public class MockBootstrapServer implements Closeable {
     asInfo = JsonFileParser.parseTopology(topoDir);
     executor = Executors.newSingleThreadExecutor();
     Path topoFile = topoDir.resolve("topology.json");
-    executor.submit(new TopologyServerImpl(JsonFileParser.readFile(topoFile), configResource));
+    executor.submit(new TopologyServerImpl(JsonFileParser.readResource(topoFile), configResource));
 
     try {
       // Wait for sever socket address to be ready
