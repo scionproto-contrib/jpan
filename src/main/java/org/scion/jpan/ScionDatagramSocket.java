@@ -272,14 +272,19 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   public void send(DatagramPacket packet) throws IOException {
     checkOpen();
     checkBlockingMode();
-    checkAddress(packet.getAddress());
     checkPort(packet.getPort());
 
     // Synchronize on packet because this is what the Java DatagramSocket does.
     synchronized (packet) {
       // TODO synchronize also on writeLock()!
-      if (isConnected() && !channel.getRemoteAddress().equals(packet.getSocketAddress())) {
-        throw new IllegalArgumentException("Packet address does not match connected address");
+      if (isConnected()) {
+        if (packet.getAddress() != null
+            && !channel.getRemoteAddress().equals(packet.getSocketAddress())) {
+          throw new IllegalArgumentException("Packet address does not match connected address");
+        }
+      } else {
+        // Address must not be null
+        checkAddress(packet.getAddress());
       }
 
       Path path;

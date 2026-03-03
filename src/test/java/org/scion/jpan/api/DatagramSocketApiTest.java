@@ -424,7 +424,7 @@ class DatagramSocketApiTest {
 
       // Modify packet - port
       packet.setPort(packet.getPort() + 1);
-      // Throws exception because this is an IP address that is not in the cache and that  cannot be
+      // Throws exception because this is an IP address that is not in the cache and that cannot be
       // resolved to a
       // SCION address.
       ScionException e1 = assertThrows(ScionException.class, () -> server.send(packet));
@@ -450,7 +450,7 @@ class DatagramSocketApiTest {
     }
   }
 
-  InetSocketAddress toScionAddress(SocketAddress in) {
+  private InetSocketAddress toScionAddress(SocketAddress in) {
     try {
       InetAddress ipIn = ((InetSocketAddress) in).getAddress();
       InetAddress ipOut = InetAddress.getByAddress("myScionAddress", ipIn.getAddress());
