@@ -28,7 +28,7 @@ public class PathProviderRotator implements PathProvider {
   private PathPolicy pathPolicy = paths -> paths;
   private long dstIsdAs;
   private ScionSocketAddress dstAddress;
-  private List<Path> usedPaths;
+  private List<Path> usedPaths = new ArrayList<>();
 
   private PathUpdateCallback subscriber;
 
@@ -37,7 +37,7 @@ public class PathProviderRotator implements PathProvider {
   }
 
   private PathProviderRotator(List<Path> paths) {
-    this.usedPaths = paths;
+    this.usedPaths.addAll(paths);
   }
 
   @Override

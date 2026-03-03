@@ -21,7 +21,6 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -30,23 +29,26 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.testutil.*;
+import org.scion.jpan.testutil.ManagedThread;
+import org.scion.jpan.testutil.ManagedThreadNews;
+import org.scion.jpan.testutil.MockBorderRouter;
+import org.scion.jpan.testutil.MockNetwork2;
+import org.scion.jpan.testutil.PathProviderRotator;
 
 class MultiIsdTest {
 
   /**
-   * This test tries to verify that a client can be in multiple AS at the same time.
-   * We test this by having the client in AS 111 and 112, with a server in 110.
-   * <p>
-   * For P-ISDs, the AS numbers should be the same, only the ISD number should differ.
-   * However, the new endhost API allows AS as well as ISD to differ.
+   * This test tries to verify that a client can be in multiple AS at the same time. We test this by
+   * having the client in AS 111 and 112, with a server in 110.
    *
+   * <p>For P-ISDs, the AS numbers should be the same, only the ISD number should differ. However,
+   * the new endhost API allows AS as well as ISD to differ.
    */
   private static final long AS_111 = ScionUtil.parseIA("1-ff00:0:111");
+
   private static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
   private static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
 
@@ -58,7 +60,7 @@ class MultiIsdTest {
   @Test
   void sendReceive_scionDatagramChannel() throws IOException {
     Client test =
-        (pathBySourceAs) -> {
+        pathBySourceAs -> {
           try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
             client.send(ByteBuffer.wrap("from-111".getBytes()), pathBySourceAs.get(AS_111));
             assertEquals("from-111", receiveString(client));
@@ -72,27 +74,20 @@ class MultiIsdTest {
   @Test
   void readWrite_scionDatagramChannel_pathProvider() throws IOException {
     Client test =
-        (pathBySourceAs) -> {
+        pathBySourceAs -> {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
           PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
           try (ScionDatagramChannel client =
               ScionDatagramChannel.newBuilder().provider(pp).open()) {
             client.connect(pathBySourceAs.get(AS_111));
-            ByteBuffer bb111 = ByteBuffer.wrap("from-111".getBytes());
-            bb111.flip();
-            client.write(bb111);
-            System.err.println("CL ----------------- 12 --- " + client.getLocalAddress());
+            client.write(ByteBuffer.wrap("from-111".getBytes()));
             assertEquals("from-111", readString(client));
 
-            long ifId = p111.getMetadata().getInterfaces().get(0).getId();
-            pp.reportError(Scmp.Error5Message.create(p111, p111.getRemoteIsdAs(), ifId));
+            PathMetadata.PathInterface pif = p111.getMetadata().getInterfaces().get(0);
+            pp.reportError(Scmp.Error5Message.create(p111, pif.getIsdAs(), pif.getId()));
 
-            client.connect(pathBySourceAs.get(AS_112));
-            ByteBuffer bb112 = ByteBuffer.wrap("from-112".getBytes());
-            bb112.flip();
-            client.write(bb112);
-            System.err.println("CL ----------------- 16 --- ");
+            client.write(ByteBuffer.wrap("from-112".getBytes()));
             assertEquals("from-112", readString(client));
           }
         };
@@ -102,7 +97,7 @@ class MultiIsdTest {
   @Test
   void readWrite_scionDatagramChannel_connect_disconnect() throws IOException {
     Client test =
-        (pathBySourceAs) -> {
+        pathBySourceAs -> {
           try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
             client.connect(pathBySourceAs.get(AS_111));
             client.write(ByteBuffer.wrap("from-111".getBytes()));
@@ -119,7 +114,7 @@ class MultiIsdTest {
   @Test
   void sendReceive_scionDatagramSocket_pathProvider() throws IOException {
     Client test =
-        (pathBySourceAs) -> {
+        pathBySourceAs -> {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
           PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
@@ -131,8 +126,8 @@ class MultiIsdTest {
             client.send(p1);
             assertEquals("from-111", readString(client));
 
-            long ifId = p111.getMetadata().getInterfaces().get(0).getId();
-            pp.reportError(Scmp.Error5Message.create(p111, p111.getRemoteIsdAs(), ifId));
+            PathMetadata.PathInterface pif = p111.getMetadata().getInterfaces().get(0);
+            pp.reportError(Scmp.Error5Message.create(p111, pif.getIsdAs(), pif.getId()));
 
             String msg2 = "from-112";
             InetSocketAddress a2 = pathBySourceAs.get(AS_112).getRemoteSocketAddress();
@@ -150,7 +145,7 @@ class MultiIsdTest {
   @Test
   void sendReceive_scionDatagramSocket_connect_disconnect() throws IOException {
     Client test =
-        (pathBySourceAs) -> {
+        pathBySourceAs -> {
           try (ScionDatagramSocket client = new ScionDatagramSocket()) {
             client.connect(pathBySourceAs.get(AS_111));
             String msg1 = "from-111";
@@ -173,11 +168,37 @@ class MultiIsdTest {
     test(test);
   }
 
+  @Test
+  void socketServer() throws IOException {
+    Client test =
+        pathBySourceAs -> {
+          try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
+            client.send(ByteBuffer.wrap("from-111".getBytes()), pathBySourceAs.get(AS_111));
+            assertEquals("from-111", receiveString(client));
+            client.send(ByteBuffer.wrap("from-112".getBytes()), pathBySourceAs.get(AS_112));
+            assertEquals("from-112", receiveString(client));
+          }
+        };
+    test(test, this::serverSocket);
+  }
+
   private interface Client {
     void call(Map<Long, Path> pathBySourceAs) throws IOException;
   }
 
+  private interface Server {
+    void server(
+        ManagedThreadNews mtn,
+        InetSocketAddress serverAddress,
+        Set<Long> receivedSourceAses,
+        Set<String> receivedPayloads);
+  }
+
   void test(Client clientFn) throws IOException {
+    test(clientFn, this::server);
+  }
+
+  void test(Client clientFn, Server serverFn) throws IOException {
     ManagedThread serverThread = ManagedThread.newBuilder().build();
     try (MockNetwork2 nw =
         MockNetwork2.startPS(MockNetwork2.Topology.TINY4, "ASff00_0_111", "ASff00_0_112")) {
@@ -188,7 +209,8 @@ class MultiIsdTest {
       final Set<Long> receivedSourceAses = new HashSet<>();
       final Set<String> receivedPayloads = new HashSet<>();
 
-      serverThread.submit(mtn -> server(mtn, serverAddress, receivedSourceAses, receivedPayloads));
+      serverThread.submit(
+          mtn -> serverFn.server(mtn, serverAddress, receivedSourceAses, receivedPayloads));
       ScionService service = Scion.defaultService();
       List<Path> paths = service.getPaths(AS_110, serverAddress);
       assertEquals(2, paths.size());
@@ -215,9 +237,6 @@ class MultiIsdTest {
         }
       }
       assertEquals(2, numberOfRoutersWithTwoForwards);
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail(); // TODO remove?
     } finally {
       serverThread.stopNow();
     }
@@ -267,6 +286,30 @@ class MultiIsdTest {
         receivedSourceAses.add(remoteAddress.getIsdAs());
         recvBuffer.rewind();
         server.send(recvBuffer, remoteAddress);
+      }
+    } catch (Exception e) {
+      mtn.reportException(e);
+    }
+  }
+
+  private void serverSocket(
+      ManagedThreadNews mtn,
+      InetSocketAddress serverAddress,
+      Set<Long> receivedSourceAses,
+      Set<String> receivedPayloads) {
+    ScionService service110 =
+        Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_110/topology.json");
+    try (ScionDatagramSocket server = ScionDatagramSocket.newBuilder().service(service110).open()) {
+      server.bind(serverAddress);
+      mtn.reportStarted();
+      for (int i = 0; i < 2; i++) {
+        byte[] bytes = new byte[100];
+        DatagramPacket p = new DatagramPacket(bytes, bytes.length);
+        server.receive(p);
+        receivedPayloads.add(new String(bytes, 0, p.getLength()));
+        Path path = server.getCachedPath((InetSocketAddress) p.getSocketAddress());
+        receivedSourceAses.add(path.getRemoteSocketAddress().getIsdAs());
+        server.send(p);
       }
     } catch (Exception e) {
       mtn.reportException(e);
