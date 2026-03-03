@@ -37,7 +37,7 @@ class DatagramSocketPingPongTest {
 
   @Test
   void testWithServerDefault() {
-    PingPongSocketHelper.Server serverFn = (socket) -> server(socket, false);
+    PingPongSocketHelper.Server serverFn = socket -> server(socket, false);
     PingPongSocketHelper.Client clientFn = this::client;
     PingPongSocketHelper pph = PingPongSocketHelper.newBuilder(1, 10, 10).build();
     pph.runPingPong(serverFn, clientFn);
@@ -46,7 +46,7 @@ class DatagramSocketPingPongTest {
 
   @Test
   void testWithServerNoService() {
-    PingPongSocketHelper.Server serverFn = (socket) -> server(socket, true);
+    PingPongSocketHelper.Server serverFn = socket -> server(socket, true);
     PingPongSocketHelper.Client clientFn = this::client;
     PingPongSocketHelper pph =
         PingPongSocketHelper.newBuilder(1, 10, 10).serverService(null).checkCounters(false).build();
@@ -56,7 +56,16 @@ class DatagramSocketPingPongTest {
     // sends it directly back to the SHIM (where it came from)
     // who sends it to directly to the client without going through the BR.
     // This is of course wrong, but it doesn't affect the test.
-    assertEquals(1 * 10 * 10, MockNetwork.getAndResetForwardCount());
+    assertEquals(10 * 10, MockNetwork.getAndResetForwardCount());
+  }
+
+  @Test
+  void testWithServerDefault_nullAddress() {
+    PingPongSocketHelper.Server serverFn = socket -> server(socket, false);
+    PingPongSocketHelper.Client clientFn = this::clientNullAddress;
+    PingPongSocketHelper pph = PingPongSocketHelper.newBuilder(1, 10, 10).build();
+    pph.runPingPong(serverFn, clientFn);
+    assertEquals(2 * 10 * 10, MockNetwork.getAndResetForwardCount());
   }
 
   private void client(ScionDatagramSocket socket, Path requestPath, int id) throws IOException {
@@ -64,6 +73,23 @@ class DatagramSocketPingPongTest {
     InetAddress addr = requestPath.getRemoteAddress();
     int port = requestPath.getRemotePort();
     DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length, addr, port);
+    socket.send(request);
+
+    // System.out.println("CLIENT: Receiving ... (" + socket.getLocalSocketAddress() + ")");
+    byte[] buffer = new byte[512];
+    DatagramPacket response = new DatagramPacket(buffer, buffer.length);
+    socket.receive(response);
+
+    String pong = new String(buffer, 0, response.getLength());
+    assertEquals(MSG, pong);
+  }
+
+  private void clientNullAddress(ScionDatagramSocket socket, Path requestPath, int id)
+      throws IOException {
+    byte[] sendBuf = MSG.getBytes();
+    InetAddress addr = requestPath.getRemoteAddress();
+    int port = requestPath.getRemotePort();
+    DatagramPacket request = new DatagramPacket(sendBuf, sendBuf.length);
     socket.send(request);
 
     // System.out.println("CLIENT: Receiving ... (" + socket.getLocalSocketAddress() + ")");

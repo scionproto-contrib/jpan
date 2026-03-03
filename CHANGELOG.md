@@ -162,6 +162,8 @@ TODO
   [#210](https://github.com/scionproto-contrib/jpan/pull/210)
 - NAT keepalive uses non-daemon timer
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
+- DatagramPackets should not require an address when a socket is connected
+  [#226](https://github.com/scionproto-contrib/jpan/issues/226)
 
 ### Changes
 
