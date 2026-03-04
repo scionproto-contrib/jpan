@@ -28,7 +28,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.slf4j.Logger;
@@ -39,8 +38,6 @@ public class MockNetwork2 implements AutoCloseable {
   private static final Logger logger = LoggerFactory.getLogger(MockNetwork2.class.getName());
   public static final String AS_HOST = "my-as-host-test.org";
   private final Barrier barrier = new Barrier();
-  private final List<AsInfo> localAsInfos = new ArrayList<>();
-  private final Topology topo;
   private final Scenario scenario;
 
   // Control service
@@ -51,7 +48,7 @@ public class MockNetwork2 implements AutoCloseable {
   private final List<MockPathService> pathServices = new ArrayList<>();
 
   // Border routers
-  private final ExecutorService routers;
+  private final ExecutorService routers = Executors.newCachedThreadPool();
   private final List<MockBorderRouter> borderRouters = new ArrayList<>();
 
   public enum Topology {
@@ -88,10 +85,9 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   private MockNetwork2(Topology topo, String[] toposOfLocalAS, boolean usePathService) {
-    this.topo = topo;
-    routers = Executors.newCachedThreadPool(); // TODO !!!!! Use FOrkJoinPool?
     if (usePathService) {
       topoServer = null;
+      List<AsInfo> localAsInfos = new ArrayList<>();
       for (String topoOfLocalAS : toposOfLocalAS) {
         Path path = Paths.get(topo.configDir + topoOfLocalAS);
         localAsInfos.add(JsonFileParser.parseTopology(path));
@@ -110,7 +106,6 @@ public class MockNetwork2 implements AutoCloseable {
       }
       String topoFileOfLocalAS = topo.configDir + toposOfLocalAS[0] + "/topology.json";
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
-      localAsInfos.add(topoServer.getASInfo());
     }
 
     // Initialize segments
@@ -132,63 +127,13 @@ public class MockNetwork2 implements AutoCloseable {
 
           String remote = remoteInterface.getBorderRouter().getInternalAddress();
           int remoteId = remoteInterface.id;
-          System.err.println(
-              "BR: " + br.getInternalAddress() + " " + ScionUtil.toStringIA(brIf.isdAs)); // TODO
           InetSocketAddress bind1 = IPHelper.toInetSocketAddress(br.getInternalAddress());
           InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
           if (bind1.getPort() < bind2.getPort()) {
             int id = borderRouters.size();
             borderRouters.add(new MockBorderRouter(id, bind1, bind2, brIf.id, remoteId, barrier));
-          } else {
-            System.err.println(
-                "   Skipping BR: "
-                    + br.getInternalAddress()
-                    + " "
-                    + ScionUtil.toStringIA(brIf.isdAs)); // TODO
           }
         }
-      }
-    }
-
-    barrier.reset(borderRouters.size());
-    for (MockBorderRouter br : borderRouters) {
-      routers.execute(br);
-    }
-    if (!barrier.await(1, TimeUnit.SECONDS)) {
-      throw new IllegalStateException("Failed to start border routers.");
-    }
-  }
-
-  public void startBorderRouters(String nameOfRemoteAs) {
-    Path path = Paths.get(topo.configDir + nameOfRemoteAs);
-    AsInfo remoteAsInfo = JsonFileParser.parseTopology(path);
-
-    String remote = remoteAsInfo.getBorderRouters().get(0).getInternalAddress();
-    int remoteId = remoteAsInfo.getBorderRouters().get(0).getInterfaces().get(0).id;
-    for (AsInfo asInfo : localAsInfos) {
-      // asInfo.connectWith(remoteAsInfo, remote);
-      startBorderRouters(asInfo, remote, remoteId);
-    }
-  }
-
-  private void startBorderRouters(AsInfo asInfoLocal, String remote, int remoteId) {
-    for (AsInfo.BorderRouter br : asInfoLocal.getBorderRouters()) {
-      for (AsInfo.BorderRouterInterface brIf : br.getInterfaces()) {
-        System.err.println("BR: " + br.getInternalAddress() + " " + brIf.isdAs);
-        // TODO what is this?
-        //        if (brIf.getRemoteInterface() == null) {
-        //          // can happen for e.g. AS 111
-        //          continue;
-        //        }
-        // String remote = brIf.getRemoteInterface().getBorderRouter().getInternalAddress();
-        InetSocketAddress bind1 = IPHelper.toInetSocketAddress(br.getInternalAddress());
-        InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
-        //        brList.add(
-        //            new MockBorderRouter(
-        //                brList.size(), bind1, bind2, brIf.id, brIf.getRemoteInterface().id,
-        // barrier));
-        borderRouters.add(
-            new MockBorderRouter(borderRouters.size(), bind1, bind2, brIf.id, remoteId, barrier));
       }
     }
 
