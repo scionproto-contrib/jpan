@@ -664,4 +664,30 @@ class PathMetadataTest {
     }
     assertEquals(expected.length, actual.size());
   }
+
+  @Test
+  void testLocalAS_emptyMetadata() {
+    InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+
+      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:112"), dstAddress);
+      assertEquals(1, paths.size());
+      Path path = paths.get(0);
+
+      assertEquals(0, path.getRawPath().length);
+      PathMetadata meta = path.getMetadata();
+      assertTrue(meta.getInterfaces().isEmpty());
+      assertEquals(-1, meta.getSrcIdsAs());
+      assertEquals(-1, meta.getDstIdsAs());
+
+      assertTrue(meta.getBandwidths().isEmpty());
+      assertTrue(meta.getLatencies().isEmpty());
+
+      assertTrue(meta.getLinkTypes().isEmpty());
+      assertTrue(meta.getGeoCoordinates().isEmpty());
+      assertTrue(meta.getNotes().isEmpty());
+      assertTrue(meta.getInternalHops().isEmpty());
+    }
+  }
 }
