@@ -69,7 +69,6 @@ public class RequestPath extends Path {
         metadata, getFirstHopAddress(), getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
   }
 
-  @Deprecated
   private RequestPath(
       PathMetadata metadata,
       InetSocketAddress firstHop,
@@ -78,18 +77,6 @@ public class RequestPath extends Path {
       InetAddress dstIP,
       int dstPort) {
     super(metadata.getRawPath(), firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
-    this.metadata = metadata;
-  }
-
-  private RequestPath(
-      PathMetadata metadata, InetSocketAddress firstHop, InetAddress dstIP, int dstPort) {
-    super(
-        metadata.getRawPath(),
-        firstHop,
-        metadata.getSrcIdsAs(),
-        metadata.getDstIdsAs(),
-        dstIP,
-        dstPort);
     this.metadata = metadata;
   }
 
