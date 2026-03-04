@@ -22,13 +22,13 @@ import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
@@ -84,7 +84,7 @@ class PathProviderWithRefreshTest {
       // Reset and wait for timer thread
       MockNetwork.getControlServer().getAndResetCallCount();
       subscriber.subscribedPath.set(null);
-      subscriber.barrier = new CountDownLatch(1);
+      subscriber.barrier.reset(1);
       subscriber.await();
       // Wait for timer
       assertEquals(newPath, subscriber.subscribedPath.get());
@@ -92,7 +92,7 @@ class PathProviderWithRefreshTest {
       // Reset and wait for timer thread (again)
       MockNetwork.getControlServer().getAndResetCallCount();
       subscriber.subscribedPath.set(null);
-      subscriber.barrier = new CountDownLatch(1);
+      subscriber.barrier.reset(1);
       subscriber.await();
       // Wait for timer
       assertEquals(newPath, subscriber.subscribedPath.get());
@@ -101,6 +101,45 @@ class PathProviderWithRefreshTest {
       assertNotSame(expiredPath, subscriber.subscribedPath.get());
     } finally {
       pp.disconnect();
+    }
+  }
+
+  /** Test that the PathProvider can handle paths with different local ISDs. */
+  @Test
+  void multiISD() {
+    // Stop default network
+    MockNetwork.stopTiny();
+    System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
+
+    // USe multi-isd setup
+    try (MockNetwork2 nw =
+        MockNetwork2.startPS(MockNetwork2.Topology.TINY4, "ASff00_0_111", "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 10, 50);
+
+      try {
+        InetSocketAddress dummyAddr =
+            new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+        List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
+        Path newPath0 = paths.get(0);
+        Path newPath1 = paths.get(1);
+        assertEquals(ScionUtil.parseIA("1-ff00:0:111"), newPath0.getLocalIsdAs());
+        assertEquals(ScionUtil.parseIA("1-ff00:0:112"), newPath1.getLocalIsdAs());
+        SubscriberHelper subscriber = new SubscriberHelper(newPath0);
+
+        // Initial connect
+        pp.subscribe(subscriber::callback);
+        pp.connect(newPath0);
+        subscriber.await();
+
+        pp.reportFaultyPath(newPath0);
+        assertEquals(newPath1, subscriber.subscribedPath.get());
+
+        pp.reportFaultyPath(newPath1);
+        assertEquals(newPath0, subscriber.subscribedPath.get());
+      } finally {
+        pp.disconnect();
+      }
     }
   }
 
@@ -160,8 +199,8 @@ class PathProviderWithRefreshTest {
   }
 
   private static class SubscriberHelper {
-    AtomicReference<Path> subscribedPath = new AtomicReference<>();
-    CountDownLatch barrier = new CountDownLatch(1);
+    final AtomicReference<Path> subscribedPath = new AtomicReference<>();
+    final Barrier barrier = new Barrier();
 
     public SubscriberHelper(Path path) {
       this.subscribedPath.set(path);
@@ -173,11 +212,7 @@ class PathProviderWithRefreshTest {
     }
 
     void await() {
-      try {
-        assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
+      assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
     }
   }
 

@@ -181,13 +181,16 @@ TODO
   [#224](https://github.com/scionproto-contrib/jpan/pull/224)
 - Endhost API improvements: Segments without srcIsdAs input
   [#225](https://github.com/scionproto-contrib/jpan/pull/225)
-  
+- PathProvider test + cleanup
+  [#225](https://github.com/scionproto-contrib/jpan/pull/225)
+
 ### TODO
   - Think about having multiple ISD per _destination_!
     - Does that make sense? Should we simply require multiple calls to getPaths()?
     - ScionService.getIsdAses(hostName) should return multiple ISDs.
       But we should keep the original implementation as an option to get
       only a single ISD/AS, e.g. without querying DNS.
+    - Channel.connect could connect to an AS instead of an ISD/AS
     - Later?!??!!!!
   - Deprecation: check:
     - LocalAS deprecation / BorderRouterInterface.create
@@ -196,12 +199,6 @@ TODO
     - Use Barrier more
     - Move BR forward count in to BR
     - Try EndHostApiDemo again
-  - Test! -> Receive paths with different ISD?!?! -> separate PR?
-    - also test PathProvider.
-    - Test: MTU with new endhost API...
-  - Avoid using local ISD/AS in:
-    - Segments -> get srcIsdAs from segments!
-    - ScionService
   - Think about moving address into path
     - That would simplify Path API (remove response/request) but may
       complicate PathProviders...?
