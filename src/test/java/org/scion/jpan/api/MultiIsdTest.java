@@ -29,12 +29,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockBorderRouter;
+import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.PathProviderRotator;
 
@@ -51,6 +53,11 @@ class MultiIsdTest {
 
   private static final long AS_112 = ScionUtil.parseIA("1-ff00:0:112");
   private static final long AS_110 = ScionUtil.parseIA("1-ff00:0:110");
+
+  @BeforeAll
+  static void beforeAll() {
+    MockNetwork.getAndResetForwardCount();
+  }
 
   @AfterEach
   void afterEach() {
