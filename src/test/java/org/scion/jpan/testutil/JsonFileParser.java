@@ -32,8 +32,11 @@ import org.scion.jpan.internal.util.IPHelper;
 
 public class JsonFileParser {
 
-  public static String readFile(java.nio.file.Path file) {
-    file = toResourcePath(file);
+  public static String readResource(java.nio.file.Path file) {
+    return readAbsolutePath(toResourcePath(file));
+  }
+
+  public static String readAbsolutePath(java.nio.file.Path file) {
     StringBuilder contentBuilder = new StringBuilder();
     try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
       stream.forEach(s -> contentBuilder.append(s).append("\n"));
@@ -65,7 +68,14 @@ public class JsonFileParser {
   }
 
   public static AsInfo parseTopologyFile(Path path) {
-    String fileStr = readFile(path);
+    return parseTopologyString(readResource(path));
+  }
+
+  public static AsInfo parseTopologyAbsolutePath(Path path) {
+    return parseTopologyString(readAbsolutePath(path));
+  }
+
+  private static AsInfo parseTopologyString(String fileStr) {
     AsInfo as = new AsInfo();
     JsonElement jsonTree = com.google.gson.JsonParser.parseString(fileStr);
     if (jsonTree.isJsonObject()) {

@@ -51,7 +51,7 @@ public class PackageVisibilityHelper {
             Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
             Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     ControlServiceGrpc cs = ss.getControlServiceConnection();
-    return Segments.getPaths(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs, minimizeRequests);
+    return Segments.getPathsCS(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs, minimizeRequests);
   }
 
   public static HeaderConstants.HdrTypes getNextHdr(ByteBuffer packet) {

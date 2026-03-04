@@ -45,14 +45,14 @@ public class MockPathService {
   private PathServiceImpl pathService;
   private final Semaphore block = new Semaphore(1);
   private final AtomicReference<NanoHTTPD.Response.Status> errorToReport = new AtomicReference<>();
-  private final AsInfo asInfo;
+  private final List<AsInfo> asInfos;
 
-  private MockPathService(AsInfo asInfo) {
-    this.asInfo = asInfo;
+  private MockPathService(List<AsInfo> asInfos) {
+    this.asInfos = asInfos;
   }
 
-  public static MockPathService start(int port, AsInfo asInfo) {
-    return new MockPathService(asInfo).startInternal(port);
+  public static MockPathService start(int port, List<AsInfo> asInfos) {
+    return new MockPathService(asInfos).startInternal(port);
   }
 
   public int getAndResetCallCount() {
@@ -227,14 +227,16 @@ public class MockPathService {
 
       Underlays.ListUnderlaysResponse.Builder b = Underlays.ListUnderlaysResponse.newBuilder();
       Underlays.UdpUnderlay.Builder udp = Underlays.UdpUnderlay.newBuilder();
-      for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
-        Underlays.Router.Builder router = Underlays.Router.newBuilder();
-        router.setIsdAs(asInfo.getIsdAs());
-        router.setAddress(br.getInternalAddress());
-        for (AsInfo.BorderRouterInterface bri : br.getInterfaces()) {
-          router.addInterfaces(bri.id);
+      for (AsInfo asInfo : asInfos) {
+        for (AsInfo.BorderRouter br : asInfo.getBorderRouters()) {
+          Underlays.Router.Builder router = Underlays.Router.newBuilder();
+          router.setIsdAs(asInfo.getIsdAs());
+          router.setAddress(br.getInternalAddress());
+          for (AsInfo.BorderRouterInterface bri : br.getInterfaces()) {
+            router.addInterfaces(bri.id);
+          }
+          udp.addRouters(router.build());
         }
-        udp.addRouters(router.build());
       }
       b.setUdp(udp);
 

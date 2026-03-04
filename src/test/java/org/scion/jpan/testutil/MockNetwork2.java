@@ -20,17 +20,36 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.control_plane.Seg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
+  private static final Logger logger = LoggerFactory.getLogger(MockNetwork2.class.getName());
   public static final String AS_HOST = "my-as-host-test.org";
+  private final Barrier barrier = new Barrier();
+  private final Scenario scenario;
+
+  // Control service
   private final MockBootstrapServer topoServer;
   private final List<MockControlServer> controlServices = new ArrayList<>();
+
+  // Path service
   private final List<MockPathService> pathServices = new ArrayList<>();
+
+  // Border routers
+  private final ExecutorService routers = Executors.newCachedThreadPool();
+  private final List<MockBorderRouter> borderRouters = new ArrayList<>();
 
   public enum Topology {
     DEFAULT("topologies/default/", ScenarioInitializer::addResponsesScionprotoDefault),
@@ -56,39 +75,79 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   public static MockNetwork2 start(Topology topo, String topoOfLocalAS) {
-    return new MockNetwork2(topo, topoOfLocalAS, false);
+    return new MockNetwork2(topo, new String[] {topoOfLocalAS}, false);
   }
 
-  public static MockNetwork2 startPS(Topology topo, String topoOfLocalAS) {
+  public static MockNetwork2 startPS(Topology topo, String... topoOfLocalAS) {
+    // This is currently a hack. We cn provide multiple AS numbers, when instead we also want to
+    // be able to provide multiple ISD numbers.
     return new MockNetwork2(topo, topoOfLocalAS, true);
   }
 
-  private MockNetwork2(Topology topo, String topoOfLocalAS, boolean usePathService) {
+  private MockNetwork2(Topology topo, String[] toposOfLocalAS, boolean usePathService) {
     if (usePathService) {
       topoServer = null;
-      Path path = Paths.get(topo.configDir + topoOfLocalAS);
-      AsInfo asInfo = JsonFileParser.parseTopology(path);
-      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_0, asInfo));
-      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_1, asInfo));
+      List<AsInfo> localAsInfos = new ArrayList<>();
+      for (String topoOfLocalAS : toposOfLocalAS) {
+        Path path = Paths.get(topo.configDir + topoOfLocalAS);
+        localAsInfos.add(JsonFileParser.parseTopology(path));
+      }
+      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_0, localAsInfos));
+      pathServices.add(MockPathService.start(MockPathService.DEFAULT_PORT_1, localAsInfos));
       String ps0 = "[::1]:" + MockPathService.DEFAULT_PORT_0;
       String ps1 = "127.0.0.1:" + MockPathService.DEFAULT_PORT_1;
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, ps0 + ";" + ps1);
     } else {
-      topoServer = MockBootstrapServer.start(topo.configDir, topoOfLocalAS);
+      topoServer = MockBootstrapServer.start(topo.configDir, toposOfLocalAS[0]);
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
         controlServices.add(MockControlServer.start(csAddress.getPort()));
       }
-      String topoFileOfLocalAS = topo.configDir + topoOfLocalAS + "/topology.json";
+      String topoFileOfLocalAS = topo.configDir + toposOfLocalAS[0] + "/topology.json";
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
     }
 
     // Initialize segments
-    ScenarioInitializer.init(topo, this);
+    scenario = ScenarioInitializer.init(topo, this);
+  }
+
+  public void startBorderRouters() {
+    Map<Long, AsInfo> allAsInfos =
+        scenario.createAsInfos().stream().collect(Collectors.toMap(AsInfo::getIsdAs, as -> as));
+
+    for (AsInfo asInfoLocal : allAsInfos.values()) {
+      for (AsInfo.BorderRouter br : asInfoLocal.getBorderRouters()) {
+        for (AsInfo.BorderRouterInterface brIf : br.getInterfaces()) {
+          AsInfo.BorderRouterInterface remoteInterface = brIf.getRemoteInterface();
+          if (remoteInterface == null) {
+            throw new IllegalStateException(
+                "No remote interface for AS " + asInfoLocal.getIsdAs() + " if " + brIf.id);
+          }
+
+          String remote = remoteInterface.getBorderRouter().getInternalAddress();
+          int remoteId = remoteInterface.id;
+          InetSocketAddress bind1 = IPHelper.toInetSocketAddress(br.getInternalAddress());
+          InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
+          if (bind1.getPort() < bind2.getPort()) {
+            int id = borderRouters.size();
+            borderRouters.add(new MockBorderRouter(id, bind1, bind2, brIf.id, remoteId, barrier));
+          }
+        }
+      }
+    }
+
+    barrier.reset(borderRouters.size());
+    for (MockBorderRouter br : borderRouters) {
+      routers.execute(br);
+    }
+    if (!barrier.await(1, TimeUnit.SECONDS)) {
+      throw new IllegalStateException("Failed to start border routers.");
+    }
   }
 
   public void reset() {
+    borderRouters.forEach(MockBorderRouter::resetForMockNetwork2);
     controlServices.forEach(MockControlServer::clearSegments);
     controlServices.forEach(MockControlServer::getAndResetCallCount);
     pathServices.forEach(MockPathService::clearSegments);
@@ -96,6 +155,7 @@ public class MockNetwork2 implements AutoCloseable {
     if (topoServer != null) {
       topoServer.getAndResetCallCount();
     }
+    barrier.reset(0);
   }
 
   @Override
@@ -107,15 +167,33 @@ public class MockNetwork2 implements AutoCloseable {
     if (topoServer != null) {
       topoServer.close();
     }
+    barrier.reset(0);
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
     // Defensive clean up
     ScionService.closeDefault();
+
+    try {
+      routers.shutdownNow();
+      // Wait a while for tasks to respond to being canceled
+      if (!routers.awaitTermination(5, TimeUnit.SECONDS)) {
+        logger.error("Router did not terminate");
+      }
+      logger.info("Router shut down");
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+    }
+    borderRouters.forEach(MockBorderRouter::resetForMockNetwork2);
+    borderRouters.clear();
   }
 
   public MockBootstrapServer getTopoServer() {
     return topoServer;
+  }
+
+  public List<MockBorderRouter> getBorderRouters() {
+    return borderRouters;
   }
 
   public MockControlServer getControlServer() {
