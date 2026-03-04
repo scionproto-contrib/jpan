@@ -142,7 +142,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
   private static void checkPort(int port) {
     if (port < 0 || port > 65535) {
-      throw new IllegalArgumentException("Port out of range");
+      throw new IllegalArgumentException("Port out of range: " + port);
     }
   }
 
