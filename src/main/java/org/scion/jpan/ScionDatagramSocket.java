@@ -272,7 +272,6 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
   public void send(DatagramPacket packet) throws IOException {
     checkOpen();
     checkBlockingMode();
-    checkPort(packet.getPort());
 
     // Synchronize on packet because this is what the Java DatagramSocket does.
     synchronized (packet) {
@@ -285,6 +284,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
       } else {
         // Address must not be null
         checkAddress(packet.getAddress());
+        checkPort(packet.getPort());
       }
 
       Path path;
