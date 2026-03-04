@@ -246,14 +246,14 @@ public class PathMetadata {
 
   public long getSrcIdsAs() {
     if (pathInterfaces.isEmpty()) {
-      return -1;
+      return 0;
     }
     return pathInterfaces.get(0).isdAs;
   }
 
   public long getDstIdsAs() {
     if (pathInterfaces.isEmpty()) {
-      return -1;
+      return 0;
     }
     return pathInterfaces.get(pathInterfaces.size() - 1).getIsdAs();
   }

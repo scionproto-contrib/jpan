@@ -678,8 +678,8 @@ class PathMetadataTest {
       assertEquals(0, path.getRawPath().length);
       PathMetadata meta = path.getMetadata();
       assertTrue(meta.getInterfaces().isEmpty());
-      assertEquals(-1, meta.getSrcIdsAs());
-      assertEquals(-1, meta.getDstIdsAs());
+      assertEquals(0, meta.getSrcIdsAs());
+      assertEquals(0, meta.getDstIdsAs());
 
       assertTrue(meta.getBandwidths().isEmpty());
       assertTrue(meta.getLatencies().isEmpty());
