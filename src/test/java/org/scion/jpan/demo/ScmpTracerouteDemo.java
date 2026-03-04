@@ -95,7 +95,7 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
-          runDemo(ScionUtil.parseIA("65-2:0:6c")); // singapore
+          runDemo(ScionUtil.parseIA("65-2:0:6c"));
           // runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
         }

@@ -189,6 +189,13 @@ TODO
       But we should keep the original implementation as an option to get
       only a single ISD/AS, e.g. without querying DNS.
     - Later?!??!!!!
+  - Deprecation: check:
+    - LocalAS deprecation / BorderRouterInterface.create
+    - RequestPath create/cstr
+    - ScionService deprecation
+    - Use Barrier more
+    - Move BR forward count in to BR
+    - Try EndHostApiDemo again
   - Test! -> Receive paths with different ISD?!?! -> separate PR?
     - also test PathProvider.
     - Test: MTU with new endhost API...

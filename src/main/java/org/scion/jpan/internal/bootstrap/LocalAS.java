@@ -193,7 +193,7 @@ public class LocalAS {
     }
 
     BorderRouterInterface(int id) {
-      this(id, "unknown", "unknown", 0, 1200, "");
+      this(id, "unknown", "unknown", 0, 0, "");
     }
 
     public long getIsdAs() {
