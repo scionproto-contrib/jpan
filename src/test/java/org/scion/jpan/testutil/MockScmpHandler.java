@@ -74,7 +74,7 @@ public class MockScmpHandler implements Runnable {
     }
     try {
       handler.shutdownNow();
-      // Wait a while for tasks to respond to being cancelled
+      // Wait a while for tasks to respond to being canceled
       if (!handler.awaitTermination(5, TimeUnit.SECONDS)) {
         logger.error("BorderRouterScmp did not terminate");
       }

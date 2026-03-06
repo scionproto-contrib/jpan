@@ -257,7 +257,6 @@ public class MockBorderRouter implements Runnable {
       return true;
     }
 
-
     out.flip();
     incoming.send(out, srcAddress);
     return true;
