@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.scion.jpan.Constants;
@@ -43,8 +41,7 @@ public class MockNetwork2 implements AutoCloseable {
   private final List<MockPathService> pathServices = new ArrayList<>();
 
   // Border routers
-  private final ExecutorService routers = Executors.newCachedThreadPool();
-  private final List<MockBorderRouter> borderRouters = new ArrayList<>();
+  private final MockBorderRouterRunner routers = MockBorderRouterRunner.create();
 
   public enum Topology {
     DEFAULT("topologies/default/", ScenarioInitializer::addResponsesScionprotoDefault),
@@ -125,18 +122,17 @@ public class MockNetwork2 implements AutoCloseable {
           InetSocketAddress bind1 = IPHelper.toInetSocketAddress(br.getInternalAddress());
           InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
           if (bind1.getPort() < bind2.getPort()) {
-            int id = borderRouters.size();
-            borderRouters.add(new MockBorderRouter(id, bind1, bind2, brIf.id, remoteId));
+            routers.add(bind1, bind2, brIf.id, remoteId);
           }
         }
       }
     }
 
-    MockBorderRouter.start(routers, borderRouters);
+    routers.start();
   }
 
   public void reset() {
-    borderRouters.forEach(MockBorderRouter::resetForwardCount);
+    routers.getBorderRouters().forEach(MockBorderRouter::resetForwardCount);
     controlServices.forEach(MockControlServer::clearSegments);
     controlServices.forEach(MockControlServer::getAndResetCallCount);
     pathServices.forEach(MockPathService::clearSegments);
@@ -161,8 +157,7 @@ public class MockNetwork2 implements AutoCloseable {
     // Defensive clean up
     ScionService.closeDefault();
 
-    MockBorderRouter.stop(routers);
-    borderRouters.clear();
+    routers.stop();
   }
 
   public MockBootstrapServer getTopoServer() {
@@ -170,7 +165,7 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   public List<MockBorderRouter> getBorderRouters() {
-    return borderRouters;
+    return routers.getBorderRouters();
   }
 
   public MockControlServer getControlServer() {

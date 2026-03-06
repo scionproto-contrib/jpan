@@ -99,7 +99,9 @@ public class MockDaemon implements AutoCloseable {
     this.borderRouters = new ArrayList<>();
     InetSocketAddress bind1 = new InetSocketAddress("127.0.0.10", 31004);
     InetSocketAddress bind2 = new InetSocketAddress("127.0.0.25", 31012);
-    this.borderRouters.add(new MockBorderRouter(0, bind1, bind2, 2, 1));
+    MockBorderRouterRunner runner = MockBorderRouterRunner.create();
+    runner.add(bind1, bind2, 2, 1);
+    this.borderRouters.addAll(runner.getBorderRouters());
     asInfo = JsonFileParser.parseTopology(Paths.get(MockBootstrapServer.TOPO_TINY_110));
   }
 
