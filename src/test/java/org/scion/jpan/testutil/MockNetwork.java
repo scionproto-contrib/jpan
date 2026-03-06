@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -30,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
@@ -78,7 +79,6 @@ public class MockNetwork {
   private static MockNetwork mock;
   private final AsInfo asInfoLocal;
   private final AsInfo asInfoRemote;
-  private final InetSocketAddress[] localAddress = new InetSocketAddress[2];
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
@@ -135,7 +135,6 @@ public class MockNetwork {
         int id = borderRouters.size();
         borderRouters.add(
             new MockBorderRouter(id, bind1, bind2, brIf.id, brIf.getRemoteInterface().id, barrier));
-        mock.localAddress[borderRouters.size() - 1] = bind1;
       }
     }
 
@@ -241,11 +240,11 @@ public class MockNetwork {
   }
 
   public static InetSocketAddress getBorderRouterAddress1() {
-    return mock.localAddress[0];
+    return borderRouters.get(0).getAddress1();
   }
 
   public static List<InetSocketAddress> getBorderRouterAddresses() {
-    return Arrays.asList(mock.localAddress);
+    return borderRouters.stream().map(MockBorderRouter::getAddress1).collect(Collectors.toList());
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {
