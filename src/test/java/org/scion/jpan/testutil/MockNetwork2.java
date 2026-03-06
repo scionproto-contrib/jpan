@@ -132,7 +132,7 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   public void reset() {
-    routers.getBorderRouters().forEach(MockBorderRouter::resetForwardCount);
+    routers.getAndResetForwardCounters();
     controlServices.forEach(MockControlServer::clearSegments);
     controlServices.forEach(MockControlServer::getAndResetCallCount);
     pathServices.forEach(MockPathService::clearSegments);

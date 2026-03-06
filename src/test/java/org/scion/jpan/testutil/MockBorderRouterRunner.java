@@ -84,23 +84,19 @@ public class MockBorderRouterRunner {
     }
   }
 
-  @Deprecated
-  public synchronized void reset() {
-    // reset static fields
-    nForwardTotal.set(0);
-    dropNextPackets.set(0);
-    scmpErrorOnNextPacket.set(null);
-    nStunRequests.set(0);
-    enableStun.set(true);
-    stunCallback.set(null);
-  }
-
   public int getForwardCount(int id) {
     return routers.get(id).getForwardCount();
   }
 
   public int getAndResetTotalForwardCount() {
     return nForwardTotal.getAndSet(0);
+  }
+
+  public int getAndResetForwardCounters() {
+    for (MockBorderRouter br : routers) {
+      br.resetForwardCount();
+    }
+    return getAndResetTotalForwardCount();
   }
 
   public int getTotalForwardCount() {

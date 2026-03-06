@@ -206,17 +206,7 @@ public class MockNetwork {
     if (mock == null) {
       return 0;
     }
-    int total = mock.routers.getAndResetTotalForwardCount();
-    if (mock != null) {
-      for (MockBorderRouter br : mock.routers.getBorderRouters()) {
-        br.resetForwardCount();
-      }
-    }
-    return total;
-  }
-
-  public static int getAndResetTotalForwardCount() {
-    return mock == null ? 0 : mock.routers.getAndResetTotalForwardCount();
+    return mock.routers.getAndResetForwardCounters();
   }
 
   public static int getTotalForwardCount() {
