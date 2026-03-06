@@ -21,11 +21,13 @@ import java.util.List;
 /**
  * PathMetadata contains the raw path and meta information such as bandwidth, latency or geo
  * coordinates. PathMetadata is available from Paths that are created/returned by the ScionService
- * when requesting a new path from the control service.
+ * when requesting a new path from the path service.
  */
 public class PathMetadata {
 
   private final byte[] pathRaw;
+  private final long srcIsdAs;
+  private final long dstIsdAs;
   private final Interface firstInterface;
   private final List<PathInterface> pathInterfaces;
   private final int mtu;
@@ -44,6 +46,8 @@ public class PathMetadata {
 
   private PathMetadata(
       byte[] pathRaw,
+      long srcIsdAs,
+      long dstIsdAs,
       Interface firstInterface,
       List<PathInterface> pathInterfaces,
       int mtu,
@@ -56,6 +60,8 @@ public class PathMetadata {
       List<String> notesList,
       EpicAuths epicAuths) {
     this.pathRaw = pathRaw;
+    this.srcIsdAs = srcIsdAs;
+    this.dstIsdAs = dstIsdAs;
     this.firstInterface = firstInterface;
     this.pathInterfaces = pathInterfaces;
     this.mtu = mtu;
@@ -245,17 +251,11 @@ public class PathMetadata {
   }
 
   public long getSrcIdsAs() {
-    if (pathInterfaces.isEmpty()) {
-      return 0;
-    }
-    return pathInterfaces.get(0).isdAs;
+    return srcIsdAs;
   }
 
   public long getDstIdsAs() {
-    if (pathInterfaces.isEmpty()) {
-      return 0;
-    }
-    return pathInterfaces.get(pathInterfaces.size() - 1).getIsdAs();
+    return dstIsdAs;
   }
 
   public enum LinkType {
@@ -384,7 +384,10 @@ public class PathMetadata {
 
   public static class Builder {
     private static final int MTU_NOT_SET = Integer.MIN_VALUE;
+    private static final int IA_NOT_SET = Integer.MIN_VALUE;
     private byte[] pathRaw = {};
+    private long srcIsdAs = IA_NOT_SET;
+    private long dstIsdAs = IA_NOT_SET;
     private Interface localInterface;
     private List<PathInterface> pathInterfaces = new ArrayList<>();
     private int mtu = MTU_NOT_SET;
@@ -399,6 +402,8 @@ public class PathMetadata {
 
     public Builder from(PathMetadata other) {
       pathRaw = other.pathRaw;
+      srcIsdAs = other.srcIsdAs;
+      dstIsdAs = other.dstIsdAs;
       localInterface = other.firstInterface;
       pathInterfaces = other.pathInterfaces;
       mtu = other.mtu;
@@ -410,6 +415,16 @@ public class PathMetadata {
       internalHopList = other.internalHopList;
       notesList = other.notesList;
       epicAuths = other.epicAuths;
+      return this;
+    }
+
+    public Builder setSrcIsdAs(long srcIsdAs) {
+      this.srcIsdAs = srcIsdAs;
+      return this;
+    }
+
+    public Builder setDstIsdAs(long dstIsdAs) {
+      this.dstIsdAs = dstIsdAs;
       return this;
     }
 
@@ -507,8 +522,21 @@ public class PathMetadata {
     }
 
     public PathMetadata build() {
+      if (pathInterfaces.isEmpty()) {
+        if (srcIsdAs == IA_NOT_SET) {
+          throw new IllegalStateException("srcIsdAs must be set!");
+        }
+        if (dstIsdAs == IA_NOT_SET) {
+          throw new IllegalStateException("dstIsdAs must be set!");
+        }
+      } else {
+        srcIsdAs = pathInterfaces.get(0).isdAs;
+        dstIsdAs = pathInterfaces.get(pathInterfaces.size() - 1).getIsdAs();
+      }
       return new PathMetadata(
           pathRaw,
+          srcIsdAs,
+          dstIsdAs,
           localInterface,
           pathInterfaces,
           hasMtu() ? mtu : 0,

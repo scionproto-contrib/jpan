@@ -123,8 +123,10 @@ public class PackageVisibilityHelper {
             .setRaw(raw.clone())
             .setLocalInterface(inter)
             .setExpiration(ts)
+            .setSrcIsdAs(srcIsdAs)
+            .setDstIsdAs(dstIsdAs)
             .build();
-    return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(path, dstHost, dstPort);
   }
 
   public static ResponsePath createDummyResponsePath(
@@ -147,7 +149,8 @@ public class PackageVisibilityHelper {
 
   public static RequestPath createRequestPath110_110(
       PathMetadata.Builder builder, long isdAs, InetAddress dstHost, int dstPort) {
-    return RequestPath.create(builder.build(), isdAs, isdAs, dstHost, dstPort);
+    builder.setSrcIsdAs(isdAs).setDstIsdAs(isdAs);
+    return RequestPath.create(builder.build(), dstHost, dstPort);
   }
 
   public static RequestPath createRequestPath110_112(
@@ -163,23 +166,18 @@ public class PackageVisibilityHelper {
             .addInterfaces(PathMetadata.PathInterface.create(srcIsdAs, 2))
             .addInterfaces(PathMetadata.PathInterface.create(dstIsdAs, 1))
             .build();
-    return RequestPath.create(path, srcIsdAs, dstIsdAs, dstHost, dstPort);
+    return RequestPath.create(path, dstHost, dstPort);
   }
 
   public static RequestPath createRequestPath(
       PathMetadata path, long srcIsdAs, long dstIsdAs, InetSocketAddress dst) {
-    return RequestPath.create(path, srcIsdAs, dstIsdAs, dst.getAddress(), dst.getPort());
+    return RequestPath.create(path, dst.getAddress(), dst.getPort());
   }
 
   public static Path createExpiredPath(Path base, int expiredSinceSecs) {
     long time = Instant.now().getEpochSecond() - expiredSinceSecs;
     PathMetadata m = PathMetadata.newBuilder().from(base.getMetadata()).setExpiration(time).build();
-    return RequestPath.create(
-        m,
-        base.getLocalIsdAs(),
-        base.getRemoteIsdAs(),
-        base.getRemoteAddress(),
-        base.getRemotePort());
+    return RequestPath.create(m, base.getRemoteAddress(), base.getRemotePort());
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {

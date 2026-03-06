@@ -196,7 +196,6 @@ TODO
     - Later?!??!!!!
   - Deprecation: check:
     - LocalAS deprecation / BorderRouterInterface.create
-    - RequestPath create/cstr
     - ScionService deprecation
     - Use Barrier more
     - Move BR forward count in to BR
