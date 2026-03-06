@@ -23,21 +23,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.control_plane.Seg;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Mock network for larger topologies than tiny. A local daemon is _not_ supported. */
 public class MockNetwork2 implements AutoCloseable {
-  private static final Logger logger = LoggerFactory.getLogger(MockNetwork2.class.getName());
   public static final String AS_HOST = "my-as-host-test.org";
-  private final Barrier barrier = new Barrier();
   private final Scenario scenario;
 
   // Control service
@@ -131,19 +126,13 @@ public class MockNetwork2 implements AutoCloseable {
           InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
           if (bind1.getPort() < bind2.getPort()) {
             int id = borderRouters.size();
-            borderRouters.add(new MockBorderRouter(id, bind1, bind2, brIf.id, remoteId, barrier));
+            borderRouters.add(new MockBorderRouter(id, bind1, bind2, brIf.id, remoteId));
           }
         }
       }
     }
 
-    barrier.reset(borderRouters.size());
-    for (MockBorderRouter br : borderRouters) {
-      routers.execute(br);
-    }
-    if (!barrier.await(1, TimeUnit.SECONDS)) {
-      throw new IllegalStateException("Failed to start border routers.");
-    }
+    MockBorderRouter.start(routers, borderRouters);
   }
 
   public void reset() {
@@ -155,7 +144,6 @@ public class MockNetwork2 implements AutoCloseable {
     if (topoServer != null) {
       topoServer.getAndResetCallCount();
     }
-    barrier.reset(0);
   }
 
   @Override
@@ -167,24 +155,13 @@ public class MockNetwork2 implements AutoCloseable {
     if (topoServer != null) {
       topoServer.close();
     }
-    barrier.reset(0);
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
     // Defensive clean up
     ScionService.closeDefault();
 
-    try {
-      routers.shutdownNow();
-      // Wait a while for tasks to respond to being canceled
-      if (!routers.awaitTermination(5, TimeUnit.SECONDS)) {
-        logger.error("Router did not terminate");
-      }
-      logger.info("Router shut down");
-    } catch (InterruptedException ie) {
-      Thread.currentThread().interrupt();
-    }
-    borderRouters.forEach(MockBorderRouter::resetForwardCount);
+    MockBorderRouter.stop(routers);
     borderRouters.clear();
   }
 

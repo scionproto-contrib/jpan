@@ -22,7 +22,13 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scmp;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
@@ -42,23 +48,59 @@ public class MockBorderRouter implements Runnable {
   private final InetSocketAddress bind2;
   private final int interfaceId1;
   private final int interfaceId2;
-  private final Barrier barrier;
+  private static final Barrier barrier = new Barrier();
   private static final AtomicInteger nForwardTotal = new AtomicInteger();
   private final AtomicInteger nForwards = new AtomicInteger();
+  private static final AtomicInteger dropNextPackets = new AtomicInteger();
+  private static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket =
+      new AtomicReference<>();
+  private static final AtomicInteger nStunRequests = new AtomicInteger();
+  private static final AtomicBoolean enableStun = new AtomicBoolean(true);
+  private static final AtomicReference<Predicate<ByteBuffer>> stunCallback =
+      new AtomicReference<>();
 
-  MockBorderRouter(
-      int id,
-      InetSocketAddress bind1,
-      InetSocketAddress bind2,
-      int ifId1,
-      int ifId2,
-      Barrier barrier) {
+  MockBorderRouter(int id, InetSocketAddress bind1, InetSocketAddress bind2, int ifId1, int ifId2) {
     this.name = "BorderRouter-" + id;
     this.bind1 = bind1;
     this.bind2 = bind2;
     this.interfaceId1 = ifId1;
     this.interfaceId2 = ifId2;
-    this.barrier = barrier;
+    reset(); // We don't know how many BRs there are, so we call it for every router.
+  }
+
+  public static synchronized void start(ExecutorService executor, List<MockBorderRouter> routers) {
+    barrier.reset(routers.size());
+    for (MockBorderRouter br : routers) {
+      executor.execute(br);
+    }
+    if (!barrier.await(1, TimeUnit.SECONDS)) {
+      throw new IllegalStateException("Failed to start border routers.");
+    }
+  }
+
+  public static synchronized void stop(ExecutorService executor) {
+    if (executor != null) {
+      try {
+        executor.shutdownNow();
+        // Wait a while for tasks to respond to being canceled
+        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+          logger.error("Router did not terminate");
+        }
+        logger.info("Router shut down");
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
+  public static synchronized void reset() {
+    // reset static fields
+    nForwardTotal.set(0);
+    dropNextPackets.set(0);
+    scmpErrorOnNextPacket.set(null);
+    nStunRequests.set(0);
+    enableStun.set(true);
+    stunCallback.set(null);
   }
 
   @Override
@@ -100,12 +142,12 @@ public class MockBorderRouter implements Runnable {
               continue;
             }
 
-            if (MockNetwork.dropNextPackets.get() > 0) {
-              MockNetwork.dropNextPackets.decrementAndGet();
+            if (dropNextPackets.get() > 0) {
+              dropNextPackets.decrementAndGet();
               continue;
             }
 
-            Scmp.TypeCode errorCode = MockNetwork.scmpErrorOnNextPacket.getAndSet(null);
+            Scmp.TypeCode errorCode = scmpErrorOnNextPacket.getAndSet(null);
             if (errorCode != null) {
               sendScmp(errorCode, buffer, srcAddress, incoming);
               continue;
@@ -137,7 +179,7 @@ public class MockBorderRouter implements Runnable {
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     if (MockNetwork.useShim()) {
-      dstAddress = MockNetwork.asInfo.mapDispatcherPorts(dstAddress);
+      dstAddress = MockNetwork.getLocalAsInfo().mapDispatcherPorts(dstAddress);
     }
     logger.info(
         "{} forwarding {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dstAddress);
@@ -218,11 +260,11 @@ public class MockBorderRouter implements Runnable {
     if (in.getInt(4) != 0x2112A442) {
       return false;
     }
-    if (!MockNetwork.enableStun.get()) {
+    if (!enableStun.get()) {
       // read, but do not respond.
       return true;
     }
-    MockNetwork.nStunRequests.incrementAndGet();
+    nStunRequests.incrementAndGet();
     // Let's assume this is a valid STUN packet.
     ByteBuffer out = ByteBuffer.allocate(60000);
     out.putShort(ByteUtil.toShort(0x0101));
@@ -253,7 +295,7 @@ public class MockBorderRouter implements Runnable {
     out.putShort(2, ByteUtil.toShort(out.position() - 20));
 
     // If callback returns true we send the packet (which may have been altered)
-    if (MockNetwork.stunCallback.get() != null && !MockNetwork.stunCallback.get().test(out)) {
+    if (stunCallback.get() != null && !stunCallback.get().test(out)) {
       return true;
     }
 
@@ -273,5 +315,30 @@ public class MockBorderRouter implements Runnable {
 
   public static int getTotalForwardCount() {
     return nForwardTotal.get();
+  }
+
+  /**
+   * Set the routers to drop the next n packets.
+   *
+   * @param n packets to drop
+   */
+  public static void dropNextPackets(int n) {
+    dropNextPackets.set(n);
+  }
+
+  public static void returnScmpErrorOnNextPacket(Scmp.TypeCode scmpTypeCode) {
+    scmpErrorOnNextPacket.set(scmpTypeCode);
+  }
+
+  public static int getAndResetStunCount() {
+    return nStunRequests.getAndSet(0);
+  }
+
+  public static void disableStun() {
+    enableStun.set(false);
+  }
+
+  public static void setStunCallback(Predicate<ByteBuffer> stunCallback) {
+    MockBorderRouter.stunCallback.set(stunCallback);
   }
 }
