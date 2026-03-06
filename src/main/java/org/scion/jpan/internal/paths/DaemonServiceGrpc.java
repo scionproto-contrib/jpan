@@ -114,12 +114,15 @@ public class DaemonServiceGrpc {
 
   public List<PathMetadata> pathsAsMetadata(long srcIsdAs, long dstIsdAs) {
     List<Daemon.Path> dList = paths(srcIsdAs, dstIsdAs).getPathsList();
-    return dList.stream().map(DaemonServiceGrpc::toPathMetadata).collect(Collectors.toList());
+    return dList.stream()
+        .map(p -> toPathMetadata(p, srcIsdAs, dstIsdAs))
+        .collect(Collectors.toList());
   }
 
-  private static PathMetadata toPathMetadata(Daemon.Path path) {
+  private static PathMetadata toPathMetadata(Daemon.Path path, long srcIsdIs, long dstIsdAs) {
     PathMetadata.Builder b = PathMetadata.newBuilder();
     b.setRaw(path.getRaw().toByteArray());
+    b.setSrcIsdAs(srcIsdIs).setDstIsdAs(dstIsdAs);
     path.getInterfacesList().stream()
         .map(pi -> PathMetadata.PathInterface.create(pi.getIsdAs(), pi.getId()))
         .forEach(b::addInterfaces);

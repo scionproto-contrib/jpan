@@ -98,8 +98,10 @@ public class PathProvider {
     PathMetadata.Builder path = PathMetadata.newBuilder();
     Random rnd = new Random();
     long now = System.currentTimeMillis() / 1000;
-    path.setExpiration(now + rnd.nextInt(3600));
-    path.setMtu(1000 + rnd.nextInt(1000));
+    path.setSrcIsdAs(snetPath.src)
+        .setDstIsdAs(snetPath.dst)
+        .setExpiration(now + rnd.nextInt(3600))
+        .setMtu(1000 + rnd.nextInt(1000));
     // path.setInterface(PathInterface.create(Daemon.Address.getDefaultInstance()));
     for (PathInterface pathIntf : snetPath.pathIntfs) {
       path.addInterfaces(PathMetadata.PathInterface.create(pathIntf.IA, pathIntf.ID));

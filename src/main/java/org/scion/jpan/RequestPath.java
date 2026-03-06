@@ -16,7 +16,6 @@ package org.scion.jpan;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Set;
 import org.scion.jpan.internal.util.IPHelper;
 
 /**
@@ -28,38 +27,18 @@ public class RequestPath extends Path {
 
   private final PathMetadata metadata;
 
-  @Deprecated
-  static RequestPath create(
-      PathMetadata metadata, long srcIsdAs, long dstIsdAs, InetAddress dstIP, int dstPort) {
-    // path length 0 means "local AS"
-    InetSocketAddress firstHop;
-    if (metadata.getRawPath().length == 0) {
-      firstHop = new InetSocketAddress(dstIP, dstPort);
-    } else {
-      firstHop = IPHelper.toInetSocketAddress(metadata.getLocalInterface().getAddress());
-    }
-    return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
-  }
-
-  static RequestPath create(
-      PathMetadata metadata, Set<Long> isdAses, InetAddress dstIP, int dstPort) {
+  static RequestPath create(PathMetadata metadata, InetAddress dstIP, int dstPort) {
     // path length 0 means "local AS"
     InetSocketAddress firstHop;
     long srcIsdAs;
     long dstIsdAs;
     if (metadata.getRawPath().length == 0) {
       firstHop = new InetSocketAddress(dstIP, dstPort);
-      if (isdAses.isEmpty()) {
-        srcIsdAs = 0;
-      } else {
-        srcIsdAs = isdAses.iterator().next();
-      }
-      dstIsdAs = srcIsdAs;
     } else {
       firstHop = IPHelper.toInetSocketAddress(metadata.getLocalInterface().getAddress());
-      srcIsdAs = metadata.getSrcIdsAs();
-      dstIsdAs = metadata.getDstIdsAs();
     }
+    srcIsdAs = metadata.getSrcIdsAs();
+    dstIsdAs = metadata.getDstIdsAs();
     return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 
