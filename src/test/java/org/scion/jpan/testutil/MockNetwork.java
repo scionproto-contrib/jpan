@@ -28,7 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import org.scion.jpan.*;
@@ -62,8 +61,6 @@ public class MockNetwork {
   public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
   public static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPO_TINY_110;
   private static final String TINY_CLIENT_TOPO_V6 = "topologies/tiny/ASff00_0_110";
-  static final AtomicInteger nForwardTotal = new AtomicInteger();
-  static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
   static final AtomicInteger dropNextPackets = new AtomicInteger();
   static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
   static final AtomicInteger nStunRequests = new AtomicInteger();
@@ -75,6 +72,7 @@ public class MockNetwork {
   private static MockDaemon daemon = null;
   private static MockBootstrapServer topoServer;
   private static final List<MockControlServer> controlServices = new ArrayList<>();
+  private static final List<MockBorderRouter> borderRouters = new ArrayList<>();
   static AsInfo asInfo;
 
   private static MockNetwork mock;
@@ -125,7 +123,6 @@ public class MockNetwork {
       MockScmpHandler.start(remoteIP);
     }
 
-    List<MockBorderRouter> brList = new ArrayList<>();
     for (AsInfo.BorderRouter br : mock.asInfoLocal.getBorderRouters()) {
       for (AsInfo.BorderRouterInterface brIf : br.getInterfaces()) {
         if (brIf.getRemoteInterface() == null) {
@@ -135,15 +132,15 @@ public class MockNetwork {
         String remote = brIf.getRemoteInterface().getBorderRouter().getInternalAddress();
         InetSocketAddress bind1 = IPHelper.toInetSocketAddress(br.getInternalAddress());
         InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
-        brList.add(
-            new MockBorderRouter(
-                brList.size(), bind1, bind2, brIf.id, brIf.getRemoteInterface().id, barrier));
-        mock.localAddress[brList.size() - 1] = bind1;
+        int id = borderRouters.size();
+        borderRouters.add(
+            new MockBorderRouter(id, bind1, bind2, brIf.id, brIf.getRemoteInterface().id, barrier));
+        mock.localAddress[borderRouters.size() - 1] = bind1;
       }
     }
 
-    barrier.reset(brList.size());
-    for (MockBorderRouter br : brList) {
+    barrier.reset(borderRouters.size());
+    for (MockBorderRouter br : borderRouters) {
       routers.execute(br);
     }
     if (!barrier.await(1, TimeUnit.SECONDS)) {
@@ -152,7 +149,7 @@ public class MockNetwork {
 
     if (mode == Mode.DAEMON) {
       try {
-        daemon = MockDaemon.createForBorderRouter(brList).start();
+        daemon = MockDaemon.createForBorderRouter(borderRouters).start();
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -213,6 +210,7 @@ public class MockNetwork {
       }
       routers = null;
     }
+    borderRouters.clear();
 
     MockScmpHandler.stop();
 
@@ -256,14 +254,15 @@ public class MockNetwork {
   }
 
   public static int getAndResetForwardCount() {
-    for (int i = 0; i < nForwards.length(); i++) {
-      nForwards.set(i, 0);
+    int total = MockBorderRouter.getTotalForwardCount();
+    for (MockBorderRouter br : borderRouters) {
+      br.resetForwardCount();
     }
-    return nForwardTotal.getAndSet(0);
+    return total;
   }
 
   public static int getForwardCount() {
-    return nForwardTotal.get();
+    return MockBorderRouter.getTotalForwardCount();
   }
 
   public static int getAndResetStunCount() {
@@ -281,10 +280,6 @@ public class MockNetwork {
 
   public static void returnScmpErrorOnNextPacket(Scmp.TypeCode scmpTypeCode) {
     scmpErrorOnNextPacket.set(scmpTypeCode);
-  }
-
-  public static int getForwardCount(int routerId) {
-    return nForwards.get(routerId);
   }
 
   public static MockBootstrapServer getTopoServer() {

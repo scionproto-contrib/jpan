@@ -22,6 +22,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scmp;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
@@ -36,13 +37,14 @@ public class MockBorderRouter implements Runnable {
 
   private static final Logger logger = LoggerFactory.getLogger(MockBorderRouter.class.getName());
 
-  private final int id;
   private final String name;
   private final InetSocketAddress bind1;
   private final InetSocketAddress bind2;
   private final int interfaceId1;
   private final int interfaceId2;
   private final Barrier barrier;
+  private static final AtomicInteger nForwardTotal = new AtomicInteger();
+  private final AtomicInteger nForwards = new AtomicInteger();
 
   MockBorderRouter(
       int id,
@@ -51,7 +53,6 @@ public class MockBorderRouter implements Runnable {
       int ifId1,
       int ifId2,
       Barrier barrier) {
-    this.id = id;
     this.name = "BorderRouter-" + id;
     this.bind1 = bind1;
     this.bind2 = bind2;
@@ -143,8 +144,8 @@ public class MockBorderRouter implements Runnable {
 
     outgoing.send(buffer, dstAddress);
     buffer.clear();
-    MockNetwork.nForwardTotal.incrementAndGet();
-    MockNetwork.nForwards.incrementAndGet(id);
+    nForwardTotal.incrementAndGet();
+    nForwards.incrementAndGet();
   }
 
   private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
@@ -251,26 +252,27 @@ public class MockBorderRouter implements Runnable {
     // update packet length
     out.putShort(2, ByteUtil.toShort(out.position() - 20));
 
-    if (MockNetwork.stunCallback.get() != null) {
-      // If callback returns true we send the packet (which may have been altered)
-      if (!MockNetwork.stunCallback.get().test(out)) {
-        return true;
-      }
+    // If callback returns true we send the packet (which may have been altered)
+    if (MockNetwork.stunCallback.get() != null && !MockNetwork.stunCallback.get().test(out)) {
+      return true;
     }
+
 
     out.flip();
     incoming.send(out, srcAddress);
     return true;
   }
 
-  public void resetForMockNetwork2() {
-    for (int i = 0; i < MockNetwork.nForwards.length(); i++) {
-      MockNetwork.nForwards.set(i, 0);
-    }
-    MockNetwork.nForwardTotal.set(0);
+  public void resetForwardCount() {
+    nForwardTotal.set(0);
+    nForwards.getAndSet(0);
   }
 
   public int getForwardCount() {
-    return MockNetwork.getForwardCount(id);
+    return nForwards.get();
+  }
+
+  public static int getTotalForwardCount() {
+    return nForwardTotal.get();
   }
 }

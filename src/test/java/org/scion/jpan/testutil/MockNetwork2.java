@@ -147,7 +147,7 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   public void reset() {
-    borderRouters.forEach(MockBorderRouter::resetForMockNetwork2);
+    borderRouters.forEach(MockBorderRouter::resetForwardCount);
     controlServices.forEach(MockControlServer::clearSegments);
     controlServices.forEach(MockControlServer::getAndResetCallCount);
     pathServices.forEach(MockPathService::clearSegments);
@@ -184,7 +184,7 @@ public class MockNetwork2 implements AutoCloseable {
     } catch (InterruptedException ie) {
       Thread.currentThread().interrupt();
     }
-    borderRouters.forEach(MockBorderRouter::resetForMockNetwork2);
+    borderRouters.forEach(MockBorderRouter::resetForwardCount);
     borderRouters.clear();
   }
 

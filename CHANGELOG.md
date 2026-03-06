@@ -196,9 +196,7 @@ TODO
     - Later?!??!!!!
   - Deprecation: check:
     - LocalAS deprecation / BorderRouterInterface.create
-    - ScionService deprecation
     - Use Barrier more
-    - Move BR forward count in to BR
     - Try EndHostApiDemo again
   - Think about moving address into path
     - That would simplify Path API (remove response/request) but may
