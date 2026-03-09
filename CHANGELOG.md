@@ -164,9 +164,13 @@ TODO
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 - DatagramPackets should not require an address when a socket is connected
   [#226](https://github.com/scionproto-contrib/jpan/issues/226)
-- Cleanup
-  [#229](https://github.com/scionproto-contrib/jpan/pull/229)
-- 
+- Cleanup. [#229](https://github.com/scionproto-contrib/jpan/pull/229)
+  - RequestPath
+  - MockBorderRouter
+  - MockNetwork
+  - AsInfo / LocalAS
+  - Barrier
+
 ### Changed
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
