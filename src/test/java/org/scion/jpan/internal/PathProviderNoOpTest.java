@@ -21,13 +21,13 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
@@ -112,7 +112,7 @@ class PathProviderNoOpTest {
 
   private static class SubscriberHelper {
     AtomicReference<Path> subscribedPath = new AtomicReference<>();
-    CountDownLatch barrier = new CountDownLatch(1);
+    Barrier barrier = new Barrier(1);
 
     public SubscriberHelper(Path path) {
       this.subscribedPath.set(path);
@@ -124,11 +124,7 @@ class PathProviderNoOpTest {
     }
 
     void await() {
-      try {
-        assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
+      assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
     }
   }
 

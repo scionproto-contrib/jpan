@@ -16,7 +16,6 @@ package org.scion.jpan.demo.test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,18 +30,19 @@ import org.scion.jpan.ScionService;
 import org.scion.jpan.demo.DemoTopology;
 import org.scion.jpan.demo.PingPongChannelClient;
 import org.scion.jpan.demo.PingPongChannelServer;
+import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.TestUtil;
 
-public class PingPongChannelDemoTest {
+class PingPongChannelDemoTest {
 
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     ScionService.closeDefault();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     DemoTopology.shutDown();
     MockDNS.clear();
     ScionService.closeDefault();
@@ -54,7 +54,7 @@ public class PingPongChannelDemoTest {
     ExecutorService exec = Executors.newFixedThreadPool(2);
     PingPongChannelServer.PRINT = false;
     PingPongChannelClient.PRINT = false;
-    CountDownLatch barrier = new CountDownLatch(1);
+    Barrier barrier = new Barrier(1);
 
     exec.execute(
         () -> {

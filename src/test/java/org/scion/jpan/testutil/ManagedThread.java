@@ -16,7 +16,6 @@ package org.scion.jpan.testutil;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +28,7 @@ public class ManagedThread implements ManagedThreadNews {
 
   private final ExecutorService executor;
   private final List<Exception> exceptions = new CopyOnWriteArrayList<>();
-  private final CountDownLatch barrier = new CountDownLatch(1);
+  private final Barrier barrier = new Barrier(1);
   private final String name;
   private final int startUpWaitMillis;
   private final Class<? extends Exception> expectThrows;

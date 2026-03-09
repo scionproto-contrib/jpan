@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 
@@ -70,14 +70,14 @@ class DatagramSocketApiConcurrencyTest {
   }
 
   private interface Writer {
-    void run(ScionDatagramSocket socket, CountDownLatch receiveCount);
+    void run(ScionDatagramSocket socket, Barrier receiveCount);
   }
 
   /** Test 2x receive() and 1x send(). */
   private void concurrentReceive(Reader c1, Reader c2, Writer w1, boolean connect)
       throws IOException {
     AtomicInteger receiveCount = new AtomicInteger();
-    CountDownLatch senderLatch = new CountDownLatch(1);
+    Barrier senderLatch = new Barrier(1);
     ByteBuffer buffer = ByteBuffer.allocate(100);
     buffer.put("Hello scion!".getBytes());
     buffer.flip();
@@ -155,7 +155,7 @@ class DatagramSocketApiConcurrencyTest {
     }
   }
 
-  private void send(ScionDatagramSocket socket, CountDownLatch latch) {
+  private void send(ScionDatagramSocket socket, Barrier latch) {
     byte[] bytes = "Hello scion!".getBytes();
     DatagramPacket packet = new DatagramPacket(bytes, bytes.length, dummyAddress);
     try {

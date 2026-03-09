@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.Path;
@@ -41,7 +40,7 @@ public class PingPongHelperBase {
   public static final String SERVER_TOPO = MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json";
 
   private static final String SERVER_NAME = "ping.pong.org";
-  protected final CountDownLatch shutDownBarrier;
+  protected final Barrier shutDownBarrier;
 
   private final int nClients;
   protected final int nServers;
@@ -52,8 +51,8 @@ public class PingPongHelperBase {
   protected final InetSocketAddress serverAddressOrNull;
   protected final ScionService serverService;
 
-  final CountDownLatch startUpBarrierClient;
-  final CountDownLatch startUpBarrierServer;
+  final Barrier startUpBarrierClient;
+  final Barrier startUpBarrierServer;
   final int timeoutSecStartUp;
   final int timeoutSecRun;
   protected final AtomicInteger nRoundsClient = new AtomicInteger();
@@ -80,9 +79,9 @@ public class PingPongHelperBase {
     this.serverAddressOrNull = serverAddressOrNull;
     this.serverService = serverService;
 
-    startUpBarrierClient = new CountDownLatch(nClients);
-    startUpBarrierServer = new CountDownLatch(nServers);
-    shutDownBarrier = new CountDownLatch(nClients + nServers);
+    startUpBarrierClient = new Barrier(nClients);
+    startUpBarrierServer = new Barrier(nServers);
+    shutDownBarrier = new Barrier(nClients + nServers);
     timeoutSecStartUp = startUpTimeoutSecs;
     timeoutSecRun = runTimeoutSecs;
     MockNetwork.getAndResetForwardCount();
@@ -169,8 +168,6 @@ public class PingPongHelperBase {
           fail();
         }
       }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     } catch (IOException e) {
       exceptions.add(e);
       throw new RuntimeException(e);
