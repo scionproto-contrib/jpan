@@ -8,14 +8,30 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
+- SCMP responder must not send to broadcast addresses etc, see SCMP processing rules.
+- Add PingPong demo to integration tests. Move Integration tests to separate folder.
+- Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise
+- Peering: consider: https://github.com/scionproto/scion/tree/peering_test
+- PathProvider
+  - Make PathProvider public -> new sub-package
+  - With `send(PathProvider)` and `connect(PathProvider)` we can remove it from the constructor.
+    Not quite, it would still be useful for legacy `send(address)` and `connect(address)`. 
+  - Implement `send(PathProvider)`? Useful e.g. for a browser that connects to many
+    servers.
+    - This allows removing the path `refreshedPaths` in ScionDatagramChannel
+  - PATH_POLLING: Consolidate polling to once every 60 seconds per remote AS.
+    TODO generally, we should think about doing the polling centrally so that we
+    reuse path requests to the same remote AS. Central polling could be done with
+    subscriptions or with a central polling timer that consolidates polling to
+    identical remote ASes.
+  - Path caching!!! -> Cache validity e.g. 1 minute ensures that new path become available quickly
+
+- Move `resolvedAddresses` into PathProvider or ScionService.
+  - Is a shared cache problematic for security?   
 - Deprecate ScionService.getLocalIsdAs(). Also: build header with src-IA from path!
   - deprecate local MTU ?! 
   - deprecate ASInfo.isCore() ?
   - Port range?
-- Implement `send(PathProvider)`? Useful e.g. for a browser that connects to many
-  servers.
-- SCMP responder must not send to broadcast addresses etc, see SCMP processing rules.
-- Add PingPong demo to integration tests. Move Integration tests to separate folder.
 - Add SCION discovery extension?! -> seg_extension.proto and daemon.proto
 - Java 17: 
   - DNS injection
@@ -44,43 +60,34 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     - Somehow we need to support seamless switching in endhosts. If one ISD is unavailable, we 
       should try the other one? Is that a valid scenario? Is it worth putting a lot of work into?
       --> "Backup" scenario.
-- API!!!!
-  A Path should NOT have a remote Address! 
-  - Remove remoteAddress from Path.equals()
-  - Remove getRemote(Socket)Address and especially getRemotePort()
-  - Remove send(path)...
-  - BUT: What do we call a Path with associated remote(/local) addresses? 
 - API to drop current path or even use most diverse one.
   - To be called if application detects interruption (but no SCMP errors arrive?)
   - Do not drop, but move to end of list (or attach time for retry (in 10secs or so). 
      They may become valid/valuable again. Especially if the problem is actually the 
      remote server and not the path itself.
   - Make sure that e.g. SCMP does _not_  replace the path with something else!
-- Make PathProvider public 
+
+TODO
+- Think about having multiple ISD per _destination_!
+  - Does that make sense? Should we simply require multiple calls to getPaths()?
+  - ScionService.getIsdAses(hostName) should return multiple ISDs.
+    But we should keep the original implementation as an option to get
+    only a single ISD/AS, e.g. without querying DNS.
+  - Channel.connect could connect to an AS instead of an ISD/AS
+  - Later?!??!!!!
+- Deprecation: check:
+  - Try EndHostApiDemo again with UTF8 setting.
+- Think about removing src address from path
+  - That would simplify Path API (only one Path class).
+    During send, we just use the local address or the NATed address, whichever is available. 
+  - Make source address optional -> avoid sublcassing by using composition
 
 TODO
 - Implement Bootstrapping: IPv6 NDP: DNS resolver and DNS Search List [RFC6106]
 
-- PATH_POLLING:
-  - Consolidate polling to once every 60 seconds per remote AS.
-    TODO generally, we should think about doing the polling centrally so that we
-    reuse path requests to the same remote AS. Central polling could be done with
-    subscriptions or with a central polling timer that consolidates polling to
-    identical remote ASes.
-  - Make PAthProvider public API? Later?
-    Create new package for Paths with Provider interface and implementations. -> "pathProviders"?
-    Or put into ppl???
-- PathProvider: 
-  - implement timeout after which a faulty path will be tried again. Try it again in PP?
-  - Implement reportFaulty() to take a hint that reports also other paths. E.g. if a link is
-    faulty, all paths with that links should be deselected.
-    -> Keep error for refresh to filter out affected paths during refresh
-  - Move class to public API
 - why is expiration part of the metadata? Server paths can also expire!
   Add Path.isExpiredBy(Instant)
-- Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - Deprecate send(PATH)!!!!!
-- Path caching!!! -> Cache validity e.g. 1 minute ensures that new path become available quickly
 - Remove BR IP detection when receiving packets. -> getFirstHopAddress(): this reverts #133
 - BIG: extract testframework into separate project -> reuse by others!
 - JSON is not an ordered file format -> Use JSON array for ordering...
@@ -98,8 +105,6 @@ TODO
   - Move ResponderCallback to Scmp?
   - Make onTimeout() a default method? 
   - Merge all methods into one? A single onMessage()???
-- Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise 
-- TC: ask about port field in SCMP? Or must it be sent from 30041?
 
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
   -> is a SCION enabled IP; this gives us the ISD/AS.
@@ -124,9 +129,6 @@ TODO
 - Config-ify PROPERTIES etc 
 - Cache paths --> We already do some caching with ScionDatagramChannel::resolvedDestinations
 - Fix @Disabled tests
-- Create handling for SCMP errors 5 + 6 (interface down, connectivity down). Subclasses?
-  fix/113 has packet captures for two of these errors in SCMPTest.java 
-  Adhere to https://docs.scion.org/en/latest/protocols/scmp.html#processing-rules
 - remove ScionAddress?
 - ScionDatagramChannel
   - GatheringByteChannel, ScatteringByteChannel
@@ -189,23 +191,6 @@ TODO
   [#225](https://github.com/scionproto-contrib/jpan/pull/225)
 - PathProvider test + cleanup
   [#228](https://github.com/scionproto-contrib/jpan/pull/228)
-
-### TODO
-  - Think about having multiple ISD per _destination_!
-    - Does that make sense? Should we simply require multiple calls to getPaths()?
-    - ScionService.getIsdAses(hostName) should return multiple ISDs.
-      But we should keep the original implementation as an option to get
-      only a single ISD/AS, e.g. without querying DNS.
-    - Channel.connect could connect to an AS instead of an ISD/AS
-    - Later?!??!!!!
-  - Deprecation: check:
-    - Try EndHostApiDemo again
-  - Think about moving address into path
-    - That would simplify Path API (remove response/request) but may
-      complicate PathProviders...?
-      Or: ScionAddress has path, but path has no reference to source address?
-      Actually: the path is in PathMetadata. not in "Path", so we already have that...
-
 
 ### Removed
 
