@@ -175,7 +175,7 @@ public class LocalAS {
     public static final String CHILD = "child";
     public static final String CORE = "core";
     final int id;
-    final String publicUnderlay;
+    final String localUnderlay;
     final String remoteUnderlay;
     final long isdAs;
     final int mtu;
@@ -183,9 +183,9 @@ public class LocalAS {
 
     @Deprecated // Should only be used in Unit tests
     BorderRouterInterface(
-        int id, String publicU, String remoteU, long isdAs, int mtu, String linkTo) {
+        int id, String localU, String remoteU, long isdAs, int mtu, String linkTo) {
       this.id = id;
-      this.publicUnderlay = publicU;
+      this.localUnderlay = localU;
       this.remoteUnderlay = remoteU;
       this.isdAs = isdAs;
       this.mtu = mtu;
@@ -216,8 +216,8 @@ public class LocalAS {
       return remoteUnderlay;
     }
 
-    public String getPublicUnderlay() {
-      return publicUnderlay;
+    public String getLocalUnderlay() {
+      return localUnderlay;
     }
   }
 
@@ -225,9 +225,13 @@ public class LocalAS {
     final String name;
     final String ipString;
 
-    ServiceNode(String name, String ipString) {
+    protected ServiceNode(String name, String ipString) {
       this.name = name;
       this.ipString = ipString;
+    }
+
+    static ServiceNode create(String name, String ipString) {
+      return new ServiceNode(name, ipString);
     }
 
     public String getIpString() {
@@ -244,7 +248,7 @@ public class LocalAS {
     private final int portMin;
     private final int portMax;
 
-    private DispatcherPortRange(int min, int max) {
+    protected DispatcherPortRange(int min, int max) {
       portMin = min;
       portMax = max;
     }

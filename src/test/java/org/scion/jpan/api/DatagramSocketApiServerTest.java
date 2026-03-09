@@ -159,7 +159,7 @@ class DatagramSocketApiServerTest {
 
     // Find border router address
     long isdAs112 = ScionUtil.parseIA(MockNetwork.TINY_CLIENT_ISD_AS);
-    AsInfo as112 = JsonFileParser.parseTopologyFile(Paths.get(topoFile));
+    AsInfo as112 = JsonFileParser.parseTopologyResourceFile(Paths.get(topoFile));
     String brAddressString = as112.getBorderRouterAddressByIA(isdAs112);
     InetSocketAddress brAddress = IPHelper.toInetSocketAddress(brAddressString);
 

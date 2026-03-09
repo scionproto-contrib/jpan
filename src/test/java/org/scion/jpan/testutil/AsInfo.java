@@ -28,18 +28,36 @@ import org.scion.jpan.internal.util.IPHelper;
 public class AsInfo {
   private long isdAs;
   private final List<ControlService> controlServers = new ArrayList<>();
-  private LocalAS.DispatcherPortRange portRange;
+  private DispatcherPortRange portRange;
+  private boolean isCoreAs;
+  private int mtu;
   private final List<BorderRouter> borderRouters = new ArrayList<>();
 
   void setIsdAs(long isdAs) {
     this.isdAs = isdAs;
   }
 
-  void setPortRange(LocalAS.DispatcherPortRange portRange) {
+  void setIsCoreAs(boolean isCoreAs) {
+    this.isCoreAs = isCoreAs;
+  }
+
+  boolean isCoreAs() {
+    return isCoreAs;
+  }
+
+  void setMtu(int mtu) {
+    this.mtu = mtu;
+  }
+
+  int getMtu() {
+    return mtu;
+  }
+
+  void setPortRange(DispatcherPortRange portRange) {
     this.portRange = portRange;
   }
 
-  LocalAS.DispatcherPortRange getPortRange() {
+  DispatcherPortRange getPortRange() {
     return this.portRange;
   }
 
@@ -121,24 +139,57 @@ public class AsInfo {
   }
 
   public static class BorderRouterInterface {
+    public static final String PARENT = "parent";
+    public static final String CHILD = "child";
+    public static final String CORE = "core";
     final int id;
     final long isdAs;
     final String localUnderlay;
     final String remoteUnderlay;
     final BorderRouter borderRouter;
+    final int mtu;
+    final String linkTo;
     BorderRouterInterface remoteInterface;
 
     public BorderRouterInterface(
         String id,
-        String isdAs,
         String localUnderlay,
         String remoteUnderlay,
+        String isdAs,
+        int mtu,
+        String linkTo,
         BorderRouter borderRouter) {
       this.id = Integer.parseInt(id);
       this.isdAs = ScionUtil.parseIA(isdAs);
+      this.mtu = mtu;
+      this.linkTo = linkTo;
       this.localUnderlay = localUnderlay;
       this.remoteUnderlay = remoteUnderlay;
       this.borderRouter = borderRouter;
+    }
+
+    public long getIsdAs() {
+      return isdAs;
+    }
+
+    public int getMtu() {
+      return mtu;
+    }
+
+    public int getId() {
+      return id;
+    }
+
+    public String getLinkTo() {
+      return linkTo;
+    }
+
+    public String getRemoteUnderlay() {
+      return remoteUnderlay;
+    }
+
+    public String getLocalUnderlay() {
+      return localUnderlay;
     }
 
     void setRemoteInterface(BorderRouterInterface remoteInterface) {
@@ -165,6 +216,35 @@ public class AsInfo {
 
     public InetSocketAddress getAddress() {
       return address;
+    }
+  }
+
+  public static class ServiceNode extends LocalAS.ServiceNode {
+    ServiceNode(String name, String ipString) {
+      super(name, ipString);
+    }
+
+    static ServiceNode create(String name, String ipString) {
+      return new ServiceNode(name, ipString);
+    }
+  }
+
+  public static class DispatcherPortRange extends LocalAS.DispatcherPortRange {
+
+    private DispatcherPortRange(int min, int max) {
+      super(min, max);
+    }
+
+    public static DispatcherPortRange create(int min, int max) {
+      return new DispatcherPortRange(min, max);
+    }
+
+    public static DispatcherPortRange createAll() {
+      return new DispatcherPortRange(1, 65535);
+    }
+
+    public static DispatcherPortRange createEmpty() {
+      return new DispatcherPortRange(-1, -2);
     }
   }
 }
