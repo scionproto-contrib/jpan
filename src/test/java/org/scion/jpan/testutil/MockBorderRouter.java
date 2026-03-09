@@ -22,6 +22,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scmp;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
@@ -36,13 +37,14 @@ public class MockBorderRouter implements Runnable {
 
   private static final Logger logger = LoggerFactory.getLogger(MockBorderRouter.class.getName());
 
-  private final int id;
   private final String name;
   private final InetSocketAddress bind1;
   private final InetSocketAddress bind2;
   private final int interfaceId1;
   private final int interfaceId2;
   private final Barrier barrier;
+  private final MockBorderRouterRunner runner;
+  private final AtomicInteger nForwards = new AtomicInteger();
 
   MockBorderRouter(
       int id,
@@ -50,14 +52,15 @@ public class MockBorderRouter implements Runnable {
       InetSocketAddress bind2,
       int ifId1,
       int ifId2,
-      Barrier barrier) {
-    this.id = id;
+      Barrier barrier,
+      MockBorderRouterRunner runner) {
     this.name = "BorderRouter-" + id;
     this.bind1 = bind1;
     this.bind2 = bind2;
     this.interfaceId1 = ifId1;
     this.interfaceId2 = ifId2;
     this.barrier = barrier;
+    this.runner = runner;
   }
 
   @Override
@@ -99,12 +102,12 @@ public class MockBorderRouter implements Runnable {
               continue;
             }
 
-            if (MockNetwork.dropNextPackets.get() > 0) {
-              MockNetwork.dropNextPackets.decrementAndGet();
+            if (runner.dropNextPackets.get() > 0) {
+              runner.dropNextPackets.decrementAndGet();
               continue;
             }
 
-            Scmp.TypeCode errorCode = MockNetwork.scmpErrorOnNextPacket.getAndSet(null);
+            Scmp.TypeCode errorCode = runner.scmpErrorOnNextPacket.getAndSet(null);
             if (errorCode != null) {
               sendScmp(errorCode, buffer, srcAddress, incoming);
               continue;
@@ -136,15 +139,15 @@ public class MockBorderRouter implements Runnable {
       throws IOException {
     InetSocketAddress dstAddress = PackageVisibilityHelper.getDstAddress(buffer);
     if (MockNetwork.useShim()) {
-      dstAddress = MockNetwork.asInfo.mapDispatcherPorts(dstAddress);
+      dstAddress = MockNetwork.getLocalAsInfo().mapDispatcherPorts(dstAddress);
     }
     logger.info(
         "{} forwarding {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dstAddress);
 
     outgoing.send(buffer, dstAddress);
     buffer.clear();
-    MockNetwork.nForwardTotal.incrementAndGet();
-    MockNetwork.nForwards.incrementAndGet(id);
+    runner.nForwardTotal.incrementAndGet();
+    nForwards.incrementAndGet();
   }
 
   private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)
@@ -217,11 +220,11 @@ public class MockBorderRouter implements Runnable {
     if (in.getInt(4) != 0x2112A442) {
       return false;
     }
-    if (!MockNetwork.enableStun.get()) {
+    if (!runner.enableStun.get()) {
       // read, but do not respond.
       return true;
     }
-    MockNetwork.nStunRequests.incrementAndGet();
+    runner.nStunRequests.incrementAndGet();
     // Let's assume this is a valid STUN packet.
     ByteBuffer out = ByteBuffer.allocate(60000);
     out.putShort(ByteUtil.toShort(0x0101));
@@ -251,11 +254,9 @@ public class MockBorderRouter implements Runnable {
     // update packet length
     out.putShort(2, ByteUtil.toShort(out.position() - 20));
 
-    if (MockNetwork.stunCallback.get() != null) {
-      // If callback returns true we send the packet (which may have been altered)
-      if (!MockNetwork.stunCallback.get().test(out)) {
-        return true;
-      }
+    // If callback returns true we send the packet (which may have been altered)
+    if (runner.stunCallback.get() != null && !runner.stunCallback.get().test(out)) {
+      return true;
     }
 
     out.flip();
@@ -263,14 +264,11 @@ public class MockBorderRouter implements Runnable {
     return true;
   }
 
-  public void resetForMockNetwork2() {
-    for (int i = 0; i < MockNetwork.nForwards.length(); i++) {
-      MockNetwork.nForwards.set(i, 0);
-    }
-    MockNetwork.nForwardTotal.set(0);
+  public void resetForwardCount() {
+    nForwards.getAndSet(0);
   }
 
   public int getForwardCount() {
-    return MockNetwork.getForwardCount(id);
+    return nForwards.get();
   }
 }

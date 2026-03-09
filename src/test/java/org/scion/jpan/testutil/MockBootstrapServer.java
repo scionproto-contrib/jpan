@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +44,7 @@ public class MockBootstrapServer implements Closeable {
   private static final Logger logger = LoggerFactory.getLogger(MockBootstrapServer.class.getName());
   private final ExecutorService executor;
   private final AtomicInteger callCount = new AtomicInteger();
-  private final CountDownLatch barrier = new CountDownLatch(1);
+  private final Barrier barrier = new Barrier(1);
   private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
   private final AsInfo asInfo;
 
@@ -57,12 +56,8 @@ public class MockBootstrapServer implements Closeable {
     Path topoFile = topoDir.resolve("topology.json");
     executor.submit(new TopologyServerImpl(JsonFileParser.readResource(topoFile), configResource));
 
-    try {
-      // Wait for sever socket address to be ready
-      barrier.await();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+    // Wait for sever socket address to be ready
+    barrier.await();
 
     if (installNaptr) {
       InetSocketAddress topoAddr = serverSocket.get();

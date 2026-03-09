@@ -19,9 +19,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.channels.ClosedByInterruptException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.Path;
@@ -39,7 +40,7 @@ public class PingPongHelperBase {
   public static final String SERVER_TOPO = MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json";
 
   private static final String SERVER_NAME = "ping.pong.org";
-  protected final CountDownLatch shutDownBarrier;
+  protected final Barrier shutDownBarrier;
 
   private final int nClients;
   protected final int nServers;
@@ -50,8 +51,8 @@ public class PingPongHelperBase {
   protected final InetSocketAddress serverAddressOrNull;
   protected final ScionService serverService;
 
-  final CountDownLatch startUpBarrierClient;
-  final CountDownLatch startUpBarrierServer;
+  final Barrier startUpBarrierClient;
+  final Barrier startUpBarrierServer;
   final int timeoutSecStartUp;
   final int timeoutSecRun;
   protected final AtomicInteger nRoundsClient = new AtomicInteger();
@@ -78,9 +79,9 @@ public class PingPongHelperBase {
     this.serverAddressOrNull = serverAddressOrNull;
     this.serverService = serverService;
 
-    startUpBarrierClient = new CountDownLatch(nClients);
-    startUpBarrierServer = new CountDownLatch(nServers);
-    shutDownBarrier = new CountDownLatch(nClients + nServers);
+    startUpBarrierClient = new Barrier(nClients);
+    startUpBarrierServer = new Barrier(nServers);
+    shutDownBarrier = new Barrier(nClients + nServers);
     timeoutSecStartUp = startUpTimeoutSecs;
     timeoutSecRun = runTimeoutSecs;
     MockNetwork.getAndResetForwardCount();
@@ -127,17 +128,18 @@ public class PingPongHelperBase {
 
   void run(ServerFactory serverFactory, ClientFactory clientFactory) {
     try {
-      AbstractEndpoint[] servers = new AbstractEndpoint[nServers];
-      for (int i = 0; i < servers.length; i++) {
-        servers[i] = serverFactory.create(i, nRounds * nClients);
-        servers[i].setName("Server-thread-" + i);
-        servers[i].start();
+      List<AbstractEndpoint> servers = new ArrayList<>();
+      for (int i = 0; i < nServers; i++) {
+        AbstractEndpoint server = serverFactory.create(i, nRounds * nClients);
+        servers.add(server);
+        server.setName("Server-thread-" + i);
+        server.start();
       }
       // Wait for server(s) and clients to start
       if (!startUpBarrierServer.await(timeoutSecStartUp, TimeUnit.SECONDS)) {
         throw new RuntimeException("Server startup failed: " + startUpBarrierServer);
       }
-      InetSocketAddress serverAddress = servers[0].getLocalAddress();
+      InetSocketAddress serverAddress = servers.get(0).getLocalAddress();
       MockDNS.install(serverIsdAs, serverAddress.getAddress());
       Path requestPath = Scion.defaultService().lookupPaths(serverAddress).get(0);
 
@@ -166,8 +168,6 @@ public class PingPongHelperBase {
           fail();
         }
       }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     } catch (IOException e) {
       exceptions.add(e);
       throw new RuntimeException(e);
@@ -184,7 +184,7 @@ public class PingPongHelperBase {
     checkExceptions();
 
     if (checkCounters) {
-      assertEquals(nRounds * nClients * 2, MockNetwork.getForwardCount());
+      assertEquals(nRounds * nClients * 2, MockNetwork.getTotalForwardCount());
     }
     assertEquals(nRounds * nClients, nRoundsClient.get());
     // For now, we assume that every request is handles by every server thread.

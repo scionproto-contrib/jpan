@@ -17,7 +17,6 @@ package org.scion.jpan.demo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
@@ -28,18 +27,19 @@ import org.scion.jpan.ScionService;
 import org.scion.jpan.demo.DemoTopology;
 import org.scion.jpan.demo.PingPongSocketClient;
 import org.scion.jpan.demo.PingPongSocketServer;
+import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.TestUtil;
 
-public class PingPongSocketDemoTest {
+class PingPongSocketDemoTest {
 
   @BeforeAll
-  public static void beforeAll() {
+  static void beforeAll() {
     ScionService.closeDefault();
   }
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     DemoTopology.shutDown();
     MockDNS.clear();
     ScionService.closeDefault();
@@ -50,7 +50,7 @@ public class PingPongSocketDemoTest {
     AtomicInteger failures = new AtomicInteger();
     PingPongSocketServer.PRINT = false;
     PingPongSocketClient.PRINT = false;
-    CountDownLatch barrier = new CountDownLatch(1);
+    Barrier barrier = new Barrier(1);
     Thread server =
         new Thread(
             () -> {

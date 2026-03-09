@@ -20,21 +20,13 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerArray;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The mock network is a simplified version of the test network available in scionproto. The mock is
@@ -62,25 +54,15 @@ public class MockNetwork {
   public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
   public static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPO_TINY_110;
   private static final String TINY_CLIENT_TOPO_V6 = "topologies/tiny/ASff00_0_110";
-  static final AtomicInteger nForwardTotal = new AtomicInteger();
-  static final AtomicIntegerArray nForwards = new AtomicIntegerArray(20);
-  static final AtomicInteger dropNextPackets = new AtomicInteger();
-  static final AtomicReference<Scmp.TypeCode> scmpErrorOnNextPacket = new AtomicReference<>();
-  static final AtomicInteger nStunRequests = new AtomicInteger();
-  static final AtomicBoolean enableStun = new AtomicBoolean(true);
-  static final AtomicReference<Predicate<ByteBuffer>> stunCallback = new AtomicReference<>();
-  private static final Barrier barrier = new Barrier();
-  private static final Logger logger = LoggerFactory.getLogger(MockNetwork.class.getName());
-  private static ExecutorService routers = null;
-  private static MockDaemon daemon = null;
-  private static MockBootstrapServer topoServer;
-  private static final List<MockControlServer> controlServices = new ArrayList<>();
-  static AsInfo asInfo;
+  private final AtomicBoolean hasStopped = new AtomicBoolean(false);
+  private final MockBorderRouterRunner routers;
+  private MockDaemon daemon = null;
+  private MockBootstrapServer topoServer;
+  private final List<MockControlServer> controlServices = new ArrayList<>();
 
   private static MockNetwork mock;
   private final AsInfo asInfoLocal;
   private final AsInfo asInfoRemote;
-  private final InetSocketAddress[] localAddress = new InetSocketAddress[2];
 
   /**
    * Start a network with one daemon and a border router. The border router connects "1-ff00:0:110"
@@ -108,25 +90,27 @@ public class MockNetwork {
   }
 
   private static synchronized void startTiny(String localTopo, String remoteTopo, Mode mode) {
-    if (routers != null) {
+    if (mock != null && !mock.hasStopped.get()) {
       throw new IllegalStateException();
     }
+    mock = new MockNetwork(localTopo, remoteTopo, mode);
+  }
 
-    mock = new MockNetwork(localTopo, remoteTopo);
+  private MockNetwork(String localTopo, String remoteTopo, Mode mode) {
+    asInfoLocal = JsonFileParser.parseTopology(Paths.get(localTopo));
+    asInfoRemote = JsonFileParser.parseTopology(Paths.get(remoteTopo));
+    asInfoLocal.connectWith(asInfoRemote);
+    routers = MockBorderRouterRunner.create();
 
-    routers = Executors.newFixedThreadPool(2);
-
-    String remoteIP =
-        mock.asInfoLocal.getBorderRouterAddressByIA(ScionUtil.parseIA(TINY_SRV_ISD_AS));
+    String remoteIP = asInfoLocal.getBorderRouterAddressByIA(ScionUtil.parseIA(TINY_SRV_ISD_AS));
     remoteIP = IPHelper.extractIP(remoteIP);
-    if (!useShim()) {
+    if (!useShimConfig()) {
       // Do not start a SCMP handler on 30041 if we want to use SHIMs.
       // The SHIM also includes its own SCMP handler.
       MockScmpHandler.start(remoteIP);
     }
 
-    List<MockBorderRouter> brList = new ArrayList<>();
-    for (AsInfo.BorderRouter br : mock.asInfoLocal.getBorderRouters()) {
+    for (AsInfo.BorderRouter br : asInfoLocal.getBorderRouters()) {
       for (AsInfo.BorderRouterInterface brIf : br.getInterfaces()) {
         if (brIf.getRemoteInterface() == null) {
           // can happen for e.g. AS 111
@@ -135,27 +119,14 @@ public class MockNetwork {
         String remote = brIf.getRemoteInterface().getBorderRouter().getInternalAddress();
         InetSocketAddress bind1 = IPHelper.toInetSocketAddress(br.getInternalAddress());
         InetSocketAddress bind2 = IPHelper.toInetSocketAddress(remote);
-        brList.add(
-            new MockBorderRouter(
-                brList.size(), bind1, bind2, brIf.id, brIf.getRemoteInterface().id, barrier));
-        mock.localAddress[brList.size() - 1] = bind1;
+        routers.add(bind1, bind2, brIf.id, brIf.getRemoteInterface().id);
       }
     }
 
-    barrier.reset(brList.size());
-    for (MockBorderRouter br : brList) {
-      routers.execute(br);
-    }
-    if (!barrier.await(1, TimeUnit.SECONDS)) {
-      throw new IllegalStateException("Failed to start border routers.");
-    }
+    routers.start();
 
     if (mode == Mode.DAEMON) {
-      try {
-        daemon = MockDaemon.createForBorderRouter(brList).start();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      daemon = MockDaemon.createForBorderRouter(routers.getBorderRouters()).start();
     }
 
     MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
@@ -164,72 +135,42 @@ public class MockNetwork {
       case BOOTSTRAP:
       case NAPTR:
         topoServer = MockBootstrapServer.start(localTopo, mode == Mode.NAPTR);
-        asInfo = topoServer.getASInfo();
-        for (InetSocketAddress cs : asInfo.getControlServerAddresses()) {
+        for (InetSocketAddress cs : asInfoLocal.getControlServerAddresses()) {
           controlServices.add(MockControlServer.start(cs.getPort()));
         }
         break;
       case AS_ONLY:
-        asInfo = JsonFileParser.parseTopology(Paths.get(localTopo));
-        for (InetSocketAddress cs : asInfo.getControlServerAddresses()) {
+        for (InetSocketAddress cs : asInfoLocal.getControlServerAddresses()) {
           controlServices.add(MockControlServer.start(cs.getPort()));
         }
         break;
       case DAEMON:
-        asInfo = daemon.getASInfo();
         break;
     }
-
-    dropNextPackets.getAndSet(0);
-    scmpErrorOnNextPacket.set(null);
-    getAndResetForwardCount();
-    getAndResetStunCount();
   }
 
   public static synchronized void stopTiny() {
+    if (mock != null) {
+      mock.stop();
+    }
+    MockDNS.clear();
+    MockScmpHandler.stop();
+  }
+
+  public synchronized void stop() {
     controlServices.forEach(MockControlServer::close);
     controlServices.clear();
     if (topoServer != null) {
       topoServer.close();
     }
 
-    MockDNS.clear();
-
     if (daemon != null) {
       daemon.close();
       daemon = null;
     }
 
-    if (routers != null) {
-      try {
-        routers.shutdownNow();
-        // Wait a while for tasks to respond to being canceled
-        if (!routers.awaitTermination(5, TimeUnit.SECONDS)) {
-          logger.error("Router did not terminate");
-        }
-        logger.info("Router shut down");
-      } catch (InterruptedException ie) {
-        Thread.currentThread().interrupt();
-      }
-      routers = null;
-    }
-
-    MockScmpHandler.stop();
-
-    barrier.reset(0);
-
-    dropNextPackets.getAndSet(0);
-    scmpErrorOnNextPacket.set(null);
-    enableStun.set(true);
-    stunCallback.set(null);
-    asInfo = null;
-    mock = null;
-  }
-
-  private MockNetwork(String localTopo, String remoteTopo) {
-    asInfoLocal = JsonFileParser.parseTopology(Paths.get(localTopo));
-    asInfoRemote = JsonFileParser.parseTopology(Paths.get(remoteTopo));
-    asInfoLocal.connectWith(asInfoRemote);
+    routers.stop();
+    hasStopped.set(true);
   }
 
   public static boolean useShim() {
@@ -237,17 +178,23 @@ public class MockNetwork {
       // Probably running MockNetwork2
       return false;
     }
+    return mock.useShimConfig();
+  }
+
+  private boolean useShimConfig() {
     String config = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_SHIM, Constants.ENV_SHIM);
-    boolean hasAllPorts = mock.asInfoLocal.getPortRange().hasPortRangeALL();
+    boolean hasAllPorts = asInfoLocal.getPortRange().hasPortRangeALL();
     return config != null ? Boolean.parseBoolean(config) : !hasAllPorts;
   }
 
   public static InetSocketAddress getBorderRouterAddress1() {
-    return mock.localAddress[0];
+    return mock.routers.getBorderRouters().get(0).getAddress1();
   }
 
   public static List<InetSocketAddress> getBorderRouterAddresses() {
-    return Arrays.asList(mock.localAddress);
+    return mock.routers.getBorderRouters().stream()
+        .map(MockBorderRouter::getAddress1)
+        .collect(Collectors.toList());
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {
@@ -256,18 +203,18 @@ public class MockNetwork {
   }
 
   public static int getAndResetForwardCount() {
-    for (int i = 0; i < nForwards.length(); i++) {
-      nForwards.set(i, 0);
+    if (mock == null) {
+      return 0;
     }
-    return nForwardTotal.getAndSet(0);
+    return mock.routers.getAndResetForwardCounters();
   }
 
-  public static int getForwardCount() {
-    return nForwardTotal.get();
+  public static int getTotalForwardCount() {
+    return mock == null ? 0 : mock.routers.getTotalForwardCount();
   }
 
   public static int getAndResetStunCount() {
-    return nStunRequests.getAndSet(0);
+    return mock.routers.getAndResetStunCount();
   }
 
   /**
@@ -276,39 +223,39 @@ public class MockNetwork {
    * @param n packets to drop
    */
   public static void dropNextPackets(int n) {
-    dropNextPackets.set(n);
+    mock.routers.dropNextPackets(n);
   }
 
   public static void returnScmpErrorOnNextPacket(Scmp.TypeCode scmpTypeCode) {
-    scmpErrorOnNextPacket.set(scmpTypeCode);
-  }
-
-  public static int getForwardCount(int routerId) {
-    return nForwards.get(routerId);
+    mock.routers.returnScmpErrorOnNextPacket(scmpTypeCode);
   }
 
   public static MockBootstrapServer getTopoServer() {
-    return topoServer;
+    return mock.topoServer;
   }
 
   public static MockControlServer getControlServer() {
-    return controlServices.get(0);
+    return mock.controlServices.get(0);
   }
 
   public static List<MockControlServer> getControlServers() {
-    return Collections.unmodifiableList(controlServices);
+    return Collections.unmodifiableList(mock.controlServices);
   }
 
   public static MockDaemon getDaemon() {
-    return daemon;
+    return mock.daemon;
   }
 
   public static void disableStun() {
-    enableStun.set(false);
+    mock.routers.disableStun();
   }
 
   public static void setStunCallback(Predicate<ByteBuffer> stunCallback) {
-    MockNetwork.stunCallback.set(stunCallback);
+    mock.routers.setStunCallback(stunCallback);
+  }
+
+  public static AsInfo getLocalAsInfo() {
+    return mock.asInfoLocal;
   }
 
   public enum Mode {

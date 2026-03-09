@@ -22,7 +22,6 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +44,7 @@ public class MockScmpHandler implements Runnable {
   public static final int PORT = 30041; // Yes, we use 30042 to avoid conflicts with SHIM etc.
   private static ExecutorService handler;
   private static final AtomicInteger nAnswerTotal = new AtomicInteger();
-  private static CountDownLatch barrier = null;
+  private static Barrier barrier = null;
   private static final AtomicReference<InetSocketAddress> address = new AtomicReference<>();
 
   private final String name;
@@ -55,16 +54,12 @@ public class MockScmpHandler implements Runnable {
     if (handler != null) {
       throw new IllegalStateException();
     }
-    barrier = new CountDownLatch(1);
+    barrier = new Barrier(1);
     nAnswerTotal.set(0);
     handler = Executors.newSingleThreadExecutor();
     handler.execute(new MockScmpHandler(ip));
-    try {
-      if (!barrier.await(1, TimeUnit.SECONDS)) {
-        throw new IllegalStateException();
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    if (!barrier.await(1, TimeUnit.SECONDS)) {
+      throw new IllegalStateException();
     }
   }
 
@@ -74,7 +69,7 @@ public class MockScmpHandler implements Runnable {
     }
     try {
       handler.shutdownNow();
-      // Wait a while for tasks to respond to being cancelled
+      // Wait a while for tasks to respond to being canceled
       if (!handler.awaitTermination(5, TimeUnit.SECONDS)) {
         logger.error("BorderRouterScmp did not terminate");
       }

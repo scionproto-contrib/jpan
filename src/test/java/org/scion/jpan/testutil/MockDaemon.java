@@ -83,11 +83,7 @@ public class MockDaemon implements AutoCloseable {
     }
     setEnvironment();
     defaultInstance = new MockDaemon(DEFAULT_ADDRESS);
-    try {
-      defaultInstance.start();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    defaultInstance.start();
   }
 
   public static void closeDefault() {
@@ -103,7 +99,9 @@ public class MockDaemon implements AutoCloseable {
     this.borderRouters = new ArrayList<>();
     InetSocketAddress bind1 = new InetSocketAddress("127.0.0.10", 31004);
     InetSocketAddress bind2 = new InetSocketAddress("127.0.0.25", 31012);
-    this.borderRouters.add(new MockBorderRouter(0, bind1, bind2, 2, 1, new Barrier()));
+    MockBorderRouterRunner runner = MockBorderRouterRunner.create();
+    runner.add(bind1, bind2, 2, 1);
+    this.borderRouters.addAll(runner.getBorderRouters());
     asInfo = JsonFileParser.parseTopology(Paths.get(MockBootstrapServer.TOPO_TINY_110));
   }
 
@@ -113,13 +111,17 @@ public class MockDaemon implements AutoCloseable {
     asInfo = JsonFileParser.parseTopology(Paths.get(MockBootstrapServer.TOPO_TINY_110));
   }
 
-  public MockDaemon start() throws IOException {
+  public MockDaemon start() {
     int port = address.getPort();
-    server =
-        Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
-            .addService(new MockDaemon.DaemonImpl(borderRouters, asInfo))
-            .build()
-            .start();
+    try {
+      server =
+          Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
+              .addService(new MockDaemon.DaemonImpl(borderRouters, asInfo))
+              .build()
+              .start();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     logger.info("Server started, listening on {}", address);
 
     Runtime.getRuntime()

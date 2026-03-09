@@ -156,7 +156,7 @@ class DatagramChannelApiServerTest {
 
     // Find border router address
     long isdAs112 = ScionUtil.parseIA(MockNetwork.TINY_CLIENT_ISD_AS);
-    AsInfo as112 = JsonFileParser.parseTopologyFile(Paths.get(topoFile));
+    AsInfo as112 = JsonFileParser.parseTopologyResourceFile(Paths.get(topoFile));
     String brAddressString = as112.getBorderRouterAddressByIA(isdAs112);
     InetSocketAddress brAddress = IPHelper.toInetSocketAddress(brAddressString);
 
@@ -200,7 +200,7 @@ class DatagramChannelApiServerTest {
   @Test
   void receive_correctSrc_divergentBR_longPath_112_210() throws IOException {
     // Get raw path
-    Path path = null;
+    Path path;
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       long isdAs210 = ScionUtil.parseIA("2-ff00:0:210");
       InetSocketAddress dummy = new InetSocketAddress(InetAddress.getLocalHost(), 23456);
@@ -218,7 +218,7 @@ class DatagramChannelApiServerTest {
 
     // Find border router address
     long isdAs220 = ScionUtil.parseIA("2-ff00:0:220");
-    AsInfo as210 = JsonFileParser.parseTopologyFile(Paths.get(topoFile));
+    AsInfo as210 = JsonFileParser.parseTopologyResourceFile(Paths.get(topoFile));
     String brAddressString = as210.getBorderRouterAddressByIA(isdAs220);
     InetSocketAddress brAddress = IPHelper.toInetSocketAddress(brAddressString);
 

@@ -164,7 +164,9 @@ TODO
   [#211](https://github.com/scionproto-contrib/jpan/pull/211)
 - DatagramPackets should not require an address when a socket is connected
   [#226](https://github.com/scionproto-contrib/jpan/issues/226)
-
+- Cleanup
+  [#229](https://github.com/scionproto-contrib/jpan/pull/229)
+- 
 ### Changed
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
@@ -182,7 +184,7 @@ TODO
 - Endhost API improvements: Segments without srcIsdAs input
   [#225](https://github.com/scionproto-contrib/jpan/pull/225)
 - PathProvider test + cleanup
-  [#225](https://github.com/scionproto-contrib/jpan/pull/225)
+  [#228](https://github.com/scionproto-contrib/jpan/pull/228)
 
 ### TODO
   - Think about having multiple ISD per _destination_!
@@ -193,11 +195,6 @@ TODO
     - Channel.connect could connect to an AS instead of an ISD/AS
     - Later?!??!!!!
   - Deprecation: check:
-    - LocalAS deprecation / BorderRouterInterface.create
-    - RequestPath create/cstr
-    - ScionService deprecation
-    - Use Barrier more
-    - Move BR forward count in to BR
     - Try EndHostApiDemo again
   - Think about moving address into path
     - That would simplify Path API (remove response/request) but may

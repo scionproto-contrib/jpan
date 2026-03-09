@@ -103,6 +103,8 @@ public class Segments {
       PathMetadata.Builder path = PathMetadata.newBuilder();
       path.setMtu(localAS.getMtu());
       path.setExpiration(Long.MAX_VALUE);
+      path.setSrcIsdAs(srcIsdAs);
+      path.setDstIsdAs(dstIsdAs);
       return Collections.singletonList(path.build());
     }
 
@@ -204,6 +206,9 @@ public class Segments {
       PathMetadata.Builder path = PathMetadata.newBuilder();
       path.setMtu(localAS.getMtu());
       path.setExpiration(Long.MAX_VALUE);
+      // srcIsdAs == dstIsdAs!
+      path.setSrcIsdAs(dstIsdAs);
+      path.setDstIsdAs(dstIsdAs);
       return Collections.singletonList(path.build());
     }
 

@@ -14,6 +14,7 @@
 
 package org.scion.jpan.testutil;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.io.IOException;
@@ -27,7 +28,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.IPHelper;
 
 public class JsonFileParser {
@@ -64,10 +64,10 @@ public class JsonFileParser {
   }
 
   public static AsInfo parseTopology(Path path) {
-    return parseTopologyFile(path.resolve("topology.json"));
+    return parseTopologyResourceFile(path.resolve("topology.json"));
   }
 
-  public static AsInfo parseTopologyFile(Path path) {
+  public static AsInfo parseTopologyResourceFile(Path path) {
     return parseTopologyString(readResource(path));
   }
 
@@ -81,10 +81,10 @@ public class JsonFileParser {
     if (jsonTree.isJsonObject()) {
       JsonObject o = jsonTree.getAsJsonObject();
       as.setIsdAs(ScionUtil.parseIA(safeGet(o, "isd_as").getAsString()));
-      // localMtu = safeGet(o, "mtu").getAsInt();
+      as.setMtu(safeGet(o, "mtu").getAsInt());
       JsonElement dispatchedPorts = o.get("dispatched_ports");
       if (dispatchedPorts == null) {
-        as.setPortRange(LocalAS.DispatcherPortRange.createEmpty());
+        as.setPortRange(AsInfo.DispatcherPortRange.createEmpty());
       } else {
         as.setPortRange(parsePortRange(dispatchedPorts.getAsString()));
       }
@@ -97,16 +97,17 @@ public class JsonFileParser {
         as.add(router);
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
           JsonObject ife = ifEntry.getValue().getAsJsonObject();
-          // TODO bandwidth, mtu, ... etc
           JsonObject underlay = ife.getAsJsonObject("underlay");
           JsonElement local = underlay.get("local");
           local = local == null ? underlay.get("public") : local;
           router.addInterface(
               new AsInfo.BorderRouterInterface(
                   ifEntry.getKey(),
-                  ife.get("isd_as").getAsString(),
                   local.getAsString(),
                   underlay.get("remote").getAsString(),
+                  ife.get("isd_as").getAsString(),
+                  ife.get("mtu").getAsInt(),
+                  ife.get("link_to").getAsString(),
                   router));
         }
       }
@@ -114,6 +115,12 @@ public class JsonFileParser {
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
         JsonObject cs = e.getValue().getAsJsonObject();
         as.addControlServer(cs.get("addr").getAsString());
+      }
+      JsonArray attr = safeGet(o, "attributes").getAsJsonArray();
+      for (int i = 0; i < attr.size(); i++) {
+        if ("core".equals(attr.get(i).getAsString())) {
+          as.setIsCoreAs(true);
+        }
       }
     }
     return as;
@@ -127,14 +134,14 @@ public class JsonFileParser {
     return e;
   }
 
-  private static LocalAS.DispatcherPortRange parsePortRange(String v) {
+  private static AsInfo.DispatcherPortRange parsePortRange(String v) {
     if (v.startsWith("\"") && v.endsWith("\"")) {
       v = v.substring(1, v.length() - 2);
     }
     if ("-".equals(v)) {
-      return LocalAS.DispatcherPortRange.createEmpty();
+      return AsInfo.DispatcherPortRange.createEmpty();
     } else if ("all".equalsIgnoreCase(v)) {
-      return LocalAS.DispatcherPortRange.createAll();
+      return AsInfo.DispatcherPortRange.createAll();
     } else {
       String[] sa = v.split("-");
       if (sa.length != 2) {
@@ -145,7 +152,7 @@ public class JsonFileParser {
       if (portMin < 1 || portMax < 1 || portMax > 65535 || portMin > portMax) {
         throw new ScionRuntimeException("Illegal port values in topo file dispatched_ports: " + v);
       }
-      return LocalAS.DispatcherPortRange.create(portMin, portMax);
+      return AsInfo.DispatcherPortRange.create(portMin, portMax);
     }
   }
 

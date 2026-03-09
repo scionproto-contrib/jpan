@@ -24,7 +24,6 @@ import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.DatagramChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
@@ -34,6 +33,7 @@ import org.scion.jpan.demo.inspector.ScionHeader;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockNetwork;
@@ -44,7 +44,7 @@ import org.scion.jpan.testutil.PingPongChannelHelper;
 class ShimTest {
 
   private static final AtomicInteger shimForwardingCounter = new AtomicInteger();
-  private static final CountDownLatch serverBarrier = new CountDownLatch(1);
+  private static final Barrier serverBarrier = new Barrier(1);
 
   @BeforeEach
   void beforeEach() {
@@ -313,11 +313,7 @@ class ShimTest {
         });
 
     // wait for server to start
-    try {
-      serverBarrier.await();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+    serverBarrier.await();
 
     String message = PingPongChannelHelper.MSG + "-" + id;
     ByteBuffer sendBuf = ByteBuffer.wrap(message.getBytes());

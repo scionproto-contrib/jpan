@@ -18,7 +18,15 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class Barrier {
-  private volatile CountDownLatch barrier = new CountDownLatch(0);
+  private volatile CountDownLatch barrier;
+
+  public Barrier() {
+    this(0);
+  }
+
+  public Barrier(int count) {
+    barrier = new CountDownLatch(count);
+  }
 
   public void await() {
     try {
