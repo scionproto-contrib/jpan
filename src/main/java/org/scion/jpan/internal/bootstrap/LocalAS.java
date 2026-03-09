@@ -57,8 +57,8 @@ public class LocalAS {
       List<LocalAS.BorderRouter> borderRouters) {
     Map<Integer, LocalAS.BorderRouter> interfaceIDs = new HashMap<>();
     for (LocalAS.BorderRouter br : borderRouters) {
-      for (LocalAS.BorderRouterInterface brIf : br.getInterfaces()) {
-        interfaceIDs.put(brIf.id, br);
+      for (Integer brIfId : br.getInterfaces()) {
+        interfaceIDs.put(brIfId, br);
       }
     }
     return interfaceIDs;
@@ -149,9 +149,9 @@ public class LocalAS {
   public static class BorderRouter {
     private final String internalAddressString;
     private final InetSocketAddress internalAddress;
-    private final List<BorderRouterInterface> interfaces;
+    private final List<Integer> interfaces;
 
-    BorderRouter(String addr, List<BorderRouterInterface> interfaces) {
+    BorderRouter(String addr, List<Integer> interfaces) {
       this.internalAddressString = addr;
       this.internalAddress = IPHelper.toInetSocketAddress(addr);
       this.interfaces = interfaces;
@@ -161,63 +161,12 @@ public class LocalAS {
       return internalAddress;
     }
 
-    public Iterable<BorderRouterInterface> getInterfaces() {
+    public Iterable<Integer> getInterfaces() {
       return interfaces;
     }
 
-    void addInterface(BorderRouterInterface borderRouterInterface) {
+    void addInterface(Integer borderRouterInterface) {
       interfaces.add(borderRouterInterface);
-    }
-  }
-
-  public static class BorderRouterInterface {
-    public static final String PARENT = "parent";
-    public static final String CHILD = "child";
-    public static final String CORE = "core";
-    final int id;
-    final String localUnderlay;
-    final String remoteUnderlay;
-    final long isdAs;
-    final int mtu;
-    final String linkTo;
-
-    @Deprecated // Should only be used in Unit tests
-    BorderRouterInterface(
-        int id, String localU, String remoteU, long isdAs, int mtu, String linkTo) {
-      this.id = id;
-      this.localUnderlay = localU;
-      this.remoteUnderlay = remoteU;
-      this.isdAs = isdAs;
-      this.mtu = mtu;
-      this.linkTo = linkTo;
-    }
-
-    BorderRouterInterface(int id) {
-      this(id, "unknown", "unknown", 0, 0, "");
-    }
-
-    public long getIsdAs() {
-      return isdAs;
-    }
-
-    public int getMtu() {
-      return mtu;
-    }
-
-    public int getId() {
-      return id;
-    }
-
-    public String getLinkTo() {
-      return linkTo;
-    }
-
-    public String getRemoteUnderlay() {
-      return remoteUnderlay;
-    }
-
-    public String getLocalUnderlay() {
-      return localUnderlay;
     }
   }
 
@@ -228,10 +177,6 @@ public class LocalAS {
     protected ServiceNode(String name, String ipString) {
       this.name = name;
       this.ipString = ipString;
-    }
-
-    static ServiceNode create(String name, String ipString) {
-      return new ServiceNode(name, ipString);
     }
 
     public String getIpString() {

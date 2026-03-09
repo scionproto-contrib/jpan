@@ -89,7 +89,7 @@ public class PathProvider {
     List<Path> paths = new ArrayList<>();
     for (SnetPath snetPath : getPaths(srcIsdAs, dstIsdAs)) {
       PathMetadata path = newPathFrom(snetPath);
-      paths.add(PackageVisibilityHelper.createRequestPath(path, srcIsdAs, dstIsdAs, dst));
+      paths.add(PackageVisibilityHelper.createRequestPath(path, dst));
     }
     return paths;
   }

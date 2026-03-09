@@ -55,7 +55,7 @@ public class MockNetwork {
   public static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPO_TINY_110;
   private static final String TINY_CLIENT_TOPO_V6 = "topologies/tiny/ASff00_0_110";
   private final AtomicBoolean hasStopped = new AtomicBoolean(false);
-  private MockBorderRouterRunner routers = MockBorderRouterRunner.create();
+  private final MockBorderRouterRunner routers;
   private MockDaemon daemon = null;
   private MockBootstrapServer topoServer;
   private final List<MockControlServer> controlServices = new ArrayList<>();

@@ -200,7 +200,7 @@ class DatagramChannelApiServerTest {
   @Test
   void receive_correctSrc_divergentBR_longPath_112_210() throws IOException {
     // Get raw path
-    Path path = null;
+    Path path;
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       long isdAs210 = ScionUtil.parseIA("2-ff00:0:210");
       InetSocketAddress dummy = new InetSocketAddress(InetAddress.getLocalHost(), 23456);

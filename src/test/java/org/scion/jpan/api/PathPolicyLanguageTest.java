@@ -154,9 +154,7 @@ class PathPolicyLanguageTest {
 
   private RequestPath createPath(InetSocketAddress addr, String... str) {
     PathMetadata path = createNewPath(str);
-    long srcIsdAs = ScionUtil.parseIA(str[0]);
-    long dstIsdAs = ScionUtil.parseIA(str[str.length - 1]);
-    return PackageVisibilityHelper.createRequestPath(path, srcIsdAs, dstIsdAs, addr);
+    return PackageVisibilityHelper.createRequestPath(path, addr);
   }
 
   @Test

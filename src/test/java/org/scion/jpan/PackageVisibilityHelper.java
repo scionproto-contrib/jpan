@@ -169,8 +169,7 @@ public class PackageVisibilityHelper {
     return RequestPath.create(path, dstHost, dstPort);
   }
 
-  public static RequestPath createRequestPath(
-      PathMetadata path, long srcIsdAs, long dstIsdAs, InetSocketAddress dst) {
+  public static RequestPath createRequestPath(PathMetadata path, InetSocketAddress dst) {
     return RequestPath.create(path, dst.getAddress(), dst.getPort());
   }
 

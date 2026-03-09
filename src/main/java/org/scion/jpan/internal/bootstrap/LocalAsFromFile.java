@@ -46,21 +46,20 @@ public class LocalAsFromFile {
         JsonObject br = e.getValue().getAsJsonObject();
         String addr = safeGet(br, "internal_addr").getAsString();
         JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
-        List<LocalAS.BorderRouterInterface> interfaces = new ArrayList<>();
+        List<Integer> interfaces = new ArrayList<>();
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
           JsonObject ife = ifEntry.getValue().getAsJsonObject();
           JsonObject underlay = ife.getAsJsonObject("underlay");
           // "public" was changed to "local" in scionproto 0.11
-          JsonElement local =
-              underlay.has(("local")) ? underlay.get(("local")) : underlay.get(("public"));
-          JsonElement remote = underlay.get(("remote"));
-          long isdAs = ScionUtil.parseIA(ife.get("isd_as").getAsString());
-          int mtu = ife.get("mtu").getAsInt();
-          String linkTo = ife.get("link_to").getAsString();
+          //          JsonElement local =
+          //              underlay.has(("local")) ? underlay.get(("local")) :
+          // underlay.get(("public"));
+          //          JsonElement remote = underlay.get(("remote"));
+          //          long isdAs = ScionUtil.parseIA(ife.get("isd_as").getAsString());
+          //          int mtu = ife.get("mtu").getAsInt();
+          //          String linkTo = ife.get("link_to").getAsString();
           int ifId = Integer.parseInt(ifEntry.getKey());
-          interfaces.add(
-              new LocalAS.BorderRouterInterface(
-                  ifId, local.getAsString(), remote.getAsString(), isdAs, mtu, linkTo));
+          interfaces.add(ifId);
         }
         borderRouters.add(new LocalAS.BorderRouter(addr, interfaces));
       }

@@ -67,7 +67,7 @@ public class LocalAsFromDaemon {
       if (!borderRouterNames.contains(addr)) {
         borderRouterNames.add(addr);
         LocalAS.BorderRouter br = new LocalAS.BorderRouter(addr, new ArrayList<>());
-        br.addInterface(new LocalAS.BorderRouterInterface(id, addr, null, 0, 0, null));
+        br.addInterface(id);
         borderRouters.add(br);
       }
     }

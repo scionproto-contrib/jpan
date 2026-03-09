@@ -195,7 +195,6 @@ TODO
     - Channel.connect could connect to an AS instead of an ISD/AS
     - Later?!??!!!!
   - Deprecation: check:
-    - LocalAS deprecation / BorderRouterInterface.create
     - Use Barrier more
     - Try EndHostApiDemo again
   - Think about moving address into path

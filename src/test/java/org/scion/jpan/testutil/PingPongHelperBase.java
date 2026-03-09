@@ -19,7 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.channels.ClosedByInterruptException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -127,17 +129,18 @@ public class PingPongHelperBase {
 
   void run(ServerFactory serverFactory, ClientFactory clientFactory) {
     try {
-      AbstractEndpoint[] servers = new AbstractEndpoint[nServers];
-      for (int i = 0; i < servers.length; i++) {
-        servers[i] = serverFactory.create(i, nRounds * nClients);
-        servers[i].setName("Server-thread-" + i);
-        servers[i].start();
+      List<AbstractEndpoint> servers = new ArrayList<>();
+      for (int i = 0; i < nServers; i++) {
+        AbstractEndpoint server = serverFactory.create(i, nRounds * nClients);
+        servers.add(server);
+        server.setName("Server-thread-" + i);
+        server.start();
       }
       // Wait for server(s) and clients to start
       if (!startUpBarrierServer.await(timeoutSecStartUp, TimeUnit.SECONDS)) {
         throw new RuntimeException("Server startup failed: " + startUpBarrierServer);
       }
-      InetSocketAddress serverAddress = servers[0].getLocalAddress();
+      InetSocketAddress serverAddress = servers.get(0).getLocalAddress();
       MockDNS.install(serverIsdAs, serverAddress.getAddress());
       Path requestPath = Scion.defaultService().lookupPaths(serverAddress).get(0);
 
