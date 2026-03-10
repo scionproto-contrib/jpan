@@ -20,13 +20,17 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
+import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.Shim;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
+import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockScmpHandler;
 
@@ -92,6 +96,7 @@ class ScmpResponderTest {
 
   @Test
   void testEchoBlocked() throws IOException {
+    // Checks that the SCMP messages are not answered if the echoListener returns false.
     MockNetwork.startTiny();
     MockScmpHandler.stop(); // Shut down SCMP handler
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
@@ -123,6 +128,69 @@ class ScmpResponderTest {
   private void scmpResponder(Predicate<Scmp.EchoMessage> predicate, ManagedThreadNews mtn)
       throws IOException {
     try (ScmpResponder responder = Scmp.newResponderBuilder().build()) {
+      responder.setScmpErrorListener(
+          scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+      responder.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      responder.setScmpEchoListener(predicate);
+      mtn.reportStarted();
+      responder.start();
+    }
+  }
+
+  @Test
+  void testDoNotBroadcast() throws IOException {
+    // Verify that we do not broadcast messages, i.e. we do not respond to a message that
+    // has a broadcast address as source address.
+
+    MockNetwork.startTiny();
+    MockScmpHandler.stop(); // Shut down SCMP handler
+
+    ScionPacketInspector spi = ScionPacketInspector.createEmpty();
+    InetAddress broadCast = IPHelper.toInetAddress("255.255.255.255");
+    spi.getScionHeader().setSrcHostAddress(broadCast.getAddress());
+    spi.getScionHeader().setDstHostAddress(IPHelper.toByteArray("127.0.0.1"));
+    spi.getScmpHeader().setCode(Scmp.TypeCode.TYPE_128);
+    ByteBuffer packet = ByteBuffer.allocate(100);
+    spi.writePacketSCMP(packet);
+    packet.flip();
+
+    ManagedThread responder = ManagedThread.newBuilder().build();
+    AtomicBoolean shouldNotBeCalled = new AtomicBoolean();
+    try (MockDatagramChannel mock = MockDatagramChannel.open()) {
+      // Prepare mockchannel
+      mock.setReceiveCallback(
+          bb -> {
+            bb.put(packet);
+            return IPHelper.toInetSocketAddress("192.168.0.42:12345");
+          });
+      mock.setSendCallback((a, b) -> fail());
+
+      // Start receiver
+      responder.submit(
+          mtn ->
+              scmpResponder(
+                  echoMsg -> {
+                    shouldNotBeCalled.getAndSet(true);
+                    // Abort sender on next select()
+                    mock.setDefaultSelectCallback(() -> 0);
+                    return true;
+                  },
+                  mtn,
+                  mock));
+
+      // Wait a bit
+      responder.join(100);
+
+      assertFalse(shouldNotBeCalled.get());
+    } finally {
+      responder.stopNow();
+    }
+  }
+
+  private void scmpResponder(
+      Predicate<Scmp.EchoMessage> predicate, ManagedThreadNews mtn, MockDatagramChannel mock)
+      throws IOException {
+    try (ScmpResponder responder = Scmp.newResponderBuilder().setDatagramChannel(mock).build()) {
       responder.setScmpErrorListener(
           scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       responder.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);

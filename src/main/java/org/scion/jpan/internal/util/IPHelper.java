@@ -14,11 +14,9 @@
 
 package org.scion.jpan.internal.util;
 
+import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import org.scion.jpan.ScionRuntimeException;
 import org.xbill.DNS.Address;
 
@@ -229,6 +227,30 @@ public class IPHelper {
       throw new ScionRuntimeException("Error while listing network interfaces.", e);
     }
     return externalIPs;
+  }
+
+  /**
+   * @return The broadcast address of all interfaces.
+   */
+  public static Set<InetAddress> getBroadcastAddresses() {
+    Set<InetAddress> broadcastAddresses = new HashSet<>();
+    broadcastAddresses.add(getByAddress(new int[] {255, 255, 255, 255}));
+    broadcastAddresses.add(getByAddress(new int[] {127, 255, 255, 255}));
+    try {
+      Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+      while (interfaces.hasMoreElements()) {
+        NetworkInterface networkInterface = interfaces.nextElement();
+        for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
+          InetAddress broadcast = interfaceAddress.getBroadcast();
+          if (broadcast != null) {
+            broadcastAddresses.add(broadcast);
+          }
+        }
+      }
+    } catch (IOException e) {
+      // Ignore
+    }
+    return broadcastAddresses;
   }
 
   public static String toString(InetSocketAddress address) {

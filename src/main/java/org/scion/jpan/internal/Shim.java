@@ -163,6 +163,7 @@ public class Shim implements AutoCloseable {
           return;
         }
 
+        // This checks also prevents sending to a broadcast address
         if (!dst.getAddress().isLoopbackAddress() && !localAddresses.contains(dst.getAddress())) {
           log.debug("Dropping packet with non-local address: {}", dst.getAddress());
           return;

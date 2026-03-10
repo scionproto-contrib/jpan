@@ -68,6 +68,12 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
         throw new UnsupportedOperationException();
       };
 
+  // Return 1 unless we got interrupted.
+  // If we want a select() to return 0, we simply call Thread.interrupt() in the current thread.
+  // Best we do it in send() or receive() to somewhat approximate realistic behavior.
+  private Callable<Integer> defaultSelectCallback =
+      () -> Thread.currentThread().isInterrupted() ? 0 : 1;
+
   public static MockDatagramChannel open() throws IOException {
     return new MockDatagramChannel();
   }
@@ -86,6 +92,10 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
 
   public void setThrowOnSend(boolean flag) {
     this.throwOnSend = flag;
+  }
+
+  public void setDefaultSelectCallback(Callable<Integer> callback) {
+    this.defaultSelectCallback = callback;
   }
 
   @Override
@@ -251,11 +261,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
   public static class MockSelector extends AbstractSelector {
     private final ConcurrentHashMap<SelectionKey, Object> keys = new ConcurrentHashMap<>();
 
-    private Callable<Integer> connectCallback = () -> 1;
-
-    public void setConnectCallback(Callable<Integer> callback) {
-      this.connectCallback = callback;
-    }
+    private Callable<Integer> selectCallback;
 
     public static MockSelector open() {
       return new MockSelector(MockSelectorProvider.provider());
@@ -282,6 +288,8 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
       MockSelectionKey key = new MockSelectionKey(ch, ops, this);
       key.attach(att);
       keys.put(key, new Object());
+      // mock stuff
+      selectCallback = ((MockDatagramChannel) ch).defaultSelectCallback;
       return key;
     }
 
@@ -304,7 +312,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     @Override
     public int select(long timeout) throws IOException {
       try {
-        return connectCallback.call();
+        return selectCallback.call();
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -313,7 +321,7 @@ public class MockDatagramChannel extends java.nio.channels.DatagramChannel {
     @Override
     public int select() throws IOException {
       try {
-        return connectCallback.call();
+        return selectCallback.call();
       } catch (Exception e) {
         throw new IOException(e);
       }

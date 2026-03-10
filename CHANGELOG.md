@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
-- SCMP responder must not send to broadcast addresses etc, see SCMP processing rules.
 - Add PingPong demo to integration tests. Move Integration tests to separate folder.
 - Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
@@ -172,6 +171,8 @@ TODO
   - MockNetwork
   - AsInfo / LocalAS
   - Barrier
+- Ensure that SHIM and ScmpResponder do not respond to broadcast-source addresses. 
+  [#230](https://github.com/scionproto-contrib/jpan/pull/230)
 
 ### Changed
 
