@@ -56,7 +56,7 @@ public class ShowpathsDemo {
     NETWORK = network;
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String... args) throws IOException {
     try {
       run();
     } finally {
@@ -111,7 +111,7 @@ public class ShowpathsDemo {
         new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
-      String src = ScionUtil.toStringIA(service.getLocalIsdAs());
+      String src = ScionUtil.toStringIA(service.getLocalIsdAses().iterator().next());
       String dst = ScionUtil.toStringIA(destinationIA);
       throw new IOException("No path found from " + src + " to " + dst);
     }

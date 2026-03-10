@@ -9,7 +9,8 @@
     - Checkout SCION proto and Start scionproto topology:
       - `./scion.sh topology -c topology/default.topo`
       - `./scion.sh run`
-      - Run `ScmpDemoDefault` in `org.scion.jpan.demo`
+      - Wait a bit for PCBs to propagate
+      - Run `IntegrationTestLocal` in `org.scion.jpan.demo`
     - Run ScionPacket example from https://github.com/netsec-ethz/scion-java-packet-example
     - Run PingAll from https://github.com/netsec-ethz/scion-java-multiping
 

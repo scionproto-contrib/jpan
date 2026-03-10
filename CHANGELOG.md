@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
-- Add PingPong demo to integration tests. Move Integration tests to separate folder.
 - Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathProvider
@@ -152,6 +151,8 @@ TODO
   [#217](https://github.com/scionproto-contrib/jpan/pull/217)
 - Support for new endhost API
   [#218](https://github.com/scionproto-contrib/jpan/pull/218)
+- Added comprehensive integration test for demos.
+  [#231](https://github.com/scionproto-contrib/jpan/pull/231)
 
 ### Fixed
 

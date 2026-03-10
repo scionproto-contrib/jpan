@@ -55,7 +55,7 @@ public class ScmpEchoDemo {
     REPEAT = repeat;
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String... args) throws IOException {
     try {
       run();
     } finally {
@@ -95,7 +95,7 @@ public class ScmpEchoDemo {
           long srcIsdAs = ScionUtil.parseIA("2-ff00:0:212");
           long dstIsdAs = ScionUtil.parseIA("2-ff00:0:222");
 
-          if (false) {
+          if (!false) {
             // Alternative #1: Bootstrap from topo file
             System.setProperty(
                 Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,

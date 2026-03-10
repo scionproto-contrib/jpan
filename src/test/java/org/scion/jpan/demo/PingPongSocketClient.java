@@ -41,7 +41,7 @@ public class PingPongSocketClient {
     DemoTopology.shutDown();
   }
 
-  private static void run() throws IOException {
+  static void run() throws IOException {
     InetSocketAddress serverAddress = PingPongSocketServer.SERVER_ADDRESS;
     try (ScionDatagramSocket socket = new ScionDatagramSocket(null)) {
       String msg = "Hello there!";

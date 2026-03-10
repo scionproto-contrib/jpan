@@ -51,7 +51,7 @@ public class ScmpTracerouteDemo {
     NETWORK = network;
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String... args) throws IOException {
     try {
       run();
     } finally {
@@ -86,16 +86,19 @@ public class ScmpTracerouteDemo {
       case SCION_PROTO:
         {
           // Alternative: Use topo file i.o. daemon
+          System.setProperty(
+              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+              "topologies/default/ASff00_0_112/topology.json");
           // System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
           //   "topologies/minimal/ASff00_0_1111/topology.json");
-          System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
-          runDemo(DemoConstants.ia211);
-          runDemo(DemoConstants.ia111);
-          return runDemo(DemoConstants.ia1111);
+          // System.setProperty(Constants.PROPERTY_DAEMON, DemoConstants.daemon1111_minimal);
+          // runDemo(DemoConstants.ia211);
+          // runDemo(DemoConstants.ia111);
+          return runDemo(DemoConstants.ia222);
         }
       case PRODUCTION:
         {
-          runDemo(ScionUtil.parseIA("65-2:0:6c"));
+          return runDemo(ScionUtil.parseIA("65-2:0:6c"));
           // runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
         }

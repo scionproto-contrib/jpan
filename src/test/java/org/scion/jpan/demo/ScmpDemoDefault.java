@@ -43,7 +43,7 @@ public class ScmpDemoDefault {
     REPEAT = repeat;
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String... args) throws IOException {
     // System.setProperty(Constants.PROPERTY_NAT, "BR"); // TODO
     // Peering direct
     //    run("1-ff00:0:133", "1-ff00:0:122", "ASff00_0_133/topology.json", 1);

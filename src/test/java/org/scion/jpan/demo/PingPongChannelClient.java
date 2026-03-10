@@ -34,7 +34,7 @@ public class PingPongChannelClient {
 
   public static boolean PRINT = true;
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String... args) throws IOException {
     // The following starts a mock daemon for a local AS "1-ff00:0:110" and a border router that
     // connects to "1-ff00:0:112"
     DemoTopology.configureMock(true);
@@ -44,7 +44,7 @@ public class PingPongChannelClient {
     DemoTopology.shutDown();
   }
 
-  private static void run() throws IOException {
+  public static void run() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.configureBlocking(true);
       channel.connect(PingPongChannelServer.SERVER_ADDRESS);
