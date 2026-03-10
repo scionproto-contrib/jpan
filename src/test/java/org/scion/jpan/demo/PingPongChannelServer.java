@@ -39,7 +39,7 @@ public class PingPongChannelServer {
     }
   }
 
-  public static void main(String[] args) {
+  public static void main(String... args) {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     try {
       service();
@@ -50,7 +50,7 @@ public class PingPongChannelServer {
     }
   }
 
-  private static void service() throws IOException {
+  public static void service() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.bind(SERVER_ADDRESS);
       ByteBuffer buffer = ByteBuffer.allocate(100);

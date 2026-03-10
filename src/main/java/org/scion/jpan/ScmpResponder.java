@@ -93,6 +93,7 @@ public class ScmpResponder implements AutoCloseable {
     private final Selector selector;
     private Predicate<Scmp.EchoMessage> echoListener;
     private final int port;
+    // The SHIM has a built-in SCMP responder:
     private final Shim shim;
     private final Set<InetAddress> broadcastAddresses;
 
@@ -139,13 +140,12 @@ public class ScmpResponder implements AutoCloseable {
               // wrapped in extensions headers.
               hdrType = receiveExtensionHeader(buffer, hdrType);
 
-              if (hdrType != HeaderConstants.HdrTypes.SCMP) {
-                if (shim != null) {
-                  shim.forward(buffer, super.channel());
-                }
-                continue; // drop
+              if (hdrType == HeaderConstants.HdrTypes.SCMP) {
+                return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
               }
-              return ScionHeaderParser.extractResponsePath(buffer, srcAddress);
+              if (shim != null) {
+                shim.forward(buffer, super.channel());
+              }
             }
           }
         }
@@ -160,26 +160,30 @@ public class ScmpResponder implements AutoCloseable {
         if (shim != null) {
           shim.signalReadiness();
         }
-        while (true) {
-          ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
-          ResponsePath path = receiveLoop(buffer);
-          if (path == null) {
-            return; // interrupted
-          }
-          if (broadcastAddresses.contains(path.getRemoteAddress())) {
-            // do not send to broadcast addresses
-            continue;
-          }
+        sendEchoResponsesLoop();
+      } finally {
+        writeLock().unlock();
+        readLock().unlock();
+      }
+    }
 
-          Scmp.Type type = ScmpParser.extractType(buffer);
-          log.info("Received SCMP message {} from {}", type, path.getRemoteAddress());
-          if (type == Scmp.Type.INFO_128) {
-            Scmp.EchoMessage msg = (Scmp.EchoMessage) ScmpParser.consume(buffer, path);
+    void sendEchoResponsesLoop() throws IOException {
+      while (true) {
+        ByteBuffer buffer = getBufferReceive(DEFAULT_BUFFER_SIZE);
+        ResponsePath path = receiveLoop(buffer);
+        if (path == null) {
+          return; // interrupted
+        }
+        if (broadcastAddresses.contains(path.getRemoteAddress())) {
+          // do not send to broadcast addresses
+          continue;
+        }
 
-            if (!checkEchoListener(msg)) {
-              continue;
-            }
-
+        Scmp.Type type = ScmpParser.extractType(buffer);
+        log.info("Received SCMP message {} from {}", type, path.getRemoteAddress());
+        if (type == Scmp.Type.INFO_128) {
+          Scmp.EchoMessage msg = (Scmp.EchoMessage) ScmpParser.consume(buffer, path);
+          if (checkEchoListener(msg)) {
             // EchoHeader = 8 + data
             int len = 8 + msg.getData().length;
             ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
@@ -190,17 +194,14 @@ public class ScmpResponder implements AutoCloseable {
             msg.setSizeSent(buffer.remaining());
             sendRaw(buffer, path);
             log.info("Responded to SCMP {} from {}", type, path.getRemoteAddress());
+          }
+        } else {
+          if (shim != null) {
+            shim.forward(buffer, super.channel());
           } else {
-            if (shim != null) {
-              shim.forward(buffer, super.channel());
-            } else {
-              log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
-            }
+            log.info("Dropped SCMP message with type {} from {}", type, path.getRemoteAddress());
           }
         }
-      } finally {
-        writeLock().unlock();
-        readLock().unlock();
       }
     }
 

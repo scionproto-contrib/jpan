@@ -50,7 +50,7 @@ public class PingPongSocketServer {
     }
   }
 
-  private static void service() throws IOException {
+  public static void service() throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket(SERVER_ADDRESS)) {
       DatagramPacket packet = new DatagramPacket(new byte[100], 100);
       println("Waiting for packet ... ");
