@@ -15,6 +15,7 @@
 package org.scion.jpan;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
@@ -29,6 +30,7 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,6 +94,7 @@ public class ScmpResponder implements AutoCloseable {
     private Predicate<Scmp.EchoMessage> echoListener;
     private final int port;
     private final Shim shim;
+    private final Set<InetAddress> broadcastAddresses;
 
     protected InternalChannel(ScionService service, int port, DatagramChannel channel, Shim shim) {
       // We provide the no-op PathProvider. SCMP channels are never connected, so the
@@ -104,6 +107,7 @@ public class ScmpResponder implements AutoCloseable {
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
+      broadcastAddresses = IPHelper.getBroadcastAddresses();
     }
 
     void start() throws IOException {
@@ -161,6 +165,10 @@ public class ScmpResponder implements AutoCloseable {
           ResponsePath path = receiveLoop(buffer);
           if (path == null) {
             return; // interrupted
+          }
+          if (broadcastAddresses.contains(path.getRemoteAddress())) {
+            // do not send to broadcast addresses
+            continue;
           }
 
           Scmp.Type type = ScmpParser.extractType(buffer);
@@ -239,6 +247,11 @@ public class ScmpResponder implements AutoCloseable {
     public Builder setService(ScionService service) {
       this.service = service;
       this.serviceIsSet = true;
+      return this;
+    }
+
+    public Builder setDatagramChannel(java.nio.channels.DatagramChannel channel) {
+      this.channel = channel;
       return this;
     }
 
