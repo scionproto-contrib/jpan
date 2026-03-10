@@ -174,8 +174,13 @@ public class ScmpResponder implements AutoCloseable {
         if (path == null) {
           return; // interrupted
         }
-        if (broadcastAddresses.contains(path.getRemoteAddress())) {
-          // do not send to broadcast addresses
+        if (path.getRawPath().length == 0 && broadcastAddresses.contains(path.getRemoteAddress())) {
+          // Do not send to broadcast addresses.
+          // This can happen when an AS-local attacker sends us a packet with a SCOIN origin address
+          // that is a broadcast address.
+          // We only check this if path==[], otherwise we cannot tell whether this is a broadcast
+          // because we don't know the network mask of the remote AS. Instead, the remote BR
+          // should filter out DST addresses that are broadcast addresses.
           continue;
         }
 

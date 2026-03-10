@@ -172,8 +172,9 @@ TODO
   - MockNetwork
   - AsInfo / LocalAS
   - Barrier
-- Ensure that SHIM and ScmpResponder do not respond to broadcast-source addresses. 
+- Ensure that SHIM and ScmpResponder do not respond to broadcast-source addresses.
   [#230](https://github.com/scionproto-contrib/jpan/pull/230)
+  [#232](https://github.com/scionproto-contrib/jpan/pull/232)
 
 ### Changed
 
