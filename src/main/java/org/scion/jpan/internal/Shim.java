@@ -163,7 +163,9 @@ public class Shim implements AutoCloseable {
           return;
         }
 
-        // This checks also prevents sending to a broadcast address
+        // This checks also prevents sending to a broadcast address.
+        // (the DST could be spoofed by an AS-local attacker with path==[] and underlay dst IP !=
+        // SCION dst IP)
         if (!dst.getAddress().isLoopbackAddress() && !localAddresses.contains(dst.getAddress())) {
           log.debug("Dropping packet with non-local address: {}", dst.getAddress());
           return;
