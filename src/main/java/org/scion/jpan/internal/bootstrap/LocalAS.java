@@ -26,12 +26,14 @@ public class LocalAS {
   private final List<ServiceNode> controlServices;
   private final List<ServiceNode> discoveryServices;
   private final List<BorderRouter> borderRouters;
+  private final List<SnapNode> snapNodes;
   private final Map<Integer, BorderRouter> interfaceIDs;
   private final Set<Long> localIsdAs;
   private final boolean isCoreAs;
   private final int localMtu;
   private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
+  private String snapFirstHopAddress;
 
   LocalAS(
       Set<Long> localIsdAs,
@@ -41,6 +43,7 @@ public class LocalAS {
       List<ServiceNode> controlServices,
       List<ServiceNode> discoveryServices,
       List<BorderRouter> borderRouters,
+      List<SnapNode> snapNodes,
       TrcStore trcStore) {
     this.localIsdAs = Collections.unmodifiableSet(localIsdAs);
     this.isCoreAs = isCoreAs;
@@ -49,6 +52,7 @@ public class LocalAS {
     this.controlServices = controlServices;
     this.discoveryServices = discoveryServices;
     this.borderRouters = borderRouters;
+    this.snapNodes = snapNodes == null ? Collections.emptyList() : snapNodes;
     this.interfaceIDs = initInterfaceIDs(borderRouters);
     this.trcStore = trcStore;
   }
@@ -97,6 +101,9 @@ public class LocalAS {
   public String getBorderRouterAddressString(int interfaceId) {
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
+      if (snapFirstHopAddress != null) {
+        return snapFirstHopAddress;
+      }
       throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
     }
     return br.internalAddressString;
@@ -105,9 +112,16 @@ public class LocalAS {
   public InetSocketAddress getBorderRouterAddress(int interfaceId) {
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
+      if (snapFirstHopAddress != null) {
+        return IPHelper.toInetSocketAddress(snapFirstHopAddress);
+      }
       throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
     }
     return br.internalAddress;
+  }
+
+  public void setSnapFirstHopAddress(String snapFirstHopAddress) {
+    this.snapFirstHopAddress = snapFirstHopAddress;
   }
 
   /**
@@ -144,6 +158,10 @@ public class LocalAS {
 
   public List<BorderRouter> getBorderRouters() {
     return Collections.unmodifiableList(borderRouters);
+  }
+
+  public List<SnapNode> getSnapNodes() {
+    return Collections.unmodifiableList(snapNodes);
   }
 
   public static class BorderRouter {
@@ -186,6 +204,24 @@ public class LocalAS {
     @Override
     public String toString() {
       return "{" + "name='" + name + '\'' + ", ipString='" + ipString + '\'' + '}';
+    }
+  }
+
+  public static class SnapNode {
+    private final String address;
+    private final List<Long> isdAses;
+
+    SnapNode(String address, List<Long> isdAses) {
+      this.address = address;
+      this.isdAses = isdAses == null ? Collections.emptyList() : isdAses;
+    }
+
+    public String getAddress() {
+      return address;
+    }
+
+    public List<Long> getIsdAses() {
+      return Collections.unmodifiableList(isdAses);
     }
   }
 

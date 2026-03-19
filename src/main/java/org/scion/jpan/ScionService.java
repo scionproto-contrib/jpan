@@ -27,6 +27,8 @@ import org.scion.jpan.internal.bootstrap.DNSHelper;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.*;
+import org.scion.jpan.internal.snap.SnapControlClient;
+import org.scion.jpan.internal.snap.SnapDataPlane;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
@@ -57,6 +59,8 @@ public class ScionService {
   private final ControlServiceGrpc controlService;
   private final PathServiceRpc pathService;
   private final DaemonServiceGrpc daemonService;
+  private final SnapDataPlane snapDataPlane;
+
   private final Thread shutdownHook;
 
   protected enum Mode {
@@ -95,8 +99,9 @@ public class ScionService {
         LOG.info("Bootstrapping with daemon service: {}", addressOrHost);
         addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
         DaemonServiceGrpc daemonService = DaemonServiceGrpc.create(addressOrHost);
-        try {
-          localAS = checkStartShim(ScionBootstrapper.fromDaemon(daemonService));
+        snapDataPlane = null;
+      try {
+        localAS = checkStartShim(ScionBootstrapper.fromDaemon(daemonService));
         } catch (RuntimeException e) {
           // If this fails for whatever reason we want to make sure that the channel is closed.
           daemonService.close();
@@ -107,6 +112,7 @@ public class ScionService {
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
+      snapDataPlane = initializeSnapDataPlaneIfEnabled();
         return constructor.create(localAS, null, pathService, null);
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
@@ -122,6 +128,7 @@ public class ScionService {
         return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null);
       default:
         throw new UnsupportedOperationException();
+      }
     }
   }
 
@@ -140,6 +147,26 @@ public class ScionService {
     synchronized (LOCK) {
       defaultService = newDefaultService;
     }
+  }
+
+  private SnapDataPlane initializeSnapDataPlaneIfEnabled() {
+    if (!Config.preferSnapUnderlay()) {
+      return null;
+    }
+    String snapControlEndpoint = SnapControlEndpointResolver.resolve(this);
+    if (snapControlEndpoint == null || snapControlEndpoint.isEmpty()) {
+      throw new ScionRuntimeException(
+          "SNAP mode is enabled but no SNAP control endpoint is available");
+    }
+    SnapControlClient snapClient = new SnapControlClient(snapControlEndpoint);
+    SnapDataPlane dataPlane = snapClient.getDataPlaneAddress();
+    localAS.setSnapFirstHopAddress(IPHelper.toString(dataPlane.getAddress()));
+    LOG.info(
+        "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",
+        snapControlEndpoint,
+        dataPlane.getAddress(),
+        dataPlane.getSnapTunControlAddress());
+    return dataPlane;
   }
 
   /**
@@ -406,6 +433,9 @@ public class ScionService {
         localAS.getBorderRouters().stream()
             .map(LocalAS.BorderRouter::getInternalAddress)
             .collect(Collectors.toList());
+    if (interfaces.isEmpty() && preferSnapUnderlay() && snapDataPlane != null) {
+      interfaces = Collections.singletonList(snapDataPlane.getAddress());
+    }
     return NatMapping.createMapping(channel, interfaces);
   }
 
@@ -414,7 +444,26 @@ public class ScionService {
   }
 
   InetSocketAddress getBorderRouterAddress(int interfaceID) {
-    return localAS.getBorderRouterAddress(interfaceID);
+    try {
+      return localAS.getBorderRouterAddress(interfaceID);
+    } catch (ScionRuntimeException e) {
+      if (preferSnapUnderlay() && snapDataPlane != null && localAS.getBorderRouters().isEmpty()) {
+        return snapDataPlane.getAddress();
+      }
+      throw e;
+    }
+  }
+
+  List<LocalAS.SnapNode> getSnapNodes() {
+    return localAS.getSnapNodes();
+  }
+
+  boolean preferSnapUnderlay() {
+    return Config.preferSnapUnderlay();
+  }
+
+  SnapDataPlane getSnapDataPlane() {
+    return snapDataPlane;
   }
 
   ControlServiceGrpc getControlServiceConnection() {

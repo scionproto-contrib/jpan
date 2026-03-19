@@ -156,6 +156,18 @@
             <!-- Last version that runs on Java 8 https://github.com/antlr/antlr4/releases/tag/4.10 -->
             <version>4.9.3</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.signal.forks</groupId>
+            <artifactId>noise-java</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.70</version>
+        </dependency>
     </dependencies>
 
     <build>
