@@ -82,7 +82,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
    * @throws IOException if an error occurs
    */
   public static ScionDatagramChannel open(ScionService service) throws IOException {
-    return open(service, java.nio.channels.DatagramChannel.open());
+    return open(service, java.nio.channels.DatagramChannel.open(StandardProtocolFamily.INET));
   }
 
   public static ScionDatagramChannel open(
@@ -360,6 +360,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
       }
 
+      if (service != null && service.preferSnapUnderlay()) {
+        return SnapScionDatagramChannel.create(service, channel, provider);
+      }
       return new ScionDatagramChannel(service, channel, selector, factory);
     }
   }

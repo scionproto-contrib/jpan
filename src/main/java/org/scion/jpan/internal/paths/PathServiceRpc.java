@@ -59,11 +59,17 @@ public class PathServiceRpc {
     for (int i = 0; i < services.size(); i++) {
       PathService ps = services.get(0); // Always get the first one!
       ps.init();
-      Request request =
+      Request.Builder requestBuilder =
           new Request.Builder()
               // .url("http://" + ps.address + "/scion.endhost.v1.PathService/ListPaths")
               .url("http://" + ps.address + "/" + Config.getNApiSegmentServiceName())
-              .addHeader("Content-type", "application/proto")
+              .addHeader("Content-type", "application/proto");
+      String token = Config.getPathServiceAuthToken();
+      if (token != null && !token.isEmpty()) {
+        requestBuilder.addHeader("Authorization", "Bearer " + token);
+      }
+      Request request =
+          requestBuilder
               //            .addHeader("User-Agent", "OkHttp Bot")
               .post(requestBody)
               .build();
