@@ -36,6 +36,28 @@ public class Config {
     return ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_PATH_SERVICE, ENV_BOOTSTRAP_PATH_SERVICE);
   }
 
+  public static String getPathServiceAuthToken() {
+    return ScionUtil.getPropertyOrEnv(
+        PROPERTY_PATH_SERVICE_AUTH_TOKEN, ENV_PATH_SERVICE_AUTH_TOKEN);
+  }
+
+  public static String getUnderlayMode() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_UNDERLAY_MODE, ENV_UNDERLAY_MODE, DEFAULT_UNDERLAY_MODE)
+        .toLowerCase();
+  }
+
+  public static boolean preferSnapUnderlay() {
+    return "snap".equals(getUnderlayMode());
+  }
+
+  public static String getSnapControlPlaneAddress() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_CONTROL_PLANE, ENV_SNAP_CONTROL_PLANE);
+  }
+
+  public static String getSnapAuthToken() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_TOKEN, ENV_SNAP_AUTH_TOKEN);
+  }
+
   public static String getNat() {
     return ScionUtil.getPropertyOrEnv(PROPERTY_NAT, ENV_NAT, DEFAULT_NAT).toUpperCase();
   }

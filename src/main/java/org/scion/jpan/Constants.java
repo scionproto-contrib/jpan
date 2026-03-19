@@ -54,6 +54,32 @@ public final class Constants {
   /** Address of the path service with the new endhost API. */
   public static final String ENV_BOOTSTRAP_PATH_SERVICE = "SCION_BOOTSTRAP_PATH_SERVICE";
 
+  /** Optional bearer token for Endhost API authentication. */
+  public static final String PROPERTY_PATH_SERVICE_AUTH_TOKEN = "org.scion.pathService.authToken";
+
+  /** Optional bearer token for Endhost API authentication. */
+  public static final String ENV_PATH_SERVICE_AUTH_TOKEN = "SCION_PATH_SERVICE_AUTH_TOKEN";
+
+  /** Preferred transport underlay mode: "udp" (default) or "snap". */
+  public static final String PROPERTY_UNDERLAY_MODE = "org.scion.underlay.mode";
+
+  /** Preferred transport underlay mode: "udp" (default) or "snap". */
+  public static final String ENV_UNDERLAY_MODE = "SCION_UNDERLAY_MODE";
+
+  public static final String DEFAULT_UNDERLAY_MODE = "udp";
+
+  /** Optional explicit SNAP control-plane endpoint (host:port). */
+  public static final String PROPERTY_SNAP_CONTROL_PLANE = "org.scion.snap.controlPlane";
+
+  /** Optional explicit SNAP control-plane endpoint (host:port). */
+  public static final String ENV_SNAP_CONTROL_PLANE = "SCION_SNAP_CONTROL_PLANE";
+
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String PROPERTY_SNAP_AUTH_TOKEN = "org.scion.snap.authToken";
+
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String ENV_SNAP_AUTH_TOKEN = "SCION_SNAP_AUTH_TOKEN";
+
   /**
    * Timeout for calls to control plane services, such as the path service, in milliseconds. The
    * default is 10000 ms = 10 seconds.
