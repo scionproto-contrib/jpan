@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.7.0 and beyond
-- Check: examples appear to be logging INFO by default!?!?!? -> JPAN exercise
+
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathProvider
+  - Avoid register(), instead have a get() path function. Works better with
+    send(packet, PathProvider).  
   - Make PathProvider public -> new sub-package
   - With `send(PathProvider)` and `connect(PathProvider)` we can remove it from the constructor.
     Not quite, it would still be useful for legacy `send(address)` and `connect(address)`. 
@@ -73,6 +75,7 @@ TODO
     only a single ISD/AS, e.g. without querying DNS.
   - Channel.connect could connect to an AS instead of an ISD/AS
   - Later?!??!!!!
+  - DNS TXT record with multiple ISD/AS entries?
 - Deprecation: check:
   - Try EndHostApiDemo again with UTF8 setting.
 - Think about removing src address from path
