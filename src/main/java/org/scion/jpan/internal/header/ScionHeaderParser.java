@@ -124,36 +124,8 @@ public class ScionHeaderParser {
 
     // get remote port from UDP or SCMP payload
     data.position(hdrLenBytes);
-    int srcPort;
-    int dstPort;
-    if (hdrType == HeaderConstants.HdrTypes.UDP) {
-      // get remote port from UDP overlay
-      srcPort = Short.toUnsignedInt(data.getShort());
-      dstPort = Short.toUnsignedInt(data.getShort());
-    } else if (hdrType == HeaderConstants.HdrTypes.SCMP) {
-      switch (Scmp.Type.parse(Byte.toUnsignedInt(data.get(hdrLenBytes)))) {
-        case INFO_128:
-        case INFO_130:
-          data.position(hdrLenBytes + 4);
-          // ports will be swapped further down
-          dstPort = Constants.SCMP_PORT;
-          srcPort = Short.toUnsignedInt(data.getShort());
-          break;
-        case INFO_129:
-        case INFO_131:
-          data.position(hdrLenBytes + 4);
-          // ports will be swapped further down
-          dstPort = Short.toUnsignedInt(data.getShort());
-          srcPort = Constants.SCMP_PORT;
-          break;
-        default:
-          // All errors and 200, 201, 255
-          dstPort = 0;
-          srcPort = 0;
-      }
-    } else {
-      throw new UnsupportedOperationException();
-    }
+    int srcPort = extractSrcPort(data, hdrLenBytes, hdrType);
+    int dstPort = extractDstPort(data, hdrLenBytes, hdrType);
 
     // rewind to original offset
     data.position(start);
@@ -220,63 +192,67 @@ public class ScionHeaderParser {
 
   private static int extractDstPort(
       ByteBuffer data, int hdrOffset, HeaderConstants.HdrTypes hdrType) {
-    int dstPort;
     if (hdrType == HeaderConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
       data.position(hdrOffset + 2);
-      dstPort = Short.toUnsignedInt(data.getShort());
+      return Short.toUnsignedInt(data.getShort());
     } else if (hdrType == HeaderConstants.HdrTypes.SCMP) {
       // get remote port from SCMP header
       data.position(hdrOffset);
       int type = ByteUtil.toUnsigned(data.get());
-      Scmp.Type t = Scmp.Type.parse(type);
-      if (t == Scmp.Type.INFO_128 || t == Scmp.Type.INFO_130) {
-        // request -> port is 30041
-        dstPort = Constants.SCMP_PORT;
-      } else if (t == Scmp.Type.INFO_129 || t == Scmp.Type.INFO_131) {
-        // response -> get port from SCMP identifier
-        data.position(hdrOffset + 4);
-        dstPort = Short.toUnsignedInt(data.getShort());
-      } else {
-        int code = ByteUtil.toUnsigned(data.get());
-        Scmp.TypeCode tc = Scmp.TypeCode.parse(type, code);
-        if (tc.isError()) {
-          // try extracting port from attached packet (may be UDP or SCMP)
-          Scmp.Type typeEnum = Scmp.Type.parse(type);
-          return extractPortFromPayload(data, hdrOffset + typeEnum.getHeaderLength());
-        }
-        throw new UnsupportedOperationException(hdrType.name() + " " + tc.getText());
+      switch (Scmp.Type.parse(type)) {
+        case INFO_128:
+        case INFO_130:
+          // request -> port is 30041
+          return Constants.SCMP_PORT;
+        case INFO_129:
+        case INFO_131:
+          // response -> get port from SCMP identifier
+          data.position(hdrOffset + 4);
+          return Short.toUnsignedInt(data.getShort());
+        default:
+          int code = ByteUtil.toUnsigned(data.get());
+          Scmp.TypeCode tc = Scmp.TypeCode.parse(type, code);
+          if (tc.isError()) {
+            // try extracting port from attached packet (may be UDP or SCMP)
+            Scmp.Type typeEnum = Scmp.Type.parse(type);
+            return extractPortFromPayload(data, hdrOffset + typeEnum.getHeaderLength());
+          }
+          return 0;
       }
     } else {
-      throw new UnsupportedOperationException();
+      // Unknown protocol.
+      return 0;
     }
-    return dstPort;
   }
 
   private static int extractSrcPort(
       ByteBuffer data, int hdrOffset, HeaderConstants.HdrTypes hdrType) {
-    int srcPort;
     if (hdrType == HeaderConstants.HdrTypes.UDP) {
       // get remote port from UDP overlay
       data.position(hdrOffset);
-      srcPort = Short.toUnsignedInt(data.getShort());
+      return Short.toUnsignedInt(data.getShort());
     } else if (hdrType == HeaderConstants.HdrTypes.SCMP) {
       // get remote port from SCMP header
       data.position(hdrOffset);
       int type = ByteUtil.toUnsigned(data.get());
-      Scmp.Type t = Scmp.Type.parse(type);
-      if (t == Scmp.Type.INFO_128 || t == Scmp.Type.INFO_130) {
-        // request -> get port from SCMP identifier
-        data.position(hdrOffset + 4);
-        srcPort = Short.toUnsignedInt(data.getShort());
-      } else {
-        // response or error -> port is 30041
-        srcPort = Constants.SCMP_PORT;
+      switch (Scmp.Type.parse(type)) {
+        case INFO_128:
+        case INFO_130:
+          // request -> get port from SCMP identifier
+          data.position(hdrOffset + 4);
+          return Short.toUnsignedInt(data.getShort());
+        case INFO_129:
+        case INFO_131:
+          // response or error -> port is 30041
+          return Constants.SCMP_PORT;
+        default:
+          // All errors and 200, 201, 255
+          return 0;
       }
     } else {
-      throw new UnsupportedOperationException();
+      return 0;
     }
-    return srcPort;
   }
 
   private static int extractPortFromPayload(ByteBuffer fullData, int hdrOffset) {
@@ -411,7 +387,7 @@ public class ScionHeaderParser {
     //  ? bit: DstHostAddr
     //  ? bit: SrcHostAddr
 
-    long dstIsdAs = data.getLong(); // TODO compare to local IsdAs?
+    long dstIsdAs = data.getLong(); // TODO match against local ISD/ASes
     long srcIsdAs = data.getLong();
 
     byte[] bytesDst = new byte[(dl + 1) * 4];
