@@ -37,6 +37,9 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The SHIM responds to SCMP echo request. All other packets will be forwarded to the destination
  * address encoded in the SCION header. If parsing of the SCION header fails, the packet is dropped.
+ *
+ * <p>Implementation note: the SHIM doesn't run it's own thread. Instead is runs an ScmpResponder
+ * and register itself as a callback. The SHIM will never have to deal with SCMP packets.
  */
 public class Shim implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(Shim.class);

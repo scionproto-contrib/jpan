@@ -32,6 +32,7 @@ public class ManagedThread implements ManagedThreadNews {
   private final String name;
   private final int startUpWaitMillis;
   private final Class<? extends Exception> expectThrows;
+  private final int timeoutMs;
 
   public interface MTRunnable {
     void run(ManagedThreadNews news) throws Exception;
@@ -42,10 +43,15 @@ public class ManagedThread implements ManagedThreadNews {
   }
 
   private ManagedThread(
-      int nThreads, int startUpWaitMillis, String name, Class<? extends Exception> expectThrows) {
+      int nThreads,
+      int startUpWaitMillis,
+      String name,
+      Class<? extends Exception> expectThrows,
+      int timeoutMs) {
     this.name = name;
     this.startUpWaitMillis = startUpWaitMillis;
     this.expectThrows = expectThrows;
+    this.timeoutMs = timeoutMs;
     if (nThreads == 1) {
       executor = Executors.newSingleThreadExecutor();
     } else {
@@ -65,7 +71,7 @@ public class ManagedThread implements ManagedThreadNews {
         });
 
     try {
-      if (!barrier.await(1, TimeUnit.SECONDS)) {
+      if (!barrier.await(timeoutMs, TimeUnit.MILLISECONDS)) {
         executor.shutdownNow();
         throw new IllegalStateException("Could not start managed thread: " + name);
       }
@@ -79,7 +85,7 @@ public class ManagedThread implements ManagedThreadNews {
   public void stopNow() {
     executor.shutdownNow();
     try {
-      if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+      if (!executor.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) {
         checkExceptions();
         throw new IllegalStateException("Managed thread won't stop: " + name);
       }
@@ -91,7 +97,7 @@ public class ManagedThread implements ManagedThreadNews {
   }
 
   public void join() {
-    join(1000);
+    join(timeoutMs);
   }
 
   public void join(int millis) {
@@ -146,13 +152,19 @@ public class ManagedThread implements ManagedThreadNews {
     private final String name = "ManagedThread-" + System.identityHashCode(this);
     private final int nThreads = 1;
     private Class<? extends Exception> expectThrows = null;
+    private int timeoutMs = 1000;
 
     public ManagedThread build() {
-      return new ManagedThread(nThreads, startUpWaitMillis, name, expectThrows);
+      return new ManagedThread(nThreads, startUpWaitMillis, name, expectThrows, timeoutMs);
     }
 
     public Builder expectThrows(Class<? extends Exception> exClass) {
       this.expectThrows = exClass;
+      return this;
+    }
+
+    public Builder timeout(int timeoutMs) {
+      this.timeoutMs = timeoutMs;
       return this;
     }
   }

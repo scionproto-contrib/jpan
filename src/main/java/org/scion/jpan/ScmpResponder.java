@@ -194,7 +194,11 @@ public class ScmpResponder implements AutoCloseable {
             ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
             buildHeader(buffer, msg.getPath(), len, HeaderConstants.HdrTypes.SCMP.code(), srcPort);
             ScmpParser.buildScmpPing(
-                buffer, Scmp.Type.INFO_129, srcPort.get(), msg.getSequenceNumber(), msg.getData());
+                buffer,
+                Scmp.Type.INFO_129,
+                msg.getIdentifier(),
+                msg.getSequenceNumber(),
+                msg.getData());
             buffer.flip();
             msg.setSizeSent(buffer.remaining());
             sendRaw(buffer, path);

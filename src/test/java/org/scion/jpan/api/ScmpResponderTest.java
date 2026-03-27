@@ -69,12 +69,27 @@ class ScmpResponderTest {
 
   @Test
   void testEcho() throws IOException {
+    testEcho(null);
+  }
+
+  @Test
+  void testEcho_lowPort() throws IOException {
+    testEcho(12345);
+  }
+
+  @Test
+  void testEcho_highPort() throws IOException {
+    // Test that a "high" port is handled correctly, i.e. that it is correctly encoded in 16bits
+    testEcho(55555);
+  }
+
+  private void testEcho(Integer port) throws IOException {
     MockNetwork.startTiny();
     MockScmpHandler.stop(); // Shut down SCMP handler
     Path path = getPathTo112(InetAddress.getLoopbackAddress());
     // sender is in 110; responder is in 112
     ManagedThread responder = ManagedThread.newBuilder().build();
-    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
+    try (ScmpSender sender = Scmp.newSenderBuilder().setLocalPort(port).build()) {
       sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
@@ -91,6 +106,32 @@ class ScmpResponderTest {
     } finally {
       responder.stopNow();
       MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void testEchoWithSHIM() throws IOException {
+    // The SHIM includes a responder so we don't need to start an extra one.
+
+    MockNetwork.startTiny();
+    MockScmpHandler.stop(); // Shut down SCMP handler
+    Path path = getPathTo112(InetAddress.getLoopbackAddress());
+    // sender is in 110; responder/SHIM is in 112
+    Shim.install();
+    try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
+      sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+      sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+
+      // send request
+      for (int i = 0; i < 10; i++) {
+        Scmp.EchoMessage msg = sender.sendEchoRequest(path, ByteBuffer.allocate(0));
+        assertNotNull(msg);
+        assertFalse(msg.isTimedOut(), "i=" + i);
+        assertEquals(Scmp.TypeCode.TYPE_129, msg.getTypeCode());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+      Shim.uninstall();
     }
   }
 

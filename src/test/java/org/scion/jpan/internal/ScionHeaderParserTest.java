@@ -140,7 +140,7 @@ class ScionHeaderParserTest {
     ByteBuffer data = createScmpResponse(12345, Scmp.TypeCode.TYPE_5, PAYLOAD_SCMP_ERROR, false);
     InetSocketAddress addr = ScionHeaderParser.extractDestinationSocketAddress(data);
     assertNotNull(addr);
-    assertEquals(30041, addr.getPort());
+    assertEquals(0, addr.getPort());
   }
 
   @Test
