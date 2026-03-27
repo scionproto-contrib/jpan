@@ -43,7 +43,11 @@ public class ManagedThread implements ManagedThreadNews {
   }
 
   private ManagedThread(
-      int nThreads, int startUpWaitMillis, String name, Class<? extends Exception> expectThrows, int timeoutMs) {
+      int nThreads,
+      int startUpWaitMillis,
+      String name,
+      Class<? extends Exception> expectThrows,
+      int timeoutMs) {
     this.name = name;
     this.startUpWaitMillis = startUpWaitMillis;
     this.expectThrows = expectThrows;

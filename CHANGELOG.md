@@ -180,19 +180,8 @@ TODO
   [#232](https://github.com/scionproto-contrib/jpan/pull/232)
 - SCMP message port parsing is broken.
   [#233](https://github.com/scionproto-contrib/jpan/issues/233)
-TODO
-- ScmpParser.buildScmpPing is directly converting int to short
-  Test whether this works with sender-port >= 32768
 - Weird NPE in full PathProbviderWithRefreshTest.multiISD()
   [#235](https://github.com/scionproto-contrib/jpan/issues/235)
-  java.lang.NullPointerException: Cannot invoke "java.net.InetSocketAddress.getAddress()" because "dstScionAddress" is null
-  at org.scion.jpan.ScionService.getPaths(ScionService.java:268)
-  at org.scion.jpan.internal.PathProviderWithRefresh.refreshPaths(PathProviderWithRefresh.java:187)
-  at org.scion.jpan.internal.PathProviderWithRefresh$1.run(PathProviderWithRefresh.java:168)
-  at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
-  at java.base/java.util.concurrent.FutureTask.runAndReset$$$capture(FutureTask.java:358)
-  at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java)
-
 
 ### Changed
 
