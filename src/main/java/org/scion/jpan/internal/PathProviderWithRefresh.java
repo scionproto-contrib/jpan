@@ -21,7 +21,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.Config;
 import org.slf4j.Logger;
