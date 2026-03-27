@@ -68,7 +68,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void testDaemonCreationIPv6() throws IOException {
+  void testDaemonCreationIPv6() {
     MockDaemon.createAndStartDefault();
     String daemonAddr = "[::1]:" + DEFAULT_PORT;
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
@@ -84,7 +84,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void testDaemonCreationIPv4() throws IOException {
+  void testDaemonCreationIPv4() {
     MockDaemon.createAndStartDefault();
     String daemonAddr = "127.0.0.1:" + DEFAULT_PORT;
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
@@ -100,7 +100,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void getPath() throws IOException {
+  void getPath() {
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockDaemon.createAndStartDefault();
     try {
@@ -132,7 +132,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void getPaths() throws IOException {
+  void getPaths() {
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockDaemon.createAndStartDefault();
     try {
@@ -163,7 +163,7 @@ class ScionServiceTest {
   }
 
   @Test
-  void getPaths_localAS() throws IOException {
+  void getPaths_localAS() {
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     MockDaemon.createAndStartDefault();
     try {

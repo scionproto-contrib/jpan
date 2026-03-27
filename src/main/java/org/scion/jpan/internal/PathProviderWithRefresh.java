@@ -20,6 +20,8 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.Config;
 import org.slf4j.Logger;
@@ -59,8 +61,8 @@ public class PathProviderWithRefresh implements PathProvider {
   private final Runnable timerTask;
   private Future<?> timerFuture;
   private final ScionService service;
-  private long dstIsdAs;
-  private InetSocketAddress dstAddress;
+  private volatile long dstIsdAs;
+  private final AtomicReference<InetSocketAddress> dstAddress = new AtomicReference<>();
   private PathPolicy pathPolicy;
 
   private PathUpdateCallback subscriber;
@@ -154,7 +156,7 @@ public class PathProviderWithRefresh implements PathProvider {
     }
     this.service = service;
     this.dstIsdAs = 0;
-    this.dstAddress = null;
+    this.dstAddress.set(null);
     this.pathPolicy = policy;
     this.configPathPollIntervalMs = pathPollIntervalMs;
     this.configExpirationMarginMs = expirationMarginMs;
@@ -184,7 +186,7 @@ public class PathProviderWithRefresh implements PathProvider {
     // 3) Consider retrying path that were broken TODO
 
     // 1) Get new paths from the service
-    List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress));
+    List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress.get()));
     unusedPaths.clear();
     int n = 0;
     for (Path p : newPaths2) {
@@ -315,7 +317,7 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
-  public void subscribe(PathUpdateCallback cb) {
+  public synchronized void subscribe(PathUpdateCallback cb) {
     if (subscriber != null) {
       throw new IllegalStateException("This PathProvider already has a subscription.");
     }
@@ -360,12 +362,12 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
-  public void connect(Path path) {
+  public synchronized void connect(Path path) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
     this.dstIsdAs = path.getRemoteIsdAs();
-    this.dstAddress = path.getRemoteSocketAddress();
+    this.dstAddress.set(path.getRemoteSocketAddress());
 
     if (isExpiringInNextPeriod(path)) {
       // fetch new paths
@@ -395,7 +397,7 @@ public class PathProviderWithRefresh implements PathProvider {
       timerFuture.cancel(true);
       timerFuture = null;
     }
-    this.dstAddress = null;
+    this.dstAddress.set(null);
     this.dstIsdAs = 0;
     this.unusedPaths.clear();
     this.usedPath = null;
@@ -407,8 +409,8 @@ public class PathProviderWithRefresh implements PathProvider {
     configExpirationMarginMs = cfgExpirationSafetyMargin * 1000;
   }
 
-  public boolean isConnected() {
-    return this.dstAddress != null;
+  public synchronized boolean isConnected() {
+    return this.dstAddress.get() != null;
   }
 
   static int getQueueSize() {
