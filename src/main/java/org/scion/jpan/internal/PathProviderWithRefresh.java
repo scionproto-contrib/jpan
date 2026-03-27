@@ -60,7 +60,7 @@ public class PathProviderWithRefresh implements PathProvider {
   private Future<?> timerFuture;
   private final ScionService service;
   private long dstIsdAs;
-  private InetSocketAddress dstAddress;
+  private InetSocketAddress dstAddress = null;
   private PathPolicy pathPolicy;
 
   private PathUpdateCallback subscriber;
@@ -164,8 +164,10 @@ public class PathProviderWithRefresh implements PathProvider {
           @Override
           public void run() {
             try {
-              if (isConnected()) {
-                refreshPaths();
+              synchronized (PathProviderWithRefresh.this) {
+                if (isConnected()) {
+                  refreshPaths();
+                }
               }
             } catch (Exception e) {
               String time = configPathPollIntervalMs + "ms";
@@ -315,7 +317,7 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
-  public void subscribe(PathUpdateCallback cb) {
+  public synchronized void subscribe(PathUpdateCallback cb) {
     if (subscriber != null) {
       throw new IllegalStateException("This PathProvider already has a subscription.");
     }
@@ -360,7 +362,7 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
-  public void connect(Path path) {
+  public synchronized void connect(Path path) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
@@ -407,7 +409,7 @@ public class PathProviderWithRefresh implements PathProvider {
     configExpirationMarginMs = cfgExpirationSafetyMargin * 1000;
   }
 
-  public boolean isConnected() {
+  public synchronized boolean isConnected() {
     return this.dstAddress != null;
   }
 
