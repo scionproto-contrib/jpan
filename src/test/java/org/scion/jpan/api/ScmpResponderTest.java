@@ -90,7 +90,7 @@ class ScmpResponderTest {
     // sender is in 110; responder is in 112
     ManagedThread responder = ManagedThread.newBuilder().build();
     try (ScmpSender sender = Scmp.newSenderBuilder().setLocalPort(port).build()) {
-      sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+      sender.setScmpErrorHandler(scmpMessage -> !errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
       // start responder
@@ -119,7 +119,7 @@ class ScmpResponderTest {
     // sender is in 110; responder/SHIM is in 112
     Shim.install();
     try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
-      sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+      sender.setScmpErrorHandler(scmpMessage -> !errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
       // send request
@@ -144,7 +144,7 @@ class ScmpResponderTest {
     // sender is in 110; responder is in 112
     ManagedThread responder = ManagedThread.newBuilder().build();
     try (ScmpSender sender = Scmp.newSenderBuilder().build()) {
-      sender.setScmpErrorListener(scmpMessage -> errors.add(scmpMessage.getTypeCode().getText()));
+      sender.setScmpErrorHandler(scmpMessage -> !errors.add(scmpMessage.getTypeCode().getText()));
       sender.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
       // start responder

@@ -187,7 +187,8 @@ TODO
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
   [#219](https://github.com/scionproto-contrib/jpan/pull/219)
-- Endhost API improvements: Refactoring to use `PathMetadata` as internal path representation rather than `Daemon.Path`.
+- Endhost API improvements: Refactoring to use `PathMetadata` as internal path representation 
+  rather than `Daemon.Path`.
   [#220](https://github.com/scionproto-contrib/jpan/pull/220)
   - Remove `Daemon.Path` as internal data structure, use `PathMetadata` instead
   - Remove proto references from `ScionService`
@@ -201,6 +202,12 @@ TODO
   [#225](https://github.com/scionproto-contrib/jpan/pull/225)
 - PathProvider test + cleanup
   [#228](https://github.com/scionproto-contrib/jpan/pull/228)
+- ScmpSenderXYZ should not throw an exceptions when receiving an SCMP error.
+  **BREAKING CHANGE**: Scmp.TimedMessage.setTimedOut(): argument removed
+  **BREAKING CHANGE**: Scmp.ScmpSender.setErrorListener...():  removed
+  **BREAKING CHANGE**: Scmp.ScmpSender.send...() does not throw on SCMP error
+  [#236](https://github.com/scionproto-contrib/jpan/issues/236)
+TODO: Should we instead return the ERROR as part of the result list?
 
 ### Removed
 

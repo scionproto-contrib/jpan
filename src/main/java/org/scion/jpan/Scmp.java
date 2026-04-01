@@ -233,6 +233,8 @@ public class Scmp {
     private boolean timedOut = false;
     // If (this) is a response then "request" may contain the original request
     private TimedMessage request;
+    // If (this) is a response then "error" may contain an SCMP error
+    private ErrorMessage error;
 
     private TimedMessage(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
       super(typeCode, identifier, sequenceNumber, path);
@@ -256,6 +258,14 @@ public class Scmp {
 
     public long getNanoSeconds() {
       return receiveNanoSeconds - sendNanoSeconds;
+    }
+
+    public void setError(ErrorMessage error) {
+      this.error = error;
+    }
+
+    public boolean hasError() {
+      return error != null;
     }
 
     public void setTimedOut(long timeOutNS) {
