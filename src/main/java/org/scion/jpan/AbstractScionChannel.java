@@ -453,10 +453,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   protected void receiveScmp(ByteBuffer buffer, ResponsePath path) throws IOException {
-    checkListeners(ScmpParser.consume(buffer, path));
+    checkListeners(ScmpParser.consume(buffer, path), true);
   }
 
-  protected void checkListeners(Scmp.Message scmpMsg) throws IOException {
+  protected void checkListeners(Scmp.Message scmpMsg, boolean throwOnError) throws IOException {
     /*
      * Behavior:
      * Error 1: Destination Unreachable -> throw NoRouteToHost or PortUnreachable
@@ -470,6 +470,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     synchronized (stateLock) {
       if (errorListener != null && scmpMsg.getTypeCode().isError()) {
         errorListener.accept((Scmp.ErrorMessage) scmpMsg);
+      }
+      if (!throwOnError) {
+        return;
       }
       switch (scmpMsg.getTypeCode().type()) {
         case ERROR_1:

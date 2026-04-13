@@ -330,7 +330,8 @@ public class ScmpSenderAsync implements AutoCloseable {
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
-        checkListeners(msg);
+        // Async send/receive handles error via error handler
+        checkListeners(msg, false);
         return;
       }
 
@@ -350,7 +351,8 @@ public class ScmpSenderAsync implements AutoCloseable {
           return;
         }
       }
-      checkListeners(msg);
+      // Async send/receive handles error via error handler
+      checkListeners(msg, false);
     }
 
     @Override

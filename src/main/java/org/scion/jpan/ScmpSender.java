@@ -104,12 +104,11 @@ public class ScmpSender implements AutoCloseable {
   }
 
   /**
-   *
    * @param listener listener
    * @return previous listener
    * @deprecated Please use {@link #setScmpErrorHandler(Predicate)} instead.
    */
-  @Deprecated  // TODO remove after 0.7.0
+  @Deprecated // TODO remove after 0.7.0
   public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
     Consumer<Scmp.ErrorMessage> previous = this.errorListener;
     this.errorListener = listener;
@@ -118,9 +117,10 @@ public class ScmpSender implements AutoCloseable {
 
   /**
    * Define an error handler that is called for every SCMP error that we receive.
-   * @param handler A handler function. If the function returns 'true', the send method will
-   *                throw an IOException with the SCMP error attached. If the function returns
-   *                'false', no exception is thrown and the error is dropped.
+   *
+   * @param handler A handler function. If the function returns 'true', the send method will throw
+   *     an IOException with the SCMP error attached. If the function returns 'false', no exception
+   *     is thrown and the error is dropped.
    * @return The previous handler.
    */
   public Predicate<Scmp.ErrorMessage> setScmpErrorHandler(Predicate<Scmp.ErrorMessage> handler) {

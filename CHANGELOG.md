@@ -203,9 +203,9 @@ TODO
 - PathProvider test + cleanup
   [#228](https://github.com/scionproto-contrib/jpan/pull/228)
 - ScmpSenderXYZ should not throw an exceptions when receiving an SCMP error.
-  **BREAKING CHANGE**: Scmp.TimedMessage.setTimedOut(): argument removed
-  **BREAKING CHANGE**: Scmp.ScmpSender.setErrorListener...():  removed
-  **BREAKING CHANGE**: Scmp.ScmpSender.send...() does not throw on SCMP error
+  - Added ScmpSender.setScmpErrorHandler() 
+  - ScmpSender.setScmpErrorListener():  deprecated
+  **BREAKING CHANGE**: ScmpSender.send...() does not throw on SCMP error
   [#236](https://github.com/scionproto-contrib/jpan/issues/236)
 TODO: Should we instead return the ERROR as part of the result list?
 
