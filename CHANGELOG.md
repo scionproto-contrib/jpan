@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.7.0 and beyond
 
+- SCMP: Implement tooling to extract SCMP error payload to get ID/sequence number
+  for SCMP packets that caused an error. 
+- Investigate why 5-10% of paths time out in MultiPing
+- Allow empty search domain "" (Francois)
+- Remove segment-fetch-optimizer
+- Add SacionService.setDefault(this) for subclasses
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathProvider
   - Avoid register(), instead have a get() path function. Works better with

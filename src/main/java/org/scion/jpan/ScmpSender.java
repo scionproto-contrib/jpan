@@ -83,7 +83,7 @@ public class ScmpSender implements AutoCloseable {
     sender.sendTraceroute(path);
     try {
       List<Scmp.TracerouteMessage> result = responseHandler.getTraceroute(nodes.size());
-      result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));
+      result.sort(Comparator.comparingInt(Scmp.TimedMessage::getSequenceNumber));
       return result;
     } finally {
       sender.abortAll();
