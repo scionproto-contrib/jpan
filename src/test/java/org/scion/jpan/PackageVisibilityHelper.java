@@ -45,13 +45,8 @@ public class PackageVisibilityHelper {
   }
 
   public static List<PathMetadata> getPathsCS(ScionService ss, long srcIsdAs, long dstIsdAs) {
-    boolean minimizeRequests =
-        ScionUtil.getPropertyOrEnv(
-            Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS,
-            Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
-            Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     ControlServiceGrpc cs = ss.getControlServiceConnection();
-    return Segments.getPathsCS(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs, minimizeRequests);
+    return Segments.getPathsCS(cs, ss.getLocalAS(), srcIsdAs, dstIsdAs);
   }
 
   public static HeaderConstants.HdrTypes getNextHdr(ByteBuffer packet) {

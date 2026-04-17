@@ -61,7 +61,6 @@ public class ScionService {
   private final PathServiceRpc pathService;
   private final DaemonServiceGrpc daemonService;
 
-  private final boolean minimizeRequests;
   private Thread shutdownHook;
 
   protected enum Mode {
@@ -73,11 +72,6 @@ public class ScionService {
   }
 
   protected ScionService(String addressOrHost, Mode mode) {
-    minimizeRequests =
-        ScionUtil.getPropertyOrEnv(
-            Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS,
-            Constants.ENV_RESOLVER_MINIMIZE_REQUESTS,
-            Constants.DEFAULT_RESOLVER_MINIMIZE_REQUESTS);
     if (mode == Mode.DAEMON) {
       LOG.info("Bootstrapping with daemon service: {}", addressOrHost);
       addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
@@ -367,7 +361,7 @@ public class ScionService {
     } else {
       // query control service
       long srcIsdAs = getLocalIsdAs();
-      list = Segments.getPathsCS(controlService, localAS, srcIsdAs, dstIsdAs, minimizeRequests);
+      list = Segments.getPathsCS(controlService, localAS, srcIsdAs, dstIsdAs);
     }
     if (LOG.isInfoEnabled()) {
       LOG.info("Paths found to {}: {}", ScionUtil.toStringIA(dstIsdAs), list.size());

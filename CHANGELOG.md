@@ -13,8 +13,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   for SCMP packets that caused an error. 
 - Investigate why 5-10% of paths time out in MultiPing
 - Allow empty search domain "" (Francois)
-- Remove segment-fetch-optimizer
-- Add SacionService.setDefault(this) for subclasses
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathProvider
   - Avoid register(), instead have a get() path function. Works better with
@@ -163,7 +161,7 @@ TODO
 - Added comprehensive integration test for demos.
   [#231](https://github.com/scionproto-contrib/jpan/pull/231)
 - ScionService.setDefaultService() for subclasses
-  [#237](https://github.com/scionproto-contrib/jpan/pull/237)
+  [#238](https://github.com/scionproto-contrib/jpan/pull/238)
 
 ### Fixed
 
@@ -222,6 +220,9 @@ TODO
   [#215](https://github.com/scionproto-contrib/jpan/pull/215)
 - SCMP and PathProvider clean up.
   [#216](https://github.com/scionproto-contrib/jpan/pull/216)
+- Removed segment fetch optimizer. It is pointless with the new endhost API.
+  BREAKING CHANGE: PROPERTY/ENV/DEFAULT_RESOLVER_MINIMIZE_REQUESTS have been removed
+  [#239](https://github.com/scionproto-contrib/jpan/pull/239)
 
 
 ## [0.6.1] - 2025-12-15
