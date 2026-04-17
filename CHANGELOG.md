@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.7.0 and beyond
 
+- SCMP: Implement tooling to extract SCMP error payload to get ID/sequence number
+  for SCMP packets that caused an error. 
+- Investigate why 5-10% of paths time out in MultiPing
+- Allow empty search domain "" (Francois)
+- Remove segment-fetch-optimizer
+- Add SacionService.setDefault(this) for subclasses
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathProvider
   - Avoid register(), instead have a get() path function. Works better with
@@ -187,7 +193,8 @@ TODO
 
 - Refactor bootstrapping, AS info, and rearrange internal classes.
   [#219](https://github.com/scionproto-contrib/jpan/pull/219)
-- Endhost API improvements: Refactoring to use `PathMetadata` as internal path representation rather than `Daemon.Path`.
+- Endhost API improvements: Refactoring to use `PathMetadata` as internal path representation 
+  rather than `Daemon.Path`.
   [#220](https://github.com/scionproto-contrib/jpan/pull/220)
   - Remove `Daemon.Path` as internal data structure, use `PathMetadata` instead
   - Remove proto references from `ScionService`
@@ -201,6 +208,11 @@ TODO
   [#225](https://github.com/scionproto-contrib/jpan/pull/225)
 - PathProvider test + cleanup
   [#228](https://github.com/scionproto-contrib/jpan/pull/228)
+- ScmpSenderXYZ should not throw an exceptions when receiving an SCMP error.
+  - Added ScmpSender.setScmpErrorHandler() 
+  - ScmpSender.setScmpErrorListener():  deprecated
+  **BREAKING CHANGE**: ScmpSender.send...() does not throw on SCMP error
+  [#236](https://github.com/scionproto-contrib/jpan/issues/236)
 
 ### Removed
 

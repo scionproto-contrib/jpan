@@ -20,6 +20,7 @@ import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.scion.jpan.internal.header.PathHeaderParser;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ public class ScmpSender implements AutoCloseable {
   private final ScmpSenderAsync sender;
   private final UnifyingResponseHandler responseHandler = new UnifyingResponseHandler();
   private Consumer<Scmp.ErrorMessage> errorListener = null;
+  private Predicate<Scmp.ErrorMessage> errorHandler = null;
 
   private ScmpSender(
       ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
@@ -81,7 +83,7 @@ public class ScmpSender implements AutoCloseable {
     sender.sendTraceroute(path);
     try {
       List<Scmp.TracerouteMessage> result = responseHandler.getTraceroute(nodes.size());
-      result.sort(Comparator.comparingInt(Scmp.Message::getSequenceNumber));
+      result.sort(Comparator.comparingInt(Scmp.TimedMessage::getSequenceNumber));
       return result;
     } finally {
       sender.abortAll();
@@ -101,9 +103,29 @@ public class ScmpSender implements AutoCloseable {
     sender.close();
   }
 
+  /**
+   * @param listener listener
+   * @return previous listener
+   * @deprecated Please use {@link #setScmpErrorHandler(Predicate)} instead.
+   */
+  @Deprecated // TODO remove after 0.7.0
   public Consumer<Scmp.ErrorMessage> setScmpErrorListener(Consumer<Scmp.ErrorMessage> listener) {
     Consumer<Scmp.ErrorMessage> previous = this.errorListener;
     this.errorListener = listener;
+    return previous;
+  }
+
+  /**
+   * Define an error handler that is called for every SCMP error that we receive.
+   *
+   * @param handler A handler function. If the function returns 'true', the send method will throw
+   *     an IOException with the SCMP error attached. If the function returns 'false', no exception
+   *     is thrown and the error is dropped.
+   * @return The previous handler.
+   */
+  public Predicate<Scmp.ErrorMessage> setScmpErrorHandler(Predicate<Scmp.ErrorMessage> handler) {
+    Predicate<Scmp.ErrorMessage> previous = this.errorHandler;
+    this.errorHandler = handler;
     return previous;
   }
 
@@ -209,7 +231,10 @@ public class ScmpSender implements AutoCloseable {
       if (errorListener != null) {
         errorListener.accept(msg);
       }
-      error = msg;
+      if (errorHandler == null || errorHandler.test(msg)) {
+        // Forward error it test() returns true
+        error = msg;
+      }
       this.notifyAll();
     }
 

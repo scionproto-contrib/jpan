@@ -198,24 +198,12 @@ public class Scmp {
 
   public static class Message {
     private final TypeCode typeCode;
-    private final int identifier;
-    private final int sequenceNumber;
     private final Path path;
 
     /** DO NOT USE! */
-    public Message(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
+    public Message(TypeCode typeCode, Path path) {
       this.typeCode = typeCode;
-      this.identifier = identifier;
-      this.sequenceNumber = sequenceNumber;
       this.path = path;
-    }
-
-    public int getIdentifier() {
-      return identifier;
-    }
-
-    public int getSequenceNumber() {
-      return sequenceNumber;
     }
 
     public TypeCode getTypeCode() {
@@ -228,14 +216,28 @@ public class Scmp {
   }
 
   public abstract static class TimedMessage extends Message {
+    private final int identifier;
+    private final int sequenceNumber;
     private long sendNanoSeconds;
     private long receiveNanoSeconds;
     private boolean timedOut = false;
     // If (this) is a response then "request" may contain the original request
     private TimedMessage request;
+    // If (this) is a response then "error" may contain an SCMP error
+    private ErrorMessage error;
 
     private TimedMessage(TypeCode typeCode, int identifier, int sequenceNumber, Path path) {
-      super(typeCode, identifier, sequenceNumber, path);
+      super(typeCode, path);
+      this.identifier = identifier;
+      this.sequenceNumber = sequenceNumber;
+    }
+
+    public int getIdentifier() {
+      return identifier;
+    }
+
+    public int getSequenceNumber() {
+      return sequenceNumber;
     }
 
     public long getSendNanoSeconds() {
@@ -256,6 +258,14 @@ public class Scmp {
 
     public long getNanoSeconds() {
       return receiveNanoSeconds - sendNanoSeconds;
+    }
+
+    public void setError(ErrorMessage error) {
+      this.error = error;
+    }
+
+    public boolean hasError() {
+      return error != null;
     }
 
     public void setTimedOut(long timeOutNS) {
@@ -282,7 +292,7 @@ public class Scmp {
     private byte[] cause;
 
     private ErrorMessage(TypeCode typeCode, Path path) {
-      super(typeCode, 0, 0, path);
+      super(typeCode, path);
     }
 
     public static ErrorMessage create(TypeCode typeCode, Path path) {

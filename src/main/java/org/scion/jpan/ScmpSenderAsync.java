@@ -330,27 +330,35 @@ public class ScmpSenderAsync implements AutoCloseable {
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
-        checkListeners(msg);
+        // Async send/receive handles error via error handler
+        checkListeners(msg, false);
         return;
       }
 
-      TimeOutTask task = timers.remove(msg.getSequenceNumber());
+      if (!(msg instanceof Scmp.TimedMessage)) {
+        // Should never happen, we should not have non-Info messages here
+        return;
+      }
+      Scmp.TimedMessage timedMsg = (Scmp.TimedMessage) msg;
+
+      TimeOutTask task = timers.remove(timedMsg.getSequenceNumber());
       if (task != null) {
         task.cancel(); // Cancel timeout timer
         Scmp.TimedMessage request = task.request;
-        if (msg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
-          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
-          handler.onResponse((Scmp.TimedMessage) msg);
-        } else if (msg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
+        if (timedMsg.getTypeCode() == Scmp.TypeCode.TYPE_131) {
+          timedMsg.assignRequest(request, currentNanos);
+          handler.onResponse(timedMsg);
+        } else if (timedMsg.getTypeCode() == Scmp.TypeCode.TYPE_129) {
           ((Scmp.EchoMessage) msg).setSizeReceived(buffer.position() - bufferStart);
-          ((Scmp.TimedMessage) msg).assignRequest(request, currentNanos);
-          handler.onResponse((Scmp.TimedMessage) msg);
+          timedMsg.assignRequest(request, currentNanos);
+          handler.onResponse(timedMsg);
         } else {
           // Wrong type -> ignore
           return;
         }
       }
-      checkListeners(msg);
+      // Async send/receive handles error via error handler
+      checkListeners(msg, false);
     }
 
     @Override
