@@ -62,7 +62,6 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
-    System.clearProperty(Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS);
   }
 
   @Test
@@ -130,7 +129,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
     }
 
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
-    assertEquals(1, network.getControlServer().getAndResetCallCount());
+    assertEquals(2, network.getControlServer().getAndResetCallCount());
   }
 
   @Test
@@ -186,17 +185,6 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
 
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS_OnPathUp() {
-    caseE_SameIsd_UpDown_OneCoreAS_OnPathUp(false);
-  }
-
-  @Test
-  void caseE_SameIsd_UpDown_OneCoreAS_OnPathUp_MinRequests() {
-    caseE_SameIsd_UpDown_OneCoreAS_OnPathUp(true);
-  }
-
-  private void caseE_SameIsd_UpDown_OneCoreAS_OnPathUp(boolean minRequests) {
-    System.setProperty(
-        Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS, Boolean.toString(minRequests));
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
       List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_1111, AS_111);
       //  Available paths to 1-ff00:0:1112
@@ -238,7 +226,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       assertEquals(2, path.getInterfaces().size());
     }
     assertEquals(1, network.getTopoServer().getAndResetCallCount());
-    assertEquals(minRequests ? 1 : 3, network.getControlServer().getAndResetCallCount());
+    assertEquals(3, network.getControlServer().getAndResetCallCount());
   }
 
   @Test

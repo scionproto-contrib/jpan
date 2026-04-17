@@ -47,7 +47,6 @@ class SegmentsDefault131Test extends AbstractSegmentsTest {
     DNSUtil.clear();
     // Defensive clean up
     ScionService.closeDefault();
-    System.clearProperty(Constants.PROPERTY_RESOLVER_MINIMIZE_REQUESTS);
   }
 
   @Test

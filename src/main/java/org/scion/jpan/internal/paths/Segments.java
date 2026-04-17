@@ -70,31 +70,17 @@ public class Segments {
    * @param localAS local AS info
    * @param srcIsdAs source ISD/AS
    * @param dstIsdAs destination ISD/AS
-   * @param minimizeLookups If 'true', this attempts to reduce the number of segment request when
-   *     constructing a paths. This comes at the cost of having less path variety to chose from,
-   *     however, the shortest paths should always be available (unless there is a path with a CORE
-   *     segment that is shorter than a pure UP and/or DOWN path). This is similar, but not equal
-   *     to, depth-first search as proposed in the Scion book 2022, page 82.
    * @return list of available paths (unordered)
    */
   public static List<PathMetadata> getPathsCS(
-      ControlServiceGrpc service,
-      LocalAS localAS,
-      long srcIsdAs,
-      long dstIsdAs,
-      boolean minimizeLookups) {
-    List<PathMetadata> path =
-        getPathsInternal(service, localAS, srcIsdAs, dstIsdAs, minimizeLookups);
+      ControlServiceGrpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
+    List<PathMetadata> path = getPathsInternal(service, localAS, srcIsdAs, dstIsdAs);
     path.sort(Comparator.comparingInt(pm -> pm.getInterfaces().size()));
     return path;
   }
 
   private static List<PathMetadata> getPathsInternal(
-      ControlServiceGrpc service,
-      LocalAS localAS,
-      long srcIsdAs,
-      long dstIsdAs,
-      boolean minimizeLookups) {
+      ControlServiceGrpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
     long srcWildcard = ScionUtil.toWildcard(srcIsdAs);
     long dstWildcard = ScionUtil.toWildcard(dstIsdAs);
 
@@ -115,15 +101,6 @@ public class Segments {
       segmentsUp = getSegments(service, srcIsdAs, srcWildcard);
       if (segmentsUp.isEmpty()) {
         return Collections.emptyList();
-      }
-      if (minimizeLookups) {
-        List<PathSegment> directUp = filterForIsdAs(segmentsUp, dstIsdAs);
-        if (!directUp.isEmpty()) {
-          // DST is core or on-path
-          PathDuplicationFilter paths = new PathDuplicationFilter();
-          combineSegment(paths, directUp, localAS, srcIsdAs, dstIsdAs);
-          return paths.getPaths();
-        }
       }
     }
 
@@ -185,7 +162,7 @@ public class Segments {
 
   /**
    * Lookup segments, construct paths, and return paths from a path service (new endhost API). See
-   * {@link #getPathsCS(ControlServiceGrpc, LocalAS, long, long, boolean)}.
+   * {@link #getPathsCS(ControlServiceGrpc, LocalAS, long, long)}.
    *
    * @param service PathService
    * @param localAS This provides the local interface address
