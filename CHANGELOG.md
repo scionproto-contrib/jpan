@@ -213,7 +213,6 @@ TODO
   - ScmpSender.setScmpErrorListener():  deprecated
   **BREAKING CHANGE**: ScmpSender.send...() does not throw on SCMP error
   [#236](https://github.com/scionproto-contrib/jpan/issues/236)
-TODO: Should we instead return the ERROR as part of the result list?
 
 ### Removed
 
