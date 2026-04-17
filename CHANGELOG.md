@@ -162,6 +162,8 @@ TODO
   [#218](https://github.com/scionproto-contrib/jpan/pull/218)
 - Added comprehensive integration test for demos.
   [#231](https://github.com/scionproto-contrib/jpan/pull/231)
+- ScionService.setDefaultService() for subclasses
+  [#237](https://github.com/scionproto-contrib/jpan/pull/237)
 
 ### Fixed
 

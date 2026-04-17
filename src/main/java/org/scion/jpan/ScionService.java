@@ -136,6 +136,12 @@ public class ScionService {
     }
   }
 
+  protected static void setDefaultService(ScionService newDefaultService) {
+    synchronized (LOCK) {
+      defaultService = newDefaultService;
+    }
+  }
+
   /**
    * Returns the default instance of the ScionService. The default instance is connected to the
    * daemon that is specified by the default properties or environment variables.
