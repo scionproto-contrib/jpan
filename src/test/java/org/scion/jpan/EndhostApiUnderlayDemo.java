@@ -21,7 +21,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.scion.jpan.proto.endhost.Path;
+import org.scion.jpan.proto.endhost.Segments;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -48,13 +48,13 @@ public class EndhostApiUnderlayDemo {
     }
   }
 
-  private Path.ListSegmentsResponse sendRequest(long srcIA, long dstIA) throws IOException {
-    Path.ListSegmentsRequest protoRequest =
-        Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
+  private Segments.ListSegmentsResponse sendRequest(long srcIA, long dstIA) throws IOException {
+    Segments.ListSegmentsRequest protoRequest =
+        Segments.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
 
     final String charset = "UTF-8";
     // Create the connection
-    URI uri = URI.create("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths");
+    URI uri = URI.create("http://" + apiAddress + "/scion.endhost.v1.SegmentsService/ListSegments");
     HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
     connection.setDoOutput(true);
     connection.setRequestProperty("Accept-Charset", charset);
@@ -100,7 +100,7 @@ public class EndhostApiUnderlayDemo {
     //      if (!response.isSuccessful()) {
     //        throw new IOException("Unexpected code " + response);
     //      }
-    return Path.ListSegmentsResponse.newBuilder().mergeFrom(ba).build();
+    return Segments.ListSegmentsResponse.newBuilder().mergeFrom(ba).build();
   }
 
   private Underlays.ListUnderlaysResponse sendRequest2() throws IOException {

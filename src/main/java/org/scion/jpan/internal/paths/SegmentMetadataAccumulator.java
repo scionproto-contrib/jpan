@@ -25,7 +25,9 @@ class SegmentMetadataAccumulator {
   private SegmentMetadataAccumulator() {}
 
   static void writeStaticInfoMetadata(
-      PathMetadata.Builder path, Segments.PathSegment[] pathSegments, Segments.Range[] ranges) {
+      PathMetadata.Builder path,
+      PathBuilder.PathSegment[] pathSegments,
+      PathBuilder.Range[] ranges) {
     // Stitching metadata is not trivial.
     // Some quirks:
     // - The segments contain internal bandwidth & latency metadata. However, they contain
@@ -37,7 +39,7 @@ class SegmentMetadataAccumulator {
 
     long prevIsdAs = -1;
     for (int r = 0; r < ranges.length; r++) {
-      Segments.Range range = ranges[r];
+      PathBuilder.Range range = ranges[r];
       for (int pos = range.begin(); pos != range.end(); pos += range.increment()) {
         Seg.ASEntrySignedBody body = pathSegments[r].getAsEntries(pos);
 
@@ -73,7 +75,7 @@ class SegmentMetadataAccumulator {
   private static void writeStaticInfoMetadata(
       PathMetadata.Builder path,
       Seg.ASEntrySignedBody body,
-      Segments.Range range,
+      PathBuilder.Range range,
       boolean addIsdAs,
       boolean addIntraInfo) {
     SegExtensions.PathSegmentExtensions ext = body.getExtensions();
