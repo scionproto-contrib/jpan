@@ -223,6 +223,9 @@ TODO
 - Removed segment fetch optimizer. It is pointless with the new endhost API.
   BREAKING CHANGE: PROPERTY/ENV/DEFAULT_RESOLVER_MINIMIZE_REQUESTS have been removed
   [#239](https://github.com/scionproto-contrib/jpan/pull/239)
+- Removed deprecation marker from `ScionDatagramChannel.send(..., path)`.
+  We may keep this method, but it may change behavior.
+  [#240](https://github.com/scionproto-contrib/jpan/pull/240)
 
 
 ## [0.6.1] - 2025-12-15

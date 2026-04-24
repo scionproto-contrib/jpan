@@ -161,9 +161,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
-   * @deprecated
    */
-  @Deprecated // remove in 0.7.0
+  // * @deprecated This method will probably not be removed, but it will change semantics.
+  // @Deprecated // remove in 0.7.0 -- Deprecation postponed. We may keep this after all
   public int send(ByteBuffer srcBuffer, Path path) throws IOException {
     return sendInternal(srcBuffer, path);
   }
