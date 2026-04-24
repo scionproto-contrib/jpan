@@ -26,7 +26,7 @@ import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.Config;
-import org.scion.jpan.proto.endhost.Path;
+import org.scion.jpan.proto.endhost.Segments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,9 +50,9 @@ public class PathServiceRpc {
     services.forEach(PathService::close);
   }
 
-  public synchronized Path.ListSegmentsResponse segments(long srcIA, long dstIA) {
-    Path.ListSegmentsRequest protoRequest =
-        Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
+  public synchronized Segments.ListSegmentsResponse segments(long srcIA, long dstIA) {
+    Segments.ListSegmentsRequest protoRequest =
+        Segments.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
     RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
 
     String error = "No control services found in topology";
@@ -91,7 +91,7 @@ public class PathServiceRpc {
               "While connecting path service {}: code={} msg={}", ps.address, response.code(), str);
           throw new IOException("Unexpected code " + response.code() + ": " + str);
         }
-        return Path.ListSegmentsResponse.newBuilder().mergeFrom(body.bytes()).build();
+        return Segments.ListSegmentsResponse.newBuilder().mergeFrom(body.bytes()).build();
       } catch (IOException e) {
         error = e.getMessage();
         LOG.warn("Error connecting path service {}: {}", ps.address, error);

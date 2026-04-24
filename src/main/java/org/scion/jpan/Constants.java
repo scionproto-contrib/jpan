@@ -173,7 +173,7 @@ public final class Constants {
 
   public static final String ENV_NAPI_SEGMENT_SERVICE_NAME = "SCION_NAPI_SEGMENT_SERVICE_NAME";
   public static final String DEFAULT_NAPI_SEGMENT_SERVICE_NAME =
-      "scion.endhost.v1.PathService/ListPaths";
+      "scion.endhost.v1.SegmentsService/ListSegments";
 
   /**
    * Non-public property that allows ignoring all environment variables. This is useful for running

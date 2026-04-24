@@ -32,7 +32,7 @@ import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.control_plane.SegExtensions;
 import org.scion.jpan.proto.control_plane.experimental.SegDetachedExtensions;
 import org.scion.jpan.proto.crypto.Signed;
-import org.scion.jpan.proto.endhost.Path;
+import org.scion.jpan.proto.endhost.Segments;
 
 /** Small demo that requests and prints segments requested from a control service. */
 public class EndhostApiPathDemo {
@@ -76,13 +76,13 @@ public class EndhostApiPathDemo {
     //    }
   }
 
-  private Path.ListSegmentsResponse sendRequest(long srcIA, long dstIA) throws IOException {
-    Path.ListSegmentsRequest protoRequest =
-        Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
+  private Segments.ListSegmentsResponse sendRequest(long srcIA, long dstIA) throws IOException {
+    Segments.ListSegmentsRequest protoRequest =
+        Segments.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
 
     final String charset = "UTF-8";
     // Create the connection
-    URI uri = URI.create("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths");
+    URI uri = URI.create("http://" + apiAddress + "/scion.endhost.v1.SegmentsService/ListSegments");
     HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
     connection.setDoOutput(true);
     connection.setRequestProperty("Accept-Charset", charset);
@@ -128,17 +128,17 @@ public class EndhostApiPathDemo {
     //      if (!response.isSuccessful()) {
     //        throw new IOException("Unexpected code " + response);
     //      }
-    return Path.ListSegmentsResponse.newBuilder().mergeFrom(ba).build();
+    return Segments.ListSegmentsResponse.newBuilder().mergeFrom(ba).build();
   }
 
-  private Path.ListSegmentsResponse sendRequest2(long srcIA, long dstIA) throws IOException {
-    Path.ListSegmentsRequest protoRequest =
-        Path.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
+  private Segments.ListSegmentsResponse sendRequest2(long srcIA, long dstIA) throws IOException {
+    Segments.ListSegmentsRequest protoRequest =
+        Segments.ListSegmentsRequest.newBuilder().setSrcIsdAs(srcIA).setDstIsdAs(dstIA).build();
     RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
 
     Request request =
         new Request.Builder()
-            .url("http://" + apiAddress + "/scion.endhost.v1.PathService/ListPaths")
+            .url("http://" + apiAddress + "/scion.endhost.v1.SegmentsService/ListSegments")
             .addHeader("Content-type", "application/proto")
             //            .addHeader("User-Agent", "OkHttp Bot")
             .post(requestBody)
@@ -155,7 +155,7 @@ public class EndhostApiPathDemo {
         System.out.println("Client received body: " + bodyStr);
         throw new IOException("Unexpected code " + response);
       }
-      return Path.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
+      return Segments.ListSegmentsResponse.newBuilder().mergeFrom(response.body().bytes()).build();
     }
   }
 
@@ -174,7 +174,7 @@ public class EndhostApiPathDemo {
       return;
     }
 
-    Path.ListSegmentsResponse response;
+    Segments.ListSegmentsResponse response;
     try {
       response = sendRequest2(srcIsdAs, dstIsdAs);
     } catch (IOException e) {
@@ -183,7 +183,7 @@ public class EndhostApiPathDemo {
     print(response);
   }
 
-  private static void print(Path.ListSegmentsResponse r) throws ScionException {
+  private static void print(Segments.ListSegmentsResponse r) throws ScionException {
     System.out.println(
         "Response count(UP/CORE/DOWN) = "
             + r.getUpSegmentsList().size()
