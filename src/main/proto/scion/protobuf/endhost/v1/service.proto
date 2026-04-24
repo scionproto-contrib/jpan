@@ -9,5 +9,5 @@ import "scion/protobuf/endhost/v1/path.proto";
 
 service PathService {
   // Segments returns all segments that match the request.
-  rpc ListPaths(.endhost.api_service.v1.ListSegmentsRequest) returns (.endhost.api_service.v1.ListSegmentsResponse) {}
+  rpc ListSegments(.endhost.api_service.v1.ListSegmentsRequest) returns (.endhost.api_service.v1.ListSegmentsResponse) {}
 }

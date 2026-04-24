@@ -167,6 +167,14 @@ public final class Constants {
   public static final String ENV_NAT_STUN_TIMEOUT_MS = "SCION_NAT_STUN_TIMEOUT_MS";
   public static final int DEFAULT_NAT_STUN_TIMEOUT_MS = 10;
 
+  /** New ENdhost API: Configurable API names */
+  public static final String PROPERTY_NAPI_SEGMENT_SERVICE_NAME =
+      "org.scion.napi.segment.service.name";
+
+  public static final String ENV_NAPI_SEGMENT_SERVICE_NAME = "SCION_NAPI_SEGMENT_SERVICE_NAME";
+  public static final String DEFAULT_NAPI_SEGMENT_SERVICE_NAME =
+      "scion.endhost.v1.PathService/ListPaths";
+
   /**
    * Non-public property that allows ignoring all environment variables. This is useful for running
    * the tests on a host with a SCION installation.

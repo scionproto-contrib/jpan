@@ -25,6 +25,7 @@ import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +61,8 @@ public class PathServiceRpc {
       ps.init();
       Request request =
           new Request.Builder()
-              .url("http://" + ps.address + "/scion.endhost.v1.PathService/ListPaths")
+              // .url("http://" + ps.address + "/scion.endhost.v1.PathService/ListPaths")
+              .url("http://" + ps.address + "/" + Config.getNApiSegmentServiceName())
               .addHeader("Content-type", "application/proto")
               //            .addHeader("User-Agent", "OkHttp Bot")
               .post(requestBody)

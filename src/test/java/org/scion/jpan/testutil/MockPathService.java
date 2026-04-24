@@ -29,6 +29,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.endhost.Path;
 import org.scion.jpan.proto.endhost.Underlays;
@@ -63,7 +64,7 @@ public class MockPathService {
     try {
       pathService = new MockPathService.PathServiceImpl(port);
     } catch (IOException e) {
-      throw new RuntimeException("port=" + port, e);
+      throw new RuntimeException("port=" + port + ";api=" + Config.getNApiSegmentServiceName(), e);
     }
 
     // Wait for server to start
