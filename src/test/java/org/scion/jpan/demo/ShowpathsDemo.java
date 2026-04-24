@@ -96,7 +96,7 @@ public class ShowpathsDemo {
         }
       case PRODUCTION:
         {
-          runDemo(ScionUtil.parseIA("71-2:0:5c")); // 71-88"));
+          runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
           break;
         }

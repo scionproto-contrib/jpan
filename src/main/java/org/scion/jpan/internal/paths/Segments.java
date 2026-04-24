@@ -27,7 +27,7 @@ import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.MultiMap;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
-import org.scion.jpan.proto.endhost.Segments;
+import org.scion.jpan.proto.endhost.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,10 +49,10 @@ import org.slf4j.LoggerFactory;
  *
  * <p>
  */
-public class PathBuilder {
-  private static final Logger LOG = LoggerFactory.getLogger(PathBuilder.class.getName());
+public class Segments {
+  private static final Logger LOG = LoggerFactory.getLogger(Segments.class.getName());
 
-  private PathBuilder() {}
+  private Segments() {}
 
   /**
    * Lookup segments, construct paths, and return paths from a control service.
@@ -208,7 +208,7 @@ public class PathBuilder {
           ScionUtil.toStringIA(dstIsdAs));
     }
     long t0 = System.nanoTime();
-    Segments.ListSegmentsResponse response = segmentStub.segments(srcIsdAs, dstIsdAs);
+    Path.ListSegmentsResponse response = segmentStub.segments(srcIsdAs, dstIsdAs);
     long t1 = System.nanoTime();
     LOG.info("Segment request took {} ms.", (t1 - t0) / 1_000_000);
 
@@ -778,7 +778,7 @@ public class PathBuilder {
       this.bodies =
           Collections.unmodifiableList(
               segment.getAsEntriesList().stream()
-                  .map(PathBuilder::getBody)
+                  .map(Segments::getBody)
                   .collect(Collectors.toList()));
       this.info = getInfo(segment);
       this.type = type;

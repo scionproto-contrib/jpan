@@ -2,13 +2,7 @@ syntax = "proto3";
 
 option java_package = "org.scion.jpan.proto.endhost";
 
-package scion.endhost.v1;
-
-/// Service for underlay discovery.
-service UnderlayService {
-  /// ListUnderlays discovers available transport underlays for endhosts.
-  rpc ListUnderlays(ListUnderlaysRequest) returns (ListUnderlaysResponse);
-}
+package endhost.api_service.v1;
 
 // ListUnderlaysRequest is used to discover available transport underlays.
 message ListUnderlaysRequest {

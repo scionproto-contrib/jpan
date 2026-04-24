@@ -26,7 +26,10 @@ import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.bootstrap.DNSHelper;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
-import org.scion.jpan.internal.paths.*;
+import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.paths.DaemonServiceGrpc;
+import org.scion.jpan.internal.paths.PathServiceRpc;
+import org.scion.jpan.internal.paths.Segments;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
@@ -351,14 +354,14 @@ public class ScionService {
     List<PathMetadata> list;
     if (pathService != null) {
       // query path service (new endhost API)
-      list = PathBuilder.getPathsPS(pathService, localAS, getLocalIsdAses(), dstIsdAs);
+      list = Segments.getPathsPS(pathService, localAS, getLocalIsdAses(), dstIsdAs);
     } else if (daemonService != null) {
       // query daemon
       list = daemonService.pathsAsMetadata(getLocalIsdAs(), dstIsdAs);
     } else {
       // query control service
       long srcIsdAs = getLocalIsdAs();
-      list = PathBuilder.getPathsCS(controlService, localAS, srcIsdAs, dstIsdAs);
+      list = Segments.getPathsCS(controlService, localAS, srcIsdAs, dstIsdAs);
     }
     if (LOG.isInfoEnabled()) {
       LOG.info("Paths found to {}: {}", ScionUtil.toStringIA(dstIsdAs), list.size());

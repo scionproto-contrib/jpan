@@ -8,7 +8,7 @@
         <module name="AvoidStarImport">
             <property name="allowStaticMemberImports" value="true"/>
             <property name="excludes"
-                      value="java.io,java.util,java.net,io.grpc,org.junit.jupiter.api,org.scion.jpan.internal,org.scion.jpan.internal.paths,org.scion.jpan,org.xbill.DNS"/>
+                      value="java.io,java.util,java.net,io.grpc,org.junit.jupiter.api,org.scion.jpan.internal,org.scion.jpan,org.xbill.DNS"/>
         </module>
         <module name="HiddenField">
             <property name="tokens" value="VARIABLE_DEF"/>

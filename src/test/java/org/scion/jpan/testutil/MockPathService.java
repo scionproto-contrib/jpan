@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.control_plane.Seg;
-import org.scion.jpan.proto.endhost.Segments;
+import org.scion.jpan.proto.endhost.Path;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,7 +150,7 @@ public class MockPathService {
       }
 
       String resource = session.getUri();
-      String listService = "/scion.endhost.v1.SegmentsService/ListSegments";
+      String listService = "/scion.endhost.v1.PathService/ListPaths";
       String underlayService = "/scion.endhost.v1.UnderlayService/ListUnderlays";
       if (listService.equals(resource)) {
         return handlePathRequest(session);
@@ -166,13 +166,13 @@ public class MockPathService {
       logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
       awaitBlock(); // for testing timeouts
 
-      Segments.ListSegmentsRequest request;
+      Path.ListSegmentsRequest request;
       try {
         InputStream inputStream = session.getInputStream();
         ByteBuffer byteBuffer = ByteBuffer.allocate(inputStream.available());
         Channels.newChannel(inputStream).read(byteBuffer);
         byteBuffer.flip();
-        request = Segments.ListSegmentsRequest.parseFrom(byteBuffer);
+        request = Path.ListSegmentsRequest.parseFrom(byteBuffer);
       } catch (IOException e) {
         logger.error(e.getMessage());
         return newFixedLengthResponse(
@@ -192,7 +192,7 @@ public class MockPathService {
             "Illegal arguments: " + src + " -> " + dst);
       }
 
-      Segments.ListSegmentsResponse r = toResponse(srcIA, dstIA);
+      Path.ListSegmentsResponse r = toResponse(srcIA, dstIA);
       // Report error if ISD/AS was not found
       if (r.getUpSegmentsCount() + r.getCoreSegmentsCount() + r.getDownSegmentsCount() == 0) {
         String src = ScionUtil.toStringIA(srcIA);
@@ -247,9 +247,8 @@ public class MockPathService {
           Response.Status.OK, MIME, targetStream, protoResponse.toByteArray().length);
     }
 
-    private Segments.ListSegmentsResponse toResponse(long srcIA, long dstIA) {
-      Segments.ListSegmentsResponse.Builder responseBuilder =
-          Segments.ListSegmentsResponse.newBuilder();
+    private Path.ListSegmentsResponse toResponse(long srcIA, long dstIA) {
+      Path.ListSegmentsResponse.Builder responseBuilder = Path.ListSegmentsResponse.newBuilder();
       // Find UP
       Set<Long> localCORE = new HashSet<>();
       Set<Long> remoteCORE = new HashSet<>();
