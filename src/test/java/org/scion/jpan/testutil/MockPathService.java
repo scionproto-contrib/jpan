@@ -80,6 +80,7 @@ public class MockPathService {
 
   public void close() {
     pathService.stop();
+    TestUtil.sleep(50); // TODO fix this and remove sleep()
     logger.info("Path service shut down");
   }
 
