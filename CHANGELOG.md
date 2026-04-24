@@ -162,6 +162,8 @@ TODO
   [#231](https://github.com/scionproto-contrib/jpan/pull/231)
 - ScionService.setDefaultService() for subclasses
   [#238](https://github.com/scionproto-contrib/jpan/pull/238)
+- Configurable service point name for new endhost API
+  [#241](https://github.com/scionproto-contrib/jpan/pull/241) 
 
 ### Fixed
 

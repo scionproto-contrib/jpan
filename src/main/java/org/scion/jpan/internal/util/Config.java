@@ -74,4 +74,11 @@ public class Config {
         ENV_PATH_POLLING_INTERVAL_SEC,
         DEFAULT_PATH_POLLING_INTERVAL);
   }
+
+  public static String getNApiSegmentServiceName() {
+    return ScionUtil.getPropertyOrEnv(
+        PROPERTY_NAPI_SEGMENT_SERVICE_NAME,
+        ENV_NAPI_SEGMENT_SERVICE_NAME,
+        DEFAULT_NAPI_SEGMENT_SERVICE_NAME);
+  }
 }
