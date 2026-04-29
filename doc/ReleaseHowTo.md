@@ -2,18 +2,6 @@
 
 ## Release environment
 
-0) Run integration test
-    - Run `ShowEchoDemo`
-    - Run `ScmpTracerouteDemo`
-    - Run `ShowPathsDemo`
-    - Checkout SCION proto and Start scionproto topology:
-      - `./scion.sh topology -c topology/default.topo`
-      - `./scion.sh run`
-      - Wait a bit for PCBs to propagate
-      - Run `IntegrationTestLocal` in `org.scion.jpan.demo`
-    - Run ScionPacket example from https://github.com/netsec-ethz/scion-java-packet-example
-    - Run PingAll from https://github.com/netsec-ethz/scion-java-multiping
-
 1) Prepare the environment
     - Make sure to have a valid signing key
     - Make sure to have `~/.m2/settings.xml` configured properly
@@ -25,10 +13,20 @@
     - (Run `mvn dependency-check:check -DnvdApiKey=...` (requires Java 11 or later)  )
       (-> OWASP CVE checks)
       -> Currently disabled because the plugin causes NPEs  
-    - Prepare CHANGELOG
-    - Update README.md with reference to latest `.jar`
 
-3) Release
+3) Run integration test
+   - Run `ShowEchoDemo`
+   - Run `ScmpTracerouteDemo`
+   - Run `ShowpathsDemo`
+   - Checkout SCION proto and Start scionproto topology:
+      - `./scion.sh topology -c topology/default.topo`
+      - `./scion.sh run`
+      - Wait a bit for PCBs to propagate
+      - Run `IntegrationTestLocal` in `org.scion.jpan.demo`
+   - Run ScionPacket example from https://github.com/netsec-ethz/scion-java-packet-example
+   - Run PingAll from https://github.com/netsec-ethz/scion-java-multiping
+
+4) Release
     - `git checkout master`
     - Run `mvn release:clean`
     - Run `mvn release:prepare`
@@ -42,7 +40,9 @@
 4) Post Release
     - On GitHub, add the new release to the
       [list of releases](https://github.com/scionproto-contrib/jpan/releases).
-    - Announce the release on the appropriate channels.
+   - Prepare CHANGELOG
+   - Update README.md with reference to latest `.jar`
+   - Announce the release on the appropriate channels.
 
 ## Release Environment
 
