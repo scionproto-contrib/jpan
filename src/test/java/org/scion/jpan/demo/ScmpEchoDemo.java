@@ -168,7 +168,8 @@ public class ScmpEchoDemo {
     String nl = System.lineSeparator();
     String sb = "Using path:" + nl + "  Hops: " + ScionUtil.toStringPath(path.getMetadata());
     sb += " MTU: " + path.getMetadata().getMtu();
-    sb += " NextHop: " + path.getMetadata().getLocalInterface().getAddress() + nl;
+    PathMetadata.Interface firstHop = path.getMetadata().getLocalInterface();
+    sb += " NextHop: " + (firstHop == null ? "-" : firstHop.getAddress()) + nl;
     println(sb);
   }
 
