@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### TODO for 0.7.0 and beyond
+### TODO for 0.8.0 and beyond
 
 - SCMP: Implement tooling to extract SCMP error payload to get ID/sequence number
   for SCMP packets that caused an error. 
@@ -144,7 +144,11 @@ TODO
 - Consider using https://github.com/ascopes/protobuf-maven-plugin (more up to date) 
 - Multi-release-jar?
 
-## 0.7.0 - WIP
+## 0.8.0 - WIP
+
+- Nothing yet
+
+## [0.7.0] - 2026-04-29
 
 ### Added
 
@@ -655,7 +659,8 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 ### Removed
 - Nothing
 
-[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/scionproto-contrib/jpan/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/scionproto-contrib/jpan/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/scionproto-contrib/jpan/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/scionproto-contrib/jpan/compare/v0.5.0...v0.6.0
 [0.5.3]: https://github.com/scionproto-contrib/jpan/compare/v0.5.2...v0.5.3
