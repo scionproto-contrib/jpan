@@ -146,7 +146,10 @@ TODO
 
 ## 0.8.0 - WIP
 
-- Nothing yet
+### Fixed
+- Fix default discovery service port to be 8041
+  [#261](https://github.com/scionproto-contrib/jpan/issues/261)
+
 
 ## [0.7.0] - 2026-04-29
 

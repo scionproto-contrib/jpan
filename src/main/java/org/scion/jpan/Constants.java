@@ -18,7 +18,7 @@ public final class Constants {
   public static final int SCMP_PORT = 30041;
 
   /** Default port for the discovery service. */
-  public static final int DISCOVERY_DEFAULT_PORT = 3041;
+  public static final int DISCOVERY_DEFAULT_PORT = 8041;
 
   /**
    * @deprecated Dispatcher support will be removed soon.
