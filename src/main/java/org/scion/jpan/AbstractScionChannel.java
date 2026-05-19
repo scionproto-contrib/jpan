@@ -647,13 +647,13 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   private void checkLockedForRead() {
-    if (!readLock().isLocked()) {
+    if (!readLock().isHeldByCurrentThread()) {
       throw new IllegalStateException("Access must be READ locked!");
     }
   }
 
   private void checkLockedForWrite() {
-    if (!writeLock().isLocked()) {
+    if (!writeLock().isHeldByCurrentThread()) {
       throw new IllegalStateException("Access must be WRITE locked!");
     }
   }
