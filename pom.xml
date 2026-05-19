@@ -101,6 +101,28 @@
             <version>1.77.0.1.20241008212309.5939a22621c8</version>
         </dependency>
 
+<!--        <dependency>-->
+<!--            <groupId>build.buf.gen</groupId>-->
+<!--            <artifactId>connectrpc_conformance_protocolbuffers_java</artifactId>-->
+<!--            <version>33.5.0.1.20241008212309.5939a22621c8</version>-->
+<!--        </dependency>-->
+
+        <dependency>
+            <groupId>com.connectrpc</groupId>
+            <artifactId>connect-kotlin</artifactId>
+            <version>0.7.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.connectrpc</groupId>
+            <artifactId>connect-kotlin-google-java-ext</artifactId>
+            <version>0.7.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.connectrpc</groupId>
+            <artifactId>connect-kotlin-okhttp</artifactId>
+            <version>0.7.4</version>
+        </dependency>
+
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
