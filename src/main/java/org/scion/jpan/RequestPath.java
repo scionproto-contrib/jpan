@@ -30,15 +30,13 @@ public class RequestPath extends Path {
   static RequestPath create(PathMetadata metadata, InetAddress dstIP, int dstPort) {
     // path length 0 means "local AS"
     InetSocketAddress firstHop;
-    long srcIsdAs;
-    long dstIsdAs;
     if (metadata.getRawPath().length == 0) {
       firstHop = new InetSocketAddress(dstIP, dstPort);
     } else {
       firstHop = IPHelper.toInetSocketAddress(metadata.getLocalInterface().getAddress());
     }
-    srcIsdAs = metadata.getSrcIdsAs();
-    dstIsdAs = metadata.getDstIdsAs();
+    long srcIsdAs = metadata.getSrcIdsAs();
+    long dstIsdAs = metadata.getDstIdsAs();
     return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
   }
 

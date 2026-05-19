@@ -130,6 +130,22 @@ class ScionTest {
   }
 
   @Test
+  void defaultService_doubleCloseWorksFine() {
+    MockDaemon.createAndStartDefault();
+    System.setProperty(Constants.PROPERTY_DAEMON, "[::1]:" + DEFAULT_PORT);
+    try {
+      ScionService service = Scion.defaultService();
+      service.close();
+      service.close();
+    } catch (Exception e) {
+      fail(e.getMessage());
+    } finally {
+      Scion.closeDefault();
+      MockDaemon.closeDefault();
+    }
+  }
+
+  @Test
   void defaultService_daemon_error_address() {
     MockDaemon.createAndStartDefault();
     System.setProperty(Constants.PROPERTY_DAEMON, "127.0.0.234:123");

@@ -57,8 +57,7 @@ public class ScionService {
   private final ControlServiceGrpc controlService;
   private final PathServiceRpc pathService;
   private final DaemonServiceGrpc daemonService;
-
-  private Thread shutdownHook;
+  private final Thread shutdownHook;
 
   protected enum Mode {
     DAEMON,
@@ -218,27 +217,28 @@ public class ScionService {
   }
 
   private Thread addShutdownHook() {
-    Thread hook =
-        new Thread(
-            () -> {
-              if (defaultService != null) {
-                defaultService.shutdownHook = null;
-                defaultService.close();
-              }
-            });
+    // We do not set defaultService to null here. We are in the process of shutting down,
+    // so it should be necessary, and it avoids having to deal with locks during shutdown.
+    Thread hook = new Thread(this::closeDuringShutdown);
     Runtime.getRuntime().addShutdownHook(hook);
     return hook;
   }
 
   public void close() {
+    closeDuringShutdown();
+    // We have to avoid calling this during shutdown, it will throw an exception.
+    // THis may be null if the close() is called from the constructor.
+    if (shutdownHook != null) {
+      Runtime.getRuntime().removeShutdownHook(shutdownHook);
+    }
+  }
+
+  private void closeDuringShutdown() {
     if (daemonService != null) {
       daemonService.close();
     }
     if (controlService != null) {
       controlService.close();
-    }
-    if (shutdownHook != null) {
-      Runtime.getRuntime().removeShutdownHook(shutdownHook);
     }
   }
 
