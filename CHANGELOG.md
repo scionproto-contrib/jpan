@@ -160,6 +160,8 @@ TODO
   [#250](https://github.com/scionproto-contrib/jpan/issues/250)
 - Fix wrong check for locks in AbstractScionChannel
   [#245](https://github.com/scionproto-contrib/jpan/issues/245)
+- Fix possible duplicate channel creation in SelectingDatagramChannel
+  [#247](https://github.com/scionproto-contrib/jpan/issues/247)
 
 
 ## [0.7.0] - 2026-04-29

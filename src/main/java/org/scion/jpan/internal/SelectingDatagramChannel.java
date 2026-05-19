@@ -40,11 +40,10 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
 
   public SelectingDatagramChannel(
       ScionService service, DatagramChannel channel, PathProvider provider) throws IOException {
-    super(service, channel == null ? DatagramChannel.open() : channel, provider);
+    super(service, channel, provider);
 
     // selector
-    DatagramChannel channel2 = channel == null ? DatagramChannel.open() : channel;
-    this.selector = channel2.provider().openSelector();
+    this.selector = channel.provider().openSelector();
     super.channel().configureBlocking(false);
     super.channel().register(selector, SelectionKey.OP_READ);
   }
