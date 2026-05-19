@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.8.0 and beyond
 
+- STUN: check/extend auto mode: if local IP subnet is different from BR IP subnet
+  then use STUN otherwise do not (check subnet mask if possible). Allow flag to override this.
 - SCMP: Implement tooling to extract SCMP error payload to get ID/sequence number
   for SCMP packets that caused an error. 
 - Investigate why 5-10% of paths time out in MultiPing
 - Allow empty search domain "" (Francois)
+- Fix subclassing of ScionService, e.g. allow calling default() method and expose 
+  internals (at least getLocalAs())
+ 
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathProvider
   - Avoid register(), instead have a get() path function. Works better with
@@ -147,8 +152,12 @@ TODO
 ## 0.8.0 - WIP
 
 ### Fixed
+
 - Fix default discovery service port to be 8041
   [#261](https://github.com/scionproto-contrib/jpan/issues/261)
+- Fix service shutdown handling.
+  [#244](https://github.com/scionproto-contrib/jpan/issues/244)
+  [#250](https://github.com/scionproto-contrib/jpan/issues/250)
 
 
 ## [0.7.0] - 2026-04-29
