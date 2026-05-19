@@ -36,6 +36,17 @@ class DNSHelperTest {
   }
 
   @Test
+  void discoveryServiceDefaultPort() {
+    DNSUtil.installNAPTR("hello.test", "A", "x-sciondiscovery:tcp", "discovery11.test.", 1, 10);
+    DNSUtil.installAddress("discovery11.test", new byte[] {1, 1, 1, 11});
+
+    InetSocketAddress dsAddress;
+    dsAddress = DNSHelper.getScionDiscoveryAddress("hello.test", new MockDNS.MockResolver());
+    assertNotNull(dsAddress);
+    assertEquals(8041, dsAddress.getPort());
+  }
+
+  @Test
   void findSearchDomainViaReverseLookup_PTR_NAPTR_A_TXT_V4() {
     //  dig -x 129.132.0.0
     //  ;; QUESTION SECTION:
@@ -207,7 +218,7 @@ class DNSHelperTest {
 
     Lookup.setDefaultSearchPath(Collections.emptyList());
     InetSocketAddress dsAddress = DNSHelper.searchForDiscoveryService(new MockDNS.MockResolver());
-    assertEquals("1.1.1.11:3041", IPHelper.toString(dsAddress));
+    assertEquals("1.1.1.11:8041", IPHelper.toString(dsAddress));
   }
 
   @Test
