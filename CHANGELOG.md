@@ -158,6 +158,8 @@ TODO
 - Fix service shutdown handling.
   [#244](https://github.com/scionproto-contrib/jpan/issues/244)
   [#250](https://github.com/scionproto-contrib/jpan/issues/250)
+- Fix wrong check for locks in AbstractScionChannel
+  [#245](https://github.com/scionproto-contrib/jpan/issues/245)
 
 
 ## [0.7.0] - 2026-04-29
