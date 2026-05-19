@@ -117,7 +117,7 @@ public class Shim implements AutoCloseable {
       if (!scmpResponderBarrier.await(100, TimeUnit.MILLISECONDS)) {
         // ignore
         log.info("Could not start SHIM: {}", forwarder.getName());
-      } else if (isInstalled()){
+      } else if (isInstalled()) {
         log.info("SHIM started.");
       }
     } catch (InterruptedException e) {
