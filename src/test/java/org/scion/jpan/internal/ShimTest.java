@@ -25,9 +25,11 @@ import java.nio.channels.DatagramChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.Constants;
 import org.scion.jpan.demo.inspector.PathHeaderScion;
 import org.scion.jpan.demo.inspector.ScionHeader;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
@@ -40,6 +42,7 @@ import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.MockScmpHandler;
 import org.scion.jpan.testutil.PingPongChannelHelper;
+import org.scion.jpan.testutil.TestUtil;
 
 class ShimTest {
 
@@ -234,6 +237,25 @@ class ShimTest {
     assertTrue(Shim.isInstalled());
     assertEquals(2 * 10, shimForwardingCounter.getAndSet(0));
     assertEquals(2 * 2 * 10, MockNetwork.getAndResetForwardCount());
+  }
+
+  @Test
+  void testInstall_portAlreadyBound() throws IOException {
+    // Pre-occupy port 30041 so that ScmpResponder.start() throws a BindException.
+    try (DatagramChannel blocker = DatagramChannel.open()) {
+      blocker.bind(new InetSocketAddress(Constants.SCMP_PORT));
+
+      assertFalse(Shim.isInstalled());
+      Shim.install(); // catches BindException internally and sets singleton = null
+
+      // install() holds the class lock during its 100ms barrier timeout; the forwarder
+      // thread can only set singleton=null after that lock is released.
+      long deadline = System.currentTimeMillis() + 1000;
+      while (Shim.isInstalled() && System.currentTimeMillis() < deadline) {
+        TestUtil.sleep(10);
+      }
+      assertFalse(Shim.isInstalled());
+    }
   }
 
   @Test

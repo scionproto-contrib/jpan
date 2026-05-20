@@ -162,6 +162,10 @@ TODO
   [#245](https://github.com/scionproto-contrib/jpan/issues/245)
 - Fix possible duplicate channel creation in SelectingDatagramChannel
   [#247](https://github.com/scionproto-contrib/jpan/issues/247)
+- Fix concurrency handling in dispatcher Shim.
+  Drive-by: small fix in MockBorderRouter 
+  [#249](https://github.com/scionproto-contrib/jpan/issues/249)
+  [#258](https://github.com/scionproto-contrib/jpan/issues/258)
 
 
 ## [0.7.0] - 2026-04-29

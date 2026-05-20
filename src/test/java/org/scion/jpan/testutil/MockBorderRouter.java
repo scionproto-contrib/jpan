@@ -144,10 +144,10 @@ public class MockBorderRouter implements Runnable {
     logger.info(
         "{} forwarding {} bytes from {} to {}", name, buffer.remaining(), srcAddress, dstAddress);
 
-    outgoing.send(buffer, dstAddress);
-    buffer.clear();
     runner.nForwardTotal.incrementAndGet();
     nForwards.incrementAndGet();
+    outgoing.send(buffer, dstAddress);
+    buffer.clear();
   }
 
   private void handleScmp(ByteBuffer buffer, SocketAddress srcAddress, DatagramChannel outgoing)

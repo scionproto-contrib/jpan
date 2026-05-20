@@ -21,7 +21,6 @@ import java.nio.channels.DatagramChannel;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.header.ScionHeaderParser;
@@ -43,7 +42,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Shim implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(Shim.class);
-  private static final AtomicReference<Shim> singleton = new AtomicReference<>();
+  private static Shim singleton;
   private final ScmpResponder scmpResponder;
   private Thread forwarder;
   private Predicate<ByteBuffer> forwardCallback = null;
@@ -71,19 +70,20 @@ public class Shim implements AutoCloseable {
 
   /** Start the SHIM. The SHIM also provides an SCMP echo responder. */
   public static void install() {
-    synchronized (singleton) {
-      if (singleton.get() == null) {
-        singleton.set(Shim.newBuilder().build());
-        singleton.get().start();
+    synchronized (Shim.class) {
+      if (singleton == null) {
+        singleton = Shim.newBuilder().build();
+        singleton.start();
       }
     }
   }
 
   public static void uninstall() {
-    synchronized (singleton) {
-      if (singleton.get() != null) {
+    synchronized (Shim.class) {
+      if (singleton != null) {
         try {
-          singleton.getAndSet(null).close();
+          singleton.close();
+          singleton = null;
         } catch (IOException e) {
           throw new ScionRuntimeException(e);
         }
@@ -92,9 +92,9 @@ public class Shim implements AutoCloseable {
   }
 
   static void setCallback(Predicate<ByteBuffer> cb) {
-    synchronized (singleton) {
-      if (singleton.get() != null) {
-        singleton.get().forwardCallback = cb;
+    synchronized (Shim.class) {
+      if (singleton != null) {
+        singleton.forwardCallback = cb;
       }
     }
   }
@@ -104,7 +104,9 @@ public class Shim implements AutoCloseable {
   }
 
   public static boolean isInstalled() {
-    return singleton.get() != null;
+    synchronized (Shim.class) {
+      return singleton != null;
+    }
   }
 
   private void start() {
@@ -115,7 +117,7 @@ public class Shim implements AutoCloseable {
       if (!scmpResponderBarrier.await(100, TimeUnit.MILLISECONDS)) {
         // ignore
         log.info("Could not start SHIM: {}", forwarder.getName());
-      } else {
+      } else if (isInstalled()) {
         log.info("SHIM started.");
       }
     } catch (InterruptedException e) {
@@ -131,7 +133,11 @@ public class Shim implements AutoCloseable {
       // Ignore
       log.info("Error while starting SHIM: {}", e.getMessage());
       // This is not thread safe but best effort to indicate a failed start.
-      singleton.set(null);
+      synchronized (Shim.class) {
+        singleton = null;
+      }
+      // Count down to avoid waiting for timeout
+      scmpResponderBarrier.countDown();
     } catch (IOException e) {
       throw new ScionRuntimeException(e);
     }
