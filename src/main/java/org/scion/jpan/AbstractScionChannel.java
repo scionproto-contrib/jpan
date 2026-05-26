@@ -229,7 +229,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void disconnect() throws IOException {
     synchronized (stateLock) {
       connectionPath = null;
-      natMapping = null;
       pathProvider.disconnect();
     }
   }
