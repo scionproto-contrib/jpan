@@ -166,12 +166,13 @@ TODO
   Drive-by: small fix in MockBorderRouter 
   [#249](https://github.com/scionproto-contrib/jpan/issues/249)
   [#258](https://github.com/scionproto-contrib/jpan/issues/258)
+- Fix synchronization in NatMapping
+  [#255](https://github.com/scionproto-contrib/jpan/issues/255)
 
 ### Changed
 
 - Refactored ScionService
   [#257](https://github.com/scionproto-contrib/jpan/issues/257)
-
 
 
 ## [0.7.0] - 2026-04-29

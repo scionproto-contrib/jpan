@@ -412,23 +412,31 @@ public class NatMapping {
       return source;
     }
 
-    private void updateSource(InetSocketAddress source) {
+    synchronized void updateSource(InetSocketAddress source) {
       touch();
       this.source = source;
     }
 
-    private InetSocketAddress getMappedSource() {
+    synchronized InetSocketAddress getMappedSource() {
       touch();
       return source;
     }
 
-    private void touch() {
+    synchronized void touch() {
       lastUsed = System.currentTimeMillis();
     }
 
-    private boolean isExpired(NatMode mode, int natMappingTimeoutMs) {
+    synchronized boolean isExpired(NatMode mode, int natMappingTimeoutMs) {
       return mode != NatMode.NO_NAT
           && (System.currentTimeMillis() - lastUsed) > natMappingTimeoutMs;
+    }
+
+    synchronized long getLastUsed() {
+      return lastUsed;
+    }
+
+    synchronized InetSocketAddress getFirstHop() {
+      return firstHop;
     }
   }
 
@@ -441,7 +449,7 @@ public class NatMapping {
 
     @Override
     public void run() {
-      long nextRequiredUse = e.lastUsed + natMappingTimeoutMs;
+      long nextRequiredUse = e.getLastUsed() + natMappingTimeoutMs;
       long delay = nextRequiredUse - System.currentTimeMillis();
       if (delay <= 0) {
         e.touch();
@@ -450,9 +458,9 @@ public class NatMapping {
         STUN.writeRequest(buf);
         buf.flip();
         try {
-          channel.send(buf, e.firstHop);
+          channel.send(buf, e.getFirstHop());
         } catch (IOException ex) {
-          log.error("Error while sending keep alive to {}", e.firstHop, ex);
+          log.error("Error while sending keep alive to {}", e.getFirstHop(), ex);
         }
         delay = natMappingTimeoutMs;
       }
