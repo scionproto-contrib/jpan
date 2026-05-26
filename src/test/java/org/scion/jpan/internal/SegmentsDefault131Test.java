@@ -52,7 +52,7 @@ class SegmentsDefault131Test extends AbstractSegmentsTest {
   @Test
   void onPathDown() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_131, AS_133);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_131, AS_133);
 
       // Verify that we only get unique paths
       for (int i = 0; i < paths.size(); i++) {

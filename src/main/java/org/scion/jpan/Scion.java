@@ -15,6 +15,10 @@
 package org.scion.jpan;
 
 import java.io.Closeable;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.paths.DaemonServiceGrpc;
+import org.scion.jpan.internal.paths.PathServiceRpc;
 
 public final class Scion {
 
@@ -48,7 +52,7 @@ public final class Scion {
    * @return new ScionService instance
    */
   public static CloseableService newServiceWithDaemon(String hostAndPort) {
-    return new CloseableService(hostAndPort, ScionService.Mode.DAEMON);
+    return CloseableService.create(hostAndPort, ScionService.Mode.DAEMON);
   }
 
   /**
@@ -59,7 +63,7 @@ public final class Scion {
    * @return new ScionService instance
    */
   public static CloseableService newServiceWithDNS(String hostName) {
-    return new CloseableService(hostName, ScionService.Mode.BOOTSTRAP_VIA_DNS);
+    return CloseableService.create(hostName, ScionService.Mode.BOOTSTRAP_VIA_DNS);
   }
 
   /**
@@ -70,7 +74,7 @@ public final class Scion {
    * @return new ScionService instance
    */
   public static CloseableService newServiceWithBootstrapServer(String hostAndPort) {
-    return new CloseableService(hostAndPort, ScionService.Mode.BOOTSTRAP_SERVER_IP);
+    return CloseableService.create(hostAndPort, ScionService.Mode.BOOTSTRAP_SERVER_IP);
   }
 
   /**
@@ -81,13 +85,21 @@ public final class Scion {
    * @return new ScionService instance
    */
   public static CloseableService newServiceWithTopologyFile(String filePath) {
-    return new CloseableService(filePath, ScionService.Mode.BOOTSTRAP_TOPO_FILE);
+    return CloseableService.create(filePath, ScionService.Mode.BOOTSTRAP_TOPO_FILE);
   }
 
   public static class CloseableService extends ScionService implements Closeable {
 
-    private CloseableService(String address, Mode mode) {
-      super(address, mode);
+    static CloseableService create(String address, Mode mode) {
+      return ScionService.create(address, mode, CloseableService::new);
+    }
+
+    private CloseableService(
+        LocalAS localAS,
+        ControlServiceGrpc controlService,
+        PathServiceRpc pathService,
+        DaemonServiceGrpc daemonService) {
+      super(localAS, controlService, pathService, daemonService);
     }
   }
 }

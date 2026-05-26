@@ -39,7 +39,7 @@ class SegmentMinimalMetadataMissingTest {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_110")) {
 
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
-        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_110, AS_120);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_110, AS_120);
         assertNotNull(paths);
         assertEquals(1, paths.size());
 
@@ -56,7 +56,7 @@ class SegmentMinimalMetadataMissingTest {
   void testDown_120_121() {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_120")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_120)) {
-        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_120, AS_121);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_120, AS_121);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
@@ -103,7 +103,7 @@ class SegmentMinimalMetadataMissingTest {
   void testUp_112_110() {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_1121")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_1121)) {
-        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_1121, AS_110);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_1121, AS_110);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 
@@ -143,7 +143,7 @@ class SegmentMinimalMetadataMissingTest {
   void testDown_110_1121() {
     try (MockNetwork2 nw = MockNetwork2.start(TOPO, "ASff00_0_110")) {
       try (Scion.CloseableService ss = Scion.newServiceWithTopologyFile(TOPO_110)) {
-        List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_110, AS_1121);
+        List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_110, AS_1121);
         assertNotNull(paths);
         assertFalse(paths.isEmpty());
 

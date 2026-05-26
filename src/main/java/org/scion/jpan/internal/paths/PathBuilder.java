@@ -166,19 +166,13 @@ public class PathBuilder {
    *
    * @param service PathService
    * @param localAS This provides the local interface address
-   * @param srcIsdAses source ISD/AS identifiers
+   * @param srcIsdAs source ISD/AS
    * @param dstIsdAs destination ISD/AS
    * @return list of paths
    */
   public static List<PathMetadata> getPathsPS(
-      PathServiceRpc service, LocalAS localAS, Set<Long> srcIsdAses, long dstIsdAs) {
-    // We do not sort the paths here, we kind of rely on the order given by the path service
-    return getPathsInternal(service, localAS, srcIsdAses, dstIsdAs);
-  }
-
-  private static List<PathMetadata> getPathsInternal(
-      PathServiceRpc service, LocalAS localAS, Set<Long> srcIsdAses, long dstIsdAs) {
-    if (srcIsdAses.contains(dstIsdAs)) {
+      PathServiceRpc service, LocalAS localAS, long srcIsdAs, long dstIsdAs) {
+    if (srcIsdAs == dstIsdAs) {
       // same AS, return empty path
       PathMetadata.Builder path = PathMetadata.newBuilder();
       path.setMtu(localAS.getMtu());
@@ -189,13 +183,8 @@ public class PathBuilder {
       return Collections.singletonList(path.build());
     }
 
-    List<PathMetadata> paths = new ArrayList<>();
-    for (Long srcIsdAs : srcIsdAses) {
-      List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
-      paths.addAll(
-          combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS));
-    }
-    return paths;
+    List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
+    return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS);
   }
 
   @SuppressWarnings("unchecked")

@@ -71,7 +71,7 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
   @Test
   void caseG_DifferentIsd_CoreDown_1_Hop() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_120, AS_211);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_120, AS_211);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 2-ff00:0:211 --sciond 127.0.0.76:30255
@@ -125,7 +125,7 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
   @Test
   void caseI_DifferentIsd_Core_1_Hop() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_120, AS_210);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_120, AS_210);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       // $ scion showpaths 2-ff00:0:210 --sciond 127.0.0.76:30255
