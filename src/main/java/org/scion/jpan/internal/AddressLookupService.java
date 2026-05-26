@@ -161,11 +161,12 @@ public class AddressLookupService {
       return null;
     }
     int posHost = props.indexOf(hostName);
+    if (posHost < 0) {
+      return null;
+    }
     char nextChar = props.charAt(posHost + hostName.length());
     char prevChar = posHost <= 0 ? ';' : props.charAt(posHost - 1);
-    if (posHost >= 0
-        && (nextChar == '=' || nextChar == '"')
-        && (prevChar == ';' || prevChar == ',')) {
+    if ((nextChar == '=' || nextChar == '"') && (prevChar == ';' || prevChar == ',')) {
       int posStart;
       int posEnd;
       if (prevChar == ',') {
