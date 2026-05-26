@@ -297,7 +297,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
           if (path == null) {
             path = channel.applyFilter(channel.getService().lookupPaths(addr), addr).get(0);
           } else if (path instanceof RequestPath
-              && path.getMetadata().getExpiration() > Instant.now().getEpochSecond()) {
+              && path.getMetadata().getExpiration() < Instant.now().getEpochSecond()) {
             // check expiration only for RequestPaths
             RequestPath request = (RequestPath) path;
             path = channel.applyFilter(channel.getService().getPaths(request), addr).get(0);

@@ -168,6 +168,8 @@ TODO
   [#258](https://github.com/scionproto-contrib/jpan/issues/258)
 - Fix synchronization in NatMapping
   [#255](https://github.com/scionproto-contrib/jpan/issues/255)
+- Fix path refresh condition
+  [#252](https://github.com/scionproto-contrib/jpan/issues/252)
 
 ### Changed
 
