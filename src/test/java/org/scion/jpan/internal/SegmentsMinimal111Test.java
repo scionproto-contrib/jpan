@@ -67,7 +67,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseA_SameNonCoreAS() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_111);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_111);
       //  ListService: control
       //  Service: 127.0.0.26:31014
       //  Paths found: 1
@@ -85,7 +85,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseB_SameIsd_Up() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_110);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_110);
       //    scion showpaths 1-ff00:0:110 --sciond 127.0.0.27:30255
       //    Available paths to 1-ff00:0:110
       //    2 Hops:
@@ -129,7 +129,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_112);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_112);
       //  Available paths to 1-ff00:0:112
       //  3 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 3>453 1-ff00:0:112] MTU: 1450
@@ -185,7 +185,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseE_SameIsd_UpDownTwoCoreAS() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_121);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_121);
       //  Available paths to 1-ff00:0:121
       //  4 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10
@@ -247,7 +247,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseF0_SameIsd_UpCore() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_120);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_120);
       //  Available paths to 1-ff00:0:120
       //  3 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10 1-ff00:0:120]
@@ -298,7 +298,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseF_DifferentIsd_UpCore_2_Hop() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_210);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_210);
       //  Available paths to 2-ff00:0:210
       //  4 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10
@@ -357,7 +357,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseH_DifferentIsd_UpCoreDown_2_Hop() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_211);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_211);
       //  Available paths to 2-ff00:0:211
       //  5 Hops:
       //  [0] Hops: [1-ff00:0:111 111>2 1-ff00:0:110 1>10
@@ -428,7 +428,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
   @Test
   void caseE_SameIsd_UpDown_OneCoreAS_OnPathDown() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_1111);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_1111);
       //  Available paths to 1-ff00:0:1112
       //  2 Hops:
       //  [0] Hops: [1-ff00:0:111 1111>123 1-ff00:0:1111]

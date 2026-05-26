@@ -89,69 +89,43 @@ public class ScionService {
 
   static <T> T create(String addressOrHost, Mode mode, Constructor<T> constructor) {
     final LocalAS localAS;
-    ControlServiceGrpc controlService = null;
-    PathServiceRpc pathService = null;
-    DaemonServiceGrpc daemonService = null;
+
     switch (mode) {
       case DAEMON:
         LOG.info("Bootstrapping with daemon service: {}", addressOrHost);
         addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
-        daemonService = DaemonServiceGrpc.create(addressOrHost);
+        DaemonServiceGrpc daemonService = DaemonServiceGrpc.create(addressOrHost);
         try {
-          localAS = ScionBootstrapper.fromDaemon(daemonService);
+          localAS = checkStartShim(ScionBootstrapper.fromDaemon(daemonService));
         } catch (RuntimeException e) {
           // If this fails for whatever reason we want to make sure that the channel is closed.
           daemonService.close();
           throw new ScionRuntimeException("Could not connect to daemon at: " + addressOrHost, e);
         }
-        break;
+        return constructor.create(localAS, null, null, daemonService);
       case BOOTSTRAP_PATH_SERVICE:
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
-        localAS = ScionBootstrapper.fromPathService(addressOrHost);
-        pathService = PathServiceRpc.create(localAS);
-        break;
+        localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
+        PathServiceRpc pathService = PathServiceRpc.create(localAS);
+        return constructor.create(localAS, null, pathService, null);
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
-        localAS = ScionBootstrapper.fromDns(addressOrHost);
-        controlService = ControlServiceGrpc.create(localAS);
-        break;
+        localAS = checkStartShim(ScionBootstrapper.fromDns(addressOrHost));
+        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null);
       case BOOTSTRAP_SERVER_IP:
         LOG.info("Bootstrapping control service with IP address: {}", addressOrHost);
-        localAS = ScionBootstrapper.fromBootstrapServerIP(addressOrHost);
-        controlService = ControlServiceGrpc.create(localAS);
-        break;
+        localAS = checkStartShim(ScionBootstrapper.fromBootstrapServerIP(addressOrHost));
+        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null);
       case BOOTSTRAP_TOPO_FILE:
         LOG.info("Bootstrapping control service from file: {}", addressOrHost);
-        localAS = ScionBootstrapper.fromTopoFile(addressOrHost);
-        controlService = ControlServiceGrpc.create(localAS);
-        break;
+        localAS = checkStartShim(ScionBootstrapper.fromTopoFile(addressOrHost));
+        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null);
       default:
         throw new UnsupportedOperationException();
     }
-
-    try {
-      checkStartShim(localAS);
-    } catch (RuntimeException e) {
-      // If this fails for whatever reason we want to make sure that the channel is closed.
-      try {
-        if (daemonService != null) {
-          daemonService.close();
-        }
-        if (controlService != null) {
-          controlService.close();
-        }
-        if (pathService != null) {
-          pathService.close();
-        }
-      } catch (Exception ex) {
-        // Ignore, we just want to get out.
-      }
-      throw e;
-    }
-    return constructor.create(localAS, controlService, pathService, daemonService);
   }
 
-  private static void checkStartShim(LocalAS localAS) {
+  private static LocalAS checkStartShim(LocalAS localAS) {
     // Start SHIM unless we have port range 'ALL'. However, config overrides this setting.
     String config = ScionUtil.getPropertyOrEnv(Constants.PROPERTY_SHIM, Constants.ENV_SHIM);
     boolean hasAllPorts = localAS.getPortRange().hasPortRangeALL();
@@ -159,6 +133,7 @@ public class ScionService {
     if (start) {
       Shim.install();
     }
+    return localAS;
   }
 
   protected static void setDefaultService(ScionService newDefaultService) {
@@ -389,17 +364,31 @@ public class ScionService {
     List<PathMetadata> list;
     if (pathService != null) {
       // query path service (new endhost API)
-      list = PathBuilder.getPathsPS(pathService, localAS, getLocalIsdAses(), dstIsdAs);
-    } else if (daemonService != null) {
-      // query daemon
-      list = daemonService.pathsAsMetadata(getLocalIsdAs(), dstIsdAs);
+      list = new ArrayList<>();
+      for (Long srcIsdAs : getLocalIsdAses()) {
+        list.addAll(getPathList(srcIsdAs, dstIsdAs));
+      }
     } else {
-      // query control service
-      long srcIsdAs = getLocalIsdAs();
+      // query daemon or control service
+      // TODO implement multi-ISD capability
+      list = getPathList(getLocalIsdAs(), dstIsdAs);
+    }
+    return list;
+  }
+
+  List<PathMetadata> getPathList(long srcIsdAs, long dstIsdAs) {
+    List<PathMetadata> list;
+    if (pathService != null) {
+      list = PathBuilder.getPathsPS(pathService, localAS, srcIsdAs, dstIsdAs);
+    } else if (daemonService != null) {
+      list = daemonService.pathsAsMetadata(srcIsdAs, dstIsdAs);
+    } else {
       list = PathBuilder.getPathsCS(controlService, localAS, srcIsdAs, dstIsdAs);
     }
     if (LOG.isInfoEnabled()) {
-      LOG.info("Paths found to {}: {}", ScionUtil.toStringIA(dstIsdAs), list.size());
+      String src = ScionUtil.toStringIA(srcIsdAs);
+      String dst = ScionUtil.toStringIA(dstIsdAs);
+      LOG.info("Paths found from {} to {}: {}", src, dst, list.size());
     }
     return list;
   }

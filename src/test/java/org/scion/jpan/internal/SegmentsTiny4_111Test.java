@@ -68,7 +68,7 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
   @Test
   void caseB_Up() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_110);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_110);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 1-ff00:0:110 --sciond 127.0.0.27:30255
@@ -111,7 +111,7 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
   @Test
   void caseE_UpDown() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_111, AS_112);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_111, AS_112);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 1-ff00:0:112 --sciond 127.0.0.27:30255

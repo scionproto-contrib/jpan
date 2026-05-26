@@ -71,7 +71,7 @@ class SegmentsMinimal211Test extends AbstractSegmentsTest {
   @Test
   void caseB_Up() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_211, AS_210);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_211, AS_210);
       assertNotNull(paths);
       assertFalse(paths.isEmpty());
       //  $ scion showpaths 2-ff00:0:210 --sciond 127.0.0.99:30255

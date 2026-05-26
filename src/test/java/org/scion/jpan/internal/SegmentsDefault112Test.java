@@ -52,7 +52,7 @@ class SegmentsDefault112Test extends AbstractSegmentsTest {
   @Test
   void removeDuplicatePaths() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_112, AS_111);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_112, AS_111);
 
       // Verify that we only get unique paths
       for (int i = 0; i < paths.size(); i++) {
@@ -71,7 +71,7 @@ class SegmentsDefault112Test extends AbstractSegmentsTest {
   @Test
   void orderingByHopCount() {
     try (Scion.CloseableService ss = Scion.newServiceWithDNS(AS_HOST)) {
-      List<PathMetadata> paths = PackageVisibilityHelper.getPathsCS(ss, AS_112, AS_111);
+      List<PathMetadata> paths = PackageVisibilityHelper.getPaths(ss, AS_112, AS_111);
 
       // Verify that paths are ordered by lengths
       int maxHopCount = 0;
