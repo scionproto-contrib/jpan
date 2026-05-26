@@ -170,6 +170,8 @@ TODO
   [#255](https://github.com/scionproto-contrib/jpan/issues/255)
 - Fix path refresh condition
   [#252](https://github.com/scionproto-contrib/jpan/issues/252)
+- Fix possible NPE in DNS parsing from properties
+  [#256](https://github.com/scionproto-contrib/jpan/issues/256)
 
 ### Changed
 
