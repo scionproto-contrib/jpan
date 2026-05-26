@@ -568,6 +568,7 @@ class NatMappingTest {
 
   void testDisconnectWithSend(boolean testReceive) throws IOException {
     // Disconnect should reset the NAT mapping.
+    // #246: Why? -> Changed to _not_ reset the NAT mapping on disconnect. Only close() should.
     // Being on localhost and having no actual NAT, we can only count the number of STUN messages.
     System.setProperty(Constants.PROPERTY_NAT, "BR");
     MockNetwork.startTiny();
@@ -590,8 +591,10 @@ class NatMappingTest {
         sendBuffer.flip();
         channelSend.send(sendBuffer, path);
       }
-      // Now there should have been two more STUN packets
-      assertEquals(2, MockNetwork.getAndResetStunCount());
+      // Now there should have been no (previously: two) more STUN packets
+      // Changed behavior, see #246. Why should be reset the NAT on disconnect?
+      // -> We keep the NAT.
+      assertEquals(0, MockNetwork.getAndResetStunCount());
 
       // finish
       receiver.join(10);
