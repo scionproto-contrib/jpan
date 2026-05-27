@@ -381,7 +381,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     ensureNatMapping(); // This can be necessary after having called disconnect()
     while (true) {
       buffer.clear();
-      InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
+      InetSocketAddress srcAddress = receiveUnderlay(buffer);
       if (srcAddress == null) {
         // this indicates nothing is available - non-blocking mode
         return null;
@@ -537,6 +537,14 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // (the remote host may be running a dispatcher).
       remoteHost = getService().getLocalPortRange().mapToLocalPort(remoteHost);
     }
+    return sendUnderlay(buffer, remoteHost);
+  }
+
+  protected InetSocketAddress receiveUnderlay(ByteBuffer buffer) throws IOException {
+    return (InetSocketAddress) channel.receive(buffer);
+  }
+
+  protected int sendUnderlay(ByteBuffer buffer, InetSocketAddress remoteHost) throws IOException {
     return channel.send(buffer, remoteHost);
   }
 

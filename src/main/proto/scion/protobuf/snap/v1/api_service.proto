@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option java_package = "org.scion.jpan.proto.snap";
+
+package scion.snap.v1;
+
+message GetSnapDataPlaneRequest {}
+
+message GetSnapDataPlaneResponse {
+  string address = 1;
+  optional string snap_tun_control_address = 2;
+  optional bytes snap_static_x25519 = 3;
+}
+
+message RegisterSnapTunIdentityRequest {
+  bytes initiator_static_x25519 = 1;
+  bytes psk_share = 2;
+}
+
+message RegisterSnapTunIdentityResponse {
+  bytes psk_share = 1;
+}

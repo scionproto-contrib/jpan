@@ -17,8 +17,8 @@ package org.scion.jpan;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
+import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
@@ -31,6 +31,10 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.PathHeaderParser;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.snap.SnapControlClient;
+import org.scion.jpan.internal.snap.SnapControlEndpointResolver;
+import org.scion.jpan.internal.snap.SnapService;
+import org.scion.jpan.internal.snap.SnapTunnelSession;
 import org.scion.jpan.internal.util.ByteUtil;
 
 public class ScmpSenderAsync implements AutoCloseable {
@@ -201,6 +205,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
   private class InternalChannel extends AbstractScionChannel<InternalChannel> {
     private final Selector selector;
+    private final SnapTunnelSession snapTunnel;
 
     protected InternalChannel(
         ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
@@ -213,6 +218,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         this.selector = channel.provider().openSelector();
         super.channel().configureBlocking(false);
         super.channel().register(this.selector, SelectionKey.OP_READ);
+        this.snapTunnel = createSnapTunnel(service, super.channel());
 
         if (port == null || port < 0) {
           ensureBound();
@@ -220,14 +226,41 @@ public class ScmpSenderAsync implements AutoCloseable {
           // listen on ANY interface: 0.0.0.0 / [::]
           super.bind(new InetSocketAddress(port));
         }
+        ensureSnapSourceAddress();
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
     }
 
+    private SnapTunnelSession createSnapTunnel(
+        ScionService service, java.nio.channels.DatagramChannel channel) throws IOException {
+      if (service == null || !service.preferSnapUnderlay()) {
+        return null;
+      }
+
+      SnapService dp = service.getSnapDataPlane();
+      if (dp == null || dp.getSnapStaticX25519() == null) {
+        throw new ScionRuntimeException(
+            "SNAP mode requested but no SNAP dataplane/static key available");
+      }
+
+      String snapTunControlEndpoint = dp.getSnapTunControlAddress();
+      if (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty()) {
+        snapTunControlEndpoint = SnapControlEndpointResolver.resolve(service.getLocalAS());
+      }
+      SnapControlClient snapControlClient =
+          (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty())
+              ? null
+              : new SnapControlClient(snapTunControlEndpoint);
+
+      return new SnapTunnelSession(
+          channel, dp.getAddress(), Arrays.copyOf(dp.getSnapStaticX25519(), 32), snapControlClient);
+    }
+
     void sendEchoRequest(Scmp.EchoMessage request) throws IOException {
       writeLock().lock();
       try {
+        ensureSnapSourceAddress();
         Path path = request.getPath();
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // EchoHeader = 8 + data
@@ -249,6 +282,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         throws IOException {
       writeLock().lock();
       try {
+        ensureSnapSourceAddress();
         Path path = request.getPath();
         ByteBuffer buffer = getBufferSend(DEFAULT_BUFFER_SIZE);
         // TracerouteHeader = 24
@@ -269,6 +303,17 @@ public class ScmpSenderAsync implements AutoCloseable {
       }
     }
 
+    private void ensureSnapSourceAddress() throws IOException {
+      if (snapTunnel == null || getOverrideSourceAddress() != null) {
+        return;
+      }
+      snapTunnel.ensureConnected();
+      InetSocketAddress assigned = snapTunnel.localTunnelAddress();
+      if (assigned != null) {
+        setOverrideSourceAddress(assigned);
+      }
+    }
+
     private void sendRequest(Scmp.TimedMessage request, ByteBuffer buffer, Path path)
         throws IOException {
       request.setSendNanoSeconds(System.nanoTime());
@@ -280,6 +325,18 @@ public class ScmpSenderAsync implements AutoCloseable {
     }
 
     private void receiveAsync() throws IOException {
+      if (snapTunnel != null) {
+        while (selector.isOpen()) {
+          readIncomingScmp(null);
+          try {
+            Thread.sleep(1);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+          }
+        }
+        return;
+      }
       while (selector.isOpen() && selector.select() > 0) {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
         if (iter.hasNext()) {
@@ -295,10 +352,12 @@ public class ScmpSenderAsync implements AutoCloseable {
     private void readIncomingScmp(SelectionKey key) throws IOException {
       readLock().lock();
       try {
-        DatagramChannel incoming = (DatagramChannel) key.channel();
         ByteBuffer buffer = super.getBufferReceive(DEFAULT_BUFFER_SIZE);
         buffer.clear();
-        InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
+        InetSocketAddress srcAddress = receiveUnderlay(buffer);
+        if (srcAddress == null) {
+          return;
+        }
         buffer.flip();
         if (validate(buffer)) {
           HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
@@ -365,6 +424,24 @@ public class ScmpSenderAsync implements AutoCloseable {
     public void close() throws IOException {
       selector.close();
       super.close();
+    }
+
+    @Override
+    protected int sendUnderlay(ByteBuffer buffer, InetSocketAddress remoteHost) throws IOException {
+      if (snapTunnel == null) {
+        return super.sendUnderlay(buffer, remoteHost);
+      }
+      byte[] scionPacket = new byte[buffer.remaining()];
+      buffer.get(scionPacket);
+      return snapTunnel.sendPacket(scionPacket);
+    }
+
+    @Override
+    protected InetSocketAddress receiveUnderlay(ByteBuffer buffer) throws IOException {
+      if (snapTunnel == null) {
+        return super.receiveUnderlay(buffer);
+      }
+      return snapTunnel.receivePacket(buffer);
     }
   }
 
@@ -438,7 +515,10 @@ public class ScmpSenderAsync implements AutoCloseable {
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
       try {
-        channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
+        channel =
+            channel == null
+                ? java.nio.channels.DatagramChannel.open(StandardProtocolFamily.INET)
+                : channel;
         return new ScmpSenderAsync(service, port, handler, channel);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);

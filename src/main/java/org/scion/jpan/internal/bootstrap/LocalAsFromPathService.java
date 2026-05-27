@@ -26,6 +26,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,8 +42,21 @@ public class LocalAsFromPathService {
     List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
     Underlays.ListUnderlaysResponse u = query(snList, pathService);
     if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
-      LOG.warn("No underlay available");
-      return new LocalAS(Collections.emptySet(), false, 1200, null, null, null, null, trcStore);
+      LOG.warn("No UDP underlay available");
+      long isdAs = getLocalIsdAsFromSnap(u);
+      if (true) {
+        throw new UnsupportedOperationException();
+      }
+      return new LocalAS(
+          Collections.emptySet(),
+          false,
+          1200,
+          LocalAS.DispatcherPortRange.createAll(),
+          snList,
+          Collections.emptyList(),
+          Collections.emptyList(),
+          getSnapNodeList(u),
+          trcStore);
     }
     Set<Long> isdAs =
         u.getUdp().getRoutersList().stream()
@@ -57,6 +71,7 @@ public class LocalAsFromPathService {
         snList,
         null,
         brList,
+        getSnapNodeList(u),
         trcStore);
   }
 
@@ -81,6 +96,28 @@ public class LocalAsFromPathService {
     return list;
   }
 
+  private static List<LocalAS.SnapNode> getSnapNodeList(Underlays.ListUnderlaysResponse u) {
+    if (!u.hasSnap()) {
+      return Collections.emptyList();
+    }
+    List<LocalAS.SnapNode> snaps = new ArrayList<>();
+    for (Underlays.Snap snap : u.getSnap().getSnapsList()) {
+      snaps.add(new LocalAS.SnapNode(snap.getAddress(), new ArrayList<>(snap.getIsdAsesList())));
+    }
+    return snaps;
+  }
+
+  private static long getLocalIsdAsFromSnap(Underlays.ListUnderlaysResponse u) {
+    if (!u.hasSnap() || u.getSnap().getSnapsCount() == 0) {
+      return 0;
+    }
+    Underlays.Snap snap = u.getSnap().getSnaps(0);
+    if (snap.getIsdAsesCount() == 0) {
+      return 0;
+    }
+    return snap.getIsdAses(0);
+  }
+
   private static Underlays.ListUnderlaysResponse query(List<LocalAS.ServiceNode> nodes, String in) {
     for (LocalAS.ServiceNode node : nodes) {
       try {
@@ -99,10 +136,16 @@ public class LocalAsFromPathService {
         Underlays.ListUnderlaysRequest.newBuilder().build();
     RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
 
-    Request request =
+    Request.Builder requestBuilder =
         new Request.Builder()
             .url("http://" + apiAddress + "/scion.endhost.v1.UnderlayService/ListUnderlays")
-            .addHeader("Content-type", "application/proto")
+            .addHeader("Content-type", "application/proto");
+    String token = Config.getPathServiceAuthToken();
+    if (token != null && !token.isEmpty()) {
+      requestBuilder.addHeader("Authorization", "Bearer " + token);
+    }
+    Request request =
+        requestBuilder
             //            .addHeader("User-Agent", "OkHttp Bot")
             .post(requestBody)
             .build();
