@@ -14,7 +14,6 @@
 
 package org.scion.jpan.internal.snap;
 
-import anapaya.snap.v1.api_service.ApiService;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -26,6 +25,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.proto.snap.ApiService;
 
 /** SNAP control-plane client for Connect-RPC protobuf endpoints. */
 public class SnapControlClient {
@@ -42,7 +42,7 @@ public class SnapControlClient {
     this.baseUrl = normalizeBaseUrl(endpoint);
   }
 
-  public SnapDataPlane getDataPlaneAddress() {
+  public SnapService getDataPlaneAddress() {
     ApiService.GetSnapDataPlaneRequest request =
         ApiService.GetSnapDataPlaneRequest.newBuilder().build();
     RequestBody requestBody = RequestBody.create(request.toByteArray());
@@ -69,7 +69,7 @@ public class SnapControlClient {
       if (serverStaticX25519 != null && serverStaticX25519.length != 32) {
         throw new IOException("server static x25519 key must be 32 bytes");
       }
-      return new SnapDataPlane((InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519);
+      return new SnapService((InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519);
     } catch (IOException e) {
       throw new ScionRuntimeException("SNAP GetSnapDataPlaneAddress failed", e);
     }

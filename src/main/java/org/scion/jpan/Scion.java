@@ -19,7 +19,7 @@ import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.paths.DaemonServiceGrpc;
 import org.scion.jpan.internal.paths.PathServiceRpc;
-import org.scion.jpan.internal.snap.SnapDataPlane;
+import org.scion.jpan.internal.snap.SnapService;
 
 public final class Scion {
 
@@ -100,7 +100,7 @@ public final class Scion {
         ControlServiceGrpc controlService,
         PathServiceRpc pathService,
         DaemonServiceGrpc daemonService,
-        SnapDataPlane snapService) {
+        SnapService snapService) {
       super(localAS, controlService, pathService, daemonService, snapService);
     }
   }
