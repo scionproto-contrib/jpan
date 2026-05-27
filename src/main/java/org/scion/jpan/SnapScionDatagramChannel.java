@@ -43,12 +43,13 @@ final class SnapScionDatagramChannel extends ScionDatagramChannel {
       ScionService service, DatagramChannel channel, PathProvider pathProvider) throws IOException {
     SnapDataPlane dp = service.getSnapDataPlane();
     if (dp == null || dp.getSnapStaticX25519() == null) {
-      throw new ScionRuntimeException("SNAP mode requested but no SNAP dataplane/static key available");
+      throw new ScionRuntimeException(
+          "SNAP mode requested but no SNAP dataplane/static key available");
     }
 
     String snapTunControlEndpoint = dp.getSnapTunControlAddress();
     if (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty()) {
-      snapTunControlEndpoint = SnapControlEndpointResolver.resolve(service);
+      snapTunControlEndpoint = SnapControlEndpointResolver.resolve(service.getLocalAS());
     }
     SnapControlClient snapControlClient =
         (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty())
