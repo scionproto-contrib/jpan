@@ -21,7 +21,8 @@ import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.snap.SnapControlClient;
-import org.scion.jpan.internal.snap.SnapDataPlane;
+import org.scion.jpan.internal.snap.SnapControlEndpointResolver;
+import org.scion.jpan.internal.snap.SnapService;
 import org.scion.jpan.internal.snap.SnapTunnelSession;
 
 /** SCION datagram channel using SNAP encapsulation instead of direct UDP underlay. */
@@ -41,7 +42,7 @@ final class SnapScionDatagramChannel extends ScionDatagramChannel {
 
   static SnapScionDatagramChannel create(
       ScionService service, DatagramChannel channel, PathProvider pathProvider) throws IOException {
-    SnapDataPlane dp = service.getSnapDataPlane();
+    SnapService dp = service.getSnapDataPlane();
     if (dp == null || dp.getSnapStaticX25519() == null) {
       throw new ScionRuntimeException(
           "SNAP mode requested but no SNAP dataplane/static key available");

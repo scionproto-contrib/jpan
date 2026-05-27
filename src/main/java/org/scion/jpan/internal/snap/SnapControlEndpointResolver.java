@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan;
+package org.scion.jpan.internal.snap;
 
 import java.util.List;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.Config;
 
-final class SnapControlEndpointResolver {
+public final class SnapControlEndpointResolver {
 
   private SnapControlEndpointResolver() {}
 
-  static String resolve(LocalAS localAS) {
+  public static String resolve(LocalAS localAS) {
     String explicit = Config.getSnapControlPlaneAddress();
     if (explicit != null && !explicit.isEmpty()) {
       return explicit;

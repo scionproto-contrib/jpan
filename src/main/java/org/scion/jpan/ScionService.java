@@ -28,7 +28,8 @@ import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.*;
 import org.scion.jpan.internal.snap.SnapControlClient;
-import org.scion.jpan.internal.snap.SnapDataPlane;
+import org.scion.jpan.internal.snap.SnapControlEndpointResolver;
+import org.scion.jpan.internal.snap.SnapService;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
@@ -59,7 +60,7 @@ public class ScionService {
   private final ControlServiceGrpc controlService;
   private final PathServiceRpc pathService;
   private final DaemonServiceGrpc daemonService;
-  private final SnapDataPlane snapDataPlane;
+  private final SnapService snapService;
 
   private final Thread shutdownHook;
 
@@ -77,7 +78,7 @@ public class ScionService {
         ControlServiceGrpc controlService,
         PathServiceRpc pathService,
         DaemonServiceGrpc daemonService,
-        SnapDataPlane snapDataPlane);
+        SnapService snapService);
   }
 
   protected ScionService(
@@ -85,12 +86,12 @@ public class ScionService {
       ControlServiceGrpc controlService,
       PathServiceRpc pathService,
       DaemonServiceGrpc daemonService,
-      SnapDataPlane snapDataPlane) {
+      SnapService snapService) {
     this.localAS = localAS;
     this.controlService = controlService;
     this.pathService = pathService;
     this.daemonService = daemonService;
-    this.snapDataPlane = snapDataPlane;
+    this.snapService = snapService;
     this.shutdownHook = addShutdownHook();
   }
 
@@ -114,11 +115,11 @@ public class ScionService {
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
-        SnapDataPlane snapDataPlane = initializeSnapDataPlaneIfEnabled(localAS);
+        SnapService snapService = initializeSnapDataPlaneIfEnabled(localAS);
         if (true) {
           throw new UnsupportedOperationException();
         }
-        return constructor.create(localAS, null, pathService, null, snapDataPlane);
+        return constructor.create(localAS, null, pathService, null, snapService);
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromDns(addressOrHost));
@@ -153,7 +154,7 @@ public class ScionService {
     }
   }
 
-  private static SnapDataPlane initializeSnapDataPlaneIfEnabled(LocalAS localAS) {
+  private static SnapService initializeSnapDataPlaneIfEnabled(LocalAS localAS) {
     if (!Config.preferSnapUnderlay()) {
       return null;
     }
@@ -163,7 +164,7 @@ public class ScionService {
           "SNAP mode is enabled but no SNAP control endpoint is available");
     }
     SnapControlClient snapClient = new SnapControlClient(snapControlEndpoint);
-    SnapDataPlane dataPlane = snapClient.getDataPlaneAddress();
+    SnapService dataPlane = snapClient.getDataPlaneAddress();
     localAS.setSnapFirstHopAddress(IPHelper.toString(dataPlane.getAddress()));
     LOG.info(
         "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",
@@ -437,8 +438,8 @@ public class ScionService {
         localAS.getBorderRouters().stream()
             .map(LocalAS.BorderRouter::getInternalAddress)
             .collect(Collectors.toList());
-    if (interfaces.isEmpty() && preferSnapUnderlay() && snapDataPlane != null) {
-      interfaces = Collections.singletonList(snapDataPlane.getAddress());
+    if (interfaces.isEmpty() && preferSnapUnderlay() && snapService != null) {
+      interfaces = Collections.singletonList(snapService.getAddress());
     }
     return NatMapping.createMapping(channel, interfaces);
   }
@@ -451,8 +452,8 @@ public class ScionService {
     try {
       return localAS.getBorderRouterAddress(interfaceID);
     } catch (ScionRuntimeException e) {
-      if (preferSnapUnderlay() && snapDataPlane != null && localAS.getBorderRouters().isEmpty()) {
-        return snapDataPlane.getAddress();
+      if (preferSnapUnderlay() && snapService != null && localAS.getBorderRouters().isEmpty()) {
+        return snapService.getAddress();
       }
       throw e;
     }
@@ -466,8 +467,8 @@ public class ScionService {
     return Config.preferSnapUnderlay();
   }
 
-  SnapDataPlane getSnapDataPlane() {
-    return snapDataPlane;
+  SnapService getSnapDataPlane() {
+    return snapService;
   }
 
   ControlServiceGrpc getControlServiceConnection() {
