@@ -22,13 +22,13 @@ final class SnapControlEndpointResolver {
 
   private SnapControlEndpointResolver() {}
 
-  static String resolve(ScionService service) {
+  static String resolve(LocalAS localAS) {
     String explicit = Config.getSnapControlPlaneAddress();
     if (explicit != null && !explicit.isEmpty()) {
       return explicit;
     }
 
-    List<LocalAS.SnapNode> snapNodes = service.getSnapNodes();
+    List<LocalAS.SnapNode> snapNodes = localAS.getSnapNodes();
     if (snapNodes.isEmpty()) {
       return null;
     }

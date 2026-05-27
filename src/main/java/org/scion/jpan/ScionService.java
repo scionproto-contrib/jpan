@@ -76,18 +76,21 @@ public class ScionService {
         LocalAS localAS,
         ControlServiceGrpc controlService,
         PathServiceRpc pathService,
-        DaemonServiceGrpc daemonService);
+        DaemonServiceGrpc daemonService,
+        SnapDataPlane snapDataPlane);
   }
 
   protected ScionService(
       LocalAS localAS,
       ControlServiceGrpc controlService,
       PathServiceRpc pathService,
-      DaemonServiceGrpc daemonService) {
+      DaemonServiceGrpc daemonService,
+      SnapDataPlane snapDataPlane) {
     this.localAS = localAS;
     this.controlService = controlService;
     this.pathService = pathService;
     this.daemonService = daemonService;
+    this.snapDataPlane = snapDataPlane;
     this.shutdownHook = addShutdownHook();
   }
 
@@ -99,36 +102,37 @@ public class ScionService {
         LOG.info("Bootstrapping with daemon service: {}", addressOrHost);
         addressOrHost = IPHelper.ensurePortOrDefault(addressOrHost, DEFAULT_DAEMON_PORT);
         DaemonServiceGrpc daemonService = DaemonServiceGrpc.create(addressOrHost);
-        snapDataPlane = null;
-      try {
-        localAS = checkStartShim(ScionBootstrapper.fromDaemon(daemonService));
+        try {
+          localAS = checkStartShim(ScionBootstrapper.fromDaemon(daemonService));
         } catch (RuntimeException e) {
           // If this fails for whatever reason we want to make sure that the channel is closed.
           daemonService.close();
           throw new ScionRuntimeException("Could not connect to daemon at: " + addressOrHost, e);
         }
-        return constructor.create(localAS, null, null, daemonService);
+        return constructor.create(localAS, null, null, daemonService, null);
       case BOOTSTRAP_PATH_SERVICE:
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
-      snapDataPlane = initializeSnapDataPlaneIfEnabled();
-        return constructor.create(localAS, null, pathService, null);
+        SnapDataPlane snapDataPlane = initializeSnapDataPlaneIfEnabled(localAS);
+        if (true) {
+          throw new UnsupportedOperationException();
+        }
+        return constructor.create(localAS, null, pathService, null, snapDataPlane);
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromDns(addressOrHost));
-        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null);
+        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null, null);
       case BOOTSTRAP_SERVER_IP:
         LOG.info("Bootstrapping control service with IP address: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromBootstrapServerIP(addressOrHost));
-        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null);
+        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null, null);
       case BOOTSTRAP_TOPO_FILE:
         LOG.info("Bootstrapping control service from file: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromTopoFile(addressOrHost));
-        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null);
+        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null, null);
       default:
         throw new UnsupportedOperationException();
-      }
     }
   }
 
@@ -149,11 +153,11 @@ public class ScionService {
     }
   }
 
-  private SnapDataPlane initializeSnapDataPlaneIfEnabled() {
+  private static SnapDataPlane initializeSnapDataPlaneIfEnabled(LocalAS localAS) {
     if (!Config.preferSnapUnderlay()) {
       return null;
     }
-    String snapControlEndpoint = SnapControlEndpointResolver.resolve(this);
+    String snapControlEndpoint = SnapControlEndpointResolver.resolve(localAS);
     if (snapControlEndpoint == null || snapControlEndpoint.isEmpty()) {
       throw new ScionRuntimeException(
           "SNAP mode is enabled but no SNAP control endpoint is available");
