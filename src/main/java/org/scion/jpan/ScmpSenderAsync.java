@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
@@ -246,7 +245,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
       String snapTunControlEndpoint = dp.getSnapTunControlAddress();
       if (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty()) {
-        snapTunControlEndpoint = SnapControlEndpointResolver.resolve(service);
+        snapTunControlEndpoint = SnapControlEndpointResolver.resolve(service.getLocalAS());
       }
       SnapControlClient snapControlClient =
           (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty())
@@ -254,10 +253,7 @@ public class ScmpSenderAsync implements AutoCloseable {
               : new SnapControlClient(snapTunControlEndpoint);
 
       return new SnapTunnelSession(
-          channel,
-          dp.getAddress(),
-          Arrays.copyOf(dp.getSnapStaticX25519(), 32),
-          snapControlClient);
+          channel, dp.getAddress(), Arrays.copyOf(dp.getSnapStaticX25519(), 32), snapControlClient);
     }
 
     void sendEchoRequest(Scmp.EchoMessage request) throws IOException {

@@ -32,7 +32,8 @@ final class WireGuardPacket {
     return ByteBuffer.wrap(packet).order(ByteOrder.LITTLE_ENDIAN).getInt();
   }
 
-  static byte[] buildHandshakeInit(int senderIndex, byte[] noisePayload108, byte[] mac1, byte[] mac2) {
+  static byte[] buildHandshakeInit(
+      int senderIndex, byte[] noisePayload108, byte[] mac1, byte[] mac2) {
     ByteBuffer out = ByteBuffer.allocate(148).order(ByteOrder.LITTLE_ENDIAN);
     out.putInt(TYPE_HANDSHAKE_INIT);
     out.putInt(senderIndex);

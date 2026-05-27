@@ -43,7 +43,8 @@ public class SnapControlClient {
   }
 
   public SnapDataPlane getDataPlaneAddress() {
-    ApiService.GetSnapDataPlaneRequest request = ApiService.GetSnapDataPlaneRequest.newBuilder().build();
+    ApiService.GetSnapDataPlaneRequest request =
+        ApiService.GetSnapDataPlaneRequest.newBuilder().build();
     RequestBody requestBody = RequestBody.create(request.toByteArray());
     Request httpRequest =
         withAuth(
@@ -61,8 +62,10 @@ public class SnapControlClient {
       ApiService.GetSnapDataPlaneResponse parsed =
           ApiService.GetSnapDataPlaneResponse.newBuilder().mergeFrom(body.bytes()).build();
       SocketAddress dpAddress = parseAddress(parsed.getAddress());
-      String snapTunControl = parsed.hasSnapTunControlAddress() ? parsed.getSnapTunControlAddress() : null;
-      byte[] serverStaticX25519 = parsed.hasSnapStaticX25519() ? parsed.getSnapStaticX25519().toByteArray() : null;
+      String snapTunControl =
+          parsed.hasSnapTunControlAddress() ? parsed.getSnapTunControlAddress() : null;
+      byte[] serverStaticX25519 =
+          parsed.hasSnapStaticX25519() ? parsed.getSnapStaticX25519().toByteArray() : null;
       if (serverStaticX25519 != null && serverStaticX25519.length != 32) {
         throw new IOException("server static x25519 key must be 32 bytes");
       }
@@ -83,7 +86,8 @@ public class SnapControlClient {
 
     ApiService.RegisterSnapTunIdentityRequest request =
         ApiService.RegisterSnapTunIdentityRequest.newBuilder()
-            .setInitiatorStaticX25519(com.google.protobuf.ByteString.copyFrom(initiatorStaticX25519))
+            .setInitiatorStaticX25519(
+                com.google.protobuf.ByteString.copyFrom(initiatorStaticX25519))
             .setPskShare(com.google.protobuf.ByteString.copyFrom(psk))
             .build();
 

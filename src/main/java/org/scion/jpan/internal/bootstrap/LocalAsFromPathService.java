@@ -26,8 +26,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.proto.endhost.Underlays;
 import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +44,9 @@ public class LocalAsFromPathService {
     if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
       LOG.warn("No UDP underlay available");
       long isdAs = getLocalIsdAsFromSnap(u);
-      if (true) throw new UnsupportedOperationException();
+      if (true) {
+        throw new UnsupportedOperationException();
+      }
       return new LocalAS(
           Collections.emptySet(),
           false,

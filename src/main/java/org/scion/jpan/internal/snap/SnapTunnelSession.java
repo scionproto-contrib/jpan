@@ -40,24 +40,84 @@ public class SnapTunnelSession {
 
   private static final Logger log = LoggerFactory.getLogger(SnapTunnelSession.class);
 
-  private static final byte[] LABEL_MAC1 = "mac1----".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+  private static final byte[] LABEL_MAC1 =
+      "mac1----".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
   private static final byte[] INITIAL_CHAIN_KEY =
       new byte[] {
-        96, (byte) 226, 109, (byte) 174, (byte) 243, 39, (byte) 239, (byte) 192, 46, (byte) 195,
-        53, (byte) 226, (byte) 160, 37, (byte) 210, (byte) 208, 22, (byte) 235, 66, 6,
-        (byte) 248, 114, 119, (byte) 245, 45, 56, (byte) 209, (byte) 152, (byte) 139, 120,
-        (byte) 205, 54
+        96,
+        (byte) 226,
+        109,
+        (byte) 174,
+        (byte) 243,
+        39,
+        (byte) 239,
+        (byte) 192,
+        46,
+        (byte) 195,
+        53,
+        (byte) 226,
+        (byte) 160,
+        37,
+        (byte) 210,
+        (byte) 208,
+        22,
+        (byte) 235,
+        66,
+        6,
+        (byte) 248,
+        114,
+        119,
+        (byte) 245,
+        45,
+        56,
+        (byte) 209,
+        (byte) 152,
+        (byte) 139,
+        120,
+        (byte) 205,
+        54
       };
   private static final byte[] INITIAL_CHAIN_HASH =
       new byte[] {
-        34, 17, (byte) 179, 97, 8, 26, (byte) 197, 102, 105, 18, 67, (byte) 219, 69,
-        (byte) 138, (byte) 213, 50, 45, (byte) 156, 108, 102, 34, (byte) 147, (byte) 232,
-        (byte) 183, 14, (byte) 225, (byte) 156, 101, (byte) 186, 7, (byte) 158, (byte) 243
+        34,
+        17,
+        (byte) 179,
+        97,
+        8,
+        26,
+        (byte) 197,
+        102,
+        105,
+        18,
+        67,
+        (byte) 219,
+        69,
+        (byte) 138,
+        (byte) 213,
+        50,
+        45,
+        (byte) 156,
+        108,
+        102,
+        34,
+        (byte) 147,
+        (byte) 232,
+        (byte) 183,
+        14,
+        (byte) 225,
+        (byte) 156,
+        101,
+        (byte) 186,
+        7,
+        (byte) 158,
+        (byte) 243
       };
   private static final int KEY_LEN = 32;
   private static final int TIMESTAMP_LEN = 12;
 
-  /** Re-handshake before the server's REJECT_AFTER_TIME (180s). Use 120s to match REKEY_AFTER_TIME. */
+  /**
+   * Re-handshake before the server's REJECT_AFTER_TIME (180s). Use 120s to match REKEY_AFTER_TIME.
+   */
   private static final long REKEY_AFTER_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(120);
 
   private final DatagramChannel underlay;
@@ -158,7 +218,8 @@ public class SnapTunnelSession {
           .put(encryptedStatic)
           .put(encryptedTimestamp);
       byte[] mac1 = computeMac1(localIndex, noisePayload);
-      byte[] initPacket = WireGuardPacket.buildHandshakeInit(localIndex, noisePayload, mac1, new byte[16]);
+      byte[] initPacket =
+          WireGuardPacket.buildHandshakeInit(localIndex, noisePayload, mac1, new byte[16]);
       // Drain stale packets before sending handshake init
       ByteBuffer drain = ByteBuffer.allocate(4096);
       while (underlay.receive(drain) != null) {
@@ -200,7 +261,8 @@ public class SnapTunnelSession {
 
       byte[] responseEphemeral = Arrays.copyOfRange(response.noisePayload68, 0, 32);
       byte[] responseSocketAddrCipher = Arrays.copyOfRange(response.noisePayload68, 32, 68);
-      X25519PublicKeyParameters responseEphemeralPublic = new X25519PublicKeyParameters(responseEphemeral, 0);
+      X25519PublicKeyParameters responseEphemeralPublic =
+          new X25519PublicKeyParameters(responseEphemeral, 0);
 
       hash = b2sHash(hash, responseEphemeral);
       temp = b2sHmac(chainingKey, responseEphemeral);
@@ -254,7 +316,8 @@ public class SnapTunnelSession {
       return null;
     }
     try {
-      return aeadChaCha20Open(recvKey, packet.counter, packet.ciphertext, new byte[0], packet.ciphertext.length - 16);
+      return aeadChaCha20Open(
+          recvKey, packet.counter, packet.ciphertext, new byte[0], packet.ciphertext.length - 16);
     } catch (InvalidCipherTextException e) {
       return null;
     }
@@ -301,7 +364,8 @@ public class SnapTunnelSession {
 
   private byte[] computeMac1(int senderIndex, byte[] noisePayload) {
     byte[] packetWithoutMac = new byte[8 + noisePayload.length];
-    ByteBuffer.wrap(packetWithoutMac).order(ByteOrder.LITTLE_ENDIAN)
+    ByteBuffer.wrap(packetWithoutMac)
+        .order(ByteOrder.LITTLE_ENDIAN)
         .putInt(WireGuardPacket.TYPE_HANDSHAKE_INIT)
         .putInt(senderIndex)
         .put(noisePayload);
@@ -317,7 +381,8 @@ public class SnapTunnelSession {
     return nextIndex;
   }
 
-  private static byte[] diffieHellman(X25519PrivateKeyParameters privateKey, X25519PublicKeyParameters publicKey) {
+  private static byte[] diffieHellman(
+      X25519PrivateKeyParameters privateKey, X25519PublicKeyParameters publicKey) {
     byte[] secret = new byte[32];
     privateKey.generateSecret(publicKey, secret, 0);
     return secret;
@@ -326,7 +391,7 @@ public class SnapTunnelSession {
   private static byte[] aeadChaCha20Seal(byte[] key, long counter, byte[] data, byte[] aad)
       throws InvalidCipherTextException {
     byte[] nonce = new byte[12];
-    ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4).putLong(counter);
+    ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4).asLongBuffer().put(counter);
     ChaCha20Poly1305 cipher = new ChaCha20Poly1305();
     cipher.init(true, new AEADParameters(new KeyParameter(key), 128, nonce, aad));
     byte[] out = new byte[cipher.getOutputSize(data.length)];
@@ -335,10 +400,11 @@ public class SnapTunnelSession {
     return Arrays.copyOf(out, len);
   }
 
-  private static byte[] aeadChaCha20Open(byte[] key, long counter, byte[] data, byte[] aad, int plainLen)
+  private static byte[] aeadChaCha20Open(
+      byte[] key, long counter, byte[] data, byte[] aad, int plainLen)
       throws InvalidCipherTextException {
     byte[] nonce = new byte[12];
-    ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4).putLong(counter);
+    ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4).asLongBuffer().put(counter);
     ChaCha20Poly1305 cipher = new ChaCha20Poly1305();
     cipher.init(false, new AEADParameters(new KeyParameter(key), 128, nonce, aad));
     byte[] out = new byte[Math.max(plainLen, cipher.getOutputSize(data.length))];
@@ -409,7 +475,8 @@ public class SnapTunnelSession {
     in.get(ipBytes);
     try {
       if (ipVersion == 0x04) {
-        return new InetSocketAddress(InetAddress.getByAddress(Arrays.copyOfRange(ipBytes, 12, 16)), port);
+        return new InetSocketAddress(
+            InetAddress.getByAddress(Arrays.copyOfRange(ipBytes, 12, 16)), port);
       }
       if (ipVersion == 0x06) {
         return new InetSocketAddress(InetAddress.getByAddress(ipBytes), port);

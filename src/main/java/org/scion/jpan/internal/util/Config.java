@@ -42,7 +42,8 @@ public class Config {
   }
 
   public static String getUnderlayMode() {
-    return ScionUtil.getPropertyOrEnv(PROPERTY_UNDERLAY_MODE, ENV_UNDERLAY_MODE, DEFAULT_UNDERLAY_MODE)
+    return ScionUtil.getPropertyOrEnv(
+            PROPERTY_UNDERLAY_MODE, ENV_UNDERLAY_MODE, DEFAULT_UNDERLAY_MODE)
         .toLowerCase();
   }
 
