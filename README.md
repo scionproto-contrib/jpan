@@ -340,7 +340,7 @@ JPAN can be used in standalone mode or with a local daemon.
 Without daemon there are several methods for bootstrapping, including several methods of DNS lookup
 or specifying a local topology file or a topology server address. 
 
-The method `Scion.defaultService()` (internally called by `ScionDatagramChannel.open()`) will 
+The requestMethod `Scion.defaultService()` (internally called by `ScionDatagramChannel.open()`) will 
 attempt to get network information in the following order until it succeeds:
 - For debugging: Check for local topology file (if file name is provided)
 - For debugging: Check for bootstrap server address (if address is provided)
@@ -426,6 +426,9 @@ Then enable the logger by placing a [`simplelogger.properties`](src/test/resourc
 file into you resources folder, or enable logging programmatically with 
 `System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO");` 
 before using *any* JPAN code. 
+
+Logging can also be controlled via command line, for example: 
+`java -Dorg.slf4j.simpleLogger.defaultLogLevel=INFO -jar yourapp.jar`
 
 ### No DNS search domain found. Please check your /etc/resolv.conf or similar. / No DNS record found for bootstrap server.
 

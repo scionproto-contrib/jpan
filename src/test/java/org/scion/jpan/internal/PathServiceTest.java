@@ -19,15 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import fi.iki.elonen.NanoHTTPD;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.testutil.MockControlServer;
-import org.scion.jpan.testutil.MockNetwork2;
-import org.scion.jpan.testutil.MockPathService;
+import org.scion.jpan.testutil.*;
 
 class PathServiceTest {
 
@@ -92,13 +89,13 @@ class PathServiceTest {
 
   @Test
   void testPathServiceWorksThenFails_Backup() {
-    for (NanoHTTPD.Response.Status error :
-        new NanoHTTPD.Response.Status[] {
-          NanoHTTPD.Response.Status.BAD_REQUEST,
-          NanoHTTPD.Response.Status.INTERNAL_ERROR,
-          NanoHTTPD.Response.Status.UNAUTHORIZED,
-          NanoHTTPD.Response.Status.FORBIDDEN,
-          NanoHTTPD.Response.Status.NOT_FOUND
+    for (SimpleHttpServer.Response.Status error :
+        new SimpleHttpServer.Response.Status[] {
+          SimpleHttpServer.Response.Status.BAD_REQUEST,
+          SimpleHttpServer.Response.Status.INTERNAL_ERROR,
+          SimpleHttpServer.Response.Status.UNAUTHORIZED,
+          SimpleHttpServer.Response.Status.FORBIDDEN,
+          SimpleHttpServer.Response.Status.NOT_FOUND
         }) {
       // Test success if 1st CS reports errors during runtime
       try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
@@ -114,8 +111,8 @@ class PathServiceTest {
         nw.getPathServices().get(0).reportError(error);
 
         // try again
-        if (error == NanoHTTPD.Response.Status.BAD_REQUEST
-            || error == NanoHTTPD.Response.Status.INTERNAL_ERROR) {
+        if (error == SimpleHttpServer.Response.Status.BAD_REQUEST
+            || error == SimpleHttpServer.Response.Status.INTERNAL_ERROR) {
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
           assertEquals(1, nw.getPathServices().get(0).getAndResetCallCount()); // error
           // Also 0, because with these errors we don't try again
@@ -146,12 +143,12 @@ class PathServiceTest {
       assertNotNull(path);
 
       // Kill CS - ask for different AS do avoid getting a cached path or similar.
-      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.NOT_FOUND);
+      nw.getPathServices().get(0).reportError(SimpleHttpServer.Response.Status.NOT_FOUND);
       // Should still works
       client.getPaths(dstIA111, dstAddress);
       // Kill 2nd CS (have both report errors)
-      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.NOT_FOUND);
-      nw.getPathServices().get(1).reportError(NanoHTTPD.Response.Status.NOT_FOUND);
+      nw.getPathServices().get(0).reportError(SimpleHttpServer.Response.Status.NOT_FOUND);
+      nw.getPathServices().get(1).reportError(SimpleHttpServer.Response.Status.NOT_FOUND);
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA111, dstAddress));
       String expected = "Error while connecting to SCION network, no path service available";
@@ -187,7 +184,7 @@ class PathServiceTest {
       ScionService client = Scion.defaultService();
 
       // We force error 500 because our MOCK is to simple to do that
-      nw.getPathServices().get(0).reportError(NanoHTTPD.Response.Status.INTERNAL_ERROR);
+      nw.getPathServices().get(0).reportError(SimpleHttpServer.Response.Status.INTERNAL_ERROR);
       Exception ex =
           assertThrows(ScionRuntimeException.class, () -> client.getPaths(dstIA, dstAddress));
       assertTrue(ex.getMessage().contains("INTERNAL_SERVER_ERROR"), ex.getMessage());
@@ -202,8 +199,8 @@ class PathServiceTest {
       long dstIA = ScionUtil.parseIA("1-ff00:0:111");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
 
-      NanoHTTPD.Response.Status status =
-          NanoHTTPD.Response.Status.NOT_FOUND; // TODO .withDescription("TRC not found");
+      SimpleHttpServer.Response.Status status =
+          SimpleHttpServer.Response.Status.NOT_FOUND; // TODO .withDescription("TRC not found");
       ScionService client = Scion.defaultService();
 
       // ingest error

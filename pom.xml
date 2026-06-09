@@ -116,13 +116,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.nanohttpd</groupId>
-            <artifactId>nanohttpd</artifactId>
-            <version>2.3.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>io.grpc</groupId>
             <!-- TODO We are not using the (netty) shaded version because it causes problem with
             Android. However, we have to look at this again because shading helps avoiding
