@@ -25,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.ScionRuntimeException;
 
@@ -171,22 +170,22 @@ public abstract class SimpleHttpServer {
     }
     if (executor != null) {
       executor.shutdownNow();
-      try {
-        if (!executor.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
-          throw new IllegalStateException("SimpleHttpServer won't stop.");
-        }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
-      }
+      //      try {
+      //        if (!executor.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
+      //          throw new IllegalStateException("SimpleHttpServer won't stop.");
+      //        }
+      //      } catch (InterruptedException e) {
+      //        Thread.currentThread().interrupt();
+      //        throw new RuntimeException(e);
+      //      }
     }
-    //    try {
-    //      if (acceptThread != null) {
-    //        acceptThread.join(1000);
-    //      }
-    //    } catch (InterruptedException e) {
-    //      Thread.currentThread().interrupt();
-    //    }
+    try {
+      if (acceptThread != null) {
+        acceptThread.join(1000);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   public boolean wasStarted() {
