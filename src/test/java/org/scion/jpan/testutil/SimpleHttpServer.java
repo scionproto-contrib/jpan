@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.ScionRuntimeException;
 
@@ -41,6 +42,7 @@ public abstract class SimpleHttpServer {
   private volatile ServerSocket serverSocket;
   private volatile boolean started = false;
   private ExecutorService executor;
+  private Thread acceptThread;
 
   public SimpleHttpServer(int port) {
     this.port = port;
@@ -52,7 +54,7 @@ public abstract class SimpleHttpServer {
     ss.bind(new InetSocketAddress(port));
     serverSocket = ss;
     executor = Executors.newCachedThreadPool(new DaemonThreadFactory());
-    Thread acceptThread = new Thread(this::serverLoop, "SimpleHttpServer-server-loop");
+    acceptThread = new Thread(this::serverLoop, "SimpleHttpServer-server-loop");
     acceptThread.setDaemon(true);
     acceptThread.start();
     started = true;
@@ -169,7 +171,22 @@ public abstract class SimpleHttpServer {
     }
     if (executor != null) {
       executor.shutdownNow();
+      try {
+        if (!executor.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
+          throw new IllegalStateException("SimpleHttpServer won't stop.");
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      }
     }
+    //    try {
+    //      if (acceptThread != null) {
+    //        acceptThread.join(1000);
+    //      }
+    //    } catch (InterruptedException e) {
+    //      Thread.currentThread().interrupt();
+    //    }
   }
 
   public boolean wasStarted() {

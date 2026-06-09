@@ -60,7 +60,7 @@ class PingPongChannelDemoTest {
         () -> {
           try {
             barrier.countDown();
-            PingPongChannelServer.main(null);
+            PingPongChannelServer.main();
           } catch (Throwable e) {
             failures.incrementAndGet();
             e.printStackTrace();
