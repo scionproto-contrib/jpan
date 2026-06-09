@@ -128,7 +128,7 @@ public class MockPathService {
     }
 
     @Override
-    public Response serve(IHTTPSession session) {
+    public Response serve(Session session) {
       logger.info("Path service started on port {}", super.getListeningPort());
       callCount.incrementAndGet();
       if (session.getMethod() != RequestMethod.POST) {
@@ -164,7 +164,7 @@ public class MockPathService {
       }
     }
 
-    private Response handlePathRequest(IHTTPSession session) {
+    private Response handlePathRequest(Session session) {
       logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
       awaitBlock(); // for testing timeouts
 
@@ -209,7 +209,7 @@ public class MockPathService {
       return newFixedLengthResponse(Response.Status.OK, MIME, targetStream, r.toByteArray().length);
     }
 
-    private Response handleUnderlayRequest(IHTTPSession session) {
+    private Response handleUnderlayRequest(Session session) {
       logger.info("Path server serves underlay to {}", session.getRemoteIpAddress());
       awaitBlock(); // for testing timeouts
 

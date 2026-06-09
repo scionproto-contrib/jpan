@@ -110,7 +110,7 @@ public abstract class SimpleHttpServer {
         offset += n;
       }
 
-      IHTTPSession session = new SessionImpl(requestMethod, uri, remoteAddress, body);
+      Session session = new Session(requestMethod, uri, remoteAddress, body);
       Response response = serve(session);
 
       StringBuilder sb = new StringBuilder();
@@ -184,7 +184,7 @@ public abstract class SimpleHttpServer {
     return -1;
   }
 
-  public abstract Response serve(IHTTPSession session);
+  public abstract Response serve(Session session);
 
   public static Response newFixedLengthResponse(
       Response.Status status, String mimeType, String body) {
@@ -210,20 +210,8 @@ public abstract class SimpleHttpServer {
     }
   }
 
-  /** HTTP request methods. */
   public enum RequestMethod {
     POST
-  }
-
-  /** Represents an incoming HTTP request. */
-  public interface IHTTPSession {
-    RequestMethod getMethod();
-
-    String getUri();
-
-    String getRemoteIpAddress();
-
-    InputStream getInputStream();
   }
 
   public static class Response {
@@ -263,35 +251,31 @@ public abstract class SimpleHttpServer {
     }
   }
 
-  private static class SessionImpl implements IHTTPSession {
+  public static class Session {
     private final RequestMethod requestMethod;
     private final String uri;
     private final String remoteAddress;
     private final byte[] body;
 
-    SessionImpl(RequestMethod requestMethod, String uri, String remoteAddress, byte[] body) {
+    Session(RequestMethod requestMethod, String uri, String remoteAddress, byte[] body) {
       this.requestMethod = requestMethod;
       this.uri = uri;
       this.remoteAddress = remoteAddress;
       this.body = body;
     }
 
-    @Override
     public RequestMethod getMethod() {
       return requestMethod;
     }
 
-    @Override
     public String getUri() {
       return uri;
     }
 
-    @Override
     public String getRemoteIpAddress() {
       return remoteAddress;
     }
 
-    @Override
     public InputStream getInputStream() {
       return new ByteArrayInputStream(body);
     }
