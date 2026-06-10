@@ -185,6 +185,8 @@ TODO
   [#257](https://github.com/scionproto-contrib/jpan/issues/257)
 - `disconnect()` doe not anymore reset the NAT mapping.
   [#246](https://github.com/scionproto-contrib/jpan/issues/246)
+- Clean up PathMetadata.Builder.
+  [#274](https://github.com/scionproto-contrib/jpan/pull/274)
 
 
 ## [0.7.0] - 2026-04-29

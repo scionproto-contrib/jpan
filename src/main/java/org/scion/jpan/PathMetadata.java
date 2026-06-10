@@ -44,35 +44,21 @@ public class PathMetadata {
     return new Builder();
   }
 
-  private PathMetadata(
-      byte[] pathRaw,
-      long srcIsdAs,
-      long dstIsdAs,
-      Interface firstInterface,
-      List<PathInterface> pathInterfaces,
-      int mtu,
-      long expiration,
-      List<Integer> latencyList,
-      List<Long> bandwidthList,
-      List<GeoCoordinates> geoList,
-      List<LinkType> linkTypeList,
-      List<Integer> internalHopList,
-      List<String> notesList,
-      EpicAuths epicAuths) {
-    this.pathRaw = pathRaw;
-    this.srcIsdAs = srcIsdAs;
-    this.dstIsdAs = dstIsdAs;
-    this.firstInterface = firstInterface;
-    this.pathInterfaces = pathInterfaces;
-    this.mtu = mtu;
-    this.expiration = expiration;
-    this.latencyList = latencyList;
-    this.bandwidthList = bandwidthList;
-    this.geoList = geoList;
-    this.linkTypeList = linkTypeList;
-    this.internalHopList = internalHopList;
-    this.notesList = notesList;
-    this.epicAuths = epicAuths;
+  private PathMetadata(Builder b) {
+    this.pathRaw = b.pathRaw;
+    this.srcIsdAs = b.srcIsdAs;
+    this.dstIsdAs = b.dstIsdAs;
+    this.firstInterface = b.localInterface;
+    this.pathInterfaces = b.pathInterfaces;
+    this.mtu = b.hasMtu() ? b.mtu : 0;
+    this.expiration = b.expiration;
+    this.latencyList = b.latencyList;
+    this.bandwidthList = b.bandwidthList;
+    this.geoList = b.geoList;
+    this.linkTypeList = b.linkTypeList;
+    this.internalHopList = b.internalHopList;
+    this.notesList = b.notesList;
+    this.epicAuths = b.epicAuths;
   }
 
   public byte[] getRawPath() {
@@ -533,21 +519,7 @@ public class PathMetadata {
         srcIsdAs = pathInterfaces.get(0).isdAs;
         dstIsdAs = pathInterfaces.get(pathInterfaces.size() - 1).getIsdAs();
       }
-      return new PathMetadata(
-          pathRaw,
-          srcIsdAs,
-          dstIsdAs,
-          localInterface,
-          pathInterfaces,
-          hasMtu() ? mtu : 0,
-          expiration,
-          latencyList,
-          bandwidthList,
-          geoList,
-          linkTypeList,
-          internalHopList,
-          notesList,
-          epicAuths);
+      return new PathMetadata(this);
     }
   }
 }
