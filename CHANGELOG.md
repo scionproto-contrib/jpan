@@ -175,6 +175,9 @@ TODO
 - Fix flaky builds by replacing imported Http server with own implementation
   that immediately closes all ports on `close()`.
   [#272](https://github.com/scionproto-contrib/jpan/pull/272)
+- Add proper error message when no paths can be found.
+  [#273](https://github.com/scionproto-contrib/jpan/pull/273)
+
 
 ### Changed
 

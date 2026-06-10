@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.ScionUtil;
@@ -141,6 +142,7 @@ public class MockControlServer {
 
   private class ControlServiceImpl extends SegmentLookupServiceGrpc.SegmentLookupServiceImplBase {
     final Map<String, Seg.SegmentsResponse> responses = new ConcurrentHashMap<>();
+    final AtomicBoolean isCleared = new AtomicBoolean(false);
     final long start = Instant.now().getEpochSecond();
 
     ControlServiceImpl() {}
@@ -154,6 +156,12 @@ public class MockControlServer {
       callCount.incrementAndGet();
       awaitBlock(); // for testing timeouts
 
+      if (isCleared.get()) {
+        // Option to return empty path list
+        responseObserver.onNext(Seg.SegmentsResponse.newBuilder().build());
+        responseObserver.onCompleted();
+        return;
+      }
       if (responses.isEmpty()) {
         // MockNetwork
         responseObserver.onNext(defaultResponse(req.getSrcIsdAs(), req.getDstIsdAs()));
@@ -174,6 +182,7 @@ public class MockControlServer {
         long dstIA,
         boolean dstIsCore,
         Seg.SegmentsResponse response) {
+      isCleared.set(false);
       long maskISD = -1L << 48;
       long srcWildcard = srcIA & maskISD;
       long dstWildcard = dstIA & maskISD;
@@ -217,6 +226,7 @@ public class MockControlServer {
 
     public void clearSegments() {
       responses.clear();
+      isCleared.set(true);
     }
 
     private String key(long ia0, long ia1) {
