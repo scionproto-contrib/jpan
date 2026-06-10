@@ -502,6 +502,24 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void send_noPathAvailable() {
+    MockNetwork.stopTiny();
+    MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
+    // Clear segments from control service
+    MockNetwork.getControlServer().clearSegments();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
+      InetSocketAddress dst = MockNetwork.getTinyServerAddress();
+      Exception e;
+      e = assertThrows(ScionRuntimeException.class, () -> channel.send(sendBuf, dst));
+      assertTrue(e.getMessage().startsWith("No path found to destination"), e.getMessage());
+      assertNull(channel.getConnectionPath());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
   void send_disconnected_expiredRequestPath() {
     // Expected behavior: expired paths should be replaced transparently.
     testExpired(

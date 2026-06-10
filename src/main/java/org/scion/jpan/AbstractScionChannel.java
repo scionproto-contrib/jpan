@@ -113,11 +113,11 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     }
   }
 
-  protected List<Path> applyFilter(List<Path> paths, Object address) throws ScionRuntimeException {
+  protected List<Path> applyFilter(List<Path> paths, InetSocketAddress address)
+      throws ScionRuntimeException {
     List<Path> filtered = getPathPolicy().filter(paths);
     if (filtered.isEmpty()) {
-      String isdAs = ScionUtil.toStringIA(paths.get(0).getRemoteIsdAs());
-      throw new ScionRuntimeException("No path found to destination: " + isdAs + " --- " + address);
+      throw new ScionRuntimeException("No path found to destination: " + address);
     }
     return filtered;
   }
