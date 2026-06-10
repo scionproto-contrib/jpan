@@ -117,7 +117,8 @@ public class ScionService {
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
         SnapService snapService = initializeSnapDataPlaneIfEnabled(localAS);
         if (true) {
-          throw new UnsupportedOperationException();
+          System.err.println("FIXME: ScionService.create()");
+          // TODO throw new UnsupportedOperationException();
         }
         return constructor.create(localAS, null, pathService, null, snapService);
       case BOOTSTRAP_VIA_DNS:
