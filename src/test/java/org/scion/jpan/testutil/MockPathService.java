@@ -14,7 +14,6 @@
 
 package org.scion.jpan.testutil;
 
-import fi.iki.elonen.NanoHTTPD;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +44,8 @@ public class MockPathService {
   private final AtomicInteger callCount = new AtomicInteger();
   private PathServiceImpl pathService;
   private final Semaphore block = new Semaphore(1);
-  private final AtomicReference<NanoHTTPD.Response.Status> errorToReport = new AtomicReference<>();
+  private final AtomicReference<SimpleHttpServer.Response.Status> errorToReport =
+      new AtomicReference<>();
   private final List<AsInfo> asInfos;
 
   private MockPathService(List<AsInfo> asInfos) {
@@ -80,7 +80,6 @@ public class MockPathService {
 
   public void close() {
     pathService.stop();
-    TestUtil.sleep(50); // TODO fix this and remove sleep()
     logger.info("Path service shut down");
   }
 
@@ -114,40 +113,41 @@ public class MockPathService {
     unblock();
   }
 
-  public void reportError(NanoHTTPD.Response.Status errorToReport) {
+  public void reportError(SimpleHttpServer.Response.Status errorToReport) {
     this.errorToReport.set(errorToReport);
   }
 
-  private class PathServiceImpl extends NanoHTTPD {
+  private class PathServiceImpl extends SimpleHttpServer {
     final Map<String, List<Seg.PathSegment>> responsesUP = new ConcurrentHashMap<>();
     final Map<String, List<Seg.PathSegment>> responsesCORE = new ConcurrentHashMap<>();
     final Map<String, List<Seg.PathSegment>> responsesDOWN = new ConcurrentHashMap<>();
 
     public PathServiceImpl(int port) throws IOException {
       super(port);
-      start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+      super.start();
     }
 
     @Override
-    public Response serve(IHTTPSession session) {
+    public Response serve(Session session) {
       logger.info("Path service started on port {}", super.getListeningPort());
       callCount.incrementAndGet();
-      if (session.getMethod() != Method.POST) {
+      if (session.getMethod() != RequestMethod.POST) {
         return newFixedLengthResponse(
-            Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, "POST expected");
+            Response.Status.BAD_REQUEST, SimpleHttpServer.MIME_PLAINTEXT, "POST expected");
       }
 
       if (errorToReport.get() != null) {
-        NanoHTTPD.Response.Status error = errorToReport.getAndSet(null);
+        SimpleHttpServer.Response.Status error = errorToReport.getAndSet(null);
         try {
-          // We have to empty the stream to avoid NanoHTTPD throwing an exception.
+          // We have to empty the stream to avoid SimpleHttpServer throwing an exception.
           if (session.getInputStream().skip(1_000_000) < 1) {
             throw new IOException();
           }
         } catch (IOException e) {
           e.printStackTrace(); // should never happen
         }
-        return newFixedLengthResponse(error, NanoHTTPD.MIME_PLAINTEXT, error.getDescription());
+        return newFixedLengthResponse(
+            error, SimpleHttpServer.MIME_PLAINTEXT, error.getDescription());
       }
 
       String resource = session.getUri();
@@ -159,11 +159,12 @@ public class MockPathService {
         return handleUnderlayRequest(session);
       } else {
         logger.warn("Illegal request: {}", session.getUri());
-        return newFixedLengthResponse(Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, "9");
+        return newFixedLengthResponse(
+            Response.Status.BAD_REQUEST, SimpleHttpServer.MIME_PLAINTEXT, "9");
       }
     }
 
-    private Response handlePathRequest(IHTTPSession session) {
+    private Response handlePathRequest(Session session) {
       logger.info("Path server serves paths to {}", session.getRemoteIpAddress());
       awaitBlock(); // for testing timeouts
 
@@ -177,7 +178,7 @@ public class MockPathService {
       } catch (IOException e) {
         logger.error(e.getMessage());
         return newFixedLengthResponse(
-            Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, e.getMessage());
+            Response.Status.BAD_REQUEST, SimpleHttpServer.MIME_PLAINTEXT, e.getMessage());
       }
 
       long srcIA = request.getSrcIsdAs();
@@ -189,7 +190,7 @@ public class MockPathService {
         String dst = ScionUtil.toStringIA(dstIA);
         return newFixedLengthResponse(
             Response.Status.BAD_REQUEST,
-            NanoHTTPD.MIME_PLAINTEXT,
+            SimpleHttpServer.MIME_PLAINTEXT,
             "Illegal arguments: " + src + " -> " + dst);
       }
 
@@ -200,7 +201,7 @@ public class MockPathService {
         String dst = ScionUtil.toStringIA(dstIA);
         return newFixedLengthResponse(
             Response.Status.INTERNAL_ERROR,
-            NanoHTTPD.MIME_PLAINTEXT,
+            SimpleHttpServer.MIME_PLAINTEXT,
             "Not found: " + src + " -> " + dst);
       }
 
@@ -208,7 +209,7 @@ public class MockPathService {
       return newFixedLengthResponse(Response.Status.OK, MIME, targetStream, r.toByteArray().length);
     }
 
-    private Response handleUnderlayRequest(IHTTPSession session) {
+    private Response handleUnderlayRequest(Session session) {
       logger.info("Path server serves underlay to {}", session.getRemoteIpAddress());
       awaitBlock(); // for testing timeouts
 
@@ -222,7 +223,7 @@ public class MockPathService {
       } catch (IOException e) {
         logger.error(e.getMessage());
         return newFixedLengthResponse(
-            Response.Status.BAD_REQUEST, NanoHTTPD.MIME_PLAINTEXT, e.getMessage());
+            Response.Status.BAD_REQUEST, SimpleHttpServer.MIME_PLAINTEXT, e.getMessage());
       }
 
       logger.info("Underlay request: ... ISD/AS = {}", ScionUtil.toStringIA(request.getIsdAs()));

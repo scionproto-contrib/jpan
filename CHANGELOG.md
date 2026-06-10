@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   for SCMP packets that caused an error. 
 - Investigate why 5-10% of paths time out in MultiPing
 - Allow empty search domain "" (Francois)
-- Fix subclassing of ScionService, e.g. allow calling default() method and expose 
+- Fix subclassing of ScionService, e.g. allow calling default() requestMethod and expose 
   internals (at least getLocalAs())
  
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
@@ -113,7 +113,7 @@ TODO
   - Ability to check for new Path or skip a broken paths, see fix/171
 - Scmp API: 
   - Move ResponderCallback to Scmp?
-  - Make onTimeout() a default method? 
+  - Make onTimeout() a default requestMethod? 
   - Merge all methods into one? A single onMessage()???
 
 - We could also do revers-lookup inside service.lookup() -> e.g. works for "129.132.175.104"
@@ -172,6 +172,9 @@ TODO
   [#252](https://github.com/scionproto-contrib/jpan/issues/252)
 - Fix possible NPE in DNS parsing from properties
   [#256](https://github.com/scionproto-contrib/jpan/issues/256)
+- Fix flaky builds by replacing imported Http server with own implementation
+  that immediately closes all ports on `close()`.
+  [#272](https://github.com/scionproto-contrib/jpan/pull/272)
 
 ### Changed
 
@@ -264,7 +267,7 @@ TODO
   BREAKING CHANGE: PROPERTY/ENV/DEFAULT_RESOLVER_MINIMIZE_REQUESTS have been removed
   [#239](https://github.com/scionproto-contrib/jpan/pull/239)
 - Removed deprecation marker from `ScionDatagramChannel.send(..., path)`.
-  We may keep this method, but it may change behavior.
+  We may keep this requestMethod, but it may change behavior.
   [#240](https://github.com/scionproto-contrib/jpan/pull/240)
 
 
@@ -489,7 +492,7 @@ For example: `Path.getFirstHopAddress()`, `DatagramChannel.setPathPolicy()`
 
 ### Added
 - Support for bootstrapper TRC metadata. [#110](https://github.com/scionproto-contrib/jpan/pull/110)
-- Added `copy(...)` method for paths. [#111](https://github.com/scionproto-contrib/jpan/pull/111)
+- Added `copy(...)` requestMethod for paths. [#111](https://github.com/scionproto-contrib/jpan/pull/111)
 - Added Scenario builder for unit tests. [#112](https://github.com/scionproto-contrib/jpan/pull/112)
 - Path construction fixes: [#104](https://github.com/scionproto-contrib/jpan/pull/104)
   - Support shortcut and on-path detection during path construction
