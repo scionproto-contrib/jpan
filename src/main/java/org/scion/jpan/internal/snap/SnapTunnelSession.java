@@ -391,7 +391,9 @@ public class SnapTunnelSession {
   private static byte[] aeadChaCha20Seal(byte[] key, long counter, byte[] data, byte[] aad)
       throws InvalidCipherTextException {
     byte[] nonce = new byte[12];
-    ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4).asLongBuffer().put(counter);
+    ((ByteBuffer) ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4))
+        .asLongBuffer()
+        .put(counter);
     ChaCha20Poly1305 cipher = new ChaCha20Poly1305();
     cipher.init(true, new AEADParameters(new KeyParameter(key), 128, nonce, aad));
     byte[] out = new byte[cipher.getOutputSize(data.length)];
@@ -404,7 +406,9 @@ public class SnapTunnelSession {
       byte[] key, long counter, byte[] data, byte[] aad, int plainLen)
       throws InvalidCipherTextException {
     byte[] nonce = new byte[12];
-    ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4).asLongBuffer().put(counter);
+    ((ByteBuffer) ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4))
+        .asLongBuffer()
+        .put(counter);
     ChaCha20Poly1305 cipher = new ChaCha20Poly1305();
     cipher.init(false, new AEADParameters(new KeyParameter(key), 128, nonce, aad));
     byte[] out = new byte[Math.max(plainLen, cipher.getOutputSize(data.length))];
