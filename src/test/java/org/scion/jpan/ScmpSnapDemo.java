@@ -169,11 +169,15 @@ public class ScmpSnapDemo {
     }
 
     static Cli parse(String[] args) throws IOException {
+      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, "93.185.219.2:5001");
+      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, "193.29.10.5:5001");
       args =
           new String[] {
             "64-2:0:9c,[::1]",
             "--endhost-api",
-            "http://{EHAPI}",
+            //"http://93.185.219.2:5001",//{EHAPI}",
+            //"http://193.29.10.5:5001",//{EHAPI}",
+            "http://192.168.53.19:48080",//{EHAPI}",
             "--port",
             "30061",
             "--count",
@@ -181,7 +185,7 @@ public class ScmpSnapDemo {
             "--log",
             "debug",
             "--snap-token",
-            "{TOKEN}"
+            "TOKEN.txt"
           };
 
       if (args.length == 0) {
