@@ -22,7 +22,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import org.xbill.DNS.NioClient;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.scion.jpan.internal.snap.TokenFetcher;
 
 /** SCMP echo demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
 public class ScmpSnapDemo {
@@ -99,11 +101,6 @@ public class ScmpSnapDemo {
               + "% packet loss");
     } finally {
       Scion.closeDefault();
-      try {
-        NioClient.close();
-      } catch (Throwable ignored) {
-        // best-effort cleanup
-      }
     }
   }
 
@@ -111,6 +108,9 @@ public class ScmpSnapDemo {
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
     System.setProperty(
         Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, toBootstrapAddress(cli.endhostApi));
+    if (cli.snapControl != null) {
+      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, cli.snapControl);
+    }
     System.setProperty(Constants.PROPERTY_PATH_SERVICE_AUTH_TOKEN, cli.snapToken);
     System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, cli.snapToken);
 
@@ -137,6 +137,7 @@ public class ScmpSnapDemo {
     final String destinationIa;
     final InetAddress destinationIp;
     final String endhostApi;
+    final String snapControl;
     final int localPort;
     final int count;
     final String snapToken;
@@ -149,6 +150,7 @@ public class ScmpSnapDemo {
         String destinationIa,
         InetAddress destinationIp,
         String endhostApi,
+        String snapControl,
         int localPort,
         int count,
         String snapToken,
@@ -159,6 +161,7 @@ public class ScmpSnapDemo {
       this.destinationIa = destinationIa;
       this.destinationIp = destinationIp;
       this.endhostApi = endhostApi;
+      this.snapControl = snapControl;
       this.localPort = localPort;
       this.count = count;
       this.snapToken = snapToken;
@@ -169,49 +172,47 @@ public class ScmpSnapDemo {
     }
 
     static Cli parse(String[] args) throws IOException {
-      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, "93.185.219.2:5001");
-      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, "193.29.10.5:5001");
-      args =
-          new String[] {
-            "64-2:0:9c,[::1]",
-            "--endhost-api",
-            //"http://93.185.219.2:5001",//{EHAPI}",
-            //"http://193.29.10.5:5001",//{EHAPI}",
-            "http://192.168.53.19:48080",//{EHAPI}",
-            "--port",
-            "30061",
-            "--count",
-            "15",
-            "--log",
-            "debug",
-            "--snap-token",
-            "TOKEN.txt"
-          };
-
       if (args.length == 0) {
-        throw new IllegalArgumentException(usage());
+        List<String> cl = Files.readAllLines(Paths.get("snap-demo.txt"));
+        cl =
+            cl.stream()
+                .map(String::trim)
+                .filter(s -> !s.startsWith("//"))
+                .collect(Collectors.toList());
+        args = cl.toArray(new String[0]);
       }
 
       String destination = null;
       String endhostApi = null;
+      String snapControl = null;
       Integer localPort = null;
-      Integer count = 1;
+      int count = 1;
+      String authKeyFile = null;
       String snapTokenFile = null;
-      Integer timeoutMs = 3000;
-      Integer intervalMs = 1000;
+      int timeoutMs = 3000;
+      int intervalMs = 1000;
       String payload = "";
       String logLevel = "info";
 
       for (int i = 0; i < args.length; i++) {
+        if (args[i].trim().isEmpty() || args[i].trim().startsWith("//")) {
+          continue;
+        }
         switch (args[i]) {
           case "--endhost-api":
             endhostApi = args[++i];
+            break;
+          case "--snap-control":
+            snapControl = args[++i];
             break;
           case "--port":
             localPort = Integer.parseInt(args[++i]);
             break;
           case "--count":
             count = Integer.parseInt(args[++i]);
+            break;
+          case "--auth-key":
+            authKeyFile = args[++i];
             break;
           case "--snap-token":
             snapTokenFile = args[++i];
@@ -239,7 +240,10 @@ public class ScmpSnapDemo {
         }
       }
 
-      if (destination == null || endhostApi == null || localPort == null || snapTokenFile == null) {
+      if (destination == null
+          || endhostApi == null
+          || localPort == null
+          || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
       }
 
@@ -253,16 +257,27 @@ public class ScmpSnapDemo {
       String destinationIpLiteral = destination.substring(separator + 2, destination.length() - 1);
       InetAddress destinationIp = InetAddress.getByName(destinationIpLiteral);
 
-      String snapToken =
-          new String(Files.readAllBytes(Paths.get(snapTokenFile)), StandardCharsets.UTF_8).trim();
-      if (snapToken.isEmpty()) {
-        throw new IllegalArgumentException("Token file is empty: " + snapTokenFile);
+      String snapToken;
+      if (snapTokenFile != null) {
+        snapToken =
+            new String(Files.readAllBytes(Paths.get(snapTokenFile)), StandardCharsets.UTF_8).trim();
+        if (snapToken.isEmpty()) {
+          throw new IllegalArgumentException("Token file is empty: " + snapTokenFile);
+        }
+      } else {
+        String authKey =
+            new String(Files.readAllBytes(Paths.get(authKeyFile)), StandardCharsets.UTF_8).trim();
+        if (authKey.isEmpty()) {
+          throw new IllegalArgumentException("Auth key file is empty: " + authKeyFile);
+        }
+        snapToken = TokenFetcher.fetchSnapToken(authKey, "auth.scion.anapaya.net");
       }
 
       return new Cli(
           destinationIa,
           destinationIp,
           endhostApi,
+          snapControl,
           localPort,
           count,
           snapToken,
@@ -274,7 +289,8 @@ public class ScmpSnapDemo {
 
     private static String usage() {
       return "Usage: ScmpSnapDemo DEST_IA,[IP] --endhost-api URL --port PORT --count N "
-          + "--snap-token FILE [--timeout-ms MS] [--interval-ms MS] [--payload TEXT] [--log LEVEL]";
+          + "--snap-token FILE [--snap-control URL] [--timeout-ms MS] [--interval-ms MS] "
+          + "[--payload TEXT] [--log LEVEL]";
     }
   }
 }

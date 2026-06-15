@@ -38,7 +38,11 @@ public class SnapControlClient {
   private final String baseUrl;
 
   public SnapControlClient(String endpoint) {
-    this.httpClient = new OkHttpClient();
+    // The snap address from the path service is typically a bare IP:port, but the server
+    // certificate is issued to a hostname. Skip hostname verification while keeping full TLS
+    // certificate-chain validation.
+    this.httpClient =
+        new OkHttpClient.Builder().hostnameVerifier((hostname, session) -> true).build();
     this.baseUrl = normalizeBaseUrl(endpoint);
   }
 
@@ -148,7 +152,7 @@ public class SnapControlClient {
     String normalized =
         endpoint.startsWith("http://") || endpoint.startsWith("https://")
             ? endpoint
-            : "http://" + endpoint;
+            : "https://" + endpoint;
     while (normalized.endsWith("/")) {
       normalized = normalized.substring(0, normalized.length() - 1);
     }

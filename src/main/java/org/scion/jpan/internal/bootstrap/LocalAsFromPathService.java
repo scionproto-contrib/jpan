@@ -98,11 +98,19 @@ public class LocalAsFromPathService {
 
   private static List<LocalAS.SnapNode> getSnapNodeList(Underlays.ListUnderlaysResponse u) {
     if (!u.hasSnap()) {
+      LOG.debug("ListUnderlays response has no snap field");
       return Collections.emptyList();
     }
     List<LocalAS.SnapNode> snaps = new ArrayList<>();
     for (Underlays.Snap snap : u.getSnap().getSnapsList()) {
+      LOG.debug(
+          "ListUnderlays snap node: address={} isd_ases={}",
+          snap.getAddress(),
+          snap.getIsdAsesList());
       snaps.add(new LocalAS.SnapNode(snap.getAddress(), new ArrayList<>(snap.getIsdAsesList())));
+    }
+    if (snaps.isEmpty()) {
+      LOG.debug("ListUnderlays snap field present but snap list is empty");
     }
     return snaps;
   }
