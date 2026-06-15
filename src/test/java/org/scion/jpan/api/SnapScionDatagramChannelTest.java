@@ -20,9 +20,14 @@ import java.io.IOException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.internal.snap.SnapControlClient;
+import org.scion.jpan.internal.snap.SnapService;
 import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.internal.snap.TokenFetcher;
+import org.scion.jpan.testutil.MockSnapApiTokenService;
 import org.scion.jpan.testutil.MockSnapService;
 
 /**
@@ -85,6 +90,36 @@ class SnapScionDatagramChannelTest {
       // A non-null localTunnelAddress proves the handshake completed successfully and the
       // mock assigned a tunnel address to the client.
       assertNotNull(session.localTunnelAddress());
+    }
+  }
+
+  @Test
+  void connect_handshakeSucceedsWithApiToken() throws IOException {
+    // Start a mock AA service that issues tokens and a mock SNAP control service that requires one.
+    try (MockSnapApiTokenService aaService = MockSnapApiTokenService.start();
+        MockSnapService snapService =
+            MockSnapService.start("127.0.0.1:0", MockSnapApiTokenService.SNAP_TOKEN)) {
+
+      // Fetch the token from the mock AA service using the known API key.
+      String token =
+          TokenFetcher.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+      assertEquals(MockSnapApiTokenService.SNAP_TOKEN, token);
+
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, token);
+      try {
+        // Obtain dataplane info through the authenticated SNAP control API.
+        SnapControlClient controlClient = new SnapControlClient(snapService.getControlUrl());
+        SnapService dataPlane = controlClient.getDataPlaneAddress();
+
+        SnapTunnelSession session =
+            new SnapTunnelSession(
+                null, dataPlane.getAddress(), dataPlane.getSnapStaticX25519(), controlClient);
+
+        session.ensureConnected();
+        assertNotNull(session.localTunnelAddress());
+      } finally {
+        System.clearProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN);
+      }
     }
   }
 }

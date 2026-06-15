@@ -148,7 +148,7 @@ public class MockSnapService implements AutoCloseable {
   private Thread dataplaneThread;
   private SnapControlServer httpServer;
 
-  private MockSnapService(int httpPort) throws IOException {
+  private MockSnapService(int httpPort, String expectedToken) throws IOException {
     SecureRandom rng = new SecureRandom();
     staticPrivate = new X25519PrivateKeyParameters(rng);
     staticPublic = staticPrivate.generatePublicKey().getEncoded();
@@ -157,13 +157,21 @@ public class MockSnapService implements AutoCloseable {
     dataplaneChannel.bind(new InetSocketAddress("127.0.0.1", 0));
     dataplaneAddress = (InetSocketAddress) dataplaneChannel.getLocalAddress();
 
-    httpServer = new SnapControlServer(httpPort);
+    httpServer = new SnapControlServer(httpPort, expectedToken);
   }
 
   public static MockSnapService start(String address) {
+    return start(address, null);
+  }
+
+  /**
+   * Starts the service and requires a {@code Bearer <expectedToken>} on all control requests when
+   * {@code expectedToken} is non-null.
+   */
+  public static MockSnapService start(String address, String expectedToken) {
     int port = parsePort(address);
     try {
-      MockSnapService service = new MockSnapService(port);
+      MockSnapService service = new MockSnapService(port, expectedToken);
       service.startInternal();
       return service;
     } catch (IOException e) {
@@ -171,7 +179,7 @@ public class MockSnapService implements AutoCloseable {
     }
   }
 
-  private void startInternal() throws IOException {
+  private void startInternal() {
     // The HTTP server starts itself inside the SnapControlServer constructor.
     while (!httpServer.wasStarted()) {
       TestUtil.sleep(1);
@@ -316,6 +324,11 @@ public class MockSnapService implements AutoCloseable {
     return "127.0.0.1:" + httpServer.getListeningPort();
   }
 
+  /** Returns the HTTP control server base URL, e.g. {@code http://127.0.0.1:PORT}. */
+  public String getControlUrl() {
+    return "http://127.0.0.1:" + httpServer.getListeningPort();
+  }
+
   @Override
   public void close() {
     running = false;
@@ -343,13 +356,23 @@ public class MockSnapService implements AutoCloseable {
 
   private class SnapControlServer extends SimpleHttpServer {
 
-    SnapControlServer(int port) throws IOException {
+    private final String expectedToken;
+
+    SnapControlServer(int port, String expectedToken) throws IOException {
       super(port);
+      this.expectedToken = expectedToken;
       super.start();
     }
 
     @Override
     public Response serve(Session session) {
+      if (expectedToken != null) {
+        String auth = session.getAuthorization();
+        if (!("Bearer " + expectedToken).equals(auth)) {
+          return newFixedLengthResponse(
+              Response.Status.UNAUTHORIZED, MIME_PLAINTEXT, "Unauthorized");
+        }
+      }
       if (session.getMethod() != RequestMethod.POST) {
         return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "POST expected");
       }
