@@ -47,24 +47,13 @@ public class SnapControlClient {
   }
 
   public SnapService getDataPlaneAddress() {
-    ApiService.GetSnapDataPlaneRequest request =
-        ApiService.GetSnapDataPlaneRequest.newBuilder().build();
-    RequestBody requestBody = RequestBody.create(request.toByteArray());
-    Request httpRequest =
-        withAuth(
-                new Request.Builder()
-                    .url(baseUrl + SERVICE_PATH + GET_DP_PATH)
-                    .addHeader("Content-type", "application/proto"))
-            .post(requestBody)
-            .build();
-
-    try (Response response = httpClient.newCall(httpRequest).execute()) {
-      ResponseBody body = response.body();
-      if (!response.isSuccessful() || body == null) {
-        throw new IOException("Unexpected code " + response.code() + ": " + response.message());
-      }
+    try {
+      byte[] responseBytes =
+          post(
+              SERVICE_PATH + GET_DP_PATH,
+              ApiService.GetSnapDataPlaneRequest.getDefaultInstance().toByteArray());
       ApiService.GetSnapDataPlaneResponse parsed =
-          ApiService.GetSnapDataPlaneResponse.newBuilder().mergeFrom(body.bytes()).build();
+          ApiService.GetSnapDataPlaneResponse.newBuilder().mergeFrom(responseBytes).build();
       SocketAddress dpAddress = parseAddress(parsed.getAddress());
       String snapTunControl =
           parsed.hasSnapTunControlAddress() ? parsed.getSnapTunControlAddress() : null;
@@ -87,40 +76,42 @@ public class SnapControlClient {
     if (psk.length != 32) {
       throw new IllegalArgumentException("psk must be 32 bytes");
     }
+    try {
+      byte[] responseBytes =
+          post(
+              SERVICE_PATH + REGISTER_ID_PATH,
+              ApiService.RegisterSnapTunIdentityRequest.newBuilder()
+                  .setInitiatorStaticX25519(
+                      com.google.protobuf.ByteString.copyFrom(initiatorStaticX25519))
+                  .setPskShare(com.google.protobuf.ByteString.copyFrom(psk))
+                  .build()
+                  .toByteArray());
+      ApiService.RegisterSnapTunIdentityResponse parsed =
+          ApiService.RegisterSnapTunIdentityResponse.newBuilder().mergeFrom(responseBytes).build();
+      byte[] serverPsk = parsed.getPskShare().toByteArray();
+      if (serverPsk.length != 32) {
+        throw new IOException("server psk must be 32 bytes");
+      }
+      return Arrays.equals(serverPsk, new byte[32]) ? null : serverPsk;
+    } catch (IOException e) {
+      throw new ScionRuntimeException("SNAP RegisterSnapTunIdentity failed", e);
+    }
+  }
 
-    ApiService.RegisterSnapTunIdentityRequest request =
-        ApiService.RegisterSnapTunIdentityRequest.newBuilder()
-            .setInitiatorStaticX25519(
-                com.google.protobuf.ByteString.copyFrom(initiatorStaticX25519))
-            .setPskShare(com.google.protobuf.ByteString.copyFrom(psk))
-            .build();
-
-    RequestBody requestBody = RequestBody.create(request.toByteArray());
+  private byte[] post(String path, byte[] requestBytes) throws IOException {
     Request httpRequest =
         withAuth(
                 new Request.Builder()
-                    .url(baseUrl + SERVICE_PATH + REGISTER_ID_PATH)
+                    .url(baseUrl + path)
                     .addHeader("Content-type", "application/proto"))
-            .post(requestBody)
+            .post(RequestBody.create(requestBytes))
             .build();
-
     try (Response response = httpClient.newCall(httpRequest).execute()) {
       ResponseBody body = response.body();
       if (!response.isSuccessful() || body == null) {
         throw new IOException("Unexpected code " + response.code() + ": " + response.message());
       }
-      ApiService.RegisterSnapTunIdentityResponse parsed =
-          ApiService.RegisterSnapTunIdentityResponse.newBuilder().mergeFrom(body.bytes()).build();
-      byte[] serverPsk = parsed.getPskShare().toByteArray();
-      if (serverPsk.length != 32) {
-        throw new IOException("server psk must be 32 bytes");
-      }
-      if (Arrays.equals(serverPsk, new byte[32])) {
-        return null;
-      }
-      return serverPsk;
-    } catch (IOException e) {
-      throw new ScionRuntimeException("SNAP RegisterSnapTunIdentity failed", e);
+      return body.bytes();
     }
   }
 
