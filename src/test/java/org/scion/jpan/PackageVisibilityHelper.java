@@ -14,6 +14,7 @@
 
 package org.scion.jpan;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -27,6 +28,7 @@ import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.internal.snap.SnapTunnelSession;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -202,6 +204,16 @@ public class PackageVisibilityHelper {
   public static String getFirstHop(ScionService ss, PathMetadata path) {
     int id = (int) path.getInterfaces().get(0).getId();
     return IPHelper.toString(ss.getLocalAS().getBorderRouterAddress(id));
+  }
+
+  /**
+   * Creates a {@link SnapScionDatagramChannel} backed by the given {@link SnapTunnelSession}.
+   * Useful for unit-testing SNAP channel behaviour without a real {@link ScionService}.
+   */
+  public static ScionDatagramChannel openSnapChannel(SnapTunnelSession session) throws IOException {
+    DatagramChannel udp = DatagramChannel.open();
+    PathProviderNoOp provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
+    return new SnapScionDatagramChannel(null, udp, provider, session);
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {

@@ -36,6 +36,7 @@ public class MockNetwork2 implements AutoCloseable {
   // Control service
   private final MockBootstrapServer topoServer;
   private final List<MockControlServer> controlServices = new ArrayList<>();
+  private final MockSnapService snapService;
 
   // Path service
   private final List<MockPathService> pathServices = new ArrayList<>();
@@ -67,16 +68,23 @@ public class MockNetwork2 implements AutoCloseable {
   }
 
   public static MockNetwork2 start(Topology topo, String topoOfLocalAS) {
-    return new MockNetwork2(topo, new String[] {topoOfLocalAS}, false);
+    return new MockNetwork2(topo, new String[] {topoOfLocalAS}, false, false);
   }
 
   public static MockNetwork2 startPS(Topology topo, String... topoOfLocalAS) {
     // This is currently a hack. We cn provide multiple AS numbers, when instead we also want to
     // be able to provide multiple ISD numbers.
-    return new MockNetwork2(topo, topoOfLocalAS, true);
+    return new MockNetwork2(topo, topoOfLocalAS, true, false);
   }
 
-  private MockNetwork2(Topology topo, String[] toposOfLocalAS, boolean usePathService) {
+  public static MockNetwork2 startSnap(Topology topo, String... topoOfLocalAS) {
+    // This is currently a hack. We cn provide multiple AS numbers, when instead we also want to
+    // be able to provide multiple ISD numbers.
+    return new MockNetwork2(topo, topoOfLocalAS, true, true);
+  }
+
+  private MockNetwork2(
+      Topology topo, String[] toposOfLocalAS, boolean usePathService, boolean useSnap) {
     if (usePathService) {
       topoServer = null;
       List<AsInfo> localAsInfos = new ArrayList<>();
@@ -98,6 +106,17 @@ public class MockNetwork2 implements AutoCloseable {
       }
       String topoFileOfLocalAS = topo.configDir + toposOfLocalAS[0] + "/topology.json";
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);
+    }
+
+    if (useSnap) {
+      System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "SNAP");
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, MockSnapService.SNAP_TOKEN);
+      System.setProperty(
+          Constants.PROPERTY_PATH_SERVICE_AUTH_TOKEN, MockSnapService.PATH_SERVICE_TOKEN);
+      snapService = MockSnapService.start(MockSnapService.ADDRESS);
+      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, snapService.getControlAddress());
+    } else {
+      snapService = null;
     }
 
     // Initialize segments
@@ -151,9 +170,14 @@ public class MockNetwork2 implements AutoCloseable {
     if (topoServer != null) {
       topoServer.close();
     }
+    if (snapService != null) {
+      snapService.close();
+    }
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
+    System.clearProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE);
+    System.clearProperty(Constants.PROPERTY_UNDERLAY_MODE);
     // Defensive clean up
     ScionService.closeDefault();
 
