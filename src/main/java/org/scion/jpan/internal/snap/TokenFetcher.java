@@ -27,6 +27,10 @@ public class TokenFetcher {
   private TokenFetcher() {}
 
   public static String fetchSnapToken(String apiKey, String serverUrl) throws IOException {
+    String baseUrl =
+        serverUrl.startsWith("http://") || serverUrl.startsWith("https://")
+            ? serverUrl
+            : "https://" + serverUrl;
     Auth.AuthenticateByKeyRequest request =
         Auth.AuthenticateByKeyRequest.newBuilder()
             .setApiKey(apiKey)
@@ -36,7 +40,7 @@ public class TokenFetcher {
     RequestBody body = RequestBody.create(request.toByteArray());
     Request httpRequest =
         new Request.Builder()
-            .url("https://" + serverUrl + "/anapaya.aa.v1.AuthService/AuthenticateByKey")
+            .url(baseUrl + "/anapaya.aa.v1.AuthService/AuthenticateByKey")
             .addHeader("Content-type", "application/proto")
             .post(body)
             .build();
