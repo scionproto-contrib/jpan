@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -26,10 +25,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.snap.TokenFetcher;
 
-/** SCMP echo demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
-public class ScmpSnapDemo {
+/** SCMP traceroute demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
+public class SnapTracerouteDemo {
 
-  private ScmpSnapDemo() {}
+  private SnapTracerouteDemo() {}
 
   public static void main(String[] args) throws Exception {
     Cli cli = Cli.parse(args);
@@ -44,44 +43,32 @@ public class ScmpSnapDemo {
       sender.setTimeOut(cli.timeoutMs);
 
       Path path = service.getPaths(destinationIa, cli.destinationIp, Constants.SCMP_PORT).get(0);
-      byte[] payload = cli.payload.getBytes(StandardCharsets.UTF_8);
 
       System.out.println(
-          "PING "
+          "TRACEROUTE "
               + cli.destinationIa
               + ","
               + cli.destinationIp.getHostAddress()
-              + ": pld="
-              + payload.length
-              + "B local_port="
+              + ": local_port="
               + cli.localPort);
       System.out.println("Using SNAP underlay via Endhost API " + cli.endhostApi);
 
       int transmitted = 0;
       int received = 0;
-      for (int sequence = 0; sequence < cli.count; sequence++) {
+      List<Scmp.TracerouteMessage> replies = sender.sendTracerouteRequest(path);
+      for (Scmp.TracerouteMessage reply : replies) {
         transmitted++;
-        Scmp.EchoMessage reply = sender.sendEchoRequest(path, ByteBuffer.wrap(payload));
         if (reply.isTimedOut()) {
-          System.out.println("Request timeout for scmp_seq=" + sequence);
+          System.out.println("Request timeout for scmp_seq=" + reply.getIdentifier());
         } else {
           received++;
-          double millis = reply.getNanoSeconds() / 1_000_000.0;
-          System.out.println(
-              reply.getSizeReceived()
-                  + " bytes from "
-                  + cli.destinationIa
-                  + ","
-                  + cli.destinationIp.getHostAddress()
-                  + ": scmp_seq="
-                  + reply.getSequenceNumber()
-                  + " time="
-                  + String.format(java.util.Locale.ROOT, "%.3f", millis)
-                  + "ms");
-        }
-
-        if (sequence + 1 < cli.count) {
-          Thread.sleep(cli.intervalMs);
+          String millis = String.format("%.4f", reply.getNanoSeconds() / (double) 1_000_000);
+          String out = "" + reply.getSequenceNumber();
+          out += " " + ScionUtil.toStringIA(reply.getIsdAs());
+          out += " " + reply.getPath().getRemoteAddress().getHostAddress();
+          out += " IfID=" + reply.getIfID();
+          out += " " + millis + "ms";
+          System.out.println(out);
         }
       }
 
@@ -139,11 +126,8 @@ public class ScmpSnapDemo {
     final String endhostApi;
     final String snapControl;
     final int localPort;
-    final int count;
     final String snapToken;
     final int timeoutMs;
-    final int intervalMs;
-    final String payload;
     final String logLevel;
 
     private Cli(
@@ -152,28 +136,22 @@ public class ScmpSnapDemo {
         String endhostApi,
         String snapControl,
         int localPort,
-        int count,
         String snapToken,
         int timeoutMs,
-        int intervalMs,
-        String payload,
         String logLevel) {
       this.destinationIa = destinationIa;
       this.destinationIp = destinationIp;
       this.endhostApi = endhostApi;
       this.snapControl = snapControl;
       this.localPort = localPort;
-      this.count = count;
       this.snapToken = snapToken;
       this.timeoutMs = timeoutMs;
-      this.intervalMs = intervalMs;
-      this.payload = payload;
       this.logLevel = logLevel;
     }
 
     static Cli parse(String[] args) throws IOException {
       if (args.length == 0) {
-        List<String> cl = Files.readAllLines(Paths.get("snap-demo.txt"));
+        List<String> cl = Files.readAllLines(Paths.get("snap-tr-demo.txt"));
         cl =
             cl.stream()
                 .map(String::trim)
@@ -186,12 +164,9 @@ public class ScmpSnapDemo {
       String endhostApi = null;
       String snapControl = null;
       Integer localPort = null;
-      int count = 1;
       String authKeyFile = null;
       String snapTokenFile = null;
       int timeoutMs = 3000;
-      int intervalMs = 1000;
-      String payload = "";
       String logLevel = "info";
 
       for (int i = 0; i < args.length; i++) {
@@ -208,9 +183,6 @@ public class ScmpSnapDemo {
           case "--port":
             localPort = Integer.parseInt(args[++i]);
             break;
-          case "--count":
-            count = Integer.parseInt(args[++i]);
-            break;
           case "--auth-key":
             authKeyFile = args[++i];
             break;
@@ -219,12 +191,6 @@ public class ScmpSnapDemo {
             break;
           case "--timeout-ms":
             timeoutMs = Integer.parseInt(args[++i]);
-            break;
-          case "--interval-ms":
-            intervalMs = Integer.parseInt(args[++i]);
-            break;
-          case "--payload":
-            payload = args[++i];
             break;
           case "--log":
             logLevel = args[++i];
@@ -279,18 +245,15 @@ public class ScmpSnapDemo {
           endhostApi,
           snapControl,
           localPort,
-          count,
           snapToken,
           timeoutMs,
-          intervalMs,
-          payload,
           logLevel);
     }
 
     private static String usage() {
-      return "Usage: ScmpSnapDemo DEST_IA,[IP] --endhost-api URL --port PORT --count N "
-          + "--snap-token FILE [--snap-control URL] [--timeout-ms MS] [--interval-ms MS] "
-          + "[--payload TEXT] [--log LEVEL]";
+      return "Usage: SnapTracerouteDemo DEST_IA,[IP] --endhost-api URL --port PORT "
+          + "--snap-token FILE [--snap-control URL] [--timeout-ms MS] "
+          + "[--log LEVEL]";
     }
   }
 }
