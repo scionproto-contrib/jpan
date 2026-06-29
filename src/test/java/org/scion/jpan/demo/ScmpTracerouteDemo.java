@@ -98,7 +98,8 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
-          return runDemo(ScionUtil.parseIA("65-2:0:6c"));
+          // return runDemo(ScionUtil.parseIA("65-2:0:6c"));
+          return runDemo(DemoConstants.iaGEANT);
           // runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
         }
