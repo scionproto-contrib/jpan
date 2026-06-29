@@ -36,6 +36,7 @@ import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.paths.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -840,9 +841,9 @@ class DatagramSocketApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathProvider ppNoOp = PathProviderNoOp.create(policy);
+    PathSelectorFactory ppNoOp = PathSelectorFactory.NoOp.create(policy);
     try (ScionDatagramSocket server =
-        ScionDatagramSocket.newBuilder().bind(DUMMY_PORT).provider(ppNoOp).open()) {
+        ScionDatagramSocket.newBuilder().bind(DUMMY_PORT).pathSelectorFactory(ppNoOp).open()) {
       assertFalse(server.isConnected());
       assertSame(ppNoOp, server.getPathProvider());
       assertSame(policy, server.getPathPolicy());

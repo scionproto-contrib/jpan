@@ -16,7 +16,10 @@ package org.scion.jpan.internal;
 
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
+import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.Scmp;
+
+import java.net.InetSocketAddress;
 
 /**
  * A PathProvider provides the next best path. Lifecycle:<br>
@@ -62,6 +65,10 @@ public interface PathProvider {
   PathPolicy getPathPolicy();
 
   void setPathPolicy(PathPolicy pathPolicy);
+
+  void connect(InetSocketAddress remote);
+
+  void connect(ScionSocketAddress remote);
 
   /**
    * Initialize the PathProvider with an existing path and start providing paths. The path provider

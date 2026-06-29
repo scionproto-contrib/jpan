@@ -37,6 +37,7 @@ import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.util.ExternalIpDiscovery;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.paths.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -806,8 +807,8 @@ class DatagramChannelApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathProvider ppNoOp = PathProviderNoOp.create(policy);
-    try (ScionDatagramChannel channel = ScionDatagramChannel.newBuilder().provider(ppNoOp).open()) {
+    PathSelectorFactory ppNoOp = PathSelectorFactory.NoOp.create(policy);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.newBuilder().pathSelectorFactory(ppNoOp).open()) {
       assertFalse(channel.isConnected());
       assertSame(ppNoOp, channel.getPathProvider());
       assertSame(policy, channel.getPathPolicy());

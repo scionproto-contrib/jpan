@@ -362,6 +362,50 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
+  public synchronized void connect(InetSocketAddress remote) {
+    if (isConnected()) {
+      throw new IllegalStateException("Path provider is already connected");
+    }
+
+    ScionAddress sa;
+    try {
+      sa = AddressLookupService.lookupAddress(remote.getHostString());
+    } catch (ScionException e) {
+      throw new RuntimeException(e);
+    }
+
+    this.dstIsdAs = sa.getIsdAs();
+    this.dstAddress = remote;
+
+    // fetch new paths
+    refreshPaths();
+
+    timerFuture =
+            timer.scheduleAtFixedRate(
+                    timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+
+    assertPathExists();
+  }
+
+  @Override
+  public synchronized void connect(ScionSocketAddress remote) {
+    if (isConnected()) {
+      throw new IllegalStateException("Path provider is already connected");
+    }
+    this.dstIsdAs = remote.getIsdAs();
+    this.dstAddress = remote;
+
+    // fetch new paths
+    refreshPaths();
+
+    timerFuture =
+            timer.scheduleAtFixedRate(
+                    timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+
+    assertPathExists();
+  }
+
+  @Override
   public synchronized void connect(Path path) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");

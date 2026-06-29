@@ -17,6 +17,8 @@ package org.scion.jpan.internal;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+
 import org.scion.jpan.*;
 
 /**
@@ -127,6 +129,50 @@ public class PathProviderNoOp implements PathProvider {
 
   private boolean isExpired(Path path) {
     return path.getMetadata().getExpiration() < Instant.now().getEpochSecond();
+  }
+
+  @Override
+  public synchronized void connect(InetSocketAddress remote) {
+    if (isConnected()) {
+      throw new IllegalStateException("Path provider is already connected");
+    }
+
+    ScionAddress sa;
+    try {
+      sa = AddressLookupService.lookupAddress(remote.getHostString());
+    } catch (ScionException e) {
+      throw new RuntimeException(e);
+    }
+
+    this.dstIsdAs = sa.getIsdAs();
+    this.dstAddress = remote;
+
+    usedPath = null;
+    subscriber.updatePath(null);
+    assertPathExists(); // This will throw an exception
+
+    checkPathPolicy();
+  }
+
+  @Override
+  public void connect(ScionSocketAddress remote) {
+    if (isConnected()) {
+      throw new IllegalStateException("Path provider is already connected");
+    }
+    this.dstIsdAs = remote.getIsdAs();
+    this.dstAddress = remote;
+
+    if (isExpired(remote.getPath())) {
+      usedPath = null;
+      subscriber.updatePath(null);
+      assertPathExists(); // This will throw an exception
+      return;
+    }
+
+    // use this path
+    usedPath = remote.getPath();
+    subscriber.updatePath(remote.getPath());
+    checkPathPolicy();
   }
 
   @Override

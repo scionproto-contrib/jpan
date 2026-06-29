@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.paths.PathSelectorFactory;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockBorderRouter;
@@ -85,8 +86,9 @@ class MultiIsdTest {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
           PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
+          PathSelectorFactory psf = PathProviderRotator.FixedFactory.create(pp);
           try (ScionDatagramChannel client =
-              ScionDatagramChannel.newBuilder().provider(pp).open()) {
+              ScionDatagramChannel.newBuilder().pathSelectorFactory(psf).open()) {
             client.connect(pathBySourceAs.get(AS_111));
             client.write(ByteBuffer.wrap("from-111".getBytes()));
             assertEquals("from-111", readString(client));
@@ -125,7 +127,8 @@ class MultiIsdTest {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
           PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
-          try (ScionDatagramSocket client = ScionDatagramSocket.newBuilder().provider(pp).open()) {
+          PathSelectorFactory psf = PathProviderRotator.FixedFactory.create(pp);
+          try (ScionDatagramSocket client = ScionDatagramSocket.newBuilder().pathSelectorFactory(psf).open()) {
             client.connect(p111);
             String msg1 = "from-111";
             InetSocketAddress a1 = pathBySourceAs.get(AS_111).getRemoteSocketAddress();

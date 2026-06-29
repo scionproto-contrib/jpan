@@ -27,6 +27,7 @@ import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.paths.PathSelectorFactory;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -46,16 +47,16 @@ class CustomChannelTest {
       return new TcpChannel(
           Scion.defaultService(),
           DatagramChannel.open(),
-          PathProviderNoOp.create(PathPolicy.DEFAULT));
+              PathSelectorFactory.NoOp.instance());
     }
 
     static TcpChannel open(DatagramChannel channel) {
       return new TcpChannel(
-          Scion.defaultService(), channel, PathProviderNoOp.create(PathPolicy.DEFAULT));
+          Scion.defaultService(), channel, PathSelectorFactory.NoOp.instance());
     }
 
-    protected TcpChannel(ScionService service, DatagramChannel channel, PathProvider pathProvider) {
-      super(service, channel, pathProvider);
+    protected TcpChannel(ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
+      super(service, channel, factory);
     }
 
     @Override

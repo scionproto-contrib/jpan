@@ -34,6 +34,7 @@ import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.paths.PathSelectorFactory;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
@@ -57,16 +58,18 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
-  private final PathProvider pathProvider;
+  private PathProvider pathProvider;
+  private final PathSelectorFactory pathSelectorFactory;
 
   protected AbstractScionChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider) {
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelectorFactory pathSelectorFactory) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
-    this.pathProvider = pathProvider;
-    this.pathProvider.subscribe(this::pathUpdateCallback);
+    this.pathSelectorFactory = pathSelectorFactory;
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -83,7 +86,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   public PathPolicy getPathPolicy() {
     synchronized (stateLock) {
-      return this.pathProvider.getPathPolicy();
+      return pathProvider == null ? null : pathProvider.getPathPolicy();
     }
   }
 
@@ -229,7 +232,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void disconnect() throws IOException {
     synchronized (stateLock) {
       connectionPath = null;
-      pathProvider.disconnect();
+      if (pathProvider != null) {
+        pathProvider.disconnect();
+        pathProvider = null;
+      }
     }
   }
 
@@ -245,7 +251,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       if (natMapping != null) {
         natMapping.close();
       }
-      pathProvider.disconnect();
+      if (pathProvider != null) {
+        pathProvider.disconnect();
+        pathProvider = null;
+      }
       channel.disconnect();
       channel.close();
       connectionPath = null;
@@ -281,8 +290,22 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       }
       InetSocketAddress destination = (InetSocketAddress) addr;
 
-      Path path = applyFilter(getService().lookupPaths(destination), destination).get(0);
-      return connect(path);
+      synchronized (stateLock) {
+        checkConnected(false);
+        ensureBound();
+        if (localAddress.isAnyLocalAddress()) {
+          // Do we really need this?
+          // - It ensures that after connect we have a proper local address for getLocalAddress(),
+          //   this is what connect() should do.
+          // - It allows us to have an ANY address underneath which could help with interface
+          //   switching.
+          localAddress = getNatMapping().getExternalIP();
+        }
+        pathProvider = pathSelectorFactory.getPathProvider(service, destination, this::pathUpdateCallback);
+//        pathProvider.subscribe(this::pathUpdateCallback);
+//        pathProvider.connect(destination); // TODO simplify
+        return (C) this;
+      }
     }
   }
 
@@ -352,7 +375,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathProvider.connect(path);
+      pathProvider = pathSelectorFactory.getPathProvider(service, path.getRemoteSocketAddress(), this::pathUpdateCallback);
+//      pathProvider.subscribe(this::pathUpdateCallback);
+//      pathProvider.connect(path); // TODO simplify
       return (C) this;
     }
   }

@@ -28,6 +28,7 @@ import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.paths.PathSelectorFactory;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
@@ -39,9 +40,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
 
   protected ScionDatagramChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider)
+          ScionService service, java.nio.channels.DatagramChannel channel, PathSelectorFactory factory)
       throws IOException {
-    super(service, channel, pathProvider);
+    super(service, channel, factory);
   }
 
   /**
@@ -328,7 +329,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   public static class Builder {
     protected ScionService service;
     protected boolean nullService = false;
-    protected PathProvider provider;
+    protected PathSelectorFactory factory;
     protected DatagramChannel channel;
 
     /**
@@ -342,13 +343,12 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     }
 
     /**
-     * @param provider A {@link PathProvider} to be used. If the {@link #service(ScionService)} has
-     *     been set to null, the default PathProvider is {@link PathProviderNoOp}, otherwise it is
-     *     {@link PathProviderWithRefresh}.
+     * @param factory A {@link PathSelectorFactory} to be used. If this value is not set,
+     *                the default {@link PathSelectorFactory} is used.
      * @return This builder.
      */
-    public Builder provider(PathProvider provider) {
-      this.provider = provider;
+    public Builder pathSelectorFactory(PathSelectorFactory factory) {
+      this.factory = factory;
       return this;
     }
 
@@ -374,15 +374,15 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         channel = java.nio.channels.DatagramChannel.open();
       }
 
-      if (provider == null) {
+      if (factory == null) {
         if (service == null) {
-          provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
+          factory = PathSelectorFactory.NoOp.instance();
         } else {
-          provider = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+          factory = PathSelectorFactory.Default.instance();
         }
       }
 
-      return new ScionDatagramChannel(service, channel, provider);
+      return new ScionDatagramChannel(service, channel, factory);
     }
   }
 }

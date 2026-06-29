@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.util.SimpleCache;
+import org.scion.jpan.paths.PathSelectorFactory;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
@@ -296,6 +297,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
           path = pathCache.get(addr);
           if (path == null) {
             path = channel.applyFilter(channel.getService().lookupPaths(addr), addr).get(0);
+            path = channel.getPathProvider().getPath();
           } else if (path instanceof RequestPath
               && path.getMetadata().getExpiration() < Instant.now().getEpochSecond()) {
             // check expiration only for RequestPaths
@@ -722,7 +724,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     private SocketAddress bindAddress;
     private ScionService service;
     private boolean nullService = false;
-    private PathProvider provider;
+    private PathSelectorFactory factory;
     private DatagramChannel channel;
 
     public Builder bind(int port) {
@@ -754,13 +756,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     }
 
     /**
-     * @param provider A {@link PathProvider} to be used. If the {@link #service(ScionService)} has
-     *     been set to null, the default PathProvider is {@link PathProviderNoOp}, otherwise it is
-     *     {@link PathProviderWithRefresh}.
+     * @param factory A {@link PathSelectorFactory} to be used. If this value is not set,
+     *                the default {@link PathSelectorFactory} is used.
      * @return This builder.
      */
-    public Builder provider(PathProvider provider) {
-      this.provider = provider;
+    public Builder pathSelectorFactory(PathSelectorFactory factory) {
+      this.factory = factory;
       return this;
     }
 
@@ -779,7 +780,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     public ScionDatagramSocket open() throws SocketException {
       SelectingDatagramChannel.Builder builder = SelectingDatagramChannel.newBuilder();
       builder.channel(channel);
-      builder.provider(provider);
+      builder.pathSelectorFactory(factory);
       if (nullService || service != null) {
         builder.service(service);
       }

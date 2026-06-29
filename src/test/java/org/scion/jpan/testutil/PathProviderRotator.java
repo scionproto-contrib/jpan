@@ -14,9 +14,13 @@
 
 package org.scion.jpan.testutil;
 
+import java.net.InetSocketAddress;
 import java.util.*;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.internal.ScionAddress;
+import org.scion.jpan.paths.PathSelectorFactory;
 
 /**
  * The PathProviderRotator is a simple provider that operates on a fixed list of paths.
@@ -113,6 +117,52 @@ public class PathProviderRotator implements PathProvider {
   }
 
   @Override
+  public synchronized void connect(InetSocketAddress remote) {
+    if (true) {
+      throw new UnsupportedOperationException();
+    }
+    if (isConnected()) {
+      throw new IllegalStateException("Path provider is already connected");
+    }
+
+    ScionAddress sa;
+    try {
+      sa = AddressLookupService.lookupAddress(remote.getHostString());
+    } catch (ScionException e) {
+      throw new RuntimeException(e);
+    }
+
+//    this.dstIsdAs = sa.getIsdAs();
+//    this.dstAddress = remote;
+//
+//    // use this path
+//    if (remote.getPath() != usedPaths.get(0)) {
+//      throw new IllegalArgumentException();
+//    }
+//    subscriber.updatePath(remote.getPath());
+//    checkPathPolicy();
+  }
+
+  @Override
+  public void connect(ScionSocketAddress remote) {
+    if (true) {
+      throw new UnsupportedOperationException();
+    }
+    if (isConnected()) {
+      throw new IllegalStateException("Path provider is already connected");
+    }
+    this.dstIsdAs = remote.getIsdAs();
+    this.dstAddress = remote;
+
+    // use this path
+    if (remote.getPath() != usedPaths.get(0)) {
+      throw new IllegalArgumentException();
+    }
+    subscriber.updatePath(remote.getPath());
+    checkPathPolicy();
+  }
+
+  @Override
   public void connect(Path path) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
@@ -146,5 +196,23 @@ public class PathProviderRotator implements PathProvider {
   private void getNextPath() {
     usedPaths.add(usedPaths.remove(0));
     subscriber.updatePath(usedPaths.get(0));
+  }
+
+  public static class FixedFactory implements PathSelectorFactory {
+    private final PathProvider selector;
+
+    protected FixedFactory(PathProvider selector) {
+      this.selector = selector;
+    }
+
+    public static PathSelectorFactory create(PathProvider selector) {
+      return new FixedFactory(selector);
+    }
+
+    public PathProvider getPathProvider(ScionService service, InetSocketAddress remote, PathProvider.PathUpdateCallback pathUpdateCallback) {
+      selector.subscribe(pathUpdateCallback);
+      selector.connect(remote);
+      return selector;
+    }
   }
 }

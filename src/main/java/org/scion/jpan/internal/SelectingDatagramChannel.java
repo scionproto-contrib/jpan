@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.paths.PathSelectorFactory;
 
 /**
  * DatagramChannel with support for timeout.
@@ -39,8 +40,8 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   }
 
   public SelectingDatagramChannel(
-      ScionService service, DatagramChannel channel, PathProvider provider) throws IOException {
-    super(service, channel, provider);
+          ScionService service, DatagramChannel channel, PathSelectorFactory factory) throws IOException {
+    super(service, channel, factory);
 
     // selector
     this.selector = channel.provider().openSelector();
@@ -129,15 +130,15 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
         channel = java.nio.channels.DatagramChannel.open();
       }
 
-      if (provider == null) {
+      if (factory == null) {
         if (service == null) {
-          provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
+          factory = PathSelectorFactory.NoOp.instance();
         } else {
-          provider = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+          factory = PathSelectorFactory.Default.instance();
         }
       }
 
-      return new SelectingDatagramChannel(service, channel, provider);
+      return new SelectingDatagramChannel(service, channel, factory);
     }
   }
 }
