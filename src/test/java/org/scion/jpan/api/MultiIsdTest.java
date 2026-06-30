@@ -98,6 +98,9 @@ class MultiIsdTest {
 
             client.write(ByteBuffer.wrap("from-112".getBytes()));
             assertEquals("from-112", readString(client));
+          } catch (Throwable e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
           }
         };
     test(test);
@@ -128,7 +131,8 @@ class MultiIsdTest {
           Path p112 = pathBySourceAs.get(AS_112);
           PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
           PathSelectorFactory psf = PathProviderRotator.FixedFactory.create(pp);
-          try (ScionDatagramSocket client = ScionDatagramSocket.newBuilder().pathSelectorFactory(psf).open()) {
+          try (ScionDatagramSocket client =
+              ScionDatagramSocket.newBuilder().pathSelectorFactory(psf).open()) {
             client.connect(p111);
             String msg1 = "from-111";
             InetSocketAddress a1 = pathBySourceAs.get(AS_111).getRemoteSocketAddress();

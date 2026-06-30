@@ -42,7 +42,10 @@ public final class ScionSocketOptions {
   /**
    * Before sending a packet, a new path will be requested if now() + pathExpirationMargin >
    * pathExpirationDate.
+   *
+   * @deprecated To be removed in 0.8.0
    */
+  @Deprecated // To be removed in 0.8.0
   public static final SocketOption<Integer> SCION_PATH_EXPIRY_MARGIN =
       new SciSocketOption<>("SCION_PATH_EXPIRY_MARGIN", Integer.class);
 

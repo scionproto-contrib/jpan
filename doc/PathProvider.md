@@ -54,6 +54,17 @@ Clients have several options:
   This is useful for server side implementations.
 - `send(non-SCION-address)` will create and use a default `PathProvider`.
 
+## Changes / Migration Guide
+
+- `send(Path)` will not refresh paths anymore.
+  To enable Path refreshing, implement a flag? TODO
+- `getPathPolicy()`/`setPathPolicy()` (Channel + Socket). 
+  These will be moved to PathProviders.
+  They are only available when a PathProvider is available, i.e. when connected. 
+- `getMappedPath(Path)` has been removed. `getMappedPath(address)` is still available (?)
+- `SCION_PATH_EXPIRY_MARGIN` is not a channel option anymore. Please set this 
+  directly in the PathProvider.
+
 ## TODO
 
 - Check if ScionService and PathPolicy should reside in AbstractChannel or in PathProvider

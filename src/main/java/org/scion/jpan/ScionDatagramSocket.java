@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyBoundException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.IllegalBlockingModeException;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,6 +56,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
   private final SelectingDatagramChannel channel;
   private boolean isBound = false;
+  // The path cache is used in server applications. Incoming packets are added to the path cache.
+  // Outgoing response packets try to use the cached paths.
   private final SimpleCache<InetSocketAddress, Path> pathCache = new SimpleCache<>(100);
   private final Object closeLock = new Object();
 
@@ -296,18 +297,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
         synchronized (pathCache) {
           path = pathCache.get(addr);
           if (path == null) {
-            path = channel.applyFilter(channel.getService().lookupPaths(addr), addr).get(0);
-            path = channel.getPathProvider().getPath();
-          } else if (path instanceof RequestPath
-              && path.getMetadata().getExpiration() < Instant.now().getEpochSecond()) {
-            // check expiration only for RequestPaths
-            RequestPath request = (RequestPath) path;
-            path = channel.applyFilter(channel.getService().getPaths(request), addr).get(0);
+            // We don't have a path.
+            ByteBuffer buf =
+                ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+            channel.send(buf, addr);
+            return;
           }
-          if (path == null) {
-            throw new IOException("Address is not resolvable in SCION: " + addr.getAddress());
-          }
-          pathCache.put(addr, path);
         }
       }
       ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
@@ -334,6 +329,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
       if (!channel.isConnected()) {
         synchronized (pathCache) {
           InetAddress ip = path.getRemoteAddress();
+          // TODO this a bit of a security problem, an attacker can send packets from many different
+          //   locations (paths) in order to have the cache overflow and forget useful paths.
           pathCache.put(new InetSocketAddress(ip, path.getRemotePort()), path);
         }
       }
@@ -599,25 +596,6 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     return channel.getService();
   }
 
-  public synchronized PathPolicy getPathPolicy() {
-    return channel.getPathPolicy();
-  }
-
-  /**
-   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
-   * socket is connected, this method will request a new path using the new policy.
-   *
-   * <p>After initially setting the path policy, it is used to request a new path during write() and
-   * send() whenever a path turns out to be close to expiration.
-   *
-   * @param pathPolicy the new path policy
-   * @see PathPolicy#DEFAULT
-   * @see ScionDatagramChannel#setPathPolicy(PathPolicy)
-   */
-  public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
-    channel.setPathPolicy(pathPolicy);
-  }
-
   /**
    * Specify an source address override. See {@link
    * ScionDatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
@@ -630,6 +608,10 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
   public PathProvider getPathProvider() {
     return channel.getPathProvider();
+  }
+
+  public PathSelectorFactory getPathSelectorFactory() {
+    return channel.getPathSelectorFactory();
   }
 
   private static class DummyDatagramSocketImpl extends DatagramSocketImpl {
@@ -756,8 +738,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     }
 
     /**
-     * @param factory A {@link PathSelectorFactory} to be used. If this value is not set,
-     *                the default {@link PathSelectorFactory} is used.
+     * @param factory A {@link PathSelectorFactory} to be used. If this value is not set, the
+     *     default {@link PathSelectorFactory} is used.
      * @return This builder.
      */
     public Builder pathSelectorFactory(PathSelectorFactory factory) {

@@ -14,12 +14,12 @@
 
 package org.scion.jpan.internal;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
 import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.Scmp;
-
-import java.net.InetSocketAddress;
 
 /**
  * A PathProvider provides the next best path. Lifecycle:<br>
@@ -66,7 +66,7 @@ public interface PathProvider {
 
   void setPathPolicy(PathPolicy pathPolicy);
 
-  void connect(InetSocketAddress remote);
+  void connect(InetSocketAddress remote) throws IOException;
 
   void connect(ScionSocketAddress remote);
 
@@ -85,6 +85,8 @@ public interface PathProvider {
   void disconnect();
 
   void setExpirationSafetyMargin(int cfgExpirationSafetyMargin);
+
+  Path getPath();
 
   interface PathUpdateCallback {
     void updatePath(Path newPath);

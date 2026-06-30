@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.time.Instant;
 import java.util.List;
-import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
@@ -175,7 +174,7 @@ public class PackageVisibilityHelper {
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
     protected AbstractChannel(
-            ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
+        ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
       super(service, channel, factory);
     }
   }

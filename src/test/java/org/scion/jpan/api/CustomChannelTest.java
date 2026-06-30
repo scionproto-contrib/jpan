@@ -45,17 +45,15 @@ class CustomChannelTest {
 
     static TcpChannel open() throws IOException {
       return new TcpChannel(
-          Scion.defaultService(),
-          DatagramChannel.open(),
-              PathSelectorFactory.NoOp.instance());
+          Scion.defaultService(), DatagramChannel.open(), PathSelectorFactory.NoOp.instance());
     }
 
     static TcpChannel open(DatagramChannel channel) {
-      return new TcpChannel(
-          Scion.defaultService(), channel, PathSelectorFactory.NoOp.instance());
+      return new TcpChannel(Scion.defaultService(), channel, PathSelectorFactory.NoOp.instance());
     }
 
-    protected TcpChannel(ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
+    protected TcpChannel(
+        ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
       super(service, channel, factory);
     }
 

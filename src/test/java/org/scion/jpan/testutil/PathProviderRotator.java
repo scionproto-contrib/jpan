@@ -14,6 +14,7 @@
 
 package org.scion.jpan.testutil;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import org.scion.jpan.*;
@@ -117,7 +118,12 @@ public class PathProviderRotator implements PathProvider {
   }
 
   @Override
-  public synchronized void connect(InetSocketAddress remote) {
+  public synchronized Path getPath() {
+    return usedPaths.get(0);
+  }
+
+  @Override
+  public synchronized void connect(InetSocketAddress remote) throws IOException {
     if (true) {
       throw new UnsupportedOperationException();
     }
@@ -129,18 +135,18 @@ public class PathProviderRotator implements PathProvider {
     try {
       sa = AddressLookupService.lookupAddress(remote.getHostString());
     } catch (ScionException e) {
-      throw new RuntimeException(e);
+      throw new IOException(e);
     }
 
-//    this.dstIsdAs = sa.getIsdAs();
-//    this.dstAddress = remote;
-//
-//    // use this path
-//    if (remote.getPath() != usedPaths.get(0)) {
-//      throw new IllegalArgumentException();
-//    }
-//    subscriber.updatePath(remote.getPath());
-//    checkPathPolicy();
+    //    this.dstIsdAs = sa.getIsdAs();
+    //    this.dstAddress = remote;
+    //
+    //    // use this path
+    //    if (remote.getPath() != usedPaths.get(0)) {
+    //      throw new IllegalArgumentException();
+    //    }
+    //    subscriber.updatePath(remote.getPath());
+    //    checkPathPolicy();
   }
 
   @Override
@@ -209,9 +215,27 @@ public class PathProviderRotator implements PathProvider {
       return new FixedFactory(selector);
     }
 
-    public PathProvider getPathProvider(ScionService service, InetSocketAddress remote, PathProvider.PathUpdateCallback pathUpdateCallback) {
+    public PathProvider createPathSelector(
+        ScionService service,
+        InetSocketAddress remote,
+        PathProvider.PathUpdateCallback pathUpdateCallback)
+        throws IOException {
       selector.subscribe(pathUpdateCallback);
-      selector.connect(remote);
+      if (remote instanceof ScionSocketAddress) {
+        selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
+      } else {
+        List<Path> paths = null;
+        try {
+          paths = service.lookupPaths(remote);
+        } catch (ScionException e) {
+          throw new IOException(e);
+        }
+
+        if (paths.isEmpty()) {
+          throw new ScionRuntimeException("No paths found for remote address " + remote);
+        }
+        selector.connect(paths.get(0)); // TODO this is not nice!
+      }
       return selector;
     }
   }

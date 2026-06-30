@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
@@ -50,6 +49,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   // This path is only used for write() after connect(), not for send().
   // Whether we have a connectionPath is independent of whether the underlying channel is connected.
   private RequestPath connectionPath;
+  private boolean isConnected = false;
   private InetAddress localAddress;
   private boolean cfgReportFailedValidation = false;
   private final ScionService service;
@@ -84,45 +84,22 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     }
   }
 
-  public PathPolicy getPathPolicy() {
-    synchronized (stateLock) {
-      return pathProvider == null ? null : pathProvider.getPathPolicy();
-    }
-  }
-
   public PathProvider getPathProvider() {
     return pathProvider;
+  }
+
+  public PathSelectorFactory getPathSelectorFactory() {
+    return pathSelectorFactory;
+  }
+
+  protected PathProvider createPathProvider(InetSocketAddress remote) throws IOException {
+    return pathSelectorFactory.createPathSelector(service, remote, this::pathUpdateCallback);
   }
 
   private void pathUpdateCallback(Path newPath) {
     synchronized (stateLock) {
       connectionPath = (RequestPath) newPath;
     }
-  }
-
-  /**
-   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
-   * channel is connected, this method will request a new path using the new policy.
-   *
-   * <p>After initially setting the path policy, it is used to request a new path during write() and
-   * send() whenever a path turns out to be close to expiration.
-   *
-   * @param pathPolicy the new path policy
-   * @see PathPolicy#DEFAULT
-   */
-  public void setPathPolicy(PathPolicy pathPolicy) {
-    synchronized (stateLock) {
-      this.pathProvider.setPathPolicy(pathPolicy);
-    }
-  }
-
-  protected List<Path> applyFilter(List<Path> paths, InetSocketAddress address)
-      throws ScionRuntimeException {
-    List<Path> filtered = getPathPolicy().filter(paths);
-    if (filtered.isEmpty()) {
-      throw new ScionRuntimeException("No path found to destination: " + address);
-    }
-    return filtered;
   }
 
   /**
@@ -222,6 +199,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * @throws IOException If an I/O error occurs
    */
   public InetSocketAddress getRemoteAddress() throws IOException {
+    if (!isConnected) {
+      return null;
+    }
     Path path = getConnectionPath();
     if (path != null) {
       return path.getRemoteSocketAddress();
@@ -231,6 +211,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   public void disconnect() throws IOException {
     synchronized (stateLock) {
+      isConnected = false;
       connectionPath = null;
       if (pathProvider != null) {
         pathProvider.disconnect();
@@ -248,6 +229,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   @Override
   public void close() throws IOException {
     synchronized (stateLock) {
+      isConnected = false;
       if (natMapping != null) {
         natMapping.close();
       }
@@ -301,9 +283,11 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           //   switching.
           localAddress = getNatMapping().getExternalIP();
         }
-        pathProvider = pathSelectorFactory.getPathProvider(service, destination, this::pathUpdateCallback);
-//        pathProvider.subscribe(this::pathUpdateCallback);
-//        pathProvider.connect(destination); // TODO simplify
+        pathProvider =
+            pathSelectorFactory.createPathSelector(service, destination, this::pathUpdateCallback);
+        //        pathProvider.subscribe(this::pathUpdateCallback);
+        //        pathProvider.connect(destination); // TODO simplify
+        isConnected = true;
         return (C) this;
       }
     }
@@ -375,9 +359,12 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathProvider = pathSelectorFactory.getPathProvider(service, path.getRemoteSocketAddress(), this::pathUpdateCallback);
-//      pathProvider.subscribe(this::pathUpdateCallback);
-//      pathProvider.connect(path); // TODO simplify
+      pathProvider =
+          pathSelectorFactory.createPathSelector(
+              service, path.getRemoteSocketAddress(), this::pathUpdateCallback);
+      //      pathProvider.subscribe(this::pathUpdateCallback);
+      //      pathProvider.connect(path); // TODO simplify
+      isConnected = true;
       return (C) this;
     }
   }
@@ -390,7 +377,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    */
   public Path getConnectionPath() {
     synchronized (stateLock) {
-      return connectionPath;
+      return isConnected ? connectionPath : null;
     }
   }
 
@@ -597,7 +584,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   protected void checkConnected(boolean requiredState) {
     synchronized (stateLock) {
-      boolean isConnected = connectionPath != null;
       if (requiredState != isConnected) {
         if (isConnected) {
           throw new AlreadyConnectedException();
@@ -610,7 +596,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   public boolean isConnected() {
     synchronized (stateLock) {
-      return connectionPath != null;
+      return isConnected;
     }
   }
 

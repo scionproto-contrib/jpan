@@ -167,6 +167,18 @@ TODO
 
 ## 0.8.0 - WIP
 
+### Added
+
+- PathSelector API
+  [#275](https://github.com/scionproto-contrib/jpan/pull/275)
+
+TODO
+- ScionDatagramPacket: Should be used to avoid caching and security issues in DatagramSocket. 
+- PathProvider
+  - javadoc
+  - rename to PathSelector
+  - move to public package
+
 ### Fixed
 
 - Fix default discovery service port to be 8041

@@ -40,7 +40,8 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   }
 
   public SelectingDatagramChannel(
-          ScionService service, DatagramChannel channel, PathSelectorFactory factory) throws IOException {
+      ScionService service, DatagramChannel channel, PathSelectorFactory factory)
+      throws IOException {
     super(service, channel, factory);
 
     // selector

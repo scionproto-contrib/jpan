@@ -14,6 +14,7 @@
 
 package org.scion.jpan.internal;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
@@ -362,7 +363,12 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
-  public synchronized void connect(InetSocketAddress remote) {
+  public synchronized Path getPath() {
+    return usedPath == null ? null : usedPath.path;
+  }
+
+  @Override
+  public synchronized void connect(InetSocketAddress remote) throws IOException {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
@@ -371,7 +377,7 @@ public class PathProviderWithRefresh implements PathProvider {
     try {
       sa = AddressLookupService.lookupAddress(remote.getHostString());
     } catch (ScionException e) {
-      throw new RuntimeException(e);
+      throw new IOException(e);
     }
 
     this.dstIsdAs = sa.getIsdAs();
@@ -381,8 +387,8 @@ public class PathProviderWithRefresh implements PathProvider {
     refreshPaths();
 
     timerFuture =
-            timer.scheduleAtFixedRate(
-                    timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(
+            timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
 
     assertPathExists();
   }
@@ -399,8 +405,8 @@ public class PathProviderWithRefresh implements PathProvider {
     refreshPaths();
 
     timerFuture =
-            timer.scheduleAtFixedRate(
-                    timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(
+            timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
 
     assertPathExists();
   }

@@ -14,11 +14,10 @@
 
 package org.scion.jpan.internal;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-
 import org.scion.jpan.*;
 
 /**
@@ -132,7 +131,12 @@ public class PathProviderNoOp implements PathProvider {
   }
 
   @Override
-  public synchronized void connect(InetSocketAddress remote) {
+  public synchronized Path getPath() {
+    return usedPath;
+  }
+
+  @Override
+  public synchronized void connect(InetSocketAddress remote) throws IOException {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
@@ -141,7 +145,7 @@ public class PathProviderNoOp implements PathProvider {
     try {
       sa = AddressLookupService.lookupAddress(remote.getHostString());
     } catch (ScionException e) {
-      throw new RuntimeException(e);
+      throw new IOException(e);
     }
 
     this.dstIsdAs = sa.getIsdAs();

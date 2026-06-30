@@ -14,9 +14,9 @@
 
 package org.scion.jpan.paths;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
-
 import org.scion.jpan.*;
 import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.PathProviderNoOp;
@@ -24,21 +24,47 @@ import org.scion.jpan.internal.PathProviderWithRefresh;
 
 public interface PathSelectorFactory {
 
-  PathProvider getPathProvider(ScionService service, InetSocketAddress destination, PathProvider.PathUpdateCallback pathUpdateCallback);
+  PathProvider createPathSelector(
+      ScionService service,
+      InetSocketAddress destination,
+      PathProvider.PathUpdateCallback pathUpdateCallback)
+      throws IOException;
 
-  class Default implements PathSelectorFactory {
+  abstract class AbstractPathSelectorFactory implements PathSelectorFactory {
+    private final PathPolicy defaultPolicy;
 
-    private static final PathSelectorFactory INSTANCE = new Default();
+    protected AbstractPathSelectorFactory(PathPolicy defaultPolicy) {
+      this.defaultPolicy = defaultPolicy;
+    }
+
+    public PathPolicy getDefaultPolicy() {
+      return defaultPolicy;
+    }
+  }
+
+  class Default extends AbstractPathSelectorFactory {
+
+    private static final PathSelectorFactory INSTANCE = new Default(PathPolicy.DEFAULT);
 
     public static PathSelectorFactory instance() {
       return INSTANCE;
     }
 
-    protected Default() {}
+    protected Default(PathPolicy defaultPolicy) {
+      super(defaultPolicy);
+    }
 
-    public PathProvider getPathProvider(ScionService service, InetSocketAddress remote, PathProvider.PathUpdateCallback pathUpdateCallback) {
+    public static PathSelectorFactory create(PathPolicy defaultPolicy) {
+      return new Default(defaultPolicy);
+    }
+
+    public PathProvider createPathSelector(
+        ScionService service,
+        InetSocketAddress remote,
+        PathProvider.PathUpdateCallback pathUpdateCallback)
+        throws IOException {
       PathProviderWithRefresh selector =
-              PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+          PathProviderWithRefresh.create(service, getDefaultPolicy());
       selector.subscribe(pathUpdateCallback);
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
@@ -47,7 +73,7 @@ public interface PathSelectorFactory {
         try {
           paths = service.lookupPaths(remote);
         } catch (ScionException e) {
-          throw new ScionRuntimeException(e);
+          throw new IOException(e);
         }
 
         if (paths.isEmpty()) {
@@ -59,26 +85,28 @@ public interface PathSelectorFactory {
     }
   }
 
-  class NoOp implements PathSelectorFactory {
+  class NoOp extends AbstractPathSelectorFactory {
 
     private static final PathSelectorFactory INSTANCE = new NoOp(PathPolicy.DEFAULT);
-
-    private final PathPolicy policy;
 
     public static PathSelectorFactory instance() {
       return INSTANCE;
     }
 
     protected NoOp(PathPolicy policy) {
-      this.policy = policy;
+      super(policy);
     }
 
     public static PathSelectorFactory create(PathPolicy policy) {
       return new NoOp(policy);
     }
 
-    public PathProvider getPathProvider(ScionService service, InetSocketAddress remote, PathProvider.PathUpdateCallback pathUpdateCallback) {
-      PathProviderNoOp selector = PathProviderNoOp.create(policy);
+    public PathProvider createPathSelector(
+        ScionService service,
+        InetSocketAddress remote,
+        PathProvider.PathUpdateCallback pathUpdateCallback)
+        throws IOException {
+      PathProviderNoOp selector = PathProviderNoOp.create(getDefaultPolicy());
       selector.subscribe(pathUpdateCallback);
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
@@ -87,7 +115,7 @@ public interface PathSelectorFactory {
         try {
           paths = service.lookupPaths(remote);
         } catch (ScionException e) {
-          throw new ScionRuntimeException(e);
+          throw new IOException(e);
         }
         if (paths.isEmpty()) {
           throw new ScionRuntimeException("No paths found for remote address " + remote);
