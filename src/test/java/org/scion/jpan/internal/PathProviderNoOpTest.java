@@ -21,13 +21,10 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.MockBootstrapServer;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
@@ -58,30 +55,26 @@ class PathProviderNoOpTest {
   }
 
   @Test
-  void connect_expiredFails() {
+  void connect_expiredNoPath() {
     ScionService service = Scion.defaultService();
     pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
     Path expired = PackageVisibilityHelper.createExpiredPath(p, 100);
-    SubscriberHelper subscriber = new SubscriberHelper(p);
+
     // reset counter
     assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
 
-    pp.subscribe(subscriber::callback);
-    Exception e = assertThrows(ScionRuntimeException.class, () -> pp.connect(expired));
-    subscriber.await();
-    assertTrue(e.getMessage().contains("No path found to destination"));
-    assertNull(subscriber.subscribedPath.get());
+    pp.connect(expired);
+    assertNull(pp.getPath());
     assertEquals(0, MockNetwork.getControlServer().getAndResetCallCount());
   }
 
   @Test
-  void connect_failsIfNoPath() throws IOException {
+  void connect_noPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
-    pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
 
@@ -91,41 +84,22 @@ class PathProviderNoOpTest {
 
     // Create expired path to trigger PathProvider
     Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
-    Exception e = assertThrows(ScionRuntimeException.class, () -> pp.connect(expired));
-    assertTrue(e.getMessage().startsWith("No path found to destination"));
+    pp.connect(expired);
+    assertNull(pp.getPath());
   }
 
   @Test
   void setPathPolicy_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
-    pp.subscribe(newPath -> {});
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
     pp.connect(paths.get(0));
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
-    Exception e = assertThrows(ScionRuntimeException.class, () -> pp.setPathPolicy(empty));
-    assertTrue(e.getMessage().startsWith("No path found to destination"));
-  }
-
-  private static class SubscriberHelper {
-    AtomicReference<Path> subscribedPath = new AtomicReference<>();
-    Barrier barrier = new Barrier(1);
-
-    public SubscriberHelper(Path path) {
-      this.subscribedPath.set(path);
-    }
-
-    void callback(Path newPath) {
-      subscribedPath.set(newPath);
-      barrier.countDown();
-    }
-
-    void await() {
-      assertTrue(barrier.await(2000, TimeUnit.MILLISECONDS));
-    }
+    pp.setPathPolicy(empty);
+    assertNull(pp.getPath());
   }
 
   @Test
@@ -165,20 +139,16 @@ class PathProviderNoOpTest {
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
-      SubscriberHelper subscriber = new SubscriberHelper(paths.get(0));
-      pp.subscribe(subscriber::callback);
-
       // Use expired path to trigger fetching of paths from server
       pp.connect(paths.get(0));
-      subscriber.await();
-      assertEquals(paths.get(0), subscriber.subscribedPath.get());
+      assertEquals(paths.get(0), pp.getPath());
 
       // Replace path
       test.accept(pp, paths.get(0));
       if (expectNull) {
-        assertNull(subscriber.subscribedPath.get());
+        assertNull(pp.getPath());
       } else {
-        assertEquals(paths.get(0), subscriber.subscribedPath.get());
+        assertEquals(paths.get(0), pp.getPath());
       }
       assertEquals(0, nw.getControlServer().getAndResetCallCount());
     }

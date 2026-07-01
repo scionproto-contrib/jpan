@@ -291,7 +291,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
       Path path;
       if (channel.isConnected()) {
-        path = channel.getConnectionPath();
+        path = channel.getConnectedPathOrThrow();
       } else {
         InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
         synchronized (pathCache) {

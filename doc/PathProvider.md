@@ -64,6 +64,10 @@ Clients have several options:
 - `getMappedPath(Path)` has been removed. `getMappedPath(address)` is still available (?)
 - `SCION_PATH_EXPIRY_MARGIN` is not a channel option anymore. Please set this 
   directly in the PathProvider.
+- deprecate `connect(Path)`?!?!?!?  
+
+- `connect()` and `PathProvider.setPathPolicy()` will not throw if no paths are available.
+  Instead, `write()` will throw. 
 
 ## TODO
 

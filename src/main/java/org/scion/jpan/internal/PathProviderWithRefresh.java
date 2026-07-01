@@ -64,7 +64,6 @@ public class PathProviderWithRefresh implements PathProvider {
   private InetSocketAddress dstAddress = null;
   private PathPolicy pathPolicy;
 
-  private PathUpdateCallback subscriber;
   private final Map<Entry, Entry> faultyPaths = new HashMap<>();
   private final List<Entry> unusedPaths = new ArrayList<>();
   private Entry usedPath = null;
@@ -230,13 +229,11 @@ public class PathProviderWithRefresh implements PathProvider {
     }
 
     // Replace current path with the best available path.
-    subscriber.updatePath(getFreePath());
+    findFreePath();
   }
 
-  private Path getFreePath() {
-    Entry e = unusedPaths.remove(0);
-    usedPath = e;
-    return e.path;
+  private void findFreePath() {
+    usedPath = unusedPaths.remove(0);
   }
 
   private void updateSubscriber() {
@@ -244,7 +241,7 @@ public class PathProviderWithRefresh implements PathProvider {
       refreshPaths();
       return;
     }
-    subscriber.updatePath(getFreePath());
+    findFreePath();
   }
 
   /**
@@ -318,14 +315,6 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
-  public synchronized void subscribe(PathUpdateCallback cb) {
-    if (subscriber != null) {
-      throw new IllegalStateException("This PathProvider already has a subscription.");
-    }
-    this.subscriber = cb;
-  }
-
-  @Override
   public synchronized PathPolicy getPathPolicy() {
     return pathPolicy;
   }
@@ -341,7 +330,6 @@ public class PathProviderWithRefresh implements PathProvider {
       }
 
       refreshPaths();
-      assertPathExists();
     }
   }
 
@@ -368,6 +356,16 @@ public class PathProviderWithRefresh implements PathProvider {
   }
 
   @Override
+  public InetSocketAddress getRemoteSocketAddress() {
+    return dstAddress;
+  }
+
+  @Override
+  public long getRemoteIsdAs() {
+    return dstIsdAs;
+  }
+
+  @Override
   public synchronized void connect(InetSocketAddress remote) throws IOException {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
@@ -389,8 +387,6 @@ public class PathProviderWithRefresh implements PathProvider {
     timerFuture =
         timer.scheduleAtFixedRate(
             timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
-
-    assertPathExists();
   }
 
   @Override
@@ -407,8 +403,6 @@ public class PathProviderWithRefresh implements PathProvider {
     timerFuture =
         timer.scheduleAtFixedRate(
             timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
-
-    assertPathExists();
   }
 
   @Override
@@ -431,8 +425,6 @@ public class PathProviderWithRefresh implements PathProvider {
     timerFuture =
         timer.scheduleAtFixedRate(
             timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
-
-    assertPathExists();
   }
 
   @Override

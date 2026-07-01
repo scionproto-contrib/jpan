@@ -223,7 +223,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     try {
       checkOpen();
       checkConnected(true);
-      Path path = getConnectionPath();
+      Path path = getConnectedPathOrThrow();
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
@@ -273,6 +273,17 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     synchronized (stateLock()) {
       PathProvider pp = resolvedDestinations.get(address);
       return pp == null ? null : pp.getPath();
+    }
+  }
+
+  @Override
+  public void close() throws IOException {
+    super.close();
+    for (PathProvider pathProvider : resolvedDestinations.values()) {
+      // Warning: this will not disconnect() all pathProviders, they may have been GC'd already.
+      // Their timer tasks may not have been cleaned up, but they will disappear over time
+      // when they are executed.
+      pathProvider.disconnect();
     }
   }
 

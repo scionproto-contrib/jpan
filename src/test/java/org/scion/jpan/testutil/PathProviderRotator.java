@@ -35,8 +35,6 @@ public class PathProviderRotator implements PathProvider {
   private ScionSocketAddress dstAddress;
   private List<Path> usedPaths = new ArrayList<>();
 
-  private PathUpdateCallback subscriber;
-
   public static PathProviderRotator create(List<Path> paths) {
     return new PathProviderRotator(paths);
   }
@@ -83,14 +81,6 @@ public class PathProviderRotator implements PathProvider {
   }
 
   @Override
-  public void subscribe(PathUpdateCallback cb) {
-    if (subscriber != null) {
-      throw new IllegalStateException("This PathProvider already has a subscription.");
-    }
-    this.subscriber = cb;
-  }
-
-  @Override
   public synchronized PathPolicy getPathPolicy() {
     return pathPolicy;
   }
@@ -106,7 +96,6 @@ public class PathProviderRotator implements PathProvider {
   private void checkPathPolicy() {
     // Remove used path if it doesn't fit the policy
     usedPaths = pathPolicy.filter(usedPaths);
-    subscriber.updatePath(usedPaths.get(0));
     assertPathExists();
   }
 
@@ -120,6 +109,16 @@ public class PathProviderRotator implements PathProvider {
   @Override
   public synchronized Path getPath() {
     return usedPaths.get(0);
+  }
+
+  @Override
+  public InetSocketAddress getRemoteSocketAddress() {
+    return dstAddress;
+  }
+
+  @Override
+  public long getRemoteIsdAs() {
+    return dstIsdAs;
   }
 
   @Override
@@ -164,7 +163,7 @@ public class PathProviderRotator implements PathProvider {
     if (remote.getPath() != usedPaths.get(0)) {
       throw new IllegalArgumentException();
     }
-    subscriber.updatePath(remote.getPath());
+    usedPaths.add(0, remote.getPath()); // ?????
     checkPathPolicy();
   }
 
@@ -180,7 +179,6 @@ public class PathProviderRotator implements PathProvider {
     if (path != usedPaths.get(0)) {
       throw new IllegalArgumentException();
     }
-    subscriber.updatePath(path);
     checkPathPolicy();
   }
 
@@ -201,7 +199,6 @@ public class PathProviderRotator implements PathProvider {
 
   private void getNextPath() {
     usedPaths.add(usedPaths.remove(0));
-    subscriber.updatePath(usedPaths.get(0));
   }
 
   public static class FixedFactory implements PathSelectorFactory {
@@ -215,12 +212,8 @@ public class PathProviderRotator implements PathProvider {
       return new FixedFactory(selector);
     }
 
-    public PathProvider createPathSelector(
-        ScionService service,
-        InetSocketAddress remote,
-        PathProvider.PathUpdateCallback pathUpdateCallback)
+    public PathProvider createPathSelector(ScionService service, InetSocketAddress remote)
         throws IOException {
-      selector.subscribe(pathUpdateCallback);
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
       } else {

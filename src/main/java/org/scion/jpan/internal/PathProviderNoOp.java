@@ -34,8 +34,6 @@ public class PathProviderNoOp implements PathProvider {
   private PathPolicy pathPolicy;
   private Path usedPath;
 
-  private PathUpdateCallback subscriber;
-
   public static PathProviderNoOp create(PathPolicy policy) {
     return new PathProviderNoOp(policy);
   }
@@ -52,9 +50,6 @@ public class PathProviderNoOp implements PathProvider {
       return;
     }
     usedPath = null;
-
-    // No path available
-    subscriber.updatePath(null);
   }
 
   @Override
@@ -83,18 +78,7 @@ public class PathProviderNoOp implements PathProvider {
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
         || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
       usedPath = null;
-
-      // No path available
-      subscriber.updatePath(null);
     }
-  }
-
-  @Override
-  public void subscribe(PathUpdateCallback cb) {
-    if (subscriber != null) {
-      throw new IllegalStateException("This PathProvider already has a subscription.");
-    }
-    this.subscriber = cb;
   }
 
   @Override
@@ -114,15 +98,6 @@ public class PathProviderNoOp implements PathProvider {
     // Remove used path if it doesn't fit the policy
     if (usedPath != null && pathPolicy.filter(Collections.singletonList(usedPath)).isEmpty()) {
       usedPath = null;
-      subscriber.updatePath(null);
-    }
-    assertPathExists();
-  }
-
-  private void assertPathExists() {
-    if ((usedPath == null || isExpired(usedPath))) {
-      String isdAs = ScionUtil.toStringIA(dstIsdAs);
-      throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
     }
   }
 
@@ -133,6 +108,16 @@ public class PathProviderNoOp implements PathProvider {
   @Override
   public synchronized Path getPath() {
     return usedPath;
+  }
+
+  @Override
+  public InetSocketAddress getRemoteSocketAddress() {
+    return dstAddress;
+  }
+
+  @Override
+  public long getRemoteIsdAs() {
+    return dstIsdAs;
   }
 
   @Override
@@ -152,8 +137,6 @@ public class PathProviderNoOp implements PathProvider {
     this.dstAddress = remote;
 
     usedPath = null;
-    subscriber.updatePath(null);
-    assertPathExists(); // This will throw an exception
 
     checkPathPolicy();
   }
@@ -168,14 +151,11 @@ public class PathProviderNoOp implements PathProvider {
 
     if (isExpired(remote.getPath())) {
       usedPath = null;
-      subscriber.updatePath(null);
-      assertPathExists(); // This will throw an exception
       return;
     }
 
     // use this path
     usedPath = remote.getPath();
-    subscriber.updatePath(remote.getPath());
     checkPathPolicy();
   }
 
@@ -189,14 +169,11 @@ public class PathProviderNoOp implements PathProvider {
 
     if (isExpired(path)) {
       usedPath = null;
-      subscriber.updatePath(null);
-      assertPathExists(); // This will throw an exception
       return;
     }
 
     // use this path
     usedPath = path;
-    subscriber.updatePath(path);
     checkPathPolicy();
   }
 

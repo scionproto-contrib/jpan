@@ -46,9 +46,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private final ReentrantLock readLock = new ReentrantLock();
   private final ReentrantLock writeLock = new ReentrantLock();
 
-  // This path is only used for write() after connect(), not for send().
-  // Whether we have a connectionPath is independent of whether the underlying channel is connected.
-  private RequestPath connectionPath;
   private boolean isConnected = false;
   private InetAddress localAddress;
   private boolean cfgReportFailedValidation = false;
@@ -93,13 +90,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   protected PathProvider createPathProvider(InetSocketAddress remote) throws IOException {
-    return pathSelectorFactory.createPathSelector(service, remote, this::pathUpdateCallback);
-  }
-
-  private void pathUpdateCallback(Path newPath) {
-    synchronized (stateLock) {
-      connectionPath = (RequestPath) newPath;
-    }
+    return pathSelectorFactory.createPathSelector(service, remote);
   }
 
   /**
@@ -202,17 +193,12 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     if (!isConnected) {
       return null;
     }
-    Path path = getConnectionPath();
-    if (path != null) {
-      return path.getRemoteSocketAddress();
-    }
-    return null;
+    return getPathProvider().getRemoteSocketAddress();
   }
 
   public void disconnect() throws IOException {
     synchronized (stateLock) {
       isConnected = false;
-      connectionPath = null;
       if (pathProvider != null) {
         pathProvider.disconnect();
         pathProvider = null;
@@ -239,7 +225,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       }
       channel.disconnect();
       channel.close();
-      connectionPath = null;
     }
   }
 
@@ -283,10 +268,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           //   switching.
           localAddress = getNatMapping().getExternalIP();
         }
-        pathProvider =
-            pathSelectorFactory.createPathSelector(service, destination, this::pathUpdateCallback);
-        //        pathProvider.subscribe(this::pathUpdateCallback);
-        //        pathProvider.connect(destination); // TODO simplify
+        pathProvider = pathSelectorFactory.createPathSelector(service, destination);
         isConnected = true;
         return (C) this;
       }
@@ -359,11 +341,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathProvider =
-          pathSelectorFactory.createPathSelector(
-              service, path.getRemoteSocketAddress(), this::pathUpdateCallback);
-      //      pathProvider.subscribe(this::pathUpdateCallback);
-      //      pathProvider.connect(path); // TODO simplify
+      pathProvider = pathSelectorFactory.createPathSelector(service, path.getRemoteSocketAddress());
       isConnected = true;
       return (C) this;
     }
@@ -377,7 +355,19 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    */
   public Path getConnectionPath() {
     synchronized (stateLock) {
-      return isConnected ? connectionPath : null;
+      return isConnected ? pathProvider.getPath() : null;
+    }
+  }
+
+  protected Path getConnectedPathOrThrow() throws IOException {
+    synchronized (stateLock) {
+      Path path = pathProvider.getPath();
+      if (path == null) {
+        InetSocketAddress remote = pathProvider.getRemoteSocketAddress();
+        String isdAs = ScionUtil.toStringIA(pathProvider.getRemoteIsdAs());
+        throw new IOException("No path found to destination: " + isdAs + "," + remote);
+      }
+      return path;
     }
   }
 

@@ -54,14 +54,6 @@ public interface PathProvider {
    */
   void reportError(Scmp.ErrorMessage error);
 
-  /**
-   * Register a callback that is invoked when paths are updated.
-   *
-   * @param cb The callback method.
-   * @throws IllegalStateException if there is already an active subscription
-   */
-  void subscribe(PathUpdateCallback cb);
-
   PathPolicy getPathPolicy();
 
   void setPathPolicy(PathPolicy pathPolicy);
@@ -87,6 +79,10 @@ public interface PathProvider {
   void setExpirationSafetyMargin(int cfgExpirationSafetyMargin);
 
   Path getPath();
+
+  InetSocketAddress getRemoteSocketAddress();
+
+  long getRemoteIsdAs();
 
   interface PathUpdateCallback {
     void updatePath(Path newPath);

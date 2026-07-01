@@ -24,10 +24,7 @@ import org.scion.jpan.internal.PathProviderWithRefresh;
 
 public interface PathSelectorFactory {
 
-  PathProvider createPathSelector(
-      ScionService service,
-      InetSocketAddress destination,
-      PathProvider.PathUpdateCallback pathUpdateCallback)
+  PathProvider createPathSelector(ScionService service, InetSocketAddress destination)
       throws IOException;
 
   abstract class AbstractPathSelectorFactory implements PathSelectorFactory {
@@ -58,14 +55,10 @@ public interface PathSelectorFactory {
       return new Default(defaultPolicy);
     }
 
-    public PathProvider createPathSelector(
-        ScionService service,
-        InetSocketAddress remote,
-        PathProvider.PathUpdateCallback pathUpdateCallback)
+    public PathProvider createPathSelector(ScionService service, InetSocketAddress remote)
         throws IOException {
       PathProviderWithRefresh selector =
           PathProviderWithRefresh.create(service, getDefaultPolicy());
-      selector.subscribe(pathUpdateCallback);
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
       } else {
@@ -101,13 +94,9 @@ public interface PathSelectorFactory {
       return new NoOp(policy);
     }
 
-    public PathProvider createPathSelector(
-        ScionService service,
-        InetSocketAddress remote,
-        PathProvider.PathUpdateCallback pathUpdateCallback)
+    public PathProvider createPathSelector(ScionService service, InetSocketAddress remote)
         throws IOException {
       PathProviderNoOp selector = PathProviderNoOp.create(getDefaultPolicy());
-      selector.subscribe(pathUpdateCallback);
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
       } else {
