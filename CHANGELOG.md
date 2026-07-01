@@ -36,9 +36,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathSelector
-  - Avoid register(), instead have a get() path function. Works better with
-    send(packet, PathSelector).  
-  - Make PathSelector public -> new sub-package
   - With `send(PathSelector)` and `connect(PathSelector)` we can remove it from the constructor.
     Not quite, it would still be useful for legacy `send(address)` and `connect(address)`. 
   - Implement `send(PathSelector)`? Useful e.g. for a browser that connects to many
