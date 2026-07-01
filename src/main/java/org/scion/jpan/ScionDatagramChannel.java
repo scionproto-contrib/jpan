@@ -142,7 +142,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     synchronized (stateLock()) {
       PathSelector pathSelector = resolvedDestinations.get(dst);
       if (pathSelector == null) {
-        pathSelector = createPathProvider(dst);
+        pathSelector = createPathSelector(dst);
         resolvedDestinations.put(dst, pathSelector);
       }
       path = pathSelector.getPath();

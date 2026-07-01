@@ -386,18 +386,18 @@ class DatagramChannelApiTest {
   @Test
   void getPathSelector() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      assertNull(channel.getPathProvider());
+      assertNull(channel.getPathSelector());
 
       channel.connect(dummyAddress);
-      assertNotNull(channel.getPathProvider());
+      assertNotNull(channel.getPathSelector());
 
       channel.disconnect();
-      assertNull(channel.getPathProvider());
+      assertNull(channel.getPathSelector());
 
       channel.connect(dummyAddress);
-      assertNotNull(channel.getPathProvider());
+      assertNotNull(channel.getPathSelector());
       channel.close();
-      assertNull(channel.getPathProvider());
+      assertNull(channel.getPathSelector());
     }
   }
 
@@ -410,7 +410,7 @@ class DatagramChannelApiTest {
       channel.connect(paths.get(0));
 
       PathPolicy empty = paths1 -> Collections.emptyList();
-      channel.getPathProvider().setPathPolicy(empty);
+      channel.getPathSelector().setPathPolicy(empty);
       assertNull(channel.getConnectionPath());
     }
   }
@@ -771,9 +771,9 @@ class DatagramChannelApiTest {
         ScionDatagramChannel.newBuilder().pathSelectorFactory(ppNoOp).open()) {
       assertFalse(channel.isConnected());
       assertSame(ppNoOp, channel.getPathSelectorFactory());
-      assertNull(channel.getPathProvider());
+      assertNull(channel.getPathSelector());
       channel.connect(dummyAddress);
-      assertSame(policy, channel.getPathProvider().getPathPolicy());
+      assertSame(policy, channel.getPathSelector().getPathPolicy());
     }
   }
 }

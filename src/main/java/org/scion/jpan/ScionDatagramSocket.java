@@ -607,8 +607,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 
-  public PathSelector getPathProvider() {
-    return channel.getPathProvider();
+  public PathSelector getPathSelector() {
+    return channel.getPathSelector();
   }
 
   public PathSelectorFactory getPathSelectorFactory() {

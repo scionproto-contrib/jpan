@@ -35,13 +35,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   internals (at least getLocalAs())
  
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
-- PathProvider
+- PathSelector
   - Avoid register(), instead have a get() path function. Works better with
-    send(packet, PathProvider).  
-  - Make PathProvider public -> new sub-package
-  - With `send(PathProvider)` and `connect(PathProvider)` we can remove it from the constructor.
+    send(packet, PathSelector).  
+  - Make PathSelector public -> new sub-package
+  - With `send(PathSelector)` and `connect(PathSelector)` we can remove it from the constructor.
     Not quite, it would still be useful for legacy `send(address)` and `connect(address)`. 
-  - Implement `send(PathProvider)`? Useful e.g. for a browser that connects to many
+  - Implement `send(PathSelector)`? Useful e.g. for a browser that connects to many
     servers.
     - This allows removing the path `refreshedPaths` in ScionDatagramChannel
   - PATH_POLLING: Consolidate polling to once every 60 seconds per remote AS.
@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     identical remote ASes.
   - Path caching!!! -> Cache validity e.g. 1 minute ensures that new path become available quickly
 
-- Move `resolvedAddresses` into PathProvider or ScionService.
+- Move `resolvedAddresses` into PathSelector or ScionService.
   - Is a shared cache problematic for security?   
 - Deprecate ScionService.getLocalIsdAs(). Also: build header with src-IA from path!
   - deprecate local MTU ?! 
@@ -125,7 +125,7 @@ TODO
   - Validate IP of incoming packets agains known NAT mapped addresses? 
 - Improve PathPolicy API:
   - Chainable PathPolicies (can be done manually or by providing a combinator class)
-  - PathProvider/Supplier (e.g. for traceroute policies)
+  - PathSelector/Supplier (e.g. for traceroute policies)
   - Ability to check for new Path or skip a broken paths, see fix/171
 - Scmp API: 
   - Move ResponderCallback to Scmp?
@@ -174,12 +174,12 @@ TODO
 
 TODO
 - ScionDatagramPacket: Should be used to avoid caching and security issues in DatagramSocket. 
-- PathProvider
+- PathSelector
   - javadoc
   - rename to PathSelector
   - move to public package
 - Clean up 
-  - PathProviderRotator.java
+  - PathSelectorRotator.java
   - ScionDatagramSocket
 
 ### Fixed

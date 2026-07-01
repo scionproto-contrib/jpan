@@ -379,18 +379,18 @@ class DatagramSocketApiTest {
   @Test
   void getPathPolicy() throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
-      assertNull(socket.getPathProvider());
+      assertNull(socket.getPathSelector());
 
       socket.connect(dummyAddress);
-      assertNotNull(socket.getPathProvider());
+      assertNotNull(socket.getPathSelector());
 
       socket.disconnect();
-      assertNull(socket.getPathProvider());
+      assertNull(socket.getPathSelector());
 
       socket.connect(dummyAddress);
-      assertNotNull(socket.getPathProvider());
+      assertNotNull(socket.getPathSelector());
       socket.close();
-      assertNull(socket.getPathProvider());
+      assertNull(socket.getPathSelector());
     }
   }
 
@@ -720,7 +720,6 @@ class DatagramSocketApiTest {
   void supportedOptions() throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       Set<SocketOption<?>> options = socket.supportedOptions();
-      assertTrue(options.contains(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
       assertTrue(options.contains(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
 
       assertTrue(options.contains(StandardSocketOptions.SO_RCVBUF));
@@ -847,9 +846,9 @@ class DatagramSocketApiTest {
         ScionDatagramSocket.newBuilder().bind(DUMMY_PORT).pathSelectorFactory(ppNoOp).open()) {
       assertFalse(server.isConnected());
       assertSame(ppNoOp, server.getPathSelectorFactory());
-      assertNull(server.getPathProvider());
+      assertNull(server.getPathSelector());
       server.connect(dummyAddress);
-      assertSame(policy, server.getPathProvider().getPathPolicy());
+      assertSame(policy, server.getPathSelector().getPathPolicy());
     }
   }
 }

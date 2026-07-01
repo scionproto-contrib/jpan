@@ -82,7 +82,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     }
   }
 
-  public PathSelector getPathProvider() {
+  public PathSelector getPathSelector() {
     return pathSelector;
   }
 
@@ -90,7 +90,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     return pathSelectorFactory;
   }
 
-  protected PathSelector createPathProvider(InetSocketAddress remote) throws IOException {
+  protected PathSelector createPathSelector(InetSocketAddress remote) throws IOException {
     return pathSelectorFactory.createPathSelector(service, remote);
   }
 
@@ -194,7 +194,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     if (!isConnected) {
       return null;
     }
-    return getPathProvider().getRemoteSocketAddress();
+    return getPathSelector().getRemoteSocketAddress();
   }
 
   public void disconnect() throws IOException {
