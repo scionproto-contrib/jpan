@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.selectors;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,12 +22,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.AddressLookupService;
+import org.scion.jpan.internal.ScionAddress;
 import org.scion.jpan.internal.util.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The PathProviderWithRefresh will periodically poll the ScionService for new paths. It will poll
+ * The PathSelectorWithRefresh will periodically poll the ScionService for new paths. It will poll
  * for new path either if: a path is "about" to expire, or if the polling interval elapses, or if
  * there is no path available for a new subscriber.<br>
  * A path is considered to "about" to expire if it is going to expire its expiration date is before
@@ -37,12 +39,12 @@ import org.slf4j.LoggerFactory;
  * <p>The current path will be replaced if a "better" path (according to the PathPolicy) is
  * available, even if the current path is still valid.
  *
- * @see org.scion.jpan.internal.PathProvider
+ * @see PathSelector
  */
-public class PathProviderWithRefresh implements PathProvider {
+public class PathSelectorWithRefresh implements PathSelector {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(PathProviderWithRefresh.class.getName());
+      LoggerFactory.getLogger(PathSelectorWithRefresh.class.getName());
   private static final ScheduledThreadPoolExecutor timer;
 
   static {
@@ -134,20 +136,20 @@ public class PathProviderWithRefresh implements PathProvider {
     }
   }
 
-  public static PathProviderWithRefresh create(
+  public static PathSelectorWithRefresh create(
       ScionService service, PathPolicy policy, int expirationMarginMs, int pathPollIntervalMs) {
-    return new PathProviderWithRefresh(service, policy, expirationMarginMs, pathPollIntervalMs);
+    return new PathSelectorWithRefresh(service, policy, expirationMarginMs, pathPollIntervalMs);
   }
 
-  public static PathProviderWithRefresh create(ScionService service, PathPolicy policy) {
-    return new PathProviderWithRefresh(
+  public static PathSelectorWithRefresh create(ScionService service, PathPolicy policy) {
+    return new PathSelectorWithRefresh(
         service,
         policy,
         Config.getPathExpiryMarginSeconds() * 1000,
         Config.getPathPollingIntervalSeconds() * 1000);
   }
 
-  private PathProviderWithRefresh(
+  private PathSelectorWithRefresh(
       ScionService service, PathPolicy policy, int expirationMarginMs, int pathPollIntervalMs) {
     if (service == null) {
       throw new IllegalArgumentException();
@@ -164,14 +166,14 @@ public class PathProviderWithRefresh implements PathProvider {
           @Override
           public void run() {
             try {
-              synchronized (PathProviderWithRefresh.this) {
+              synchronized (PathSelectorWithRefresh.this) {
                 if (isConnected()) {
                   refreshPaths();
                 }
               }
             } catch (Exception e) {
               String time = configPathPollIntervalMs + "ms";
-              LOG.error("Exception in PathProvider timer task, trying again in {}", time, e);
+              LOG.error("Exception in PathSelector timer task, trying again in {}", time, e);
             }
           }
         };
@@ -294,24 +296,6 @@ public class PathProviderWithRefresh implements PathProvider {
       // Find new path
       updateSubscriber();
     }
-  }
-
-  @Override
-  public synchronized void reportFaultyPath(Path p) {
-    Entry e = usedPath;
-    if (e == null) {
-      throw new IllegalArgumentException("Path not managed by this provider");
-    }
-    if (!e.pathEquals(p)) {
-      // This can happen due to races, e.g. when we receive an error for a path that we stopped
-      // using.
-      return;
-    }
-    e.setFaulty(Instant.now());
-    faultyPaths.put(e, e);
-
-    // Find new path
-    updateSubscriber();
   }
 
   @Override

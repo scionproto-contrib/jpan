@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.selectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +28,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.*;
 
-class PathProviderWithRefreshTest {
+class PathSelectorWithRefreshTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
   private static final InetSocketAddress dummyAddress;
@@ -37,7 +37,7 @@ class PathProviderWithRefreshTest {
     dummyAddress = new InetSocketAddress(IPHelper.toInetAddress("myServer", "127.0.0.1"), 12345);
   }
 
-  private PathProviderWithRefresh pp = null;
+  private PathSelectorWithRefresh pp = null;
 
   @BeforeEach
   void beforeEach() {
@@ -55,13 +55,13 @@ class PathProviderWithRefreshTest {
     MockNetwork.stopTiny();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.ENV_PATH_POLLING_INTERVAL_SEC);
-    assertEquals(0, PathProviderWithRefresh.getQueueSize());
+    assertEquals(0, PathSelectorWithRefresh.getQueueSize());
   }
 
   @Test
   void autoRefresh() {
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT, 0, 1000);
+    pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT, 0, 1000);
 
     try {
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
@@ -93,18 +93,18 @@ class PathProviderWithRefreshTest {
     }
   }
 
-  /** Test that the PathProvider can handle paths with different local ISDs. */
+  /** Test that the PathSelector can handle paths with different local ISDs. */
   @Test
   void multiISD() {
     // Stop default network
     MockNetwork.stopTiny();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
 
-    // USe multi-isd setup
+    // Use multi-isd setup
     try (MockNetwork2 nw =
         MockNetwork2.startPS(MockNetwork2.Topology.TINY4, "ASff00_0_111", "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+      pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
       try {
         InetSocketAddress dummyAddr =
@@ -119,10 +119,10 @@ class PathProviderWithRefreshTest {
         // Initial connect
         pp.connect(newPath0);
 
-        pp.reportFaultyPath(newPath0);
+        pp.reportError(createError5(newPath0, 1));
         assertEquals(newPath1, pp.getPath());
 
-        pp.reportFaultyPath(newPath1);
+        pp.reportError(createError5(newPath1, 1));
         assertEquals(newPath0, pp.getPath());
       } finally {
         pp.disconnect();
@@ -133,7 +133,7 @@ class PathProviderWithRefreshTest {
   @Test
   void connect_expiredIsReplace() {
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+    pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
@@ -149,7 +149,7 @@ class PathProviderWithRefreshTest {
   void connect_noPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+    pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
 
@@ -157,7 +157,7 @@ class PathProviderWithRefreshTest {
     PathPolicy empty = paths1 -> Collections.emptyList();
     pp.setPathPolicy(empty);
 
-    // Create expired path to trigger PathProvider
+    // Create expired path to trigger PathSelector
     Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
     pp.connect(expired);
     assertNull(pp.getPath());
@@ -167,7 +167,7 @@ class PathProviderWithRefreshTest {
   void setPathPolicy_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
-    pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+    pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
     pp.connect(paths.get(0));
@@ -183,7 +183,7 @@ class PathProviderWithRefreshTest {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+      pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
       // reset counter
@@ -194,7 +194,7 @@ class PathProviderWithRefreshTest {
       assertEquals(paths.get(0), pp.getPath());
 
       // Replace path
-      pp.reportFaultyPath(paths.get(0));
+      pp.reportError(createError5(paths.get(0)));
       assertNotEquals(paths.get(0), pp.getPath());
       assertEquals(paths.get(1), pp.getPath());
 
@@ -202,12 +202,12 @@ class PathProviderWithRefreshTest {
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
       // No change when reporting again
-      pp.reportFaultyPath(paths.get(0));
+      pp.reportError(createError5(paths.get(0)));
       assertNotEquals(paths.get(0), pp.getPath());
       assertEquals(paths.get(1), pp.getPath());
 
       // Now reporting 2nd path
-      pp.reportFaultyPath(paths.get(1));
+      pp.reportError(createError5(paths.get(1)));
       assertNotEquals(paths.get(0), pp.getPath());
       assertNotEquals(paths.get(1), pp.getPath());
       assertEquals(paths.get(2), pp.getPath());
@@ -224,7 +224,7 @@ class PathProviderWithRefreshTest {
       // Now report _all_ paths a faulty
       // This should cause a refresh that will put all paths back into business.
       for (Path p : paths) {
-        pp.reportFaultyPath(p);
+        pp.reportError(createError5(p));
       }
       assertEquals(paths.get(0), pp.getPath());
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
@@ -236,7 +236,7 @@ class PathProviderWithRefreshTest {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+      pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
       // reset counter
@@ -261,7 +261,7 @@ class PathProviderWithRefreshTest {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+      pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
       // reset counter
@@ -302,7 +302,7 @@ class PathProviderWithRefreshTest {
       // Now report _all_ paths a faulty
       // This should cause a refresh that will put all paths back into business.
       for (Path p : paths) {
-        pp.reportFaultyPath(p);
+        pp.reportError(createError5(p));
       }
       assertEquals(paths.get(0), pp.getPath());
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
@@ -326,7 +326,7 @@ class PathProviderWithRefreshTest {
               paths.stream()
                   .sorted(Comparator.comparing(path -> -path.getMetadata().getInterfaces().size()))
                   .collect(Collectors.toList());
-      pp = PathProviderWithRefresh.create(service, mostHops);
+      pp = PathSelectorWithRefresh.create(service, mostHops);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths =
           mostHops.filter(service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr));
@@ -355,7 +355,7 @@ class PathProviderWithRefreshTest {
       // Now report _all_ paths a faulty
       // This should cause a refresh that will put all paths back into business.
       for (Path p : paths) {
-        pp.reportFaultyPath(p);
+        pp.reportError(createError5(p));
       }
       assertEquals(paths.get(0), pp.getPath());
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
@@ -363,8 +363,12 @@ class PathProviderWithRefreshTest {
   }
 
   private Scmp.Error5Message createError5(Path errorPath) {
+    return createError5(errorPath, 5);
+  }
+
+  private Scmp.Error5Message createError5(Path errorPath, int interfaceId) {
     // All paths use a different ingress interface here.
-    PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfaces().get(5);
+    PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfaces().get(interfaceId);
     return Scmp.Error5Message.create(errorPath, pif.getIsdAs(), pif.getId());
   }
 

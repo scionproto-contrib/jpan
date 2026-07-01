@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.selectors;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,25 +22,13 @@ import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.Scmp;
 
 /**
- * A PathProvider provides the next best path. Lifecycle:<br>
- * 1) create PathProvider <br>
- * 2) subscribe()<br>
- * 3) connect()<br>
- * 3a) (reportError() if one is received)<br>
- * 4) disconnect()<br>
- * 5) unsubscribe()<br>
+ * A PathSelector provides the next best path. Lifecycle:<br>
+ * 1) create PathSelector <br>
+ * 2) connect()<br>
+ * 2a) (reportError() if one is received)<br>
+ * 3) disconnect()<br>
  */
-public interface PathProvider {
-  /**
-   * Report a faulty path. A new path will be provided immediately (synchronously) if available. A
-   * faulty path will not be provided again any time soon. It may be provided again at a later time.
-   *
-   * @param p Faulty path.
-   * @deprecated deprecated in favor of {@link #reportError(Scmp.ErrorMessage)}. To be removed after
-   *     0.7.0 release.
-   */
-  @Deprecated
-  void reportFaultyPath(Path p);
+public interface PathSelector {
 
   /**
    * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
@@ -63,13 +51,13 @@ public interface PathProvider {
   void connect(ScionSocketAddress remote);
 
   /**
-   * Initialize the PathProvider with an existing path and start providing paths. The path provider
+   * Initialize the PathSelector with an existing path and start providing paths. The path provider
    * will (in this call) only request a new set of path if the provided path is expired. New paths
    * will be requested if the path is expired or about to expire or if the path is reported faulty.
    *
-   * <p>Contract: the PathProvider must synchronously update subscribed consumers with a new path.
+   * <p>Contract: the PathSelector must synchronously update subscribed consumers with a new path.
    *
-   * @throws IllegalStateException if the PathProvider is already connected
+   * @throws IllegalStateException if the PathSelector is already connected
    */
   void connect(Path path);
 
@@ -83,8 +71,4 @@ public interface PathProvider {
   InetSocketAddress getRemoteSocketAddress();
 
   long getRemoteIsdAs();
-
-  interface PathUpdateCallback {
-    void updatePath(Path newPath);
-  }
 }

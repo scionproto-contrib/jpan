@@ -33,7 +33,8 @@ import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.Config;
-import org.scion.jpan.paths.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
@@ -55,7 +56,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
-  private PathProvider pathProvider;
+  private PathSelector pathSelector;
   private final PathSelectorFactory pathSelectorFactory;
 
   protected AbstractScionChannel(
@@ -81,15 +82,15 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     }
   }
 
-  public PathProvider getPathProvider() {
-    return pathProvider;
+  public PathSelector getPathProvider() {
+    return pathSelector;
   }
 
   public PathSelectorFactory getPathSelectorFactory() {
     return pathSelectorFactory;
   }
 
-  protected PathProvider createPathProvider(InetSocketAddress remote) throws IOException {
+  protected PathSelector createPathProvider(InetSocketAddress remote) throws IOException {
     return pathSelectorFactory.createPathSelector(service, remote);
   }
 
@@ -199,9 +200,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void disconnect() throws IOException {
     synchronized (stateLock) {
       isConnected = false;
-      if (pathProvider != null) {
-        pathProvider.disconnect();
-        pathProvider = null;
+      if (pathSelector != null) {
+        pathSelector.disconnect();
+        pathSelector = null;
       }
     }
   }
@@ -219,9 +220,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       if (natMapping != null) {
         natMapping.close();
       }
-      if (pathProvider != null) {
-        pathProvider.disconnect();
-        pathProvider = null;
+      if (pathSelector != null) {
+        pathSelector.disconnect();
+        pathSelector = null;
       }
       channel.disconnect();
       channel.close();
@@ -268,7 +269,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           //   switching.
           localAddress = getNatMapping().getExternalIP();
         }
-        pathProvider = pathSelectorFactory.createPathSelector(service, destination);
+        pathSelector = pathSelectorFactory.createPathSelector(service, destination);
         isConnected = true;
         return (C) this;
       }
@@ -341,7 +342,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathProvider = pathSelectorFactory.createPathSelector(service, path.getRemoteSocketAddress());
+      pathSelector = pathSelectorFactory.createPathSelector(service, path.getRemoteSocketAddress());
       isConnected = true;
       return (C) this;
     }
@@ -355,16 +356,16 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    */
   public Path getConnectionPath() {
     synchronized (stateLock) {
-      return isConnected ? pathProvider.getPath() : null;
+      return isConnected ? pathSelector.getPath() : null;
     }
   }
 
   protected Path getConnectedPathOrThrow() throws IOException {
     synchronized (stateLock) {
-      Path path = pathProvider.getPath();
+      Path path = pathSelector.getPath();
       if (path == null) {
-        InetSocketAddress remote = pathProvider.getRemoteSocketAddress();
-        String isdAs = ScionUtil.toStringIA(pathProvider.getRemoteIsdAs());
+        InetSocketAddress remote = pathSelector.getRemoteSocketAddress();
+        String isdAs = ScionUtil.toStringIA(pathSelector.getRemoteIsdAs());
         throw new IOException("No path found to destination: " + isdAs + "," + remote);
       }
       return path;
@@ -487,7 +488,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         case ERROR_5:
         case ERROR_6:
           if (isConnected()) {
-            pathProvider.reportError((Scmp.ErrorMessage) scmpMsg);
+            pathSelector.reportError((Scmp.ErrorMessage) scmpMsg);
           } else {
             // We throw an exception here.
             // Alternatively, we could just swallow the error, after all this is an unreliable
@@ -622,7 +623,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           cfgReportFailedValidation = (Boolean) t;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
-          pathProvider.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
+          pathSelector.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {

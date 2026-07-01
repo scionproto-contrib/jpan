@@ -27,7 +27,8 @@ import java.util.HashSet;
 import java.util.Set;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.util.SimpleCache;
-import org.scion.jpan.paths.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
@@ -606,7 +607,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 
-  public PathProvider getPathProvider() {
+  public PathSelector getPathProvider() {
     return channel.getPathProvider();
   }
 

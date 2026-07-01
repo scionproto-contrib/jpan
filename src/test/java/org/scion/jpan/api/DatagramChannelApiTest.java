@@ -35,7 +35,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.util.ExternalIpDiscovery;
 import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.paths.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -425,7 +425,7 @@ class DatagramChannelApiTest {
         ScionDatagramChannel.newBuilder().pathSelectorFactory(psf).open()) {
       List<Path> paths = channel.getService().lookupPaths(dummyAddress);
 
-      // Create expired path to trigger PathProvider
+      // Create expired path to trigger PathSelector
       Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
       channel.connect(expired);
       Exception e = assertThrows(IOException.class, () -> channel.write(ByteBuffer.allocate(10)));

@@ -178,6 +178,9 @@ TODO
   - javadoc
   - rename to PathSelector
   - move to public package
+- Clean up 
+  - PathProviderRotator.java
+  - ScionDatagramSocket
 
 ### Fixed
 

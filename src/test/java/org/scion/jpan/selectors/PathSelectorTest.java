@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.selectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,8 +21,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiConsumer;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.MockBootstrapServer;
@@ -30,18 +31,23 @@ import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
-class PathProviderNoOpTest {
+class PathSelectorTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
-  private PathProviderNoOp pp = null;
-  private InetSocketAddress someAddress;
+  private static final InetSocketAddress dummyAddress;
+
+  static {
+    InetAddress dummyIPv4 = IPHelper.toInetAddress("dummyHost", "127.0.0.1");
+    dummyAddress = new InetSocketAddress(dummyIPv4, 44444);
+  }
+
+  private PathSelector pp = null;
 
   @BeforeEach
   void beforeEach() {
     MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
-    someAddress = new InetSocketAddress(IPHelper.toInetAddress("myHost", "127.0.0.1"), 12345);
-    MockDNS.install("1-ff00:0:110", someAddress.getAddress());
+    MockDNS.install("1-ff00:0:112", dummyAddress.getAddress());
   }
 
   @AfterEach
@@ -54,10 +60,27 @@ class PathProviderNoOpTest {
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
   }
 
-  @Test
+  private enum Implementation {
+    NO_OP,
+    WITH_REFRESH
+  }
+
+  private PathSelector create(Implementation impl) {
+    switch (impl) {
+      case NO_OP:
+        return PathSelectorNoOp.create(PathPolicy.DEFAULT);
+      case WITH_REFRESH:
+        return PathSelectorWithRefresh.create(Scion.defaultService(), PathPolicy.DEFAULT, 10, 50);
+      default:
+        throw new IllegalArgumentException(impl.name());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
   void connect_expiredNoPath() {
     ScionService service = Scion.defaultService();
-    pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
+    pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
@@ -71,29 +94,43 @@ class PathProviderNoOpTest {
     assertEquals(0, MockNetwork.getControlServer().getAndResetCallCount());
   }
 
-  @Test
-  void connect_noPath() throws IOException {
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
+  void connect_noPath(Implementation impl) throws IOException {
     // Test that the provider does not loop when no path is found.
-    pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
+    pp = create(impl);
 
-    List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
     pp.setPathPolicy(empty);
 
-    // Create expired path to trigger PathProvider
+    // Create expired path to trigger PathSelector
     Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
     pp.connect(expired);
     assertNull(pp.getPath());
   }
 
-  @Test
-  void setPathPolicy_failsIfNoPath() throws IOException {
-    // Test that the provider does not loop when no path is found.
-    pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
+  void connect_failsIfConnected(Implementation impl) throws IOException {
+    pp = create(impl);
 
-    List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
+    Path path = paths.get(0);
+    pp.connect(path);
+    Exception e = assertThrows(IllegalStateException.class, () -> pp.connect(path));
+    assertTrue(e.getMessage().contains("already connected"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
+  void setPathPolicy_failsIfNoPath(Implementation impl) throws IOException {
+    // Test that the provider does not loop when no path is found.
+    pp = create(impl);
+
+    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
     pp.connect(paths.get(0));
 
     // Create empty path policy
@@ -102,38 +139,13 @@ class PathProviderNoOpTest {
     assertNull(pp.getPath());
   }
 
-  @Test
+  @ParameterizedTest
+  @EnumSource(Implementation.class)
   void reportFaultyPath() {
-    testError(PathProvider::reportFaultyPath);
-  }
-
-  @Test
-  void reportError_NoException_NothingChanges() {
-    // Check that other errors do not have an effect or cause an exception
-    testError(
-        (pathProvider, path) -> pathProvider.reportError(Scmp.Error2Message.create(path, 1200)),
-        false);
-  }
-
-  @Test
-  void reportError5() {
-    testError((pathProvider, path) -> pathProvider.reportError(createError5(path)));
-  }
-
-  @Test
-  void reportError6() {
-    testError((pathProvider, path) -> pathProvider.reportError(createError6(path)));
-  }
-
-  private void testError(BiConsumer<PathProvider, Path> test) {
-    testError(test, true);
-  }
-
-  private void testError(BiConsumer<PathProvider, Path> test, boolean expectNull) {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathProviderNoOp.create(PathPolicy.DEFAULT);
+      pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
       // reset counter
@@ -144,12 +156,8 @@ class PathProviderNoOpTest {
       assertEquals(paths.get(0), pp.getPath());
 
       // Replace path
-      test.accept(pp, paths.get(0));
-      if (expectNull) {
-        assertNull(pp.getPath());
-      } else {
-        assertEquals(paths.get(0), pp.getPath());
-      }
+      pp.reportError(createError5(paths.get(0)));
+      assertNull(pp.getPath());
       assertEquals(0, nw.getControlServer().getAndResetCallCount());
     }
   }
@@ -158,13 +166,5 @@ class PathProviderNoOpTest {
     // All paths use a different ingress interface here.
     PathMetadata.PathInterface pif = errorPath.getMetadata().getInterfaces().get(5);
     return Scmp.Error5Message.create(errorPath, pif.getIsdAs(), pif.getId());
-  }
-
-  private Scmp.Error6Message createError6(Path errorPath) {
-    // interfaces 7 and 8 are unique/common to the first two paths.
-    PathMetadata.PathInterface pifIn = errorPath.getMetadata().getInterfaces().get(3);
-    PathMetadata.PathInterface pifEg = errorPath.getMetadata().getInterfaces().get(4);
-    assertEquals(pifIn.getIsdAs(), pifEg.getIsdAs());
-    return Scmp.Error6Message.create(errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
   }
 }

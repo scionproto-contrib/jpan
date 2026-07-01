@@ -12,49 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.testutil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.time.Instant;
 import java.util.*;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.AddressLookupService;
+import org.scion.jpan.internal.ScionAddress;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 /**
- * The PathProviderNoOp does (almost) nothing. It will provide a path when connect(path) is called.
- * It will also verify the path against the path policy. It will not check for expiration or poll
- * for new path. If a path is reported faulty, it will remove it.
+ * The PathSelectorRotator is a simple provider that operates on a fixed list of paths.
  *
- * @see org.scion.jpan.internal.PathProvider
+ * @see PathSelector
  */
-public class PathProviderNoOp implements PathProvider {
+public class PathSelectorRotator implements PathSelector {
 
+  private PathPolicy pathPolicy = paths -> paths;
   private long dstIsdAs;
-  private InetSocketAddress dstAddress;
-  private PathPolicy pathPolicy;
-  private Path usedPath;
+  private ScionSocketAddress dstAddress;
+  private List<Path> usedPaths = new ArrayList<>();
 
-  public static PathProviderNoOp create(PathPolicy policy) {
-    return new PathProviderNoOp(policy);
+  public static PathSelectorRotator create(List<Path> paths) {
+    return new PathSelectorRotator(paths);
   }
 
-  private PathProviderNoOp(PathPolicy policy) {
-    this.dstIsdAs = 0;
-    this.dstAddress = null;
-    this.pathPolicy = policy;
-  }
-
-  @Override
-  public synchronized void reportFaultyPath(Path p) {
-    if (!Objects.equals(usedPath, p)) {
-      return;
-    }
-    usedPath = null;
+  private PathSelectorRotator(List<Path> paths) {
+    this.usedPaths.addAll(paths);
   }
 
   @Override
   public synchronized void reportError(Scmp.ErrorMessage error) {
-    if (usedPath == null) {
+    if (usedPaths.isEmpty()) {
       return;
     }
 
@@ -74,10 +65,10 @@ public class PathProviderNoOp implements PathProvider {
       return;
     }
 
-    PathMetadata usedMeta = usedPath.getMetadata();
+    PathMetadata usedMeta = usedPaths.get(0).getMetadata();
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
         || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
-      usedPath = null;
+      getNextPath();
     }
   }
 
@@ -96,18 +87,20 @@ public class PathProviderNoOp implements PathProvider {
 
   private void checkPathPolicy() {
     // Remove used path if it doesn't fit the policy
-    if (usedPath != null && pathPolicy.filter(Collections.singletonList(usedPath)).isEmpty()) {
-      usedPath = null;
-    }
+    usedPaths = pathPolicy.filter(usedPaths);
+    assertPathExists();
   }
 
-  private boolean isExpired(Path path) {
-    return path.getMetadata().getExpiration() < Instant.now().getEpochSecond();
+  private void assertPathExists() {
+    if (usedPaths.isEmpty()) {
+      String isdAs = ScionUtil.toStringIA(dstIsdAs);
+      throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
+    }
   }
 
   @Override
   public synchronized Path getPath() {
-    return usedPath;
+    return usedPaths.get(0);
   }
 
   @Override
@@ -122,6 +115,9 @@ public class PathProviderNoOp implements PathProvider {
 
   @Override
   public synchronized void connect(InetSocketAddress remote) throws IOException {
+    if (true) {
+      throw new UnsupportedOperationException();
+    }
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
@@ -133,29 +129,33 @@ public class PathProviderNoOp implements PathProvider {
       throw new IOException(e);
     }
 
-    this.dstIsdAs = sa.getIsdAs();
-    this.dstAddress = remote;
-
-    usedPath = null;
-
-    checkPathPolicy();
+    //    this.dstIsdAs = sa.getIsdAs();
+    //    this.dstAddress = remote;
+    //
+    //    // use this path
+    //    if (remote.getPath() != usedPaths.get(0)) {
+    //      throw new IllegalArgumentException();
+    //    }
+    //    subscriber.updatePath(remote.getPath());
+    //    checkPathPolicy();
   }
 
   @Override
   public void connect(ScionSocketAddress remote) {
+    if (true) {
+      throw new UnsupportedOperationException();
+    }
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
     this.dstIsdAs = remote.getIsdAs();
     this.dstAddress = remote;
 
-    if (isExpired(remote.getPath())) {
-      usedPath = null;
-      return;
-    }
-
     // use this path
-    usedPath = remote.getPath();
+    if (remote.getPath() != usedPaths.get(0)) {
+      throw new IllegalArgumentException();
+    }
+    usedPaths.add(0, remote.getPath()); // ?????
     checkPathPolicy();
   }
 
@@ -167,13 +167,10 @@ public class PathProviderNoOp implements PathProvider {
     this.dstIsdAs = path.getRemoteIsdAs();
     this.dstAddress = path.getRemoteSocketAddress();
 
-    if (isExpired(path)) {
-      usedPath = null;
-      return;
-    }
-
     // use this path
-    usedPath = path;
+    if (path != usedPaths.get(0)) {
+      throw new IllegalArgumentException();
+    }
     checkPathPolicy();
   }
 
@@ -190,5 +187,41 @@ public class PathProviderNoOp implements PathProvider {
 
   public boolean isConnected() {
     return this.dstAddress != null;
+  }
+
+  private void getNextPath() {
+    usedPaths.add(usedPaths.remove(0));
+  }
+
+  public static class FixedFactory implements PathSelectorFactory {
+    private final PathSelector selector;
+
+    protected FixedFactory(PathSelector selector) {
+      this.selector = selector;
+    }
+
+    public static PathSelectorFactory create(PathSelector selector) {
+      return new FixedFactory(selector);
+    }
+
+    public PathSelector createPathSelector(ScionService service, InetSocketAddress remote)
+        throws IOException {
+      if (remote instanceof ScionSocketAddress) {
+        selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
+      } else {
+        List<Path> paths = null;
+        try {
+          paths = service.lookupPaths(remote);
+        } catch (ScionException e) {
+          throw new IOException(e);
+        }
+
+        if (paths.isEmpty()) {
+          throw new ScionRuntimeException("No paths found for remote address " + remote);
+        }
+        selector.connect(paths.get(0)); // TODO this is not nice!
+      }
+      return selector;
+    }
   }
 }

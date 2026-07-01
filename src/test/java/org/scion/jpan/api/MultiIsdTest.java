@@ -32,14 +32,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.paths.PathSelectorFactory;
-import org.scion.jpan.testutil.ManagedThread;
-import org.scion.jpan.testutil.ManagedThreadNews;
-import org.scion.jpan.testutil.MockBorderRouter;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockNetwork2;
-import org.scion.jpan.testutil.PathProviderRotator;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.testutil.*;
 
 class MultiIsdTest {
 
@@ -85,8 +80,8 @@ class MultiIsdTest {
         pathBySourceAs -> {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
-          PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
-          PathSelectorFactory psf = PathProviderRotator.FixedFactory.create(pp);
+          PathSelector pp = PathSelectorRotator.create(Arrays.asList(p111, p112));
+          PathSelectorFactory psf = PathSelectorRotator.FixedFactory.create(pp);
           try (ScionDatagramChannel client =
               ScionDatagramChannel.newBuilder().pathSelectorFactory(psf).open()) {
             client.connect(pathBySourceAs.get(AS_111));
@@ -129,8 +124,8 @@ class MultiIsdTest {
         pathBySourceAs -> {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
-          PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
-          PathSelectorFactory psf = PathProviderRotator.FixedFactory.create(pp);
+          PathSelector pp = PathSelectorRotator.create(Arrays.asList(p111, p112));
+          PathSelectorFactory psf = PathSelectorRotator.FixedFactory.create(pp);
           try (ScionDatagramSocket client =
               ScionDatagramSocket.newBuilder().pathSelectorFactory(psf).open()) {
             client.connect(p111);

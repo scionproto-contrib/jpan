@@ -23,17 +23,17 @@ import java.nio.channels.ByteChannel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import java.util.WeakHashMap;
-import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
-import org.scion.jpan.paths.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
 
   // Store one path per (non-Scion-)destination address
-  private final WeakHashMap<InetSocketAddress, PathProvider> resolvedDestinations =
+  private final WeakHashMap<InetSocketAddress, PathSelector> resolvedDestinations =
       new WeakHashMap<>();
 
   protected ScionDatagramChannel(
@@ -140,12 +140,12 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     InetSocketAddress dst = (InetSocketAddress) destination;
     Path path;
     synchronized (stateLock()) {
-      PathProvider pathProvider = resolvedDestinations.get(dst);
-      if (pathProvider == null) {
-        pathProvider = createPathProvider(dst);
-        resolvedDestinations.put(dst, pathProvider);
+      PathSelector pathSelector = resolvedDestinations.get(dst);
+      if (pathSelector == null) {
+        pathSelector = createPathProvider(dst);
+        resolvedDestinations.put(dst, pathSelector);
       }
-      path = pathProvider.getPath();
+      path = pathSelector.getPath();
     }
     return sendInternal(srcBuffer, path);
   }
@@ -271,7 +271,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   @Deprecated // remove in 0.8.0
   public Path getMappedPath(InetSocketAddress address) {
     synchronized (stateLock()) {
-      PathProvider pp = resolvedDestinations.get(address);
+      PathSelector pp = resolvedDestinations.get(address);
       return pp == null ? null : pp.getPath();
     }
   }
@@ -279,11 +279,11 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   @Override
   public void close() throws IOException {
     super.close();
-    for (PathProvider pathProvider : resolvedDestinations.values()) {
+    for (PathSelector pathSelector : resolvedDestinations.values()) {
       // Warning: this will not disconnect() all pathProviders, they may have been GC'd already.
       // Their timer tasks may not have been cleaned up, but they will disappear over time
       // when they are executed.
-      pathProvider.disconnect();
+      pathSelector.disconnect();
     }
   }
 

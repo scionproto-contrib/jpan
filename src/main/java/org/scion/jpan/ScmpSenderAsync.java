@@ -26,13 +26,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.PathHeaderParser;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
-import org.scion.jpan.paths.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 public class ScmpSenderAsync implements AutoCloseable {
   private int timeOutMs = 1000;
@@ -205,8 +204,8 @@ public class ScmpSenderAsync implements AutoCloseable {
 
     protected InternalChannel(
         ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
-      // We provide the no-op PathProvider. SCMP channels are never connected, so the
-      // PathProvider will never be used.
+      // We provide the no-op PathSelector. SCMP channels are never connected, so the
+      // PathSelector will never be used.
       super(service, channel, PathSelectorFactory.NoOp.instance());
 
       try {

@@ -24,7 +24,7 @@ import java.util.Iterator;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
-import org.scion.jpan.paths.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 /**
  * DatagramChannel with support for timeout.

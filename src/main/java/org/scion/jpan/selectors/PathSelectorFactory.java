@@ -12,19 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.paths;
+package org.scion.jpan.selectors;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.internal.PathProviderNoOp;
-import org.scion.jpan.internal.PathProviderWithRefresh;
 
 public interface PathSelectorFactory {
 
-  PathProvider createPathSelector(ScionService service, InetSocketAddress destination)
+  PathSelector createPathSelector(ScionService service, InetSocketAddress destination)
       throws IOException;
 
   abstract class AbstractPathSelectorFactory implements PathSelectorFactory {
@@ -55,10 +52,10 @@ public interface PathSelectorFactory {
       return new Default(defaultPolicy);
     }
 
-    public PathProvider createPathSelector(ScionService service, InetSocketAddress remote)
+    public PathSelector createPathSelector(ScionService service, InetSocketAddress remote)
         throws IOException {
-      PathProviderWithRefresh selector =
-          PathProviderWithRefresh.create(service, getDefaultPolicy());
+      PathSelectorWithRefresh selector =
+          PathSelectorWithRefresh.create(service, getDefaultPolicy());
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
       } else {
@@ -94,9 +91,9 @@ public interface PathSelectorFactory {
       return new NoOp(policy);
     }
 
-    public PathProvider createPathSelector(ScionService service, InetSocketAddress remote)
+    public PathSelector createPathSelector(ScionService service, InetSocketAddress remote)
         throws IOException {
-      PathProviderNoOp selector = PathProviderNoOp.create(getDefaultPolicy());
+      PathSelectorNoOp selector = PathSelectorNoOp.create(getDefaultPolicy());
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
       } else {
