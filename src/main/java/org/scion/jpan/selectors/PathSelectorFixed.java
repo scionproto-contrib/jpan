@@ -23,24 +23,24 @@ import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.ScionAddress;
 
 /**
- * The PathSelectorNoOp does (almost) nothing. It will provide a path when connect(path) is called.
+ * The PathSelectorFixed does (almost) nothing. It will provide a path when connect(path) is called.
  * It will also verify the path against the path policy. It will not check for expiration or poll
  * for new path. If a path is reported faulty, it will remove it.
  *
  * @see PathSelector
  */
-public class PathSelectorNoOp implements PathSelector {
+public class PathSelectorFixed implements PathSelector {
 
   private long dstIsdAs;
   private InetSocketAddress dstAddress;
   private PathPolicy pathPolicy;
   private Path usedPath;
 
-  public static PathSelectorNoOp create(PathPolicy policy) {
-    return new PathSelectorNoOp(policy);
+  public static PathSelectorFixed create(PathPolicy policy) {
+    return new PathSelectorFixed(policy);
   }
 
-  private PathSelectorNoOp(PathPolicy policy) {
+  private PathSelectorFixed(PathPolicy policy) {
     this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;

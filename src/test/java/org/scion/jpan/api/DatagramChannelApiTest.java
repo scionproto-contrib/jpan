@@ -518,7 +518,7 @@ class DatagramChannelApiTest {
       ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
       InetSocketAddress dst = MockNetwork.getTinyServerAddress();
       Exception e;
-      e = assertThrows(ScionRuntimeException.class, () -> channel.send(sendBuf, dst));
+      e = assertThrows(IOException.class, () -> channel.send(sendBuf, dst));
       assertTrue(e.getMessage().startsWith("No paths found"), e.getMessage());
       assertNull(channel.getConnectionPath());
     } catch (IOException e) {
@@ -766,7 +766,7 @@ class DatagramChannelApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathSelectorFactory ppNoOp = PathSelectorFactory.NoOp.create(policy);
+    PathSelectorFactory ppNoOp = PathSelectorFactory.Fixed.create(policy);
     try (ScionDatagramChannel channel =
         ScionDatagramChannel.newBuilder().pathSelectorFactory(ppNoOp).open()) {
       assertFalse(channel.isConnected());

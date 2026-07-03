@@ -841,7 +841,7 @@ class DatagramSocketApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathSelectorFactory ppNoOp = PathSelectorFactory.NoOp.create(policy);
+    PathSelectorFactory ppNoOp = PathSelectorFactory.Fixed.create(policy);
     try (ScionDatagramSocket server =
         ScionDatagramSocket.newBuilder().bind(DUMMY_PORT).pathSelectorFactory(ppNoOp).open()) {
       assertFalse(server.isConnected());

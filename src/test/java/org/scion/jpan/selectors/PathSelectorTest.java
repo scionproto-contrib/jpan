@@ -61,14 +61,14 @@ class PathSelectorTest {
   }
 
   private enum Implementation {
-    NO_OP,
+    FIXED,
     WITH_REFRESH
   }
 
   private PathSelector create(Implementation impl) {
     switch (impl) {
-      case NO_OP:
-        return PathSelectorNoOp.create(PathPolicy.DEFAULT);
+      case FIXED:
+        return PathSelectorFixed.create(PathPolicy.DEFAULT);
       case WITH_REFRESH:
         return PathSelectorWithRefresh.create(Scion.defaultService(), PathPolicy.DEFAULT, 10, 50);
       default:
@@ -80,7 +80,7 @@ class PathSelectorTest {
   @EnumSource(Implementation.class)
   void connect_expiredNoPath() {
     ScionService service = Scion.defaultService();
-    pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
+    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
@@ -145,7 +145,7 @@ class PathSelectorTest {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
+      pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
       // reset counter

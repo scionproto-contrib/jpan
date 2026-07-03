@@ -238,14 +238,6 @@ public class PathSelectorWithRefresh implements PathSelector {
     usedPath = unusedPaths.remove(0);
   }
 
-  private void updateSubscriber() {
-    if (unusedPaths.isEmpty()) {
-      refreshPaths();
-      return;
-    }
-    findFreePath();
-  }
-
   /**
    * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
    * that use the ISD/AS and at least one of the interfaces that are reported in the error.
@@ -261,6 +253,7 @@ public class PathSelectorWithRefresh implements PathSelector {
     long faultyIsdAs;
     long ifId1;
     Long ifId2 = null;
+    // Only errors 5 and 6 give us useful information
     if (error instanceof Scmp.Error5Message) {
       Scmp.Error5Message error5 = (Scmp.Error5Message) error;
       faultyIsdAs = error5.getIsdAs();
@@ -274,6 +267,7 @@ public class PathSelectorWithRefresh implements PathSelector {
       return;
     }
 
+    // Mark unused paths with faulty interfaces as faulty
     Iterator<Entry> unusedIter = unusedPaths.iterator();
     while (unusedIter.hasNext()) {
       Entry e = unusedIter.next();
@@ -286,6 +280,7 @@ public class PathSelectorWithRefresh implements PathSelector {
       }
     }
 
+    // Mark used paths with faulty interfaces as faulty
     PathMetadata usedMeta = usedPath.path.getMetadata();
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
         || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
@@ -294,7 +289,11 @@ public class PathSelectorWithRefresh implements PathSelector {
       e.setFaulty(Instant.now());
       faultyPaths.put(e, e);
       // Find new path
-      updateSubscriber();
+      if (unusedPaths.isEmpty()) {
+        refreshPaths();
+        return;
+      }
+      findFreePath();
     }
   }
 
@@ -317,21 +316,10 @@ public class PathSelectorWithRefresh implements PathSelector {
     }
   }
 
-  private void assertPathExists() {
-    if ((usedPath == null || isExpired(usedPath.path)) && unusedPaths.isEmpty()) {
-      String isdAs = ScionUtil.toStringIA(dstIsdAs);
-      throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
-    }
-  }
-
   private boolean isExpiringInNextPeriod(Path path) {
     int expirationDeltaMs = configPathPollIntervalMs - configExpirationMarginMs;
     long epochSeconds = path.getMetadata().getExpiration();
     return epochSeconds < Instant.now().getEpochSecond() + expirationDeltaMs / 1000;
-  }
-
-  private boolean isExpired(Path path) {
-    return path.getMetadata().getExpiration() < Instant.now().getEpochSecond();
   }
 
   @Override
@@ -403,7 +391,7 @@ public class PathSelectorWithRefresh implements PathSelector {
     } else {
       // use this path
       unusedPaths.add(new Entry(path, 0.0));
-      updateSubscriber();
+      findFreePath();
     }
 
     timerFuture =

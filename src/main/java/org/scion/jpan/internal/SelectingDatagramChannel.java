@@ -133,7 +133,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
 
       if (factory == null) {
         if (service == null) {
-          factory = PathSelectorFactory.NoOp.instance();
+          factory = PathSelectorFactory.Fixed.instance();
         } else {
           factory = PathSelectorFactory.Default.instance();
         }

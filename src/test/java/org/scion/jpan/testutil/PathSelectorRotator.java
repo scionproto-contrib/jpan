@@ -193,10 +193,11 @@ public class PathSelectorRotator implements PathSelector {
     usedPaths.add(usedPaths.remove(0));
   }
 
-  public static class FixedFactory implements PathSelectorFactory {
+  public static class FixedFactory extends PathSelectorFactory.AbstractPathSelectorFactory {
     private final PathSelector selector;
 
     protected FixedFactory(PathSelector selector) {
+      super(PathPolicy.DEFAULT);
       this.selector = selector;
     }
 
@@ -209,17 +210,7 @@ public class PathSelectorRotator implements PathSelector {
       if (remote instanceof ScionSocketAddress) {
         selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
       } else {
-        List<Path> paths = null;
-        try {
-          paths = service.lookupPaths(remote);
-        } catch (ScionException e) {
-          throw new IOException(e);
-        }
-
-        if (paths.isEmpty()) {
-          throw new ScionRuntimeException("No paths found for remote address " + remote);
-        }
-        selector.connect(paths.get(0)); // TODO this is not nice!
+        selector.connect(lookup(service, remote));
       }
       return selector;
     }

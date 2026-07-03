@@ -337,7 +337,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
 
       if (factory == null) {
         if (service == null) {
-          factory = PathSelectorFactory.NoOp.instance();
+          factory = PathSelectorFactory.Fixed.instance();
         } else {
           factory = PathSelectorFactory.Default.instance();
         }

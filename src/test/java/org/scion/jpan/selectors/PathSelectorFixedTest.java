@@ -30,10 +30,10 @@ import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
 
-class PathSelectorNoOpTest {
+class PathSelectorFixedTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
-  private PathSelectorNoOp pp = null;
+  private PathSelectorFixed pp = null;
   private InetSocketAddress someAddress;
 
   @BeforeEach
@@ -57,7 +57,7 @@ class PathSelectorNoOpTest {
   @Test
   void connect_expiredNoPath() {
     ScionService service = Scion.defaultService();
-    pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
+    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
@@ -74,7 +74,7 @@ class PathSelectorNoOpTest {
   @Test
   void connect_noPath() throws IOException {
     // Test that the provider does not loop when no path is found.
-    pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
+    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
 
@@ -91,7 +91,7 @@ class PathSelectorNoOpTest {
   @Test
   void setPathPolicy_failsIfNoPath() throws IOException {
     // Test that the provider does not loop when no path is found.
-    pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
+    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
     pp.connect(paths.get(0));
@@ -128,7 +128,7 @@ class PathSelectorNoOpTest {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathSelectorNoOp.create(PathPolicy.DEFAULT);
+      pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
       // reset counter
