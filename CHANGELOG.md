@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
         - Metadata is already optional.... 
   - RESULT: Try Subclass approach and see how bad it is... 
 
+- ScionDatagramPacket: Should be used to avoid caching and security issues in DatagramSocket.
 - STUN: check/extend auto mode: if local IP subnet is different from BR IP subnet
   then use STUN otherwise do not (check subnet mask if possible). Allow flag to override this.
 - SCMP: Implement tooling to extract SCMP error payload to get ID/sequence number
@@ -170,11 +171,15 @@ TODO
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
 
 TODO
-- ScionDatagramPacket: Should be used to avoid caching and security issues in DatagramSocket. 
+- Fix Channel/Socket API 
+  - Remove connect(Path)   (send(path) is okay)
+  - Add connect(PathSelector) ?
+  - Add build.with(PathSelector), remove factory?
+- Fix Selector API
+  - Remove connect(path), recommend connect(PathSelector.Fixed(Path))
+  - Move lookup outside of Selector!(?)
 - PathSelector
   - javadoc
-  - rename to PathSelector
-  - move to public package
 - Clean up 
   - PathSelectorRotator.java
   - ScionDatagramSocket
