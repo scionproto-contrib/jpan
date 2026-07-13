@@ -36,8 +36,11 @@ import org.scion.jpan.internal.snap.SnapService;
 import org.scion.jpan.internal.snap.SnapTunnelSession;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.selectors.PathSelectorNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScmpSenderAsync implements AutoCloseable {
+  private static final Logger log = LoggerFactory.getLogger(ScmpSenderAsync.class);
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
@@ -297,6 +300,14 @@ public class ScmpSenderAsync implements AutoCloseable {
         int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
         buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
+        log.debug(
+            "SCMP send traceroute: seqNo={} srcPort={} posHopFlags={} hopFlags=0x{} override={}",
+            interfaceNumber,
+            srcPort.get(),
+            node.posHopFlags,
+            Integer.toHexString(node.hopFlags & 0xff),
+            getOverrideSourceAddress());
+
         sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
@@ -361,6 +372,11 @@ public class ScmpSenderAsync implements AutoCloseable {
         buffer.flip();
         if (validate(buffer)) {
           HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+          log.debug(
+              "SCMP receive: {} bytes from {}, nextHeader={}",
+              buffer.remaining(),
+              srcAddress,
+              hdrType);
           ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
           // From here on we use linear reading using the buffer's position() mechanism
           buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
@@ -370,9 +386,12 @@ public class ScmpSenderAsync implements AutoCloseable {
           hdrType = receiveExtensionHeader(buffer, hdrType);
 
           if (hdrType != HeaderConstants.HdrTypes.SCMP) {
+            log.debug("SCMP receive: dropping non-SCMP packet (hdrType={})", hdrType);
             return; // drop
           }
           handleIncomingScmp(buffer, receivePath);
+        } else {
+          log.debug("SCMP receive: validation failed, dropping {} bytes", buffer.remaining());
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
@@ -387,6 +406,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       long currentNanos = System.nanoTime();
       int bufferStart = buffer.position();
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
+      log.debug("SCMP handleIncoming: typeCode={}", msg.getTypeCode());
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
         // Async send/receive handles error via error handler
@@ -401,6 +421,11 @@ public class ScmpSenderAsync implements AutoCloseable {
       Scmp.TimedMessage timedMsg = (Scmp.TimedMessage) msg;
 
       TimeOutTask task = timers.remove(timedMsg.getSequenceNumber());
+      log.debug(
+          "SCMP handleIncoming: seqNo={} pendingTimers={} taskFound={}",
+          timedMsg.getSequenceNumber(),
+          timers.size(),
+          task != null);
       if (task != null) {
         task.cancel(); // Cancel timeout timer
         Scmp.TimedMessage request = task.request;

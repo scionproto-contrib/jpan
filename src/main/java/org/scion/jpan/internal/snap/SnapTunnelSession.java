@@ -309,16 +309,34 @@ public class SnapTunnelSession {
 
   public synchronized byte[] decrypt(byte[] wireguardPacket) {
     if (!established) {
+      log.debug("SNAP decrypt: not established");
       return null;
     }
     WireGuardPacket.DataPacket packet = WireGuardPacket.parseDataPacket(wireguardPacket);
-    if (packet == null || packet.receiverIndex != localIndex) {
+    if (packet == null) {
+      int type = WireGuardPacket.packetType(wireguardPacket);
+      log.debug("SNAP decrypt: not a data packet (type={})", type);
+      return null;
+    }
+    if (packet.receiverIndex != localIndex) {
+      log.debug(
+          "SNAP decrypt: receiverIndex mismatch: got {} expected {}",
+          packet.receiverIndex,
+          localIndex);
       return null;
     }
     try {
-      return aeadChaCha20Open(
-          recvKey, packet.counter, packet.ciphertext, new byte[0], packet.ciphertext.length - 16);
+      byte[] result =
+          aeadChaCha20Open(
+              recvKey,
+              packet.counter,
+              packet.ciphertext,
+              new byte[0],
+              packet.ciphertext.length - 16);
+      log.debug("SNAP decrypt: ok, plaintext {} bytes (counter={})", result.length, packet.counter);
+      return result;
     } catch (InvalidCipherTextException e) {
+      log.debug("SNAP decrypt: AEAD failure (counter={})", packet.counter);
       return null;
     }
   }
@@ -334,6 +352,12 @@ public class SnapTunnelSession {
   public synchronized int sendPacket(byte[] scionPacket) throws IOException {
     ensureConnected();
     byte[] wg = encrypt(scionPacket);
+    log.debug(
+        "SNAP sendPacket: {} SCION bytes -> {} WireGuard bytes to {} from local={}",
+        scionPacket.length,
+        wg.length,
+        dataPlane,
+        underlay.getLocalAddress());
     return underlay.send(ByteBuffer.wrap(wg), dataPlane);
   }
 
@@ -342,10 +366,18 @@ public class SnapTunnelSession {
     ByteBuffer underlayBuf = ByteBuffer.allocate(65535);
     while (true) {
       InetSocketAddress srcAddress = (InetSocketAddress) underlay.receive(underlayBuf);
+      if (srcAddress != null) {
+        log.debug(
+            "SNAP receivePacket: got {} bytes from {} (dataPlane={})",
+            underlayBuf.position(),
+            srcAddress,
+            dataPlane);
+      }
       if (srcAddress == null) {
         return null;
       }
       if (!dataPlane.equals(srcAddress)) {
+        log.debug("SNAP receivePacket: ignoring packet from unexpected source {}", srcAddress);
         underlayBuf.clear();
         continue;
       }
@@ -353,10 +385,13 @@ public class SnapTunnelSession {
       byte[] wg = new byte[underlayBuf.remaining()];
       underlayBuf.get(wg);
       underlayBuf.clear();
+      log.debug("SNAP receivePacket: received {} bytes from data plane", wg.length);
       byte[] scion = decrypt(wg);
       if (scion == null) {
+        log.debug("SNAP receivePacket: decrypt returned null, skipping");
         continue;
       }
+      log.debug("SNAP receivePacket: decrypted {} bytes of SCION payload", scion.length);
       buffer.put(scion);
       return srcAddress;
     }
