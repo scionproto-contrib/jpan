@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.8.0 and beyond
+- Remove Path from ScionSocketAddress?
+  - Make Path subclass of ScionSocketAddress?
+    - Pro: 
+      - Path can be used transparently with server.receive() & server.send()
+      - Having ScionSocketAddress w/o Path can be useful, e.g. as argument to 
+        PathSelector constructors or to connect()
+        --> works also with optional field... 
+    - Contra: 
+      - Deep inheritance hierarchy.
+      - Resolving an address leads to throwaway ScionSocketAddress objects
+  - Make Path an "optional" (final) field of ScionSocketAddress?
+    - Pro: Path can be used transparently with server.receive() & server.send()
+    - Contra:
+      - Needs weird checks everywhere for path==null...
+        - Metadata is already optional.... 
+  - RESULT: Try Subclass approach and see how bad it is... 
 
 - STUN: check/extend auto mode: if local IP subnet is different from BR IP subnet
   then use STUN otherwise do not (check subnet mask if possible). Allow flag to override this.
@@ -177,7 +193,8 @@ TODO
   [#272](https://github.com/scionproto-contrib/jpan/pull/272)
 - Add proper error message when no paths can be found.
   [#273](https://github.com/scionproto-contrib/jpan/pull/273)
-
+- Fixed missing interface ids when querying daemon for border routers.
+  [#276](https://github.com/scionproto-contrib/jpan/pull/276)
 
 ### Changed
 

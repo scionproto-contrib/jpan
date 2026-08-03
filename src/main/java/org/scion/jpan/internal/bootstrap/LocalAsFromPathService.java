@@ -72,7 +72,7 @@ public class LocalAsFromPathService {
   private static List<LocalAS.BorderRouter> getBorderRouterList(Underlays.ListUnderlaysResponse u) {
     List<LocalAS.BorderRouter> list = new ArrayList<>();
     for (Underlays.Router r : u.getUdp().getRoutersList()) {
-      LocalAS.BorderRouter br = new LocalAS.BorderRouter(r.getAddress(), new ArrayList<>());
+      LocalAS.BorderRouter br = new LocalAS.BorderRouter(r.getAddress());
       for (Integer i : r.getInterfacesList()) {
         br.addInterface(i);
       }
