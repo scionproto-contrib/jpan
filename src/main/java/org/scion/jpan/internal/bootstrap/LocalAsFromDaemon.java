@@ -59,19 +59,14 @@ public class LocalAsFromDaemon {
 
   private static List<LocalAS.BorderRouter> readBorderRouterAddresses(
       DaemonServiceGrpc daemonService) {
-    Set<String> borderRouterNames = new HashSet<>();
-    List<LocalAS.BorderRouter> borderRouters = new ArrayList<>();
+    Map<String, LocalAS.BorderRouter> routers = new HashMap<>();
     for (Map.Entry<Long, Daemon.Interface> e : readInterfaces(daemonService).entrySet()) {
       String addr = e.getValue().getAddress().getAddress();
+      LocalAS.BorderRouter br = routers.computeIfAbsent(addr, LocalAS.BorderRouter::new);
       int id = (int) (long) e.getKey();
-      if (!borderRouterNames.contains(addr)) {
-        borderRouterNames.add(addr);
-        LocalAS.BorderRouter br = new LocalAS.BorderRouter(addr, new ArrayList<>());
-        br.addInterface(id);
-        borderRouters.add(br);
-      }
+      br.addInterface(id);
     }
-    return borderRouters;
+    return new ArrayList<>(routers.values());
   }
 
   private static Daemon.ASResponse readASInfo(DaemonServiceGrpc daemonService) {

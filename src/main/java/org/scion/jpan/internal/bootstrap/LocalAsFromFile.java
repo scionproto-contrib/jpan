@@ -46,7 +46,7 @@ public class LocalAsFromFile {
         JsonObject br = e.getValue().getAsJsonObject();
         String addr = safeGet(br, "internal_addr").getAsString();
         JsonObject ints = safeGet(br, "interfaces").getAsJsonObject();
-        List<Integer> interfaces = new ArrayList<>();
+        LocalAS.BorderRouter localBr = new LocalAS.BorderRouter(addr);
         for (Map.Entry<String, JsonElement> ifEntry : ints.entrySet()) {
           JsonObject ife = ifEntry.getValue().getAsJsonObject();
           JsonObject underlay = ife.getAsJsonObject("underlay");
@@ -59,9 +59,9 @@ public class LocalAsFromFile {
           //          int mtu = ife.get("mtu").getAsInt();
           //          String linkTo = ife.get("link_to").getAsString();
           int ifId = Integer.parseInt(ifEntry.getKey());
-          interfaces.add(ifId);
+          localBr.addInterface(ifId);
         }
-        borderRouters.add(new LocalAS.BorderRouter(addr, interfaces));
+        borderRouters.add(localBr);
       }
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {

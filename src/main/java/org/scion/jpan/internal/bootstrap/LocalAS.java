@@ -149,12 +149,11 @@ public class LocalAS {
   public static class BorderRouter {
     private final String internalAddressString;
     private final InetSocketAddress internalAddress;
-    private final List<Integer> interfaces;
+    private final List<Integer> interfaces = new ArrayList<>();
 
-    BorderRouter(String addr, List<Integer> interfaces) {
+    BorderRouter(String addr) {
       this.internalAddressString = addr;
       this.internalAddress = IPHelper.toInetSocketAddress(addr);
-      this.interfaces = interfaces;
     }
 
     public InetSocketAddress getInternalAddress() {
