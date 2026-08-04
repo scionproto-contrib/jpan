@@ -14,13 +14,10 @@
 
 package org.scion.jpan.selectors;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.AddressLookupService;
-import org.scion.jpan.internal.ScionAddress;
 
 /**
  * The PathSelectorFixed does (almost) nothing. It will provide a path when connect(path) is called.
@@ -112,27 +109,6 @@ public class PathSelectorFixed implements PathSelector {
   @Override
   public long getRemoteIsdAs() {
     return dstIsdAs;
-  }
-
-  @Override
-  public synchronized void connect(InetSocketAddress remote) throws IOException {
-    if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
-    }
-
-    ScionAddress sa;
-    try {
-      sa = AddressLookupService.lookupAddress(remote.getHostString());
-    } catch (ScionException e) {
-      throw new IOException(e);
-    }
-
-    this.dstIsdAs = sa.getIsdAs();
-    this.dstAddress = remote;
-
-    usedPath = null;
-
-    checkPathPolicy();
   }
 
   @Override

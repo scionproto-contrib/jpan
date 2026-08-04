@@ -46,8 +46,6 @@ public interface PathSelector {
 
   void setPathPolicy(PathPolicy pathPolicy);
 
-  void connect(InetSocketAddress remote) throws IOException;
-
   void connect(ScionSocketAddress remote);
 
   /**

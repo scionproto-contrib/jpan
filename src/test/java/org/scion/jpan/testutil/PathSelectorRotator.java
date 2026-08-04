@@ -18,8 +18,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.AddressLookupService;
-import org.scion.jpan.internal.ScionAddress;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 
@@ -111,33 +109,6 @@ public class PathSelectorRotator implements PathSelector {
   @Override
   public long getRemoteIsdAs() {
     return dstIsdAs;
-  }
-
-  @Override
-  public synchronized void connect(InetSocketAddress remote) throws IOException {
-    if (true) {
-      throw new UnsupportedOperationException();
-    }
-    if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
-    }
-
-    ScionAddress sa;
-    try {
-      sa = AddressLookupService.lookupAddress(remote.getHostString());
-    } catch (ScionException e) {
-      throw new IOException(e);
-    }
-
-    //    this.dstIsdAs = sa.getIsdAs();
-    //    this.dstAddress = remote;
-    //
-    //    // use this path
-    //    if (remote.getPath() != usedPaths.get(0)) {
-    //      throw new IllegalArgumentException();
-    //    }
-    //    subscriber.updatePath(remote.getPath());
-    //    checkPathPolicy();
   }
 
   @Override
