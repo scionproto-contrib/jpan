@@ -119,11 +119,6 @@ public class PathSelectorFixed implements PathSelector {
     this.dstIsdAs = remote.getIsdAs();
     this.dstAddress = remote;
 
-    if (isExpired(remote.getPath())) {
-      usedPath = null;
-      return;
-    }
-
     // use this path
     usedPath = remote.getPath();
     checkPathPolicy();

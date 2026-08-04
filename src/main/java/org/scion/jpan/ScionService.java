@@ -265,6 +265,18 @@ public class ScionService {
   }
 
   /**
+   * Resolves the address to a SCION address.
+   *
+   * @param dstAddr Destination address
+   * @return A ScionSOcketAddress without paths.
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  UnresolvedScionSocketAddress lookup(InetSocketAddress dstAddr) throws ScionException {
+    ScionAddress sa = AddressLookupService.lookupAddress(dstAddr.getHostString());
+    return UnresolvedScionSocketAddress.from(sa.getIsdAs(), sa.getInetAddress(), dstAddr.getPort());
+  }
+
+  /**
    * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
@@ -272,9 +284,6 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<Path> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
-    if (dstScionAddress instanceof ScionSocketAddress) {
-      return getPaths(((ScionSocketAddress) dstScionAddress).getPath());
-    }
     return getPaths(dstIsdAs, dstScionAddress.getAddress(), dstScionAddress.getPort());
   }
 

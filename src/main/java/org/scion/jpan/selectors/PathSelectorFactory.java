@@ -14,15 +14,11 @@
 
 package org.scion.jpan.selectors;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.List;
 import org.scion.jpan.*;
 
 public interface PathSelectorFactory {
 
-  PathSelector createPathSelector(ScionService service, InetSocketAddress destination)
-      throws IOException;
+  PathSelector createPathSelector(ScionService service, ScionSocketAddress destination);
 
   abstract class AbstractPathSelectorFactory implements PathSelectorFactory {
     private final PathPolicy defaultPolicy;
@@ -33,20 +29,6 @@ public interface PathSelectorFactory {
 
     public PathPolicy getDefaultPolicy() {
       return defaultPolicy;
-    }
-
-    protected Path lookup(ScionService service, InetSocketAddress remote) throws IOException {
-      List<Path> paths = null;
-      try {
-        paths = service.lookupPaths(remote);
-      } catch (ScionException e) {
-        throw new IOException(e);
-      }
-
-      if (paths.isEmpty()) {
-        throw new IOException("No paths found for remote address " + remote);
-      }
-      return paths.get(0); // TODO this is not nice!
     }
   }
 
@@ -66,15 +48,10 @@ public interface PathSelectorFactory {
       return new Default(defaultPolicy);
     }
 
-    public PathSelector createPathSelector(ScionService service, InetSocketAddress remote)
-        throws IOException {
+    public PathSelector createPathSelector(ScionService service, ScionSocketAddress remote) {
       PathSelectorWithRefresh selector =
           PathSelectorWithRefresh.create(service, getDefaultPolicy());
-      if (remote instanceof ScionSocketAddress) {
-        selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
-      } else {
-        selector.connect(lookup(service, remote));
-      }
+      selector.connect(remote);
       return selector;
     }
   }
@@ -95,14 +72,10 @@ public interface PathSelectorFactory {
       return new Fixed(policy);
     }
 
-    public PathSelector createPathSelector(ScionService service, InetSocketAddress remote)
-        throws IOException {
+    @Override
+    public PathSelector createPathSelector(ScionService service, ScionSocketAddress remote) {
       PathSelectorFixed selector = PathSelectorFixed.create(getDefaultPolicy());
-      if (remote instanceof ScionSocketAddress) {
-        selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
-      } else {
-        selector.connect(lookup(service, remote));
-      }
+      selector.connect(remote);
       return selector;
     }
   }

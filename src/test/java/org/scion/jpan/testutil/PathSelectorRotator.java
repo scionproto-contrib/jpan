@@ -14,7 +14,6 @@
 
 package org.scion.jpan.testutil;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import org.scion.jpan.*;
@@ -29,9 +28,9 @@ import org.scion.jpan.selectors.PathSelectorFactory;
 public class PathSelectorRotator implements PathSelector {
 
   private PathPolicy pathPolicy = paths -> paths;
-  private long dstIsdAs;
-  private ScionSocketAddress dstAddress;
+  private final ScionSocketAddress dstAddress;
   private List<Path> usedPaths = new ArrayList<>();
+  private boolean isConnected = false;
 
   public static PathSelectorRotator create(List<Path> paths) {
     return new PathSelectorRotator(paths);
@@ -39,6 +38,7 @@ public class PathSelectorRotator implements PathSelector {
 
   private PathSelectorRotator(List<Path> paths) {
     this.usedPaths.addAll(paths);
+    this.dstAddress = paths.isEmpty() ? null : paths.get(0).getRemoteSocketAddress();
   }
 
   @Override
@@ -63,10 +63,16 @@ public class PathSelectorRotator implements PathSelector {
       return;
     }
 
-    PathMetadata usedMeta = usedPaths.get(0).getMetadata();
-    if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
-        || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
-      getNextPath();
+    for (int i = 0; i < usedPaths.size(); i++) {
+      // Yes, get always the first one, because we rotate the list in each loop.
+      PathMetadata usedMeta = usedPaths.get(0).getMetadata();
+      if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
+          || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
+        getNextPath();
+      } else {
+        // rotate until we find a path that works.
+        break;
+      }
     }
   }
 
@@ -91,7 +97,7 @@ public class PathSelectorRotator implements PathSelector {
 
   private void assertPathExists() {
     if (usedPaths.isEmpty()) {
-      String isdAs = ScionUtil.toStringIA(dstIsdAs);
+      String isdAs = ScionUtil.toStringIA(dstAddress.getIsdAs());
       throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
     }
   }
@@ -108,26 +114,20 @@ public class PathSelectorRotator implements PathSelector {
 
   @Override
   public long getRemoteIsdAs() {
-    return dstIsdAs;
+    return dstAddress.getIsdAs();
   }
 
   @Override
   public void connect(ScionSocketAddress remote) {
-    if (true) {
-      throw new UnsupportedOperationException();
-    }
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
-    this.dstIsdAs = remote.getIsdAs();
-    this.dstAddress = remote;
-
-    // use this path
-    if (remote.getPath() != usedPaths.get(0)) {
-      throw new IllegalArgumentException();
+    if (this.dstAddress != remote) {
+      throw new IllegalArgumentException(this.dstAddress + " != " + remote);
     }
-    usedPaths.add(0, remote.getPath()); // ?????
+
     checkPathPolicy();
+    isConnected = true;
   }
 
   @Override
@@ -135,20 +135,21 @@ public class PathSelectorRotator implements PathSelector {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
-    this.dstIsdAs = path.getRemoteIsdAs();
-    this.dstAddress = path.getRemoteSocketAddress();
+    if (this.dstAddress != path.getRemoteSocketAddress()) {
+      throw new IllegalArgumentException(this.dstAddress + " != " + path.getRemoteSocketAddress());
+    }
 
     // use this path
     if (path != usedPaths.get(0)) {
       throw new IllegalArgumentException();
     }
     checkPathPolicy();
+    isConnected = true;
   }
 
   @Override
   public synchronized void disconnect() {
-    this.dstAddress = null;
-    this.dstIsdAs = 0;
+    isConnected = false;
   }
 
   @Override
@@ -157,32 +158,27 @@ public class PathSelectorRotator implements PathSelector {
   }
 
   public boolean isConnected() {
-    return this.dstAddress != null;
+    return isConnected;
   }
 
   private void getNextPath() {
     usedPaths.add(usedPaths.remove(0));
   }
 
-  public static class FixedFactory extends PathSelectorFactory.AbstractPathSelectorFactory {
+  public static class Factory extends PathSelectorFactory.AbstractPathSelectorFactory {
     private final PathSelector selector;
 
-    protected FixedFactory(PathSelector selector) {
+    protected Factory(PathSelector selector) {
       super(PathPolicy.DEFAULT);
       this.selector = selector;
     }
 
     public static PathSelectorFactory create(PathSelector selector) {
-      return new FixedFactory(selector);
+      return new Factory(selector);
     }
 
-    public PathSelector createPathSelector(ScionService service, InetSocketAddress remote)
-        throws IOException {
-      if (remote instanceof ScionSocketAddress) {
-        selector.connect(((ScionSocketAddress) remote).getPath()); // TODO connect(IP/ISD-AS) only?
-      } else {
-        selector.connect(lookup(service, remote));
-      }
+    public PathSelector createPathSelector(ScionService service, ScionSocketAddress remote) {
+      selector.connect(remote);
       return selector;
     }
   }

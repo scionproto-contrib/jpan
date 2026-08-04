@@ -35,6 +35,7 @@ import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFixed;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
@@ -91,7 +92,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   protected PathSelector createPathSelector(InetSocketAddress remote) throws IOException {
-    return pathSelectorFactory.createPathSelector(service, remote);
+    return pathSelectorFactory.createPathSelector(service, service.lookup(remote));
   }
 
   /**
@@ -247,16 +248,47 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * @throws IOException for example when the first hop (border router) cannot be connected.
    */
   public C connect(SocketAddress addr) throws IOException {
+    // For reference: Java DatagramChannel behavior:
+    // - fresh channel has getLocalAddress() == null
+    // - connect() and send() cause internal bind()
+    //   -> bind() after connect() or send() causes AlreadyBoundException
+    //   - send(), receive() and bind(null) bind to ANY
+    // - connect() and bind() have lock conflict with concurrent call to receiver()
+    // - connect() after bind() is fine, but it changes the local address from ANY to specific IF
+
+    // We have two manage two connection states, internal (state of the internally used channel)
+    // and external (as reported to API users).
+
+    // Externally, for an API user:
+    // Our policy is that a connection only determines the _address_ of the remote host,
+    // the _route_ to the remote host (i.e. border routers) may change.
+    //
+    // Internally:
+    // However, internally, we do _not_ connect() to the first hop.
+    // Usually, connections prevent receiving/sending packets to other IPs.
+    // Since this IP (which is the first hop) may change, which would require us to disconnect() and
+    // re-connect(), which causes two problems:
+    // a) connect() may block infinitely if a receive() is in progress and
+    // b) disconnect() sets the local port to 0
+    //    (before JDK 14, see https://bugs.openjdk.org/browse/JDK-8231880).
+    //
+    // Again, externally:
+    // We still need to make getLocalAddress() return a local IP after connect() so
+    // we call bind(null). We have to do it here, and not lazily during getLocalAddress(),
+    // because bind() may block when a concurrent receive() is on progress.
     synchronized (stateLock) {
       checkConnected(false);
       if (!(addr instanceof InetSocketAddress)) {
         throw new IllegalArgumentException(
             "connect() requires an InetSocketAddress or a ScionSocketAddress.");
       }
+
+      ScionSocketAddress destination;
       if (addr instanceof ScionSocketAddress) {
-        return connect(((ScionSocketAddress) addr).getPath());
+        destination = (ScionSocketAddress) addr;
+      } else {
+        destination = service.lookup((InetSocketAddress) addr);
       }
-      InetSocketAddress destination = (InetSocketAddress) addr;
 
       synchronized (stateLock) {
         checkConnected(false);
@@ -296,41 +328,42 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * @param path Path to the remote host.
    * @return This channel.
    * @throws IOException for example when the first hop (border router) cannot be connected.
+   * @deprecated Use with caution, paths are not refreshed or exchanged in case of errors.
    */
-  @SuppressWarnings("unchecked")
+  @Deprecated
   public C connect(Path path) throws IOException {
     if (!(path instanceof RequestPath)) {
       // Technically we could probably allow this, but it feels like an abuse of the API,
       throw new IllegalStateException("The path must be a request path.");
     }
-    // For reference: Java DatagramChannel behavior:
-    // - fresh channel has getLocalAddress() == null
-    // - connect() and send() cause internal bind()
-    //   -> bind() after connect() or send() causes AlreadyBoundException
-    //   - send(), receive() and bind(null) bind to ANY
-    // - connect() and bind() have lock conflict with concurrent call to receiver()
-    // - connect() after bind() is fine, but it changes the local address from ANY to specific IF
+    PathSelector ps = PathSelectorFixed.create(PathPolicy.DEFAULT);
+    ps.connect(path);
+    return connect(ps);
+  }
 
-    // We have two manage two connection states, internal (state of the internally used channel)
-    // and external (as reported to API users).
-
-    // Externally, for an API user:
-    // Our policy is that a connection only determines the _address_ of the remote host,
-    // the _route_ to the remote host (i.e. border routers) may change.
-    //
-    // Internally:
-    // However, internally, we do _not_ connect() to the first hop.
-    // Usually, connections prevent receiving/sending packets to other IPs.
-    // Since this IP (which is the first hop) may change, which would require us to disconnect() and
-    // re-connect(), which causes two problems:
-    // a) connect() may block infinitely if a receive() is in progress and
-    // b) disconnect() sets the local port to 0
-    //    (before JDK 14, see https://bugs.openjdk.org/browse/JDK-8231880).
-    //
-    // Again, externally:
-    // We still need to make getLocalAddress() return a local IP after connect() so
-    // we call bind(null). We have to do it here, and not lazily during getLocalAddress(),
-    // because bind() may block when a concurrent receive() is on progress.
+  /**
+   * Connect to a destination host. Note:<br>
+   * - A SCION channel will internally connect to the next border router (first hop) instead of the
+   * remote host. <br>
+   * - The path is taken from the pathSelector.<br>
+   *
+   * <p>NB: This method does internally not call {@link
+   * java.nio.channels.DatagramChannel#connect(SocketAddress)}. That means this method does NOT
+   * perform any additional security checks associated with connect(). It will however perform a
+   * `bind(null)` unless the channel is already bound.
+   *
+   * <p>"connect()" is understood to provide connect to a destination address (IP+port).<br>
+   * - send()ing packet to another destination will cause an Exception.<br>
+   * - packets received from a different destination will be dropped.<br>
+   * - connecting to a given Path only connects to the destination address, the path (route) itself
+   * may change depending on the pathSelector.
+   *
+   * @param pathSelector Path to the remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   */
+  @SuppressWarnings("unchecked")
+  public C connect(PathSelector pathSelector) throws IOException {
     synchronized (stateLock) {
       checkConnected(false);
       ensureBound();
@@ -342,7 +375,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathSelector = pathSelectorFactory.createPathSelector(service, path.getRemoteSocketAddress());
+      this.pathSelector = pathSelector;
       isConnected = true;
       return (C) this;
     }

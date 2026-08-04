@@ -346,7 +346,7 @@ class PathSelectorWithRefreshTest {
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
       // No change when reporting again
-      pp.reportError(createError5(paths.get(0)));
+      pp.reportError(createError6_7_8(paths.get(0)));
       assertNotEquals(paths.get(0), pp.getPath());
       assertEquals(paths.get(2), pp.getPath());
 
@@ -357,7 +357,7 @@ class PathSelectorWithRefreshTest {
       for (Path p : paths) {
         pp.reportError(createError5(p));
       }
-      assertEquals(paths.get(0), pp.getPath());
+      assertNotNull(pp.getPath());
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
     }
   }

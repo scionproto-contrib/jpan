@@ -425,9 +425,7 @@ class DatagramChannelApiTest {
         ScionDatagramChannel.newBuilder().pathSelectorFactory(psf).open()) {
       List<Path> paths = channel.getService().lookupPaths(dummyAddress);
 
-      // Create expired path to trigger PathSelector
-      Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
-      channel.connect(expired);
+      channel.connect(paths.get(0).getRemoteSocketAddress());
       Exception e = assertThrows(IOException.class, () -> channel.write(ByteBuffer.allocate(10)));
       assertTrue(e.getMessage().startsWith("No path found to destination"));
     }

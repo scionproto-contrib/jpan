@@ -14,7 +14,6 @@
 
 package org.scion.jpan.selectors;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;

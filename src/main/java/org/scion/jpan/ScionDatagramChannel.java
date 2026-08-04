@@ -146,6 +146,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         resolvedDestinations.put(dst, pathSelector);
       }
       path = pathSelector.getPath();
+      if (path == null) {
+        throw new IOException("No paths found for remote address " + destination);
+      }
     }
     return sendInternal(srcBuffer, path);
   }

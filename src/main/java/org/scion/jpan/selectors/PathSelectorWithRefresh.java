@@ -204,17 +204,20 @@ public class PathSelectorWithRefresh implements PathSelector {
     // We check all new path for whether they were reported faulty.
     // We also clean up the faulty list so it doesn't remove any paths that were not also
     // offered in the last request.
-    Set<Entry> faultySet = faultyPaths.keySet();
     List<Entry> newFaulty = new ArrayList<>();
     Iterator<Entry> itUnused = unusedPaths.iterator();
     while (itUnused.hasNext()) {
       Entry newEntry = itUnused.next();
-      if (faultySet.contains(newEntry)) {
-        // In case we retry this path later.
-        newFaulty.add(newEntry);
-        // Remove from list of path that are free to use.
-        itUnused.remove();
-      }
+      faultyPaths.computeIfPresent(
+          newEntry,
+          (k, v) -> {
+            // In case we retry this path later.
+            newEntry.setFaulty(v.timestamp);
+            newFaulty.add(newEntry);
+            // Remove from list of path that are free to use.
+            itUnused.remove();
+            return v;
+          });
     }
     faultyPaths.clear();
     newFaulty.forEach(e -> faultyPaths.put(e, e));
@@ -222,7 +225,7 @@ public class PathSelectorWithRefresh implements PathSelector {
     if (unusedPaths.isEmpty()) {
       // try faulty paths again -> ordered by how long ago they were reported faulty
       faultyPaths.forEach((k, v) -> unusedPaths.add(v));
-      unusedPaths.sort(Comparator.comparing(e -> e.rank));
+      unusedPaths.sort(Comparator.comparing(e -> e.timestamp));
       unusedPaths.forEach(e -> e.timestamp = null);
       faultyPaths.clear();
     }

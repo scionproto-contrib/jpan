@@ -171,6 +171,10 @@ TODO
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
 
 TODO
+- rename Selector.connect to something else?
+  or perform connect() only in pathProvider.connect()?
+- remove pathSelector.connect(path)
+
 - Fix Channel/Socket API 
   - Remove connect(Path)   (send(path) is okay)
   - Add connect(PathSelector) ?
