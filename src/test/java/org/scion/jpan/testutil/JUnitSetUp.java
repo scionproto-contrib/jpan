@@ -14,6 +14,8 @@
 
 package org.scion.jpan.testutil;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -26,6 +28,7 @@ import org.scion.jpan.Scion;
 import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.Shim;
 import org.scion.jpan.internal.util.ExternalIpDiscovery;
+import org.scion.jpan.selectors.PathSelectorWithRefresh;
 
 public class JUnitSetUp
     implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AutoCloseable {
@@ -88,5 +91,6 @@ public class JUnitSetUp
     System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
     System.clearProperty(Constants.PROPERTY_SHIM);
     System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
+    assertEquals(0, PathSelectorWithRefresh.getQueueSize());
   }
 }

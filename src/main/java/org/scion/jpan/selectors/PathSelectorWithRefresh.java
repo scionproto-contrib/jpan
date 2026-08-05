@@ -383,7 +383,8 @@ public class PathSelectorWithRefresh implements PathSelector {
     return this.dstAddress != null;
   }
 
-  static int getQueueSize() {
+  // TODO make package private
+  public static int getQueueSize() {
     return timer.getQueue().size();
   }
 }
