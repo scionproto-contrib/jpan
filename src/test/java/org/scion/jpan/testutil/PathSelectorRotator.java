@@ -177,8 +177,7 @@ public class PathSelectorRotator implements PathSelector {
       return new Factory(selector);
     }
 
-    public PathSelector createPathSelector(ScionService service, ScionSocketAddress remote) {
-      selector.connect(remote);
+    public PathSelector createPathSelector(ScionService service) {
       return selector;
     }
   }

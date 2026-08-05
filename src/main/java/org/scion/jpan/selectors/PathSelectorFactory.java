@@ -18,7 +18,7 @@ import org.scion.jpan.*;
 
 public interface PathSelectorFactory {
 
-  PathSelector createPathSelector(ScionService service, ScionSocketAddress destination);
+  PathSelector createPathSelector(ScionService service);
 
   abstract class AbstractPathSelectorFactory implements PathSelectorFactory {
     private final PathPolicy defaultPolicy;
@@ -48,11 +48,8 @@ public interface PathSelectorFactory {
       return new Default(defaultPolicy);
     }
 
-    public PathSelector createPathSelector(ScionService service, ScionSocketAddress remote) {
-      PathSelectorWithRefresh selector =
-          PathSelectorWithRefresh.create(service, getDefaultPolicy());
-      selector.connect(remote);
-      return selector;
+    public PathSelector createPathSelector(ScionService service) {
+      return PathSelectorWithRefresh.create(service, getDefaultPolicy());
     }
   }
 
@@ -73,10 +70,8 @@ public interface PathSelectorFactory {
     }
 
     @Override
-    public PathSelector createPathSelector(ScionService service, ScionSocketAddress remote) {
-      PathSelectorFixed selector = PathSelectorFixed.create(getDefaultPolicy());
-      selector.connect(remote);
-      return selector;
+    public PathSelector createPathSelector(ScionService service) {
+      return PathSelectorFixed.create(getDefaultPolicy());
     }
   }
 }

@@ -92,7 +92,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   protected PathSelector createPathSelector(InetSocketAddress remote) throws IOException {
-    return pathSelectorFactory.createPathSelector(service, service.lookup(remote));
+    ScionSocketAddress remoteSSA = service.lookup(remote);
+    PathSelector ps = pathSelectorFactory.createPathSelector(service);
+    ps.connect(remoteSSA);
+    return ps;
   }
 
   /**
@@ -301,7 +304,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           //   switching.
           localAddress = getNatMapping().getExternalIP();
         }
-        pathSelector = pathSelectorFactory.createPathSelector(service, destination);
+        pathSelector = createPathSelector(destination);
         isConnected = true;
         return (C) this;
       }
