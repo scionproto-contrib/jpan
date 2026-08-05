@@ -400,9 +400,8 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     synchronized (stateLock) {
       Path path = pathSelector.getPath();
       if (path == null) {
-        InetSocketAddress remote = pathSelector.getRemoteSocketAddress();
-        String isdAs = ScionUtil.toStringIA(pathSelector.getRemoteIsdAs());
-        throw new IOException("No path found to destination: " + isdAs + "," + remote);
+        ScionSocketAddress remote = pathSelector.getRemoteSocketAddress();
+        throw new IOException("No path found to destination: " + remote);
       }
       return path;
     }

@@ -14,7 +14,6 @@
 
 package org.scion.jpan.selectors;
 
-import java.net.InetSocketAddress;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
 import org.scion.jpan.ScionSocketAddress;
@@ -62,7 +61,5 @@ public interface PathSelector {
 
   Path getPath();
 
-  InetSocketAddress getRemoteSocketAddress();
-
-  long getRemoteIsdAs();
+  ScionSocketAddress getRemoteSocketAddress();
 }

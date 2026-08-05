@@ -14,7 +14,6 @@
 
 package org.scion.jpan.testutil;
 
-import java.net.InetSocketAddress;
 import java.util.*;
 import org.scion.jpan.*;
 import org.scion.jpan.selectors.PathSelector;
@@ -113,13 +112,8 @@ public class PathSelectorRotator implements PathSelector {
   }
 
   @Override
-  public InetSocketAddress getRemoteSocketAddress() {
+  public ScionSocketAddress getRemoteSocketAddress() {
     return dstAddress;
-  }
-
-  @Override
-  public long getRemoteIsdAs() {
-    return dstAddress.getIsdAs();
   }
 
   @Override

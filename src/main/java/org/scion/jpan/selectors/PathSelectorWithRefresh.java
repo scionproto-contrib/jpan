@@ -14,7 +14,6 @@
 
 package org.scion.jpan.selectors;
 
-import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.Future;
@@ -331,13 +330,8 @@ public class PathSelectorWithRefresh implements PathSelector {
   }
 
   @Override
-  public InetSocketAddress getRemoteSocketAddress() {
+  public ScionSocketAddress getRemoteSocketAddress() {
     return dstAddress;
-  }
-
-  @Override
-  public long getRemoteIsdAs() {
-    return dstAddress.getIsdAs();
   }
 
   /**

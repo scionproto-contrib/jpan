@@ -14,7 +14,6 @@
 
 package org.scion.jpan.selectors;
 
-import java.net.InetSocketAddress;
 import java.util.*;
 import org.scion.jpan.*;
 
@@ -27,8 +26,7 @@ import org.scion.jpan.*;
  */
 public class PathSelectorFixed implements PathSelector {
 
-  private long dstIsdAs;
-  private InetSocketAddress dstAddress;
+  private ScionSocketAddress dstAddress;
   private PathPolicy pathPolicy;
   private Path usedPath;
 
@@ -37,7 +35,6 @@ public class PathSelectorFixed implements PathSelector {
   }
 
   private PathSelectorFixed(PathPolicy policy) {
-    this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;
   }
@@ -102,13 +99,8 @@ public class PathSelectorFixed implements PathSelector {
   }
 
   @Override
-  public InetSocketAddress getRemoteSocketAddress() {
+  public ScionSocketAddress getRemoteSocketAddress() {
     return dstAddress;
-  }
-
-  @Override
-  public long getRemoteIsdAs() {
-    return dstIsdAs;
   }
 
   /**
@@ -122,7 +114,6 @@ public class PathSelectorFixed implements PathSelector {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
-    this.dstIsdAs = remote.getIsdAs();
     this.dstAddress = remote;
 
     // use this path
@@ -133,7 +124,6 @@ public class PathSelectorFixed implements PathSelector {
   @Override
   public synchronized void disconnect() {
     this.dstAddress = null;
-    this.dstIsdAs = 0;
   }
 
   @Override
