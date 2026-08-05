@@ -332,12 +332,12 @@ class ScmpErrorHandlingTest {
   }
 
   private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode, Path errorPath)
-          throws IOException {
+      throws IOException {
     return errorSender(errorCode, errorPath, null);
   }
 
   private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode, Path errorPath, Integer ifId)
-          throws IOException {
+      throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
     ByteBuffer response = ByteBuffer.allocate(1000);
     errorChannel.setSendCallback(
