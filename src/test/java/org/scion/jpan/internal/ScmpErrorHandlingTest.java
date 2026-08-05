@@ -254,7 +254,7 @@ class ScmpErrorHandlingTest {
   void write_useBackupPathOnError5() throws IOException {
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_111")) {
       Path path = getPathTo112();
-      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_5, path)) {
+      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_5, path, 2)) {
         AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
         channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
 
@@ -332,12 +332,17 @@ class ScmpErrorHandlingTest {
   }
 
   private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode, Path errorPath)
-      throws IOException {
+          throws IOException {
+    return errorSender(errorCode, errorPath, null);
+  }
+
+  private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode, Path errorPath, Integer ifId)
+          throws IOException {
     MockDatagramChannel errorChannel = MockDatagramChannel.open();
     ByteBuffer response = ByteBuffer.allocate(1000);
     errorChannel.setSendCallback(
         (request, socketAddress) -> {
-          createError(errorCode, request, response, errorPath);
+          createError(errorCode, request, response, errorPath, ifId);
           return request.limit(); // ignores offset for now
         });
     errorChannel.setReceiveCallback(
@@ -355,7 +360,7 @@ class ScmpErrorHandlingTest {
   }
 
   private void createError(
-      Scmp.TypeCode errorCode, ByteBuffer orig, ByteBuffer response, Path errorPath) {
+      Scmp.TypeCode errorCode, ByteBuffer orig, ByteBuffer response, Path errorPath, Integer ifId) {
     response.clear();
     ScionPacketInspector spi = ScionPacketInspector.readPacket(orig);
     spi.reversePath();
@@ -372,7 +377,7 @@ class ScmpErrorHandlingTest {
       case ERROR_5:
         if (errorPath != null) {
           PathMetadata meta = errorPath.getMetadata();
-          PathMetadata.PathInterface pIf = meta.getInterfaces().get(2);
+          PathMetadata.PathInterface pIf = meta.getInterfaces().get(ifId == null ? 0 : ifId);
           spi.getScmpHeader().setDataLong(pIf.getIsdAs(), pIf.getId(), 0);
         } else {
           spi.getScmpHeader().setDataLong(123, 85, 0);
