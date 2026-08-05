@@ -372,7 +372,7 @@ class ScmpErrorHandlingTest {
       case ERROR_5:
         if (errorPath != null) {
           PathMetadata meta = errorPath.getMetadata();
-          PathMetadata.PathInterface pIf = meta.getInterfaces().get(0);
+          PathMetadata.PathInterface pIf = meta.getInterfaces().get(2);
           spi.getScmpHeader().setDataLong(pIf.getIsdAs(), pIf.getId(), 0);
         } else {
           spi.getScmpHeader().setDataLong(123, 85, 0);
