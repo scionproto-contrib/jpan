@@ -274,7 +274,7 @@ public class PathSelectorWithRefresh implements PathSelector {
       Entry e = unusedIter.next();
       PathMetadata meta = e.path.getMetadata();
       if (ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1)
-          || (ifId2 != null && ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId2))) {
+          && (ifId2 == null || ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId2))) {
         unusedIter.remove();
         e.setFaulty(Instant.now());
         faultyPaths.put(e, e);
@@ -284,7 +284,7 @@ public class PathSelectorWithRefresh implements PathSelector {
     // Mark used paths with faulty interfaces as faulty
     PathMetadata usedMeta = usedPath.path.getMetadata();
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
-        || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
+        && (ifId2 == null || ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
       Entry e = usedPath;
       usedPath = null;
       e.setFaulty(Instant.now());

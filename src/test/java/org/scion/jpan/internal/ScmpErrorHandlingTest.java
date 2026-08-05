@@ -254,6 +254,7 @@ class ScmpErrorHandlingTest {
   void write_useBackupPathOnError5() throws IOException {
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_111")) {
       Path path = getPathTo112();
+      // Interface 2 is where it differs
       try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_5, path, 2)) {
         AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
         channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
@@ -276,7 +277,8 @@ class ScmpErrorHandlingTest {
     // We need a full network here so we have a full ISD between src and dst
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_111")) {
       Path path = getPathTo112();
-      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_6, path, 2)) {
+      // Interface 2 is where it differs
+      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_6, path)) {
         AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
         channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
 
@@ -377,7 +379,8 @@ class ScmpErrorHandlingTest {
       case ERROR_5:
         if (errorPath != null) {
           PathMetadata meta = errorPath.getMetadata();
-          PathMetadata.PathInterface pIf = meta.getInterfaces().get(ifId == null ? 0 : ifId);
+          int id = ifId == null ? 0 : ifId;
+          PathMetadata.PathInterface pIf = meta.getInterfaces().get(id);
           spi.getScmpHeader().setDataLong(pIf.getIsdAs(), pIf.getId(), 0);
         } else {
           spi.getScmpHeader().setDataLong(123, 85, 0);
