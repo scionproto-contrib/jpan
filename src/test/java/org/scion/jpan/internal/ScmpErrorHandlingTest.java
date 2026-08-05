@@ -276,7 +276,7 @@ class ScmpErrorHandlingTest {
     // We need a full network here so we have a full ISD between src and dst
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_111")) {
       Path path = getPathTo112();
-      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_6, path)) {
+      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_6, path, 2)) {
         AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
         channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
 
