@@ -57,7 +57,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
-  private PathSelector pathSelector;
+  private PathSelector pathSelectorForConnect;
   private final PathSelectorFactory pathSelectorFactory;
 
   protected AbstractScionChannel(
@@ -83,8 +83,13 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     }
   }
 
+  /**
+   * Returns the PathSelector used for {@link #connect(SocketAddress)};
+   *
+   * @return the path selector
+   */
   public PathSelector getPathSelector() {
-    return pathSelector;
+    return pathSelectorForConnect;
   }
 
   public PathSelectorFactory getPathSelectorFactory() {
@@ -204,9 +209,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void disconnect() throws IOException {
     synchronized (stateLock) {
       isConnected = false;
-      if (pathSelector != null) {
-        pathSelector.disconnect();
-        pathSelector = null;
+      if (pathSelectorForConnect != null) {
+        pathSelectorForConnect.disconnect();
+        pathSelectorForConnect = null;
       }
     }
   }
@@ -224,9 +229,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       if (natMapping != null) {
         natMapping.close();
       }
-      if (pathSelector != null) {
-        pathSelector.disconnect();
-        pathSelector = null;
+      if (pathSelectorForConnect != null) {
+        pathSelectorForConnect.disconnect();
+        pathSelectorForConnect = null;
       }
       channel.disconnect();
       channel.close();
@@ -304,7 +309,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           //   switching.
           localAddress = getNatMapping().getExternalIP();
         }
-        pathSelector = createPathSelector(destination);
+        pathSelectorForConnect = createPathSelector(destination);
         isConnected = true;
         return (C) this;
       }
@@ -378,7 +383,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      this.pathSelector = pathSelector;
+      this.pathSelectorForConnect = pathSelector;
       isConnected = true;
       return (C) this;
     }
@@ -392,15 +397,15 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    */
   public Path getConnectionPath() {
     synchronized (stateLock) {
-      return isConnected ? pathSelector.getPath() : null;
+      return isConnected ? pathSelectorForConnect.getPath() : null;
     }
   }
 
   protected Path getConnectedPathOrThrow() throws IOException {
     synchronized (stateLock) {
-      Path path = pathSelector.getPath();
+      Path path = pathSelectorForConnect.getPath();
       if (path == null) {
-        ScionSocketAddress remote = pathSelector.getRemoteSocketAddress();
+        ScionSocketAddress remote = pathSelectorForConnect.getRemoteSocketAddress();
         throw new IOException("No path found to destination: " + remote);
       }
       return path;
@@ -523,7 +528,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         case ERROR_5:
         case ERROR_6:
           if (isConnected()) {
-            pathSelector.reportError((Scmp.ErrorMessage) scmpMsg);
+            pathSelectorForConnect.reportError((Scmp.ErrorMessage) scmpMsg);
           } else {
             // We throw an exception here.
             // Alternatively, we could just swallow the error, after all this is an unreliable
@@ -658,7 +663,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           cfgReportFailedValidation = (Boolean) t;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
-          pathSelector.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
+          pathSelectorForConnect.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {

@@ -171,22 +171,21 @@ TODO
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
 
 TODO
-- rename Selector.connect to something else?
-  or perform connect() only in pathProvider.connect()?
-- remove pathSelector.connect(path)
+- Remove connect(Selector), seems like a weird optimization.
+- Implement MultiCachedSelector.
+  It uses internally a map of SSA->SelectorWithRefresh
+  Is used in AbstractChannel
+  -> use it for send()..?
+- AbstractChannel should not remove/create selectors for every connect
+  -> create fixed connector if service is available.
+  -> Maybe used cached connector?
+- 
 
 - Fix Channel/Socket API 
   - Remove connect(Path)   (send(path) is okay)
-  - Add connect(PathSelector) ?
   - Add build.with(PathSelector), remove factory?
-- Fix Selector API
-  - Remove connect(path), recommend connect(PathSelector.Fixed(Path))
-  - Move lookup outside of Selector!(?)
 - PathSelector
   - javadoc
-- Clean up 
-  - PathSelectorRotator.java
-  - ScionDatagramSocket
 
 ### Fixed
 

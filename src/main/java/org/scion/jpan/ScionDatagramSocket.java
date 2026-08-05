@@ -167,7 +167,9 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    *
    * @param path path to destination
    * @see ScionDatagramChannel#connect(Path)
+   * @deprecated To be removed in 0.8.0 Please use {@link #connect(SocketAddress)}
    */
+  @Deprecated
   public synchronized void connect(Path path) {
     try {
       channel.connect(path);

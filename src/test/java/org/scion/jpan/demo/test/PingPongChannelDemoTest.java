@@ -81,7 +81,7 @@ class PingPongChannelDemoTest {
         exec.submit(
             () -> {
               try {
-                PingPongChannelClient.main(null);
+                PingPongChannelClient.main();
                 return true;
               } catch (Throwable e) {
                 failures.incrementAndGet();

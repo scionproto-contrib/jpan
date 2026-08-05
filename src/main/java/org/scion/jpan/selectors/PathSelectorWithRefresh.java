@@ -26,8 +26,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The PathSelectorWithRefresh will periodically poll the ScionService for new paths. It will poll
- * for new path either if: a path is "about" to expire, or if the polling interval elapses, or if
- * there is no path available for a new subscriber.<br>
+ * for new path either if: a path is "about" to expire, or if the polling interval elapses.<br>
  * A path is considered to "about" to expire if it is going to expire its expiration date is before
  * ( now + {@link Constants#DEFAULT_PATH_EXPIRY_MARGIN} - {@link
  * Constants#DEFAULT_PATH_POLLING_INTERVAL}).
