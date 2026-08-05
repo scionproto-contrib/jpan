@@ -91,6 +91,11 @@ public class JUnitSetUp
     System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
     System.clearProperty(Constants.PROPERTY_SHIM);
     System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
+    // TODO remove
+    int n = PathSelectorWithRefresh.getQueueSize();
+    if (n > 0) {
+      System.err.println("------------------ PathSelector queue size: " + n + " -----------------");
+    }
     assertEquals(0, PathSelectorWithRefresh.getQueueSize());
   }
 }
