@@ -55,23 +55,6 @@ class PathSelectorFixedTest {
   }
 
   @Test
-  void connect_expiredNoPath() {
-    ScionService service = Scion.defaultService();
-    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
-
-    InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
-    Path expired = PackageVisibilityHelper.createExpiredPath(p, 100);
-
-    // reset counter
-    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
-
-    pp.connect(expired);
-    assertNull(pp.getPath());
-    assertEquals(0, MockNetwork.getControlServer().getAndResetCallCount());
-  }
-
-  @Test
   void connect_noPath() throws IOException {
     // Test that the provider does not loop when no path is found.
     pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
@@ -83,8 +66,7 @@ class PathSelectorFixedTest {
     pp.setPathPolicy(empty);
 
     // Create expired path to trigger PathSelector
-    Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
-    pp.connect(expired);
+    pp.connect(paths.get(0).getRemoteSocketAddress());
     assertNull(pp.getPath());
   }
 
@@ -94,7 +76,7 @@ class PathSelectorFixedTest {
     pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
-    pp.connect(paths.get(0));
+    pp.connect(paths.get(0).getRemoteSocketAddress());
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -130,12 +112,13 @@ class PathSelectorFixedTest {
       ScionService service = Scion.defaultService();
       pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
+      ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddr);
+      List<Path> paths = service.getPaths(remote);
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
-      // Use expired path to trigger fetching of paths from server
-      pp.connect(paths.get(0));
+      // Use path directly here because this is how FixedSelector works.
+      pp.connect(paths.get(0).getRemoteSocketAddress());
       assertEquals(paths.get(0), pp.getPath());
 
       // Replace path

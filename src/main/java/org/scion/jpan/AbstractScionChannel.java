@@ -340,7 +340,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       throw new IllegalStateException("The path must be a request path.");
     }
     PathSelector ps = PathSelectorFixed.create(PathPolicy.DEFAULT);
-    ps.connect(path);
+    ps.connect(path.getRemoteSocketAddress());
     return connect(ps);
   }
 

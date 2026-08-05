@@ -59,8 +59,7 @@ public class PathSelectorWithRefresh implements PathSelector {
   private final Runnable timerTask;
   private Future<?> timerFuture;
   private final ScionService service;
-  private long dstIsdAs;
-  private InetSocketAddress dstAddress = null;
+  private ScionSocketAddress dstAddress = null;
   private PathPolicy pathPolicy;
 
   private final Map<Entry, Entry> faultyPaths = new HashMap<>();
@@ -152,7 +151,6 @@ public class PathSelectorWithRefresh implements PathSelector {
       throw new IllegalArgumentException();
     }
     this.service = service;
-    this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;
     this.configPathPollIntervalMs = pathPollIntervalMs;
@@ -178,14 +176,14 @@ public class PathSelectorWithRefresh implements PathSelector {
 
   /** Refresh paths from path server. */
   // Synchronized because it is called by timer
-  synchronized void refreshPaths() {
+  private synchronized void refreshPaths() {
     // Purpose:
     // 1) Get new paths from the service
     // 2) Discard paths that are about to expire
     // 3) Consider retrying path that were broken TODO
 
     // 1) Get new paths from the service
-    List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress));
+    List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstAddress));
     unusedPaths.clear();
     int n = 0;
     for (Path p : newPaths2) {
@@ -236,6 +234,11 @@ public class PathSelectorWithRefresh implements PathSelector {
 
   private void findFreePath() {
     usedPath = unusedPaths.remove(0);
+  }
+
+  @Override
+  public synchronized void refresh() {
+    refreshPaths();
   }
 
   /**
@@ -334,41 +337,26 @@ public class PathSelectorWithRefresh implements PathSelector {
 
   @Override
   public long getRemoteIsdAs() {
-    return dstIsdAs;
+    return dstAddress.getIsdAs();
   }
 
+  /**
+   * Initialize the PathSelector and start providing paths. The path provider will (in this call)
+   * request a set of path from the path service. Later, new paths will be requested automatically
+   * if a path is expired or about to expire or if the path is reported faulty.
+   *
+   * @throws IllegalStateException if the PathSelector is already connected
+   * @see PathSelector#connect(ScionSocketAddress)
+   */
   @Override
   public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
-    this.dstIsdAs = remote.getIsdAs();
     this.dstAddress = remote;
 
     // fetch new paths
     refreshPaths();
-
-    timerFuture =
-        timer.scheduleAtFixedRate(
-            timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
-  }
-
-  @Override
-  public synchronized void connect(Path path) {
-    if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
-    }
-    this.dstIsdAs = path.getRemoteIsdAs();
-    this.dstAddress = path.getRemoteSocketAddress();
-
-    if (isExpiringInNextPeriod(path)) {
-      // fetch new paths
-      refreshPaths();
-    } else {
-      // use this path
-      unusedPaths.add(new Entry(path, 0.0));
-      findFreePath();
-    }
 
     timerFuture =
         timer.scheduleAtFixedRate(
@@ -388,7 +376,6 @@ public class PathSelectorWithRefresh implements PathSelector {
       timerFuture = null;
     }
     this.dstAddress = null;
-    this.dstIsdAs = 0;
     this.unusedPaths.clear();
     this.usedPath = null;
     this.faultyPaths.clear();

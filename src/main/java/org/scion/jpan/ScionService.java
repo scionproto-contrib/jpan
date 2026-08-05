@@ -293,6 +293,16 @@ public class ScionService {
   /**
    * Request paths to the same destination as the provided path.
    *
+   * @param dstAddress Destination IP address. Must belong to a SCION enabled end host.
+   * @return All paths returned by the path service.
+   */
+  public List<Path> getPaths(ScionSocketAddress dstAddress) {
+    return getPaths(dstAddress.getIsdAs(), dstAddress.getAddress(), dstAddress.getPort());
+  }
+
+  /**
+   * Request paths to the same destination as the provided path.
+   *
    * @param path A path
    * @return All paths returned by the path service.
    */

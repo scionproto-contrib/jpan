@@ -78,24 +78,6 @@ class PathSelectorTest {
 
   @ParameterizedTest
   @EnumSource(Implementation.class)
-  void connect_expiredNoPath() {
-    ScionService service = Scion.defaultService();
-    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
-
-    InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-    Path p = service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
-    Path expired = PackageVisibilityHelper.createExpiredPath(p, 100);
-
-    // reset counter
-    assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
-
-    pp.connect(expired);
-    assertNull(pp.getPath());
-    assertEquals(0, MockNetwork.getControlServer().getAndResetCallCount());
-  }
-
-  @ParameterizedTest
-  @EnumSource(Implementation.class)
   void connect_noPath(Implementation impl) throws IOException {
     // Test that the provider does not loop when no path is found.
     pp = create(impl);
@@ -108,30 +90,29 @@ class PathSelectorTest {
 
     // Create expired path to trigger PathSelector
     Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
-    pp.connect(expired);
+    pp.connect(expired.getRemoteSocketAddress());
     assertNull(pp.getPath());
   }
 
   @ParameterizedTest
   @EnumSource(Implementation.class)
-  void connect_failsIfConnected(Implementation impl) throws IOException {
+  void connect_failsIfConnected(Implementation impl) {
     pp = create(impl);
 
-    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
-    Path path = paths.get(0);
-    pp.connect(path);
-    Exception e = assertThrows(IllegalStateException.class, () -> pp.connect(path));
+    ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
+    pp.connect(remote);
+    Exception e = assertThrows(IllegalStateException.class, () -> pp.connect(remote));
     assertTrue(e.getMessage().contains("already connected"));
   }
 
   @ParameterizedTest
   @EnumSource(Implementation.class)
-  void setPathPolicy_failsIfNoPath(Implementation impl) throws IOException {
+  void setPathPolicy_failsIfNoPath(Implementation impl) {
     // Test that the provider does not loop when no path is found.
     pp = create(impl);
 
-    List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);
-    pp.connect(paths.get(0));
+    ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
+    pp.connect(remote);
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -141,23 +122,24 @@ class PathSelectorTest {
 
   @ParameterizedTest
   @EnumSource(Implementation.class)
-  void reportFaultyPath() {
+  void reportFaultyPath(Implementation impl) {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
+      pp = create(impl);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
-      List<Path> paths = service.getPaths(ScionUtil.parseIA("1-ff00:0:110"), dummyAddr);
+      ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddr);
+      List<Path> paths = service.getPaths(remote);
+      Path p0 = paths.get(0);
+      pp.connect(p0.getRemoteSocketAddress()); // Must use path.getRemote() for FixedSelector
       // reset counter
-      assertEquals(2, nw.getControlServer().getAndResetCallCount());
+      nw.getControlServer().getAndResetCallCount();
 
-      // Use expired path to trigger fetching of paths from server
-      pp.connect(paths.get(0));
-      assertEquals(paths.get(0), pp.getPath());
+      assertEquals(p0, pp.getPath());
 
       // Replace path
-      pp.reportError(createError5(paths.get(0)));
-      assertNull(pp.getPath());
+      pp.reportError(createError5(p0));
+      assertNotEquals(p0, pp.getPath());
       assertEquals(0, nw.getControlServer().getAndResetCallCount());
     }
   }

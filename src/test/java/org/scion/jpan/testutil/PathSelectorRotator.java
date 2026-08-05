@@ -42,6 +42,11 @@ public class PathSelectorRotator implements PathSelector {
   }
 
   @Override
+  public synchronized void refresh() {
+    // Nothing to do
+  }
+
+  @Override
   public synchronized void reportError(Scmp.ErrorMessage error) {
     if (usedPaths.isEmpty()) {
       return;
@@ -118,7 +123,7 @@ public class PathSelectorRotator implements PathSelector {
   }
 
   @Override
-  public void connect(ScionSocketAddress remote) {
+  public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
@@ -126,23 +131,6 @@ public class PathSelectorRotator implements PathSelector {
       throw new IllegalArgumentException(this.dstAddress + " != " + remote);
     }
 
-    checkPathPolicy();
-    isConnected = true;
-  }
-
-  @Override
-  public void connect(Path path) {
-    if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
-    }
-    if (this.dstAddress != path.getRemoteSocketAddress()) {
-      throw new IllegalArgumentException(this.dstAddress + " != " + path.getRemoteSocketAddress());
-    }
-
-    // use this path
-    if (path != usedPaths.get(0)) {
-      throw new IllegalArgumentException();
-    }
     checkPathPolicy();
     isConnected = true;
   }
@@ -157,7 +145,7 @@ public class PathSelectorRotator implements PathSelector {
     // N/A
   }
 
-  public boolean isConnected() {
+  public synchronized boolean isConnected() {
     return isConnected;
   }
 

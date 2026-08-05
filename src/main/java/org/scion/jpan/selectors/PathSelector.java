@@ -45,18 +45,15 @@ public interface PathSelector {
 
   void setPathPolicy(PathPolicy pathPolicy);
 
-  void connect(ScionSocketAddress remote);
-
   /**
-   * Initialize the PathSelector with an existing path and start providing paths. The path provider
-   * will (in this call) only request a new set of path if the provided path is expired. New paths
-   * will be requested if the path is expired or about to expire or if the path is reported faulty.
-   *
-   * <p>Contract: the PathSelector must synchronously update subscribed consumers with a new path.
+   * Initialize the PathSelector with a destination address. The path provider may (in this call)
+   * request a new set of path if it has not valid paths.
    *
    * @throws IllegalStateException if the PathSelector is already connected
    */
-  void connect(Path path);
+  void connect(ScionSocketAddress remote);
+
+  void refresh();
 
   /** Stop the path provider. */
   void disconnect();

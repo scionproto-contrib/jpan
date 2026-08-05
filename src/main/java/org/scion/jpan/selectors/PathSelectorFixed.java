@@ -15,7 +15,6 @@
 package org.scion.jpan.selectors;
 
 import java.net.InetSocketAddress;
-import java.time.Instant;
 import java.util.*;
 import org.scion.jpan.*;
 
@@ -41,6 +40,11 @@ public class PathSelectorFixed implements PathSelector {
     this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;
+  }
+
+  @Override
+  public synchronized void refresh() {
+    // Nothing to do
   }
 
   @Override
@@ -92,10 +96,6 @@ public class PathSelectorFixed implements PathSelector {
     }
   }
 
-  private boolean isExpired(Path path) {
-    return path.getMetadata().getExpiration() < Instant.now().getEpochSecond();
-  }
-
   @Override
   public synchronized Path getPath() {
     return usedPath;
@@ -111,8 +111,14 @@ public class PathSelectorFixed implements PathSelector {
     return dstIsdAs;
   }
 
+  /**
+   * Initialize the PathSelector with the path associated with the ScionSocketAddress.
+   *
+   * @throws IllegalStateException if the PathSelector is already connected
+   * @see PathSelector#connect(ScionSocketAddress)
+   */
   @Override
-  public void connect(ScionSocketAddress remote) {
+  public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
@@ -121,24 +127,6 @@ public class PathSelectorFixed implements PathSelector {
 
     // use this path
     usedPath = remote.getPath();
-    checkPathPolicy();
-  }
-
-  @Override
-  public void connect(Path path) {
-    if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
-    }
-    this.dstIsdAs = path.getRemoteIsdAs();
-    this.dstAddress = path.getRemoteSocketAddress();
-
-    if (isExpired(path)) {
-      usedPath = null;
-      return;
-    }
-
-    // use this path
-    usedPath = path;
     checkPathPolicy();
   }
 

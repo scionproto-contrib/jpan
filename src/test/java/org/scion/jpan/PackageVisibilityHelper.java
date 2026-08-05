@@ -172,6 +172,14 @@ public class PackageVisibilityHelper {
     return RequestPath.create(m, base.getRemoteAddress(), base.getRemotePort());
   }
 
+  public static ScionSocketAddress toSSA(long isdAs, InetSocketAddress dstAddr) {
+    return UnresolvedScionSocketAddress.from(isdAs, dstAddr.getAddress(), dstAddr.getPort());
+  }
+
+  public static ScionSocketAddress toSSA(String isdAs, InetSocketAddress dstAddr) {
+    return toSSA(ScionUtil.parseIA(isdAs), dstAddr);
+  }
+
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
     protected AbstractChannel(
         ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
