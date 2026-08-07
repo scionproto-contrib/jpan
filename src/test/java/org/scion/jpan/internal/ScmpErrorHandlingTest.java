@@ -310,7 +310,6 @@ class ScmpErrorHandlingTest {
         channel.connect(path.getRemoteSocketAddress());
         RefreshCounter refreshCounter = new RefreshCounter();
         channel.getPathSelector().setPathPolicy(refreshCounter);
-        // TODO assertEquals(1, refreshCounter.count.get());
         refreshCounter.count.set(0);
 
         // First try
@@ -339,7 +338,7 @@ class ScmpErrorHandlingTest {
     return Scion.defaultService().getPaths(dstIA, dst).get(0);
   }
 
-  class RefreshCounter implements PathPolicy {
+  private static class RefreshCounter implements PathPolicy {
     final AtomicInteger count = new AtomicInteger();
 
     @Override

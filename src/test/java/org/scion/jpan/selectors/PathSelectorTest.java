@@ -108,7 +108,6 @@ class PathSelectorTest {
   @ParameterizedTest
   @EnumSource(Implementation.class)
   void setPathPolicy_failsIfNoPath(Implementation impl) {
-    // Test that the provider does not loop when no path is found.
     pp = create(impl);
 
     ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
@@ -116,7 +115,13 @@ class PathSelectorTest {
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
+    Path p = pp.getPath();
     pp.setPathPolicy(empty);
+    // Nothing changes
+    assertEquals(p, pp.getPath());
+
+    // Now path should be removed
+    pp.refresh();
     assertNull(pp.getPath());
   }
 

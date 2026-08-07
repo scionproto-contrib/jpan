@@ -42,6 +42,12 @@ public interface PathSelector {
 
   PathPolicy getPathPolicy();
 
+  /**
+   * Set a new PathPolicy. This method will not be applied to the current paths in the PathSelector.
+   * To apply the new PathPolicy, {@link #refresh()} must be called.
+   *
+   * @param pathPolicy The PathPolicy instance.
+   */
   void setPathPolicy(PathPolicy pathPolicy);
 
   /**
@@ -52,6 +58,10 @@ public interface PathSelector {
    */
   void connect(ScionSocketAddress remote);
 
+  /**
+   * If the PathSelector supports refresh, it will discard all existing paths and fetch new paths
+   * from the path service. If refresh is not supported this method does nothing.
+   */
   void refresh();
 
   /** Stop the path provider. */

@@ -202,6 +202,7 @@ public class PathSelectorWithRefresh implements PathSelector {
 
     if (unusedPaths.isEmpty()) {
       LOG.warn("No free path available.");
+      usedPath = null;
       return;
     }
 
@@ -314,15 +315,6 @@ public class PathSelectorWithRefresh implements PathSelector {
   @Override
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
-    if (isConnected()) {
-      // Remove used path if it doesn't fit the policy
-      if (usedPath != null
-          && pathPolicy.filter(Collections.singletonList(usedPath.path)).isEmpty()) {
-        usedPath = null;
-      }
-
-      refreshPaths();
-    }
   }
 
   private boolean isExpiringInNextPeriod(Path path) {

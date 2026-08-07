@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
 import org.scion.jpan.*;
@@ -84,6 +85,7 @@ class PathSelectorWithRefreshTest {
       AtomicBoolean returnExpired = new AtomicBoolean(true);
       PathPolicy ppExp = x -> returnExpired.get() ? Collections.singletonList(expiredPath) : x;
       pp.setPathPolicy(ppExp);
+      pp.refresh();
 
       // No calls done in connect() or setPathPolicy()
       assertEquals(4, MockNetwork.getControlServer().getAndResetCallCount());
@@ -160,7 +162,6 @@ class PathSelectorWithRefreshTest {
 
   @Test
   void setPathPolicy_failsIfNoPath() {
-    // Test that the provider does not loop when no path is found.
     ScionService service = Scion.defaultService();
     pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
@@ -169,8 +170,39 @@ class PathSelectorWithRefreshTest {
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
+    Path p = pp.getPath();
     pp.setPathPolicy(empty);
+    // Nothing changes
+    assertEquals(p, pp.getPath());
+
+    // Now path should be removed
+    pp.refresh();
     assertNull(pp.getPath());
+  }
+
+  @Test
+  void setPathPolicy_countRefresh() {
+    // Test that the provider does not loop when no path is found.
+    ScionService service = Scion.defaultService();
+    pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
+
+    ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
+    pp.connect(remote);
+    RefreshCounter refreshCounter = new RefreshCounter();
+    pp.setPathPolicy(refreshCounter);
+    assertEquals(0, refreshCounter.count.get());
+    pp.refresh();
+    assertEquals(1, refreshCounter.count.get());
+  }
+
+  private static class RefreshCounter implements PathPolicy {
+    final AtomicInteger count = new AtomicInteger();
+
+    @Override
+    public List<Path> filter(List<Path> paths) {
+      count.incrementAndGet();
+      return paths;
+    }
   }
 
   @Test
