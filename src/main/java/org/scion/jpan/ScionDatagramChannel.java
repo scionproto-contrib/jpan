@@ -36,8 +36,6 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   private final WeakHashMap<InetSocketAddress, PathSelector> resolvedDestinations =
       new WeakHashMap<>();
 
-  // private final HashMap<InetSocketAddress, PathSelector> resolvedDestinations = new HashMap<>();
-
   protected ScionDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel, PathSelectorFactory factory)
       throws IOException {
