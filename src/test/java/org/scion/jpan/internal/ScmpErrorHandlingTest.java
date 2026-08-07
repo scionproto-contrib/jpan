@@ -277,7 +277,6 @@ class ScmpErrorHandlingTest {
     // We need a full network here so we have a full ISD between src and dst
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_111")) {
       Path path = getPathTo112();
-      // Interface 2 is where it differs
       try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_6, path)) {
         AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
         channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
@@ -297,15 +296,14 @@ class ScmpErrorHandlingTest {
 
   @Test
   void write_noBackupPath() throws IOException {
-    // Test what happens if no backup path is available.
+    // Test what happens if no backup path is available because both paths fail.
     // We have two path, we let both fail
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.TINY4, "ASff00_0_111")) {
-      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_5, getPathTo112())) {
+      Path path = getPathTo112();
+      try (ScionDatagramChannel channel = errorSender(Scmp.TypeCode.TYPE_5, path)) {
         AtomicBoolean listenerWasTriggered = new AtomicBoolean(false);
         channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
         channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
-
-        Path path = getPathTo112();
 
         // First try
         channel.connect(path.getRemoteSocketAddress());

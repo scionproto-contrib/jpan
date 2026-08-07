@@ -128,6 +128,14 @@ public class PathSelectorWithRefresh implements PathSelector {
       long[] hashBase2 = calcHashBase(p);
       return Objects.deepEquals(pathHashBase, hashBase2);
     }
+
+    public double getRank() {
+      return rank;
+    }
+
+    public Instant getTimestamp() {
+      return timestamp;
+    }
   }
 
   public static PathSelectorWithRefresh create(
@@ -221,7 +229,7 @@ public class PathSelectorWithRefresh implements PathSelector {
     if (unusedPaths.isEmpty()) {
       // try faulty paths again -> ordered by how long ago they were reported faulty
       faultyPaths.forEach((k, v) -> unusedPaths.add(v));
-      unusedPaths.sort(Comparator.comparing(e -> e.timestamp));
+      unusedPaths.sort(Comparator.comparing(Entry::getTimestamp).thenComparing(Entry::getRank));
       unusedPaths.forEach(e -> e.timestamp = null);
       faultyPaths.clear();
     }
