@@ -171,7 +171,6 @@ TODO
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
 
 TODO
-- Remove connect(Selector), seems like a weird optimization.
 - Implement MultiCachedSelector.
   It uses internally a map of SSA->SelectorWithRefresh
   Is used in AbstractChannel
@@ -179,13 +178,9 @@ TODO
 - AbstractChannel should not remove/create selectors for every connect
   -> create fixed connector if service is available.
   -> Maybe used cached connector?
-- 
 
 - Fix Channel/Socket API 
-  - Remove connect(Path)   (send(path) is okay)
   - Add build.with(PathSelector), remove factory?
-- PathSelector
-  - javadoc
 
 ### Fixed
 
