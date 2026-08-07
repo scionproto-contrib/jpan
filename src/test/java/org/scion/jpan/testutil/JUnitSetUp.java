@@ -17,6 +17,8 @@ package org.scion.jpan.testutil;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -90,13 +92,7 @@ public class JUnitSetUp
     System.clearProperty(Constants.PROPERTY_HOSTS_FILES);
     System.clearProperty(Constants.PROPERTY_SHIM);
     System.setProperty(Constants.PROPERTY_USE_OS_SEARCH_DOMAINS, "false");
-    // TODO remove
-    int n = PathSelectorWithRefresh.getQueueSize();
-    if (n > 0) {
-      // This happens because of the ScionDatagramChannel WeakHashMap<PathSelector>
-      System.err.println("------------------ PathSelector queue size: " + n + " -----------------");
-    }
-    // assertEquals(0, PathSelectorWithRefresh.getQueueSize());
+    Assertions.assertEquals(0, PathSelectorWithRefresh.getQueueSize());
     // TODO implement a Cleaner() once we have Java 9:
     //   https://dev.to/ahmedjaad/java-cleaners-the-modern-way-to-manage-external-resources-4d4
   }

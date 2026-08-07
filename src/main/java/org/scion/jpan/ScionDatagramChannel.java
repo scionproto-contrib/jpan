@@ -22,10 +22,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.util.WeakHashMap;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 
@@ -33,8 +33,15 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     implements ByteChannel, Closeable {
 
   // Store one path per (non-Scion-)destination address
-  private final WeakHashMap<InetSocketAddress, PathSelector> resolvedDestinations =
-      new WeakHashMap<>();
+  // We do not use a WeakHashMap here.
+  // One reason is that if PathSelectors get GC'd their timer taks may not get cleaned up.
+  // Timer tasks should diappear over time when they get executed.
+  // Also, if entries are removed due to GC pressure, recreating them may actuall add to the
+  // pressure because restoring an entry causes additional objects to be created.
+  //
+  // Overall, a predictable SimpleCache seems better.
+  private final SimpleCache<InetSocketAddress, PathSelector> resolvedDestinations =
+      new SimpleCache<>(100);
 
   protected ScionDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel, PathSelectorFactory factory)
@@ -282,12 +289,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   @Override
   public void close() throws IOException {
     super.close();
-    for (PathSelector pathSelector : resolvedDestinations.values()) {
-      // Warning: this will not disconnect() all pathProviders, they may have been GC'd already.
-      // Their timer tasks may not have been cleaned up, but they will disappear over time
-      // when they are executed.
-      pathSelector.disconnect();
-    }
+    resolvedDestinations.forEach((k, pathSelector) -> pathSelector.disconnect());
   }
 
   public static class Builder {
