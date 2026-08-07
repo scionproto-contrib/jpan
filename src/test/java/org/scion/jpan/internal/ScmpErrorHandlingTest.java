@@ -20,7 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
@@ -305,20 +307,26 @@ class ScmpErrorHandlingTest {
         channel.setScmpErrorListener(scmpMessage -> listenerWasTriggered.set(true));
         channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
 
-        // First try
         channel.connect(path.getRemoteSocketAddress());
-        assertEquals(path, channel.getConnectionPath());
-        channel.write(ByteBuffer.allocate(0));
-        channel.read(ByteBuffer.allocate(1000));
-        // Path should have changed
-        assertNotEquals(path, channel.getConnectionPath());
+        RefreshCounter refreshCounter = new RefreshCounter();
+        channel.getPathSelector().setPathPolicy(refreshCounter);
+        // TODO assertEquals(1, refreshCounter.count.get());
+        refreshCounter.count.set(0);
 
-        // Try again with connected path
+        // First try
+        assertEquals(path, channel.getConnectionPath());
         channel.write(ByteBuffer.allocate(0));
         channel.read(ByteBuffer.allocate(1000));
-        // Path should have changed back to first path
-        // Current behavior: if no path are available: try reusing faulty paths.
-        assertEquals(path, channel.getConnectionPath());
+        // Path should nit have changed, but refreshed
+        assertEquals(1, refreshCounter.count.get());
+        assertNotNull(channel.getConnectionPath());
+
+        // Try again
+        refreshCounter.count.set(0);
+        channel.write(ByteBuffer.allocate(0));
+        channel.read(ByteBuffer.allocate(1000));
+        assertEquals(1, refreshCounter.count.get());
+        assertNotNull(channel.getConnectionPath());
 
         assertTrue(listenerWasTriggered.get());
       }
@@ -329,6 +337,16 @@ class ScmpErrorHandlingTest {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dst = IPHelper.toInetSocketAddress("127.0.0.1:" + Constants.SCMP_PORT);
     return Scion.defaultService().getPaths(dstIA, dst).get(0);
+  }
+
+  class RefreshCounter implements PathPolicy {
+    final AtomicInteger count = new AtomicInteger();
+
+    @Override
+    public List<Path> filter(List<Path> paths) {
+      count.incrementAndGet();
+      return paths;
+    }
   }
 
   private ScionDatagramChannel errorSender(Scmp.TypeCode errorCode, Path errorPath)
