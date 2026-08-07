@@ -35,6 +35,7 @@ import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.util.ExternalIpDiscovery;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
@@ -386,18 +387,18 @@ class DatagramChannelApiTest {
   @Test
   void getPathSelector() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      assertNull(channel.getPathSelector());
+      assertNotNull(channel.getPathSelector());
 
       channel.connect(dummyAddress);
       assertNotNull(channel.getPathSelector());
 
       channel.disconnect();
-      assertNull(channel.getPathSelector());
+      assertNotNull(channel.getPathSelector());
 
       channel.connect(dummyAddress);
       assertNotNull(channel.getPathSelector());
       channel.close();
-      assertNull(channel.getPathSelector());
+      assertNotNull(channel.getPathSelector());
     }
   }
 
@@ -420,9 +421,10 @@ class DatagramChannelApiTest {
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
     PathSelectorFactory psf = PathSelectorFactory.Default.create(empty);
+    PathSelector ps = psf.createPathSelector(Scion.defaultService());
 
     try (ScionDatagramChannel channel =
-        ScionDatagramChannel.newBuilder().pathSelectorFactory(psf).open()) {
+        ScionDatagramChannel.newBuilder().pathSelectorForConnect(ps).open()) {
       List<Path> paths = channel.getService().lookupPaths(dummyAddress);
 
       channel.connect(paths.get(0).getRemoteSocketAddress());
@@ -765,11 +767,15 @@ class DatagramChannelApiTest {
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
     PathSelectorFactory ppNoOp = PathSelectorFactory.Fixed.create(policy);
+    PathSelector ps = ppNoOp.createPathSelector(Scion.defaultService());
     try (ScionDatagramChannel channel =
-        ScionDatagramChannel.newBuilder().pathSelectorFactory(ppNoOp).open()) {
+        ScionDatagramChannel.newBuilder()
+            .pathSelectorForConnect(ps)
+            .pathSelectorsForSend(ppNoOp)
+            .open()) {
       assertFalse(channel.isConnected());
       assertSame(ppNoOp, channel.getPathSelectorFactory());
-      assertNull(channel.getPathSelector());
+      assertSame(ps, channel.getPathSelector());
       channel.connect(dummyAddress);
       assertSame(policy, channel.getPathSelector().getPathPolicy());
     }

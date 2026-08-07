@@ -82,8 +82,10 @@ class MultiIsdTest {
           Path p112 = pathBySourceAs.get(AS_112);
           PathSelector pp = PathSelectorRotator.create(Arrays.asList(p111, p112));
           PathSelectorFactory psf = PathSelectorRotator.Factory.create(pp);
+          PathSelector ps = psf.createPathSelector(Scion.defaultService());
+
           try (ScionDatagramChannel client =
-              ScionDatagramChannel.newBuilder().pathSelectorFactory(psf).open()) {
+              ScionDatagramChannel.newBuilder().pathSelectorForConnect(ps).open()) {
             client.connect(dst);
             client.write(ByteBuffer.wrap("from-111".getBytes()));
             assertEquals("from-111", readString(client));
@@ -127,7 +129,10 @@ class MultiIsdTest {
           PathSelector pp = PathSelectorRotator.create(Arrays.asList(p111, p112));
           PathSelectorFactory psf = PathSelectorRotator.Factory.create(pp);
           try (ScionDatagramSocket client =
-              ScionDatagramSocket.newBuilder().pathSelectorFactory(psf).open()) {
+              ScionDatagramSocket.newBuilder()
+                  .pathSelectorForConnect(pp)
+                  .pathSelectorsForSend(psf)
+                  .open()) {
             client.connect(dst);
             String msg1 = "from-111";
             InetSocketAddress a1 = pathBySourceAs.get(AS_111).getRemoteSocketAddress();

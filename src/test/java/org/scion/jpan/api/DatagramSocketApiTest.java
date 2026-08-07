@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
@@ -379,18 +380,18 @@ class DatagramSocketApiTest {
   @Test
   void getPathPolicy() throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
-      assertNull(socket.getPathSelector());
+      assertNotNull(socket.getPathSelector());
 
       socket.connect(dummyAddress);
       assertNotNull(socket.getPathSelector());
 
       socket.disconnect();
-      assertNull(socket.getPathSelector());
+      assertNotNull(socket.getPathSelector());
 
       socket.connect(dummyAddress);
       assertNotNull(socket.getPathSelector());
       socket.close();
-      assertNull(socket.getPathSelector());
+      assertNotNull(socket.getPathSelector());
     }
   }
 
@@ -842,11 +843,16 @@ class DatagramSocketApiTest {
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
     PathSelectorFactory ppNoOp = PathSelectorFactory.Fixed.create(policy);
+    PathSelector ps = ppNoOp.createPathSelector(Scion.defaultService());
     try (ScionDatagramSocket server =
-        ScionDatagramSocket.newBuilder().bind(DUMMY_PORT).pathSelectorFactory(ppNoOp).open()) {
+        ScionDatagramSocket.newBuilder()
+            .bind(DUMMY_PORT)
+            .pathSelectorForConnect(ps)
+            .pathSelectorsForSend(ppNoOp)
+            .open()) {
       assertFalse(server.isConnected());
       assertSame(ppNoOp, server.getPathSelectorFactory());
-      assertNull(server.getPathSelector());
+      assertSame(ps, server.getPathSelector());
       server.connect(dummyAddress);
       assertSame(policy, server.getPathSelector().getPathPolicy());
     }

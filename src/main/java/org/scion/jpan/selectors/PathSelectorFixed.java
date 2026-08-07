@@ -30,6 +30,10 @@ public class PathSelectorFixed implements PathSelector {
   private PathPolicy pathPolicy;
   private Path usedPath;
 
+  public static PathSelectorFixed create() {
+    return create(PathPolicy.DEFAULT);
+  }
+
   public static PathSelectorFixed create(PathPolicy policy) {
     return new PathSelectorFixed(policy);
   }

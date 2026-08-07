@@ -709,6 +709,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     private SocketAddress bindAddress;
     private ScionService service;
     private boolean nullService = false;
+    private PathSelector selector;
     private PathSelectorFactory factory;
     private DatagramChannel channel;
 
@@ -741,11 +742,23 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     }
 
     /**
-     * @param factory A {@link PathSelectorFactory} to be used. If this value is not set, the
-     *     default {@link PathSelectorFactory} is used.
+     * @param selector {@link PathSelector} to be used. If this value is not set, the default {@link
+     *     PathSelectorFactory} is used.
      * @return This builder.
      */
-    public Builder pathSelectorFactory(PathSelectorFactory factory) {
+    public Builder pathSelectorForConnect(PathSelector selector) {
+      this.selector = selector;
+      return this;
+    }
+
+    /**
+     * @param factory A {@link PathSelectorFactory} to be used for {@link #send(DatagramPacket)} if
+     *     the socket is not connected and consequently the send() method needs to request paths
+     *     from a PathSelector. As default, {@link org.scion.jpan.selectors.PathSelectorFixed} is
+     *     used and Paths are not automatically refreshed.
+     * @return This builder.
+     */
+    public Builder pathSelectorsForSend(PathSelectorFactory factory) {
       this.factory = factory;
       return this;
     }
@@ -765,7 +778,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     public ScionDatagramSocket open() throws SocketException {
       SelectingDatagramChannel.Builder builder = SelectingDatagramChannel.newBuilder();
       builder.channel(channel);
-      builder.pathSelectorFactory(factory);
+      builder.pathSelectorForConnect(selector);
+      builder.pathSelectorsForSend(factory);
       if (nullService || service != null) {
         builder.service(service);
       }

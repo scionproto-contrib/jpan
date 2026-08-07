@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### TODO for 0.8.0 and beyond
+
+- PathSelector: Implement MultiCachedSelector.
+  It uses internally a map of SSA->SelectorWithRefresh
+  Is used in AbstractChannel
+  -> use it for send()..?
+
 - Remove Path from ScionSocketAddress?
   - Make Path subclass of ScionSocketAddress?
     - Pro: 
@@ -169,18 +175,6 @@ TODO
 
 - PathSelector API
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
-
-TODO
-- Implement MultiCachedSelector.
-  It uses internally a map of SSA->SelectorWithRefresh
-  Is used in AbstractChannel
-  -> use it for send()..?
-- AbstractChannel should not remove/create selectors for every connect
-  -> create fixed connector if service is available.
-  -> Maybe used cached connector?
-
-- Fix Channel/Socket API 
-  - Add build.with(PathSelector), remove factory?
 
 ### Fixed
 

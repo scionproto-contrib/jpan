@@ -14,10 +14,8 @@
 
 package org.scion.jpan.testutil;
 
-
 import java.io.IOException;
 import java.net.ServerSocket;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;

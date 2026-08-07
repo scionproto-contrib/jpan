@@ -57,17 +57,20 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
-  private PathSelector pathSelectorForConnect;
+  private final PathSelector pathSelectorForConnect;
+  private PathSelector pathSelectorForConnectPath;
   private final PathSelectorFactory pathSelectorFactory;
 
   protected AbstractScionChannel(
       ScionService service,
       java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
       PathSelectorFactory pathSelectorFactory) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
+    this.pathSelectorForConnect = connectSelector;
     this.pathSelectorFactory = pathSelectorFactory;
   }
 
@@ -89,6 +92,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * @return the path selector
    */
   public PathSelector getPathSelector() {
+    if (pathSelectorForConnectPath != null) {
+      return pathSelectorForConnectPath;
+    }
     return pathSelectorForConnect;
   }
 
@@ -211,7 +217,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       isConnected = false;
       if (pathSelectorForConnect != null) {
         pathSelectorForConnect.disconnect();
-        pathSelectorForConnect = null;
+      }
+      if (pathSelectorForConnectPath != null) {
+        pathSelectorForConnectPath.disconnect();
+        pathSelectorForConnectPath = null;
       }
     }
   }
@@ -231,7 +240,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       }
       if (pathSelectorForConnect != null) {
         pathSelectorForConnect.disconnect();
-        pathSelectorForConnect = null;
+      }
+      if (pathSelectorForConnectPath != null) {
+        pathSelectorForConnectPath.disconnect();
+        pathSelectorForConnectPath = null;
       }
       channel.disconnect();
       channel.close();
@@ -309,7 +321,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           //   switching.
           localAddress = getNatMapping().getExternalIP();
         }
-        pathSelectorForConnect = createPathSelector(destination);
+        pathSelectorForConnect.connect(destination);
         isConnected = true;
         return (C) this;
       }
@@ -356,8 +368,8 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathSelectorForConnect = PathSelectorFixed.create(PathPolicy.DEFAULT);
-      pathSelectorForConnect.connect(path.getRemoteSocketAddress());
+      pathSelectorForConnectPath = PathSelectorFixed.create(PathPolicy.DEFAULT);
+      pathSelectorForConnectPath.connect(path.getRemoteSocketAddress());
       isConnected = true;
       return (C) this;
     }
@@ -371,15 +383,15 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    */
   public Path getConnectionPath() {
     synchronized (stateLock) {
-      return isConnected ? pathSelectorForConnect.getPath() : null;
+      return isConnected ? getPathSelector().getPath() : null;
     }
   }
 
   protected Path getConnectedPathOrThrow() throws IOException {
     synchronized (stateLock) {
-      Path path = pathSelectorForConnect.getPath();
+      Path path = getPathSelector().getPath();
       if (path == null) {
-        ScionSocketAddress remote = pathSelectorForConnect.getRemoteSocketAddress();
+        ScionSocketAddress remote = getPathSelector().getRemoteSocketAddress();
         throw new IOException("No path found to destination: " + remote);
       }
       return path;
@@ -502,7 +514,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         case ERROR_5:
         case ERROR_6:
           if (isConnected()) {
-            pathSelectorForConnect.reportError((Scmp.ErrorMessage) scmpMsg);
+            getPathSelector().reportError((Scmp.ErrorMessage) scmpMsg);
           } else {
             // We throw an exception here.
             // Alternatively, we could just swallow the error, after all this is an unreliable

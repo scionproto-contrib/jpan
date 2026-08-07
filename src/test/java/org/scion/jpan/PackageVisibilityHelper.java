@@ -24,6 +24,7 @@ import java.util.List;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
@@ -182,8 +183,11 @@ public class PackageVisibilityHelper {
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
     protected AbstractChannel(
-        ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
-      super(service, channel, factory);
+        ScionService service,
+        DatagramChannel channel,
+        PathSelector selector,
+        PathSelectorFactory factory) {
+      super(service, channel, selector, factory);
     }
   }
 }

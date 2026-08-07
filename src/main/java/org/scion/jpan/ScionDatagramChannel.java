@@ -28,6 +28,7 @@ import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFixed;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
@@ -44,9 +45,12 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
       new SimpleCache<>(100);
 
   protected ScionDatagramChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel, PathSelectorFactory factory)
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
+      PathSelectorFactory factory)
       throws IOException {
-    super(service, channel, factory);
+    super(service, channel, connectSelector, factory);
   }
 
   /**
@@ -295,6 +299,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   public static class Builder {
     protected ScionService service;
     protected boolean nullService = false;
+    protected PathSelector selector;
     protected PathSelectorFactory factory;
     protected DatagramChannel channel;
 
@@ -309,11 +314,24 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     }
 
     /**
-     * @param factory A {@link PathSelectorFactory} to be used. If this value is not set, the
-     *     default {@link PathSelectorFactory} is used.
+     * @param selector {@link PathSelector} to be used. If this value is not set, the default {@link
+     *     PathSelectorFactory} is used.
      * @return This builder.
      */
-    public Builder pathSelectorFactory(PathSelectorFactory factory) {
+    public Builder pathSelectorForConnect(PathSelector selector) {
+      this.selector = selector;
+      return this;
+    }
+
+    /**
+     * @param factory A {@link PathSelectorFactory} to be used for {@link #send(ByteBuffer,
+     *     SocketAddress)} if the SocketAddress argument is not a ScionSockerAddress and
+     *     consequently the send() method needs to request paths from a PathSelector. As default,
+     *     {@link org.scion.jpan.selectors.PathSelectorFixed} is used and Paths are not
+     *     automatically refreshed.
+     * @return This builder.
+     */
+    public Builder pathSelectorsForSend(PathSelectorFactory factory) {
       this.factory = factory;
       return this;
     }
@@ -340,6 +358,14 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         channel = java.nio.channels.DatagramChannel.open();
       }
 
+      if (selector == null) {
+        if (service == null) {
+          selector = PathSelectorFixed.create();
+        } else {
+          selector = PathSelectorFactory.Default.instance().createPathSelector(service);
+        }
+      }
+
       if (factory == null) {
         if (service == null) {
           factory = PathSelectorFactory.Fixed.instance();
@@ -348,7 +374,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         }
       }
 
-      return new ScionDatagramChannel(service, channel, factory);
+      return new ScionDatagramChannel(service, channel, selector, factory);
     }
   }
 }

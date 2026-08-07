@@ -26,7 +26,9 @@ import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFixed;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -44,16 +46,26 @@ class CustomChannelTest {
 
     static TcpChannel open() throws IOException {
       return new TcpChannel(
-          Scion.defaultService(), DatagramChannel.open(), PathSelectorFactory.Fixed.instance());
+          Scion.defaultService(),
+          DatagramChannel.open(),
+          PathSelectorFixed.create(),
+          PathSelectorFactory.Fixed.instance());
     }
 
     static TcpChannel open(DatagramChannel channel) {
-      return new TcpChannel(Scion.defaultService(), channel, PathSelectorFactory.Fixed.instance());
+      return new TcpChannel(
+          Scion.defaultService(),
+          channel,
+          PathSelectorFixed.create(),
+          PathSelectorFactory.Fixed.instance());
     }
 
     protected TcpChannel(
-        ScionService service, DatagramChannel channel, PathSelectorFactory factory) {
-      super(service, channel, factory);
+        ScionService service,
+        DatagramChannel channel,
+        PathSelector selector,
+        PathSelectorFactory factory) {
+      super(service, channel, selector, factory);
     }
 
     @Override
