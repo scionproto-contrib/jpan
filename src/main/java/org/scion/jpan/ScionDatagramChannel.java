@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.util.WeakHashMap;
+import java.util.HashMap;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
@@ -33,8 +33,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     implements ByteChannel, Closeable {
 
   // Store one path per (non-Scion-)destination address
-  private final WeakHashMap<InetSocketAddress, PathSelector> resolvedDestinations =
-      new WeakHashMap<>();
+  //  private final WeakHashMap<InetSocketAddress, PathSelector> resolvedDestinations =
+  //      new WeakHashMap<>();
+  private final HashMap<InetSocketAddress, PathSelector> resolvedDestinations = new HashMap<>();
 
   protected ScionDatagramChannel(
       ScionService service, java.nio.channels.DatagramChannel channel, PathSelectorFactory factory)
