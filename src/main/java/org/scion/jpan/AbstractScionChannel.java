@@ -344,34 +344,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // Technically we could probably allow this, but it feels like an abuse of the API,
       throw new IllegalStateException("The path must be a request path.");
     }
-    PathSelector ps = PathSelectorFixed.create(PathPolicy.DEFAULT);
-    ps.connect(path.getRemoteSocketAddress());
-    return connect(ps);
-  }
 
-  /**
-   * Connect to a destination host. Note:<br>
-   * - A SCION channel will internally connect to the next border router (first hop) instead of the
-   * remote host. <br>
-   * - The path is taken from the pathSelector.<br>
-   *
-   * <p>NB: This method does internally not call {@link
-   * java.nio.channels.DatagramChannel#connect(SocketAddress)}. That means this method does NOT
-   * perform any additional security checks associated with connect(). It will however perform a
-   * `bind(null)` unless the channel is already bound.
-   *
-   * <p>"connect()" is understood to provide connect to a destination address (IP+port).<br>
-   * - send()ing packet to another destination will cause an Exception.<br>
-   * - packets received from a different destination will be dropped.<br>
-   * - connecting to a given Path only connects to the destination address, the path (route) itself
-   * may change depending on the pathSelector.
-   *
-   * @param pathSelector Path to the remote host.
-   * @return This channel.
-   * @throws IOException for example when the first hop (border router) cannot be connected.
-   */
-  @SuppressWarnings("unchecked")
-  public C connect(PathSelector pathSelector) throws IOException {
     synchronized (stateLock) {
       checkConnected(false);
       ensureBound();
@@ -383,7 +356,8 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      this.pathSelectorForConnect = pathSelector;
+      pathSelectorForConnect = PathSelectorFixed.create(PathPolicy.DEFAULT);
+      pathSelectorForConnect.connect(path.getRemoteSocketAddress());
       isConnected = true;
       return (C) this;
     }
