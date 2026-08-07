@@ -33,9 +33,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.ScionDatagramSocket;
-import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -380,11 +380,18 @@ class DatagramSocketApiTest {
   @Test
   void getPathPolicy() throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
-      assertEquals(PathPolicy.DEFAULT, socket.getPathPolicy());
-      assertEquals(PathPolicy.MIN_HOPS, socket.getPathPolicy());
-      socket.setPathPolicy(PathPolicy.MAX_BANDWIDTH);
-      assertEquals(PathPolicy.MAX_BANDWIDTH, socket.getPathPolicy());
-      // TODO test that path policy is actually used
+      assertNotNull(socket.getPathSelector());
+
+      socket.connect(dummyAddress);
+      assertNotNull(socket.getPathSelector());
+
+      socket.disconnect();
+      assertNotNull(socket.getPathSelector());
+
+      socket.connect(dummyAddress);
+      assertNotNull(socket.getPathSelector());
+      socket.close();
+      assertNotNull(socket.getPathSelector());
     }
   }
 
@@ -427,7 +434,7 @@ class DatagramSocketApiTest {
       // Throws exception because this is an IP address that is not in the cache and that cannot be
       // resolved to a
       // SCION address.
-      ScionException e1 = assertThrows(ScionException.class, () -> server.send(packet));
+      IOException e1 = assertThrows(IOException.class, () -> server.send(packet));
       assertTrue(e1.getMessage().contains("No DNS TXT entry"));
     }
   }
@@ -700,17 +707,13 @@ class DatagramSocketApiTest {
           socket.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(socket, ds);
 
-      int margin = socket.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN);
-      socket.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, margin + 1000);
-      assertEquals(margin + 1000, socket.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
-
       socket.close();
       assertThrows(
           ClosedChannelException.class,
-          () -> socket.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
+          () -> socket.getOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
       assertThrows(
           ClosedChannelException.class,
-          () -> socket.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, 11));
+          () -> socket.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true));
     }
   }
 
@@ -718,7 +721,6 @@ class DatagramSocketApiTest {
   void supportedOptions() throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       Set<SocketOption<?>> options = socket.supportedOptions();
-      assertTrue(options.contains(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
       assertTrue(options.contains(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE));
 
       assertTrue(options.contains(StandardSocketOptions.SO_RCVBUF));
@@ -840,12 +842,19 @@ class DatagramSocketApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathProvider ppNoOp = PathProviderNoOp.create(policy);
+    PathSelectorFactory ppNoOp = PathSelectorFactory.Fixed.create(policy);
+    PathSelector ps = ppNoOp.createPathSelector(Scion.defaultService());
     try (ScionDatagramSocket server =
-        ScionDatagramSocket.newBuilder().bind(DUMMY_PORT).provider(ppNoOp).open()) {
+        ScionDatagramSocket.newBuilder()
+            .bind(DUMMY_PORT)
+            .pathSelectorForConnect(ps)
+            .pathSelectorsForSend(ppNoOp)
+            .open()) {
       assertFalse(server.isConnected());
-      assertSame(ppNoOp, server.getPathProvider());
-      assertSame(policy, server.getPathPolicy());
+      assertSame(ppNoOp, server.getPathSelectorFactory());
+      assertSame(ps, server.getPathSelector());
+      server.connect(dummyAddress);
+      assertSame(policy, server.getPathSelector().getPathPolicy());
     }
   }
 }

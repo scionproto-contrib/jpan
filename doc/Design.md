@@ -108,14 +108,14 @@ There are several reasons for this:
   be done in a separate channel implementation.
 
 
-#### PathProvider
+#### PathSelector
 
-PathProviders can be costly, e.g. when they are frequently polling for low latency.
+PathSelectors can be costly, e.g. when they are frequently polling for low latency.
 It makes sense if such information could be shared between multiple channels.
-Since PathProviders are customizable, a sharing provider could always be implemented later.
+Since PathSelectors are customizable, a sharing provider could always be implemented later.
 
 ```java
-interface PathProvider<K> {
+interface PathSelector<K> {
   void connect(Path p);
   void disconnect();
   void reportFaultyPath(Path p);

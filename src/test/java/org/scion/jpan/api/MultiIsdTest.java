@@ -32,13 +32,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.testutil.ManagedThread;
-import org.scion.jpan.testutil.ManagedThreadNews;
-import org.scion.jpan.testutil.MockBorderRouter;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockNetwork2;
-import org.scion.jpan.testutil.PathProviderRotator;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.testutil.*;
 
 class MultiIsdTest {
 
@@ -67,7 +63,7 @@ class MultiIsdTest {
   @Test
   void sendReceive_scionDatagramChannel() throws IOException {
     Client test =
-        pathBySourceAs -> {
+        (pathBySourceAs, dst) -> {
           try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
             client.send(ByteBuffer.wrap("from-111".getBytes()), pathBySourceAs.get(AS_111));
             assertEquals("from-111", receiveString(client));
@@ -81,13 +77,16 @@ class MultiIsdTest {
   @Test
   void readWrite_scionDatagramChannel_pathProvider() throws IOException {
     Client test =
-        pathBySourceAs -> {
+        (pathBySourceAs, dst) -> {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
-          PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
+          PathSelector pp = PathSelectorRotator.create(Arrays.asList(p111, p112));
+          PathSelectorFactory psf = PathSelectorRotator.Factory.create(pp);
+          PathSelector ps = psf.createPathSelector(Scion.defaultService());
+
           try (ScionDatagramChannel client =
-              ScionDatagramChannel.newBuilder().provider(pp).open()) {
-            client.connect(pathBySourceAs.get(AS_111));
+              ScionDatagramChannel.newBuilder().pathSelectorForConnect(ps).open()) {
+            client.connect(dst);
             client.write(ByteBuffer.wrap("from-111".getBytes()));
             assertEquals("from-111", readString(client));
 
@@ -96,6 +95,9 @@ class MultiIsdTest {
 
             client.write(ByteBuffer.wrap("from-112".getBytes()));
             assertEquals("from-112", readString(client));
+          } catch (Throwable e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
           }
         };
     test(test);
@@ -104,7 +106,7 @@ class MultiIsdTest {
   @Test
   void readWrite_scionDatagramChannel_connect_disconnect() throws IOException {
     Client test =
-        pathBySourceAs -> {
+        (pathBySourceAs, dst) -> {
           try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
             client.connect(pathBySourceAs.get(AS_111));
             client.write(ByteBuffer.wrap("from-111".getBytes()));
@@ -121,12 +123,17 @@ class MultiIsdTest {
   @Test
   void sendReceive_scionDatagramSocket_pathProvider() throws IOException {
     Client test =
-        pathBySourceAs -> {
+        (pathBySourceAs, dst) -> {
           Path p111 = pathBySourceAs.get(AS_111);
           Path p112 = pathBySourceAs.get(AS_112);
-          PathProvider pp = PathProviderRotator.create(Arrays.asList(p111, p112));
-          try (ScionDatagramSocket client = ScionDatagramSocket.newBuilder().provider(pp).open()) {
-            client.connect(p111);
+          PathSelector pp = PathSelectorRotator.create(Arrays.asList(p111, p112));
+          PathSelectorFactory psf = PathSelectorRotator.Factory.create(pp);
+          try (ScionDatagramSocket client =
+              ScionDatagramSocket.newBuilder()
+                  .pathSelectorForConnect(pp)
+                  .pathSelectorsForSend(psf)
+                  .open()) {
+            client.connect(dst);
             String msg1 = "from-111";
             InetSocketAddress a1 = pathBySourceAs.get(AS_111).getRemoteSocketAddress();
             DatagramPacket p1 = new DatagramPacket(msg1.getBytes(), msg1.length(), a1);
@@ -152,7 +159,7 @@ class MultiIsdTest {
   @Test
   void sendReceive_scionDatagramSocket_connect_disconnect() throws IOException {
     Client test =
-        pathBySourceAs -> {
+        (pathBySourceAs, dst) -> {
           try (ScionDatagramSocket client = new ScionDatagramSocket()) {
             client.connect(pathBySourceAs.get(AS_111));
             String msg1 = "from-111";
@@ -178,7 +185,7 @@ class MultiIsdTest {
   @Test
   void socketServer() throws IOException {
     Client test =
-        pathBySourceAs -> {
+        (pathBySourceAs, dst) -> {
           try (ScionDatagramChannel client = ScionDatagramChannel.open()) {
             client.send(ByteBuffer.wrap("from-111".getBytes()), pathBySourceAs.get(AS_111));
             assertEquals("from-111", receiveString(client));
@@ -190,7 +197,7 @@ class MultiIsdTest {
   }
 
   private interface Client {
-    void call(Map<Long, Path> pathBySourceAs) throws IOException;
+    void call(Map<Long, Path> pathBySourceAs, ScionSocketAddress dst) throws IOException;
   }
 
   private interface Server {
@@ -227,8 +234,8 @@ class MultiIsdTest {
       assertTrue(pathBySourceAs.containsKey(AS_111));
       assertTrue(pathBySourceAs.containsKey(AS_112));
 
-      // Run client
-      clientFn.call(pathBySourceAs);
+      // Run client - "dst" is just the common remote address (take from AS_111 for instance)
+      clientFn.call(pathBySourceAs, pathBySourceAs.get(AS_111).getRemoteSocketAddress());
       serverThread.join();
 
       assertEquals(new HashSet<>(Arrays.asList(AS_111, AS_112)), receivedSourceAses);

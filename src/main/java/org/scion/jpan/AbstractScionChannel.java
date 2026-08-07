@@ -22,7 +22,6 @@ import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.scion.jpan.internal.*;
@@ -34,6 +33,9 @@ import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFixed;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
@@ -46,9 +48,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private final ReentrantLock readLock = new ReentrantLock();
   private final ReentrantLock writeLock = new ReentrantLock();
 
-  // This path is only used for write() after connect(), not for send().
-  // Whether we have a connectionPath is independent of whether the underlying channel is connected.
-  private RequestPath connectionPath;
+  private boolean isConnected = false;
   private InetAddress localAddress;
   private boolean cfgReportFailedValidation = false;
   private final ScionService service;
@@ -57,16 +57,21 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private Consumer<Scmp.ErrorMessage> errorListener;
   private InetSocketAddress overrideExternalAddress = null;
   private NatMapping natMapping = null;
-  private final PathProvider pathProvider;
+  private final PathSelector pathSelectorForConnect;
+  private PathSelector pathSelectorForConnectPath;
+  private final PathSelectorFactory pathSelectorFactory;
 
   protected AbstractScionChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider) {
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
+      PathSelectorFactory pathSelectorFactory) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
-    this.pathProvider = pathProvider;
-    this.pathProvider.subscribe(this::pathUpdateCallback);
+    this.pathSelectorForConnect = connectSelector;
+    this.pathSelectorFactory = pathSelectorFactory;
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -81,45 +86,27 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     }
   }
 
-  public PathPolicy getPathPolicy() {
-    synchronized (stateLock) {
-      return this.pathProvider.getPathPolicy();
-    }
-  }
-
-  public PathProvider getPathProvider() {
-    return pathProvider;
-  }
-
-  private void pathUpdateCallback(Path newPath) {
-    synchronized (stateLock) {
-      connectionPath = (RequestPath) newPath;
-    }
-  }
-
   /**
-   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
-   * channel is connected, this method will request a new path using the new policy.
+   * Returns the PathSelector used for {@link #connect(SocketAddress)};
    *
-   * <p>After initially setting the path policy, it is used to request a new path during write() and
-   * send() whenever a path turns out to be close to expiration.
-   *
-   * @param pathPolicy the new path policy
-   * @see PathPolicy#DEFAULT
+   * @return the path selector
    */
-  public void setPathPolicy(PathPolicy pathPolicy) {
-    synchronized (stateLock) {
-      this.pathProvider.setPathPolicy(pathPolicy);
+  public PathSelector getPathSelector() {
+    if (pathSelectorForConnectPath != null) {
+      return pathSelectorForConnectPath;
     }
+    return pathSelectorForConnect;
   }
 
-  protected List<Path> applyFilter(List<Path> paths, InetSocketAddress address)
-      throws ScionRuntimeException {
-    List<Path> filtered = getPathPolicy().filter(paths);
-    if (filtered.isEmpty()) {
-      throw new ScionRuntimeException("No path found to destination: " + address);
-    }
-    return filtered;
+  public PathSelectorFactory getPathSelectorFactory() {
+    return pathSelectorFactory;
+  }
+
+  protected PathSelector createPathSelector(InetSocketAddress remote) throws IOException {
+    ScionSocketAddress remoteSSA = service.lookup(remote);
+    PathSelector ps = pathSelectorFactory.createPathSelector(service);
+    ps.connect(remoteSSA);
+    return ps;
   }
 
   /**
@@ -219,17 +206,22 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * @throws IOException If an I/O error occurs
    */
   public InetSocketAddress getRemoteAddress() throws IOException {
-    Path path = getConnectionPath();
-    if (path != null) {
-      return path.getRemoteSocketAddress();
+    if (!isConnected) {
+      return null;
     }
-    return null;
+    return getPathSelector().getRemoteSocketAddress();
   }
 
   public void disconnect() throws IOException {
     synchronized (stateLock) {
-      connectionPath = null;
-      pathProvider.disconnect();
+      isConnected = false;
+      if (pathSelectorForConnect != null) {
+        pathSelectorForConnect.disconnect();
+      }
+      if (pathSelectorForConnectPath != null) {
+        pathSelectorForConnectPath.disconnect();
+        pathSelectorForConnectPath = null;
+      }
     }
   }
 
@@ -242,13 +234,19 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   @Override
   public void close() throws IOException {
     synchronized (stateLock) {
+      isConnected = false;
       if (natMapping != null) {
         natMapping.close();
       }
-      pathProvider.disconnect();
+      if (pathSelectorForConnect != null) {
+        pathSelectorForConnect.disconnect();
+      }
+      if (pathSelectorForConnectPath != null) {
+        pathSelectorForConnectPath.disconnect();
+        pathSelectorForConnectPath = null;
+      }
       channel.disconnect();
       channel.close();
-      connectionPath = null;
     }
   }
 
@@ -270,49 +268,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * @throws IOException for example when the first hop (border router) cannot be connected.
    */
   public C connect(SocketAddress addr) throws IOException {
-    synchronized (stateLock) {
-      checkConnected(false);
-      if (!(addr instanceof InetSocketAddress)) {
-        throw new IllegalArgumentException(
-            "connect() requires an InetSocketAddress or a ScionSocketAddress.");
-      }
-      if (addr instanceof ScionSocketAddress) {
-        return connect(((ScionSocketAddress) addr).getPath());
-      }
-      InetSocketAddress destination = (InetSocketAddress) addr;
-
-      Path path = applyFilter(getService().lookupPaths(destination), destination).get(0);
-      return connect(path);
-    }
-  }
-
-  /**
-   * Connect to a destination host. Note:<br>
-   * - A SCION channel will internally connect to the next border router (first hop) instead of the
-   * remote host. <br>
-   * - The path will be replaced with a new path once it is expired.<br>
-   *
-   * <p>NB: This method does internally not call {@link
-   * java.nio.channels.DatagramChannel#connect(SocketAddress)}. That means this method does NOT
-   * perform any additional security checks associated with connect(). It will however perform a
-   * `bind(null)` unless the channel is already bound.
-   *
-   * <p>"connect()" is understood to provide connect to a destination address (IP+port).<br>
-   * - send()ing packet to another destination will cause an Exception.<br>
-   * - packets received from a different destination will be dropped.<br>
-   * - connecting to a given Path only connects to the destination address, the path (route) itself
-   * may change, i.e. different border routers may be used.
-   *
-   * @param path Path to the remote host.
-   * @return This channel.
-   * @throws IOException for example when the first hop (border router) cannot be connected.
-   */
-  @SuppressWarnings("unchecked")
-  public C connect(Path path) throws IOException {
-    if (!(path instanceof RequestPath)) {
-      // Technically we could probably allow this, but it feels like an abuse of the API,
-      throw new IllegalStateException("The path must be a request path.");
-    }
     // For reference: Java DatagramChannel behavior:
     // - fresh channel has getLocalAddress() == null
     // - connect() and send() cause internal bind()
@@ -343,6 +298,67 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     // because bind() may block when a concurrent receive() is on progress.
     synchronized (stateLock) {
       checkConnected(false);
+      if (!(addr instanceof InetSocketAddress)) {
+        throw new IllegalArgumentException(
+            "connect() requires an InetSocketAddress or a ScionSocketAddress.");
+      }
+
+      ScionSocketAddress destination;
+      if (addr instanceof ScionSocketAddress) {
+        destination = (ScionSocketAddress) addr;
+      } else {
+        destination = service.lookup((InetSocketAddress) addr);
+      }
+
+      synchronized (stateLock) {
+        checkConnected(false);
+        ensureBound();
+        if (localAddress.isAnyLocalAddress()) {
+          // Do we really need this?
+          // - It ensures that after connect we have a proper local address for getLocalAddress(),
+          //   this is what connect() should do.
+          // - It allows us to have an ANY address underneath which could help with interface
+          //   switching.
+          localAddress = getNatMapping().getExternalIP();
+        }
+        pathSelectorForConnect.connect(destination);
+        isConnected = true;
+        return (C) this;
+      }
+    }
+  }
+
+  /**
+   * Connect to a destination host. Note:<br>
+   * - A SCION channel will internally connect to the next border router (first hop) instead of the
+   * remote host. <br>
+   * - The path will be replaced with a new path once it is expired.<br>
+   *
+   * <p>NB: This method does internally not call {@link
+   * java.nio.channels.DatagramChannel#connect(SocketAddress)}. That means this method does NOT
+   * perform any additional security checks associated with connect(). It will however perform a
+   * `bind(null)` unless the channel is already bound.
+   *
+   * <p>"connect()" is understood to provide connect to a destination address (IP+port).<br>
+   * - send()ing packet to another destination will cause an Exception.<br>
+   * - packets received from a different destination will be dropped.<br>
+   * - connecting to a given Path only connects to the destination address, the path (route) itself
+   * may change, i.e. different border routers may be used.
+   *
+   * @param path Path to the remote host.
+   * @return This channel.
+   * @throws IOException for example when the first hop (border router) cannot be connected.
+   * @deprecated Use with caution, paths are not refreshed or exchanged in case of errors.
+   */
+  @Deprecated
+  public C connect(Path path) throws IOException {
+    if (!(path instanceof RequestPath)) {
+      // Technically we could probably allow this, but it feels like an abuse of the API,
+      throw new IllegalStateException("The path must be a request path.");
+    }
+
+    synchronized (stateLock) {
+      checkConnected(false);
       ensureBound();
       if (localAddress.isAnyLocalAddress()) {
         // Do we really need this?
@@ -352,7 +368,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathProvider.connect(path);
+      pathSelectorForConnectPath = PathSelectorFixed.create(PathPolicy.DEFAULT);
+      pathSelectorForConnectPath.connect(path.getRemoteSocketAddress());
+      isConnected = true;
       return (C) this;
     }
   }
@@ -365,7 +383,18 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    */
   public Path getConnectionPath() {
     synchronized (stateLock) {
-      return connectionPath;
+      return isConnected ? getPathSelector().getPath() : null;
+    }
+  }
+
+  protected Path getConnectedPathOrThrow() throws IOException {
+    synchronized (stateLock) {
+      Path path = getPathSelector().getPath();
+      if (path == null) {
+        ScionSocketAddress remote = getPathSelector().getRemoteSocketAddress();
+        throw new IOException("No path found to destination: " + remote);
+      }
+      return path;
     }
   }
 
@@ -485,7 +514,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         case ERROR_5:
         case ERROR_6:
           if (isConnected()) {
-            pathProvider.reportError((Scmp.ErrorMessage) scmpMsg);
+            getPathSelector().reportError((Scmp.ErrorMessage) scmpMsg);
           } else {
             // We throw an exception here.
             // Alternatively, we could just swallow the error, after all this is an unreliable
@@ -572,7 +601,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   protected void checkConnected(boolean requiredState) {
     synchronized (stateLock) {
-      boolean isConnected = connectionPath != null;
       if (requiredState != isConnected) {
         if (isConnected) {
           throw new AlreadyConnectedException();
@@ -585,7 +613,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   public boolean isConnected() {
     synchronized (stateLock) {
-      return connectionPath != null;
+      return isConnected;
     }
   }
 
@@ -621,7 +649,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           cfgReportFailedValidation = (Boolean) t;
         } else if (ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN.equals(option)) {
           cfgExpirationSafetyMargin = (Integer) t;
-          pathProvider.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
+          pathSelectorForConnect.setExpirationSafetyMargin(cfgExpirationSafetyMargin);
         } else if (ScionSocketOptions.SCION_TRAFFIC_CLASS.equals(option)) {
           int trafficClass = (Integer) t;
           if (trafficClass < 0 || trafficClass > 255) {

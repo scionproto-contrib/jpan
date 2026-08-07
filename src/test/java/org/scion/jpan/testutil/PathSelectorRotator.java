@@ -16,36 +16,33 @@ package org.scion.jpan.testutil;
 
 import java.util.*;
 import org.scion.jpan.*;
-import org.scion.jpan.internal.PathProvider;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 /**
- * The PathProviderRotator is a simple provider that operates on a fixed list of paths.
+ * The PathSelectorRotator is a simple provider that operates on a fixed list of paths.
  *
- * @see PathProvider
+ * @see PathSelector
  */
-public class PathProviderRotator implements PathProvider {
+public class PathSelectorRotator implements PathSelector {
 
   private PathPolicy pathPolicy = paths -> paths;
-  private long dstIsdAs;
-  private ScionSocketAddress dstAddress;
+  private final ScionSocketAddress dstAddress;
   private List<Path> usedPaths = new ArrayList<>();
+  private boolean isConnected = false;
 
-  private PathUpdateCallback subscriber;
-
-  public static PathProviderRotator create(List<Path> paths) {
-    return new PathProviderRotator(paths);
+  public static PathSelectorRotator create(List<Path> paths) {
+    return new PathSelectorRotator(paths);
   }
 
-  private PathProviderRotator(List<Path> paths) {
+  private PathSelectorRotator(List<Path> paths) {
     this.usedPaths.addAll(paths);
+    this.dstAddress = paths.isEmpty() ? null : paths.get(0).getRemoteSocketAddress();
   }
 
   @Override
-  public synchronized void reportFaultyPath(Path p) {
-    if (!Objects.equals(usedPaths.get(0), p)) {
-      return;
-    }
-    getNextPath();
+  public synchronized void refresh() {
+    // Nothing to do
   }
 
   @Override
@@ -70,19 +67,17 @@ public class PathProviderRotator implements PathProvider {
       return;
     }
 
-    PathMetadata usedMeta = usedPaths.get(0).getMetadata();
-    if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
-        || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
-      getNextPath();
+    for (int i = 0; i < usedPaths.size(); i++) {
+      // Yes, get always the first one, because we rotate the list in each loop.
+      PathMetadata usedMeta = usedPaths.get(0).getMetadata();
+      if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
+          || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
+        getNextPath();
+      } else {
+        // rotate until we find a path that works.
+        break;
+      }
     }
-  }
-
-  @Override
-  public void subscribe(PathUpdateCallback cb) {
-    if (subscriber != null) {
-      throw new IllegalStateException("This PathProvider already has a subscription.");
-    }
-    this.subscriber = cb;
   }
 
   @Override
@@ -101,37 +96,42 @@ public class PathProviderRotator implements PathProvider {
   private void checkPathPolicy() {
     // Remove used path if it doesn't fit the policy
     usedPaths = pathPolicy.filter(usedPaths);
-    subscriber.updatePath(usedPaths.get(0));
     assertPathExists();
   }
 
   private void assertPathExists() {
     if (usedPaths.isEmpty()) {
-      String isdAs = ScionUtil.toStringIA(dstIsdAs);
+      String isdAs = ScionUtil.toStringIA(dstAddress.getIsdAs());
       throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
     }
   }
 
   @Override
-  public void connect(Path path) {
+  public synchronized Path getPath() {
+    return usedPaths.get(0);
+  }
+
+  @Override
+  public ScionSocketAddress getRemoteSocketAddress() {
+    return dstAddress;
+  }
+
+  @Override
+  public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
-    this.dstIsdAs = path.getRemoteIsdAs();
-    this.dstAddress = path.getRemoteSocketAddress();
-
-    // use this path
-    if (path != usedPaths.get(0)) {
-      throw new IllegalArgumentException();
+    if (this.dstAddress != remote) {
+      throw new IllegalArgumentException(this.dstAddress + " != " + remote);
     }
-    subscriber.updatePath(path);
+
     checkPathPolicy();
+    isConnected = true;
   }
 
   @Override
   public synchronized void disconnect() {
-    this.dstAddress = null;
-    this.dstIsdAs = 0;
+    isConnected = false;
   }
 
   @Override
@@ -139,12 +139,28 @@ public class PathProviderRotator implements PathProvider {
     // N/A
   }
 
-  public boolean isConnected() {
-    return this.dstAddress != null;
+  public synchronized boolean isConnected() {
+    return isConnected;
   }
 
   private void getNextPath() {
     usedPaths.add(usedPaths.remove(0));
-    subscriber.updatePath(usedPaths.get(0));
+  }
+
+  public static class Factory extends PathSelectorFactory.AbstractPathSelectorFactory {
+    private final PathSelector selector;
+
+    protected Factory(PathSelector selector) {
+      super(PathPolicy.DEFAULT);
+      this.selector = selector;
+    }
+
+    public static PathSelectorFactory create(PathSelector selector) {
+      return new Factory(selector);
+    }
+
+    public PathSelector createPathSelector(ScionService service) {
+      return selector;
+    }
   }
 }

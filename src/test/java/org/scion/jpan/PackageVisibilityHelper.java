@@ -21,10 +21,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.time.Instant;
 import java.util.List;
-import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -172,10 +173,21 @@ public class PackageVisibilityHelper {
     return RequestPath.create(m, base.getRemoteAddress(), base.getRemotePort());
   }
 
+  public static ScionSocketAddress toSSA(long isdAs, InetSocketAddress dstAddr) {
+    return UnresolvedScionSocketAddress.from(isdAs, dstAddr.getAddress(), dstAddr.getPort());
+  }
+
+  public static ScionSocketAddress toSSA(String isdAs, InetSocketAddress dstAddr) {
+    return toSSA(ScionUtil.parseIA(isdAs), dstAddr);
+  }
+
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
     protected AbstractChannel(
-        ScionService service, DatagramChannel channel, PathProvider pathProvider) {
-      super(service, channel, pathProvider);
+        ScionService service,
+        DatagramChannel channel,
+        PathSelector selector,
+        PathSelectorFactory factory) {
+      super(service, channel, selector, factory);
     }
   }
 }

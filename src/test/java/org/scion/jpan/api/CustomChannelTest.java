@@ -24,9 +24,11 @@ import java.nio.channels.DatagramChannel;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
-import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFixed;
 import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.MockNetwork2;
 
@@ -46,16 +48,24 @@ class CustomChannelTest {
       return new TcpChannel(
           Scion.defaultService(),
           DatagramChannel.open(),
-          PathProviderNoOp.create(PathPolicy.DEFAULT));
+          PathSelectorFixed.create(),
+          PathSelectorFactory.Fixed.instance());
     }
 
     static TcpChannel open(DatagramChannel channel) {
       return new TcpChannel(
-          Scion.defaultService(), channel, PathProviderNoOp.create(PathPolicy.DEFAULT));
+          Scion.defaultService(),
+          channel,
+          PathSelectorFixed.create(),
+          PathSelectorFactory.Fixed.instance());
     }
 
-    protected TcpChannel(ScionService service, DatagramChannel channel, PathProvider pathProvider) {
-      super(service, channel, pathProvider);
+    protected TcpChannel(
+        ScionService service,
+        DatagramChannel channel,
+        PathSelector selector,
+        PathSelectorFactory factory) {
+      super(service, channel, selector, factory);
     }
 
     @Override

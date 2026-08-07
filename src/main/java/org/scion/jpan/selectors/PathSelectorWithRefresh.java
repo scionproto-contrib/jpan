@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.selectors;
 
-import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.Future;
@@ -26,9 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The PathProviderWithRefresh will periodically poll the ScionService for new paths. It will poll
- * for new path either if: a path is "about" to expire, or if the polling interval elapses, or if
- * there is no path available for a new subscriber.<br>
+ * The PathSelectorWithRefresh will periodically poll the ScionService for new paths. It will poll
+ * for new path either if: a path is "about" to expire, or if the polling interval elapses.<br>
  * A path is considered to "about" to expire if it is going to expire its expiration date is before
  * ( now + {@link Constants#DEFAULT_PATH_EXPIRY_MARGIN} - {@link
  * Constants#DEFAULT_PATH_POLLING_INTERVAL}).
@@ -36,12 +34,12 @@ import org.slf4j.LoggerFactory;
  * <p>The current path will be replaced if a "better" path (according to the PathPolicy) is
  * available, even if the current path is still valid.
  *
- * @see org.scion.jpan.internal.PathProvider
+ * @see PathSelector
  */
-public class PathProviderWithRefresh implements PathProvider {
+public class PathSelectorWithRefresh implements PathSelector {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(PathProviderWithRefresh.class.getName());
+      LoggerFactory.getLogger(PathSelectorWithRefresh.class.getName());
   private static final ScheduledThreadPoolExecutor timer;
 
   static {
@@ -59,11 +57,9 @@ public class PathProviderWithRefresh implements PathProvider {
   private final Runnable timerTask;
   private Future<?> timerFuture;
   private final ScionService service;
-  private long dstIsdAs;
-  private InetSocketAddress dstAddress = null;
+  private ScionSocketAddress dstAddress = null;
   private PathPolicy pathPolicy;
 
-  private PathUpdateCallback subscriber;
   private final Map<Entry, Entry> faultyPaths = new HashMap<>();
   private final List<Entry> unusedPaths = new ArrayList<>();
   private Entry usedPath = null;
@@ -132,28 +128,35 @@ public class PathProviderWithRefresh implements PathProvider {
       long[] hashBase2 = calcHashBase(p);
       return Objects.deepEquals(pathHashBase, hashBase2);
     }
+
+    public double getRank() {
+      return rank;
+    }
+
+    public Instant getTimestamp() {
+      return timestamp;
+    }
   }
 
-  public static PathProviderWithRefresh create(
+  public static PathSelectorWithRefresh create(
       ScionService service, PathPolicy policy, int expirationMarginMs, int pathPollIntervalMs) {
-    return new PathProviderWithRefresh(service, policy, expirationMarginMs, pathPollIntervalMs);
+    return new PathSelectorWithRefresh(service, policy, expirationMarginMs, pathPollIntervalMs);
   }
 
-  public static PathProviderWithRefresh create(ScionService service, PathPolicy policy) {
-    return new PathProviderWithRefresh(
+  public static PathSelectorWithRefresh create(ScionService service, PathPolicy policy) {
+    return new PathSelectorWithRefresh(
         service,
         policy,
         Config.getPathExpiryMarginSeconds() * 1000,
         Config.getPathPollingIntervalSeconds() * 1000);
   }
 
-  private PathProviderWithRefresh(
+  private PathSelectorWithRefresh(
       ScionService service, PathPolicy policy, int expirationMarginMs, int pathPollIntervalMs) {
     if (service == null) {
       throw new IllegalArgumentException();
     }
     this.service = service;
-    this.dstIsdAs = 0;
     this.dstAddress = null;
     this.pathPolicy = policy;
     this.configPathPollIntervalMs = pathPollIntervalMs;
@@ -164,14 +167,14 @@ public class PathProviderWithRefresh implements PathProvider {
           @Override
           public void run() {
             try {
-              synchronized (PathProviderWithRefresh.this) {
+              synchronized (PathSelectorWithRefresh.this) {
                 if (isConnected()) {
                   refreshPaths();
                 }
               }
             } catch (Exception e) {
               String time = configPathPollIntervalMs + "ms";
-              LOG.error("Exception in PathProvider timer task, trying again in {}", time, e);
+              LOG.error("Exception in PathSelector timer task, trying again in {}", time, e);
             }
           }
         };
@@ -179,14 +182,14 @@ public class PathProviderWithRefresh implements PathProvider {
 
   /** Refresh paths from path server. */
   // Synchronized because it is called by timer
-  synchronized void refreshPaths() {
+  private synchronized void refreshPaths() {
     // Purpose:
     // 1) Get new paths from the service
     // 2) Discard paths that are about to expire
     // 3) Consider retrying path that were broken TODO
 
     // 1) Get new paths from the service
-    List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstIsdAs, dstAddress));
+    List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstAddress));
     unusedPaths.clear();
     int n = 0;
     for (Path p : newPaths2) {
@@ -199,23 +202,27 @@ public class PathProviderWithRefresh implements PathProvider {
 
     if (unusedPaths.isEmpty()) {
       LOG.warn("No free path available.");
+      usedPath = null;
       return;
     }
 
     // We check all new path for whether they were reported faulty.
     // We also clean up the faulty list so it doesn't remove any paths that were not also
     // offered in the last request.
-    Set<Entry> faultySet = faultyPaths.keySet();
     List<Entry> newFaulty = new ArrayList<>();
     Iterator<Entry> itUnused = unusedPaths.iterator();
     while (itUnused.hasNext()) {
       Entry newEntry = itUnused.next();
-      if (faultySet.contains(newEntry)) {
-        // In case we retry this path later.
-        newFaulty.add(newEntry);
-        // Remove from list of path that are free to use.
-        itUnused.remove();
-      }
+      faultyPaths.computeIfPresent(
+          newEntry,
+          (k, v) -> {
+            // In case we retry this path later.
+            newEntry.setFaulty(v.timestamp);
+            newFaulty.add(newEntry);
+            // Remove from list of path that are free to use.
+            itUnused.remove();
+            return v;
+          });
     }
     faultyPaths.clear();
     newFaulty.forEach(e -> faultyPaths.put(e, e));
@@ -223,27 +230,22 @@ public class PathProviderWithRefresh implements PathProvider {
     if (unusedPaths.isEmpty()) {
       // try faulty paths again -> ordered by how long ago they were reported faulty
       faultyPaths.forEach((k, v) -> unusedPaths.add(v));
-      unusedPaths.sort(Comparator.comparing(e -> e.rank));
+      unusedPaths.sort(Comparator.comparing(Entry::getTimestamp).thenComparing(Entry::getRank));
       unusedPaths.forEach(e -> e.timestamp = null);
       faultyPaths.clear();
     }
 
     // Replace current path with the best available path.
-    subscriber.updatePath(getFreePath());
+    findFreePath();
   }
 
-  private Path getFreePath() {
-    Entry e = unusedPaths.remove(0);
-    usedPath = e;
-    return e.path;
+  private void findFreePath() {
+    usedPath = unusedPaths.remove(0);
   }
 
-  private void updateSubscriber() {
-    if (unusedPaths.isEmpty()) {
-      refreshPaths();
-      return;
-    }
-    subscriber.updatePath(getFreePath());
+  @Override
+  public synchronized void refresh() {
+    refreshPaths();
   }
 
   /**
@@ -261,6 +263,7 @@ public class PathProviderWithRefresh implements PathProvider {
     long faultyIsdAs;
     long ifId1;
     Long ifId2 = null;
+    // Only errors 5 and 6 give us useful information
     if (error instanceof Scmp.Error5Message) {
       Scmp.Error5Message error5 = (Scmp.Error5Message) error;
       faultyIsdAs = error5.getIsdAs();
@@ -274,54 +277,34 @@ public class PathProviderWithRefresh implements PathProvider {
       return;
     }
 
+    // Mark unused paths with faulty interfaces as faulty
     Iterator<Entry> unusedIter = unusedPaths.iterator();
     while (unusedIter.hasNext()) {
       Entry e = unusedIter.next();
       PathMetadata meta = e.path.getMetadata();
       if (ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1)
-          || (ifId2 != null && ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId2))) {
+          && (ifId2 == null || ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId2))) {
         unusedIter.remove();
         e.setFaulty(Instant.now());
         faultyPaths.put(e, e);
       }
     }
 
+    // Mark used paths with faulty interfaces as faulty
     PathMetadata usedMeta = usedPath.path.getMetadata();
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
-        || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
+        && (ifId2 == null || ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
       Entry e = usedPath;
       usedPath = null;
       e.setFaulty(Instant.now());
       faultyPaths.put(e, e);
       // Find new path
-      updateSubscriber();
+      if (unusedPaths.isEmpty()) {
+        refreshPaths();
+        return;
+      }
+      findFreePath();
     }
-  }
-
-  @Override
-  public synchronized void reportFaultyPath(Path p) {
-    Entry e = usedPath;
-    if (e == null) {
-      throw new IllegalArgumentException("Path not managed by this provider");
-    }
-    if (!e.pathEquals(p)) {
-      // This can happen due to races, e.g. when we receive an error for a path that we stopped
-      // using.
-      return;
-    }
-    e.setFaulty(Instant.now());
-    faultyPaths.put(e, e);
-
-    // Find new path
-    updateSubscriber();
-  }
-
-  @Override
-  public synchronized void subscribe(PathUpdateCallback cb) {
-    if (subscriber != null) {
-      throw new IllegalStateException("This PathProvider already has a subscription.");
-    }
-    this.subscriber = cb;
   }
 
   @Override
@@ -332,23 +315,6 @@ public class PathProviderWithRefresh implements PathProvider {
   @Override
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
-    if (isConnected()) {
-      // Remove used path if it doesn't fit the policy
-      if (usedPath != null
-          && pathPolicy.filter(Collections.singletonList(usedPath.path)).isEmpty()) {
-        usedPath = null;
-      }
-
-      refreshPaths();
-      assertPathExists();
-    }
-  }
-
-  private void assertPathExists() {
-    if ((usedPath == null || isExpired(usedPath.path)) && unusedPaths.isEmpty()) {
-      String isdAs = ScionUtil.toStringIA(dstIsdAs);
-      throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
-    }
   }
 
   private boolean isExpiringInNextPeriod(Path path) {
@@ -357,32 +323,37 @@ public class PathProviderWithRefresh implements PathProvider {
     return epochSeconds < Instant.now().getEpochSecond() + expirationDeltaMs / 1000;
   }
 
-  private boolean isExpired(Path path) {
-    return path.getMetadata().getExpiration() < Instant.now().getEpochSecond();
+  @Override
+  public synchronized Path getPath() {
+    return usedPath == null ? null : usedPath.path;
   }
 
   @Override
-  public synchronized void connect(Path path) {
+  public ScionSocketAddress getRemoteSocketAddress() {
+    return dstAddress;
+  }
+
+  /**
+   * Initialize the PathSelector and start providing paths. The path provider will (in this call)
+   * request a set of path from the path service. Later, new paths will be requested automatically
+   * if a path is expired or about to expire or if the path is reported faulty.
+   *
+   * @throws IllegalStateException if the PathSelector is already connected
+   * @see PathSelector#connect(ScionSocketAddress)
+   */
+  @Override
+  public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
-    this.dstIsdAs = path.getRemoteIsdAs();
-    this.dstAddress = path.getRemoteSocketAddress();
+    this.dstAddress = remote;
 
-    if (isExpiringInNextPeriod(path)) {
-      // fetch new paths
-      refreshPaths();
-    } else {
-      // use this path
-      unusedPaths.add(new Entry(path, 0.0));
-      updateSubscriber();
-    }
+    // fetch new paths
+    refreshPaths();
 
     timerFuture =
         timer.scheduleAtFixedRate(
             timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
-
-    assertPathExists();
   }
 
   @Override
@@ -398,7 +369,6 @@ public class PathProviderWithRefresh implements PathProvider {
       timerFuture = null;
     }
     this.dstAddress = null;
-    this.dstIsdAs = 0;
     this.unusedPaths.clear();
     this.usedPath = null;
     this.faultyPaths.clear();
@@ -413,7 +383,8 @@ public class PathProviderWithRefresh implements PathProvider {
     return this.dstAddress != null;
   }
 
-  static int getQueueSize() {
+  // TODO make package private
+  public static int getQueueSize() {
     return timer.getQueue().size();
   }
 }

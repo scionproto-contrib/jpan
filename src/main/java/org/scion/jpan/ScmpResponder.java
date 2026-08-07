@@ -31,6 +31,8 @@ import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFixed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,9 +100,9 @@ public class ScmpResponder implements AutoCloseable {
     private final Set<InetAddress> broadcastAddresses;
 
     protected InternalChannel(ScionService service, int port, DatagramChannel channel, Shim shim) {
-      // We provide the no-op PathProvider. SCMP channels are never connected, so the
-      // PathProvider will never be used.
-      super(service, channel, PathProviderNoOp.create(PathPolicy.DEFAULT));
+      // We provide the no-op PathSelector. SCMP channels are never connected, so the
+      // PathSelector will never be used.
+      super(service, channel, PathSelectorFixed.create(), PathSelectorFactory.Fixed.instance());
       this.shim = shim;
       this.port = port;
       try {

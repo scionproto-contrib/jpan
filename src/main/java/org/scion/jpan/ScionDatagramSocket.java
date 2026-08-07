@@ -22,12 +22,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyBoundException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.IllegalBlockingModeException;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.util.SimpleCache;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 /**
  * A DatagramSocket that is SCION path aware. It can send and receive SCION packets.
@@ -56,6 +57,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
   private final SelectingDatagramChannel channel;
   private boolean isBound = false;
+  // The path cache is used in server applications. Incoming packets are added to the path cache.
+  // Outgoing response packets try to use the cached paths.
   private final SimpleCache<InetSocketAddress, Path> pathCache = new SimpleCache<>(100);
   private final Object closeLock = new Object();
 
@@ -164,7 +167,9 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    *
    * @param path path to destination
    * @see ScionDatagramChannel#connect(Path)
+   * @deprecated To be removed in 0.8.0 Please use {@link #connect(SocketAddress)}
    */
+  @Deprecated
   public synchronized void connect(Path path) {
     try {
       channel.connect(path);
@@ -289,23 +294,18 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
 
       Path path;
       if (channel.isConnected()) {
-        path = channel.getConnectionPath();
+        path = channel.getConnectedPathOrThrow();
       } else {
         InetSocketAddress addr = (InetSocketAddress) packet.getSocketAddress();
         synchronized (pathCache) {
           path = pathCache.get(addr);
           if (path == null) {
-            path = channel.applyFilter(channel.getService().lookupPaths(addr), addr).get(0);
-          } else if (path instanceof RequestPath
-              && path.getMetadata().getExpiration() < Instant.now().getEpochSecond()) {
-            // check expiration only for RequestPaths
-            RequestPath request = (RequestPath) path;
-            path = channel.applyFilter(channel.getService().getPaths(request), addr).get(0);
+            // We don't have a path.
+            ByteBuffer buf =
+                ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+            channel.send(buf, addr);
+            return;
           }
-          if (path == null) {
-            throw new IOException("Address is not resolvable in SCION: " + addr.getAddress());
-          }
-          pathCache.put(addr, path);
         }
       }
       ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
@@ -332,6 +332,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
       if (!channel.isConnected()) {
         synchronized (pathCache) {
           InetAddress ip = path.getRemoteAddress();
+          // TODO this a bit of a security problem, an attacker can send packets from many different
+          //   locations (paths) in order to have the cache overflow and forget useful paths.
           pathCache.put(new InetSocketAddress(ip, path.getRemotePort()), path);
         }
       }
@@ -597,25 +599,6 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     return channel.getService();
   }
 
-  public synchronized PathPolicy getPathPolicy() {
-    return channel.getPathPolicy();
-  }
-
-  /**
-   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
-   * socket is connected, this method will request a new path using the new policy.
-   *
-   * <p>After initially setting the path policy, it is used to request a new path during write() and
-   * send() whenever a path turns out to be close to expiration.
-   *
-   * @param pathPolicy the new path policy
-   * @see PathPolicy#DEFAULT
-   * @see ScionDatagramChannel#setPathPolicy(PathPolicy)
-   */
-  public synchronized void setPathPolicy(PathPolicy pathPolicy) throws IOException {
-    channel.setPathPolicy(pathPolicy);
-  }
-
   /**
    * Specify an source address override. See {@link
    * ScionDatagramChannel#setOverrideSourceAddress(InetSocketAddress)}.
@@ -626,8 +609,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     channel.setOverrideSourceAddress(overrideSourceAddress);
   }
 
-  public PathProvider getPathProvider() {
-    return channel.getPathProvider();
+  public PathSelector getPathSelector() {
+    return channel.getPathSelector();
+  }
+
+  public PathSelectorFactory getPathSelectorFactory() {
+    return channel.getPathSelectorFactory();
   }
 
   private static class DummyDatagramSocketImpl extends DatagramSocketImpl {
@@ -722,7 +709,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     private SocketAddress bindAddress;
     private ScionService service;
     private boolean nullService = false;
-    private PathProvider provider;
+    private PathSelector selector;
+    private PathSelectorFactory factory;
     private DatagramChannel channel;
 
     public Builder bind(int port) {
@@ -754,13 +742,24 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     }
 
     /**
-     * @param provider A {@link PathProvider} to be used. If the {@link #service(ScionService)} has
-     *     been set to null, the default PathProvider is {@link PathProviderNoOp}, otherwise it is
-     *     {@link PathProviderWithRefresh}.
+     * @param selector {@link PathSelector} to be used. If this value is not set, the default {@link
+     *     PathSelectorFactory} is used.
      * @return This builder.
      */
-    public Builder provider(PathProvider provider) {
-      this.provider = provider;
+    public Builder pathSelectorForConnect(PathSelector selector) {
+      this.selector = selector;
+      return this;
+    }
+
+    /**
+     * @param factory A {@link PathSelectorFactory} to be used for {@link #send(DatagramPacket)} if
+     *     the socket is not connected and consequently the send() method needs to request paths
+     *     from a PathSelector. As default, {@link org.scion.jpan.selectors.PathSelectorFixed} is
+     *     used and Paths are not automatically refreshed.
+     * @return This builder.
+     */
+    public Builder pathSelectorsForSend(PathSelectorFactory factory) {
+      this.factory = factory;
       return this;
     }
 
@@ -779,7 +778,8 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     public ScionDatagramSocket open() throws SocketException {
       SelectingDatagramChannel.Builder builder = SelectingDatagramChannel.newBuilder();
       builder.channel(channel);
-      builder.provider(provider);
+      builder.pathSelectorForConnect(selector);
+      builder.pathSelectorsForSend(factory);
       if (nullService || service != null) {
         builder.service(service);
       }

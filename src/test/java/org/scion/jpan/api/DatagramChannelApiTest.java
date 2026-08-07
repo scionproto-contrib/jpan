@@ -33,10 +33,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
-import org.scion.jpan.internal.PathProvider;
-import org.scion.jpan.internal.PathProviderNoOp;
 import org.scion.jpan.internal.util.ExternalIpDiscovery;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -385,13 +385,20 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void getPathPolicy() throws IOException {
+  void getPathSelector() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      assertEquals(PathPolicy.DEFAULT, channel.getPathPolicy());
-      assertEquals(PathPolicy.MIN_HOPS, channel.getPathPolicy());
-      channel.setPathPolicy(PathPolicy.MAX_BANDWIDTH);
-      assertEquals(PathPolicy.MAX_BANDWIDTH, channel.getPathPolicy());
-      // TODO test that path policy is actually used
+      assertNotNull(channel.getPathSelector());
+
+      channel.connect(dummyAddress);
+      assertNotNull(channel.getPathSelector());
+
+      channel.disconnect();
+      assertNotNull(channel.getPathSelector());
+
+      channel.connect(dummyAddress);
+      assertNotNull(channel.getPathSelector());
+      channel.close();
+      assertNotNull(channel.getPathSelector());
     }
   }
 
@@ -404,24 +411,24 @@ class DatagramChannelApiTest {
       channel.connect(paths.get(0));
 
       PathPolicy empty = paths1 -> Collections.emptyList();
-      // We expect an exception because there is no path available.
-      Exception e = assertThrows(ScionRuntimeException.class, () -> channel.setPathPolicy(empty));
-      assertTrue(e.getMessage().startsWith("No path found to destination"));
+      channel.getPathSelector().setPathPolicy(empty);
+      assertNull(channel.getConnectionPath());
     }
   }
 
   @Test
-  void connect_noPathFound() throws IOException {
-    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+  void write_noPathFound() throws IOException {
+    // Create empty path policy
+    PathPolicy empty = paths1 -> Collections.emptyList();
+    PathSelectorFactory psf = PathSelectorFactory.Default.create(empty);
+    PathSelector ps = psf.createPathSelector(Scion.defaultService());
+
+    try (ScionDatagramChannel channel =
+        ScionDatagramChannel.newBuilder().pathSelectorForConnect(ps).open()) {
       List<Path> paths = channel.getService().lookupPaths(dummyAddress);
 
-      // Create empty path policy
-      PathPolicy empty = paths1 -> Collections.emptyList();
-      channel.setPathPolicy(empty);
-
-      // Create expired path to trigger PathProvider
-      Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
-      Exception e = assertThrows(ScionRuntimeException.class, () -> channel.connect(expired));
+      channel.connect(paths.get(0).getRemoteSocketAddress());
+      Exception e = assertThrows(IOException.class, () -> channel.write(ByteBuffer.allocate(10)));
       assertTrue(e.getMessage().startsWith("No path found to destination"));
     }
   }
@@ -511,55 +518,12 @@ class DatagramChannelApiTest {
       ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
       InetSocketAddress dst = MockNetwork.getTinyServerAddress();
       Exception e;
-      e = assertThrows(ScionRuntimeException.class, () -> channel.send(sendBuf, dst));
-      assertTrue(e.getMessage().startsWith("No path found to destination"), e.getMessage());
+      e = assertThrows(IOException.class, () -> channel.send(sendBuf, dst));
+      assertTrue(e.getMessage().startsWith("No paths found"), e.getMessage());
       assertNull(channel.getConnectionPath());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @Test
-  void send_disconnected_expiredRequestPath() {
-    // Expected behavior: expired paths should be replaced transparently.
-    testExpired(
-        (channel, expiringPath) -> {
-          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
-          try {
-            long oldExpiration = expiringPath.getMetadata().getExpiration();
-            assertTrue(Instant.now().getEpochSecond() > oldExpiration);
-            channel.send(sendBuf, expiringPath);
-            // Path is unmodifiable
-            assertEquals(oldExpiration, expiringPath.getMetadata().getExpiration());
-            long newExpiration = channel.getMappedPath(expiringPath).getMetadata().getExpiration();
-            assertTrue(newExpiration > oldExpiration);
-            assertTrue(Instant.now().getEpochSecond() < newExpiration);
-            assertNull(channel.getConnectionPath());
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        },
-        false);
-  }
-
-  @Test
-  void send_connected_expiredRequestPath() {
-    // Expected behavior: expired paths should be replaced transparently.
-    testExpired(
-        (channel, expiringPath) -> {
-          ByteBuffer sendBuf = ByteBuffer.wrap(PingPongChannelHelper.MSG.getBytes());
-          try {
-            long oldExpiration = expiringPath.getMetadata().getExpiration();
-            assertTrue(Instant.now().getEpochSecond() > oldExpiration);
-            channel.send(sendBuf, expiringPath.getRemoteSocketAddress());
-            long newExpiration = channel.getMappedPath(expiringPath).getMetadata().getExpiration();
-            assertTrue(newExpiration > oldExpiration);
-            assertTrue(Instant.now().getEpochSecond() < newExpiration);
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        },
-        true);
   }
 
   @Test
@@ -653,10 +617,6 @@ class DatagramChannelApiTest {
           channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
       assertEquals(channel, dc);
 
-      int margin = channel.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN);
-      channel.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, margin + 1000);
-      assertEquals(margin + 1000, channel.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
-
       int tc = channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS);
       channel.setOption(ScionSocketOptions.SCION_TRAFFIC_CLASS, tc + 1);
       assertEquals(tc + 1, channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS));
@@ -664,10 +624,10 @@ class DatagramChannelApiTest {
       channel.close();
       assertThrows(
           ClosedChannelException.class,
-          () -> channel.getOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN));
+          () -> channel.getOption(ScionSocketOptions.SCION_TRAFFIC_CLASS));
       assertThrows(
           ClosedChannelException.class,
-          () -> channel.setOption(ScionSocketOptions.SCION_PATH_EXPIRY_MARGIN, 11));
+          () -> channel.setOption(ScionSocketOptions.SCION_TRAFFIC_CLASS, 11));
     }
   }
 
@@ -806,11 +766,18 @@ class DatagramChannelApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathProvider ppNoOp = PathProviderNoOp.create(policy);
-    try (ScionDatagramChannel channel = ScionDatagramChannel.newBuilder().provider(ppNoOp).open()) {
+    PathSelectorFactory ppNoOp = PathSelectorFactory.Fixed.create(policy);
+    PathSelector ps = ppNoOp.createPathSelector(Scion.defaultService());
+    try (ScionDatagramChannel channel =
+        ScionDatagramChannel.newBuilder()
+            .pathSelectorForConnect(ps)
+            .pathSelectorsForSend(ppNoOp)
+            .open()) {
       assertFalse(channel.isConnected());
-      assertSame(ppNoOp, channel.getPathProvider());
-      assertSame(policy, channel.getPathPolicy());
+      assertSame(ppNoOp, channel.getPathSelectorFactory());
+      assertSame(ps, channel.getPathSelector());
+      channel.connect(dummyAddress);
+      assertSame(policy, channel.getPathSelector().getPathPolicy());
     }
   }
 }

@@ -265,6 +265,21 @@ public class ScionService {
   }
 
   /**
+   * Resolves the address to a SCION address or returns the address if it is already resolved.
+   *
+   * @param dstAddr Destination address
+   * @return A ScionSocketAddress without paths (unless it already has paths).
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  ScionSocketAddress lookup(InetSocketAddress dstAddr) throws ScionException {
+    if (dstAddr instanceof ScionSocketAddress) {
+      return (ScionSocketAddress) dstAddr;
+    }
+    ScionAddress sa = AddressLookupService.lookupAddress(dstAddr.getHostString());
+    return UnresolvedScionSocketAddress.from(sa.getIsdAs(), sa.getInetAddress(), dstAddr.getPort());
+  }
+
+  /**
    * Request paths from the local ISD/AS to the destination.
    *
    * @param dstIsdAs Destination ISD/AS
@@ -272,10 +287,17 @@ public class ScionService {
    * @return All paths returned by the path service.
    */
   public List<Path> getPaths(long dstIsdAs, InetSocketAddress dstScionAddress) {
-    if (dstScionAddress instanceof ScionSocketAddress) {
-      return getPaths(((ScionSocketAddress) dstScionAddress).getPath());
-    }
     return getPaths(dstIsdAs, dstScionAddress.getAddress(), dstScionAddress.getPort());
+  }
+
+  /**
+   * Request paths to the same destination as the provided path.
+   *
+   * @param dstAddress Destination IP address. Must belong to a SCION enabled end host.
+   * @return All paths returned by the path service.
+   */
+  public List<Path> getPaths(ScionSocketAddress dstAddress) {
+    return getPaths(dstAddress.getIsdAs(), dstAddress.getAddress(), dstAddress.getPort());
   }
 
   /**

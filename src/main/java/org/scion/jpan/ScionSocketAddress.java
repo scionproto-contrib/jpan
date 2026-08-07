@@ -26,7 +26,7 @@ public class ScionSocketAddress extends InetSocketAddress {
     return new ScionSocketAddress(path, dstIsdAs, dstIP, dstPort);
   }
 
-  private ScionSocketAddress(Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
+  protected ScionSocketAddress(Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
     super(dstIP, dstPort);
     this.path = path;
     this.isdAs = dstIsdAs;

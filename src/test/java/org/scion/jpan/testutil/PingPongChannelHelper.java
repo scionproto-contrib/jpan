@@ -96,9 +96,7 @@ public class PingPongChannelHelper extends PingPongHelperBase {
     @Override
     public final void runImpl(ScionDatagramChannel channel) throws IOException {
       if (connect) {
-        InetAddress inetAddress = path.getRemoteAddress();
-        InetSocketAddress iSAddress = new InetSocketAddress(inetAddress, path.getRemotePort());
-        channel.connect(iSAddress);
+        channel.connect(path.getRemoteSocketAddress());
       }
       registerStartUpClient();
       for (int i = 0; i < nRounds; i++) {

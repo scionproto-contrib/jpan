@@ -12,48 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan.internal;
+package org.scion.jpan.selectors;
 
-import java.net.InetSocketAddress;
-import java.time.Instant;
 import java.util.*;
 import org.scion.jpan.*;
 
 /**
- * The PathProviderNoOp does (almost) nothing. It will provide a path when connect(path) is called.
+ * The PathSelectorFixed does (almost) nothing. It will provide a path when connect(path) is called.
  * It will also verify the path against the path policy. It will not check for expiration or poll
  * for new path. If a path is reported faulty, it will remove it.
  *
- * @see org.scion.jpan.internal.PathProvider
+ * @see PathSelector
  */
-public class PathProviderNoOp implements PathProvider {
+public class PathSelectorFixed implements PathSelector {
 
-  private long dstIsdAs;
-  private InetSocketAddress dstAddress;
+  private ScionSocketAddress dstAddress;
   private PathPolicy pathPolicy;
   private Path usedPath;
 
-  private PathUpdateCallback subscriber;
-
-  public static PathProviderNoOp create(PathPolicy policy) {
-    return new PathProviderNoOp(policy);
+  public static PathSelectorFixed create() {
+    return create(PathPolicy.DEFAULT);
   }
 
-  private PathProviderNoOp(PathPolicy policy) {
-    this.dstIsdAs = 0;
+  public static PathSelectorFixed create(PathPolicy policy) {
+    return new PathSelectorFixed(policy);
+  }
+
+  private PathSelectorFixed(PathPolicy policy) {
     this.dstAddress = null;
     this.pathPolicy = policy;
   }
 
   @Override
-  public synchronized void reportFaultyPath(Path p) {
-    if (!Objects.equals(usedPath, p)) {
-      return;
-    }
-    usedPath = null;
-
-    // No path available
-    subscriber.updatePath(null);
+  public synchronized void refresh() {
+    // Nothing to do
   }
 
   @Override
@@ -82,18 +74,7 @@ public class PathProviderNoOp implements PathProvider {
     if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
         || (ifId2 != null && ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
       usedPath = null;
-
-      // No path available
-      subscriber.updatePath(null);
     }
-  }
-
-  @Override
-  public void subscribe(PathUpdateCallback cb) {
-    if (subscriber != null) {
-      throw new IllegalStateException("This PathProvider already has a subscription.");
-    }
-    this.subscriber = cb;
   }
 
   @Override
@@ -113,47 +94,40 @@ public class PathProviderNoOp implements PathProvider {
     // Remove used path if it doesn't fit the policy
     if (usedPath != null && pathPolicy.filter(Collections.singletonList(usedPath)).isEmpty()) {
       usedPath = null;
-      subscriber.updatePath(null);
     }
-    assertPathExists();
-  }
-
-  private void assertPathExists() {
-    if ((usedPath == null || isExpired(usedPath))) {
-      String isdAs = ScionUtil.toStringIA(dstIsdAs);
-      throw new ScionRuntimeException("No path found to destination: " + isdAs + "," + dstAddress);
-    }
-  }
-
-  private boolean isExpired(Path path) {
-    return path.getMetadata().getExpiration() < Instant.now().getEpochSecond();
   }
 
   @Override
-  public void connect(Path path) {
+  public synchronized Path getPath() {
+    return usedPath;
+  }
+
+  @Override
+  public ScionSocketAddress getRemoteSocketAddress() {
+    return dstAddress;
+  }
+
+  /**
+   * Initialize the PathSelector with the path associated with the ScionSocketAddress.
+   *
+   * @throws IllegalStateException if the PathSelector is already connected
+   * @see PathSelector#connect(ScionSocketAddress)
+   */
+  @Override
+  public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
       throw new IllegalStateException("Path provider is already connected");
     }
-    this.dstIsdAs = path.getRemoteIsdAs();
-    this.dstAddress = path.getRemoteSocketAddress();
-
-    if (isExpired(path)) {
-      usedPath = null;
-      subscriber.updatePath(null);
-      assertPathExists(); // This will throw an exception
-      return;
-    }
+    this.dstAddress = remote;
 
     // use this path
-    usedPath = path;
-    subscriber.updatePath(path);
+    usedPath = remote.getPath();
     checkPathPolicy();
   }
 
   @Override
   public synchronized void disconnect() {
     this.dstAddress = null;
-    this.dstIsdAs = 0;
   }
 
   @Override

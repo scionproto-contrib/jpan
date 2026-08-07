@@ -22,26 +22,35 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
-import java.time.Instant;
-import java.util.WeakHashMap;
-import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.util.ByteUtil;
+import org.scion.jpan.internal.util.SimpleCache;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorFixed;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
 
   // Store one path per (non-Scion-)destination address
-  private final WeakHashMap<InetSocketAddress, RequestPath> resolvedDestinations =
-      new WeakHashMap<>();
-  // Store a refreshed paths for every path
-  private final WeakHashMap<Path, RequestPath> refreshedPaths = new WeakHashMap<>();
+  // We do not use a WeakHashMap here.
+  // One reason is that if PathSelectors get GC'd their timer taks may not get cleaned up.
+  // Timer tasks should diappear over time when they get executed.
+  // Also, if entries are removed due to GC pressure, recreating them may actuall add to the
+  // pressure because restoring an entry causes additional objects to be created.
+  //
+  // Overall, a predictable SimpleCache seems better.
+  private final SimpleCache<InetSocketAddress, PathSelector> resolvedDestinations =
+      new SimpleCache<>(100);
 
   protected ScionDatagramChannel(
-      ScionService service, java.nio.channels.DatagramChannel channel, PathProvider pathProvider)
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
+      PathSelectorFactory factory)
       throws IOException {
-    super(service, channel, pathProvider);
+    super(service, channel, connectSelector, factory);
   }
 
   /**
@@ -140,12 +149,16 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     }
 
     InetSocketAddress dst = (InetSocketAddress) destination;
-    RequestPath path;
+    Path path;
     synchronized (stateLock()) {
-      path = resolvedDestinations.get(dst);
+      PathSelector pathSelector = resolvedDestinations.get(dst);
+      if (pathSelector == null) {
+        pathSelector = createPathSelector(dst);
+        resolvedDestinations.put(dst, pathSelector);
+      }
+      path = pathSelector.getPath();
       if (path == null) {
-        path = (RequestPath) applyFilter(getService().lookupPaths(dst), dst).get(0);
-        resolvedDestinations.put(dst, path);
+        throw new IOException("No paths found for remote address " + destination);
       }
     }
     return sendInternal(srcBuffer, path);
@@ -162,8 +175,6 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
    *     cannot be resolved to an ISD/AS.
    * @see java.nio.channels.DatagramChannel#send(ByteBuffer, SocketAddress)
    */
-  // * @deprecated This method will probably not be removed, but it will change semantics.
-  // @Deprecated // remove in 0.7.0 -- Deprecation postponed. We may keep this after all
   public int send(ByteBuffer srcBuffer, Path path) throws IOException {
     return sendInternal(srcBuffer, path);
   }
@@ -172,7 +183,6 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     writeLock().lock();
     try {
       ByteBuffer buffer = getBufferSend(srcBuffer.remaining());
-      path = refreshPath(path);
       checkPathAndBuildHeaderUDP(buffer, path, srcBuffer.remaining());
       int headerSize = buffer.position();
       try {
@@ -227,7 +237,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     try {
       checkOpen();
       checkConnected(true);
-      Path path = getConnectionPath();
+      Path path = getConnectedPathOrThrow();
 
       ByteBuffer buffer = getBufferSend(src.remaining());
       int len = src.remaining();
@@ -264,71 +274,33 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   }
 
   /**
-   * Checks whether the current path is expired and requests and assigns a new path if required.
-   * This is only used for {@link #send(ByteBuffer, SocketAddress)}. Path for {@link
-   * #write(ByteBuffer)} are refreshed by the {@link org.scion.jpan.internal.PathProvider}.
-   *
-   * @param path RequestPath that may need refreshing
-   * @return a new Path if the path was updated, otherwise `null`.
-   */
-  private Path refreshPath(Path path) {
-    if (!(path instanceof RequestPath) || !isAboutToExpire(path)) {
-      return path;
-    }
-
-    // Check cache
-    RequestPath refreshed = refreshedPaths.get(path);
-    if (refreshed != null && !isAboutToExpire(refreshed)) {
-      return refreshed;
-    }
-
-    // expired, get new path
-    Path newPath = applyFilter(getService().getPaths(path), path.getRemoteSocketAddress()).get(0);
-    refreshedPaths.put(path, (RequestPath) newPath);
-    return newPath;
-  }
-
-  private boolean isAboutToExpire(Path path) {
-    int expiryMargin = getCfgExpirationSafetyMargin();
-    return Instant.now().getEpochSecond() + expiryMargin > path.getMetadata().getExpiration();
-  }
-
-  /**
    * The channel maintains mappings from input address to output paths. Input addresses are given as
    * input to {@link #send(ByteBuffer, SocketAddress)}. The channel tries to resolve the address via
    * DNS TXT record to a SCION enabled address and stores the result in the mapping for future use.
    *
    * @param address A destination address
    * @return The mapped path or the path itself if no mapping is available.
+   * @deprecated To be removed in 0.8.0
    */
+  @Deprecated // remove in 0.8.0
   public Path getMappedPath(InetSocketAddress address) {
     synchronized (stateLock()) {
-      return resolvedDestinations.get(address);
+      PathSelector pp = resolvedDestinations.get(address);
+      return pp == null ? null : pp.getPath();
     }
   }
 
-  /**
-   * The channel maintains mappings from input path to output paths. Input paths are given as input
-   * to {@link #send(ByteBuffer, Path)}. If the path is valid, it is also used as actual path for
-   * any packet sent to the destination. If the path has expired, the channel will try to find an
-   * identical, but more recent path and store it in the mapping.
-   *
-   * @param path A Path
-   * @return The mapped path or the path itself if no mapping is available.
-   */
-  public Path getMappedPath(Path path) {
-    if (!(path instanceof RequestPath)) {
-      return null;
-    }
-    synchronized (stateLock()) {
-      return refreshedPaths.getOrDefault(path, (RequestPath) path);
-    }
+  @Override
+  public void close() throws IOException {
+    super.close();
+    resolvedDestinations.forEach((k, pathSelector) -> pathSelector.disconnect());
   }
 
   public static class Builder {
     protected ScionService service;
     protected boolean nullService = false;
-    protected PathProvider provider;
+    protected PathSelector selector;
+    protected PathSelectorFactory factory;
     protected DatagramChannel channel;
 
     /**
@@ -342,13 +314,25 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     }
 
     /**
-     * @param provider A {@link PathProvider} to be used. If the {@link #service(ScionService)} has
-     *     been set to null, the default PathProvider is {@link PathProviderNoOp}, otherwise it is
-     *     {@link PathProviderWithRefresh}.
+     * @param selector {@link PathSelector} to be used. If this value is not set, the default {@link
+     *     PathSelectorFactory} is used.
      * @return This builder.
      */
-    public Builder provider(PathProvider provider) {
-      this.provider = provider;
+    public Builder pathSelectorForConnect(PathSelector selector) {
+      this.selector = selector;
+      return this;
+    }
+
+    /**
+     * @param factory A {@link PathSelectorFactory} to be used for {@link #send(ByteBuffer,
+     *     SocketAddress)} if the SocketAddress argument is not a ScionSockerAddress and
+     *     consequently the send() method needs to request paths from a PathSelector. As default,
+     *     {@link org.scion.jpan.selectors.PathSelectorFixed} is used and Paths are not
+     *     automatically refreshed.
+     * @return This builder.
+     */
+    public Builder pathSelectorsForSend(PathSelectorFactory factory) {
+      this.factory = factory;
       return this;
     }
 
@@ -374,15 +358,23 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         channel = java.nio.channels.DatagramChannel.open();
       }
 
-      if (provider == null) {
+      if (selector == null) {
         if (service == null) {
-          provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
+          selector = PathSelectorFixed.create();
         } else {
-          provider = PathProviderWithRefresh.create(service, PathPolicy.DEFAULT);
+          selector = PathSelectorFactory.Default.instance().createPathSelector(service);
         }
       }
 
-      return new ScionDatagramChannel(service, channel, provider);
+      if (factory == null) {
+        if (service == null) {
+          factory = PathSelectorFactory.Fixed.instance();
+        } else {
+          factory = PathSelectorFactory.Default.instance();
+        }
+      }
+
+      return new ScionDatagramChannel(service, channel, selector, factory);
     }
   }
 }

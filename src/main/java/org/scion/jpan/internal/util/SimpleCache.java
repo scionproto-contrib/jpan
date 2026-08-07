@@ -16,6 +16,7 @@ package org.scion.jpan.internal.util;
 
 import java.util.HashMap;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 
 /**
  * A simple cache that min/max watermark. Once max watermark is reached, the cache removes entries
@@ -80,6 +81,10 @@ public class SimpleCache<K, V> {
 
   public int getCapacity() {
     return capacity;
+  }
+
+  public void forEach(BiConsumer<? super K, ? super V> action) {
+    lookupMap.forEach((k, e) -> action.accept(k, e.value));
   }
 
   private void checkCapacity(int spare) {
