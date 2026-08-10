@@ -87,6 +87,37 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   /**
+   * Get the path policy.
+   *
+   * @return the current path policy
+   * @deprecated Please use getPathSelector().getPathPolicy() instead.
+   */
+  @Deprecated // TODO remove in 0.8.0
+  public PathPolicy getPathPolicy() {
+    synchronized (stateLock) {
+      return this.pathSelectorForConnect.getPathPolicy();
+    }
+  }
+
+  /**
+   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
+   * channel is connected, this method will request a new path using the new policy.
+   *
+   * <p>After initially setting the path policy, it is used to request a new path during write() and
+   * send() whenever a path turns out to be close to expiration.
+   *
+   * @param pathPolicy the new path policy
+   * @see PathPolicy#DEFAULT
+   * @deprecated Please use getPathSelector().setPathPolicy() instead.
+   */
+  @Deprecated // TODO remove in 0.8.0
+  public void setPathPolicy(PathPolicy pathPolicy) {
+    synchronized (stateLock) {
+      this.pathSelectorForConnect.setPathPolicy(pathPolicy);
+    }
+  }
+
+  /**
    * Returns the PathSelector used for {@link #connect(SocketAddress)};
    *
    * @return the path selector

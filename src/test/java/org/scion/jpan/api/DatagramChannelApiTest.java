@@ -592,6 +592,23 @@ class DatagramChannelApiTest {
   }
 
   @Test
+  void getMappedPath() throws IOException {
+    Path path = PackageVisibilityHelper.createMockRequestPath(null);
+    ByteBuffer buffer = ByteBuffer.allocate(50);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      assertNull(channel.getMappedPath(dummyAddress));
+
+      // send(path) should NOT add a mapped path
+      channel.send(buffer, path);
+      assertNull(channel.getMappedPath(dummyAddress));
+
+      // send should add a mapped path
+      channel.send(buffer, dummyAddress);
+      assertNotNull(channel.getMappedPath(dummyAddress));
+    }
+  }
+
+  @Test
   void testBug_doubleSendCausesNPE() throws IOException {
     try (ScionDatagramChannel server = ScionDatagramChannel.open()) {
       server.bind(dummyAddress);

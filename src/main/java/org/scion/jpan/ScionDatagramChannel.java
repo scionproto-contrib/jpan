@@ -280,9 +280,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
    *
    * @param address A destination address
    * @return The mapped path or the path itself if no mapping is available.
-   * @deprecated To be removed in 0.8.0
    */
-  @Deprecated // remove in 0.8.0
   public Path getMappedPath(InetSocketAddress address) {
     synchronized (stateLock()) {
       PathSelector pp = resolvedDestinations.get(address);

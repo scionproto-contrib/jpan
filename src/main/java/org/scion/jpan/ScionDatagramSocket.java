@@ -319,6 +319,7 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     checkBlockingMode();
 
     // We synchronize on the packet because that is what the Java socket does.
+    // It protects us from race conditions while accessing the packet.
     synchronized (packet) {
       ByteBuffer receiveBuffer =
           ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
@@ -597,6 +598,33 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
    */
   public synchronized ScionService getService() {
     return channel.getService();
+  }
+
+  /**
+   * Get the path policy.
+   *
+   * @return the current path policy
+   * @deprecated Please use getPathSelector().getPathPolicy() instead.
+   */
+  @Deprecated // TODO remove in 0.8.0
+  public synchronized PathPolicy getPathPolicy() {
+    return this.channel.getPathPolicy();
+  }
+
+  /**
+   * Set the path policy. The default path policy is set in {@link PathPolicy#DEFAULT}. If the
+   * channel is connected, this method will request a new path using the new policy.
+   *
+   * <p>After initially setting the path policy, it is used to request a new path during write() and
+   * send() whenever a path turns out to be close to expiration.
+   *
+   * @param pathPolicy the new path policy
+   * @see PathPolicy#DEFAULT
+   * @deprecated Please use getPathSelector().setPathPolicy() instead.
+   */
+  @Deprecated // TODO remove in 0.8.0
+  public synchronized void setPathPolicy(PathPolicy pathPolicy) {
+    this.channel.setPathPolicy(pathPolicy);
   }
 
   /**

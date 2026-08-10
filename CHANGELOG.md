@@ -173,8 +173,20 @@ TODO
 
 ### Added
 
-- PathSelector API
+- PathSelector API.
+  **BREAKING CHANGE**: `send(Path)` will not refresh expired paths anymore
+  (it did that despite the javadoc saying otherwise).
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
+  [#276](https://github.com/scionproto-contrib/jpan/pull/276)
+## TODO
+
+- Turn Factory into Interface? -> UDP SelectorFactory?
+- Is PathSelectorFixed at all useful for send(InetAddress)?
+  Should we throw an error instead if service is null??!?!!!!
+
+- SimpleCache closeable
+- DatagramPacket -> Scion
+
 
 ### Fixed
 
