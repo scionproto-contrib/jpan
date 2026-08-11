@@ -95,7 +95,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   @Deprecated // TODO remove in 0.8.0
   public PathPolicy getPathPolicy() {
     synchronized (stateLock) {
-      return this.pathSelectorForConnect.getPathPolicy();
+      return getPathSelector().getPathPolicy();
     }
   }
 
@@ -113,7 +113,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   @Deprecated // TODO remove in 0.8.0
   public void setPathPolicy(PathPolicy pathPolicy) {
     synchronized (stateLock) {
-      this.pathSelectorForConnect.setPathPolicy(pathPolicy);
+      getPathSelector().setPathPolicy(pathPolicy);
     }
   }
 

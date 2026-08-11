@@ -403,7 +403,18 @@ class DatagramChannelApiTest {
   }
 
   @Test
-  void setPathPolicy_filterReturnsEmptyList() throws IOException {
+  void deprecated_getPathPolicy() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      assertEquals(PathPolicy.DEFAULT, channel.getPathPolicy());
+      assertEquals(PathPolicy.MIN_HOPS, channel.getPathPolicy());
+      channel.setPathPolicy(PathPolicy.MAX_BANDWIDTH);
+      assertEquals(PathPolicy.MAX_BANDWIDTH, channel.getPathPolicy());
+      // TODO test that path policy is actually used
+    }
+  }
+
+  @Test
+  void deprecated_setPathPolicy_filterReturnsEmptyList() throws IOException {
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       List<Path> paths = channel.getService().lookupPaths(dummyAddress);
 
@@ -411,8 +422,26 @@ class DatagramChannelApiTest {
       channel.connect(paths.get(0));
 
       PathPolicy empty = paths1 -> Collections.emptyList();
-      channel.getPathSelector().setPathPolicy(empty);
+      // We expect an exception because there is no path available.
+      channel.setPathPolicy(empty);
+      channel.getPathSelector().refresh();
       assertNull(channel.getConnectionPath());
+    }
+  }
+
+  @Test
+  void setPathPolicy_filterReturnsEmptyList() throws IOException {
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      List<Path> paths = channel.getService().lookupPaths(dummyAddress);
+
+      // Create expired path
+      channel.connect(paths.get(0).getRemoteSocketAddress());
+
+      PathPolicy empty = paths1 -> Collections.emptyList();
+      channel.getPathSelector().setPathPolicy(empty);
+      channel.getPathSelector().refresh();
+      assertNull(channel.getConnectionPath());
+      assertEquals(empty, channel.getPathSelector().getPathPolicy());
     }
   }
 
@@ -466,7 +495,7 @@ class DatagramChannelApiTest {
     ByteBuffer buffer = ByteBuffer.allocate(100_000);
     buffer.limit(buffer.capacity());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      channel.connect(path);
+      channel.connect(path.getRemoteSocketAddress());
       Exception ex = assertThrows(IOException.class, () -> channel.write(buffer));
       String msg = ex.getMessage();
       // Linux vs Windows(?)
@@ -577,7 +606,7 @@ class DatagramChannelApiTest {
       assertNull(channel.getConnectionPath());
 
       // connect should set a path
-      channel.connect(path);
+      channel.connect(path.getRemoteSocketAddress());
       assertNotNull(channel.getConnectionPath());
       channel.disconnect();
       assertNull(channel.getConnectionPath());
