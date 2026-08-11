@@ -38,7 +38,7 @@ import org.scion.jpan.testutil.MockNetwork2;
 class DatagramChannelApiServerTest {
 
   @AfterEach
-  void afterEach() throws IOException {
+  void afterEach() {
     MockDaemon.closeDefault();
     MockDNS.clear();
     ScionService.closeDefault();
@@ -103,25 +103,50 @@ class DatagramChannelApiServerTest {
   }
 
   @Test
-  void send_withNullService() throws IOException {
+  void send_Path_withNullService() throws IOException {
     // check that send(Path) does not internally require a ScionService.
     ScionService.closeDefault();
     try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
       channel.bind(new InetSocketAddress("127.0.0.1", 12345));
       assertNull(channel.getService());
-      ResponsePath path =
-          PackageVisibilityHelper.createDummyResponsePath(
-              new byte[0],
-              1,
-              new byte[4],
-              1,
-              1,
-              new byte[4],
-              1,
-              new InetSocketAddress("127.0.0.1", 1));
+      ResponsePath path = getDummyResponsePath();
       channel.send(ByteBuffer.allocate(0), path);
       assertNull(channel.getService());
     }
+  }
+
+  @Test
+  void send_SSA_withNullService() throws IOException {
+    // check that send(ScionSocketAddress) does not internally require a ScionService.
+    ScionService.closeDefault();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
+      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
+      assertNull(channel.getService());
+      ResponsePath path = getDummyResponsePath();
+      channel.send(ByteBuffer.allocate(0), path.getRemoteSocketAddress());
+      assertNull(channel.getService());
+    }
+  }
+
+  @Test
+  void send_ISA_withNullService() throws IOException {
+    // check that send(InetSocketAddress) fails properly if no ScionService is available.
+    ScionService.closeDefault();
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null)) {
+      channel.bind(new InetSocketAddress("127.0.0.1", 12345));
+      assertNull(channel.getService());
+      ByteBuffer bb = ByteBuffer.allocate(0);
+      InetSocketAddress dst = new InetSocketAddress("127.0.0.1", 1);
+      ScionRuntimeException e =
+          assertThrows(ScionRuntimeException.class, () -> channel.send(bb, dst));
+      assertTrue(e.getMessage().contains("ScionService required"));
+      assertNull(channel.getService());
+    }
+  }
+
+  private ResponsePath getDummyResponsePath() {
+    return PackageVisibilityHelper.createDummyResponsePath(
+        new byte[0], 1, new byte[4], 1, 1, new byte[4], 1, new InetSocketAddress("127.0.0.1", 1));
   }
 
   @Test

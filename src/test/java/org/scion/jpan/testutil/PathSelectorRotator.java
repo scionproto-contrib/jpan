@@ -20,7 +20,7 @@ import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 
 /**
- * The PathSelectorRotator is a simple provider that operates on a fixed list of paths.
+ * The PathSelectorRotator is a simple selector that operates on a fixed list of paths.
  *
  * @see PathSelector
  */
@@ -119,7 +119,7 @@ public class PathSelectorRotator implements PathSelector {
   @Override
   public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
+      throw new IllegalStateException("Path selector is already connected");
     }
     if (this.dstAddress != remote) {
       throw new IllegalArgumentException(this.dstAddress + " != " + remote);

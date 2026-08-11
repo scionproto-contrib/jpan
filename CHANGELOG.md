@@ -9,10 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### TODO for 0.8.0 and beyond
 
-- PathSelector: Implement MultiCachedSelector.
-  It uses internally a map of SSA->SelectorWithRefresh
-  Is used in AbstractChannel
-  -> use it for send()..?
+## TODO
+- SimpleCache closeable
+- DatagramPacket -> Scion
 
 - Remove Path from ScionSocketAddress?
   - Make Path subclass of ScionSocketAddress?
@@ -31,6 +30,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
         - Metadata is already optional.... 
   - RESULT: Try Subclass approach and see how bad it is... 
 
+- Consider Performance/Security debugging mode:
+  - Checks that Channel.send() uses resolved addresses -> log ERROR / throw Exception?
+  - Checks that Socket.send() uses ScionDatagramPacket -> log ERROR / throw Exception?
+  - Checks that SimpleCaches do not overflow -> log ERROR
+  - (Check that service!=null and packet address verification is enabled (once implemented))
+  OR: Instead of checker, create separate LegacySocket/Channel classes that support
+  unresolved addresses and DatagramPackets.
+ 
 - ScionDatagramPacket: Should be used to avoid caching and security issues in DatagramSocket.
 - STUN: check/extend auto mode: if local IP subnet is different from BR IP subnet
   then use STUN otherwise do not (check subnet mask if possible). Allow flag to override this.
@@ -173,8 +180,12 @@ TODO
 
 ### Added
 
-- PathSelector API
+- PathSelector API.
+  **BREAKING CHANGE**: `send(SocketAddress)` will not refresh expired paths anymore
+  **BREAKING CHANGE**: `send(Path)` will not refresh expired paths anymore
+  (it did that despite the javadoc saying otherwise).
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
+  [#277](https://github.com/scionproto-contrib/jpan/pull/277)
 
 ### Fixed
 

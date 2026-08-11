@@ -79,7 +79,7 @@ class PathSelectorTest {
   @ParameterizedTest
   @EnumSource(Implementation.class)
   void connect_noPath(Implementation impl) throws IOException {
-    // Test that the provider does not loop when no path is found.
+    // Test that the selector does not loop when no path is found.
     pp = create(impl);
 
     List<Path> paths = Scion.defaultService().lookupPaths(dummyAddress);

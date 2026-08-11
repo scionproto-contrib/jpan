@@ -35,7 +35,7 @@ import org.scion.jpan.testutil.MockNetwork;
 class DatagramSocketApiServerTest {
 
   @AfterEach
-  void afterEach() throws IOException {
+  void afterEach() {
     MockDaemon.closeDefault();
     MockDNS.clear();
     ScionService.closeDefault();
@@ -123,6 +123,26 @@ class DatagramSocketApiServerTest {
 
       // Now, send it.
       socket.send(buffer);
+      assertNull(socket.getService());
+    }
+  }
+
+  @Test
+  void send_noPathCached_withNullService() throws IOException {
+    // check that send(ISA) fails properly if no ScionService is available.
+    ScionService.closeDefault();
+
+    try (ScionDatagramSocket socket = ScionDatagramSocket.newBuilder().service(null).open()) {
+      socket.bind(new InetSocketAddress("127.0.0.1", 12345));
+      assertNull(socket.getService());
+      // First, we need to receive a packet.
+      InetSocketAddress dst = new InetSocketAddress("127.0.0.1", 1);
+      DatagramPacket buffer = new DatagramPacket(new byte[1000], 1000, dst);
+
+      // Now, send it.
+      ScionRuntimeException e =
+          assertThrows(ScionRuntimeException.class, () -> socket.send(buffer));
+      assertTrue(e.getMessage().contains("ScionService required"));
       assertNull(socket.getService());
     }
   }
