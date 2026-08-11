@@ -55,17 +55,17 @@ public class PathSelectorNull implements PathSelector {
 
   @Override
   public synchronized Path getPath() {
-    throw new IllegalStateException("No PathSelector is available.");
+    throw new UnsupportedOperationException("No PathSelector is available.");
   }
 
   @Override
   public ScionSocketAddress getRemoteSocketAddress() {
-    throw new IllegalStateException("No PathSelector is available.");
+    throw new UnsupportedOperationException("No PathSelector is available.");
   }
 
   @Override
   public synchronized void connect(ScionSocketAddress remote) {
-    throw new IllegalStateException("No PathSelector is available.");
+    throw new UnsupportedOperationException("No PathSelector is available.");
   }
 
   @Override
@@ -92,7 +92,7 @@ public class PathSelectorNull implements PathSelector {
 
     @Override
     public PathSelector createPathSelector(ScionService service) {
-      throw new IllegalStateException("No PathSelectorFactory is available.");
+      throw new UnsupportedOperationException("No PathSelectorFactory is available.");
     }
   }
 }
