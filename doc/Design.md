@@ -112,7 +112,7 @@ There are several reasons for this:
 
 PathSelectors can be costly, e.g. when they are frequently polling for low latency.
 It makes sense if such information could be shared between multiple channels.
-Since PathSelectors are customizable, a sharing provider could always be implemented later.
+Since PathSelectors are customizable, a sharing selector could always be implemented later.
 
 ```java
 interface PathSelector<K> {

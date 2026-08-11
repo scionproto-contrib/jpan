@@ -145,7 +145,7 @@ class PathSelectorWithRefreshTest {
 
   @Test
   void connect_noPath() {
-    // Test that the provider does not loop when no path is found.
+    // Test that the selector does not loop when no path is found.
     ScionService service = Scion.defaultService();
     pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
@@ -182,7 +182,7 @@ class PathSelectorWithRefreshTest {
 
   @Test
   void setPathPolicy_countRefresh() {
-    // Test that the provider does not loop when no path is found.
+    // Test that the selector does not loop when no path is found.
     ScionService service = Scion.defaultService();
     pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 

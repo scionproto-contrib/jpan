@@ -28,7 +28,6 @@ import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
-import org.scion.jpan.selectors.PathSelectorFixed;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
@@ -149,6 +148,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     }
 
     InetSocketAddress dst = (InetSocketAddress) destination;
+    if (getService() == null) {
+      throw new ScionRuntimeException("ScionService required to resolve address: " + dst);
+    }
     Path path;
     synchronized (stateLock()) {
       PathSelector pathSelector = resolvedDestinations.get(dst);
@@ -356,20 +358,12 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         channel = java.nio.channels.DatagramChannel.open();
       }
 
-      if (selector == null) {
-        if (service == null) {
-          selector = PathSelectorFixed.create();
-        } else {
-          selector = PathSelectorFactory.Default.instance().createPathSelector(service);
-        }
+      if (selector == null && service != null) {
+        selector = PathSelectorFactory.Default.instance().createPathSelector(service);
       }
 
-      if (factory == null) {
-        if (service == null) {
-          factory = PathSelectorFactory.Fixed.instance();
-        } else {
-          factory = PathSelectorFactory.Default.instance();
-        }
+      if (factory == null && service != null) {
+        factory = PathSelectorFactory.Default.instance();
       }
 
       return new ScionDatagramChannel(service, channel, selector, factory);

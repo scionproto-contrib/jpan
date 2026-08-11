@@ -116,7 +116,7 @@ public class PathSelectorFixed implements PathSelector {
   @Override
   public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
+      throw new IllegalStateException("Path selector is already connected");
     }
     this.dstAddress = remote;
 

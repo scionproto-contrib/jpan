@@ -334,7 +334,7 @@ public class PathSelectorWithRefresh implements PathSelector {
   }
 
   /**
-   * Initialize the PathSelector and start providing paths. The path provider will (in this call)
+   * Initialize the PathSelector and start providing paths. The path selector will (in this call)
    * request a set of path from the path service. Later, new paths will be requested automatically
    * if a path is expired or about to expire or if the path is reported faulty.
    *
@@ -344,7 +344,7 @@ public class PathSelectorWithRefresh implements PathSelector {
   @Override
   public synchronized void connect(ScionSocketAddress remote) {
     if (isConnected()) {
-      throw new IllegalStateException("Path provider is already connected");
+      throw new IllegalStateException("Path selector is already connected");
     }
     this.dstAddress = remote;
 
@@ -383,8 +383,7 @@ public class PathSelectorWithRefresh implements PathSelector {
     return this.dstAddress != null;
   }
 
-  // TODO make package private
-  public static int getQueueSize() {
+  static int getQueueSize() {
     return timer.getQueue().size();
   }
 }

@@ -51,7 +51,7 @@ public interface PathSelector {
   void setPathPolicy(PathPolicy pathPolicy);
 
   /**
-   * Initialize the PathSelector with a destination address. The path provider may (in this call)
+   * Initialize the PathSelector with a destination address. The path selector may (in this call)
    * request a new set of path if it has not valid paths.
    *
    * @throws IllegalStateException if the PathSelector is already connected
@@ -64,7 +64,7 @@ public interface PathSelector {
    */
   void refresh();
 
-  /** Stop the path provider. */
+  /** Stop the path selector. */
   void disconnect();
 
   void setExpirationSafetyMargin(int cfgExpirationSafetyMargin);

@@ -77,10 +77,10 @@ public final class Constants {
   /** Time (in seconds) before expiration at which a paths is automatically renewed. */
   public static final int DEFAULT_PATH_EXPIRY_MARGIN = 10;
 
-  /** The path provider will check regularly for new path using this interval (in seconds). */
+  /** The PathSelector will check regularly for new path using this interval (in seconds). */
   public static final String PROPERTY_PATH_POLLING_INTERVAL_SEC = "org.scion.pathPollIntervalSec";
 
-  /** The path provider will check regularly for new path using this interval (in seconds). */
+  /** The PathSelector will check regularly for new path using this interval (in seconds). */
   public static final String ENV_PATH_POLLING_INTERVAL_SEC = "SCION_PATH_POLL_INTERVAL_SEC";
 
   /** Interval (in seconds) between polling request for new or updated paths. */

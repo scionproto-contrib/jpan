@@ -56,7 +56,7 @@ class PathSelectorFixedTest {
 
   @Test
   void connect_noPath() throws IOException {
-    // Test that the provider does not loop when no path is found.
+    // Test that the selector does not loop when no path is found.
     pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
@@ -72,7 +72,7 @@ class PathSelectorFixedTest {
 
   @Test
   void setPathPolicy_failsIfNoPath() throws IOException {
-    // Test that the provider does not loop when no path is found.
+    // Test that the selector does not loop when no path is found.
     pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
