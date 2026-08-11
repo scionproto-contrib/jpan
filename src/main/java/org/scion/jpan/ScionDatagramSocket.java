@@ -137,6 +137,12 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
     return (InetSocketAddress) address;
   }
 
+  private static void checkPath(Path path) {
+    if (path == null) {
+      throw new IllegalArgumentException("Path must not be null");
+    }
+  }
+
   private static void checkAddress(InetAddress address) {
     if (address == null) {
       throw new IllegalArgumentException("Address must not be null");
@@ -342,6 +348,70 @@ public class ScionDatagramSocket extends java.net.DatagramSocket {
       packet.setLength(receiveBuffer.limit());
       packet.setAddress(path.getRemoteAddress());
       packet.setPort(path.getRemotePort());
+    }
+  }
+
+  /**
+   * Send a packet.
+   *
+   * @param packet the packet
+   * @throws IllegalArgumentException if the packet has a path, the socket is connected, the
+   *     packet's remote address does not match the connected address (ISD/AS + IP + port). The path
+   *     itself is allowed to differ.
+   * @throws IOException in case something goes wrong.
+   * @see DatagramSocket#send(DatagramPacket)
+   * @see ScionDatagramChannel#send(ByteBuffer, Path)
+   */
+  public void send(ScionDatagramPacket packet) throws IOException {
+    checkOpen();
+    checkBlockingMode();
+
+    // Synchronize on packet because this is what the Java DatagramSocket does.
+    synchronized (packet) {
+      // TODO synchronize also on writeLock()!
+      Path path;
+      if (isConnected()) {
+        if (packet.getSocketAddress() != null
+            && !channel.getRemoteAddress().equals(packet.getSocketAddress())) {
+          throw new IllegalArgumentException("Packet address does not match connected address");
+        }
+        path = channel.getConnectedPathOrThrow();
+      } else {
+        // Address must not be null
+        checkPath(packet.getPath());
+        path = packet.getPath();
+      }
+
+      ByteBuffer buf = ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+      channel.send(buf, path);
+    }
+  }
+
+  /**
+   * Receive a packet.
+   *
+   * @param packet the packet
+   * @throws IOException in case something went wrong
+   * @see DatagramSocket#receive(DatagramPacket)
+   * @see ScionDatagramChannel#receive(ByteBuffer)
+   */
+  public synchronized void receive(ScionDatagramPacket packet) throws IOException {
+    checkOpen();
+    checkBlockingMode();
+
+    // We synchronize on the packet because that is what the Java socket does.
+    // It protects us from race conditions while accessing the packet.
+    synchronized (packet) {
+      ByteBuffer receiveBuffer =
+          ByteBuffer.wrap(packet.getData(), packet.getOffset(), packet.getLength());
+      ScionSocketAddress responseAddress = channel.receive(receiveBuffer);
+      if (responseAddress == null) {
+        // timeout occurred
+        throw new SocketTimeoutException();
+      }
+      receiveBuffer.flip();
+      packet.setLength(receiveBuffer.limit());
+      packet.setPath(responseAddress.getPath());
     }
   }
 

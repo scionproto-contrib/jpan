@@ -186,6 +186,8 @@ TODO
   (it did that despite the javadoc saying otherwise).
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
   [#277](https://github.com/scionproto-contrib/jpan/pull/277)
+- Added ScionDatagram packet
+  [#278](https://github.com/scionproto-contrib/jpan/pull/278)
 
 ### Fixed
 
