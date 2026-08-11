@@ -50,6 +50,7 @@ class PathSelectorNullTest {
     Path path = PackageVisibilityHelper.createDummyPath();
     ScionSocketAddress addr = path.getRemoteSocketAddress();
     assertThrows(UnsupportedOperationException.class, () -> pp.connect(addr));
+    assertFalse(pp.isConnected());
   }
 
   @Test
@@ -65,6 +66,9 @@ class PathSelectorNullTest {
   @Test
   void getPath_fails() {
     pp = PathSelectorNull.instance();
+    assertThrows(UnsupportedOperationException.class, () -> pp.getPath());
+    pp.refresh();
+    pp.setExpirationSafetyMargin(1);
     assertThrows(UnsupportedOperationException.class, () -> pp.getPath());
   }
 
