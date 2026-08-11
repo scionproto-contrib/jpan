@@ -117,22 +117,15 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   }
 
   /**
-   * Attempts to send the content of the buffer to the destinationAddress.
+   * Attempts to send the content of the buffer to the destination Address.
    *
    * <p>If the `destination` is of type {@link InetSocketAddress}, a path lookup is performed.<br>
    * Otherwise, if the `destination` is of type {@link ScionSocketAddress}, the contained path is
-   * used directly.
-   *
-   * <p>When a path expires, it will be automatically refreshed. This behavior can be controlled
-   * with path policies. For example, {@link PathPolicy.SameLink} can be used to ensure that any
-   * refreshed path uses the exactly same links as a previously defined reference path.
-   *
-   * <p>Also, a path can only be refreshed if it was acquired via the ScionService. Paths that stem
-   * from {@link #receive(ByteBuffer)} cannot be refreshed.
+   * used directly. Path expiration is *not* checked.
    *
    * @param srcBuffer Data to send
-   * @param destination Destination address. This should contain a host name known to the DNS so
-   *     that the ISD/AS information can be retrieved.
+   * @param destination Destination address. If this is not a ScionSocketAddress, this should
+   *     contain a host name known to the DNS so that the ISD/AS information can be retrieved.
    * @return The number of bytes sent, see {@link java.nio.channels.DatagramChannel#send(ByteBuffer,
    *     SocketAddress)}.
    * @throws IOException if an error occurs, e.g. if the destinationAddress is an IP address that

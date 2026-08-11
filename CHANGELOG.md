@@ -181,6 +181,7 @@ TODO
 ### Added
 
 - PathSelector API.
+  **BREAKING CHANGE**: `send(SocketAddress)` will not refresh expired paths anymore
   **BREAKING CHANGE**: `send(Path)` will not refresh expired paths anymore
   (it did that despite the javadoc saying otherwise).
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
