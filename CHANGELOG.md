@@ -188,6 +188,9 @@ TODO
   [#277](https://github.com/scionproto-contrib/jpan/pull/277)
 - Added ScionDatagram packet
   [#278](https://github.com/scionproto-contrib/jpan/pull/278)
+TODO
+- remove MockDNS from test
+- remove any lookup from test
 
 ### Fixed
 
