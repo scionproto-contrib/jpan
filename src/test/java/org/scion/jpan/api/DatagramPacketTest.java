@@ -14,12 +14,15 @@
 
 package org.scion.jpan.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.net.InetSocketAddress;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramPacket;
+import org.scion.jpan.internal.util.IPHelper;
 
 /** Test usage of ScionDatagramPacket. */
 class DatagramPacketTest {
@@ -59,5 +62,41 @@ class DatagramPacketTest {
     assertThrows(IllegalArgumentException.class, () -> sdp.setData(new byte[3], 4, 2));
     assertThrows(IllegalArgumentException.class, () -> sdp.setData(new byte[3], -1, 2));
     assertThrows(IllegalArgumentException.class, () -> sdp.setData(new byte[3], 3, 2));
+  }
+
+  @Test
+  void setData() {
+    Path path = PackageVisibilityHelper.createDummyPath();
+    ScionDatagramPacket sdp = new ScionDatagramPacket(new byte[10], 3, 7, path);
+    assertEquals(7, sdp.getLength());
+    assertEquals(3, sdp.getOffset());
+    assertEquals(10, sdp.getData().length);
+
+    sdp.setData(new byte[42]);
+    assertEquals(42, sdp.getLength());
+    assertEquals(0, sdp.getOffset());
+    assertEquals(42, sdp.getData().length);
+
+    sdp.setData(new byte[45], 5, 17);
+    assertEquals(17, sdp.getLength());
+    assertEquals(5, sdp.getOffset());
+    assertEquals(45, sdp.getData().length);
+  }
+
+  @Test
+  void setPath() {
+    InetSocketAddress addr1 = IPHelper.toInetSocketAddress("192.168.1.1:11111");
+    InetSocketAddress addr2 = IPHelper.toInetSocketAddress("192.168.2.2:22222");
+    Path path1 = PackageVisibilityHelper.createDummyPath(addr1);
+    Path path2 = PackageVisibilityHelper.createDummyPath(addr2);
+    ScionDatagramPacket sdp = new ScionDatagramPacket(new byte[10], 3, 7, path1);
+    assertEquals(path1, sdp.getPath());
+    assertEquals(addr1.getAddress(), sdp.getAddress());
+    assertEquals(11111, sdp.getPort());
+
+    sdp.setPath(path2);
+    assertEquals(path2, sdp.getPath());
+    assertEquals(addr2.getAddress(), sdp.getAddress());
+    assertEquals(22222, sdp.getPort());
   }
 }

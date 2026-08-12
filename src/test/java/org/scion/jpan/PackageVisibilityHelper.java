@@ -78,16 +78,21 @@ public class PackageVisibilityHelper {
   }
 
   public static RequestPath createDummyPath() {
-    return createDummyPath(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
-  }
-
-  public static RequestPath createDummyPath(InetSocketAddress dstAddr) {
     try {
       InetAddress dstIP = InetAddress.getByAddress(ExamplePacket.SRC_HOST);
-      return createDummyPath(0, 0, dstIP, 55555, new byte[0], dstAddr);
+      return createDummyPath(dstIP, 55555);
     } catch (UnknownHostException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  public static RequestPath createDummyPath(InetSocketAddress dstAddr) {
+    return createDummyPath(dstAddr.getAddress(), dstAddr.getPort());
+  }
+
+  public static RequestPath createDummyPath(InetAddress dstIP, int dstPort) {
+    InetSocketAddress firstHop = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    return createDummyPath(0, 0, dstIP, dstPort, new byte[0], firstHop);
   }
 
   public static RequestPath createDummyPath(
