@@ -18,9 +18,9 @@ import java.util.*;
 import org.scion.jpan.*;
 
 /**
- * The PathSelectorFixed does (almost) nothing. It will provide a path when connect(path) is called.
- * It will also verify the path against the path policy. It will not check for expiration or poll
- * for new path. If a path is reported faulty, it will remove it.
+ * The PathSelectorFixed does (almost) nothing. It will provide a path when open() is called. It
+ * will also verify the path against the path policy. It will not check for expiration or poll for
+ * new path. If a path is reported faulty, it will remove it.
  *
  * @see PathSelector
  */
@@ -85,7 +85,7 @@ public class PathSelectorFixed implements PathSelector {
   @Override
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
-    if (isConnected()) {
+    if (isOpen()) {
       checkPathPolicy();
     }
   }
@@ -110,13 +110,13 @@ public class PathSelectorFixed implements PathSelector {
   /**
    * Initialize the PathSelector with the path associated with the ScionSocketAddress.
    *
-   * @throws IllegalStateException if the PathSelector is already connected
-   * @see PathSelector#connect(ScionSocketAddress)
+   * @throws IllegalStateException if the PathSelector is already running
+   * @see PathSelector#open(ScionSocketAddress)
    */
   @Override
-  public synchronized void connect(ScionSocketAddress remote) {
-    if (isConnected()) {
-      throw new IllegalStateException("Path selector is already connected");
+  public synchronized void open(ScionSocketAddress remote) {
+    if (isOpen()) {
+      throw new IllegalStateException("Path selector is already running");
     }
     this.dstAddress = remote;
 
@@ -126,7 +126,7 @@ public class PathSelectorFixed implements PathSelector {
   }
 
   @Override
-  public synchronized void disconnect() {
+  public synchronized void close() {
     this.dstAddress = null;
   }
 
@@ -135,7 +135,8 @@ public class PathSelectorFixed implements PathSelector {
     // N/A
   }
 
-  public boolean isConnected() {
+  @Override
+  public boolean isOpen() {
     return this.dstAddress != null;
   }
 }

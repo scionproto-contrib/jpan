@@ -36,7 +36,7 @@ class PathSelectorNullTest {
   @AfterEach
   void afterEach() {
     if (pp != null) {
-      pp.disconnect();
+      pp.close();
       pp = null;
     }
     MockNetwork.stopTiny();
@@ -49,8 +49,8 @@ class PathSelectorNullTest {
     // Create expired path to trigger PathSelector
     Path path = PackageVisibilityHelper.createDummyPath();
     ScionSocketAddress addr = path.getRemoteSocketAddress();
-    assertThrows(UnsupportedOperationException.class, () -> pp.connect(addr));
-    assertFalse(pp.isConnected());
+    assertThrows(UnsupportedOperationException.class, () -> pp.open(addr));
+    assertFalse(pp.isOpen());
   }
 
   @Test

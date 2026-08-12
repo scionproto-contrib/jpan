@@ -64,12 +64,12 @@ public class PathSelectorNull implements PathSelector {
   }
 
   @Override
-  public synchronized void connect(ScionSocketAddress remote) {
+  public synchronized void open(ScionSocketAddress remote) {
     throw new UnsupportedOperationException("No PathSelector is available.");
   }
 
   @Override
-  public synchronized void disconnect() {
+  public synchronized void close() {
     // Nothing.
   }
 
@@ -78,7 +78,8 @@ public class PathSelectorNull implements PathSelector {
     // Nothing.
   }
 
-  public boolean isConnected() {
+  @Override
+  public boolean isOpen() {
     return false;
   }
 

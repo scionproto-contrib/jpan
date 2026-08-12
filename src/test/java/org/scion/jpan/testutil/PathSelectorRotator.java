@@ -29,7 +29,7 @@ public class PathSelectorRotator implements PathSelector {
   private PathPolicy pathPolicy = paths -> paths;
   private final ScionSocketAddress dstAddress;
   private List<Path> usedPaths = new ArrayList<>();
-  private boolean isConnected = false;
+  private boolean isOpen = false;
 
   public static PathSelectorRotator create(List<Path> paths) {
     return new PathSelectorRotator(paths);
@@ -88,7 +88,7 @@ public class PathSelectorRotator implements PathSelector {
   @Override
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
-    if (isConnected()) {
+    if (isOpen()) {
       checkPathPolicy();
     }
   }
@@ -117,8 +117,8 @@ public class PathSelectorRotator implements PathSelector {
   }
 
   @Override
-  public synchronized void connect(ScionSocketAddress remote) {
-    if (isConnected()) {
+  public synchronized void open(ScionSocketAddress remote) {
+    if (isOpen()) {
       throw new IllegalStateException("Path selector is already connected");
     }
     if (this.dstAddress != remote) {
@@ -126,12 +126,12 @@ public class PathSelectorRotator implements PathSelector {
     }
 
     checkPathPolicy();
-    isConnected = true;
+    isOpen = true;
   }
 
   @Override
-  public synchronized void disconnect() {
-    isConnected = false;
+  public synchronized void close() {
+    isOpen = false;
   }
 
   @Override
@@ -139,8 +139,9 @@ public class PathSelectorRotator implements PathSelector {
     // N/A
   }
 
-  public synchronized boolean isConnected() {
-    return isConnected;
+  @Override
+  public synchronized boolean isOpen() {
+    return isOpen;
   }
 
   private void getNextPath() {

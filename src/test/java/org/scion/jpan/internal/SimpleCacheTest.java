@@ -16,6 +16,7 @@ package org.scion.jpan.internal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -114,5 +115,71 @@ class SimpleCacheTest {
     assertThrows(IllegalArgumentException.class, () -> cache.setCapacity(0));
 
     assertThrows(IllegalArgumentException.class, () -> new SimpleCache<>(0));
+  }
+
+  @Test
+  void testClose() {
+    ArrayList<AbstractEntry> list = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      list.add(new CloseableEntry(i));
+    }
+
+    testCloseOnRemove(list);
+  }
+
+  @Test
+  void testAutoclose() {
+    ArrayList<AbstractEntry> list = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      list.add(new AutoCloseableEntry(i));
+    }
+    testCloseOnRemove(list);
+  }
+
+  private static class AbstractEntry {
+    int id;
+    boolean isClosed = false;
+
+    AbstractEntry(int id) {
+      this.id = id;
+    }
+
+    public void close() {
+      isClosed = true;
+    }
+  }
+
+  private static class CloseableEntry extends AbstractEntry implements Closeable {
+    CloseableEntry(int id) {
+      super(id);
+    }
+  }
+
+  private static class AutoCloseableEntry extends AbstractEntry implements AutoCloseable {
+    AutoCloseableEntry(int id) {
+      super(id);
+    }
+  }
+
+  private void testCloseOnRemove(List<AbstractEntry> list) {
+    SimpleCache<Integer, AbstractEntry> sc1 = new SimpleCache<>(5, false);
+    for (AbstractEntry e : list) {
+      sc1.put(e.id, e);
+    }
+    for (AbstractEntry abstractEntry : list) {
+      assertFalse(abstractEntry.isClosed);
+    }
+
+    SimpleCache<Integer, AbstractEntry> sc2 = new SimpleCache<>(5, true);
+    for (AbstractEntry e : list) {
+      sc2.put(e.id, e);
+    }
+    for (int i = 0; i < list.size(); i++) {
+      if (i < list.size() / 2) {
+        assertTrue(list.get(i).isClosed);
+      } else {
+        assertFalse(list.get(i).isClosed);
+      }
+    }
   }
 }
