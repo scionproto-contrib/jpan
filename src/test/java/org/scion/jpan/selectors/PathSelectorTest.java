@@ -102,7 +102,7 @@ class PathSelectorTest {
     ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
     pp.open(remote);
     Exception e = assertThrows(IllegalStateException.class, () -> pp.open(remote));
-    assertTrue(e.getMessage().contains("already connected"));
+    assertTrue(e.getMessage().contains("already running"));
   }
 
   @ParameterizedTest
