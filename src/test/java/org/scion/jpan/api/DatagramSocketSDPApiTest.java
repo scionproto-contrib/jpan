@@ -37,20 +37,21 @@ import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
-import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.PingPongSocketHelper;
-import org.scion.jpan.testutil.TestUtil;
 
-/** Test usage of ScionDatagramPacket. */
+/**
+ * Test usage of ScionDatagramChannel with ScionDatagramPacket and with pure ScionSocketAddress
+ * access.
+ */
 class DatagramSocketSDPApiTest {
 
   private static final Inet4Address ipV4Any;
   private static final Inet6Address ipV6Any;
   private static final int DUMMY_PORT = 44444;
   private static final InetAddress dummyIPv4;
-  private static final InetSocketAddress dummyAddress;
+  private static final ScionSocketAddress dummyAddress;
   private static final Path dummyPath;
   private static final ScionDatagramPacket dummyPacket;
 
@@ -61,8 +62,9 @@ class DatagramSocketSDPApiTest {
           (Inet6Address)
               InetAddress.getByAddress(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
       dummyIPv4 = IPHelper.toInetAddress("dummyHostV4", "127.0.0.1");
-      dummyAddress = new InetSocketAddress(dummyIPv4, DUMMY_PORT);
-      dummyPath = PackageVisibilityHelper.createDummyPath();
+      InetSocketAddress inetAddress = new InetSocketAddress(dummyIPv4, DUMMY_PORT);
+      dummyPath = PackageVisibilityHelper.createDummyPath(inetAddress);
+      dummyAddress = dummyPath.getRemoteSocketAddress();
       dummyPacket = new ScionDatagramPacket(new byte[100], 100, dummyPath);
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
@@ -72,13 +74,11 @@ class DatagramSocketSDPApiTest {
   @BeforeEach
   void beforeEach() {
     MockDaemon.createAndStartDefault();
-    MockDNS.install("1-ff00:0:112", dummyIPv4);
   }
 
   @AfterEach
   void afterEach() {
     MockDaemon.closeDefault();
-    MockDNS.clear();
   }
 
   @AfterAll
@@ -159,8 +159,8 @@ class DatagramSocketSDPApiTest {
   @Test
   void receive_timeout() throws IOException {
     int timeOutMs = 50;
-    MockDNS.install("1-ff00:0:112", "localhost", "127.0.0.1");
-    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 12345);
+    InetSocketAddress inetAddress = new InetSocketAddress("127.0.0.1", 12345);
+    ScionSocketAddress address = PackageVisibilityHelper.toSSA("1-ff00:0:112", inetAddress);
     AtomicLong timeMs = new AtomicLong();
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       socket.setSoTimeout(timeOutMs);
@@ -221,9 +221,9 @@ class DatagramSocketSDPApiTest {
         new InetSocketAddress(IPHelper.toInetAddress("test-v4", "127.0.0.1"), 12345);
     InetSocketAddress address2 =
         new InetSocketAddress(IPHelper.toInetAddress("test-v4-2", "127.0.0.2"), 22345);
-    MockDNS.install("1-ff00:0:112", address.getAddress());
-    MockDNS.install("1-ff00:0:112", address2.getAddress());
-    isConnected_InetSocket(address, address2);
+    ScionSocketAddress ssAddress = PackageVisibilityHelper.toSSA("1-ff00:0:112", address);
+    ScionSocketAddress ssAddress2 = PackageVisibilityHelper.toSSA("1-ff00:0:112", address2);
+    isConnected_InetSocket(ssAddress, ssAddress2);
   }
 
   @Test
@@ -232,12 +232,12 @@ class DatagramSocketSDPApiTest {
         new InetSocketAddress(IPHelper.toInetAddress("test-v6", "::1"), 12345);
     InetSocketAddress address2 =
         new InetSocketAddress(IPHelper.toInetAddress("test-v6-2", "::2"), 22345);
-    MockDNS.install("1-ff00:0:112", address.getAddress());
-    MockDNS.install("1-ff00:0:112", address2.getAddress());
-    isConnected_InetSocket(address, address2);
+    ScionSocketAddress ssAddress = PackageVisibilityHelper.toSSA("1-ff00:0:112", address);
+    ScionSocketAddress ssAddress2 = PackageVisibilityHelper.toSSA("1-ff00:0:112", address2);
+    isConnected_InetSocket(ssAddress, ssAddress2);
   }
 
-  private void isConnected_InetSocket(InetSocketAddress address, InetSocketAddress address2)
+  private void isConnected_InetSocket(ScionSocketAddress address, ScionSocketAddress address2)
       throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertFalse(socket.isConnected());
@@ -271,18 +271,18 @@ class DatagramSocketSDPApiTest {
   @Test
   void isConnected_Path() throws IOException {
     Path path = PackageVisibilityHelper.createDummyPath();
-    InetAddress ip = path.getRemoteAddress();
-    InetSocketAddress address = new InetSocketAddress(ip, path.getRemotePort());
+    ScionSocketAddress address = path.getRemoteSocketAddress();
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertFalse(socket.isConnected());
       assertNull(socket.getRemoteSocketAddress());
-      socket.connect(path);
+      socket.connect(path.getRemoteSocketAddress());
       assertTrue(socket.isConnected());
       assertEquals(address, socket.getRemoteSocketAddress());
 
-      // try connecting again
-      // Should be AlreadyConnectedException, but Temurin throws IllegalStateException
-      assertThrows(IllegalStateException.class, () -> socket.connect(path));
+      // try connecting again - unlike channels, this does not throw any Exception but simply
+      // reconnects to the new address.
+      Path path2 = path.copy(address.getAddress(), address.getPort() + 5);
+      socket.connect(path2.getRemoteSocketAddress());
       assertTrue(socket.isConnected());
 
       // disconnect
@@ -293,7 +293,7 @@ class DatagramSocketSDPApiTest {
       assertFalse(socket.isConnected());
 
       // Connect again
-      socket.connect(path);
+      socket.connect(path.getRemoteSocketAddress());
       assertTrue(socket.isConnected());
       socket.close();
       assertFalse(socket.isConnected());
@@ -458,27 +458,6 @@ class DatagramSocketSDPApiTest {
   }
 
   @Test
-  void send_AddressResolve_hostName() throws IOException {
-    // TODO
-    try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
-      socket.disconnect();
-      socket.connect(dummyAddress);
-
-      // port mismatch
-      InetSocketAddress addr1 = new InetSocketAddress("127.0.0.1", 2);
-      Path path1 = dummyPath.copy(addr1.getAddress(), addr1.getPort());
-      ScionDatagramPacket packet1 = new ScionDatagramPacket(new byte[100], 100, path1);
-      assertThrows(IllegalArgumentException.class, () -> socket.send(packet1));
-
-      // IP mismatch
-      InetSocketAddress addr2 = new InetSocketAddress("127.0.0.2", 1);
-      Path path2 = dummyPath.copy(addr2.getAddress(), addr2.getPort());
-      ScionDatagramPacket packet2 = new ScionDatagramPacket(new byte[100], 100, path2);
-      assertThrows(IllegalArgumentException.class, () -> socket.send(packet2));
-    }
-  }
-
-  @Test
   void send_IllegalBlockingMode() throws IOException {
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertThrows(
@@ -560,13 +539,7 @@ class DatagramSocketSDPApiTest {
   void getConnectionPath() throws IOException {
     // Build fails on MacOS on internal channel.connect("::1") so we use "127.0.0.1"
     Path path = ExamplePacket.PATH_IPV4;
-    String exIP = path.getRemoteAddress().getHostAddress();
-    int exPort = path.getRemotePort();
-    InetSocketAddress address =
-        new InetSocketAddress(IPHelper.toInetAddress("getConTest", exIP), exPort);
-    Path addressPath = // TODO what about "path"?
-        Scion.defaultService().getPaths(ScionUtil.parseIA("1-ff00:0:112"), address).get(0);
-    ScionDatagramPacket packet = new ScionDatagramPacket(new byte[50], 50, addressPath);
+    ScionDatagramPacket packet = new ScionDatagramPacket(new byte[50], 50, path);
     try (ScionDatagramSocket channel = new ScionDatagramSocket()) {
       assertNull(channel.getConnectionPath());
       // send should NOT set a path
@@ -574,17 +547,10 @@ class DatagramSocketSDPApiTest {
       assertNull(channel.getConnectionPath());
 
       // connect should set a path
-      channel.connect(path);
+      channel.connect(path.getRemoteSocketAddress());
       assertNotNull(channel.getConnectionPath());
       channel.disconnect();
       assertNull(channel.getConnectionPath());
-
-      // send should NOT set a path
-      if (TestUtil.getJavaMajorVersion() >= 14) {
-        // This fails because of disconnect(), see https://bugs.openjdk.org/browse/JDK-8231880
-        channel.send(packet);
-        assertNull(channel.getConnectionPath());
-      }
     }
   }
 

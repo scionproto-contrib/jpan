@@ -21,6 +21,7 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramPacket;
 
+/** Test usage of ScionDatagramPacket. */
 class DatagramPacketTest {
 
   @Test
