@@ -78,7 +78,10 @@ public class PackageVisibilityHelper {
   }
 
   public static RequestPath createDummyPath() {
-    InetSocketAddress dstAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    return createDummyPath(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+  }
+
+  public static RequestPath createDummyPath(InetSocketAddress dstAddr) {
     try {
       InetAddress dstIP = InetAddress.getByAddress(ExamplePacket.SRC_HOST);
       return createDummyPath(0, 0, dstIP, 55555, new byte[0], dstAddr);
