@@ -131,9 +131,15 @@ public class TestUtil {
     if (address instanceof Inet6Address) {
       host = "[" + address.getHostAddress() + "]";
     } else {
-      host = address.toString().substring(1);
+      String str = address.toString();
+      int pos = str.indexOf("/");
+      host = address.toString().substring(pos + 1);
     }
     return host;
+  }
+
+  public static String toString(InetSocketAddress address) {
+    return toString(address.getAddress()) + ":" + address.getPort();
   }
 
   public static void sleep(int millis) {

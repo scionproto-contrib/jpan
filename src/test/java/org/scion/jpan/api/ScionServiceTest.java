@@ -29,11 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.bootstrap.DNSHelper;
-import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockDaemon;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockNetwork2;
+import org.scion.jpan.testutil.*;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
 
@@ -511,10 +507,10 @@ class ScionServiceTest {
       // Change to use custom search domain
       Lookup.setDefaultSearchPath(Name.fromString(searchHost));
       // Lookup topology server
-      String address = MockNetwork.getTopoServer().getAddress().toString();
-      assertEquals(address.substring(1), DNSHelper.searchForDiscoveryService());
+      String address = TestUtil.toString(MockNetwork.getTopoServer().getAddress());
+      assertEquals(address, DNSHelper.searchForDiscoveryService());
       ScionService service = Scion.defaultService();
-      assertEquals(MockNetwork.getTopoServer().getLocalIsdAs(), service.getLocalIsdAs());
+      assertTrue(service.getLocalIsdAses().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
     } finally {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();
@@ -530,10 +526,10 @@ class ScionServiceTest {
           Constants.PROPERTY_DNS_SEARCH_DOMAINS, MockBootstrapServer.TOPO_HOST + ".");
       Lookup.setDefaultSearchPath("x.y.z."); // Invalid main path
       // Lookup topology server
-      String address = MockNetwork.getTopoServer().getAddress().toString();
-      assertEquals(address.substring(1), DNSHelper.searchForDiscoveryService());
+      String address = TestUtil.toString(MockNetwork.getTopoServer().getAddress());
+      assertEquals(address, DNSHelper.searchForDiscoveryService());
       ScionService service = Scion.defaultService();
-      assertEquals(MockNetwork.getTopoServer().getLocalIsdAs(), service.getLocalIsdAs());
+      assertTrue(service.getLocalIsdAses().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
     } finally {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();

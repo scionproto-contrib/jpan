@@ -263,6 +263,47 @@ class ScionTest {
   }
 
   @Test
+  void defaultService_bootstrapAddressV6() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    try {
+      MockNetwork.startTiny6(MockNetwork.Mode.BOOTSTRAP);
+      InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
+      String host = TestUtil.toString(discoveryAddress.getAddress());
+      host += ":" + discoveryAddress.getPort();
+
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapURL() {
+    fail("TODO implement URL test");
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
+      InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
+      String host = TestUtil.toString(discoveryAddress.getAddress());
+      host += ":" + discoveryAddress.getPort();
+
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
   void defaultService_bootstrapAddress_defaultPort() {
     try {
       MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);

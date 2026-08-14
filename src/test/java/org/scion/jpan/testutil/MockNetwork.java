@@ -44,16 +44,20 @@ public class MockNetwork {
   // Number of calls that the service calls the daemon during initialization:
   // port-range, local AS, border routers
   public static final int SERVICE_TO_DAEMON_INIT_CALLS = 3;
-  private static final String TINY_SRV_ADDR_1 = "127.0.0.112";
-  private static final byte[] TINY_SRV_ADDR_BYTES_1 = {127, 0, 0, 112};
+  private static final String TINY_SRV_ADDR_V4_1 = "127.0.0.112";
+  private static final byte[] TINY_SRV_ADDR_V4_BYTES_1 = {127, 0, 0, 112};
+  private static final String TINY_SRV_ADDR_V6_1 = "[fd00:f00d:cafe::7f00]";
+  private static final byte[] TINY_SRV_ADDR_V6_BYTES_1 = {127, 0, 0, 112};
   private static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
   public static final String TINY_SRV_TOPO_V4 = "topologies/tiny4/ASff00_0_112";
   public static final String TINY_SRV_TOPO_V6 = "topologies/tiny/ASff00_0_112";
+  public static final String TINY_SRV_TOPO_V6_2 = "topologies/tiny6/ASff00_0_112";
   public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
   public static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPO_TINY_110;
   private static final String TINY_CLIENT_TOPO_V6 = "topologies/tiny/ASff00_0_110";
+  private static final String TINY_CLIENT_TOPO_V6_2 = MockBootstrapServer.TOPO_TINY6_110;
   private final AtomicBoolean hasStopped = new AtomicBoolean(false);
   private final MockBorderRouterRunner routers;
   private MockDaemon daemon = null;
@@ -61,6 +65,7 @@ public class MockNetwork {
   private final List<MockControlServer> controlServices = new ArrayList<>();
 
   private static MockNetwork mock;
+  private final boolean ipV4;
   private final AsInfo asInfoLocal;
   private final AsInfo asInfoRemote;
 
@@ -79,24 +84,30 @@ public class MockNetwork {
    */
   public static synchronized void startTiny(boolean remoteIPv4) {
     if (remoteIPv4) {
-      startTiny(TINY_CLIENT_TOPO_V4, TINY_SRV_TOPO_V4, Mode.DAEMON);
+      startTiny(TINY_CLIENT_TOPO_V4, TINY_SRV_TOPO_V4, Mode.DAEMON, true);
     } else {
-      startTiny(TINY_CLIENT_TOPO_V6, TINY_SRV_TOPO_V6, Mode.DAEMON);
+      // remote V6 still uses local V4....(?)
+      startTiny(TINY_CLIENT_TOPO_V6, TINY_SRV_TOPO_V6, Mode.DAEMON, true);
     }
   }
 
   public static synchronized void startTiny(Mode mode) {
-    startTiny(TINY_CLIENT_TOPO_V4, TINY_SRV_TOPO_V4, mode);
+    startTiny(TINY_CLIENT_TOPO_V4, TINY_SRV_TOPO_V4, mode, true);
   }
 
-  private static synchronized void startTiny(String localTopo, String remoteTopo, Mode mode) {
+  public static synchronized void startTiny6(Mode mode) {
+    startTiny(TINY_CLIENT_TOPO_V6_2, TINY_SRV_TOPO_V6_2, mode, false);
+  }
+
+  private static void startTiny(String localTopo, String remoteTopo, Mode mode, boolean v4) {
     if (mock != null && !mock.hasStopped.get()) {
       throw new IllegalStateException();
     }
-    mock = new MockNetwork(localTopo, remoteTopo, mode);
+    mock = new MockNetwork(localTopo, remoteTopo, mode, v4);
   }
 
-  private MockNetwork(String localTopo, String remoteTopo, Mode mode) {
+  private MockNetwork(String localTopo, String remoteTopo, Mode mode, boolean v4) {
+    ipV4 = v4;
     asInfoLocal = JsonFileParser.parseTopology(Paths.get(localTopo));
     asInfoRemote = JsonFileParser.parseTopology(Paths.get(remoteTopo));
     asInfoLocal.connectWith(asInfoRemote);
@@ -129,7 +140,11 @@ public class MockNetwork {
       daemon = MockDaemon.createForBorderRouter(routers.getBorderRouters()).start();
     }
 
-    MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_1);
+    if (v4) {
+      MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_V4_1);
+    } else {
+      MockDNS.install(TINY_SRV_ISD_AS, TINY_SRV_NAME_1, TINY_SRV_ADDR_V6_1);
+    }
 
     switch (mode) {
       case BOOTSTRAP:
@@ -198,8 +213,8 @@ public class MockNetwork {
   }
 
   public static InetSocketAddress getTinyServerAddress() throws IOException {
-    return new InetSocketAddress(
-        InetAddress.getByAddress(TINY_SRV_NAME_1, TINY_SRV_ADDR_BYTES_1), TINY_SRV_PORT_1);
+    byte[] bytes = mock.ipV4 ? TINY_SRV_ADDR_V4_BYTES_1 : TINY_SRV_ADDR_V6_BYTES_1;
+    return new InetSocketAddress(InetAddress.getByAddress(TINY_SRV_NAME_1, bytes), TINY_SRV_PORT_1);
   }
 
   public static int getAndResetForwardCount() {
