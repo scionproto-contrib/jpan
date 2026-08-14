@@ -168,7 +168,7 @@ public class PathSelectorWithRefresh implements PathSelector {
           public void run() {
             try {
               synchronized (PathSelectorWithRefresh.this) {
-                if (isConnected()) {
+                if (isOpen()) {
                   refreshPaths();
                 }
               }
@@ -338,13 +338,13 @@ public class PathSelectorWithRefresh implements PathSelector {
    * request a set of path from the path service. Later, new paths will be requested automatically
    * if a path is expired or about to expire or if the path is reported faulty.
    *
-   * @throws IllegalStateException if the PathSelector is already connected
-   * @see PathSelector#connect(ScionSocketAddress)
+   * @throws IllegalStateException if the PathSelector is already running
+   * @see PathSelector#open(ScionSocketAddress)
    */
   @Override
-  public synchronized void connect(ScionSocketAddress remote) {
-    if (isConnected()) {
-      throw new IllegalStateException("Path selector is already connected");
+  public synchronized void open(ScionSocketAddress remote) {
+    if (isOpen()) {
+      throw new IllegalStateException("Path selector is already running");
     }
     this.dstAddress = remote;
 
@@ -357,7 +357,7 @@ public class PathSelectorWithRefresh implements PathSelector {
   }
 
   @Override
-  public synchronized void disconnect() {
+  public synchronized void close() {
     Entry e = usedPath;
     if (e != null) {
       unusedPaths.add(e);
@@ -379,7 +379,8 @@ public class PathSelectorWithRefresh implements PathSelector {
     configExpirationMarginMs = cfgExpirationSafetyMargin * 1000;
   }
 
-  public synchronized boolean isConnected() {
+  @Override
+  public synchronized boolean isOpen() {
     return this.dstAddress != null;
   }
 

@@ -53,7 +53,7 @@ class PathSelectorTest {
   @AfterEach
   void afterEach() {
     if (pp != null) {
-      pp.disconnect();
+      pp.close();
       pp = null;
     }
     MockNetwork.stopTiny();
@@ -90,7 +90,7 @@ class PathSelectorTest {
 
     // Create expired path to trigger PathSelector
     Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
-    pp.connect(expired.getRemoteSocketAddress());
+    pp.open(expired.getRemoteSocketAddress());
     assertNull(pp.getPath());
   }
 
@@ -100,9 +100,9 @@ class PathSelectorTest {
     pp = create(impl);
 
     ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
-    pp.connect(remote);
-    Exception e = assertThrows(IllegalStateException.class, () -> pp.connect(remote));
-    assertTrue(e.getMessage().contains("already connected"));
+    pp.open(remote);
+    Exception e = assertThrows(IllegalStateException.class, () -> pp.open(remote));
+    assertTrue(e.getMessage().contains("already running"));
   }
 
   @ParameterizedTest
@@ -111,7 +111,7 @@ class PathSelectorTest {
     pp = create(impl);
 
     ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
-    pp.connect(remote);
+    pp.open(remote);
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -136,7 +136,7 @@ class PathSelectorTest {
       ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddr);
       List<Path> paths = service.getPaths(remote);
       Path p0 = paths.get(0);
-      pp.connect(p0.getRemoteSocketAddress()); // Must use path.getRemote() for FixedSelector
+      pp.open(p0.getRemoteSocketAddress()); // Must use path.getRemote() for FixedSelector
       // reset counter
       nw.getControlServer().getAndResetCallCount();
 

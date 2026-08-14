@@ -41,7 +41,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   //
   // Overall, a predictable SimpleCache seems better.
   private final SimpleCache<InetSocketAddress, PathSelector> resolvedDestinations =
-      new SimpleCache<>(100);
+      new SimpleCache<>(100, true);
 
   protected ScionDatagramChannel(
       ScionService service,
@@ -286,7 +286,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   @Override
   public void close() throws IOException {
     super.close();
-    resolvedDestinations.forEach((k, pathSelector) -> pathSelector.disconnect());
+    resolvedDestinations.forEach((k, pathSelector) -> pathSelector.close());
   }
 
   public static class Builder {

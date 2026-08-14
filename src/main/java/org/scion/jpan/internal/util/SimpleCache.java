@@ -31,12 +31,32 @@ public class SimpleCache<K, V> {
 
   private int capacity;
   private long opCount = 0;
+  private final boolean closeOnRemove;
 
-  public SimpleCache(int capacity) {
+  /**
+   * Create a simple cache.
+   *
+   * @param capacity Capacity. Once capacity is reached, oldest entries are removed to make room for
+   *     new entries.
+   * @param closeOnRemove If "true" the cache attempts to call close() on removed entries. This
+   *     requires entries to be {@link java.io.Closeable}.
+   */
+  public SimpleCache(int capacity, boolean closeOnRemove) {
     if (capacity < 1) {
       throw new IllegalArgumentException();
     }
     this.capacity = capacity;
+    this.closeOnRemove = closeOnRemove;
+  }
+
+  /**
+   * Create a simple cache.
+   *
+   * @param capacity Capacity. Once capacity is reached, oldest entries are removed to make room for
+   *     new entries.
+   */
+  public SimpleCache(int capacity) {
+    this(capacity, false);
   }
 
   public void put(K key, V value) {
@@ -90,7 +110,14 @@ public class SimpleCache<K, V> {
   private void checkCapacity(int spare) {
     while (lookupMap.size() + spare > capacity) {
       Entry e = ageMap.pollFirstEntry().getValue();
-      lookupMap.remove(e.key);
+      Entry toBeRemoved = lookupMap.remove(e.key);
+      if (closeOnRemove && toBeRemoved.value instanceof AutoCloseable) {
+        try {
+          ((AutoCloseable) toBeRemoved.value).close();
+        } catch (Exception ex) {
+          throw new IllegalStateException(ex);
+        }
+      }
     }
   }
 

@@ -14,6 +14,7 @@
 
 package org.scion.jpan.selectors;
 
+import java.io.Closeable;
 import org.scion.jpan.Path;
 import org.scion.jpan.PathPolicy;
 import org.scion.jpan.ScionSocketAddress;
@@ -22,11 +23,11 @@ import org.scion.jpan.Scmp;
 /**
  * A PathSelector provides the next best path. Lifecycle:<br>
  * 1) create PathSelector <br>
- * 2) connect()<br>
+ * 2) open()<br>
  * 2a) (reportError() if one is received)<br>
- * 3) disconnect()<br>
+ * 3) close()<br>
  */
-public interface PathSelector {
+public interface PathSelector extends Closeable {
 
   /**
    * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
@@ -54,9 +55,11 @@ public interface PathSelector {
    * Initialize the PathSelector with a destination address. The path selector may (in this call)
    * request a new set of path if it has not valid paths.
    *
-   * @throws IllegalStateException if the PathSelector is already connected
+   * @throws IllegalStateException if the PathSelector is already open
    */
-  void connect(ScionSocketAddress remote);
+  void open(ScionSocketAddress remote);
+
+  boolean isOpen();
 
   /**
    * If the PathSelector supports refresh, it will discard all existing paths and fetch new paths
@@ -65,7 +68,7 @@ public interface PathSelector {
   void refresh();
 
   /** Stop the path selector. */
-  void disconnect();
+  void close();
 
   void setExpirationSafetyMargin(int cfgExpirationSafetyMargin);
 

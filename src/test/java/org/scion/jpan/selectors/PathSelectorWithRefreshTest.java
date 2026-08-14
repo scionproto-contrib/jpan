@@ -50,7 +50,7 @@ class PathSelectorWithRefreshTest {
   @AfterEach
   void afterEach() {
     if (pp != null) {
-      pp.disconnect();
+      pp.close();
       pp = null;
     }
     MockNetwork.stopTiny();
@@ -79,7 +79,7 @@ class PathSelectorWithRefreshTest {
           expiredPath.getMetadata().getExpiration(), newPath.getMetadata().getExpiration());
 
       // Initial connect
-      pp.connect(remote);
+      pp.open(remote);
 
       // Inject an expired path
       AtomicBoolean returnExpired = new AtomicBoolean(true);
@@ -102,7 +102,7 @@ class PathSelectorWithRefreshTest {
       assertEquals(
           newPath.getMetadata().getExpiration(), pp.getPath().getMetadata().getExpiration());
     } finally {
-      pp.disconnect();
+      pp.close();
     }
   }
 
@@ -130,7 +130,7 @@ class PathSelectorWithRefreshTest {
         assertNotEquals(newPath0, newPath1);
 
         // Initial connect
-        pp.connect(remote);
+        pp.open(remote);
 
         pp.reportError(createError5(newPath0, 1));
         assertEquals(newPath1, pp.getPath());
@@ -138,7 +138,7 @@ class PathSelectorWithRefreshTest {
         pp.reportError(createError5(newPath1, 1));
         assertEquals(newPath0, pp.getPath());
       } finally {
-        pp.disconnect();
+        pp.close();
       }
     }
   }
@@ -156,7 +156,7 @@ class PathSelectorWithRefreshTest {
     pp.setPathPolicy(empty);
 
     // Trigger PathSelector
-    pp.connect(remote);
+    pp.open(remote);
     assertNull(pp.getPath());
   }
 
@@ -166,7 +166,7 @@ class PathSelectorWithRefreshTest {
     pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
     ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
-    pp.connect(remote);
+    pp.open(remote);
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -187,7 +187,7 @@ class PathSelectorWithRefreshTest {
     pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
 
     ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
-    pp.connect(remote);
+    pp.open(remote);
     RefreshCounter refreshCounter = new RefreshCounter();
     pp.setPathPolicy(refreshCounter);
     assertEquals(0, refreshCounter.count.get());
@@ -217,7 +217,7 @@ class PathSelectorWithRefreshTest {
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
-      pp.connect(remote);
+      pp.open(remote);
       assertEquals(paths.get(0), pp.getPath());
 
       // Replace path
@@ -242,7 +242,7 @@ class PathSelectorWithRefreshTest {
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
-      pp.connect(remote);
+      pp.open(remote);
       assertEquals(paths.get(0), pp.getPath());
 
       // Replace path
@@ -307,7 +307,7 @@ class PathSelectorWithRefreshTest {
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
-      pp.connect(remote);
+      pp.open(remote);
       assertEquals(paths.get(0), pp.getPath());
 
       // Replace path

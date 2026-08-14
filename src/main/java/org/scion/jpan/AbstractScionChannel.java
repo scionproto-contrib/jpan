@@ -136,7 +136,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   protected PathSelector createPathSelector(InetSocketAddress remote) throws IOException {
     ScionSocketAddress remoteSSA = service.lookup(remote);
     PathSelector ps = pathSelectorFactory.createPathSelector(service);
-    ps.connect(remoteSSA);
+    ps.open(remoteSSA);
     return ps;
   }
 
@@ -247,10 +247,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     synchronized (stateLock) {
       isConnected = false;
       if (pathSelectorForConnect != null) {
-        pathSelectorForConnect.disconnect();
+        pathSelectorForConnect.close();
       }
       if (pathSelectorForConnectPath != null) {
-        pathSelectorForConnectPath.disconnect();
+        pathSelectorForConnectPath.close();
         pathSelectorForConnectPath = null;
       }
     }
@@ -270,10 +270,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         natMapping.close();
       }
       if (pathSelectorForConnect != null) {
-        pathSelectorForConnect.disconnect();
+        pathSelectorForConnect.close();
       }
       if (pathSelectorForConnectPath != null) {
-        pathSelectorForConnectPath.disconnect();
+        pathSelectorForConnectPath.close();
         pathSelectorForConnectPath = null;
       }
       channel.disconnect();
@@ -352,7 +352,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           //   switching.
           localAddress = getNatMapping().getExternalIP();
         }
-        pathSelectorForConnect.connect(destination);
+        pathSelectorForConnect.open(destination);
         isConnected = true;
         return (C) this;
       }
@@ -400,7 +400,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         localAddress = getNatMapping().getExternalIP();
       }
       pathSelectorForConnectPath = PathSelectorFixed.create(PathPolicy.DEFAULT);
-      pathSelectorForConnectPath.connect(path.getRemoteSocketAddress());
+      pathSelectorForConnectPath.open(path.getRemoteSocketAddress());
       isConnected = true;
       return (C) this;
     }

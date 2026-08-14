@@ -47,7 +47,7 @@ class PathSelectorFixedTest {
   @AfterEach
   void afterEach() {
     if (pp != null) {
-      pp.disconnect();
+      pp.close();
       pp = null;
     }
     MockNetwork.stopTiny();
@@ -66,7 +66,7 @@ class PathSelectorFixedTest {
     pp.setPathPolicy(empty);
 
     // Create expired path to trigger PathSelector
-    pp.connect(paths.get(0).getRemoteSocketAddress());
+    pp.open(paths.get(0).getRemoteSocketAddress());
     assertNull(pp.getPath());
   }
 
@@ -76,7 +76,7 @@ class PathSelectorFixedTest {
     pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
 
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
-    pp.connect(paths.get(0).getRemoteSocketAddress());
+    pp.open(paths.get(0).getRemoteSocketAddress());
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -118,7 +118,7 @@ class PathSelectorFixedTest {
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
       // Use path directly here because this is how FixedSelector works.
-      pp.connect(paths.get(0).getRemoteSocketAddress());
+      pp.open(paths.get(0).getRemoteSocketAddress());
       assertEquals(paths.get(0), pp.getPath());
 
       // Replace path
