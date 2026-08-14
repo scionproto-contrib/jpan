@@ -57,6 +57,8 @@ The central classes of the API are:
 - `ScionDatagramChannel`: This class works like a `java.nio.channel.DatagramChannel`. It implements 
   `Channel` and `ByteChannel`. Scattering, gathering, multicast and selectors are currently not
   supported.
+- `ScionDatagramSocket` works like a normal `DatagramSocket`. For performance and security it is 
+  recommended to use `ScionDatagramPacket` instead of the normal `DatagramPacket`.
 - `ScionSocketAddress` is an `InetSocketAddress` with the IP of a Scion enabled endhost.
   A `ScionSocketAddress` also has the ISD/AS code of that endhost and a path to the that endhost. 
 - `Path` objects contain a route to a destination ("raw path") plus the full 
@@ -68,6 +70,8 @@ The central classes of the API are:
   first path returned by daemon (default), max bandwidth, min latency, min hops, ... .
   There is also `PplPolicy`, an implementation of the 
   [path policy language (PPL)](https://docs.scion.org/en/latest/dev/design/PathPolicy.html#policy)
+- `PathSelector` manages paths to a given destination. Faulty paths are automatically 
+  replaced. Expired paths may be refreshed (depending on the selector).
 - `ScionService`: Provides methods to request paths and get ISD/AS information.
   `ScionService` instances can be created with the `Scion` class. The first instance that is created is subsequently
   returned by `Scion.defaultService()`.
@@ -82,9 +86,9 @@ The central classes of the API are:
 ### Features
 Supported:
 - `DatagramChannel` support via `ScionDatagramChannel`: `read()`, `write()`, `receive()`, `send()`, `bind()`, `connect()`, ...
-- `DatagramSocket` support via `ScionDatagramSocket`
+- `DatagramSocket` support via `ScionDatagramSocket` and optionally `ScionDatagramPacket`.
 - Path selection policies, including path policy language (PPL)
-- Path expiry/refresh
+- Path expiry/refresh via `PathSelector`
 - Packet validation
 - SCION address lookup via DNS/TXT entry or `/etc/scion/hosts` 
   (see https://github.com/netsec-ethz/scion-apps)

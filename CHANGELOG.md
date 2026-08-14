@@ -188,6 +188,7 @@ TODO
 - Added ScionDatagram packet
   [#278](https://github.com/scionproto-contrib/jpan/pull/278)
   [#279](https://github.com/scionproto-contrib/jpan/pull/279)
+  [#281](https://github.com/scionproto-contrib/jpan/pull/281)
 - Closeable PathSelectors and close() calling SimpleCache
   [#280](https://github.com/scionproto-contrib/jpan/pull/280)
 
