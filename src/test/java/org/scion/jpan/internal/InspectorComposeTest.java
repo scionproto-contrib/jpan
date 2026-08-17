@@ -84,7 +84,7 @@ class InspectorComposeTest {
     DatagramPacket userPacket = new DatagramPacket(sendBuf, sendBuf.length, dstAddress, dstPort);
 
     // Socket internal - compose header data
-    pathService = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    pathService = Scion.newServiceWithDaemon(MockDaemon.getAddressStr());
     InetSocketAddress dstSocketAddress = new InetSocketAddress(dstAddress, dstPort);
     byte[] path = pathService.getPaths(dstIA, dstSocketAddress).get(0).getRawPath();
     scionHeader.setSrcIA(srcIA);

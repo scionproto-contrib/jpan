@@ -94,7 +94,7 @@ public class MockNetwork2 implements AutoCloseable {
       InetSocketAddress topoAddr = topoServer.getAddress();
       DNSUtil.bootstrapNAPTR(AS_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       for (InetSocketAddress csAddress : topoServer.getControlServerAddresses()) {
-        controlServices.add(MockControlServer.start(csAddress.getPort()));
+        controlServices.add(MockControlServer.start(csAddress));
       }
       String topoFileOfLocalAS = topo.configDir + toposOfLocalAS[0] + "/topology.json";
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, topoFileOfLocalAS);

@@ -29,11 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.bootstrap.DNSHelper;
-import org.scion.jpan.testutil.DNSUtil;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockDaemon;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockNetwork2;
+import org.scion.jpan.testutil.*;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
 
@@ -107,8 +103,7 @@ class ScionServiceTest {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       Path path;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-      try (Scion.CloseableService client =
-          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+      try (Scion.CloseableService client = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
         path = client.getPaths(dstIA, dstAddress).get(0);
       }
 
@@ -139,8 +134,7 @@ class ScionServiceTest {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-      try (Scion.CloseableService client =
-          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+      try (Scion.CloseableService client = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
         paths = client.getPaths(dstIA, dstAddress);
       }
 
@@ -170,8 +164,7 @@ class ScionServiceTest {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:110");
-      try (Scion.CloseableService client =
-          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+      try (Scion.CloseableService client = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
         paths = client.getPaths(dstIA, dstAddress);
       }
 
@@ -401,8 +394,7 @@ class ScionServiceTest {
   @Test
   void openChannel() throws IOException {
     MockDaemon.createAndStartDefault();
-    try (Scion.CloseableService service =
-        Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+    try (Scion.CloseableService service = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
       try (ScionDatagramChannel channel = service.openChannel()) {
         assertEquals(service, channel.getService());
       }
@@ -511,10 +503,10 @@ class ScionServiceTest {
       // Change to use custom search domain
       Lookup.setDefaultSearchPath(Name.fromString(searchHost));
       // Lookup topology server
-      String address = MockNetwork.getTopoServer().getAddress().toString();
-      assertEquals(address.substring(1), DNSHelper.searchForDiscoveryService());
+      String address = TestUtil.toString(MockNetwork.getTopoServer().getAddress());
+      assertEquals(address, DNSHelper.searchForDiscoveryService());
       ScionService service = Scion.defaultService();
-      assertEquals(MockNetwork.getTopoServer().getLocalIsdAs(), service.getLocalIsdAs());
+      assertTrue(service.getLocalIsdAses().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
     } finally {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();
@@ -530,10 +522,10 @@ class ScionServiceTest {
           Constants.PROPERTY_DNS_SEARCH_DOMAINS, MockBootstrapServer.TOPO_HOST + ".");
       Lookup.setDefaultSearchPath("x.y.z."); // Invalid main path
       // Lookup topology server
-      String address = MockNetwork.getTopoServer().getAddress().toString();
-      assertEquals(address.substring(1), DNSHelper.searchForDiscoveryService());
+      String address = TestUtil.toString(MockNetwork.getTopoServer().getAddress());
+      assertEquals(address, DNSHelper.searchForDiscoveryService());
       ScionService service = Scion.defaultService();
-      assertEquals(MockNetwork.getTopoServer().getLocalIsdAs(), service.getLocalIsdAs());
+      assertTrue(service.getLocalIsdAses().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
     } finally {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();

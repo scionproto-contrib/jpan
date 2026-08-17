@@ -14,53 +14,20 @@
 
 package org.scion.jpan.demo;
 
-import java.net.InetSocketAddress;
-import org.scion.jpan.Constants;
-import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 
 /** Helper class for setting up a demo topology. */
 public class DemoTopology {
 
-  InetSocketAddress clientDaemonAddress;
-
-  static DemoTopology configureTiny110_112() {
-    DemoTopology cfg = new DemoTopology();
-    cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.12", 30255);
-    //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    configurePathService("127.0.0.12", 30255);
-    return cfg;
+  static void configureMockV6() {
+    MockNetwork.startTiny(false);
   }
 
-  static DemoTopology configureTiny111_112() {
-    DemoTopology cfg = new DemoTopology();
-    cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.19", 30255);
-    //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    configurePathService("127.0.0.19", 30255);
-    return cfg;
-  }
-
-  static DemoTopology configureMock(boolean remoteIPv4) {
-    DemoTopology cfg = new DemoTopology();
-    MockNetwork.startTiny(remoteIPv4);
-    cfg.clientDaemonAddress = MockDaemon.DEFAULT_ADDRESS;
-    //    cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    return cfg;
-  }
-
-  static DemoTopology configureMockV6() {
-    return configureMock(false);
-  }
-
-  static DemoTopology configureMockV4() {
-    return configureMock(true);
+  static void configureMockV4() {
+    MockNetwork.startTiny(true);
   }
 
   public static void shutDown() {
     MockNetwork.stopTiny();
-  }
-
-  private static void configurePathService(String address, int port) {
-    System.setProperty(Constants.PROPERTY_DAEMON, address + ":" + port);
   }
 }

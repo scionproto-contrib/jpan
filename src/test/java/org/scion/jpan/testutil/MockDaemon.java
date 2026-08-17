@@ -29,6 +29,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.scion.jpan.Constants;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.proto.daemon.Daemon;
 import org.scion.jpan.proto.daemon.DaemonServiceGrpc;
 import org.slf4j.Logger;
@@ -38,11 +39,13 @@ public class MockDaemon implements AutoCloseable {
 
   private static final Logger logger = LoggerFactory.getLogger(MockDaemon.class.getName());
 
-  public static final String DEFAULT_IP = "127.0.0.15";
+  private static final String DEFAULT_IP4 = "127.0.0.15";
+  private static final String DEFAULT_IP6 = "127.0.0.15";
   public static final int DEFAULT_PORT = 22222; // 30255 in production
-  public static final InetSocketAddress DEFAULT_ADDRESS =
-      new InetSocketAddress(DEFAULT_IP, DEFAULT_PORT);
-  public static final String DEFAULT_ADDRESS_STR = DEFAULT_ADDRESS.toString().substring(1);
+  private static final InetSocketAddress DEFAULT_ADDRESS4 =
+      new InetSocketAddress(DEFAULT_IP4, DEFAULT_PORT);
+  private static final InetSocketAddress DEFAULT_ADDRESS6 =
+      new InetSocketAddress(DEFAULT_IP4, DEFAULT_PORT);
 
   private static MockDaemon defaultInstance = null;
 
@@ -68,21 +71,23 @@ public class MockDaemon implements AutoCloseable {
     -114, 25, 76, -122,
   };
 
-  private static void setEnvironment() {
-    System.setProperty(Constants.PROPERTY_DAEMON, DEFAULT_IP + ":" + DEFAULT_PORT);
+  private static void setEnvironment(boolean ipV4) {
+    String ip = ipV4 ? DEFAULT_IP4 : DEFAULT_IP6;
+    System.setProperty(Constants.PROPERTY_DAEMON, ip + ":" + DEFAULT_PORT);
   }
 
-  public static MockDaemon createForBorderRouter(List<MockBorderRouter> borderRouter) {
-    setEnvironment();
-    return new MockDaemon(DEFAULT_ADDRESS, borderRouter);
+  public static MockDaemon createForBorderRouter(
+      List<MockBorderRouter> borderRouter, AsInfo local, boolean ipV4) {
+    setEnvironment(ipV4);
+    return new MockDaemon(ipV4 ? DEFAULT_ADDRESS4 : DEFAULT_ADDRESS6, borderRouter, local);
   }
 
   public static void createAndStartDefault() {
     if (defaultInstance != null) {
       throw new NullPointerException();
     }
-    setEnvironment();
-    defaultInstance = new MockDaemon(DEFAULT_ADDRESS);
+    setEnvironment(true);
+    defaultInstance = new MockDaemon(DEFAULT_ADDRESS4);
     defaultInstance.start();
   }
 
@@ -105,10 +110,11 @@ public class MockDaemon implements AutoCloseable {
     asInfo = JsonFileParser.parseTopology(Paths.get(MockBootstrapServer.TOPO_TINY_110));
   }
 
-  private MockDaemon(InetSocketAddress address, List<MockBorderRouter> borderRouters) {
+  private MockDaemon(
+      InetSocketAddress address, List<MockBorderRouter> borderRouters, AsInfo local) {
     this.address = address;
     this.borderRouters = borderRouters;
-    asInfo = JsonFileParser.parseTopology(Paths.get(MockBootstrapServer.TOPO_TINY_110));
+    this.asInfo = local;
   }
 
   public MockDaemon start() {
@@ -166,6 +172,14 @@ public class MockDaemon implements AutoCloseable {
 
   public static int getAndResetCallCount() {
     return callCount.getAndSet(0);
+  }
+
+  public static InetSocketAddress getAddress() {
+    return defaultInstance != null ? defaultInstance.address : MockNetwork.getDaemon().address;
+  }
+
+  public static String getAddressStr() {
+    return IPHelper.toString(getAddress());
   }
 
   public static void block() {

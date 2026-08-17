@@ -321,7 +321,7 @@ class DatagramSocketSDPApiTest {
   @Test
   void getService_default() throws IOException {
     ScionService service1 = Scion.defaultService();
-    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.getAddressStr());
     try (ScionDatagramSocket socket = new ScionDatagramSocket()) {
       assertEquals(service1, socket.getService());
 
@@ -336,7 +336,7 @@ class DatagramSocketSDPApiTest {
   @Test
   void getService_non_default() throws IOException {
     ScionService service1 = Scion.defaultService();
-    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.getAddressStr());
     try (ScionDatagramSocket socket = ScionDatagramSocket.newBuilder().service(service2).open()) {
       assertEquals(service2, socket.getService());
       assertNotEquals(service1, socket.getService());

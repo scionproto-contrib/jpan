@@ -35,11 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
-import org.scion.jpan.testutil.MockBootstrapServer;
-import org.scion.jpan.testutil.MockDaemon;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockNetwork2;
-import org.scion.jpan.testutil.TestUtil;
+import org.scion.jpan.testutil.*;
 
 class ScionTest {
 
@@ -92,7 +88,7 @@ class ScionTest {
 
     // Start daemon just to ensure we are not using it
     MockDaemon.createAndStartDefault();
-    System.setProperty(Constants.PROPERTY_DAEMON, MockDaemon.DEFAULT_ADDRESS_STR);
+    System.setProperty(Constants.PROPERTY_DAEMON, MockDaemon.getAddressStr());
 
     try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
@@ -103,8 +99,6 @@ class ScionTest {
       assertEquals(0, MockDaemon.getAndResetCallCount());
       assertEquals(0, nw.getControlServers().size());
       assertEquals(1, nw.getPathService().getAndResetCallCount());
-    } catch (Throwable t) {
-      t.printStackTrace();
     } finally {
       MockDaemon.closeDefault();
     }
@@ -136,9 +130,8 @@ class ScionTest {
     try {
       ScionService service = Scion.defaultService();
       service.close();
-      service.close();
-    } catch (Exception e) {
-      fail(e.getMessage());
+      assertDoesNotThrow(service::close);
+      assertDoesNotThrow(service::close);
     } finally {
       Scion.closeDefault();
       MockDaemon.closeDefault();
@@ -186,12 +179,9 @@ class ScionTest {
       System.setProperty(Constants.PROPERTY_CONTROL_PLANE_TIMEOUT_MS, "200");
       ScionService service = Scion.defaultService();
       MockDaemon.block();
-      try {
-        service.getPaths(dstIA, dstAddress);
-        fail();
-      } catch (ScionRuntimeException e) {
-        assertTrue(e.getCause().getMessage().contains("DEADLINE_EXCEEDED"));
-      }
+      Exception e =
+          assertThrows(ScionRuntimeException.class, () -> service.getPaths(dstIA, dstAddress));
+      assertTrue(e.getCause().getMessage().contains("DEADLINE_EXCEEDED"));
       MockDaemon.unblock();
     } finally {
       Scion.closeDefault();
@@ -212,12 +202,9 @@ class ScionTest {
       ScionService service = Scion.defaultService();
 
       MockNetwork.getControlServer().block();
-      try {
-        service.getPaths(dstIA, dstAddress);
-        fail();
-      } catch (ScionRuntimeException e) {
-        assertTrue(e.getMessage().contains("DEADLINE_EXCEEDED"));
-      }
+      Exception e =
+          assertThrows(ScionRuntimeException.class, () -> service.getPaths(dstIA, dstAddress));
+      assertTrue(e.getMessage().contains("DEADLINE_EXCEEDED"));
       MockNetwork.getControlServer().unblock();
     } finally {
       Scion.closeDefault();
@@ -244,22 +231,36 @@ class ScionTest {
 
   @Test
   void defaultService_bootstrapAddress() {
-    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    InetSocketAddress dstAddress = new InetSocketAddress("127.0.0.1", 12345);
     try {
       MockNetwork.startTiny(MockNetwork.Mode.BOOTSTRAP);
-      InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
-      String host = TestUtil.toString(discoveryAddress.getAddress());
-      host += ":" + discoveryAddress.getPort();
-
-      System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
-      ScionService service = Scion.defaultService();
-      Path path = service.getPaths(dstIA, dstAddress).get(0);
-      assertNotNull(path);
-      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+      verifyBootstrap(dstAddress);
     } finally {
       MockNetwork.stopTiny();
     }
+  }
+
+  @Test
+  void defaultService_bootstrapAddressV6() {
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    try {
+      MockNetwork.startTiny6(MockNetwork.Mode.BOOTSTRAP);
+      verifyBootstrap(dstAddress);
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  private void verifyBootstrap(InetSocketAddress dstAddress) {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress discoveryAddress = MockNetwork.getTopoServer().getAddress();
+    String host = TestUtil.toString(discoveryAddress.getAddress());
+    host += ":" + discoveryAddress.getPort();
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_HOST, host);
+    ScionService service = Scion.defaultService();
+    Path path = service.getPaths(dstIA, dstAddress).get(0);
+    assertNotNull(path);
+    assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
   }
 
   @Test
@@ -285,6 +286,21 @@ class ScionTest {
     InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
     try {
       MockNetwork.startTiny(MockNetwork.Mode.NAPTR);
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapNaptrRecordV6() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    try {
+      MockNetwork.startTiny6(MockNetwork.Mode.NAPTR);
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
@@ -444,13 +460,10 @@ class ScionTest {
   @Test
   void defaultService_bootstrapTopoFile_IOError_NoSuchFile() {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE + ".x");
-    try {
-      Scion.defaultService();
-      fail("This should cause an IOException because the file doesn't exist");
-    } catch (Exception e) {
-      assertNotNull(e.getCause());
-      assertInstanceOf(NoSuchFileException.class, e.getCause());
-    }
+    Exception e = assertThrows(ScionRuntimeException.class, Scion::defaultService);
+    // This should cause an IOException because the file doesn't exist
+    assertNotNull(e.getCause());
+    assertInstanceOf(NoSuchFileException.class, e.getCause());
   }
 
   @Test
@@ -503,7 +516,7 @@ class ScionTest {
   }
 
   @Test
-  void defaultService_bootstrapTopoFile_IOError() throws URISyntaxException {
+  void defaultService_bootstrapTopoFile_IOError() throws IOException, URISyntaxException {
     if (!isWindows()) {
       // File locking only works on windows
       return;
@@ -514,9 +527,8 @@ class ScionTest {
         FileChannel channel = raf.getChannel()) {
       assertNotNull(channel.lock());
       // Attempt opening the file -> should fail
-      Scion.defaultService();
-      fail("This should cause an IOException because the file is locked");
-    } catch (Exception e) {
+      Exception e = assertThrows(Exception.class, Scion::defaultService);
+      // This should cause an IOException because the file is locked
       assertTrue(e.getMessage().contains("locked"));
     } finally {
       System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
@@ -524,7 +536,7 @@ class ScionTest {
   }
 
   @Test
-  void defaultService_etcHostsFile_IO_error() throws URISyntaxException {
+  void defaultService_etcHostsFile_IO_error() throws URISyntaxException, IOException {
     if (!isWindows()) {
       // File locking only works on windows
       return;
@@ -537,9 +549,8 @@ class ScionTest {
       // Attempt opening the file -> should fail
       // Normally that happens in ScionService.defaultService() but this has been called already
       // in other tests.
-      AddressLookupService.refresh();
-      fail("This should cause an IOException because the file is locked");
-    } catch (Exception e) {
+      Exception e = assertThrows(Exception.class, AddressLookupService::refresh);
+      // This should cause an IOException because the file is locked
       assertTrue(e.getMessage().contains("locked"), e.getMessage());
     } finally {
       System.clearProperty(Constants.PROPERTY_HOSTS_FILES);

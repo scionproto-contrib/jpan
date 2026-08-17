@@ -31,7 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import org.scion.jpan.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,28 +38,39 @@ import org.slf4j.LoggerFactory;
 public class MockBootstrapServer implements Closeable {
 
   public static final String TOPO_HOST = "my-topo-host.org";
-  public static final String CONFIG_DIR_TINY = "topologies/tiny4/";
+  private static final String CONFIG_DIR_TINY = "topologies/tiny4/";
+  private static final String CONFIG_DIR_TINY6 = "topologies/tiny6/";
   public static final String TOPO_TINY_110 = CONFIG_DIR_TINY + "ASff00_0_110/";
+  public static final String TOPO_TINY6_110 = CONFIG_DIR_TINY6 + "ASff00_0_110/";
   private static final Logger logger = LoggerFactory.getLogger(MockBootstrapServer.class.getName());
   private final ExecutorService executor;
   private final AtomicInteger callCount = new AtomicInteger();
   private final Barrier barrier = new Barrier(1);
-  private final AtomicReference<InetSocketAddress> serverSocket = new AtomicReference<>();
+  private final InetSocketAddress serverSocket;
   private final AsInfo asInfo;
 
-  private MockBootstrapServer(Path topoDir, Path configPath, boolean installNaptr) {
+  private MockBootstrapServer(Path topoDir, Path configPath, boolean installNaptr, boolean ipV4) {
     getAndResetCallCount();
     Path configResource = JsonFileParser.toResourcePath(configPath);
     asInfo = JsonFileParser.parseTopology(topoDir);
     executor = Executors.newSingleThreadExecutor();
     Path topoFile = topoDir.resolve("topology.json");
+    // Explicit binding to "localhost" to avoid automatic binding to IPv6 which is not
+    // supported by GitHub CI (https://github.com/actions/runner-images/issues/668).
+    if (ipV4) {
+      serverSocket = new InetSocketAddress("127.0.0.1", 45678);
+    } else {
+      serverSocket = new InetSocketAddress("::1", 45678);
+    }
+    // serverSocket = new InetSocketAddress("::1", 45678);//InetAddress.getLoopbackAddress(),
+    // 45678); // TODO remove/implem,ent
     executor.submit(new TopologyServerImpl(JsonFileParser.readResource(topoFile), configResource));
 
     // Wait for sever socket address to be ready
     barrier.await();
 
     if (installNaptr) {
-      InetSocketAddress topoAddr = serverSocket.get();
+      InetSocketAddress topoAddr = serverSocket;
       DNSUtil.bootstrapNAPTR(TOPO_HOST, topoAddr.getAddress().getAddress(), topoAddr.getPort());
       System.setProperty(Constants.PROPERTY_BOOTSTRAP_NAPTR_NAME, TOPO_HOST);
     }
@@ -69,10 +79,15 @@ public class MockBootstrapServer implements Closeable {
   }
 
   public static MockBootstrapServer start(String topoDir, boolean installNaptr) {
-    if (!TOPO_TINY_110.equals(topoDir)) {
-      throw new UnsupportedOperationException("Add config dir");
+    if (TOPO_TINY_110.equals(topoDir)) {
+      return new MockBootstrapServer(
+          Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY), installNaptr, true);
+    } else if (TOPO_TINY6_110.equals(topoDir)) {
+      System.err.println("TODO MockBootstrap remove separate TOPODIR...");
+      return new MockBootstrapServer(
+          Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY6), installNaptr, false);
     }
-    return new MockBootstrapServer(Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY), installNaptr);
+    throw new UnsupportedOperationException("Add config dir: " + topoDir);
   }
 
   /**
@@ -83,7 +98,7 @@ public class MockBootstrapServer implements Closeable {
    * @return server instance
    */
   public static MockBootstrapServer start(String cfgPath, String topoDir) {
-    return new MockBootstrapServer(Paths.get(cfgPath + topoDir), Paths.get(cfgPath), false);
+    return new MockBootstrapServer(Paths.get(cfgPath + topoDir), Paths.get(cfgPath), false, true);
   }
 
   @Override
@@ -102,7 +117,7 @@ public class MockBootstrapServer implements Closeable {
   }
 
   public InetSocketAddress getAddress() {
-    return serverSocket.get();
+    return serverSocket;
   }
 
   public List<InetSocketAddress> getControlServerAddresses() {
@@ -169,13 +184,9 @@ public class MockBootstrapServer implements Closeable {
     @Override
     public void run() {
       try (ServerSocketChannel chnLocal = ServerSocketChannel.open()) {
-        // Explicit binding to "localhost" to avoid automatic binding to IPv6 which is not
-        // supported by GitHub CI (https://github.com/actions/runner-images/issues/668).
-        InetSocketAddress local = new InetSocketAddress(InetAddress.getLoopbackAddress(), 45678);
-        chnLocal.bind(local);
+        chnLocal.bind(serverSocket);
         chnLocal.configureBlocking(true);
         ByteBuffer buffer = ByteBuffer.allocate(66000);
-        serverSocket.set((InetSocketAddress) chnLocal.getLocalAddress());
         logger.info("Topology server started on port {}", chnLocal.getLocalAddress());
         barrier.countDown();
         while (true) {
