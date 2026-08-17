@@ -137,7 +137,8 @@ public class MockNetwork {
     routers.start();
 
     if (mode == Mode.DAEMON) {
-      daemon = MockDaemon.createForBorderRouter(routers.getBorderRouters()).start();
+      daemon =
+          MockDaemon.createForBorderRouter(routers.getBorderRouters(), asInfoLocal, v4).start();
     }
 
     if (v4) {
@@ -151,12 +152,12 @@ public class MockNetwork {
       case NAPTR:
         topoServer = MockBootstrapServer.start(localTopo, mode == Mode.NAPTR);
         for (InetSocketAddress cs : asInfoLocal.getControlServerAddresses()) {
-          controlServices.add(MockControlServer.start(cs.getPort()));
+          controlServices.add(MockControlServer.start(cs));
         }
         break;
       case AS_ONLY:
         for (InetSocketAddress cs : asInfoLocal.getControlServerAddresses()) {
-          controlServices.add(MockControlServer.start(cs.getPort()));
+          controlServices.add(MockControlServer.start(cs));
         }
         break;
       case DAEMON:

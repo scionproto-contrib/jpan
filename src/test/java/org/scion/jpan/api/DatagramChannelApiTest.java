@@ -353,7 +353,7 @@ class DatagramChannelApiTest {
   @Test
   void getService_default() throws IOException {
     ScionService service1 = Scion.defaultService();
-    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.getAddressStr());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       assertEquals(service1, channel.getService());
 
@@ -369,7 +369,7 @@ class DatagramChannelApiTest {
   @Test
   void getService_non_default() throws IOException {
     ScionService service1 = Scion.defaultService();
-    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    ScionService service2 = Scion.newServiceWithDaemon(MockDaemon.getAddressStr());
     try (ScionDatagramChannel channel = ScionDatagramChannel.open(service2)) {
       assertEquals(service2, channel.getService());
       assertNotEquals(service1, channel.getService());

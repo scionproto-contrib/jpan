@@ -114,7 +114,7 @@ public class JsonFileParser {
       JsonObject css = safeGet(o, "control_service").getAsJsonObject();
       for (Map.Entry<String, JsonElement> e : css.entrySet()) {
         JsonObject cs = e.getValue().getAsJsonObject();
-        as.addControlServer(cs.get("addr").getAsString());
+        as.addControlServer(mapToLoopbackV6(cs.get("addr").getAsString()));
       }
       JsonArray attr = safeGet(o, "attributes").getAsJsonArray();
       for (int i = 0; i < attr.size(); i++) {

@@ -103,8 +103,7 @@ class ScionServiceTest {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       Path path;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-      try (Scion.CloseableService client =
-          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+      try (Scion.CloseableService client = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
         path = client.getPaths(dstIA, dstAddress).get(0);
       }
 
@@ -135,8 +134,7 @@ class ScionServiceTest {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:112");
-      try (Scion.CloseableService client =
-          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+      try (Scion.CloseableService client = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
         paths = client.getPaths(dstIA, dstAddress);
       }
 
@@ -166,8 +164,7 @@ class ScionServiceTest {
       // String daemonAddr = "127.0.0.12:30255"; // from 110-topo
       List<Path> paths;
       long dstIA = ScionUtil.parseIA("1-ff00:0:110");
-      try (Scion.CloseableService client =
-          Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+      try (Scion.CloseableService client = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
         paths = client.getPaths(dstIA, dstAddress);
       }
 
@@ -397,8 +394,7 @@ class ScionServiceTest {
   @Test
   void openChannel() throws IOException {
     MockDaemon.createAndStartDefault();
-    try (Scion.CloseableService service =
-        Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR)) {
+    try (Scion.CloseableService service = Scion.newServiceWithDaemon(MockDaemon.getAddressStr())) {
       try (ScionDatagramChannel channel = service.openChannel()) {
         assertEquals(service, channel.getService());
       }

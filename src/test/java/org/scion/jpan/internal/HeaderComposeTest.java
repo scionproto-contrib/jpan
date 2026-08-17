@@ -79,7 +79,7 @@ class HeaderComposeTest {
         new InetSocketAddress(InetAddress.getByAddress(dstAddress), dstPort);
 
     // Socket internal - compose header data
-    pathService = Scion.newServiceWithDaemon(MockDaemon.DEFAULT_ADDRESS_STR);
+    pathService = Scion.newServiceWithDaemon(MockDaemon.getAddressStr());
     byte[] path = pathService.getPaths(dstIA, dstSocketAddress).get(0).getRawPath();
 
     // Socket internal = write header

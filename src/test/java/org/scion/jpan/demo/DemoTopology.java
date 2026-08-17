@@ -22,29 +22,12 @@ import org.scion.jpan.testutil.MockNetwork;
 /** Helper class for setting up a demo topology. */
 public class DemoTopology {
 
-  InetSocketAddress clientDaemonAddress;
-
-  static DemoTopology configureTiny110_112() {
-    DemoTopology cfg = new DemoTopology();
-    cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.12", 30255);
-    //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    configurePathService("127.0.0.12", 30255);
-    return cfg;
-  }
-
-  static DemoTopology configureTiny111_112() {
-    DemoTopology cfg = new DemoTopology();
-    cfg.clientDaemonAddress = new InetSocketAddress("127.0.0.19", 30255);
-    //   cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
-    configurePathService("127.0.0.19", 30255);
-    return cfg;
-  }
+  private InetSocketAddress clientDaemonAddress;
 
   static DemoTopology configureMock(boolean remoteIPv4) {
     DemoTopology cfg = new DemoTopology();
     MockNetwork.startTiny(remoteIPv4);
-    cfg.clientDaemonAddress = MockDaemon.DEFAULT_ADDRESS;
-    //    cfg.serverDaemonAddress = new InetSocketAddress("fd00:f00d:cafe::7", 30255);
+    cfg.clientDaemonAddress = MockDaemon.getAddress();
     return cfg;
   }
 

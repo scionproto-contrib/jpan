@@ -49,7 +49,7 @@ public class MockBootstrapServer implements Closeable {
   private final InetSocketAddress serverSocket;
   private final AsInfo asInfo;
 
-  private MockBootstrapServer(Path topoDir, Path configPath, boolean installNaptr) {
+  private MockBootstrapServer(Path topoDir, Path configPath, boolean installNaptr, boolean ipV4) {
     getAndResetCallCount();
     Path configResource = JsonFileParser.toResourcePath(configPath);
     asInfo = JsonFileParser.parseTopology(topoDir);
@@ -57,7 +57,11 @@ public class MockBootstrapServer implements Closeable {
     Path topoFile = topoDir.resolve("topology.json");
     // Explicit binding to "localhost" to avoid automatic binding to IPv6 which is not
     // supported by GitHub CI (https://github.com/actions/runner-images/issues/668).
-    serverSocket = new InetSocketAddress(InetAddress.getLoopbackAddress(), 45678);
+    if (ipV4) {
+      serverSocket = new InetSocketAddress("127.0.0.1", 45678);
+    } else {
+      serverSocket = new InetSocketAddress("::1", 45678);
+    }
     // serverSocket = new InetSocketAddress("::1", 45678);//InetAddress.getLoopbackAddress(),
     // 45678); // TODO remove/implem,ent
     executor.submit(new TopologyServerImpl(JsonFileParser.readResource(topoFile), configResource));
@@ -76,10 +80,12 @@ public class MockBootstrapServer implements Closeable {
 
   public static MockBootstrapServer start(String topoDir, boolean installNaptr) {
     if (TOPO_TINY_110.equals(topoDir)) {
-      return new MockBootstrapServer(Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY), installNaptr);
+      return new MockBootstrapServer(
+          Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY), installNaptr, true);
     } else if (TOPO_TINY6_110.equals(topoDir)) {
       System.err.println("TODO MockBootstrap remove separate TOPODIR...");
-      return new MockBootstrapServer(Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY6), installNaptr);
+      return new MockBootstrapServer(
+          Paths.get(topoDir), Paths.get(CONFIG_DIR_TINY6), installNaptr, false);
     }
     throw new UnsupportedOperationException("Add config dir: " + topoDir);
   }
@@ -92,7 +98,7 @@ public class MockBootstrapServer implements Closeable {
    * @return server instance
    */
   public static MockBootstrapServer start(String cfgPath, String topoDir) {
-    return new MockBootstrapServer(Paths.get(cfgPath + topoDir), Paths.get(cfgPath), false);
+    return new MockBootstrapServer(Paths.get(cfgPath + topoDir), Paths.get(cfgPath), false, true);
   }
 
   @Override

@@ -18,7 +18,6 @@ import com.google.protobuf.ByteString;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.List;
@@ -50,8 +49,7 @@ public class MockControlServer {
     this.address = address;
   }
 
-  public static MockControlServer start(int port) {
-    InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
+  public static MockControlServer start(InetSocketAddress addr) {
     try {
       return new MockControlServer(addr).startInternal();
     } catch (IOException e) {

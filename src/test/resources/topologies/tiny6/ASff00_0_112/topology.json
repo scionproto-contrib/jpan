@@ -6,17 +6,17 @@
   "dispatched_ports": "31000-32767",
   "control_service": {
     "cs1-ff00_0_112-1": {
-      "addr": "[fd00:f00d:cafe::7f00:26]:31010"
+      "addr": "[::1]:31010"
     }
   },
   "discovery_service": {
     "cs1-ff00_0_112-1": {
-      "addr": "[fd00:f00d:cafe::7f00:26]:31010"
+      "addr": "[::1]:31010"
     }
   },
   "border_routers": {
     "br1-ff00_0_112-1": {
-      "internal_addr": "[fd00:f00d:cafe::7f00:25]:31012",
+      "internal_addr": "[::1]:31012",
       "interfaces": {
         "1": {
           "underlay": {
@@ -30,7 +30,7 @@
       }
     },
     "br1-ff00_0_112-1b": {
-      "internal_addr": "fd00:f00d:cafe::7f00:25:31013",
+      "internal_addr": "[::1]:31013",
       "interfaces": {
         "11": {
           "underlay": {
