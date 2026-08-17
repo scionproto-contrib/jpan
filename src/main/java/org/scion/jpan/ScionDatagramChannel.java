@@ -361,7 +361,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
       }
 
       if (service != null && service.preferSnapUnderlay()) {
-        return SnapScionDatagramChannel.create(service, channel, provider);
+        return SnapScionDatagramChannel.create(service, channel, selector, factory);
       }
       return new ScionDatagramChannel(service, channel, selector, factory);
     }
