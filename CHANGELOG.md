@@ -10,8 +10,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
-- SimpleCache closeable
-
 - Remove Path from ScionSocketAddress?
   - Make Path subclass of ScionSocketAddress?
     - Pro: 
@@ -37,7 +35,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   OR: Instead of checker, create separate LegacySocket/Channel classes that support
   unresolved addresses and DatagramPackets.
  
-- ScionDatagramPacket: Should be used to avoid caching and security issues in DatagramSocket.
 - STUN: check/extend auto mode: if local IP subnet is different from BR IP subnet
   then use STUN otherwise do not (check subnet mask if possible). Allow flag to override this.
 - SCMP: Implement tooling to extract SCMP error payload to get ID/sequence number
@@ -49,11 +46,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  
 - Peering: consider: https://github.com/scionproto/scion/tree/peering_test
 - PathSelector
-  - With `send(PathSelector)` and `connect(PathSelector)` we can remove it from the constructor.
-    Not quite, it would still be useful for legacy `send(address)` and `connect(address)`. 
-  - Implement `send(PathSelector)`? Useful e.g. for a browser that connects to many
-    servers.
-    - This allows removing the path `refreshedPaths` in ScionDatagramChannel
   - PATH_POLLING: Consolidate polling to once every 60 seconds per remote AS.
     TODO generally, we should think about doing the polling centrally so that we
     reuse path requests to the same remote AS. Central polling could be done with
@@ -193,6 +185,7 @@ TODO
   [#280](https://github.com/scionproto-contrib/jpan/pull/280)
 - Added IPv6 only topology + tests
   [#282](https://github.com/scionproto-contrib/jpan/pull/282)
+  [#283](https://github.com/scionproto-contrib/jpan/pull/283)
 
 ### Fixed
 
