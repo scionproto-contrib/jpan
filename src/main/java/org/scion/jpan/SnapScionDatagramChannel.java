@@ -19,11 +19,12 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
-import org.scion.jpan.internal.PathProvider;
 import org.scion.jpan.internal.snap.SnapControlClient;
 import org.scion.jpan.internal.snap.SnapControlEndpointResolver;
 import org.scion.jpan.internal.snap.SnapService;
 import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.selectors.PathSelector;
+import org.scion.jpan.selectors.PathSelectorFactory;
 
 /** SCION datagram channel using SNAP encapsulation instead of direct UDP underlay. */
 final class SnapScionDatagramChannel extends ScionDatagramChannel {
@@ -33,15 +34,20 @@ final class SnapScionDatagramChannel extends ScionDatagramChannel {
   SnapScionDatagramChannel(
       ScionService service,
       DatagramChannel channel,
-      PathProvider pathProvider,
+      PathSelector pathProvider,
+      PathSelectorFactory factory,
       SnapTunnelSession snapTunnel)
       throws IOException {
-    super(service, channel, pathProvider);
+    super(service, channel, pathProvider, factory);
     this.snapTunnel = snapTunnel;
   }
 
   static SnapScionDatagramChannel create(
-      ScionService service, DatagramChannel channel, PathProvider pathProvider) throws IOException {
+      ScionService service,
+      DatagramChannel channel,
+      PathSelector pathProvider,
+      PathSelectorFactory factory)
+      throws IOException {
     SnapService dp = service.getSnapDataPlane();
     if (dp == null || dp.getSnapStaticX25519() == null) {
       throw new ScionRuntimeException(
@@ -63,7 +69,7 @@ final class SnapScionDatagramChannel extends ScionDatagramChannel {
             dp.getAddress(),
             Arrays.copyOf(dp.getSnapStaticX25519(), 32),
             snapControlClient);
-    return new SnapScionDatagramChannel(service, channel, pathProvider, session);
+    return new SnapScionDatagramChannel(service, channel, pathProvider, factory, session);
   }
 
   @Override

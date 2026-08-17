@@ -25,10 +25,11 @@ import java.util.List;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.snap.SnapTunnelSession;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
-import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.selectors.PathSelectorFixed;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -212,8 +213,9 @@ public class PackageVisibilityHelper {
    */
   public static ScionDatagramChannel openSnapChannel(SnapTunnelSession session) throws IOException {
     DatagramChannel udp = DatagramChannel.open();
-    PathProviderNoOp provider = PathProviderNoOp.create(PathPolicy.DEFAULT);
-    return new SnapScionDatagramChannel(null, udp, provider, session);
+    PathSelectorFixed selector = PathSelectorFixed.create(PathPolicy.DEFAULT);
+    PathSelectorFactory factory = PathSelectorFactory.Fixed.create(PathPolicy.DEFAULT);
+    return new SnapScionDatagramChannel(null, udp, selector, factory, session);
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {

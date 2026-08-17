@@ -17,7 +17,6 @@ package org.scion.jpan;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
-import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -540,10 +539,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
       try {
-        channel =
-            channel == null
-                ? java.nio.channels.DatagramChannel.open(StandardProtocolFamily.INET)
-                : channel;
+        channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
         return new ScmpSenderAsync(service, port, handler, channel);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
