@@ -20,11 +20,11 @@ import org.scion.jpan.testutil.MockNetwork;
 public class DemoTopology {
 
   static void configureMockV6() {
-    MockNetwork.startTiny(false);
+    MockNetwork.startTiny6(MockNetwork.Mode.DAEMON);
   }
 
   static void configureMockV4() {
-    MockNetwork.startTiny(true);
+    MockNetwork.startTiny(MockNetwork.Mode.DAEMON);
   }
 
   public static void shutDown() {

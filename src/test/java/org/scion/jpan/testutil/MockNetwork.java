@@ -46,18 +46,18 @@ public class MockNetwork {
   public static final int SERVICE_TO_DAEMON_INIT_CALLS = 3;
   private static final String TINY_SRV_ADDR_V4_1 = "127.0.0.112";
   private static final byte[] TINY_SRV_ADDR_V4_BYTES_1 = {127, 0, 0, 112};
-  private static final String TINY_SRV_ADDR_V6_1 = "[fd00:f00d:cafe::7f00]";
-  private static final byte[] TINY_SRV_ADDR_V6_BYTES_1 = {127, 0, 0, 112};
+  private static final String TINY_SRV_ADDR_V6_1 = "[::1]";
+  private static final byte[] TINY_SRV_ADDR_V6_BYTES_1 = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+  };
   private static final int TINY_SRV_PORT_1 = 22233;
   public static final String TINY_SRV_ISD_AS = "1-ff00:0:112";
   public static final String TINY_SRV_NAME_1 = "server.as112.test";
   public static final String TINY_SRV_TOPO_V4 = "topologies/tiny4/ASff00_0_112";
-  public static final String TINY_SRV_TOPO_V6 = "topologies/tiny/ASff00_0_112";
-  public static final String TINY_SRV_TOPO_V6_2 = "topologies/tiny6/ASff00_0_112";
+  public static final String TINY_SRV_TOPO_V6 = "topologies/tiny6/ASff00_0_112";
   public static final String TINY_CLIENT_ISD_AS = "1-ff00:0:110";
   public static final String TINY_CLIENT_TOPO_V4 = MockBootstrapServer.TOPO_TINY_110;
-  private static final String TINY_CLIENT_TOPO_V6 = "topologies/tiny/ASff00_0_110";
-  private static final String TINY_CLIENT_TOPO_V6_2 = MockBootstrapServer.TOPO_TINY6_110;
+  private static final String TINY_CLIENT_TOPO_V6 = MockBootstrapServer.TOPO_TINY6_110;
   private final AtomicBoolean hasStopped = new AtomicBoolean(false);
   private final MockBorderRouterRunner routers;
   private MockDaemon daemon = null;
@@ -75,20 +75,7 @@ public class MockNetwork {
    * resolving the SRV-address to "1-ff00:0:112".
    */
   public static synchronized void startTiny() {
-    startTiny(true);
-  }
-
-  /**
-   * @param remoteIPv4 Whether the remote AS (112) should use IPv6 or not. Note that IPv6 addresses
-   *     are mapped to ::1.
-   */
-  public static synchronized void startTiny(boolean remoteIPv4) {
-    if (remoteIPv4) {
-      startTiny(TINY_CLIENT_TOPO_V4, TINY_SRV_TOPO_V4, Mode.DAEMON, true);
-    } else {
-      // remote V6 still uses local V4....(?)
-      startTiny(TINY_CLIENT_TOPO_V6, TINY_SRV_TOPO_V6, Mode.DAEMON, true);
-    }
+    startTiny(Mode.DAEMON);
   }
 
   public static synchronized void startTiny(Mode mode) {
@@ -96,7 +83,7 @@ public class MockNetwork {
   }
 
   public static synchronized void startTiny6(Mode mode) {
-    startTiny(TINY_CLIENT_TOPO_V6_2, TINY_SRV_TOPO_V6_2, mode, false);
+    startTiny(TINY_CLIENT_TOPO_V6, TINY_SRV_TOPO_V6, mode, false);
   }
 
   private static void startTiny(String localTopo, String remoteTopo, Mode mode, boolean v4) {
