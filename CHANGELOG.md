@@ -193,8 +193,6 @@ TODO
   [#280](https://github.com/scionproto-contrib/jpan/pull/280)
 - Added IPv6 only topology + tests
   [#282](https://github.com/scionproto-contrib/jpan/pull/282)
-TODO
-- remove DemoTopology?
 
 ### Fixed
 

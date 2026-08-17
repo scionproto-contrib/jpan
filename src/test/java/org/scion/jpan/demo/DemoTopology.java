@@ -14,36 +14,20 @@
 
 package org.scion.jpan.demo;
 
-import java.net.InetSocketAddress;
-import org.scion.jpan.Constants;
-import org.scion.jpan.testutil.MockDaemon;
 import org.scion.jpan.testutil.MockNetwork;
 
 /** Helper class for setting up a demo topology. */
 public class DemoTopology {
 
-  private InetSocketAddress clientDaemonAddress;
-
-  static DemoTopology configureMock(boolean remoteIPv4) {
-    DemoTopology cfg = new DemoTopology();
-    MockNetwork.startTiny(remoteIPv4);
-    cfg.clientDaemonAddress = MockDaemon.getAddress();
-    return cfg;
+  static void configureMockV6() {
+    MockNetwork.startTiny(false);
   }
 
-  static DemoTopology configureMockV6() {
-    return configureMock(false);
-  }
-
-  static DemoTopology configureMockV4() {
-    return configureMock(true);
+  static void configureMockV4() {
+    MockNetwork.startTiny(true);
   }
 
   public static void shutDown() {
     MockNetwork.stopTiny();
-  }
-
-  private static void configurePathService(String address, int port) {
-    System.setProperty(Constants.PROPERTY_DAEMON, address + ":" + port);
   }
 }

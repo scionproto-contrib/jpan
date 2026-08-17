@@ -37,7 +37,7 @@ public class PingPongChannelClient {
   public static void main(String... args) throws IOException {
     // The following starts a mock daemon for a local AS "1-ff00:0:110" and a border router that
     // connects to "1-ff00:0:112"
-    DemoTopology.configureMock(true);
+    DemoTopology.configureMockV4();
     // This is used by the DatagramSocket internally to look up the ISD/AS code.
     MockDNS.install("1-ff00:0:112", PingPongChannelServer.SERVER_ADDRESS.getAddress());
     run();
