@@ -114,7 +114,7 @@ public class ScmpTracerouteDemo {
         new InetSocketAddress(Inet4Address.getByAddress(new byte[] {1, 2, 3, 4}), 12345);
     List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
-      String src = ScionUtil.toStringIA(service.getLocalIsdAs());
+      String src = ScionUtil.toStringIA(service.getLocalIsdAses().iterator().next());
       String dst = ScionUtil.toStringIA(destinationIA);
       throw new IOException("No path found from " + src + " to " + dst);
     }
@@ -122,7 +122,7 @@ public class ScmpTracerouteDemo {
 
     String localAddress;
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      channel.connect(path);
+      channel.connect(path.getRemoteSocketAddress());
       // We determine the address separately because SCMP will always have 0.0.0.0 as local address
       localAddress = channel.getLocalAddress().getAddress().getHostAddress();
     }

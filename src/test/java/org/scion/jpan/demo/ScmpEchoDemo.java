@@ -127,7 +127,7 @@ public class ScmpEchoDemo {
 
     String localAddress;
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-      channel.connect(path);
+      channel.connect(path.getRemoteSocketAddress());
       // We determine the address separately because SCMP will always have 0.0.0.0 as local address
       localAddress = channel.getLocalAddress().getAddress().getHostAddress();
     }

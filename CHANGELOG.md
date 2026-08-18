@@ -183,6 +183,8 @@ TODO
   [#283](https://github.com/scionproto-contrib/jpan/pull/283)
 - Added `ScionPathAddress`. This is a subclass of `ScionSocketAddress`.
   [#285](https://github.com/scionproto-contrib/jpan/pull/285)
+- Added `ScionSocketAddress` lookup in `ScionService`.
+  [#286](https://github.com/scionproto-contrib/jpan/pull/286)
 
 ### Fixed
 
