@@ -163,6 +163,11 @@ TODO
 
 ## 0.8.0 - WIP
 
+- SNAP support
+  [#271](https://github.com/scionproto-contrib/jpan/pull/271)
+TODO
+- Remove/check log.debug() messages
+
 ### Added
 
 - PathSelector API.
