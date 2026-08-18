@@ -26,26 +26,22 @@ import org.scion.jpan.*;
  */
 public class PathSelectorFixed implements PathSelector {
 
-  private ScionSocketAddress dstAddress;
-  private PathPolicy pathPolicy;
+  private boolean isOpen = false;
+  // Only for compatibility with other PathSelectors
+  private PathPolicy pathPolicy = PathPolicy.DEFAULT;
   private Path usedPath;
 
-  public static PathSelectorFixed create() {
-    return create(PathPolicy.DEFAULT);
+  public static PathSelectorFixed create(Path path) {
+    return new PathSelectorFixed(path);
   }
 
-  public static PathSelectorFixed create(PathPolicy policy) {
-    return new PathSelectorFixed(policy);
-  }
-
-  private PathSelectorFixed(PathPolicy policy) {
-    this.dstAddress = null;
-    this.pathPolicy = policy;
+  private PathSelectorFixed(Path path) {
+    this.usedPath = path;
   }
 
   @Override
   public synchronized void refresh() {
-    // Nothing to do
+    checkPathPolicy();
   }
 
   @Override
@@ -85,9 +81,6 @@ public class PathSelectorFixed implements PathSelector {
   @Override
   public synchronized void setPathPolicy(PathPolicy pathPolicy) {
     this.pathPolicy = pathPolicy;
-    if (isOpen()) {
-      checkPathPolicy();
-    }
   }
 
   private void checkPathPolicy() {
@@ -104,7 +97,7 @@ public class PathSelectorFixed implements PathSelector {
 
   @Override
   public ScionSocketAddress getRemoteSocketAddress() {
-    return dstAddress;
+    return usedPath == null ? null : usedPath.getRemoteSocketAddress();
   }
 
   /**
@@ -118,16 +111,15 @@ public class PathSelectorFixed implements PathSelector {
     if (isOpen()) {
       throw new IllegalStateException("Path selector is already running");
     }
-    this.dstAddress = remote;
-
-    // use this path
-    usedPath = remote.getPath();
-    checkPathPolicy();
+    if (usedPath == null || !usedPath.getRemoteSocketAddress().equals(remote)) {
+      throw new IllegalArgumentException("Remote address does not match fixed path: " + usedPath);
+    }
+    isOpen = true;
   }
 
   @Override
   public synchronized void close() {
-    this.dstAddress = null;
+    isOpen = false;
   }
 
   @Override
@@ -137,28 +129,6 @@ public class PathSelectorFixed implements PathSelector {
 
   @Override
   public boolean isOpen() {
-    return this.dstAddress != null;
-  }
-
-  public static class Factory extends PathSelectorFactory.AbstractPathSelectorFactory {
-
-    private static final PathSelectorFactory INSTANCE = new Factory(PathPolicy.DEFAULT);
-
-    public static PathSelectorFactory instance() {
-      return INSTANCE;
-    }
-
-    protected Factory(PathPolicy policy) {
-      super(policy);
-    }
-
-    public static PathSelectorFactory create(PathPolicy policy) {
-      return new Factory(policy);
-    }
-
-    @Override
-    public PathSelector createPathSelector(ScionService service) {
-      return PathSelectorFixed.create(getDefaultPolicy());
-    }
+    return this.isOpen;
   }
 }

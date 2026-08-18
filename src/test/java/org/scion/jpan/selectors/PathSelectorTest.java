@@ -35,10 +35,14 @@ class PathSelectorTest {
 
   private static final String TOPO_FILE = MockBootstrapServer.TOPO_TINY_110 + "topology.json";
   private static final InetSocketAddress dummyAddress;
+  private static final ScionSocketAddress dummySSA;
+  private static final Path dummyPath;
 
   static {
     InetAddress dummyIPv4 = IPHelper.toInetAddress("dummyHost", "127.0.0.1");
     dummyAddress = new InetSocketAddress(dummyIPv4, 44444);
+    dummySSA = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
+    dummyPath = PackageVisibilityHelper.createDummyPath(dummySSA);
   }
 
   private PathSelector pp = null;
@@ -68,7 +72,7 @@ class PathSelectorTest {
   private PathSelector create(Implementation impl) {
     switch (impl) {
       case FIXED:
-        return PathSelectorFixed.create(PathPolicy.DEFAULT);
+        return PathSelectorFixed.create(dummyPath);
       case WITH_REFRESH:
         return PathSelectorWithRefresh.create(Scion.defaultService(), PathPolicy.DEFAULT, 10, 50);
       default:
@@ -78,7 +82,7 @@ class PathSelectorTest {
 
   @ParameterizedTest
   @EnumSource(Implementation.class)
-  void connect_noPath(Implementation impl) throws IOException {
+  void open_noPath(Implementation impl) throws IOException {
     // Test that the selector does not loop when no path is found.
     pp = create(impl);
 
@@ -91,17 +95,18 @@ class PathSelectorTest {
     // Create expired path to trigger PathSelector
     Path expired = PackageVisibilityHelper.createExpiredPath(paths.get(0), 10);
     pp.open(expired.getRemoteSocketAddress());
-    assertNull(pp.getPath());
+    if (impl != Implementation.FIXED) {
+      assertNull(pp.getPath());
+    }
   }
 
   @ParameterizedTest
   @EnumSource(Implementation.class)
-  void connect_failsIfConnected(Implementation impl) {
+  void open_failsIfConnected(Implementation impl) {
     pp = create(impl);
 
-    ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
-    pp.open(remote);
-    Exception e = assertThrows(IllegalStateException.class, () -> pp.open(remote));
+    pp.open(dummySSA);
+    Exception e = assertThrows(IllegalStateException.class, () -> pp.open(dummySSA));
     assertTrue(e.getMessage().contains("already running"));
   }
 
@@ -110,8 +115,7 @@ class PathSelectorTest {
   void setPathPolicy_failsIfNoPath(Implementation impl) {
     pp = create(impl);
 
-    ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddress);
-    pp.open(remote);
+    pp.open(dummySSA);
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
@@ -128,6 +132,9 @@ class PathSelectorTest {
   @ParameterizedTest
   @EnumSource(Implementation.class)
   void reportFaultyPath(Implementation impl) {
+    if (impl == Implementation.FIXED) {
+      return;
+    }
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();

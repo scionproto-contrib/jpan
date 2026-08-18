@@ -78,7 +78,7 @@ class PathSelectorWithRefreshTest {
       assertNotEquals(
           expiredPath.getMetadata().getExpiration(), newPath.getMetadata().getExpiration());
 
-      // Initial connect
+      // Initial open
       pp.open(remote);
 
       // Inject an expired path
@@ -87,7 +87,7 @@ class PathSelectorWithRefreshTest {
       pp.setPathPolicy(ppExp);
       pp.refresh();
 
-      // No calls done in connect() or setPathPolicy()
+      // No calls done in open() or setPathPolicy()
       assertEquals(4, MockNetwork.getControlServer().getAndResetCallCount());
       // Path is now the expired path
       assertEquals(
@@ -129,7 +129,7 @@ class PathSelectorWithRefreshTest {
         assertEquals(ScionUtil.parseIA("1-ff00:0:112"), newPath1.getLocalIsdAs());
         assertNotEquals(newPath0, newPath1);
 
-        // Initial connect
+        // Initial open
         pp.open(remote);
 
         pp.reportError(createError5(newPath0, 1));
@@ -144,7 +144,7 @@ class PathSelectorWithRefreshTest {
   }
 
   @Test
-  void connect_noPath() {
+  void open_noPath() {
     // Test that the selector does not loop when no path is found.
     ScionService service = Scion.defaultService();
     pp = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);

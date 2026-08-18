@@ -44,7 +44,7 @@ class PathSelectorNullTest {
   }
 
   @Test
-  void connect_fails() {
+  void open_fails() {
     pp = PathSelectorNull.instance();
     // Create expired path to trigger PathSelector
     Path path = PackageVisibilityHelper.createDummyPath();

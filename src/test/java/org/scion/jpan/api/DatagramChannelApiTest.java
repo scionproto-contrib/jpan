@@ -37,7 +37,6 @@ import org.scion.jpan.internal.util.ExternalIpDiscovery;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
-import org.scion.jpan.selectors.PathSelectorFixed;
 import org.scion.jpan.selectors.PathSelectorWithRefresh;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
@@ -814,7 +813,7 @@ class DatagramChannelApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathSelectorFactory ppNoOp = PathSelectorFixed.Factory.create(policy);
+    PathSelectorFactory ppNoOp = PathSelectorWithRefresh.Factory.create(policy);
     PathSelector ps = ppNoOp.createPathSelector(Scion.defaultService());
     try (ScionDatagramChannel channel =
         ScionDatagramChannel.newBuilder()

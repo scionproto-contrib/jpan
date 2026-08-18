@@ -12,9 +12,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## TODO
 - After release: update exercise for PathSelector
 
-- Change FixedSelector to be created with Path..?!
-  Rename to FixedPath selector?
-
 - Later: ScionService API:
   ISA -> SSA
   SSA -> List<Path>

@@ -55,32 +55,32 @@ class PathSelectorFixedTest {
   }
 
   @Test
-  void connect_noPath() throws IOException {
-    // Test that the selector does not loop when no path is found.
-    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
-
+  void open_noPath() throws IOException {
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
+    pp = PathSelectorFixed.create(paths.get(0));
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
     pp.setPathPolicy(empty);
+    pp.refresh();
 
     // Create expired path to trigger PathSelector
-    pp.open(paths.get(0).getRemoteSocketAddress());
+    ScionSocketAddress remote = paths.get(0).getRemoteSocketAddress();
+    assertThrows(IllegalArgumentException.class, () -> pp.open(remote));
     assertNull(pp.getPath());
   }
 
   @Test
   void setPathPolicy_failsIfNoPath() throws IOException {
-    // Test that the selector does not loop when no path is found.
-    pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
-
     List<Path> paths = Scion.defaultService().lookupPaths(someAddress);
+    pp = PathSelectorFixed.create(paths.get(0));
+
     pp.open(paths.get(0).getRemoteSocketAddress());
 
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
     pp.setPathPolicy(empty);
+    pp.refresh();
     assertNull(pp.getPath());
   }
 
@@ -110,10 +110,10 @@ class PathSelectorFixedTest {
     MockNetwork.stopTiny();
     try (MockNetwork2 nw = MockNetwork2.start(MockNetwork2.Topology.DEFAULT, "ASff00_0_112")) {
       ScionService service = Scion.defaultService();
-      pp = PathSelectorFixed.create(PathPolicy.DEFAULT);
       InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
       ScionSocketAddress remote = PackageVisibilityHelper.toSSA("1-ff00:0:110", dummyAddr);
       List<Path> paths = service.getPaths(remote);
+      pp = PathSelectorFixed.create(paths.get(0));
       // reset counter
       assertEquals(2, nw.getControlServer().getAndResetCallCount());
 
