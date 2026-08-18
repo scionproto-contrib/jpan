@@ -387,4 +387,25 @@ public class PathSelectorWithRefresh implements PathSelector {
   static int getQueueSize() {
     return timer.getQueue().size();
   }
+
+  public static class Factory extends PathSelectorFactory.AbstractPathSelectorFactory {
+
+    private static final PathSelectorFactory INSTANCE = new Factory(PathPolicy.DEFAULT);
+
+    public static PathSelectorFactory instance() {
+      return INSTANCE;
+    }
+
+    protected Factory(PathPolicy defaultPolicy) {
+      super(defaultPolicy);
+    }
+
+    public static PathSelectorFactory create(PathPolicy defaultPolicy) {
+      return new Factory(defaultPolicy);
+    }
+
+    public PathSelector createPathSelector(ScionService service) {
+      return PathSelectorWithRefresh.create(service, getDefaultPolicy());
+    }
+  }
 }

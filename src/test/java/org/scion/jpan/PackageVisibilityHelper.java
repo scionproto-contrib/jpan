@@ -90,6 +90,12 @@ public class PackageVisibilityHelper {
     return createDummyPath(dstAddr.getAddress(), dstAddr.getPort());
   }
 
+  public static RequestPath createDummyPath(ScionSocketAddress dstAddr) {
+    InetAddress dstIp = dstAddr.getAddress();
+    InetSocketAddress firstHop = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    return createDummyPath(0, dstAddr.getIsdAs(), dstIp, dstAddr.getPort(), new byte[0], firstHop);
+  }
+
   public static RequestPath createDummyPath(InetAddress dstIP, int dstPort) {
     InetSocketAddress firstHop = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
     return createDummyPath(0, 0, dstIP, dstPort, new byte[0], firstHop);

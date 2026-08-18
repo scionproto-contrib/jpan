@@ -31,8 +31,7 @@ import org.scion.jpan.internal.header.PathHeaderParser;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
-import org.scion.jpan.selectors.PathSelectorFactory;
-import org.scion.jpan.selectors.PathSelectorFixed;
+import org.scion.jpan.selectors.PathSelectorNull;
 
 public class ScmpSenderAsync implements AutoCloseable {
   private int timeOutMs = 1000;
@@ -207,7 +206,7 @@ public class ScmpSenderAsync implements AutoCloseable {
         ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
       // We provide the no-op PathSelector. SCMP channels are never connected, so the
       // PathSelector will never be used.
-      super(service, channel, PathSelectorFixed.create(), PathSelectorFactory.Fixed.instance());
+      super(service, channel, PathSelectorNull.instance(), PathSelectorNull.Factory.instance());
 
       try {
         // selector

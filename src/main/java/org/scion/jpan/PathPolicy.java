@@ -51,8 +51,10 @@ public interface PathPolicy {
       List<Path> result = new ArrayList<>(paths);
       result.sort(
           (p1, p2) -> {
-            int bw1 = Collections.min(p1.getMetadata().getBandwidths()).intValue();
-            int bw2 = Collections.min(p2.getMetadata().getBandwidths()).intValue();
+            List<Long> bwList1 = p1.getMetadata().getBandwidths();
+            List<Long> bwList2 = p2.getMetadata().getBandwidths();
+            int bw1 = bwList1.isEmpty() ? 0 : Collections.min(bwList1).intValue();
+            int bw2 = bwList2.isEmpty() ? 0 : Collections.min(bwList2).intValue();
             return Integer.compare(bw2, bw1);
           });
       return result;

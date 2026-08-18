@@ -399,7 +399,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         //   switching.
         localAddress = getNatMapping().getExternalIP();
       }
-      pathSelectorForConnectPath = PathSelectorFixed.create(PathPolicy.DEFAULT);
+      pathSelectorForConnectPath = PathSelectorFixed.create(path);
       pathSelectorForConnectPath.open(path.getRemoteSocketAddress());
       isConnected = true;
       return (C) this;

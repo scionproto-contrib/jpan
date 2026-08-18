@@ -28,6 +28,7 @@ import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorWithRefresh;
 
 public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChannel>
     implements ByteChannel, Closeable {
@@ -352,11 +353,11 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
       }
 
       if (selector == null && service != null) {
-        selector = PathSelectorFactory.Default.instance().createPathSelector(service);
+        selector = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
       }
 
       if (factory == null && service != null) {
-        factory = PathSelectorFactory.Default.instance();
+        factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
       }
 
       return new ScionDatagramChannel(service, channel, selector, factory);

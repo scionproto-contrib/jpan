@@ -37,6 +37,7 @@ import org.scion.jpan.internal.util.ExternalIpDiscovery;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorWithRefresh;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockDNS;
@@ -449,7 +450,7 @@ class DatagramChannelApiTest {
   void write_noPathFound() throws IOException {
     // Create empty path policy
     PathPolicy empty = paths1 -> Collections.emptyList();
-    PathSelectorFactory psf = PathSelectorFactory.Default.create(empty);
+    PathSelectorFactory psf = PathSelectorWithRefresh.Factory.create(empty);
     PathSelector ps = psf.createPathSelector(Scion.defaultService());
 
     try (ScionDatagramChannel channel =
@@ -812,7 +813,7 @@ class DatagramChannelApiTest {
   @Test
   void newBuilder_pathProvider() throws IOException {
     PathPolicy policy = new PathPolicy.MaxBandwith();
-    PathSelectorFactory ppNoOp = PathSelectorFactory.Fixed.create(policy);
+    PathSelectorFactory ppNoOp = PathSelectorWithRefresh.Factory.create(policy);
     PathSelector ps = ppNoOp.createPathSelector(Scion.defaultService());
     try (ScionDatagramChannel channel =
         ScionDatagramChannel.newBuilder()

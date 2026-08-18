@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
+- After release: update exercise for PathSelector
+
+- Later: ScionService API:
+  ISA -> SSA
+  SSA -> List<Path>
+  (Path references SSA?) Or SPA?
+  (Hide SSA.getPath)? 
+  --> Document this (COnceptually: SSA has no Path. However, to enable drop-in use
+  of DatagramChannel, we associate a Payj wit some SSAs)
+  we internally )
+
 - Remove Path from ScionSocketAddress?
   - Make Path subclass of ScionSocketAddress?
     - Pro: 
@@ -26,6 +37,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
       - Needs weird checks everywhere for path==null...
         - Metadata is already optional.... 
   - RESULT: Try Subclass approach and see how bad it is... 
+  - Caveats: equals() and hashcode() are "final" in InetSocketAddress.
+             -> In a Path class, having the Path ignored by equals() is not acceptable
+  - For transparent send()/receive() we need to be able to return a subclass that 
+    has a Path associated. 
+  - Solution: Either have two ScionSocketAddresses, one with and one without paths.
+    Or: Make the Path field optional and add hasPath().
+    Or: Make getPath() package private so the user never learns of the path?
+  - We should really have a Service.lookup method that returns addresses withou paths....
+     
 
 - Consider Performance/Security debugging mode:
   - Checks that Channel.send() uses resolved addresses -> log ERROR / throw Exception?
@@ -177,6 +197,7 @@ TODO
   (it did that despite the javadoc saying otherwise).
   [#275](https://github.com/scionproto-contrib/jpan/pull/275)
   [#277](https://github.com/scionproto-contrib/jpan/pull/277)
+  [#284](https://github.com/scionproto-contrib/jpan/pull/284)
 - Added ScionDatagram packet
   [#278](https://github.com/scionproto-contrib/jpan/pull/278)
   [#279](https://github.com/scionproto-contrib/jpan/pull/279)
