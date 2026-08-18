@@ -298,6 +298,10 @@ class ScionServiceTest {
       assertEquals(SCION_HOST + "/127.0.0.1", sAddr.getAddress().toString());
       assertEquals(SCION_HOST_PORT, sAddr.getPort());
       assertEquals(SCION_HOST, sAddr.getHostName());
+
+      // Verify that SSA lookup returns the same instance with performing actual lookup:
+      ScionSocketAddress sAddr2 = pathService.lookup(sAddr);
+      assertSame(sAddr, sAddr2);
     } finally {
       System.clearProperty(PackageVisibilityHelper.DEBUG_PROPERTY_DNS_MOCK);
       ScionService.closeDefault();
