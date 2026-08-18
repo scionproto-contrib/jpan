@@ -21,32 +21,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   of DatagramChannel, we associate a Payj wit some SSAs)
   we internally )
 
-- Remove Path from ScionSocketAddress?
-  - Make Path subclass of ScionSocketAddress?
-    - Pro: 
-      - Path can be used transparently with server.receive() & server.send()
-      - Having ScionSocketAddress w/o Path can be useful, e.g. as argument to 
-        PathSelector constructors or to connect()
-        --> works also with optional field... 
-    - Contra: 
-      - Deep inheritance hierarchy.
-      - Resolving an address leads to throwaway ScionSocketAddress objects
-  - Make Path an "optional" (final) field of ScionSocketAddress?
-    - Pro: Path can be used transparently with server.receive() & server.send()
-    - Contra:
-      - Needs weird checks everywhere for path==null...
-        - Metadata is already optional.... 
-  - RESULT: Try Subclass approach and see how bad it is... 
-  - Caveats: equals() and hashcode() are "final" in InetSocketAddress.
-             -> In a Path class, having the Path ignored by equals() is not acceptable
-  - For transparent send()/receive() we need to be able to return a subclass that 
-    has a Path associated. 
-  - Solution: Either have two ScionSocketAddresses, one with and one without paths.
-    Or: Make the Path field optional and add hasPath().
-    Or: Make getPath() package private so the user never learns of the path?
-  - We should really have a Service.lookup method that returns addresses withou paths....
-     
-
 - Consider Performance/Security debugging mode:
   - Checks that Channel.send() uses resolved addresses -> log ERROR / throw Exception?
   - Checks that Socket.send() uses ScionDatagramPacket -> log ERROR / throw Exception?
