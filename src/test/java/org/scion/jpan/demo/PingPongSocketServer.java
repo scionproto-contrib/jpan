@@ -39,7 +39,7 @@ public class PingPongSocketServer {
     }
   }
 
-  public static void main(String[] args) throws UnknownHostException {
+  public static void main(String[] args) {
     System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
     try {
       service();

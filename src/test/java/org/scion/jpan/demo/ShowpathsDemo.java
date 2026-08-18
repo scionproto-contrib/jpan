@@ -122,7 +122,7 @@ public class ShowpathsDemo {
     for (Path path : paths) {
       String localIP;
       try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
-        channel.connect(path);
+        channel.connect(path.getRemoteSocketAddress());
         localIP = channel.getLocalAddress().getAddress().getHostAddress();
       }
       PathMetadata meta = path.getMetadata();

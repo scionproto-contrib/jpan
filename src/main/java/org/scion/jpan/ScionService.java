@@ -265,13 +265,38 @@ public class ScionService {
   }
 
   /**
-   * Resolves the address to a SCION address or returns the address if it is already resolved.
+   * Resolves the address to a SCION address.
    *
-   * @param dstAddr Destination address
-   * @return A ScionSocketAddress without paths (unless it already has paths).
+   * @param hostName Destination host name
+   * @return A ScionSocketAddress
    * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
    */
-  ScionSocketAddress lookup(InetSocketAddress dstAddr) throws ScionException {
+  public ScionSocketAddress lookup(String hostName, int port) throws ScionException {
+    ScionAddress sa = AddressLookupService.lookupAddress(hostName);
+    return ScionSocketAddress.from(sa.getIsdAs(), sa.getInetAddress(), port);
+  }
+
+  /**
+   * Resolves the address to a SCION address.
+   *
+   * @param dstAddr Destination address
+   * @return A ScionSocketAddress
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  public ScionSocketAddress lookup(InetAddress dstAddr, int port) throws ScionException {
+    ScionAddress sa = AddressLookupService.lookupAddress(dstAddr.getHostName());
+    return ScionSocketAddress.from(sa.getIsdAs(), sa.getInetAddress(), port);
+  }
+
+  /**
+   * Resolves the address to a SCION address or returns the address if it is already resolve (i.e.
+   * if it is already an instance of ScionSocketAddress).
+   *
+   * @param dstAddr Destination address
+   * @return A ScionSocketAddress
+   * @throws ScionException if the DNS/TXT lookup did not return a (valid) SCION address.
+   */
+  public ScionSocketAddress lookup(InetSocketAddress dstAddr) throws ScionException {
     if (dstAddr instanceof ScionSocketAddress) {
       return (ScionSocketAddress) dstAddr;
     }
