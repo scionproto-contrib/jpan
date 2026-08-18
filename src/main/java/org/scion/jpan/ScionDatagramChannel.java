@@ -121,8 +121,8 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
    * Attempts to send the content of the buffer to the destination Address.
    *
    * <p>If the `destination` is of type {@link InetSocketAddress}, a path lookup is performed.<br>
-   * Otherwise, if the `destination` is of type {@link ScionSocketAddress}, the contained path is
-   * used directly. Path expiration is *not* checked.
+   * Otherwise, if the `destination` is of type {@link ScionPathAddress}, the contained path is used
+   * directly. Path expiration is *not* checked.
    *
    * @param srcBuffer Data to send
    * @param destination Destination address. If this is not a ScionSocketAddress, this should

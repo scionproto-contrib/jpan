@@ -188,7 +188,7 @@ public class PackageVisibilityHelper {
   }
 
   public static ScionSocketAddress toSSA(long isdAs, InetSocketAddress dstAddr) {
-    return UnresolvedScionSocketAddress.from(isdAs, dstAddr.getAddress(), dstAddr.getPort());
+    return ScionSocketAddress.from(isdAs, dstAddr.getAddress(), dstAddr.getPort());
   }
 
   public static ScionSocketAddress toSSA(String isdAs, InetSocketAddress dstAddr) {

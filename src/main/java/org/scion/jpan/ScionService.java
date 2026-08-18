@@ -276,7 +276,7 @@ public class ScionService {
       return (ScionSocketAddress) dstAddr;
     }
     ScionAddress sa = AddressLookupService.lookupAddress(dstAddr.getHostString());
-    return UnresolvedScionSocketAddress.from(sa.getIsdAs(), sa.getInetAddress(), dstAddr.getPort());
+    return ScionSocketAddress.from(sa.getIsdAs(), sa.getInetAddress(), dstAddr.getPort());
   }
 
   /**

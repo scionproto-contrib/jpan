@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   SSA -> List<Path>
   (Path references SSA?) Or SPA?
   (Hide SSA.getPath)? 
-  --> Document this (COnceptually: SSA has no Path. However, to enable drop-in use
+  --> Document this (Conceptually: SSA has no Path. However, to enable drop-in use
   of DatagramChannel, we associate a Payj wit some SSAs)
   we internally )
 
