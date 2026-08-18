@@ -286,7 +286,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    *
    * <p>NB: A SCION channel will internally connect to the next border router (first hop) instead of
    * the remote host. <br>
-   * If the address is an instance of {@link ScionSocketAddress} then connect will use the path
+   * If the address is an instance of {@link ScionPathAddress} then connect will use the path
    * associated with the address, see {@link #connect(Path)}.
    *
    * <p>NB: This method does internally not call {@link

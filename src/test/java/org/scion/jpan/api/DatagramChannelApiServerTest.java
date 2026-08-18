@@ -163,7 +163,7 @@ class DatagramChannelApiServerTest {
       channel.bind(new InetSocketAddress("127.0.0.1", 12345));
       assertNull(channel.getService());
       ByteBuffer buffer = ByteBuffer.allocate(100);
-      ScionSocketAddress responseAddress = channel.receive(buffer);
+      ScionPathAddress responseAddress = channel.receive(buffer);
       assertNull(channel.getService());
       assertEquals(addr, responseAddress.getPath().getFirstHopAddress());
     }
@@ -205,7 +205,7 @@ class DatagramChannelApiServerTest {
     try {
       service = Scion.newServiceWithTopologyFile(topoFile);
       try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
-        ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
+        ScionPathAddress address = channel.receive(ByteBuffer.allocate(1000));
         assertEquals(brAddress, address.getPath().getFirstHopAddress());
         assertNotEquals(scionSrc, address.getPath().getFirstHopAddress());
         assertNotEquals(underLaySrc, address.getPath().getFirstHopAddress());
@@ -269,7 +269,7 @@ class DatagramChannelApiServerTest {
     try {
       service = Scion.newServiceWithTopologyFile(topoFile);
       try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
-        ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
+        ScionPathAddress address = channel.receive(ByteBuffer.allocate(1000));
         assertEquals(brAddress, address.getPath().getFirstHopAddress());
         assertNotEquals(scionSrc, address.getPath().getFirstHopAddress());
         assertNotEquals(underLaySrc, address.getPath().getFirstHopAddress());
@@ -311,7 +311,7 @@ class DatagramChannelApiServerTest {
     try {
       service = Scion.newServiceWithTopologyFile("topologies/tiny4/ASff00_0_112/topology.json");
       try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mdc)) {
-        ScionSocketAddress address = channel.receive(ByteBuffer.allocate(1000));
+        ScionPathAddress address = channel.receive(ByteBuffer.allocate(1000));
         assertEquals(underLaySrc, address.getPath().getFirstHopAddress());
         assertNotEquals(scionSrc, address.getPath().getFirstHopAddress());
       } finally {

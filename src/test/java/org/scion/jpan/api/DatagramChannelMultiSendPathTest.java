@@ -21,17 +21,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.Path;
-import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionService;
-import org.scion.jpan.ScionSocketAddress;
+import org.scion.jpan.*;
 import org.scion.jpan.testutil.PingPongChannelHelper;
 
 /** Test receive()/send(Path) operations on DatagramChannel. */
 class DatagramChannelMultiSendPathTest {
 
   @AfterAll
-  public static void afterAll() {
+  static void afterAll() {
     // Defensive clean up
     ScionService.closeDefault();
   }
@@ -51,7 +48,7 @@ class DatagramChannelMultiSendPathTest {
 
     // System.out.println("CLIENT: Receiving ... (" + channel.getLocalAddress() + ")");
     ByteBuffer response = ByteBuffer.allocate(512);
-    ScionSocketAddress address = channel.receive(response);
+    ScionPathAddress address = channel.receive(response);
     assertNotNull(address);
     assertEquals(serverAddress.getRemoteAddress(), address.getAddress());
     assertEquals(serverAddress.getRemotePort(), address.getPort());
