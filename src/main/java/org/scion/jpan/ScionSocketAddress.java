@@ -22,17 +22,40 @@ public class ScionSocketAddress extends InetSocketAddress {
   private final Path path;
   private final long isdAs;
 
-  public static ScionSocketAddress from(Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
+  public static ScionSocketAddress from(long dstIsdAs, InetAddress dstIP, int dstPort) {
+    return new ScionSocketAddress(dstIsdAs, dstIP, dstPort);
+  }
+
+  /**
+   * @deprecated This will be removed in 0.8.0
+   */
+  @Deprecated // TODO remove in 0.8.0
+  static ScionSocketAddress from(Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
     return new ScionSocketAddress(path, dstIsdAs, dstIP, dstPort);
   }
 
+  /**
+   * @deprecated This will be removed in 0.8.0
+   */
+  @Deprecated // TODO remove in 0.8.0
   protected ScionSocketAddress(Path path, long dstIsdAs, InetAddress dstIP, int dstPort) {
     super(dstIP, dstPort);
     this.path = path;
     this.isdAs = dstIsdAs;
   }
 
-  public Path getPath() {
+  protected ScionSocketAddress(long dstIsdAs, InetAddress dstIP, int dstPort) {
+    super(dstIP, dstPort);
+    this.path = null;
+    this.isdAs = dstIsdAs;
+  }
+
+  /**
+   * @deprecated This will be removed in 0.8.0
+   * @return Path
+   */
+  @Deprecated // TODO remove in 0.8.0
+  Path getPath() {
     return path;
   }
 

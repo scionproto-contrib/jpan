@@ -27,7 +27,7 @@ public abstract class Path {
   private final byte[] pathRaw;
   private final InetSocketAddress firstHop;
   private final long srcIsdAs;
-  private final ScionSocketAddress dstAddress;
+  private final ScionPathAddress dstAddress;
 
   protected Path(
       byte[] rawPath,
@@ -38,7 +38,7 @@ public abstract class Path {
       int dstPort) {
     this.pathRaw = rawPath;
     this.firstHop = firstHop;
-    this.dstAddress = ScionSocketAddress.from(this, dstIsdAs, dstIP, dstPort);
+    this.dstAddress = ScionPathAddress.from(this, dstIsdAs, dstIP, dstPort);
     this.srcIsdAs = srcIsdAs;
   }
 
@@ -75,7 +75,7 @@ public abstract class Path {
     return dstAddress.getIsdAs();
   }
 
-  public ScionSocketAddress getRemoteSocketAddress() {
+  public ScionPathAddress getRemoteSocketAddress() {
     return dstAddress;
   }
 

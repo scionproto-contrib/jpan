@@ -103,7 +103,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
   }
 
   @Override
-  public ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
+  public ScionPathAddress receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());

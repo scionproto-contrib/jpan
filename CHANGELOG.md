@@ -207,6 +207,8 @@ TODO
 - Added IPv6 only topology + tests
   [#282](https://github.com/scionproto-contrib/jpan/pull/282)
   [#283](https://github.com/scionproto-contrib/jpan/pull/283)
+- Added `ScionPathAddress`. This is a subclass of `ScionSocketAddress`.
+  [#285](https://github.com/scionproto-contrib/jpan/pull/285)
 
 ### Fixed
 

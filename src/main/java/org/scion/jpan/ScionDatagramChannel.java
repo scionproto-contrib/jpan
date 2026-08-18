@@ -101,7 +101,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     super.configureBlocking(block);
   }
 
-  public ScionSocketAddress receive(ByteBuffer userBuffer) throws IOException {
+  public ScionPathAddress receive(ByteBuffer userBuffer) throws IOException {
     readLock().lock();
     try {
       ByteBuffer buffer = getBufferReceive(userBuffer.capacity());
@@ -137,8 +137,8 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
     if (!(destination instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Address must be of type InetSocketAddress.");
     }
-    if (destination instanceof ScionSocketAddress) {
-      return sendInternal(srcBuffer, ((ScionSocketAddress) destination).getPath());
+    if (destination instanceof ScionPathAddress) {
+      return sendInternal(srcBuffer, ((ScionPathAddress) destination).getPath());
     }
 
     InetSocketAddress dst = (InetSocketAddress) destination;
