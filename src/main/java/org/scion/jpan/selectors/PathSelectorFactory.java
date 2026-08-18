@@ -31,47 +31,4 @@ public interface PathSelectorFactory {
       return defaultPolicy;
     }
   }
-
-  class Default extends AbstractPathSelectorFactory {
-
-    private static final PathSelectorFactory INSTANCE = new Default(PathPolicy.DEFAULT);
-
-    public static PathSelectorFactory instance() {
-      return INSTANCE;
-    }
-
-    protected Default(PathPolicy defaultPolicy) {
-      super(defaultPolicy);
-    }
-
-    public static PathSelectorFactory create(PathPolicy defaultPolicy) {
-      return new Default(defaultPolicy);
-    }
-
-    public PathSelector createPathSelector(ScionService service) {
-      return PathSelectorWithRefresh.create(service, getDefaultPolicy());
-    }
-  }
-
-  class Fixed extends AbstractPathSelectorFactory {
-
-    private static final PathSelectorFactory INSTANCE = new Fixed(PathPolicy.DEFAULT);
-
-    public static PathSelectorFactory instance() {
-      return INSTANCE;
-    }
-
-    protected Fixed(PathPolicy policy) {
-      super(policy);
-    }
-
-    public static PathSelectorFactory create(PathPolicy policy) {
-      return new Fixed(policy);
-    }
-
-    @Override
-    public PathSelector createPathSelector(ScionService service) {
-      return PathSelectorFixed.create(getDefaultPolicy());
-    }
-  }
 }

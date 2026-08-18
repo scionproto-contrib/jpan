@@ -139,4 +139,26 @@ public class PathSelectorFixed implements PathSelector {
   public boolean isOpen() {
     return this.dstAddress != null;
   }
+
+  public static class Factory extends PathSelectorFactory.AbstractPathSelectorFactory {
+
+    private static final PathSelectorFactory INSTANCE = new Factory(PathPolicy.DEFAULT);
+
+    public static PathSelectorFactory instance() {
+      return INSTANCE;
+    }
+
+    protected Factory(PathPolicy policy) {
+      super(policy);
+    }
+
+    public static PathSelectorFactory create(PathPolicy policy) {
+      return new Factory(policy);
+    }
+
+    @Override
+    public PathSelector createPathSelector(ScionService service) {
+      return PathSelectorFixed.create(getDefaultPolicy());
+    }
+  }
 }

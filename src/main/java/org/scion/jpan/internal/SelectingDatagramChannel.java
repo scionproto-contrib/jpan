@@ -27,6 +27,7 @@ import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.selectors.PathSelectorNull;
+import org.scion.jpan.selectors.PathSelectorWithRefresh;
 
 /**
  * DatagramChannel with support for timeout.
@@ -138,9 +139,9 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
 
       if (selector == null) {
         if (service == null) {
-          selector = null; // PathSelectorFixed.create();
+          selector = PathSelectorNull.instance();
         } else {
-          selector = PathSelectorFactory.Default.instance().createPathSelector(service);
+          selector = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
         }
       }
 
@@ -148,7 +149,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
         if (service == null) {
           factory = PathSelectorNull.Factory.instance();
         } else {
-          factory = PathSelectorFactory.Default.instance();
+          factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
         }
       }
 
