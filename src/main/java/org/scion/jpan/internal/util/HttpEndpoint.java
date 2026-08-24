@@ -20,8 +20,8 @@ public final class HttpEndpoint {
   private HttpEndpoint() {}
 
   /**
-   * Normalizes an endpoint into a base URL, e.g. for use as {@code baseUrl + path}. If the
-   * endpoint already starts with "http://" or "https://" that scheme is kept, otherwise {@code
+   * Normalizes an endpoint into a base URL, e.g. for use as {@code baseUrl + path}. If the endpoint
+   * already starts with "http://" or "https://" that scheme is kept, otherwise {@code
    * defaultScheme} is prepended. Any trailing slashes are stripped.
    */
   public static String normalizeBaseUrl(String endpoint, String defaultScheme) {

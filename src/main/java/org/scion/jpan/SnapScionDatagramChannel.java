@@ -119,11 +119,10 @@ final class SnapScionDatagramChannel extends ScionDatagramChannel {
   }
 
   /**
-   * Ensures the SNAP tunnel handshake has completed and installs the SNAP-server-assigned
-   * address as the SCION source address. Without this, the source address would fall back to
-   * {@link org.scion.jpan.internal.NatMapping}, which knows nothing about the SNAP tunnel and
-   * would report the local (pre-NAT) address of an underlay socket that isn't even used to send
-   * traffic.
+   * Ensures the SNAP tunnel handshake has completed and installs the SNAP-server-assigned address
+   * as the SCION source address. Without this, the source address would fall back to {@link
+   * org.scion.jpan.internal.NatMapping}, which knows nothing about the SNAP tunnel and would report
+   * the local (pre-NAT) address of an underlay socket that isn't even used to send traffic.
    */
   private void ensureSnapSourceAddress() throws IOException {
     if (getOverrideSourceAddress() != null) {

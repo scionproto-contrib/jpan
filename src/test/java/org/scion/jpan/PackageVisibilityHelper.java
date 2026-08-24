@@ -29,7 +29,6 @@ import org.scion.jpan.internal.snap.SnapTunnelSession;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
-import org.scion.jpan.selectors.PathSelectorFixed;
 import org.scion.jpan.selectors.PathSelectorWithRefresh;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
@@ -216,7 +215,8 @@ public class PackageVisibilityHelper {
     // TODO why do whe have this here?
     System.err.println("FIXME ScionDatagramChannel openSnapChannel -- DEFAULT service!!!");
     DatagramChannel udp = DatagramChannel.open();
-    PathSelector selector = PathSelectorWithRefresh.create(Scion.defaultService(), PathPolicy.DEFAULT);
+    PathSelector selector =
+        PathSelectorWithRefresh.create(Scion.defaultService(), PathPolicy.DEFAULT);
     PathSelectorFactory factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
     return new SnapScionDatagramChannel(null, udp, selector, factory, session);
   }

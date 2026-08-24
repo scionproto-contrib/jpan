@@ -113,8 +113,8 @@ public class ScmpTracerouteDemo {
   private static int runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // Dummy address. The traceroute will contact the control service IP instead.
-//    InetSocketAddress destinationAddress =
-//            new InetSocketAddress(Inet4Address.getByAddress(new byte[] {1, 2, 3, 4}), 12345);
+    //    InetSocketAddress destinationAddress =
+    //            new InetSocketAddress(Inet4Address.getByAddress(new byte[] {1, 2, 3, 4}), 12345);
     InetSocketAddress destinationAddress = IPHelper.toInetSocketAddress("[::1]:12345");
     List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {

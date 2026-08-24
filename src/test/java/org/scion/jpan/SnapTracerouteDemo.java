@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.scion.jpan.internal.bootstrap.EndhostApiDiscoveryClient;
 import org.scion.jpan.internal.snap.TokenFetcher;
 
 /** SCMP traceroute demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
@@ -64,7 +65,7 @@ public class SnapTracerouteDemo {
               + cli.destinationIp.getHostAddress()
               + ": local_port="
               + cli.localPort);
-      System.out.println("Using SNAP underlay via Endhost API " + cli.endhostApi);
+      System.out.println("Using SNAP underlay via Endhost API " + cli.endhostApiDescription());
 
       int transmitted = 0;
       int received = 0;
@@ -128,8 +129,7 @@ public class SnapTracerouteDemo {
 
   private static void configureSnap(Cli cli) {
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
-    System.setProperty(
-        Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, toBootstrapAddress(cli.endhostApi));
+    System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, resolveBootstrapAddress(cli));
     if (cli.snapControl != null) {
       System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, cli.snapControl);
     }
@@ -141,6 +141,25 @@ public class SnapTracerouteDemo {
       System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
       System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
     }
+  }
+
+  /**
+   * Resolves the endhost API address(es) to bootstrap from. If {@code --discovery} was given, the
+   * global endhost-API discovery service is queried first and its candidates (tried in order by the
+   * existing multi-candidate path-service bootstrap) are used instead of a fixed {@code
+   * --endhost-api} address.
+   */
+  private static String resolveBootstrapAddress(Cli cli) {
+    if (cli.discoveryEndpoint != null) {
+      List<String> candidates =
+          EndhostApiDiscoveryClient.discoverEndhostApis(cli.discoveryEndpoint);
+      if (candidates.isEmpty()) {
+        throw new ScionRuntimeException(
+            "Endhost API discovery returned no candidates: " + cli.discoveryEndpoint);
+      }
+      return String.join(";", candidates);
+    }
+    return toBootstrapAddress(cli.endhostApi);
   }
 
   private static String toBootstrapAddress(String endhostApi) {
@@ -160,6 +179,7 @@ public class SnapTracerouteDemo {
     final String destinationIa;
     final InetAddress destinationIp;
     final String endhostApi;
+    final String discoveryEndpoint;
     final String snapControl;
     final int localPort;
     final String snapToken;
@@ -170,6 +190,7 @@ public class SnapTracerouteDemo {
         String destinationIa,
         InetAddress destinationIp,
         String endhostApi,
+        String discoveryEndpoint,
         String snapControl,
         int localPort,
         String snapToken,
@@ -178,11 +199,16 @@ public class SnapTracerouteDemo {
       this.destinationIa = destinationIa;
       this.destinationIp = destinationIp;
       this.endhostApi = endhostApi;
+      this.discoveryEndpoint = discoveryEndpoint;
       this.snapControl = snapControl;
       this.localPort = localPort;
       this.snapToken = snapToken;
       this.timeoutMs = timeoutMs;
       this.logLevel = logLevel;
+    }
+
+    String endhostApiDescription() {
+      return discoveryEndpoint != null ? "discovery:" + discoveryEndpoint : endhostApi;
     }
 
     static Cli parse(String[] args) throws IOException {
@@ -198,6 +224,7 @@ public class SnapTracerouteDemo {
 
       String destination = null;
       String endhostApi = null;
+      String discoveryEndpoint = null;
       String snapControl = null;
       Integer localPort = null;
       String authKeyFile = null;
@@ -212,6 +239,9 @@ public class SnapTracerouteDemo {
         switch (args[i]) {
           case "--endhost-api":
             endhostApi = args[++i];
+            break;
+          case "--discovery":
+            discoveryEndpoint = args[++i];
             break;
           case "--snap-control":
             snapControl = args[++i];
@@ -243,7 +273,7 @@ public class SnapTracerouteDemo {
       }
 
       if (destination == null
-          || endhostApi == null
+          || (endhostApi == null && discoveryEndpoint == null)
           || localPort == null
           || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
@@ -280,6 +310,7 @@ public class SnapTracerouteDemo {
           destinationIa,
           destinationIp,
           endhostApi,
+          discoveryEndpoint,
           snapControl,
           localPort,
           snapToken,
@@ -288,8 +319,8 @@ public class SnapTracerouteDemo {
     }
 
     private static String usage() {
-      return "Usage: SnapTracerouteDemo DEST_IA,[IP] --endhost-api URL --port PORT "
-          + "--snap-token FILE [--snap-control URL] [--timeout-ms MS] "
+      return "Usage: SnapTracerouteDemo DEST_IA,[IP] (--endhost-api URL | --discovery URL) "
+          + "--port PORT --snap-token FILE [--snap-control URL] [--timeout-ms MS] "
           + "[--log LEVEL]";
     }
   }

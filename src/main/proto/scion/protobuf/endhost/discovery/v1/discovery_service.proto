@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option java_package = "org.scion.jpan.proto.endhost.discovery";
+
+package scion.endhost.discovery.v1;
+
+// Global directory service for discovering real, region-appropriate endhost API addresses.
+// Unlike scion.endhost.v1.UnderlayService, this service is not itself an endhost API: it returns
+// the addresses of endhost APIs to actually query for underlay information.
+service EndhostApiDiscoveryService {
+  // GetEndhostApis returns a list of endhost API addresses to try, grouped by priority.
+  rpc GetEndhostApis(RpcGetEndhostApisRequest) returns (RpcGetEndhostApisResponse);
+}
+
+message RpcGetEndhostApisRequest {}
+
+message RpcGetEndhostApisResponse {
+  // Groups of endhost APIs, in priority order (e.g. by locality). Callers should prefer earlier
+  // groups and may try multiple entries per group.
+  repeated RpcEndhostApiGroup groups = 1;
+}
+
+message RpcEndhostApiGroup {
+  repeated RpcEndhostApiInfo apis = 1;
+}
+
+message RpcEndhostApiInfo {
+  // URL of an endhost API, e.g. "https://s01.chgtg1.snap.anapaya.net:5001".
+  string address = 1;
+}

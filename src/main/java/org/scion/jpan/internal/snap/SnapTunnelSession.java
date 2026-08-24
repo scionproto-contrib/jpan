@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.LongBuffer;
 import java.nio.channels.DatagramChannel;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -33,7 +32,6 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.internal.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
