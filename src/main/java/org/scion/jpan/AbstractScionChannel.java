@@ -782,6 +782,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       }
 
       byte[] rawPath = path.getRawPath();
+      System.out.println("Build header - src : " + srcAddress + "  -> " + path.getRemoteSocketAddress()); // TODO
       ScionHeaderParser.write(
           buffer,
           payloadLength,

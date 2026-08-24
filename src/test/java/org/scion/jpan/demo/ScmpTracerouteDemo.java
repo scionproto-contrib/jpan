@@ -18,6 +18,7 @@ import java.io.*;
 import java.net.*;
 import java.util.List;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockScmpHandler;
 
@@ -98,8 +99,9 @@ public class ScmpTracerouteDemo {
         }
       case PRODUCTION:
         {
+          return runDemo(ScionUtil.parseIA("71-20965"));
           // return runDemo(ScionUtil.parseIA("65-2:0:6c"));
-          return runDemo(DemoConstants.iaGEANT);
+          // return runDemo(DemoConstants.iaGEANT);
           // runDemo(DemoConstants.iaAnapayaHK);
           // runDemo(DemoConstants.iaOVGU);
         }
@@ -111,8 +113,9 @@ public class ScmpTracerouteDemo {
   private static int runDemo(long destinationIA) throws IOException {
     ScionService service = Scion.defaultService();
     // Dummy address. The traceroute will contact the control service IP instead.
-    InetSocketAddress destinationAddress =
-        new InetSocketAddress(Inet4Address.getByAddress(new byte[] {1, 2, 3, 4}), 12345);
+//    InetSocketAddress destinationAddress =
+//            new InetSocketAddress(Inet4Address.getByAddress(new byte[] {1, 2, 3, 4}), 12345);
+    InetSocketAddress destinationAddress = IPHelper.toInetSocketAddress("[::1]:12345");
     List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
       String src = ScionUtil.toStringIA(service.getLocalIsdAses().iterator().next());

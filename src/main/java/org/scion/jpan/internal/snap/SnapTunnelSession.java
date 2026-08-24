@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.LongBuffer;
 import java.nio.channels.DatagramChannel;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -32,6 +33,7 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -426,9 +428,9 @@ public class SnapTunnelSession {
   private static byte[] aeadChaCha20Seal(byte[] key, long counter, byte[] data, byte[] aad)
       throws InvalidCipherTextException {
     byte[] nonce = new byte[12];
-    ((ByteBuffer) ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4))
-        .asLongBuffer()
-        .put(counter);
+    ByteBuffer nonceBuffer = ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN);
+    nonceBuffer.position(4);
+    nonceBuffer.putLong(counter);
     ChaCha20Poly1305 cipher = new ChaCha20Poly1305();
     cipher.init(true, new AEADParameters(new KeyParameter(key), 128, nonce, aad));
     byte[] out = new byte[cipher.getOutputSize(data.length)];
@@ -441,9 +443,9 @@ public class SnapTunnelSession {
       byte[] key, long counter, byte[] data, byte[] aad, int plainLen)
       throws InvalidCipherTextException {
     byte[] nonce = new byte[12];
-    ((ByteBuffer) ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).position(4))
-        .asLongBuffer()
-        .put(counter);
+    ByteBuffer nonceBuffer = ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN);
+    nonceBuffer.position(4);
+    nonceBuffer.putLong(counter);
     ChaCha20Poly1305 cipher = new ChaCha20Poly1305();
     cipher.init(false, new AEADParameters(new KeyParameter(key), 128, nonce, aad));
     byte[] out = new byte[Math.max(plainLen, cipher.getOutputSize(data.length))];

@@ -27,6 +27,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.internal.util.HttpEndpoint;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,22 +42,35 @@ public class LocalAsFromPathService {
   public static LocalAS create(String pathService, TrcStore trcStore) {
     List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
     Underlays.ListUnderlaysResponse u = query(snList, pathService);
-    if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
-      LOG.warn("No UDP underlay available");
-      long isdAs = getLocalIsdAsFromSnap(u);
-      if (true) {
-        throw new UnsupportedOperationException();
+    List<LocalAS.SnapNode> snapNodeList = getSnapNodeList(u);
+
+    if (Config.preferSnapUnderlay()) {
+      // SNAP tunnels us into a tenant AS that is independent of, and may differ from, any
+      // natively reachable AS the endhost API also reports. That native AS is irrelevant for
+      // path lookup and header construction once we are tunneling through SNAP: using it instead
+      // produces a bogus local ISD/AS (e.g. matching the destination's AS) and a path with no
+      // real path segments, which gets silently dropped by the SNAP gateway's border router.
+      long snapIsdAs = getLocalIsdAsFromSnap(u);
+      if (snapIsdAs != 0) {
+        List<LocalAS.BorderRouter> brList =
+            u.hasUdp() ? getBorderRouterList(u) : Collections.emptyList();
+        return new LocalAS(
+            Collections.singleton(snapIsdAs),
+            false,
+            1200,
+            LocalAS.DispatcherPortRange.createAll(),
+            snList,
+            Collections.emptyList(),
+            brList,
+            snapNodeList,
+            trcStore);
       }
-      return new LocalAS(
-          Collections.emptySet(),
-          false,
-          1200,
-          LocalAS.DispatcherPortRange.createAll(),
-          snList,
-          Collections.emptyList(),
-          Collections.emptyList(),
-          getSnapNodeList(u),
-          trcStore);
+      LOG.warn("SNAP underlay preferred but endhost API advertised no usable SNAP entry");
+    }
+
+    if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
+      throw new ScionRuntimeException(
+          "No usable underlay: endhost API returned no UDP routers and no usable SNAP entry");
     }
     Set<Long> isdAs =
         u.getUdp().getRoutersList().stream()
@@ -69,9 +83,9 @@ public class LocalAsFromPathService {
         1200, // TODO
         LocalAS.DispatcherPortRange.createAll(), // TODO
         snList,
-        null,
+        Collections.emptyList(),
         brList,
-        getSnapNodeList(u),
+        snapNodeList,
         trcStore);
   }
 
@@ -144,9 +158,10 @@ public class LocalAsFromPathService {
         Underlays.ListUnderlaysRequest.newBuilder().build();
     RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
 
+    String baseUrl = HttpEndpoint.normalizeBaseUrl(apiAddress, "http");
     Request.Builder requestBuilder =
         new Request.Builder()
-            .url("http://" + apiAddress + "/scion.endhost.v1.UnderlayService/ListUnderlays")
+            .url(baseUrl + "/scion.endhost.v1.UnderlayService/ListUnderlays")
             .addHeader("Content-type", "application/proto");
     String token = Config.getPathServiceAuthToken();
     if (token != null && !token.isEmpty()) {

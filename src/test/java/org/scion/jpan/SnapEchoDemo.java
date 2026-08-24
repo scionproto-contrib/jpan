@@ -127,7 +127,8 @@ public class SnapEchoDemo {
       if (uri.getHost() == null || uri.getPort() < 0) {
         throw new IllegalArgumentException("endhost api must include host and port: " + endhostApi);
       }
-      return uri.getHost() + ":" + uri.getPort();
+      String scheme = uri.getScheme() != null ? uri.getScheme() : "http";
+      return scheme + "://" + uri.getHost() + ":" + uri.getPort();
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException("invalid endhost api URL: " + endhostApi, e);
     }

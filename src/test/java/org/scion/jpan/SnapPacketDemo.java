@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -26,11 +27,11 @@ import java.util.stream.Collectors;
 import org.scion.jpan.internal.snap.TokenFetcher;
 
 /** SCMP traceroute demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
-public class SnapTracerouteDemo {
+public class SnapPacketDemo {
 
   public static boolean PRINT = true;
 
-  private SnapTracerouteDemo() {}
+  private SnapPacketDemo() {}
 
   public static void main(String[] args) throws Exception {
     Cli cli = Cli.parse(args);
@@ -48,17 +49,15 @@ public class SnapTracerouteDemo {
       localAddress = channel.getLocalAddress().getAddress().getHostAddress();
     }
 
-    try (ScmpSender sender =
-        Scmp.newSenderBuilder().setService(service).setLocalPort(cli.localPort).build()) {
-      println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
+    try (ScionDatagramChannel sender =
+        ScionDatagramChannel.newBuilder().service(service).open()) { // TODO setLocalPort(cli.localPort).build()) {
+      //println("Listening on port " + sender.getLocalAddress().getPort() + " ...");
       println("Resolved local address: ");
       println("  " + localAddress);
       printPath(path);
 
-      sender.setTimeOut(cli.timeoutMs);
-
       System.out.println(
-          "TRACEROUTE "
+          "PACKET "
               + cli.destinationIa
               + ","
               + cli.destinationIp.getHostAddress()
@@ -66,39 +65,13 @@ public class SnapTracerouteDemo {
               + cli.localPort);
       System.out.println("Using SNAP underlay via Endhost API " + cli.endhostApi);
 
-      int transmitted = 0;
-      int received = 0;
-      List<Scmp.TracerouteMessage> replies = sender.sendTracerouteRequest(path);
-      for (Scmp.TracerouteMessage reply : replies) {
-        transmitted++;
-        if (reply.isTimedOut()) {
-          System.out.println("Request timeout for scmp_seq=" + reply.getIdentifier());
-        } else {
-          received++;
-          String millis = String.format("%.4f", reply.getNanoSeconds() / (double) 1_000_000);
-          String out = "" + reply.getSequenceNumber();
-          out += " " + ScionUtil.toStringIA(reply.getIsdAs());
-          out += " " + reply.getPath().getRemoteAddress().getHostAddress();
-          out += " IfID=" + reply.getIfID();
-          out += " " + millis + "ms";
-          System.out.println(out);
-        }
-      }
+      String msg = "Hello there, SNAP!11!!";
+      ByteBuffer sendBuf = ByteBuffer.wrap(msg.getBytes());
+      int n = sender.send(sendBuf, path);
+      // TODO this report the wrong packet size with SNAP!! 50 instead of 18
 
-      int lossPercent = transmitted == 0 ? 0 : ((transmitted - received) * 100) / transmitted;
-      System.out.println(
-          "--- "
-              + cli.destinationIa
-              + ","
-              + cli.destinationIp.getHostAddress()
-              + " statistics ---");
-      System.out.println(
-          transmitted
-              + " packets transmitted, "
-              + received
-              + " received, "
-              + lossPercent
-              + "% packet loss");
+      System.out.println("--- n = " + n + " ---");
+      System.out.println("Sent from : " + sender.getLocalAddress());
     } finally {
       Scion.closeDefault();
     }

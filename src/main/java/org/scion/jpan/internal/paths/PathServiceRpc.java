@@ -26,6 +26,7 @@ import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.internal.util.HttpEndpoint;
 import org.scion.jpan.proto.endhost.Segments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,10 +60,10 @@ public class PathServiceRpc {
     for (int i = 0; i < services.size(); i++) {
       PathService ps = services.get(0); // Always get the first one!
       ps.init();
+      String baseUrl = HttpEndpoint.normalizeBaseUrl(ps.address, "http");
       Request.Builder requestBuilder =
           new Request.Builder()
-              // .url("http://" + ps.address + "/scion.endhost.v1.PathService/ListPaths")
-              .url("http://" + ps.address + "/" + Config.getNApiSegmentServiceName())
+              .url(baseUrl + "/" + Config.getNApiSegmentServiceName())
               .addHeader("Content-type", "application/proto");
       String token = Config.getPathServiceAuthToken();
       if (token != null && !token.isEmpty()) {

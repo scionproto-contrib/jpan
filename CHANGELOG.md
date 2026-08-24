@@ -167,6 +167,7 @@ TODO
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 TODO
 - Remove/check log.debug() messages
+- Log output in SnapTracerouteDemo reports 2x "Requesting segments: 64-2:0:9 71-20965"
 
 ### Added
 

@@ -16,6 +16,7 @@ package org.scion.jpan;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
@@ -82,5 +83,56 @@ final class SnapScionDatagramChannel extends ScionDatagramChannel {
   @Override
   protected InetSocketAddress receiveUnderlay(ByteBuffer buffer) throws IOException {
     return snapTunnel.receivePacket(buffer);
+  }
+
+  @Override
+  public int send(ByteBuffer srcBuffer, SocketAddress destination) throws IOException {
+    writeLock().lock();
+    try {
+      ensureSnapSourceAddress();
+      return super.send(srcBuffer, destination);
+    } finally {
+      writeLock().unlock();
+    }
+  }
+
+  @Override
+  public int send(ByteBuffer srcBuffer, Path path) throws IOException {
+    writeLock().lock();
+    try {
+      ensureSnapSourceAddress();
+      return super.send(srcBuffer, path);
+    } finally {
+      writeLock().unlock();
+    }
+  }
+
+  @Override
+  public int write(ByteBuffer src) throws IOException {
+    writeLock().lock();
+    try {
+      ensureSnapSourceAddress();
+      return super.write(src);
+    } finally {
+      writeLock().unlock();
+    }
+  }
+
+  /**
+   * Ensures the SNAP tunnel handshake has completed and installs the SNAP-server-assigned
+   * address as the SCION source address. Without this, the source address would fall back to
+   * {@link org.scion.jpan.internal.NatMapping}, which knows nothing about the SNAP tunnel and
+   * would report the local (pre-NAT) address of an underlay socket that isn't even used to send
+   * traffic.
+   */
+  private void ensureSnapSourceAddress() throws IOException {
+    if (getOverrideSourceAddress() != null) {
+      return;
+    }
+    snapTunnel.ensureConnected();
+    InetSocketAddress assigned = snapTunnel.localTunnelAddress();
+    if (assigned != null) {
+      setOverrideSourceAddress(assigned);
+    }
   }
 }

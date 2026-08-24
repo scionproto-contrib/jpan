@@ -265,6 +265,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
       ByteUtil.MutInt srcPort = new ByteUtil.MutInt(-1);
       buildHeader(buffer, path, payloadLength + 8, HeaderConstants.HdrTypes.UDP.code(), srcPort);
       int dstPort = path.getRemotePort();
+      System.out.println("UDP header: " + srcPort.get());
       ScionHeaderParser.writeUdpOverlayHeader(buffer, payloadLength, srcPort.get(), dstPort);
     }
   }
