@@ -27,6 +27,17 @@ public class TokenFetcher {
   private TokenFetcher() {}
 
   public static String fetchSnapToken(String apiKey, String serverUrl) throws IOException {
+    return fetchSnapTokenWithMetadata(apiKey, serverUrl).snapToken;
+  }
+
+  /**
+   * Like {@link #fetchSnapToken}, but also surfaces the AA service's optional metadata -- in
+   * particular {@code endhost_api_discovery_url}, a discovery-service URL scoped to the
+   * authenticated user. When present, callers should prefer it over the global discovery service
+   * at {@code https://discovery.scion.anapaya.net}.
+   */
+  public static Result fetchSnapTokenWithMetadata(String apiKey, String serverUrl)
+      throws IOException {
     String baseUrl =
         serverUrl.startsWith("http://") || serverUrl.startsWith("https://")
             ? serverUrl
@@ -52,7 +63,26 @@ public class TokenFetcher {
       }
       Auth.AuthenticateByKeyResponse parsed =
           Auth.AuthenticateByKeyResponse.newBuilder().mergeFrom(responseBody.bytes()).build();
-      return parsed.getSnapToken();
+      String discoveryUrl = null;
+      if (parsed.hasMetadata() && parsed.getMetadata().hasEndhostApiDiscoveryUrl()) {
+        String url = parsed.getMetadata().getEndhostApiDiscoveryUrl();
+        if (!url.isEmpty()) {
+          discoveryUrl = url;
+        }
+      }
+      return new Result(parsed.getSnapToken(), discoveryUrl);
+    }
+  }
+
+  /** Result of {@link #fetchSnapTokenWithMetadata}. */
+  public static final class Result {
+    public final String snapToken;
+    /** User-scoped endhost API discovery URL, or {@code null} if the AA service provided none. */
+    public final String endhostApiDiscoveryUrl;
+
+    Result(String snapToken, String endhostApiDiscoveryUrl) {
+      this.snapToken = snapToken;
+      this.endhostApiDiscoveryUrl = endhostApiDiscoveryUrl;
     }
   }
 }

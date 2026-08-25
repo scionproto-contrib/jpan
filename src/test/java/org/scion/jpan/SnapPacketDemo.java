@@ -17,12 +17,10 @@ package org.scion.jpan;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.scion.jpan.internal.snap.TokenFetcher;
 
 /** SCMP traceroute demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
 public class SnapPacketDemo {
@@ -213,7 +211,6 @@ public class SnapPacketDemo {
       }
 
       if (destination == null
-          || (endhostApi == null && discoveryEndpoint == null)
           || localPort == null
           || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
@@ -229,21 +226,19 @@ public class SnapPacketDemo {
       String destinationIpLiteral = destination.substring(separator + 2, destination.length() - 1);
       InetAddress destinationIp = InetAddress.getByName(destinationIpLiteral);
 
-      String snapToken;
-      if (snapTokenFile != null) {
-        snapToken =
-            new String(Files.readAllBytes(Paths.get(snapTokenFile)), StandardCharsets.UTF_8).trim();
-        if (snapToken.isEmpty()) {
-          throw new IllegalArgumentException("Token file is empty: " + snapTokenFile);
-        }
-      } else {
-        String authKey =
-            new String(Files.readAllBytes(Paths.get(authKeyFile)), StandardCharsets.UTF_8).trim();
-        if (authKey.isEmpty()) {
-          throw new IllegalArgumentException("Auth key file is empty: " + authKeyFile);
-        }
-        snapToken = TokenFetcher.fetchSnapToken(authKey, "auth.scion.anapaya.net");
+      SnapDemoBootstrap.TokenResolution tokenResolution =
+          SnapDemoBootstrap.resolveSnapToken(snapTokenFile, authKeyFile);
+      String snapToken = tokenResolution.snapToken;
+      if (snapTokenFile == null) {
         System.err.println("Snap toke: " + snapToken);
+      }
+      if (endhostApi == null
+          && discoveryEndpoint == null
+          && tokenResolution.endhostApiDiscoveryUrl != null) {
+        discoveryEndpoint = tokenResolution.endhostApiDiscoveryUrl;
+      }
+      if (endhostApi == null && discoveryEndpoint == null) {
+        throw new IllegalArgumentException(usage());
       }
 
       return new Cli(

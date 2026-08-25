@@ -33,7 +33,17 @@ public class MockSnapApiTokenService implements AutoCloseable {
   }
 
   public static MockSnapApiTokenService start() throws IOException {
-    AaAuthServer server = new AaAuthServer(0);
+    return start(null);
+  }
+
+  /**
+   * Like {@link #start()}, but the mock's {@code AuthenticateByKeyResponse} also carries {@code
+   * metadata.endhost_api_discovery_url = discoveryUrl}, for testing that callers pick up a
+   * user-scoped discovery URL from the AA response. Pass {@code null} for no metadata (same as
+   * {@link #start()}).
+   */
+  public static MockSnapApiTokenService start(String discoveryUrl) throws IOException {
+    AaAuthServer server = new AaAuthServer(0, discoveryUrl);
     return new MockSnapApiTokenService(server);
   }
 
@@ -49,8 +59,11 @@ public class MockSnapApiTokenService implements AutoCloseable {
 
   private static class AaAuthServer extends SimpleHttpServer {
 
-    AaAuthServer(int port) throws IOException {
+    private final String discoveryUrl;
+
+    AaAuthServer(int port, String discoveryUrl) throws IOException {
       super(port);
+      this.discoveryUrl = discoveryUrl;
       super.start();
     }
 
@@ -69,9 +82,13 @@ public class MockSnapApiTokenService implements AutoCloseable {
           return newFixedLengthResponse(
               Response.Status.UNAUTHORIZED, MIME_PLAINTEXT, "Invalid API key");
         }
-        Auth.AuthenticateByKeyResponse response =
-            Auth.AuthenticateByKeyResponse.newBuilder().setSnapToken(SNAP_TOKEN).build();
-        byte[] body = response.toByteArray();
+        Auth.AuthenticateByKeyResponse.Builder response =
+            Auth.AuthenticateByKeyResponse.newBuilder().setSnapToken(SNAP_TOKEN);
+        if (discoveryUrl != null) {
+          response.setMetadata(
+              Auth.Metadata.newBuilder().setEndhostApiDiscoveryUrl(discoveryUrl).build());
+        }
+        byte[] body = response.build().toByteArray();
         return newFixedLengthResponse(
             Response.Status.OK,
             "application/proto",

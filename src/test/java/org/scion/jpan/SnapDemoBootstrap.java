@@ -14,10 +14,15 @@
 
 package org.scion.jpan;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import org.scion.jpan.internal.bootstrap.EndhostApiDiscoveryClient;
+import org.scion.jpan.internal.snap.TokenFetcher;
 
 /**
  * Shared {@code --endhost-api}/{@code --discovery} resolution for the SNAP demos ({@link
@@ -61,6 +66,44 @@ final class SnapDemoBootstrap {
       return scheme + "://" + uri.getHost() + ":" + uri.getPort();
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException("invalid endhost api URL: " + endhostApi, e);
+    }
+  }
+
+  /**
+   * Resolves the SNAP auth token, either directly from a token file or by exchanging an API key
+   * with the AA auth service. In the latter case, the AA response may include a discovery-service
+   * URL scoped to the authenticated user (see {@link TokenFetcher.Result#endhostApiDiscoveryUrl}),
+   * which callers should use as a fallback {@code --discovery} endpoint when neither
+   * {@code --endhost-api} nor {@code --discovery} was given explicitly on the command line.
+   */
+  static TokenResolution resolveSnapToken(String snapTokenFile, String authKeyFile)
+      throws IOException {
+    if (snapTokenFile != null) {
+      String snapToken =
+          new String(Files.readAllBytes(Paths.get(snapTokenFile)), StandardCharsets.UTF_8).trim();
+      if (snapToken.isEmpty()) {
+        throw new IllegalArgumentException("Token file is empty: " + snapTokenFile);
+      }
+      return new TokenResolution(snapToken, null);
+    }
+    String authKey =
+        new String(Files.readAllBytes(Paths.get(authKeyFile)), StandardCharsets.UTF_8).trim();
+    if (authKey.isEmpty()) {
+      throw new IllegalArgumentException("Auth key file is empty: " + authKeyFile);
+    }
+    TokenFetcher.Result result =
+        TokenFetcher.fetchSnapTokenWithMetadata(authKey, "auth.scion.anapaya.net");
+    return new TokenResolution(result.snapToken, result.endhostApiDiscoveryUrl);
+  }
+
+  static final class TokenResolution {
+    final String snapToken;
+    /** User-scoped discovery URL from the AA response, or {@code null} if none was provided. */
+    final String endhostApiDiscoveryUrl;
+
+    TokenResolution(String snapToken, String endhostApiDiscoveryUrl) {
+      this.snapToken = snapToken;
+      this.endhostApiDiscoveryUrl = endhostApiDiscoveryUrl;
     }
   }
 }
