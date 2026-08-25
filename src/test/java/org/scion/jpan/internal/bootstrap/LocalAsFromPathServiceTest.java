@@ -107,18 +107,18 @@ class LocalAsFromPathServiceTest {
 
   @Test
   void create_snapPreferred_noUsableSnapOrUdp_throws() throws IOException {
-    // TODO check description
-    // Neither underlay is usable: this used to be a permanently-broken, unconditionally throwing
-    // stub (`if (true) throw new UnsupportedOperationException()`); it must now fail with a clear
-    // ScionRuntimeException instead.
+    // TODO
+    // Neither underlay is usable. The old code path here was a stub that threw
+    // UnsupportedOperationException unconditionally, regardless of input (`if (true) throw ...`).
+    // The new code only throws for this specific case (no usable SNAP entry AND no UDP routers);
+    // it must fail with a clear ScionRuntimeException instead of that dead stub.
     Underlays.ListUnderlaysResponse response = Underlays.ListUnderlaysResponse.newBuilder().build();
     mock = MockEndhostApi.start(response);
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
 
-    // TODO move functions out of the check
-    assertThrows(
-        ScionRuntimeException.class,
-        () -> LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty()));
+    String url = mock.getUrl();
+    TrcStore trcStore = TrcStore.createEmpty();
+    assertThrows(ScionRuntimeException.class, () -> LocalAsFromPathService.create(url, trcStore));
   }
 
   @Test

@@ -29,6 +29,7 @@ import org.scion.jpan.internal.snap.SnapTunnelSession;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorWithRefresh;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -215,9 +216,25 @@ public class PackageVisibilityHelper {
    * made every test using it flaky/environment-dependent for no reason.
    */
   public static ScionDatagramChannel openSnapChannel(SnapTunnelSession session) throws IOException {
+    return openSnapChannel(null, session);
+  }
+
+  /**
+   * Like {@link #openSnapChannel(SnapTunnelSession)}, but attaches the given {@link ScionService}
+   * (a real path selector/factory is only built when {@code service} is non-null). Needed for
+   * tests that exercise address-based resolution (e.g. {@code send(ByteBuffer, SocketAddress)}),
+   * which requires a real selector. Pass {@code null} for the same lightweight,
+   * DNS/daemon-independent behavior as the single-argument overload.
+   */
+  public static ScionDatagramChannel openSnapChannel(ScionService service, SnapTunnelSession session)
+      throws IOException {
     DatagramChannel udp = DatagramChannel.open();
-    // TODO review this. We should also make this work with non-null ScionService.
-    return new SnapScionDatagramChannel(null, udp, null, null, session);
+    if (service == null) {
+      return new SnapScionDatagramChannel(null, udp, null, null, session);
+    }
+    PathSelector selector = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
+    PathSelectorFactory factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
+    return new SnapScionDatagramChannel(service, udp, selector, factory, session);
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {

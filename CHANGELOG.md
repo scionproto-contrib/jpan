@@ -171,6 +171,8 @@ TODO
 - Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
 - Rename properties and document more clearly what they mean.
 - Fix 32byte offset error returned from send()
+- The aa service appears to be providing a discovery service address. Why do we need to specify it
+  separately?
 
 ### Added
 

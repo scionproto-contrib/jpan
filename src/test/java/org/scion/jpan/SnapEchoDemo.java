@@ -16,15 +16,12 @@ package org.scion.jpan;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.scion.jpan.internal.bootstrap.EndhostApiDiscoveryClient;
 import org.scion.jpan.internal.snap.TokenFetcher;
 
 /** SCMP echo demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
@@ -56,7 +53,9 @@ public class SnapEchoDemo {
               + payload.length
               + "B local_port="
               + cli.localPort);
-      System.out.println("Using SNAP underlay via Endhost API " + cli.endhostApiDescription());
+      System.out.println(
+          "Using SNAP underlay via Endhost API "
+              + SnapDemoBootstrap.endhostApiDescription(cli.endhostApi, cli.discoveryEndpoint));
 
       int transmitted = 0;
       int received = 0;
@@ -107,7 +106,9 @@ public class SnapEchoDemo {
 
   private static void configureSnap(Cli cli) {
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, resolveBootstrapAddress(cli));
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE,
+        SnapDemoBootstrap.resolveBootstrapAddress(cli.endhostApi, cli.discoveryEndpoint));
     if (cli.snapControl != null) {
       System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, cli.snapControl);
     }
@@ -118,38 +119,6 @@ public class SnapEchoDemo {
       System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", cli.logLevel);
       System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
       System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-    }
-  }
-
-  /**
-   * Resolves the endhost API address(es) to bootstrap from. If {@code --discovery} was given, the
-   * global endhost-API discovery service is queried first and its candidates (tried in order by the
-   * existing multi-candidate path-service bootstrap) are used instead of a fixed {@code
-   * --endhost-api} address.
-   */
-  private static String resolveBootstrapAddress(Cli cli) {
-    if (cli.discoveryEndpoint != null) {
-      List<String> candidates =
-          EndhostApiDiscoveryClient.discoverEndhostApis(cli.discoveryEndpoint);
-      if (candidates.isEmpty()) {
-        throw new ScionRuntimeException(
-            "Endhost API discovery returned no candidates: " + cli.discoveryEndpoint);
-      }
-      return String.join(";", candidates);
-    }
-    return toBootstrapAddress(cli.endhostApi);
-  }
-
-  private static String toBootstrapAddress(String endhostApi) {
-    try {
-      URI uri = new URI(endhostApi);
-      if (uri.getHost() == null || uri.getPort() < 0) {
-        throw new IllegalArgumentException("endhost api must include host and port: " + endhostApi);
-      }
-      String scheme = uri.getScheme() != null ? uri.getScheme() : "http";
-      return scheme + "://" + uri.getHost() + ":" + uri.getPort();
-    } catch (URISyntaxException e) {
-      throw new IllegalArgumentException("invalid endhost api URL: " + endhostApi, e);
     }
   }
 
@@ -192,10 +161,6 @@ public class SnapEchoDemo {
       this.intervalMs = intervalMs;
       this.payload = payload;
       this.logLevel = logLevel;
-    }
-
-    String endhostApiDescription() {
-      return discoveryEndpoint != null ? "discovery:" + discoveryEndpoint : endhostApi;
     }
 
     static Cli parse(String[] args) throws IOException {

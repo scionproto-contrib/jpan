@@ -70,13 +70,12 @@ class EndhostApiDiscoveryClientTest {
   @Test
   void discoverEndhostApis_serverError_throwsScionRuntimeException() throws IOException {
     mock = MockDiscoveryService.startFailing();
+    String url = mock.getUrl();
 
-    // TODO call only one function in the check
     ScionRuntimeException e =
         assertThrows(
-            ScionRuntimeException.class,
-            () -> EndhostApiDiscoveryClient.discoverEndhostApis(mock.getUrl()));
-    assertTrue(e.getMessage().contains(mock.getUrl()));
+            ScionRuntimeException.class, () -> EndhostApiDiscoveryClient.discoverEndhostApis(url));
+    assertTrue(e.getMessage().contains(url));
   }
 
   private static DiscoveryService.RpcEndhostApiGroup group(String... addresses) {
