@@ -17,12 +17,17 @@ package org.scion.jpan.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Constants;
 import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.snap.SnapControlClient;
 import org.scion.jpan.internal.snap.SnapService;
 import org.scion.jpan.internal.snap.SnapTunnelSession;
@@ -120,6 +125,40 @@ class SnapScionDatagramChannelTest {
       } finally {
         System.clearProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN);
       }
+    }
+  }
+
+  @Test
+  void send_installsSnapAssignedSourceAddress() throws IOException {
+    SnapTunnelSession session =
+        new SnapTunnelSession(
+            null,
+            mockSnapService.getDataplaneAddress(),
+            mockSnapService.getStaticPublicKey(),
+            null /* no HTTP control client needed for handshake */);
+
+    try (ScionDatagramChannel channel = PackageVisibilityHelper.openSnapChannel(session)) {
+      // Loopback (not wildcard/ANY) avoids AbstractScionChannel falling back to NatMapping, which
+      // requires a real ScionService that this channel (built with service=null) doesn't have.
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+      assertNull(channel.getOverrideSourceAddress());
+
+      Path path =
+          PackageVisibilityHelper.createDummyPath(
+              ScionUtil.parseIA("1-ff00:0:110"),
+              ScionUtil.parseIA("1-ff00:0:112"),
+              new byte[] {127, 0, 0, 1},
+              54321,
+              new byte[0],
+              new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+
+      channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), path);
+
+      // The SNAP tunnel's server-assigned address must be installed as the SCION source address
+      // BEFORE the header is built -- this is the fix for JPAN previously using the wrong
+      // (NAT-mapped/local) source address for all SNAP traffic.
+      assertNotNull(session.localTunnelAddress());
+      assertEquals(session.localTunnelAddress(), channel.getOverrideSourceAddress());
     }
   }
 }

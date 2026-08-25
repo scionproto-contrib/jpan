@@ -168,6 +168,9 @@ TODO
 TODO
 - Remove/check log.debug() messages
 - Log output in SnapTracerouteDemo reports 2x "Requesting segments: 64-2:0:9 71-20965"
+- Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
+- Rename properties and document more clearly what they mean.
+- Fix 32byte offset error returned from send()
 
 ### Added
 

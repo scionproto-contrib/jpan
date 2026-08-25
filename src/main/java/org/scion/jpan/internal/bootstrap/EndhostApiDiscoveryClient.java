@@ -27,9 +27,9 @@ import org.scion.jpan.internal.util.HttpEndpoint;
 import org.scion.jpan.proto.endhost.discovery.DiscoveryService;
 
 /**
- * Client for the global Anapaya endhost-API discovery service (e.g. {@code
- * https://discovery.scion.anapaya.net}). This is a directory-of-directories lookup: the addresses
- * it returns are themselves endhost APIs exposing {@code
+ * Client for the global endhost-API discovery service (e.g. {@code
+ * https://discovery.scion.xyz.net}). This is a directory-of-directories lookup: the addresses it
+ * returns are themselves endhost APIs exposing {@code
  * scion.endhost.v1.UnderlayService/ListUnderlays} (see {@link LocalAsFromPathService}), not
  * underlay information directly.
  */

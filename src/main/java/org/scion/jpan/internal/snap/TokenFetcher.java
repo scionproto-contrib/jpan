@@ -20,7 +20,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.scion.jpan.proto.aa.Auth;
+import org.scion.jpan.proto.snap.aa.Auth;
 
 public class TokenFetcher {
 

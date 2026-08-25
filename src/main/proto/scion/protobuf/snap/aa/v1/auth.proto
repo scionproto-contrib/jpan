@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 
-option java_package = "org.scion.jpan.proto.aa";
+option java_package = "org.scion.jpan.proto.snap.aa";
 
-package anapaya.aa.v1;
+package snap.aa.v1;
 
 // AuthService is the public-facing authentication endpoint for clients.
 service AuthService {

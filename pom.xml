@@ -115,6 +115,20 @@
             <version>4.12.0</version>
         </dependency>
 
+        <!-- For testing real HTTPS/TLS access (self-signed certs + a TLS-capable mock server). -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-tls</artifactId>
+            <version>4.12.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>4.12.0</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.grpc</groupId>
             <!-- TODO We are not using the (netty) shaded version because it causes problem with

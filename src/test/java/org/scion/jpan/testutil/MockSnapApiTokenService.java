@@ -15,11 +15,11 @@
 package org.scion.jpan.testutil;
 
 import java.io.IOException;
-import org.scion.jpan.proto.aa.Auth;
+import org.scion.jpan.proto.snap.aa.Auth;
 
 /**
- * Mock Anapaya AA (Auth/AuthZ) service that issues SNAP tokens in exchange for a known API key.
- * Used in tests to exercise the full token-fetch → SNAP-handshake flow without a real AA server.
+ * Mock AA (Auth/AuthZ) service that issues SNAP tokens in exchange for a known API key. Used in
+ * tests to exercise the full token-fetch → SNAP-handshake flow without a real AA server.
  */
 public class MockSnapApiTokenService implements AutoCloseable {
 

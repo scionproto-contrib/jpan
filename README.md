@@ -403,6 +403,35 @@ assuming that another SHIM is running on 30041.
  
 Whether a SHIM is started can be controlled with a configuration option, see below.
 
+### Snap
+
+JPAN has experimental support for Anapaya's SNAP (Scion Network Access Point) technology.
+With SNAP, an endpoint sends traffic not directly to the border routers but via a wireguard(-like)
+tunnel to a SNAP server that forwards the traffic to the border routers. Return traffic is sent 
+from the border routers directly to the endhosts.
+
+
+SNAP has several advantages: It works also if the endhost is behind a NAT (without requiring STUN
+or similar). Since it requires authentication, it is better protected and SNAP node can easily be 
+made available to the public outside the local AS. This allows endhosts to use SCION even if their
+local ISP does not offer it.
+
+| Option                                   | Java property                     | Environment variable            | Default value |
+|------------------------------------------|-----------------------------------|---------------------------------|---------------|
+| Token for Endhost API authentication     | `org.scion.pathService.authToken` | `SCION_PATH_SERVICE_AUTH_TOKEN` |               |
+| Preferred underlay: "udp" or "snap"      | `org.scion.underlay.mode`         | `SCION_UNDERLAY_MODE`           | `udp`         |
+| SNAP control-plane endpoint (host:port). | `org.scion.snap.controlPlane`     | `SCION_SNAP_CONTROL_PLANE`      |               | 
+| SNAP token used for control-plane calls. | `org.scion.snap.authToken`        | `SCION_SNAP_AUTH_TOKEN`         |               | 
+
+To use SNAP:
+- Set the preferred underlay mode to `snap`
+- (Optional) If the local AS does not offer SNAP or if you want to use a different SNAP service:
+  Define the control-plan endpoint that allows discovery of the SNAP service.
+- Specify the authentication mode by one of the following:
+  - Specify a SNAP token (usually short lived)
+  - Specify an authentication token for a service that provides SNAP tokens 
+
+
 ### Other Options
 
 | Option                                                                                                               | Java property                       | Environment variable              | Default value      |
