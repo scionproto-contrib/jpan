@@ -21,8 +21,11 @@ import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.digests.Blake2sDigest;
 import org.bouncycastle.crypto.macs.HMac;
@@ -121,6 +124,7 @@ public class SnapTunnelSession {
   private static final long REKEY_AFTER_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(120);
 
   private final DatagramChannel underlay;
+  private final Selector selector;
   private final InetSocketAddress dataPlane;
   private final byte[] peerStatic;
   private final SnapControlClient snapControlClient;
@@ -151,12 +155,47 @@ public class SnapTunnelSession {
       this.underlay = DatagramChannel.open(StandardProtocolFamily.INET);
       this.underlay.configureBlocking(false);
       this.underlay.bind(null);
+      this.selector = Selector.open();
+      this.underlay.register(this.selector, SelectionKey.OP_READ);
     } catch (IOException e) {
       throw new ScionRuntimeException("failed to open SNAP underlay socket", e);
     }
     this.dataPlane = dataPlane;
     this.peerStatic = peerStatic;
     this.snapControlClient = snapControlClient;
+  }
+
+  /**
+   * Blocks (without busy-polling) until the underlay channel may have data ready to read, or the
+   * given timeout elapses. Used by callers that loop on {@link #receivePacket} to avoid a
+   * busy-poll (a non-blocking {@code receive()} returning {@code null} does not by itself mean no
+   * data will ever arrive, so callers still need to retry after this returns).
+   */
+  public void awaitReadable(long timeoutMillis) throws IOException {
+    if (!selector.isOpen()) {
+      return;
+    }
+    // If close() runs concurrently, Selector.close() wakes this blocked select() immediately
+    // (per its javadoc) rather than waiting out the timeout -- so afterward the selector may
+    // already be closed, hence the isOpen() check before touching selectedKeys().
+    selector.select(Math.max(1, timeoutMillis));
+    if (selector.isOpen()) {
+      selector.selectedKeys().clear();
+    }
+  }
+
+  /** Releases the underlay socket and its selector. Safe to call more than once. */
+  public void close() {
+    try {
+      selector.close();
+    } catch (IOException e) {
+      log.warn("Error closing SNAP tunnel selector", e);
+    }
+    try {
+      underlay.close();
+    } catch (IOException e) {
+      log.warn("Error closing SNAP tunnel underlay channel", e);
+    }
   }
 
   private void ensureIdentityRegistered() {
@@ -230,19 +269,16 @@ public class SnapTunnelSession {
 
       ByteBuffer recv = ByteBuffer.allocate(4096);
       WireGuardPacket.HandshakeResponse response;
-      long deadlineNanos = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+      long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
       while (true) {
         InetSocketAddress src = (InetSocketAddress) underlay.receive(recv);
         if (src == null) {
-          if (System.nanoTime() >= deadlineNanos) {
+          long remainingNanos = deadlineNanos - System.nanoTime();
+          if (remainingNanos <= 0) {
             throw new IOException("timed out waiting for SNAP handshake response");
           }
-          try {
-            Thread.sleep(10);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("interrupted while waiting for SNAP handshake response", e);
-          }
+          // Blocks (no busy-polling) until either data arrives or the deadline is reached.
+          awaitReadable(TimeUnit.NANOSECONDS.toMillis(remainingNanos));
           continue;
         }
         if (!dataPlane.equals(src)) {

@@ -172,7 +172,9 @@ TODO
 - Rename properties and document more clearly what they mean.
 - Fix 32byte offset error returned from send()
 - The aa service appears to be providing a discovery service address. Why do we need to specify it
-  separately?
+  separately? -> Check what real server provides (not used in scion-sdk apparently)
+- SnapTunnelSession: constructor has unused argument, shouldn't we use it?
+- Busy loop in ScmpSenderAsync.receiveAsync()
 
 ### Added
 

@@ -338,12 +338,10 @@ public class ScmpSenderAsync implements AutoCloseable {
       if (snapTunnel != null) {
         while (selector.isOpen()) {
           readIncomingScmp(null);
-          try {
-            Thread.sleep(1);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return;
-          }
+          // Blocks (no busy-polling) until the SNAP tunnel's underlay may have data, instead of
+          // spinning on a fixed sleep -- readIncomingScmp() above already drains whatever is
+          // available, so this just avoids re-checking before there is any chance of new data.
+          snapTunnel.awaitReadable(1000);
         }
         return;
       }
@@ -447,6 +445,9 @@ public class ScmpSenderAsync implements AutoCloseable {
     @Override
     public void close() throws IOException {
       selector.close();
+      if (snapTunnel != null) {
+        snapTunnel.close();
+      }
       super.close();
     }
 

@@ -74,6 +74,12 @@ final class SnapScionDatagramChannel extends ScionDatagramChannel {
   }
 
   @Override
+  public void close() throws IOException {
+    snapTunnel.close();
+    super.close();
+  }
+
+  @Override
   protected int sendUnderlay(ByteBuffer buffer, InetSocketAddress remoteHost) throws IOException {
     byte[] scionPacket = new byte[buffer.remaining()];
     buffer.get(scionPacket);
