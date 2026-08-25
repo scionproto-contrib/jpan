@@ -4,27 +4,35 @@ option java_package = "org.scion.jpan.proto.endhost.discovery";
 
 package scion.endhost.discovery.v1;
 
-// Global directory service for discovering real, region-appropriate endhost API addresses.
-// Unlike scion.endhost.v1.UnderlayService, this service is not itself an endhost API: it returns
-// the addresses of endhost APIs to actually query for underlay information.
+// Endhost API Discovery service.
+//
+// This service allows clients to discover available Endhost APIs.
 service EndhostApiDiscoveryService {
-  // GetEndhostApis returns a list of endhost API addresses to try, grouped by priority.
+  // GetEndhostApis returns the available Endhost APIs.
   rpc GetEndhostApis(RpcGetEndhostApisRequest) returns (RpcGetEndhostApisResponse);
 }
 
+// Request to discovery available Endhost APIs.
 message RpcGetEndhostApisRequest {}
 
+// Endhost APIs response message.
 message RpcGetEndhostApisResponse {
-  // Groups of endhost APIs, in priority order (e.g. by locality). Callers should prefer earlier
-  // groups and may try multiple entries per group.
+  // Set of Endhost APIs groups.
+  // Should be used in order, using the first reachable one.
+  //
+  // After establishing a connection to an API in a group, the client can failover to any other API in the same group if the connection fails.
+  // Failover between groups requires the client to re-establish connections to snaps and other services using the new API.
   repeated RpcEndhostApiGroup groups = 1;
 }
 
+// Group of Endhost APIs the client can failover between.
 message RpcEndhostApiGroup {
+  // URL of the Endhost API.
   repeated RpcEndhostApiInfo apis = 1;
 }
 
+// Single Endhost API.
 message RpcEndhostApiInfo {
-  // URL of an endhost API, e.g. "https://s01.chgtg1.snap.anapaya.net:5001".
+  // URL of the Endhost API.
   string address = 1;
 }

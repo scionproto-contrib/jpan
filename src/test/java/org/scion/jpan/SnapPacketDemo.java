@@ -68,7 +68,7 @@ public class SnapPacketDemo {
               + cli.localPort);
       System.out.println("Using SNAP underlay via Endhost API " + cli.endhostApiDescription());
 
-      String msg = "Hello there, SNAP!11!!";
+      String msg = "Hello there, SNAP!22!!";
       ByteBuffer sendBuf = ByteBuffer.wrap(msg.getBytes());
       int n = sender.send(sendBuf, path);
       // TODO this report the wrong packet size with SNAP!! 50 instead of 18

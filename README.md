@@ -426,7 +426,7 @@ local ISP does not offer it.
 To use SNAP:
 - Set the preferred underlay mode to `snap`
 - (Optional) If the local AS does not offer SNAP or if you want to use a different SNAP service:
-  Define the control-plan endpoint that allows discovery of the SNAP service.
+  Define the control-plan endpoint (discovery service) that allows discovery of the SNAP service.
 - Specify the authentication mode by one of the following:
   - Specify a SNAP token (usually short lived)
   - Specify an authentication token for a service that provides SNAP tokens 

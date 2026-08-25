@@ -40,23 +40,22 @@ class HttpEndpointTest {
         HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.xyz.net:5001", "http"));
     // An explicit "http://" must never be upgraded to the default scheme either.
     assertEquals(
-        "http://192.168.53.19:48080",
-        HttpEndpoint.normalizeBaseUrl("http://192.168.53.19:48080", "https"));
+        "http://192.168.1.1:12345",
+        HttpEndpoint.normalizeBaseUrl("http://192.168.1.1:12345", "https"));
   }
 
   @Test
   void trailingSlashes_areStripped() {
     assertEquals(
-        "https://s01.chgtg1.snap.anapaya.net:5001",
-        HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.anapaya.net:5001/", "https"));
+        "https://s01.chgtg1.snap.xyz.net:5001",
+        HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.xyz.net:5001/", "https"));
     assertEquals(
-        "https://s01.chgtg1.snap.anapaya.net:5001",
-        HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.anapaya.net:5001///", "https"));
+        "https://s01.chgtg1.snap.xyz.net:5001",
+        HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.xyz.net:5001///", "https"));
     // Trailing slashes on a scheme-less address must also be stripped after the default scheme
     // is prepended.
     assertEquals(
-        "http://192.168.53.19:48080",
-        HttpEndpoint.normalizeBaseUrl("192.168.53.19:48080/", "http"));
+        "http://192.168.1.1:12345", HttpEndpoint.normalizeBaseUrl("192.168.1.1:12345/", "http"));
   }
 
   @Test

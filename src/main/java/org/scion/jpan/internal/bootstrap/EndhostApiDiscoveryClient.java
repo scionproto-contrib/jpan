@@ -41,8 +41,7 @@ public final class EndhostApiDiscoveryClient {
   private EndhostApiDiscoveryClient() {}
 
   /**
-   * @param discoveryEndpoint base URL of the discovery service, e.g. {@code
-   *     https://discovery.scion.anapaya.net}
+   * @param discoveryEndpoint base URL of the discovery service
    * @return endhost API addresses to try, in priority order (groups are flattened, preserving group
    *     and within-group order)
    */
