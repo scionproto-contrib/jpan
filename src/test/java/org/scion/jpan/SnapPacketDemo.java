@@ -68,7 +68,6 @@ public class SnapPacketDemo {
       String msg = "Hello there, SNAP!22!!";
       ByteBuffer sendBuf = ByteBuffer.wrap(msg.getBytes());
       int n = sender.send(sendBuf, path);
-      // TODO this report the wrong packet size with SNAP!! 50 instead of 18
 
       System.out.println("--- n = " + n + " ---");
       System.out.println("Sent from : " + sender.getLocalAddress());

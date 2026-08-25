@@ -405,7 +405,12 @@ public class SnapTunnelSession {
         wg.length,
         dataPlane,
         underlay.getLocalAddress());
-    return underlay.send(ByteBuffer.wrap(wg), dataPlane);
+    int sent = underlay.send(ByteBuffer.wrap(wg), dataPlane);
+    // underlay is non-blocking, so send() is all-or-nothing: either the whole encrypted
+    // datagram went out (sent == wg.length) or none of it did (sent == 0). Report the SCION-level
+    // byte count either way, since that -- not the WireGuard-encrypted wire size -- is what
+    // callers (e.g. ScionDatagramChannel.send()) expect back.
+    return sent > 0 ? scionPacket.length : sent;
   }
 
   public synchronized InetSocketAddress receivePacket(ByteBuffer buffer) throws IOException {

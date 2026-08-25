@@ -166,15 +166,14 @@ TODO
 - SNAP support
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 TODO
-- Remove/check log.debug() messages
-- Log output in SnapTracerouteDemo reports 2x "Requesting segments: 64-2:0:9 71-20965"
-- Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
 - Rename properties and document more clearly what they mean.
-- Fix 32byte offset error returned from send()
+- Remove SnapUnderlaySupport.
 - The aa service appears to be providing a discovery service address. Why do we need to specify it
   separately? -> Check what real server provides (not used in scion-sdk apparently)
 - SnapTunnelSession: constructor has unused argument, shouldn't we use it?
-- Remove SnapUnderlaySupport.
+- Remove/check log.debug() messages
+- Log output in SnapTracerouteDemo reports 2x "Requesting segments: 64-2:0:9 71-20965"
+- Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
 
 ### Added
 
