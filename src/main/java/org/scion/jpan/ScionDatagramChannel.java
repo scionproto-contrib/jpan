@@ -24,6 +24,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
@@ -50,7 +51,22 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
       PathSelector connectSelector,
       PathSelectorFactory factory)
       throws IOException {
-    super(service, channel, connectSelector, factory);
+    this(
+        service,
+        channel,
+        connectSelector,
+        factory,
+        SnapUnderlaySupport.createFor(service, channel));
+  }
+
+  ScionDatagramChannel(
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
+      PathSelectorFactory factory,
+      SnapUnderlay snapUnderlay)
+      throws IOException {
+    super(service, channel, connectSelector, factory, snapUnderlay);
   }
 
   /**
@@ -360,9 +376,6 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
       }
 
-      if (service != null && service.preferSnapUnderlay()) {
-        return SnapScionDatagramChannel.create(service, channel, selector, factory);
-      }
       return new ScionDatagramChannel(service, channel, selector, factory);
     }
   }

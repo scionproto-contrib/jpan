@@ -174,6 +174,7 @@ TODO
 - The aa service appears to be providing a discovery service address. Why do we need to specify it
   separately? -> Check what real server provides (not used in scion-sdk apparently)
 - SnapTunnelSession: constructor has unused argument, shouldn't we use it?
+- Remove SnapUnderlaySupport.
 
 ### Added
 

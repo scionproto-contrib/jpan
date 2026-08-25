@@ -49,12 +49,12 @@ import org.scion.jpan.testutil.MockSnapService;
  * after binding
  *
  * <p>PackageVisibilityHelper.java — added openSnapChannel(SnapTunnelSession) to construct a
- * SnapScionDatagramChannel from a session directly, for testing without a full ScionService
+ * SNAP-mode ScionDatagramChannel from a session directly, for testing without a full ScionService
  *
  * <p>SnapScionDatagramChannelTest.java (new) — connect_handshakeSucceeds(): starts the mock,
- * creates a SnapTunnelSession pointing at its dataplane, wraps it in a SnapScionDatagramChannel,
- * calls ensureConnected(), and asserts localTunnelAddress() != null (proving the WireGuard
- * handshake completed end-to-end)
+ * creates a SnapTunnelSession pointing at its dataplane, wraps it in a SNAP-mode
+ * ScionDatagramChannel, calls ensureConnected(), and asserts localTunnelAddress() != null (proving
+ * the WireGuard handshake completed end-to-end)
  *
  * <p>MockNetwork2.java (fixed two bugs): the start() factory was missing the new useSnap argument
  * to the constructor; close() was not shutting down the snap service or clearing the SNAP system
@@ -85,10 +85,9 @@ class SnapScionDatagramChannelTest {
             mockSnapService.getStaticPublicKey(),
             null /* no HTTP control client needed for handshake */);
 
-    // Wrap it in a SnapScionDatagramChannel and trigger the WireGuard handshake.
+    // Wrap it in a SNAP-mode ScionDatagramChannel and trigger the WireGuard handshake.
     try (ScionDatagramChannel channel = PackageVisibilityHelper.openSnapChannel(session)) {
       assertNotNull(channel);
-      assertTrue(channel.getClass().getName().contains("Snap"));
 
       session.ensureConnected();
 

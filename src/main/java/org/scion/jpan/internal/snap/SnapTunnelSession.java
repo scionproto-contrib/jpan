@@ -184,6 +184,17 @@ public class SnapTunnelSession {
     }
   }
 
+  /**
+   * Returns the real, OS-backed channel carrying encrypted SNAP traffic, for registration with an
+   * external {@link Selector} (e.g. by a caller that already has its own select loop and wants to
+   * fold this tunnel's readiness into it instead of polling via {@link #awaitReadable}). Callers
+   * must not read from or write to the returned channel directly -- use {@link #sendPacket} /
+   * {@link #receivePacket}, which handle encryption; this is exposed purely as a readiness signal.
+   */
+  public DatagramChannel transportChannel() {
+    return underlay;
+  }
+
   /** Releases the underlay socket and its selector. Safe to call more than once. */
   public void close() {
     try {

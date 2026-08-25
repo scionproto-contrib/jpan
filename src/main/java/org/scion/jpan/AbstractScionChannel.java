@@ -31,6 +31,7 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.PathRawParserLight;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.selectors.PathSelector;
@@ -60,18 +61,31 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private final PathSelector pathSelectorForConnect;
   private PathSelector pathSelectorForConnectPath;
   private final PathSelectorFactory pathSelectorFactory;
+  // Non-null if this channel routes underlay traffic through a SNAP tunnel. See sendUnderlay(),
+  // receiveUnderlay(), close() and ensureSnapSourceAddress() below.
+  private final SnapUnderlay snapUnderlay;
 
   protected AbstractScionChannel(
       ScionService service,
       java.nio.channels.DatagramChannel channel,
       PathSelector connectSelector,
       PathSelectorFactory pathSelectorFactory) {
+    this(service, channel, connectSelector, pathSelectorFactory, null);
+  }
+
+  protected AbstractScionChannel(
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
+      PathSelectorFactory pathSelectorFactory,
+      SnapUnderlay snapUnderlay) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
     this.pathSelectorForConnect = connectSelector;
     this.pathSelectorFactory = pathSelectorFactory;
+    this.snapUnderlay = snapUnderlay;
   }
 
   protected void configureBlocking(boolean block) throws IOException {
@@ -266,6 +280,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void close() throws IOException {
     synchronized (stateLock) {
       isConnected = false;
+      if (snapUnderlay != null) {
+        snapUnderlay.close();
+      }
       if (natMapping != null) {
         natMapping.close();
       }
@@ -601,11 +618,44 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   protected InetSocketAddress receiveUnderlay(ByteBuffer buffer) throws IOException {
+    if (snapUnderlay != null) {
+      return snapUnderlay.receive(buffer);
+    }
     return (InetSocketAddress) channel.receive(buffer);
   }
 
   protected int sendUnderlay(ByteBuffer buffer, InetSocketAddress remoteHost) throws IOException {
+    if (snapUnderlay != null) {
+      return snapUnderlay.send(buffer);
+    }
     return channel.send(buffer, remoteHost);
+  }
+
+  /**
+   * The real, OS-backed channel carrying SNAP traffic, for a caller that wants to register it with
+   * its own {@link java.nio.channels.Selector} instead of polling. Returns {@code null} if this
+   * channel is not in SNAP mode.
+   */
+  protected final DatagramChannel snapTransportChannel() {
+    return snapUnderlay == null ? null : snapUnderlay.transportChannel();
+  }
+
+  /**
+   * Ensures the SNAP tunnel handshake has completed and installs the SNAP-server-assigned address
+   * as the SCION source address. Without this, the source address would fall back to {@link
+   * org.scion.jpan.internal.NatMapping}, which knows nothing about the SNAP tunnel and would report
+   * the local (pre-NAT) address of an underlay socket that isn't even used to send traffic. No-op
+   * if this channel is not in SNAP mode. Called from {@link #buildHeader} so that neither
+   * {@link ScionDatagramChannel} nor {@link ScmpSenderAsync} need to call it explicitly.
+   */
+  private void ensureSnapSourceAddress() throws IOException {
+    if (snapUnderlay == null || getOverrideSourceAddress() != null) {
+      return;
+    }
+    InetSocketAddress assigned = snapUnderlay.ensureConnectedSourceAddress();
+    if (assigned != null) {
+      setOverrideSourceAddress(assigned);
+    }
   }
 
   /**
@@ -763,6 +813,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // This may be necessary for getSourceAddress(), but it is definitely necessary for
       // consistent API behavior that getLocalAddress() should return an address after send().
       ensureBound();
+      ensureSnapSourceAddress();
       buffer.clear();
       long srcIsdAs;
       InetAddress srcAddress;

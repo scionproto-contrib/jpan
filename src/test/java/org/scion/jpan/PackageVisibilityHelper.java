@@ -26,6 +26,7 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
 import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
@@ -208,12 +209,13 @@ public class PackageVisibilityHelper {
   }
 
   /**
-   * Creates a {@link SnapScionDatagramChannel} backed by the given {@link SnapTunnelSession}, for
-   * unit-testing SNAP channel behavior without a real {@link ScionService}. The channel has no path
-   * selector/factory (both null), since neither is needed unless the caller sends via address-based
-   * resolution (as opposed to an explicit {@link Path}) -- an earlier version of this helper built
-   * a selector via {@link Scion#defaultService()}, which depends on live DNS/daemon resolution and
-   * made every test using it flaky/environment-dependent for no reason.
+   * Creates a {@link ScionDatagramChannel} in SNAP mode, backed by the given {@link
+   * SnapTunnelSession}, for unit-testing SNAP channel behavior without a real {@link ScionService}.
+   * The channel has no path selector/factory (both null), since neither is needed unless the caller
+   * sends via address-based resolution (as opposed to an explicit {@link Path}) -- an earlier
+   * version of this helper built a selector via {@link Scion#defaultService()}, which depends on
+   * live DNS/daemon resolution and made every test using it flaky/environment-dependent for no
+   * reason.
    */
   public static ScionDatagramChannel openSnapChannel(SnapTunnelSession session) throws IOException {
     return openSnapChannel(null, session);
@@ -229,12 +231,13 @@ public class PackageVisibilityHelper {
   public static ScionDatagramChannel openSnapChannel(ScionService service, SnapTunnelSession session)
       throws IOException {
     DatagramChannel udp = DatagramChannel.open();
+    SnapUnderlay snapUnderlay = SnapUnderlay.wrap(session);
     if (service == null) {
-      return new SnapScionDatagramChannel(null, udp, null, null, session);
+      return new ScionDatagramChannel(null, udp, null, null, snapUnderlay);
     }
     PathSelector selector = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
     PathSelectorFactory factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
-    return new SnapScionDatagramChannel(service, udp, selector, factory, session);
+    return new ScionDatagramChannel(service, udp, selector, factory, snapUnderlay);
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
