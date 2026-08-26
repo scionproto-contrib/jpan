@@ -217,18 +217,11 @@ public class ScmpSenderAsync implements AutoCloseable {
 
       try {
         // selector
+        // Note: in SNAP mode, `channel` here is the same real channel SnapUnderlay uses for
+        // I/O (see SnapUnderlaySupport.createFor()), so registering it is correct either way.
         this.selector = channel.provider().openSelector();
         super.channel().configureBlocking(false);
-        java.nio.channels.DatagramChannel snapChannel = snapTransportChannel();
-        if (snapChannel != null) {
-          // The outer channel is never actually used for I/O in SNAP mode (send/receive go
-          // through the SNAP tunnel), so only the tunnel's real transport channel is registered
-          // -- registering both would let a stray packet on the outer channel's ephemeral port
-          // wake the selector without ever being drained, causing a busy-loop.
-          snapChannel.register(this.selector, SelectionKey.OP_READ);
-        } else {
-          super.channel().register(this.selector, SelectionKey.OP_READ);
-        }
+        super.channel().register(this.selector, SelectionKey.OP_READ);
 
         if (port == null || port < 0) {
           ensureBound();
@@ -481,7 +474,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
       try {
-        channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
+        channel = channel == null ? SnapUnderlaySupport.openChannelFor(service) : channel;
         return new ScmpSenderAsync(service, port, handler, channel);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);

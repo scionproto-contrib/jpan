@@ -14,6 +14,8 @@
 
 package org.scion.jpan;
 
+import java.io.IOException;
+import java.net.StandardProtocolFamily;
 import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
 import org.scion.jpan.internal.snap.SnapControlClient;
@@ -31,6 +33,24 @@ import org.scion.jpan.internal.snap.SnapUnderlay;
 final class SnapUnderlaySupport {
 
   private SnapUnderlaySupport() {}
+
+  /**
+   * Opens a channel suitable for {@code service}. When SNAP mode is enabled, this explicitly opens
+   * an IPv4 ({@link StandardProtocolFamily#INET}) channel: the SNAP dataplane is IPv4-only, but a
+   * platform-default {@link DatagramChannel#open()} can come back IPv6/dual-stack depending on
+   * JVM/platform defaults (observed to vary even across runs on the same machine). Since this
+   * channel is now also SnapUnderlay's real transport channel (see {@link #createFor}), that
+   * mismatch silently breaks the WireGuard handshake -- the handshake-init "send" reports success,
+   * but the response from the (address-family-mismatched) dataplane is never received/matched, so
+   * it just times out. A non-SNAP channel keeps the platform default, e.g. for genuine IPv6 SCION
+   * deployments.
+   */
+  static DatagramChannel openChannelFor(ScionService service) throws IOException {
+    if (service != null && service.preferSnapUnderlay()) {
+      return DatagramChannel.open(StandardProtocolFamily.INET);
+    }
+    return DatagramChannel.open();
+  }
 
   /**
    * @return {@code null} if {@code service} does not have SNAP mode enabled -- callers should

@@ -146,15 +146,27 @@ public class SnapTunnelSession {
   private long establishedAtNanos;
   private InetSocketAddress localTunnelAddress;
 
+  /**
+   * @param underlay The real channel to carry SNAP/WireGuard traffic. If non-null, it is adopted
+   *     as-is (forced to non-blocking, left unbound -- binding is the caller's responsibility, so
+   *     that a caller who needs a specific port or the SCION dispatcher port range gets to bind it
+   *     before this session ever sends/receives on it). If null (e.g. in tests that don't have a
+   *     real outer channel to share), a fresh, already-bound-to-ANY-port channel is opened instead.
+   */
   public SnapTunnelSession(
       DatagramChannel underlay,
       InetSocketAddress dataPlane,
       byte[] peerStatic,
       SnapControlClient snapControlClient) {
     try {
-      this.underlay = DatagramChannel.open(StandardProtocolFamily.INET);
-      this.underlay.configureBlocking(false);
-      this.underlay.bind(null);
+      if (underlay != null) {
+        this.underlay = underlay;
+        this.underlay.configureBlocking(false);
+      } else {
+        this.underlay = DatagramChannel.open(StandardProtocolFamily.INET);
+        this.underlay.configureBlocking(false);
+        this.underlay.bind(null);
+      }
       this.selector = Selector.open();
       this.underlay.register(this.selector, SelectionKey.OP_READ);
     } catch (IOException e) {

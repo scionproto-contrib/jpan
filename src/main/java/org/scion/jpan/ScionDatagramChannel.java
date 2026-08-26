@@ -365,7 +365,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
       }
 
       if (channel == null) {
-        channel = java.nio.channels.DatagramChannel.open();
+        channel = SnapUnderlaySupport.openChannelFor(service);
       }
 
       if (selector == null && service != null) {

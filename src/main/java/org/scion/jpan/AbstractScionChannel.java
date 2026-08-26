@@ -90,6 +90,11 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   protected void configureBlocking(boolean block) throws IOException {
     synchronized (stateLock) {
+      if (snapUnderlay != null) {
+        // SnapUnderlay's send/receive loops rely on the channel staying non-blocking; ignore
+        // requests to change it rather than silently break them.
+        return;
+      }
       channel.configureBlocking(block);
     }
   }
@@ -178,7 +183,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     synchronized (stateLock) {
       channel.bind(address);
       localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
-      if (service != null) {
+      // NatMapping's result is never consulted for a SNAP channel (ensureSnapSourceAddress()
+      // always installs an override first), and it would otherwise run STUN probes over the same
+      // socket SnapUnderlay uses for real traffic, racing with it for incoming packets.
+      if (service != null && snapUnderlay == null) {
         getNatMapping();
       }
       return (C) this;
@@ -194,7 +202,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   private void ensureNatMapping() {
-    if (service != null) {
+    if (service != null && snapUnderlay == null) {
       getNatMapping();
     }
   }
@@ -280,6 +288,12 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void close() throws IOException {
     synchronized (stateLock) {
       isConnected = false;
+      // Usually snapUnderlay's real transport channel *is* `channel` (see SnapUnderlaySupport),
+      // in which case snapUnderlay.close() below already closes it -- disconnecting/closing it
+      // again afterward would operate on an already-closed channel. Only skip that when they are
+      // actually the same object; a caller-supplied SnapUnderlay wrapping an unrelated session
+      // (e.g. in tests) still needs `channel` closed separately.
+      boolean snapOwnsChannel = snapUnderlay != null && snapUnderlay.transportChannel() == channel;
       if (snapUnderlay != null) {
         snapUnderlay.close();
       }
@@ -293,8 +307,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         pathSelectorForConnectPath.close();
         pathSelectorForConnectPath = null;
       }
-      channel.disconnect();
-      channel.close();
+      if (!snapOwnsChannel) {
+        channel.disconnect();
+        channel.close();
+      }
     }
   }
 
@@ -629,15 +645,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       return snapUnderlay.send(buffer);
     }
     return channel.send(buffer, remoteHost);
-  }
-
-  /**
-   * The real, OS-backed channel carrying SNAP traffic, for a caller that wants to register it with
-   * its own {@link java.nio.channels.Selector} instead of polling. Returns {@code null} if this
-   * channel is not in SNAP mode.
-   */
-  protected final DatagramChannel snapTransportChannel() {
-    return snapUnderlay == null ? null : snapUnderlay.transportChannel();
   }
 
   /**
