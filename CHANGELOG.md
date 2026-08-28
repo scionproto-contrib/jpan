@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix flaky MacOS build
   [ERROR]   NatMappingTest.testKeepAliveBR_ResetTimerAfterReceive:550 expected: <1> but was: <2>
 - Report flaky discovery SNAP
-- CHeck: SNAP p;orts are blocked if if seession has ended?
+- Check: SNAP ports are blocked if session has ended?
 
 - After release: update exercise for PathSelector
 

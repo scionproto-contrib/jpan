@@ -227,13 +227,13 @@ public class PackageVisibilityHelper {
 
   /**
    * Like {@link #openSnapChannel(SnapTunnelSession)}, but attaches the given {@link ScionService}
-   * (a real path selector/factory is only built when {@code service} is non-null). Needed for
-   * tests that exercise address-based resolution (e.g. {@code send(ByteBuffer, SocketAddress)}),
-   * which requires a real selector. Pass {@code null} for the same lightweight,
-   * DNS/daemon-independent behavior as the single-argument overload.
+   * (a real path selector/factory is only built when {@code service} is non-null). Needed for tests
+   * that exercise address-based resolution (e.g. {@code send(ByteBuffer, SocketAddress)}), which
+   * requires a real selector. Pass {@code null} for the same lightweight, DNS/daemon-independent
+   * behavior as the single-argument overload.
    */
-  public static ScionDatagramChannel openSnapChannel(ScionService service, SnapTunnelSession session)
-      throws IOException {
+  public static ScionDatagramChannel openSnapChannel(
+      ScionService service, SnapTunnelSession session) throws IOException {
     DatagramChannel udp = DatagramChannel.open();
     SnapUnderlay snapUnderlay = SnapUnderlay.wrap(session);
     if (service == null) {

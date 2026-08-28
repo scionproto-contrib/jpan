@@ -25,10 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
-import org.scion.jpan.Scmp;
-import org.scion.jpan.ScmpSenderAsync;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.Scmp;
+import org.scion.jpan.ScmpSenderAsync;
 import org.scion.jpan.testutil.MockNetwork2;
 
 /**
@@ -58,10 +58,14 @@ class ScmpSenderAsyncSnapTest {
 
   private static final class NoOpHandler implements ScmpSenderAsync.ResponseHandler {
     @Override
-    public void onResponse(Scmp.TimedMessage msg) {}
+    public void onResponse(Scmp.TimedMessage msg) {
+      // Nothing to do
+    }
 
     @Override
-    public void onTimeout(Scmp.TimedMessage msg) {}
+    public void onTimeout(Scmp.TimedMessage msg) {
+      // Nothing to do
+    }
   }
 
   @Test

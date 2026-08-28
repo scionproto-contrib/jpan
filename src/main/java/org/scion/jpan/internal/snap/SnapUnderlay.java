@@ -40,9 +40,9 @@ public final class SnapUnderlay {
   }
 
   /**
-   * Builds a SNAP tunnel from already-resolved SNAP dataplane configuration. Callers that only
-   * have a {@code ScionService} (rather than these already-resolved pieces) should go through
-   * {@code org.scion.jpan.SnapUnderlaySupport} instead, which resolves them.
+   * Builds a SNAP tunnel from already-resolved SNAP dataplane configuration. Callers that only have
+   * a {@code ScionService} (rather than these already-resolved pieces) should go through {@code
+   * org.scion.jpan.SnapUnderlaySupport} instead, which resolves them.
    */
   public static SnapUnderlay create(
       DatagramChannel channel,

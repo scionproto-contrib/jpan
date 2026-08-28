@@ -53,8 +53,8 @@ final class SnapUnderlaySupport {
   }
 
   /**
-   * @return {@code null} if {@code service} does not have SNAP mode enabled -- callers should
-   *     treat that as "use a plain UDP underlay instead."
+   * @return {@code null} if {@code service} does not have SNAP mode enabled -- callers should treat
+   *     that as "use a plain UDP underlay instead."
    */
   static SnapUnderlay createFor(ScionService service, DatagramChannel channel) {
     if (service == null || !service.preferSnapUnderlay()) {

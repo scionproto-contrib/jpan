@@ -652,8 +652,8 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * as the SCION source address. Without this, the source address would fall back to {@link
    * org.scion.jpan.internal.NatMapping}, which knows nothing about the SNAP tunnel and would report
    * the local (pre-NAT) address of an underlay socket that isn't even used to send traffic. No-op
-   * if this channel is not in SNAP mode. Called from {@link #buildHeader} so that neither
-   * {@link ScionDatagramChannel} nor {@link ScmpSenderAsync} need to call it explicitly.
+   * if this channel is not in SNAP mode. Called from {@link #buildHeader} so that neither {@link
+   * ScionDatagramChannel} nor {@link ScmpSenderAsync} need to call it explicitly.
    */
   private void ensureSnapSourceAddress() throws IOException {
     if (snapUnderlay == null || getOverrideSourceAddress() != null) {

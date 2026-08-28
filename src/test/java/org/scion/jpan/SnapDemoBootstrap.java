@@ -26,18 +26,18 @@ import org.scion.jpan.internal.snap.TokenFetcher;
 
 /**
  * Shared {@code --endhost-api}/{@code --discovery} resolution for the SNAP demos ({@link
- * SnapPacketDemo}, {@link SnapEchoDemo}, {@link SnapTracerouteDemo}), which otherwise all
- * duplicate this logic verbatim.
+ * SnapPacketDemo}, {@link SnapEchoDemo}, {@link SnapTracerouteDemo}), which otherwise all duplicate
+ * this logic verbatim.
  */
 final class SnapDemoBootstrap {
 
   private SnapDemoBootstrap() {}
 
   /**
-   * Resolves the endhost API address(es) to bootstrap from. If {@code discoveryEndpoint} is
-   * given, the global endhost-API discovery service is queried first and its candidates (tried in
-   * order by the existing multi-candidate path-service bootstrap) are used instead of a fixed
-   * {@code endhostApi} address.
+   * Resolves the endhost API address(es) to bootstrap from. If {@code discoveryEndpoint} is given,
+   * the global endhost-API discovery service is queried first and its candidates (tried in order by
+   * the existing multi-candidate path-service bootstrap) are used instead of a fixed {@code
+   * endhostApi} address.
    */
   static String resolveBootstrapAddress(String endhostApi, String discoveryEndpoint) {
     if (discoveryEndpoint != null) {
@@ -73,8 +73,8 @@ final class SnapDemoBootstrap {
    * Resolves the SNAP auth token, either directly from a token file or by exchanging an API key
    * with the AA auth service. In the latter case, the AA response may include a discovery-service
    * URL scoped to the authenticated user (see {@link TokenFetcher.Result#endhostApiDiscoveryUrl}),
-   * which callers should use as a fallback {@code --discovery} endpoint when neither
-   * {@code --endhost-api} nor {@code --discovery} was given explicitly on the command line.
+   * which callers should use as a fallback {@code --discovery} endpoint when neither {@code
+   * --endhost-api} nor {@code --discovery} was given explicitly on the command line.
    */
   static TokenResolution resolveSnapToken(String snapTokenFile, String authKeyFile)
       throws IOException {
@@ -98,6 +98,7 @@ final class SnapDemoBootstrap {
 
   static final class TokenResolution {
     final String snapToken;
+
     /** User-scoped discovery URL from the AA response, or {@code null} if none was provided. */
     final String endhostApiDiscoveryUrl;
 

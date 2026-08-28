@@ -179,9 +179,9 @@ public class SnapTunnelSession {
 
   /**
    * Blocks (without busy-polling) until the underlay channel may have data ready to read, or the
-   * given timeout elapses. Used by callers that loop on {@link #receivePacket} to avoid a
-   * busy-poll (a non-blocking {@code receive()} returning {@code null} does not by itself mean no
-   * data will ever arrive, so callers still need to retry after this returns).
+   * given timeout elapses. Used by callers that loop on {@link #receivePacket} to avoid a busy-poll
+   * (a non-blocking {@code receive()} returning {@code null} does not by itself mean no data will
+   * ever arrive, so callers still need to retry after this returns).
    */
   public void awaitReadable(long timeoutMillis) throws IOException {
     if (!selector.isOpen()) {

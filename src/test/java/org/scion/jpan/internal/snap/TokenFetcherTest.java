@@ -51,7 +51,8 @@ class TokenFetcherTest {
   void fetchSnapToken_stillReturnsOnlyTheToken() throws IOException {
     try (MockSnapApiTokenService aaService =
         MockSnapApiTokenService.start("https://discovery.example.com:5001")) {
-      String token = TokenFetcher.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+      String token =
+          TokenFetcher.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
 
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, token);
     }
