@@ -99,6 +99,11 @@ public class SnapPacketDemo {
   }
 
   private static void configureSnap(Cli cli) {
+    if (cli.apiKey != null) {
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE, "auth.scion.anapaya.net");
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_KEY, cli.apiKey);
+    }
+
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
     System.setProperty(
         Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE,
@@ -126,6 +131,7 @@ public class SnapPacketDemo {
     final String snapToken;
     final int timeoutMs;
     final String logLevel;
+    final String apiKey;
 
     private Cli(
         String destinationIa,
@@ -136,7 +142,8 @@ public class SnapPacketDemo {
         int localPort,
         String snapToken,
         int timeoutMs,
-        String logLevel) {
+        String logLevel,
+        String apiKey) {
       this.destinationIa = destinationIa;
       this.destinationIp = destinationIp;
       this.endhostApi = endhostApi;
@@ -146,6 +153,7 @@ public class SnapPacketDemo {
       this.snapToken = snapToken;
       this.timeoutMs = timeoutMs;
       this.logLevel = logLevel;
+      this.apiKey = apiKey;
     }
 
     static Cli parse(String[] args) throws IOException {
@@ -249,7 +257,8 @@ public class SnapPacketDemo {
           localPort,
           snapToken,
           timeoutMs,
-          logLevel);
+          logLevel,
+          tokenResolution.apiKey);
     }
 
     private static String usage() {

@@ -24,12 +24,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.scion.jpan.internal.*;
 import org.scion.jpan.internal.bootstrap.DNSHelper;
+import org.scion.jpan.internal.bootstrap.EndhostApiDiscoveryClient;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.*;
 import org.scion.jpan.internal.snap.SnapControlClient;
 import org.scion.jpan.internal.snap.SnapControlEndpointResolver;
 import org.scion.jpan.internal.snap.SnapService;
+import org.scion.jpan.internal.snap.TokenFetcher;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
@@ -69,7 +71,8 @@ public class ScionService {
     BOOTSTRAP_SERVER_IP,
     BOOTSTRAP_VIA_DNS,
     BOOTSTRAP_TOPO_FILE,
-    BOOTSTRAP_PATH_SERVICE
+    BOOTSTRAP_PATH_SERVICE,
+    BOOTSTRAP_SNAP
   }
 
   interface Constructor<T> {
@@ -112,14 +115,16 @@ public class ScionService {
         }
         return constructor.create(localAS, null, null, daemonService, null);
       case BOOTSTRAP_PATH_SERVICE:
+      case BOOTSTRAP_SNAP:
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
-        SnapService snapService = initializeSnapDataPlaneIfEnabled(localAS);
-        if (true) {
-          System.err.println("FIXME: ScionService.create()");
-          // TODO throw new UnsupportedOperationException();
-        }
+        SnapService snapService = null;
+          snapService = initializeSnapDataPlaneIfEnabled(localAS);
+          if (true) {
+            System.err.println("FIXME: ScionService.create()");
+            // TODO throw new UnsupportedOperationException();
+          }
         return constructor.create(localAS, null, pathService, null, snapService);
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
@@ -156,7 +161,7 @@ public class ScionService {
   }
 
   private static SnapService initializeSnapDataPlaneIfEnabled(LocalAS localAS) {
-    if (!Config.preferSnapUnderlay()) {
+    if (!Config.isUnderlaySnapAllowed()) {
       return null;
     }
     String snapControlEndpoint = SnapControlEndpointResolver.resolve(localAS);
@@ -188,12 +193,48 @@ public class ScionService {
       if (defaultService != null) {
         return defaultService;
       }
+
       // try bootstrap service IP
       String fileName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
       if (fileName != null) {
         defaultService = create(fileName, Mode.BOOTSTRAP_TOPO_FILE, ScionService::new);
         return defaultService;
+      }
+
+      // Try SNAP discovery service
+      if (Config.isUnderlaySnapAllowed()) {
+        String authKey = Config.getSnapAuthKey();
+        String authService = Config.getSnapAuthenticationService();
+        if (authService != null && authKey != null) {
+          // TODO overwrite API key char[] and reset property?
+          TokenFetcher.Result result = TokenFetcher.fetchAll(authKey, authService);
+          System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
+          String pathServices = null;
+          if (result.endhostApiDiscoveryUrl != null) {
+            String discoveryEndpoint = result.endhostApiDiscoveryUrl;
+            List<String> candidates =
+                EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
+            System.out.println("------------ DISCOVERY:");
+            for (String url : candidates) {
+              System.out.println("             ------------ DISCOVERY = " + url);
+            }
+            //            if (candidates.isEmpty()) {
+            //              throw new ScionRuntimeException(
+            //               "Endhost API discovery returned no candidates: " + discoveryEndpoint);
+            //            }
+            // TODO verify that ";" works!
+            pathServices = String.join(";", candidates);
+          }
+          if (pathServices == null || pathServices.isEmpty()) {
+            pathServices = Config.getPathService();
+          }
+          if (pathServices == null || pathServices.isEmpty()) {
+            throw new ScionRuntimeException("SNAP is configured but no PathService is given.");
+          }
+          defaultService = create(pathServices, Mode.BOOTSTRAP_SNAP, ScionService::new);
+          return defaultService;
+        }
       }
 
       String pathService = Config.getPathService();

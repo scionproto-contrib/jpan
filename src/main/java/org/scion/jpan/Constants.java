@@ -60,12 +60,25 @@ public final class Constants {
   /** Optional bearer token for Endhost API authentication. */
   public static final String ENV_PATH_SERVICE_AUTH_TOKEN = "SCION_PATH_SERVICE_AUTH_TOKEN";
 
-  /** Preferred transport underlay mode: "udp" (default) or "snap". */
+  /** Address or URL of the authentication service. */
+  public static final String PROPERTY_SNAP_AUTH_SERVICE = "org.scion.snap.auth.service";
+
+  /** Address or URL of the authentication service. */
+  public static final String ENV_SNAP_AUTH_SERVICE = "SCION_SNAP_AUTH_SERVICE";
+
+  /** Snap API key. */
+  public static final String PROPERTY_SNAP_AUTH_KEY = "org.scion.snap.auth.key";
+
+  /** Snap API key. */
+  public static final String ENV_SNAP_AUTH_KEY = "SCION_SNAP_AUTH_KEY";
+
+  /** Transport underlay mode: "udp" (default), "snap" or "auto". */
   public static final String PROPERTY_UNDERLAY_MODE = "org.scion.underlay.mode";
 
-  /** Preferred transport underlay mode: "udp" (default) or "snap". */
+  /** Transport underlay mode: "udp" (default), "snap" or "auto". */
   public static final String ENV_UNDERLAY_MODE = "SCION_UNDERLAY_MODE";
 
+  // TODO change to "auto" once SNAP is matured.
   public static final String DEFAULT_UNDERLAY_MODE = "udp";
 
   /** Optional explicit SNAP control-plane endpoint (host:port). */

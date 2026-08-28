@@ -104,6 +104,11 @@ public class SnapEchoDemo {
   }
 
   private static void configureSnap(Cli cli) {
+    if (cli.apiKey != null) {
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE, "auth.scion.anapaya.net");
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_KEY, cli.apiKey);
+    }
+
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
     System.setProperty(
         Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE,
@@ -134,6 +139,7 @@ public class SnapEchoDemo {
     final int intervalMs;
     final String payload;
     final String logLevel;
+    final String apiKey;
 
     private Cli(
         String destinationIa,
@@ -147,7 +153,8 @@ public class SnapEchoDemo {
         int timeoutMs,
         int intervalMs,
         String payload,
-        String logLevel) {
+        String logLevel,
+        String apiKey) {
       this.destinationIa = destinationIa;
       this.destinationIp = destinationIp;
       this.endhostApi = endhostApi;
@@ -160,6 +167,7 @@ public class SnapEchoDemo {
       this.intervalMs = intervalMs;
       this.payload = payload;
       this.logLevel = logLevel;
+      this.apiKey = apiKey;
     }
 
     static Cli parse(String[] args) throws IOException {
@@ -275,7 +283,8 @@ public class SnapEchoDemo {
           timeoutMs,
           intervalMs,
           payload,
-          logLevel);
+          logLevel,
+          tokenResolution.apiKey);
     }
 
     private static String usage() {

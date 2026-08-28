@@ -22,6 +22,7 @@ public final class SnapControlEndpointResolver {
 
   private SnapControlEndpointResolver() {}
 
+  @Deprecated // TODO SNAP
   public static String resolve(LocalAS localAS) {
     String explicit = Config.getSnapControlPlaneAddress();
     if (explicit != null && !explicit.isEmpty()) {

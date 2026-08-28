@@ -20,23 +20,26 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.snap.aa.Auth;
 
 public class TokenFetcher {
 
   private TokenFetcher() {}
 
-  public static String fetchSnapToken(String apiKey, String serverUrl) throws IOException {
-    return fetchSnapTokenWithMetadata(apiKey, serverUrl).snapToken;
+  public static String fetchSnapToken(String apiKey, String serverUrl) {
+    return fetchAll(apiKey, serverUrl).snapToken;
   }
 
-  /**
-   * Like {@link #fetchSnapToken}, but also surfaces the AA service's optional metadata -- in
-   * particular {@code endhost_api_discovery_url}, a discovery-service URL scoped to the
-   * authenticated user. When present, callers should prefer it over the global discovery service at
-   * {@code https://discovery.scion.anapaya.net}.
-   */
-  public static Result fetchSnapTokenWithMetadata(String apiKey, String serverUrl)
+  public static Result fetchAll(String apiKey, String serverUrl) {
+    try {
+      return fetch(apiKey, serverUrl);
+    } catch (IOException e) {
+      throw new ScionRuntimeException(e);
+    }
+  }
+
+  public static Result fetch(String apiKey, String serverUrl)
       throws IOException {
     String baseUrl =
         serverUrl.startsWith("http://") || serverUrl.startsWith("https://")
@@ -56,6 +59,8 @@ public class TokenFetcher {
             .post(body)
             .build();
     OkHttpClient client = new OkHttpClient();
+    System.out.println("------------ Checking AUTH Service: " + baseUrl); // TODO
+    System.out.println("------------ Checking AUTH Service-key: " + apiKey); // TODO
     try (Response response = client.newCall(httpRequest).execute()) {
       ResponseBody responseBody = response.body();
       if (!response.isSuccessful() || responseBody == null) {
@@ -64,8 +69,10 @@ public class TokenFetcher {
       Auth.AuthenticateByKeyResponse parsed =
           Auth.AuthenticateByKeyResponse.newBuilder().mergeFrom(responseBody.bytes()).build();
       String discoveryUrl = null;
+      System.out.println("------------ Checking AUTH Service metadata ... "); // TODO
       if (parsed.hasMetadata() && parsed.getMetadata().hasEndhostApiDiscoveryUrl()) {
         String url = parsed.getMetadata().getEndhostApiDiscoveryUrl();
+        System.out.println("------------ AUTH Service metadata: " + url); // TODO
         if (!url.isEmpty()) {
           discoveryUrl = url;
         }
@@ -74,11 +81,10 @@ public class TokenFetcher {
     }
   }
 
-  /** Result of {@link #fetchSnapTokenWithMetadata}. */
   public static final class Result {
     public final String snapToken;
 
-    /** User-scoped endhost API discovery URL, or {@code null} if the AA service provided none. */
+    /** Optional Endhost API discovery URL. */
     public final String endhostApiDiscoveryUrl;
 
     Result(String snapToken, String endhostApiDiscoveryUrl) {

@@ -47,8 +47,17 @@ public class Config {
         .toLowerCase();
   }
 
+  @Deprecated // TODO SNAP
   public static boolean preferSnapUnderlay() {
     return "snap".equals(getUnderlayMode());
+  }
+
+  public static boolean isUnderlaySnapAllowed() {
+    return "snap".equals(getUnderlayMode()) || "auto".equals(getUnderlayMode());
+  }
+
+  public static boolean isUnderlayUdpAllowed() {
+    return "udp".equals(getUnderlayMode()) || "auto".equals(getUnderlayMode());
   }
 
   public static String getSnapControlPlaneAddress() {
@@ -57,6 +66,14 @@ public class Config {
 
   public static String getSnapAuthToken() {
     return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_TOKEN, ENV_SNAP_AUTH_TOKEN);
+  }
+
+  public static String getSnapAuthKey() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_KEY, ENV_SNAP_AUTH_KEY);
+  }
+
+  public static String getSnapAuthenticationService() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_SERVICE, ENV_SNAP_AUTH_SERVICE);
   }
 
   public static String getNat() {

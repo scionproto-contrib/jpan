@@ -84,25 +84,26 @@ final class SnapDemoBootstrap {
       if (snapToken.isEmpty()) {
         throw new IllegalArgumentException("Token file is empty: " + snapTokenFile);
       }
-      return new TokenResolution(snapToken, null);
+      return new TokenResolution(null, snapToken, null);
     }
     String authKey =
         new String(Files.readAllBytes(Paths.get(authKeyFile)), StandardCharsets.UTF_8).trim();
     if (authKey.isEmpty()) {
       throw new IllegalArgumentException("Auth key file is empty: " + authKeyFile);
     }
-    TokenFetcher.Result result =
-        TokenFetcher.fetchSnapTokenWithMetadata(authKey, "auth.scion.anapaya.net");
-    return new TokenResolution(result.snapToken, result.endhostApiDiscoveryUrl);
+    TokenFetcher.Result result = TokenFetcher.fetchAll(authKey, "auth.scion.anapaya.net");
+    return new TokenResolution(authKey, result.snapToken, result.endhostApiDiscoveryUrl);
   }
 
   static final class TokenResolution {
+    final String apiKey;
     final String snapToken;
 
     /** User-scoped discovery URL from the AA response, or {@code null} if none was provided. */
     final String endhostApiDiscoveryUrl;
 
-    TokenResolution(String snapToken, String endhostApiDiscoveryUrl) {
+    TokenResolution(String apiKey, String snapToken, String endhostApiDiscoveryUrl) {
+      this.apiKey = apiKey;
       this.snapToken = snapToken;
       this.endhostApiDiscoveryUrl = endhostApiDiscoveryUrl;
     }

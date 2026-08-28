@@ -26,8 +26,7 @@ class TokenFetcherTest {
   void fetchSnapTokenWithMetadata_noMetadata_discoveryUrlIsNull() throws IOException {
     try (MockSnapApiTokenService aaService = MockSnapApiTokenService.start()) {
       TokenFetcher.Result result =
-          TokenFetcher.fetchSnapTokenWithMetadata(
-              MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+          TokenFetcher.fetchAll(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
 
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, result.snapToken);
       assertNull(result.endhostApiDiscoveryUrl);
@@ -39,8 +38,7 @@ class TokenFetcherTest {
     String discoveryUrl = "https://discovery.example.com:5001";
     try (MockSnapApiTokenService aaService = MockSnapApiTokenService.start(discoveryUrl)) {
       TokenFetcher.Result result =
-          TokenFetcher.fetchSnapTokenWithMetadata(
-              MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+          TokenFetcher.fetchAll(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
 
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, result.snapToken);
       assertEquals(discoveryUrl, result.endhostApiDiscoveryUrl);
