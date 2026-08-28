@@ -111,7 +111,6 @@ public class SnapPacketDemo {
     if (cli.snapControl != null) {
       System.setProperty(Constants.PROPERTY_SNAP_PATH_SERVICE, cli.snapControl);
     }
-    System.setProperty(Constants.PROPERTY_PATH_SERVICE_AUTH_TOKEN, cli.snapToken);
     System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, cli.snapToken);
 
     if (cli.logLevel != null) {

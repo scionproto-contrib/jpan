@@ -163,7 +163,7 @@ public class LocalAsFromPathService {
         new Request.Builder()
             .url(baseUrl + "/scion.endhost.v1.UnderlayService/ListUnderlays")
             .addHeader("Content-type", "application/proto");
-    String token = Config.getPathServiceAuthToken();
+    String token = Config.getSnapAuthToken();
     if (token != null && !token.isEmpty()) {
       requestBuilder.addHeader("Authorization", "Bearer " + token);
     }

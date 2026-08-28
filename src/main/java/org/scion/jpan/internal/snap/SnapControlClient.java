@@ -117,9 +117,6 @@ public class SnapControlClient {
 
   private Request.Builder withAuth(Request.Builder builder) {
     String token = Config.getSnapAuthToken();
-    if (token == null || token.isEmpty()) {
-      token = Config.getPathServiceAuthToken();
-    }
     if (token != null && !token.isEmpty()) {
       builder.addHeader("Authorization", "Bearer " + token);
     }

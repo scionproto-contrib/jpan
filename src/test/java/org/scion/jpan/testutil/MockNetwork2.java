@@ -111,8 +111,6 @@ public class MockNetwork2 implements AutoCloseable {
     if (useSnap) {
       System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "SNAP");
       System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, MockSnapService.SNAP_TOKEN);
-      System.setProperty(
-          Constants.PROPERTY_PATH_SERVICE_AUTH_TOKEN, MockSnapService.PATH_SERVICE_TOKEN);
       snapService = MockSnapService.start(MockSnapService.ADDRESS);
       // Must be the explicit http:// URL, not the bare host:port from getControlAddress():
       // SnapControlClient defaults a bare address to https://, but MockSnapService's control

@@ -54,12 +54,6 @@ public final class Constants {
   /** Address of the path service with the new endhost API. */
   public static final String ENV_BOOTSTRAP_PATH_SERVICE = "SCION_BOOTSTRAP_PATH_SERVICE";
 
-  /** Optional bearer token for Endhost API authentication. */
-  public static final String PROPERTY_PATH_SERVICE_AUTH_TOKEN = "org.scion.pathService.authToken";
-
-  /** Optional bearer token for Endhost API authentication. */
-  public static final String ENV_PATH_SERVICE_AUTH_TOKEN = "SCION_PATH_SERVICE_AUTH_TOKEN";
-
   /** Address or URL of the authentication service. */
   public static final String PROPERTY_SNAP_AUTH_SERVICE = "org.scion.snap.auth.service";
 

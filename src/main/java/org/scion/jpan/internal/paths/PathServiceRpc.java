@@ -65,7 +65,7 @@ public class PathServiceRpc {
           new Request.Builder()
               .url(baseUrl + "/" + Config.getNApiSegmentServiceName())
               .addHeader("Content-type", "application/proto");
-      String token = Config.getPathServiceAuthToken();
+      String token = Config.getSnapAuthToken();
       if (token != null && !token.isEmpty()) {
         requestBuilder.addHeader("Authorization", "Bearer " + token);
       }

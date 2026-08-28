@@ -432,7 +432,6 @@ So, activate SNAP, do one of the following:
 
 | Option                                    | Java property                 | Environment variable         | Default value |
 |-------------------------------------------|-------------------------------|------------------------------|---------------|
-| Token for Endhost API authentication      | `org.scion.pathService.authToken` | `SCION_PATH_SERVICE_AUTH_TOKEN` |               |
 | Preferred underlay: auto, udp or snap     | `org.scion.underlay.mode`     | `SCION_UNDERLAY_MODE`        | `udp`         |
 | SNAP authentication key (API key)         | `org.scion.snap.auth.key`     | `SCION_SNAP_AUTH_KEY`        |               | 
 | SNAP authentication service (address/url) | `org.scion.snap.auth.service`  | `SCION_SNAP_AUTH_SERVICE`    |               | 

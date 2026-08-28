@@ -36,11 +36,6 @@ public class Config {
     return ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_PATH_SERVICE, ENV_BOOTSTRAP_PATH_SERVICE);
   }
 
-  public static String getPathServiceAuthToken() {
-    return ScionUtil.getPropertyOrEnv(
-        PROPERTY_PATH_SERVICE_AUTH_TOKEN, ENV_PATH_SERVICE_AUTH_TOKEN);
-  }
-
   public static String getUnderlayMode() {
     return ScionUtil.getPropertyOrEnv(
             PROPERTY_UNDERLAY_MODE, ENV_UNDERLAY_MODE, DEFAULT_UNDERLAY_MODE)
