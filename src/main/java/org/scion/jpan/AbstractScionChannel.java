@@ -523,7 +523,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         int[] interfaceIds = PathRawParserLight.extractHopFieldInterfaceIDs(buffer, hopCount - 1);
         buffer.position(oldPos);
         int interfaceId = interfaceIds[0] == 0 ? interfaceIds[1] : interfaceIds[0];
-        return service.getBorderRouterAddress(interfaceId);
+        return service.getFirstHopAddress(interfaceId);
       }
     }
     // With path length == 0 or without ScionService we just use the IP source address.

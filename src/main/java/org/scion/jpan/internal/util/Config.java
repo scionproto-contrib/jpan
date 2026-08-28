@@ -52,7 +52,7 @@ public class Config {
   }
 
   public static String getSnapControlPlaneAddress() {
-    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_CONTROL_PLANE, ENV_SNAP_CONTROL_PLANE);
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_PATH_SERVICE, ENV_SNAP_PATH_SERVICE);
   }
 
   public static String getSnapAuthToken() {

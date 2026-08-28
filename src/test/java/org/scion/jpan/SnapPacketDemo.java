@@ -104,7 +104,7 @@ public class SnapPacketDemo {
         Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE,
         SnapDemoBootstrap.resolveBootstrapAddress(cli.endhostApi, cli.discoveryEndpoint));
     if (cli.snapControl != null) {
-      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, cli.snapControl);
+      System.setProperty(Constants.PROPERTY_SNAP_PATH_SERVICE, cli.snapControl);
     }
     System.setProperty(Constants.PROPERTY_PATH_SERVICE_AUTH_TOKEN, cli.snapToken);
     System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, cli.snapToken);

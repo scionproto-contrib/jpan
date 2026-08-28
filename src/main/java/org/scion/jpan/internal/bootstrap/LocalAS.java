@@ -52,7 +52,7 @@ public class LocalAS {
     this.controlServices = controlServices;
     this.discoveryServices = discoveryServices;
     this.borderRouters = borderRouters;
-    this.snapNodes = snapNodes == null ? Collections.emptyList() : snapNodes;
+    this.snapNodes = snapNodes;
     this.interfaceIDs = initInterfaceIDs(borderRouters);
     this.trcStore = trcStore;
   }
@@ -98,23 +98,28 @@ public class LocalAS {
     return localIsdAs;
   }
 
-  public String getBorderRouterAddressString(int interfaceId) {
+  /**
+   * Address of first hop: border router or SNAP service.
+   * @param interfaceId border router interface ID
+   * @return The address of the first hop.
+   */
+  public String getFirstHopAddressString(int interfaceId) {
+    if (snapFirstHopAddress != null) {
+      return snapFirstHopAddress;
+    }
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
-      if (snapFirstHopAddress != null) {
-        return snapFirstHopAddress;
-      }
       throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
     }
     return br.internalAddressString;
   }
 
-  public InetSocketAddress getBorderRouterAddress(int interfaceId) {
+  public InetSocketAddress getFirstHopAddress(int interfaceId) {
+    if (snapFirstHopAddress != null) {
+      return IPHelper.toInetSocketAddress(snapFirstHopAddress);
+    }
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
-      if (snapFirstHopAddress != null) {
-        return IPHelper.toInetSocketAddress(snapFirstHopAddress);
-      }
       throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
     }
     return br.internalAddress;

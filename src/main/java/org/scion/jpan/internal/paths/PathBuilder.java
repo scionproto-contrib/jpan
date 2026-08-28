@@ -393,6 +393,11 @@ public class PathBuilder {
     raw.flip();
     path.setRaw(raw);
 
+    // First hop
+    String firstHop =
+        localAS.getFirstHopAddressString((int) path.getInterfaces().get(0).getId());
+    path.setLocalInterface(PathMetadata.Interface.create(firstHop));
+
     // Metadata
     SegmentMetadataAccumulator.writeStaticInfoMetadata(path, segments, ranges);
 

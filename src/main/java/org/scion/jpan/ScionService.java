@@ -496,15 +496,8 @@ public class ScionService {
     return localAS.getPortRange();
   }
 
-  InetSocketAddress getBorderRouterAddress(int interfaceID) {
-    try {
-      return localAS.getBorderRouterAddress(interfaceID);
-    } catch (ScionRuntimeException e) {
-      if (preferSnapUnderlay() && snapService != null && localAS.getBorderRouters().isEmpty()) {
-        return snapService.getAddress();
-      }
-      throw e;
-    }
+  InetSocketAddress getFirstHopAddress(int interfaceID) {
+    return localAS.getFirstHopAddress(interfaceID);
   }
 
   List<LocalAS.SnapNode> getSnapNodes() {

@@ -117,7 +117,7 @@ public class MockNetwork2 implements AutoCloseable {
       // Must be the explicit http:// URL, not the bare host:port from getControlAddress():
       // SnapControlClient defaults a bare address to https://, but MockSnapService's control
       // server only speaks plain HTTP.
-      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, snapService.getControlUrl());
+      System.setProperty(Constants.PROPERTY_SNAP_PATH_SERVICE, snapService.getControlUrl());
     } else {
       snapService = null;
     }
@@ -179,7 +179,7 @@ public class MockNetwork2 implements AutoCloseable {
     DNSUtil.clear();
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE);
     System.clearProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
-    System.clearProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE);
+    System.clearProperty(Constants.PROPERTY_SNAP_PATH_SERVICE);
     System.clearProperty(Constants.PROPERTY_UNDERLAY_MODE);
     // Defensive clean up
     ScionService.closeDefault();
