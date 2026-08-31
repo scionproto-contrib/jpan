@@ -417,9 +417,11 @@ local ISP does not offer it.
 
 The SNAP service requires a token for connection. The token can be provided via property/environment
 variable or it can be obtained from an authentication server with an API key.
-The SNAP control plane service (endhost API) can be set via `org.scion.bootstrap.pathservice` / 
-`SCION_BOOTSTRAP_PATH_SERVICE`. 
-The address of the SNAP data plane service can be obtained from the SNAP control plane service.   
+The SNAP control plane (not to be confused with the SCION control plane / endhost API) 
+can be set with `org.scion.snap.controlPlane` / `SCION_SNAP_CONTROL_PLANE`, otherwise it is derived
+from the local AS's topology (endhost API).
+The address of the SNAP data plane service (and its WireGuard key) is then obtained from the
+SNAP control plane endpoint.
 
 Snap can be enabled in several ways:
 - It will be used if the setting specify a SNAP discovery/authentication service.
@@ -427,19 +429,20 @@ Snap can be enabled in several ways:
 - If an authentication token is specified, SNAP will be used if the new endhost API is used and
   if it reports a SNAP underlay.
 
-So, activate SNAP, do one of the following:
+So, to activate SNAP, do one of the following:
 - Specify a SNAP authentication service and an access token for the service.
-  - If a path service (new endhost API) is specified, it will try to use it, otherwise it will 
-    try to use any path service provided by the authentication service.
-- Specify a SNAP authentication token and a path service (new endhost API)
+  Alternatively directly specify the SNAP authentication token.
+- If a SNAP control plane service is specified, it will try to use it, otherwise it will 
+  try to use any SNAP control plane service provided by the authentication service
+  or by the SCION endhost API.
 
-| Option                                    | Java property                 | Environment variable         | Default value |
-|-------------------------------------------|-------------------------------|------------------------------|---------------|
-| Preferred underlay: auto, udp or snap     | `org.scion.underlay.mode`     | `SCION_UNDERLAY_MODE`        | `udp`         |
-| SNAP authentication key (API key)         | `org.scion.snap.auth.key`     | `SCION_SNAP_AUTH_KEY`        |               | 
-| SNAP authentication service (address/url) | `org.scion.snap.auth.service`  | `SCION_SNAP_AUTH_SERVICE`    |               | 
-| SNAP path service (host:port)             | `org.scion.snap.pathservice`  | `SCION_SNAP_PATH_SERVICE`    |               | 
-| SNAP authentication token                 | `org.scion.snap.authToken`    | `SCION_SNAP_AUTH_TOKEN`      |               | 
+| Option                                    | Java property                 | Environment variable       | Default value |
+|-------------------------------------------|-------------------------------|----------------------------|---------------|
+| Preferred underlay: auto, udp or snap     | `org.scion.underlay.mode`     | `SCION_UNDERLAY_MODE`      | `udp`         |
+| SNAP authentication key (API key)         | `org.scion.snap.auth.key`     | `SCION_SNAP_AUTH_KEY`      |               | 
+| SNAP authentication service (address/url) | `org.scion.snap.auth.service` | `SCION_SNAP_AUTH_SERVICE`  |               | 
+| SNAP control plane endpoint (host:port)   | `org.scion.snap.controlPlane` | `SCION_SNAP_CONTROL_PLANE` |               | 
+| SNAP authentication token                 | `org.scion.snap.authToken`    | `SCION_SNAP_AUTH_TOKEN`    |               | 
 
 
 ### Other Options

@@ -76,10 +76,10 @@ public final class Constants {
   public static final String DEFAULT_UNDERLAY_MODE = "udp";
 
   /** Optional explicit SNAP control-plane endpoint (host:port). */
-  public static final String PROPERTY_SNAP_PATH_SERVICE = "org.scion.snap.pathservice";
+  public static final String PROPERTY_SNAP_CONTROL_PLANE = "org.scion.snap.controlPlane";
 
   /** Optional explicit SNAP control-plane endpoint (host:port). */
-  public static final String ENV_SNAP_PATH_SERVICE = "SCION_SNAP_PATH_SERVICE";
+  public static final String ENV_SNAP_CONTROL_PLANE = "SCION_SNAP_CONTROL_PLANE";
 
   /** Optional SNAP token used for control-plane calls. */
   public static final String PROPERTY_SNAP_AUTH_TOKEN = "org.scion.snap.authToken";
