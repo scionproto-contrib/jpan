@@ -33,7 +33,7 @@ public class LocalAS {
   private final int localMtu;
   private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
-  private String snapFirstHopAddress;
+  private InetSocketAddress snapFirstHopAddress;
 
   LocalAS(
       Set<Long> localIsdAs,
@@ -103,20 +103,9 @@ public class LocalAS {
    * @param interfaceId border router interface ID
    * @return The address of the first hop.
    */
-  public String getFirstHopAddressString(int interfaceId) {
-    if (snapFirstHopAddress != null) {
-      return snapFirstHopAddress;
-    }
-    BorderRouter br = interfaceIDs.get(interfaceId);
-    if (br == null) {
-      throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
-    }
-    return br.internalAddressString;
-  }
-
   public InetSocketAddress getFirstHopAddress(int interfaceId) {
     if (snapFirstHopAddress != null) {
-      return IPHelper.toInetSocketAddress(snapFirstHopAddress);
+      return snapFirstHopAddress;
     }
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
@@ -125,7 +114,7 @@ public class LocalAS {
     return br.internalAddress;
   }
 
-  public void setSnapFirstHopAddress(String snapFirstHopAddress) {
+  public void setSnapFirstHopAddress(InetSocketAddress snapFirstHopAddress) {
     this.snapFirstHopAddress = snapFirstHopAddress;
   }
 
@@ -170,12 +159,10 @@ public class LocalAS {
   }
 
   public static class BorderRouter {
-    private final String internalAddressString;
     private final InetSocketAddress internalAddress;
     private final List<Integer> interfaces = new ArrayList<>();
 
     BorderRouter(String addr) {
-      this.internalAddressString = addr;
       this.internalAddress = IPHelper.toInetSocketAddress(addr);
     }
 
