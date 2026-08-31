@@ -416,11 +416,14 @@ made available to the public outside the local AS. This allows endhosts to use S
 local ISP does not offer it.
 
 The SNAP service requires a token for connection. The token can be provided via property/environment
-variable or it can be obtained from an authentication server with an API key. 
+variable or it can be obtained from an authentication server with an API key.
+The SNAP control plane service (endhost API) can be set via `org.scion.bootstrap.pathservice` / 
+`SCION_BOOTSTRAP_PATH_SERVICE`. 
+The address of the SNAP data plane service can be obtained from the SNAP control plane service.   
 
 Snap can be enabled in several ways:
 - It will be used if the setting specify a SNAP discovery/authentication service.
-  If a service is defined by no SNAP service address is available, the application will error out.
+  If a service is defined but no SNAP service address is available, the application will error out.
 - If an authentication token is specified, SNAP will be used if the new endhost API is used and
   if it reports a SNAP underlay.
 
