@@ -33,6 +33,24 @@ final class SnapDemoBootstrap {
 
   private SnapDemoBootstrap() {}
 
+  static String readTokenFile(String snapTokenFile) throws IOException {
+    String snapToken =
+        new String(Files.readAllBytes(Paths.get(snapTokenFile)), StandardCharsets.UTF_8).trim();
+    if (snapToken.isEmpty()) {
+      throw new IllegalArgumentException("Token file is empty: " + snapTokenFile);
+    }
+    return snapToken;
+  }
+
+  static String readAuthKeyFile(String authKeyFile) throws IOException {
+    String authKey =
+        new String(Files.readAllBytes(Paths.get(authKeyFile)), StandardCharsets.UTF_8).trim();
+    if (authKey.isEmpty()) {
+      throw new IllegalArgumentException("Auth key file is empty: " + authKeyFile);
+    }
+    return authKey;
+  }
+
   /**
    * Resolves the endhost API address(es) to bootstrap from. If {@code discoveryEndpoint} is given,
    * the global endhost-API discovery service is queried first and its candidates (tried in order by
@@ -46,8 +64,18 @@ final class SnapDemoBootstrap {
         throw new ScionRuntimeException(
             "Endhost API discovery returned no candidates: " + discoveryEndpoint);
       }
+      System.out.println(
+          "             ------------ DISCOVERY BOOT DP = "
+              + discoveryEndpoint
+              + " -> "
+              + String.join(";", candidates));
       return String.join(";", candidates);
     }
+    System.out.println(
+        "             ------------ DISCOVERY BOOT E-API= "
+            + endhostApi
+            + " -> "
+            + toBootstrapAddress(endhostApi));
     return toBootstrapAddress(endhostApi);
   }
 

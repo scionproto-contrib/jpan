@@ -430,11 +430,14 @@ Snap can be enabled in several ways:
   if it reports a SNAP underlay.
 
 So, to activate SNAP, do one of the following:
-- Specify a SNAP authentication service and an access token for the service.
+- Specify a SNAP authentication service (e.g. `auth.scion.anapaya.net`) and an access token for the service.
   Alternatively directly specify the SNAP authentication token.
 - If a SNAP control plane service is specified, it will try to use it, otherwise it will 
   try to use any SNAP control plane service provided by the authentication service
   or by the SCION endhost API.
+- Specify an endhost API with `org.scion.bootstrap.pathservice` / `SCION_BOOTSTRAP_PATH_SERVICE`
+  or an endhost discovery service with `org.scion.snap.psDiscovery` / `SCION_SNAP_PS_DISCOVERY`,
+  for example: `https://discovery.scion.anapaya.net`.
 
 | Option                                    | Java property                 | Environment variable       | Default value |
 |-------------------------------------------|-------------------------------|----------------------------|---------------|
@@ -443,7 +446,7 @@ So, to activate SNAP, do one of the following:
 | SNAP authentication service (address/url) | `org.scion.snap.auth.service` | `SCION_SNAP_AUTH_SERVICE`  |               | 
 | SNAP control plane endpoint (host:port)   | `org.scion.snap.controlPlane` | `SCION_SNAP_CONTROL_PLANE` |               | 
 | SNAP authentication token                 | `org.scion.snap.authToken`    | `SCION_SNAP_AUTH_TOKEN`    |               | 
-
+| SNAP endhost API discovery endpoint       | `org.scion.snap.psDiscovery`  | `SCION_SNAP_PS_DISCOVERY`  |               |
 
 ### Other Options
 

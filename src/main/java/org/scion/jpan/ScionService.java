@@ -214,19 +214,21 @@ public class ScionService {
             String discoveryEndpoint = result.endhostApiDiscoveryUrl;
             List<String> candidates =
                 EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
-            System.out.println("------------ DISCOVERY:");
-            for (String url : candidates) {
-              System.out.println("             ------------ DISCOVERY = " + url);
-            }
-            //            if (candidates.isEmpty()) {
-            //              throw new ScionRuntimeException(
-            //               "Endhost API discovery returned no candidates: " + discoveryEndpoint);
-            //            }
-            // TODO verify that ";" works!
             pathServices = String.join(";", candidates);
           }
           if (pathServices == null || pathServices.isEmpty()) {
             pathServices = Config.getPathService();
+          }
+          if (pathServices == null || pathServices.isEmpty()) {
+            String disco = Config.getSnapPathServiceDiscovery();
+            if (disco != null) {
+              List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(disco);
+              if (candidates.isEmpty()) {
+                throw new ScionRuntimeException(
+                    "Endhost API discovery returned no candidates: " + disco);
+              }
+              pathServices = String.join(";", candidates);
+            }
           }
           if (pathServices == null || pathServices.isEmpty()) {
             throw new ScionRuntimeException("SNAP is configured but no PathService is given.");

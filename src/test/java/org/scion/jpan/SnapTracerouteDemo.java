@@ -29,9 +29,9 @@ public class SnapTracerouteDemo {
   private SnapTracerouteDemo() {}
 
   public static void main(String[] args) throws Exception {
-    Cli cli = Cli.parse(args);
+    System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
 
-    configureSnap(cli);
+    Cli cli = Cli.parse(args);
 
     ScionService service = Scion.defaultService();
     long destinationIa = ScionUtil.parseIA(cli.destinationIa);
@@ -60,9 +60,6 @@ public class SnapTracerouteDemo {
               + cli.destinationIp.getHostAddress()
               + ": local_port="
               + cli.localPort);
-      System.out.println(
-          "Using SNAP underlay via Endhost API "
-              + SnapDemoBootstrap.endhostApiDescription(cli.endhostApi, cli.discoveryEndpoint));
 
       int transmitted = 0;
       int received = 0;
@@ -124,61 +121,17 @@ public class SnapTracerouteDemo {
     }
   }
 
-  private static void configureSnap(Cli cli) {
-    if (cli.apiKey != null) {
-      System.setProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE, "auth.scion.anapaya.net");
-      System.setProperty(Constants.PROPERTY_SNAP_AUTH_KEY, cli.apiKey);
-    }
-
-    System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
-    System.setProperty(
-        Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE,
-        SnapDemoBootstrap.resolveBootstrapAddress(cli.endhostApi, cli.discoveryEndpoint));
-    if (cli.snapControl != null) {
-      System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, cli.snapControl);
-    }
-    System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, cli.snapToken);
-
-    if (cli.logLevel != null) {
-      System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", cli.logLevel);
-      System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-      System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-    }
-  }
-
   private static final class Cli {
     final String destinationIa;
     final InetAddress destinationIp;
-    final String endhostApi;
-    final String discoveryEndpoint;
-    final String snapControl;
     final int localPort;
-    final String snapToken;
     final int timeoutMs;
-    final String logLevel;
-    final String apiKey;
 
-    private Cli(
-        String destinationIa,
-        InetAddress destinationIp,
-        String endhostApi,
-        String discoveryEndpoint,
-        String snapControl,
-        int localPort,
-        String snapToken,
-        int timeoutMs,
-        String logLevel,
-        String apiKey) {
+    private Cli(String destinationIa, InetAddress destinationIp, int localPort, int timeoutMs) {
       this.destinationIa = destinationIa;
       this.destinationIp = destinationIp;
-      this.endhostApi = endhostApi;
-      this.discoveryEndpoint = discoveryEndpoint;
-      this.snapControl = snapControl;
       this.localPort = localPort;
-      this.snapToken = snapToken;
       this.timeoutMs = timeoutMs;
-      this.logLevel = logLevel;
-      this.apiKey = apiKey;
     }
 
     static Cli parse(String[] args) throws IOException {
@@ -209,27 +162,39 @@ public class SnapTracerouteDemo {
         switch (args[i]) {
           case "--endhost-api":
             endhostApi = args[++i];
+            System.setProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE, endhostApi);
             break;
           case "--discovery":
             discoveryEndpoint = args[++i];
+            System.setProperty(Constants.PROPERTY_SNAP_PATH_SERVICE_DISCOVERY, discoveryEndpoint);
             break;
           case "--snap-control":
             snapControl = args[++i];
+            System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, snapControl);
             break;
           case "--port":
             localPort = Integer.parseInt(args[++i]);
             break;
           case "--auth-key":
             authKeyFile = args[++i];
+            String authKey = SnapDemoBootstrap.readAuthKeyFile(authKeyFile);
+            System.setProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE, "auth.scion.anapaya.net");
+            System.setProperty(Constants.PROPERTY_SNAP_AUTH_KEY, authKey);
             break;
           case "--snap-token":
             snapTokenFile = args[++i];
+            String snapToken = SnapDemoBootstrap.readTokenFile(snapTokenFile);
+            System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, snapToken);
             break;
           case "--timeout-ms":
             timeoutMs = Integer.parseInt(args[++i]);
             break;
           case "--log":
             logLevel = args[++i];
+            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", logLevel);
+            System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
+            System.setProperty(
+                "org.slf4j.simpleLogger.dateTimeFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
             break;
           default:
             if (args[i].startsWith("--")) {
@@ -258,32 +223,14 @@ public class SnapTracerouteDemo {
       String destinationIpLiteral = destination.substring(separator + 2, destination.length() - 1);
       InetAddress destinationIp = InetAddress.getByName(destinationIpLiteral);
 
-      SnapDemoBootstrap.TokenResolution tokenResolution =
-          SnapDemoBootstrap.resolveSnapToken(snapTokenFile, authKeyFile);
-      String snapToken = tokenResolution.snapToken;
-      if (snapTokenFile == null) {
-        System.err.println("Snap toke: " + snapToken);
-      }
-      if (endhostApi == null
-          && discoveryEndpoint == null
-          && tokenResolution.endhostApiDiscoveryUrl != null) {
-        discoveryEndpoint = tokenResolution.endhostApiDiscoveryUrl;
-      }
       if (endhostApi == null && discoveryEndpoint == null) {
         throw new IllegalArgumentException(usage());
       }
 
-      return new Cli(
-          destinationIa,
-          destinationIp,
-          endhostApi,
-          discoveryEndpoint,
-          snapControl,
-          localPort,
-          snapToken,
-          timeoutMs,
-          logLevel,
-          tokenResolution.apiKey);
+      System.out.println(
+          "Using SNAP underlay via Endhost API "
+              + SnapDemoBootstrap.endhostApiDescription(endhostApi, discoveryEndpoint));
+      return new Cli(destinationIa, destinationIp, localPort, timeoutMs);
     }
 
     private static String usage() {

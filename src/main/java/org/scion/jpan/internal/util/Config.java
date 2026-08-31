@@ -89,6 +89,11 @@ public class Config {
     return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_SERVICE, ENV_SNAP_AUTH_SERVICE);
   }
 
+  public static String getSnapPathServiceDiscovery() {
+    return ScionUtil.getPropertyOrEnv(
+        PROPERTY_SNAP_PATH_SERVICE_DISCOVERY, ENV_SNAP_PATH_SERVICE_DISCOVERY);
+  }
+
   public static String getNat() {
     return ScionUtil.getPropertyOrEnv(PROPERTY_NAT, ENV_NAT, DEFAULT_NAT).toUpperCase();
   }

@@ -87,6 +87,12 @@ public final class Constants {
   /** Optional SNAP token used for control-plane calls. */
   public static final String ENV_SNAP_AUTH_TOKEN = "SCION_SNAP_AUTH_TOKEN";
 
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String PROPERTY_SNAP_PATH_SERVICE_DISCOVERY = "org.scion.snap.psDiscovery";
+
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String ENV_SNAP_PATH_SERVICE_DISCOVERY = "SCION_SNAP_PS_DISCOVERY";
+
   /**
    * Timeout for calls to control plane services, such as the path service, in milliseconds. The
    * default is 10000 ms = 10 seconds.

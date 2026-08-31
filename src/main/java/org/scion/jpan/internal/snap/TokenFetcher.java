@@ -58,8 +58,6 @@ public class TokenFetcher {
             .post(body)
             .build();
     OkHttpClient client = new OkHttpClient();
-    System.out.println("------------ Checking AUTH Service: " + baseUrl); // TODO
-    System.out.println("------------ Checking AUTH Service-key: " + apiKey); // TODO
     try (Response response = client.newCall(httpRequest).execute()) {
       ResponseBody responseBody = response.body();
       if (!response.isSuccessful() || responseBody == null) {
@@ -70,10 +68,8 @@ public class TokenFetcher {
               .mergeFrom(responseBody.bytes())
               .build();
       String discoveryUrl = null;
-      System.out.println("------------ Checking AUTH Service metadata ... "); // TODO
       if (parsed.hasMetadata() && parsed.getMetadata().hasEndhostApiDiscoveryUrl()) {
         String url = parsed.getMetadata().getEndhostApiDiscoveryUrl();
-        System.out.println("------------ AUTH Service metadata: " + url); // TODO
         if (!url.isEmpty()) {
           discoveryUrl = url;
         }
