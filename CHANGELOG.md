@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
+- Copy new proto file with "SegmentLookupService" from SCION SDK (replaces segments.proto?)
+- Use InetSocketAddress for FirstHop in MetaData?
+- Change Set<Long>  for ISD/AS  to List<Long>. This is easier to use and allows ranking.
 - Use Builder for LocalAS?
 - Fix flaky MacOS build
   [ERROR]   NatMappingTest.testKeepAliveBR_ResetTimerAfterReceive:550 expected: <1> but was: <2>

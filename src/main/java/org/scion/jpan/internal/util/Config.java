@@ -23,6 +23,12 @@ public class Config {
 
   private Config() {}
 
+  public enum UnderlayMode {
+    UDP,
+    SNAP,
+    AUTO
+  }
+
   public static int getControlPlaneTimeoutMs() {
     double milliSeconds =
         ScionUtil.getPropertyOrEnv(
@@ -36,23 +42,35 @@ public class Config {
     return ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_PATH_SERVICE, ENV_BOOTSTRAP_PATH_SERVICE);
   }
 
-  public static String getUnderlayMode() {
-    return ScionUtil.getPropertyOrEnv(
-            PROPERTY_UNDERLAY_MODE, ENV_UNDERLAY_MODE, DEFAULT_UNDERLAY_MODE)
-        .toLowerCase();
+  public static UnderlayMode getUnderlayMode() {
+    String m =
+        ScionUtil.getPropertyOrEnv(PROPERTY_UNDERLAY_MODE, ENV_UNDERLAY_MODE, DEFAULT_UNDERLAY_MODE)
+            .toLowerCase();
+    switch (m) {
+      case "udp":
+        return UnderlayMode.UDP;
+      case "snap":
+        return UnderlayMode.SNAP;
+      case "auto":
+        return UnderlayMode.AUTO;
+      default:
+        throw new UnsupportedOperationException(m);
+    }
   }
 
   @Deprecated // TODO SNAP
   public static boolean preferSnapUnderlay() {
-    return "snap".equals(getUnderlayMode());
+    return UnderlayMode.SNAP.equals(getUnderlayMode());
   }
 
   public static boolean isUnderlaySnapAllowed() {
-    return "snap".equals(getUnderlayMode()) || "auto".equals(getUnderlayMode());
+    UnderlayMode mode = getUnderlayMode();
+    return UnderlayMode.SNAP.equals(mode) || UnderlayMode.AUTO.equals(mode);
   }
 
   public static boolean isUnderlayUdpAllowed() {
-    return "udp".equals(getUnderlayMode()) || "auto".equals(getUnderlayMode());
+    UnderlayMode mode = getUnderlayMode();
+    return UnderlayMode.UDP.equals(mode) || UnderlayMode.AUTO.equals(mode);
   }
 
   public static String getSnapControlPlaneAddress() {

@@ -25,7 +25,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.util.Config;
-import org.scion.jpan.proto.snap.ApiService;
+import org.scion.jpan.proto.snap.ControlService;
 
 /** SNAP control-plane client for Connect-RPC protobuf endpoints. */
 public class SnapControlClient {
@@ -51,9 +51,11 @@ public class SnapControlClient {
       byte[] responseBytes =
           post(
               SERVICE_PATH + GET_DP_PATH,
-              ApiService.GetSnapDataPlaneRequest.getDefaultInstance().toByteArray());
-      ApiService.GetSnapDataPlaneResponse parsed =
-          ApiService.GetSnapDataPlaneResponse.newBuilder().mergeFrom(responseBytes).build();
+              ControlService.GetSnapDataPlaneAddressRequest.getDefaultInstance().toByteArray());
+      ControlService.GetSnapDataPlaneAddressResponse parsed =
+          ControlService.GetSnapDataPlaneAddressResponse.newBuilder()
+              .mergeFrom(responseBytes)
+              .build();
       SocketAddress dpAddress = parseAddress(parsed.getAddress());
       String snapTunControl =
           parsed.hasSnapTunControlAddress() ? parsed.getSnapTunControlAddress() : null;
@@ -80,14 +82,16 @@ public class SnapControlClient {
       byte[] responseBytes =
           post(
               SERVICE_PATH + REGISTER_ID_PATH,
-              ApiService.RegisterSnapTunIdentityRequest.newBuilder()
+              ControlService.RegisterSnapTunIdentityRequest.newBuilder()
                   .setInitiatorStaticX25519(
                       com.google.protobuf.ByteString.copyFrom(initiatorStaticX25519))
                   .setPskShare(com.google.protobuf.ByteString.copyFrom(psk))
                   .build()
                   .toByteArray());
-      ApiService.RegisterSnapTunIdentityResponse parsed =
-          ApiService.RegisterSnapTunIdentityResponse.newBuilder().mergeFrom(responseBytes).build();
+      ControlService.RegisterSnapTunIdentityResponse parsed =
+          ControlService.RegisterSnapTunIdentityResponse.newBuilder()
+              .mergeFrom(responseBytes)
+              .build();
       byte[] serverPsk = parsed.getPskShare().toByteArray();
       if (serverPsk.length != 32) {
         throw new IOException("server psk must be 32 bytes");

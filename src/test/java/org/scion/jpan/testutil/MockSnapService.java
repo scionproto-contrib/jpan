@@ -34,7 +34,7 @@ import org.bouncycastle.crypto.params.AEADParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
-import org.scion.jpan.proto.snap.ApiService;
+import org.scion.jpan.proto.snap.ControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -396,8 +396,8 @@ public class MockSnapService implements AutoCloseable {
       }
       String dpAddress =
           dataplaneAddress.getAddress().getHostAddress() + ":" + dataplaneAddress.getPort();
-      ApiService.GetSnapDataPlaneResponse response =
-          ApiService.GetSnapDataPlaneResponse.newBuilder()
+      ControlService.GetSnapDataPlaneAddressResponse response =
+          ControlService.GetSnapDataPlaneAddressResponse.newBuilder()
               .setAddress(dpAddress)
               .setSnapStaticX25519(ByteString.copyFrom(staticPublic))
               .build();
@@ -414,15 +414,15 @@ public class MockSnapService implements AutoCloseable {
         // Parse request but ignore the content for the mock.
         byte[] buf = new byte[4096];
         int n = session.getInputStream().read(buf);
-        ApiService.RegisterSnapTunIdentityRequest.newBuilder()
-            .mergeFrom(buf, 0, n > 0 ? n : 0)
+        ControlService.RegisterSnapTunIdentityRequest.newBuilder()
+            .mergeFrom(buf, 0, Math.max(n, 0))
             .build();
       } catch (IOException e) {
         // ignore parse errors in mock
       }
       // Return all-zeros PSK share: the client treats zeros as "no PSK".
-      ApiService.RegisterSnapTunIdentityResponse response =
-          ApiService.RegisterSnapTunIdentityResponse.newBuilder()
+      ControlService.RegisterSnapTunIdentityResponse response =
+          ControlService.RegisterSnapTunIdentityResponse.newBuilder()
               .setPskShare(ByteString.copyFrom(new byte[32]))
               .build();
       byte[] body = response.toByteArray();

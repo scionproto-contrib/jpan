@@ -15,10 +15,7 @@
 package org.scion.jpan.internal.bootstrap;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -44,18 +41,15 @@ public class LocalAsFromPathService {
     Underlays.ListUnderlaysResponse u = query(snList, pathService);
     List<LocalAS.SnapNode> snapNodeList = getSnapNodeList(u);
 
-    if (Config.preferSnapUnderlay()) {
-      // SNAP tunnels us into a tenant AS that is independent of, and may differ from, any
-      // natively reachable AS the endhost API also reports. That native AS is irrelevant for
-      // path lookup and header construction once we are tunneling through SNAP: using it instead
-      // produces a bogus local ISD/AS (e.g. matching the destination's AS) and a path with no
-      // real path segments, which gets silently dropped by the SNAP gateway's border router.
-      long snapIsdAs = getLocalIsdAsFromSnap(u);
-      if (snapIsdAs != 0) {
+    // TODO SNAP
+    if (Config.preferSnapUnderlay()) { // isUnderlaySnapAllowed()) {
+      // Note that the SNAP AS may be different from the expected local AS of a local ISP.
+      Set<Long> snapIsdAses = getLocalIsdAsFromSnap(u);
+      if (!snapIsdAses.isEmpty()) {
         List<LocalAS.BorderRouter> brList =
             u.hasUdp() ? getBorderRouterList(u) : Collections.emptyList();
         return new LocalAS(
-            Collections.singleton(snapIsdAs),
+            snapIsdAses,
             false,
             1200,
             LocalAS.DispatcherPortRange.createAll(),
@@ -65,7 +59,9 @@ public class LocalAsFromPathService {
             snapNodeList,
             trcStore);
       }
-      LOG.warn("SNAP underlay preferred but endhost API advertised no usable SNAP entry");
+      if (Config.getUnderlayMode() == Config.UnderlayMode.SNAP) {
+        LOG.warn("SNAP underlay preferred but endhost API advertised no usable SNAP entry");
+      }
     }
 
     if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
@@ -129,15 +125,15 @@ public class LocalAsFromPathService {
     return snaps;
   }
 
-  private static long getLocalIsdAsFromSnap(Underlays.ListUnderlaysResponse u) {
+  private static Set<Long> getLocalIsdAsFromSnap(Underlays.ListUnderlaysResponse u) {
     if (!u.hasSnap() || u.getSnap().getSnapsCount() == 0) {
-      return 0;
+      return Collections.emptySet();
     }
     Underlays.Snap snap = u.getSnap().getSnaps(0);
     if (snap.getIsdAsesCount() == 0) {
-      return 0;
+      return Collections.emptySet();
     }
-    return snap.getIsdAses(0);
+    return new HashSet<>(snap.getIsdAsesList());
   }
 
   private static Underlays.ListUnderlaysResponse query(List<LocalAS.ServiceNode> nodes, String in) {

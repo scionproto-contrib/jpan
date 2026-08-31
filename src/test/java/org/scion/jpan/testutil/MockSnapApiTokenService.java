@@ -15,7 +15,7 @@
 package org.scion.jpan.testutil;
 
 import java.io.IOException;
-import org.scion.jpan.proto.snap.aa.Auth;
+import org.scion.jpan.proto.snap.aa.AuthServiceOuterClass;
 
 /**
  * Mock AA (Auth/AuthZ) service that issues SNAP tokens in exchange for a known API key. Used in
@@ -76,17 +76,21 @@ public class MockSnapApiTokenService implements AutoCloseable {
       try {
         byte[] buf = new byte[4096];
         int n = session.getInputStream().read(buf);
-        Auth.AuthenticateByKeyRequest request =
-            Auth.AuthenticateByKeyRequest.newBuilder().mergeFrom(buf, 0, n > 0 ? n : 0).build();
+        AuthServiceOuterClass.AuthenticateByKeyRequest request =
+            AuthServiceOuterClass.AuthenticateByKeyRequest.newBuilder()
+                .mergeFrom(buf, 0, Math.max(n, 0))
+                .build();
         if (!API_KEY.equals(request.getApiKey())) {
           return newFixedLengthResponse(
               Response.Status.UNAUTHORIZED, MIME_PLAINTEXT, "Invalid API key");
         }
-        Auth.AuthenticateByKeyResponse.Builder response =
-            Auth.AuthenticateByKeyResponse.newBuilder().setSnapToken(SNAP_TOKEN);
+        AuthServiceOuterClass.AuthenticateByKeyResponse.Builder response =
+            AuthServiceOuterClass.AuthenticateByKeyResponse.newBuilder().setSnapToken(SNAP_TOKEN);
         if (discoveryUrl != null) {
           response.setMetadata(
-              Auth.Metadata.newBuilder().setEndhostApiDiscoveryUrl(discoveryUrl).build());
+              AuthServiceOuterClass.Metadata.newBuilder()
+                  .setEndhostApiDiscoveryUrl(discoveryUrl)
+                  .build());
         }
         byte[] body = response.build().toByteArray();
         return newFixedLengthResponse(

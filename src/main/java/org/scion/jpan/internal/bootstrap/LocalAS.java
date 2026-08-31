@@ -100,6 +100,7 @@ public class LocalAS {
 
   /**
    * Address of first hop: border router or SNAP service.
+   *
    * @param interfaceId border router interface ID
    * @return The address of the first hop.
    */
@@ -114,6 +115,8 @@ public class LocalAS {
     return br.internalAddress;
   }
 
+  // TODO SNAP set during initialization.
+  @Deprecated
   public void setSnapFirstHopAddress(InetSocketAddress snapFirstHopAddress) {
     this.snapFirstHopAddress = snapFirstHopAddress;
   }

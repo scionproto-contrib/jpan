@@ -16,7 +16,6 @@ package org.scion.jpan.internal.paths;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.*;

@@ -119,12 +119,11 @@ public class ScionService {
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
-        SnapService snapService = null;
-          snapService = initializeSnapDataPlaneIfEnabled(localAS);
-          if (true) {
-            System.err.println("FIXME: ScionService.create()");
-            // TODO throw new UnsupportedOperationException();
-          }
+        SnapService snapService = initializeSnapDataPlaneIfEnabled(localAS);
+        if (true) {
+          System.err.println("FIXME: ScionService.create()");
+          // TODO throw new UnsupportedOperationException();
+        }
         return constructor.create(localAS, null, pathService, null, snapService);
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
@@ -169,8 +168,8 @@ public class ScionService {
       throw new ScionRuntimeException(
           "SNAP mode is enabled but no SNAP control endpoint is available");
     }
-    SnapControlClient snapClient = new SnapControlClient(snapControlEndpoint);
-    SnapService dataPlane = snapClient.getDataPlaneAddress();
+    SnapControlClient snapControlClient = new SnapControlClient(snapControlEndpoint);
+    SnapService dataPlane = snapControlClient.getDataPlaneAddress();
     localAS.setSnapFirstHopAddress(dataPlane.getAddress());
     LOG.info(
         "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",

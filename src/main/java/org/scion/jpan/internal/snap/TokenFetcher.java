@@ -21,7 +21,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.proto.snap.aa.Auth;
+import org.scion.jpan.proto.snap.aa.AuthServiceOuterClass;
 
 public class TokenFetcher {
 
@@ -39,14 +39,13 @@ public class TokenFetcher {
     }
   }
 
-  public static Result fetch(String apiKey, String serverUrl)
-      throws IOException {
+  public static Result fetch(String apiKey, String serverUrl) throws IOException {
     String baseUrl =
         serverUrl.startsWith("http://") || serverUrl.startsWith("https://")
             ? serverUrl
             : "https://" + serverUrl;
-    Auth.AuthenticateByKeyRequest request =
-        Auth.AuthenticateByKeyRequest.newBuilder()
+    AuthServiceOuterClass.AuthenticateByKeyRequest request =
+        AuthServiceOuterClass.AuthenticateByKeyRequest.newBuilder()
             .setApiKey(apiKey)
             .setDeviceId("jpan-app")
             .setRequestedValidity(0)
@@ -66,8 +65,10 @@ public class TokenFetcher {
       if (!response.isSuccessful() || responseBody == null) {
         throw new IOException("AA auth failed: " + response.code() + " " + response.message());
       }
-      Auth.AuthenticateByKeyResponse parsed =
-          Auth.AuthenticateByKeyResponse.newBuilder().mergeFrom(responseBody.bytes()).build();
+      AuthServiceOuterClass.AuthenticateByKeyResponse parsed =
+          AuthServiceOuterClass.AuthenticateByKeyResponse.newBuilder()
+              .mergeFrom(responseBody.bytes())
+              .build();
       String discoveryUrl = null;
       System.out.println("------------ Checking AUTH Service metadata ... "); // TODO
       if (parsed.hasMetadata() && parsed.getMetadata().hasEndhostApiDiscoveryUrl()) {
