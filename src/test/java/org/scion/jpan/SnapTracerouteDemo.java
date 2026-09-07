@@ -37,6 +37,15 @@ public class SnapTracerouteDemo {
     long destinationIa = ScionUtil.parseIA(cli.destinationIa);
 
     Path path = service.getPaths(destinationIa, cli.destinationIp, Constants.SCMP_PORT).get(0);
+    run(path, service, cli);
+    //    List<Path> paths = service.getPaths(destinationIa, cli.destinationIp, Constants.SCMP_PORT);
+    //    for (Path path : paths) {
+    //      System.out.println("Paths: " + paths.size() + "  -> " + ScionUtil.toStringPath(path.getMetadata()));
+    //      run(path, service, cli);
+    //    }
+  }
+
+  private static void run(Path path, ScionService service, Cli cli) throws IOException {
     String localAddress;
     try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
       channel.connect(path.getRemoteSocketAddress());
@@ -149,7 +158,7 @@ public class SnapTracerouteDemo {
       String endhostApi = null;
       String discoveryEndpoint = null;
       String snapControl = null;
-      Integer localPort = null;
+      int localPort = 0;
       String authKeyFile = null;
       String snapTokenFile = null;
       int timeoutMs = 3000;
@@ -208,7 +217,6 @@ public class SnapTracerouteDemo {
       }
 
       if (destination == null
-          || localPort == null
           || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
       }

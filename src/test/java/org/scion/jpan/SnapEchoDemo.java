@@ -184,7 +184,7 @@ public class SnapEchoDemo {
       String endhostApi = null;
       String discoveryEndpoint = null;
       String snapControl = null;
-      Integer localPort = null;
+      int localPort = 0;
       int count = 1;
       String authKeyFile = null;
       String snapTokenFile = null;
@@ -243,7 +243,6 @@ public class SnapEchoDemo {
       }
 
       if (destination == null
-          || localPort == null
           || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
       }

@@ -403,7 +403,7 @@ assuming that another SHIM is running on 30041.
  
 Whether a SHIM is started can be controlled with a configuration option, see below.
 
-### Snap
+### Snap -- WARNING, support is EXPERIMENTAL, API is not stable!
 
 JPAN has experimental support for Anapaya's SNAP (Scion Network Access Point) technology.
 With SNAP, an endpoint sends traffic not directly to the border routers but via a wireguard(-like)
@@ -457,6 +457,12 @@ So, to activate SNAP, do one of the following:
 | Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`        | `SCION_PATH_EXPIRY_MARGIN`        | `10`               |
 | Path polling interval. Interval at which a client may poll for new paths for connected channels or sockets.          | `org.scion.pathPollIntervalSec`     | `SCION_PATH_POLL_INTERVAL_SEC`    | `60`               |
 | Start SHIM. If not set, SHIM will be started unless the dispatcher port range is set to `all`.                       | `org.scion.shim`                    | `SCION_SHIM`                      |                    |
+
+### SNAP Troubleshooting
+
+One source of confusion can be that the SNAP service does not allow the same IP:port 
+of the source machine to be (easily) used by different connections. It blocks IP;port
+combination for several minutes before allowing connection from the same IP:port again.
 
 ## FAQ / Troubleshooting
 

@@ -170,7 +170,7 @@ public class SnapPacketDemo {
       String endhostApi = null;
       String discoveryEndpoint = null;
       String snapControl = null;
-      Integer localPort = null;
+      int localPort = 0;
       String authKeyFile = null;
       String snapTokenFile = null;
       int timeoutMs = 3000;
@@ -217,7 +217,6 @@ public class SnapPacketDemo {
       }
 
       if (destination == null
-          || localPort == null
           || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
       }
