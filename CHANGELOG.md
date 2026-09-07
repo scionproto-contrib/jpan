@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
+- Move FirstHopAddress out of metadata (clean up PathBuilder) and into Path.
+- Rename getFirstHop() to getBorderRouterAddress()
 - Copy new proto file with "SegmentLookupService" from SCION SDK (replaces segments.proto?)
 - Use InetSocketAddress for FirstHop in MetaData?
 - Change Set<Long>  for ISD/AS  to List<Long>. This is easier to use and allows ranking.
 - Use Builder for LocalAS?
+- Create Builder for ScionService or add SNP props to Channel.Builder???
 - Fix flaky MacOS build
   [ERROR]   NatMappingTest.testKeepAliveBR_ResetTimerAfterReceive:550 expected: <1> but was: <2>
 - Report flaky discovery SNAP
@@ -174,9 +177,11 @@ TODO
 
 - SNAP support
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
-TODO
+### TODO
 - Rename properties and document more clearly what they mean.
 - Remove SnapUnderlaySupport.
+- Double check, why do we need a snapservice in ScionService?
+- MultiSnap support? Document? Builder?
 - The aa service appears to be providing a discovery service address. Why do we need to specify it
   separately? -> Check what real server provides (not used in scion-sdk apparently)
 - SnapTunnelSession: constructor has unused argument, shouldn't we use it?

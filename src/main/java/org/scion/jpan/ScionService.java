@@ -170,7 +170,6 @@ public class ScionService {
     }
     SnapControlClient snapControlClient = new SnapControlClient(snapControlEndpoint);
     SnapService dataPlane = snapControlClient.getDataPlaneAddress();
-    localAS.setSnapFirstHopAddress(dataPlane.getAddress());
     LOG.info(
         "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",
         snapControlEndpoint,

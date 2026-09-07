@@ -96,6 +96,7 @@ public class SnapControlClient {
       if (serverPsk.length != 32) {
         throw new IOException("server psk must be 32 bytes");
       }
+      // TODO expensive way to check for 0-array?
       return Arrays.equals(serverPsk, new byte[32]) ? null : serverPsk;
     } catch (IOException e) {
       throw new ScionRuntimeException("SNAP RegisterSnapTunIdentity failed", e);

@@ -153,6 +153,47 @@ class LocalAsFromPathServiceTest {
   }
 
   @Test
+  void create_multipleSnapNodes_onlyFirstIsdAsSetIsUsed_knownLimitation() throws IOException {
+    // Known limitation, not yet fixed: when the endhost API advertises more than one usable SNAP
+    // node -- e.g. because this host can reach two different tenant ASes through two different
+    // SNAP nodes -- JPAN only ever looks at the first one (LocalAsFromPathService uses
+    // u.getSnap().getSnaps(0) exclusively). The second node's ISD/AS set is silently dropped from
+    // localAS.getIsdAses(), even though both nodes are preserved in localAS.getSnapNodes(). A real
+    // fix would need ScionService to resolve and hold a dataplane connection per SnapNode (keyed by
+    // reachable ISD/AS), not a single one -- which is a bigger change than where this address is
+    // stored (see LocalASTest for the fix to the separate, now-resolved "single global first-hop
+    // address" problem).
+    long secondSnapIsdAs = ScionUtil.parseIA("64-3:0:0");
+    Underlays.ListUnderlaysResponse response =
+        Underlays.ListUnderlaysResponse.newBuilder()
+            .setSnap(
+                Underlays.SnapUnderlay.newBuilder()
+                    .addSnaps(
+                        Underlays.Snap.newBuilder()
+                            .setAddress("https://snap-a.example.com:5001")
+                            .addIsdAses(SNAP_ISD_AS)
+                            .build())
+                    .addSnaps(
+                        Underlays.Snap.newBuilder()
+                            .setAddress("https://snap-b.example.com:5001")
+                            .addIsdAses(secondSnapIsdAs)
+                            .build())
+                    .build())
+            .build();
+    mock = MockEndhostApi.start(response);
+    System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
+
+    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
+
+    // Both SNAP nodes are preserved as raw data...
+    assertEquals(2, localAS.getSnapNodes().size());
+    // ...but only the first one's ISD/AS actually becomes reachable. The second SNAP node's AS is
+    // silently unreachable through this LocalAS/ScionService instance.
+    assertEquals(Collections.singleton(SNAP_ISD_AS), localAS.getIsdAses());
+    assertFalse(localAS.getIsdAses().contains(secondSnapIsdAs));
+  }
+
+  @Test
   void create_multiCandidate_fallsThroughToSecondOnFirstFailure() throws IOException {
     // A ";"-joined candidate list (as produced by --discovery) must try the next candidate when
     // the first is unreachable, rather than failing outright.

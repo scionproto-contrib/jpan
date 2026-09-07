@@ -33,7 +33,6 @@ public class LocalAS {
   private final int localMtu;
   private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
-  private InetSocketAddress snapFirstHopAddress;
 
   LocalAS(
       Set<Long> localIsdAs,
@@ -99,26 +98,17 @@ public class LocalAS {
   }
 
   /**
-   * Address of first hop: border router or SNAP service.
+   * Address of the first hop border router for a given interface ID.
    *
    * @param interfaceId border router interface ID
    * @return The address of the first hop.
    */
   public InetSocketAddress getFirstHopAddress(int interfaceId) {
-    if (snapFirstHopAddress != null) {
-      return snapFirstHopAddress;
-    }
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
       throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
     }
     return br.internalAddress;
-  }
-
-  // TODO SNAP set during initialization.
-  @Deprecated
-  public void setSnapFirstHopAddress(InetSocketAddress snapFirstHopAddress) {
-    this.snapFirstHopAddress = snapFirstHopAddress;
   }
 
   /**
