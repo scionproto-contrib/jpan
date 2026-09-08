@@ -116,7 +116,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1460, path.getMtu());
-      assertEquals(firstFop110, path.getLocalInterface().getAddress());
+      assertEquals(firstFop110, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       assertEquals(2, path.getInterfaces().size());
@@ -171,7 +171,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1450, path.getMtu());
-      assertEquals(firstFop110, path.getLocalInterface().getAddress());
+      assertEquals(firstFop110, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 3, "1-ff00:0:110");
@@ -231,7 +231,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1350, path.getMtu());
-      assertEquals(firstFop110, path.getLocalInterface().getAddress());
+      assertEquals(firstFop110, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -284,7 +284,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
 
       assertEquals(1460, path.getMtu());
       String firstHop = network.getTopoServer().getBorderRouterAddressByIA(AS_110);
-      assertEquals(firstHop, path.getLocalInterface().getAddress());
+      assertEquals(firstHop, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -341,7 +341,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop110, path.getLocalInterface().getAddress());
+      assertEquals(firstFop110, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -410,7 +410,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop110, path.getLocalInterface().getAddress());
+      assertEquals(firstFop110, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 111, "1-ff00:0:111");
       checkInterface(path, 1, 2, "1-ff00:0:110");
       checkInterface(path, 2, 1, "1-ff00:0:110");
@@ -458,7 +458,7 @@ class SegmentsMinimal111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.34:31018", path.getLocalInterface().getAddress());
+      assertEquals("127.0.0.34:31018", PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 1111, "1-ff00:0:111");
       checkInterface(path, 1, 123, "1-ff00:0:1111");
       assertEquals(2, path.getInterfaces().size());

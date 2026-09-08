@@ -224,6 +224,10 @@ TODO
 - Clean up PathMetadata.Builder.
   [#274](https://github.com/scionproto-contrib/jpan/pull/274)
 
+### Removed
+
+- Removed `getLocalInterface()` from `PathMetadata`.
+  [#287](https://github.com/scionproto-contrib/jpan/pull/287)
 
 ## [0.7.0] - 2026-04-29
 

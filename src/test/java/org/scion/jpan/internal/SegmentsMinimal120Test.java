@@ -111,7 +111,7 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop210, path.getLocalInterface().getAddress());
+      assertEquals(firstFop210, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
       checkInterface(path, 2, 450, "2-ff00:0:210");
@@ -156,7 +156,7 @@ class SegmentsMinimal120Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstFop210, path.getLocalInterface().getAddress());
+      assertEquals(firstFop210, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 210, "1-ff00:0:120");
       checkInterface(path, 1, 105, "2-ff00:0:210");
       assertEquals(2, path.getInterfaces().size());

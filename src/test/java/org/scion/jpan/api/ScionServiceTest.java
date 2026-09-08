@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
 import org.scion.jpan.internal.bootstrap.DNSHelper;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.*;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
@@ -116,7 +117,7 @@ class ScionServiceTest {
       assertEquals(dstIA, path.getRemoteIsdAs());
       assertEquals(36, path.getRawPath().length);
 
-      assertEquals("127.0.0.10:31004", path.getMetadata().getLocalInterface().getAddress());
+      assertEquals("127.0.0.10:31004", IPHelper.toString(path.getFirstHopAddress()));
       assertEquals(2, path.getMetadata().getInterfaces().size());
 
       // service init + path

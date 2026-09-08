@@ -380,7 +380,7 @@ public class ScionService {
     List<PathMetadata> paths = getPathList(dstAddress.getIsdAs());
     List<Path> scionPaths = new ArrayList<>(paths.size());
     for (PathMetadata meta : paths) {
-      scionPaths.add(RequestPath.create(meta, dstAddress.getInetAddress(), dstPort));
+      scionPaths.add(RequestPath.create(meta, dstAddress.getInetAddress(), dstPort, localAS));
     }
     return scionPaths;
   }
