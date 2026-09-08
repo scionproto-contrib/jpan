@@ -33,7 +33,6 @@ public class LocalAS {
   private final int localMtu;
   private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
-  private InetSocketAddress snapFirstHopAddress;
 
   LocalAS(
       Set<Long> localIsdAs,
@@ -102,38 +101,14 @@ public class LocalAS {
    * Address of the first hop border router for a given interface ID.
    *
    * @param interfaceId border router interface ID
-   * @return The address of the first hop.
+   * @return The address of the border router
    */
-  public InetSocketAddress getFirstHopAddress(int interfaceId) {
+  public InetSocketAddress getBorderRouterAddress(int interfaceId) {
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
       throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
     }
     return br.internalAddress;
-  }
-
-  /**
-   * The SNAP dataplane address to use as the first hop for an AS with no local border routers at
-   * all (a SNAP-only tenant AS). Deliberately separate from {@link #getFirstHopAddress(int)}: that
-   * method's contract is "throw if the interface ID isn't a real border router", which must stay
-   * strict, while this one is an optional, narrowly-scoped fallback for the one case where there is
-   * genuinely no border-router data to look up in the first place. Set once, after construction, by
-   * {@code ScionService} once it resolves the SNAP dataplane -- {@link LocalAS} is otherwise
-   * immutable, but this can't be a constructor argument: {@link LocalAS} is built first and the
-   * SNAP dataplane is resolved afterwards, from {@link #getSnapControlNodes()} on this very
-   * instance.
-   *
-   * @return the SNAP dataplane address, or {@code null} if SNAP is not enabled or not yet resolved.
-   * @deprecated
-   */
-  @Deprecated
-  public InetSocketAddress getSnapFirstHopAddress() {
-    // TODO remove this!!
-    return snapFirstHopAddress;
-  }
-
-  public void setSnapFirstHopAddress(InetSocketAddress snapFirstHopAddress) {
-    this.snapFirstHopAddress = snapFirstHopAddress;
   }
 
   /**

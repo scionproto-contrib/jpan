@@ -170,7 +170,6 @@ public class ScionService {
     }
     SnapControlClient snapControlClient = new SnapControlClient(snapControlEndpoint);
     SnapDataplaneAccess dataPlane = snapControlClient.getDataPlaneAddress();
-    localAS.setSnapFirstHopAddress(dataPlane.getAddress());
     LOG.info(
         "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",
         snapControlEndpoint,
@@ -535,8 +534,8 @@ public class ScionService {
     return localAS.getPortRange();
   }
 
-  InetSocketAddress getFirstHopAddress(int interfaceID) {
-    return localAS.getFirstHopAddress(interfaceID);
+  InetSocketAddress getBorderRouterAddress(int interfaceID) {
+    return localAS.getBorderRouterAddress(interfaceID);
   }
 
   List<LocalAS.SnapControlNode> getSnapControlNodes() {

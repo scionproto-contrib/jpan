@@ -16,7 +16,6 @@ package org.scion.jpan.internal.paths;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,7 +24,6 @@ import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.ByteUtil;
-import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.internal.util.MultiMap;
 import org.scion.jpan.proto.control_plane.Seg;
 import org.scion.jpan.proto.crypto.Signed;
@@ -394,11 +392,6 @@ public class PathBuilder {
 
     raw.flip();
     path.setRaw(raw);
-
-    // First hop
-    int firstHopId = (int) path.getInterfaces().get(0).getId();
-    InetSocketAddress firstHop = localAS.getFirstHopAddress(firstHopId);
-    path.setLocalInterface(PathMetadata.Interface.create(IPHelper.toString(firstHop)));
 
     // Metadata
     SegmentMetadataAccumulator.writeStaticInfoMetadata(path, segments, ranges);

@@ -178,15 +178,11 @@ TODO
 - SNAP support
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 ### TODO
-- Rename properties and document more clearly what they mean.
 - Remove SnapUnderlaySupport.
 - Double check, why do we need a snapservice in ScionService?
 - MultiSnap support? Document? Builder?
-- The aa service appears to be providing a discovery service address. Why do we need to specify it
-  separately? -> Check what real server provides (not used in scion-sdk apparently)
 - SnapTunnelSession: constructor has unused argument, shouldn't we use it?
 - Remove/check log.debug() messages
-- Log output in SnapTracerouteDemo reports 2x "Requesting segments: 64-2:0:9 71-20965"
 - Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
 
 ### Added
