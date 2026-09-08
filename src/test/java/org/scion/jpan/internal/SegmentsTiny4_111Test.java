@@ -99,7 +99,7 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop110, path.getLocalInterface().getAddress());
+      assertEquals(firstHop110, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 41, "1-ff00:0:111");
       checkInterface(path, 1, 1, "1-ff00:0:110");
       assertEquals(2, path.getInterfaces().size());
@@ -152,7 +152,7 @@ class SegmentsTiny4_111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1280, path.getMtu());
-      assertEquals(firstHop110, path.getLocalInterface().getAddress());
+      assertEquals(firstHop110, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 41, "1-ff00:0:111");
       checkInterface(path, 1, 1, "1-ff00:0:110");
       checkInterface(path, 2, 22, "1-ff00:0:110");

@@ -172,7 +172,7 @@ class SegmentsMinimal110Test extends AbstractSegmentsTest {
 
       assertEquals(1350, path.getMtu());
       String firstHop = network.getTopoServer().getBorderRouterAddressByIA(AS_120);
-      assertEquals(firstHop, path.getLocalInterface().getAddress());
+      assertEquals(firstHop, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 1, "1-ff00:0:110");
       checkInterface(path, 1, 10, "1-ff00:0:120");
       checkInterface(path, 2, 21, "1-ff00:0:120");

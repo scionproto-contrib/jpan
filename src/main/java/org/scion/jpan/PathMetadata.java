@@ -67,13 +67,6 @@ public class PathMetadata {
 
   /**
    * @return Interface for exiting the local AS using this path.
-   */
-  public Interface getLocalInterface() {
-    return firstInterface;
-  }
-
-  /**
-   * @return Interface for exiting the local AS using this path.
    * @deprecated TODO to be removed in 0.8.0
    */
   @Deprecated

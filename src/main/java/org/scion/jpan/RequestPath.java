@@ -16,7 +16,7 @@ package org.scion.jpan;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.internal.bootstrap.LocalAS;
 
 /**
  * A RequestPath is a Path with additional meta information such as bandwidth, latency or geo
@@ -27,17 +27,23 @@ public class RequestPath extends Path {
 
   private final PathMetadata metadata;
 
-  static RequestPath create(PathMetadata metadata, InetAddress dstIP, int dstPort) {
+  static RequestPath create(
+      PathMetadata metadata, InetAddress dstIP, int dstPort, InetSocketAddress firstHop) {
+    long srcIsdAs = metadata.getSrcIdsAs();
+    long dstIsdAs = metadata.getDstIdsAs();
+    return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+  }
+
+  static RequestPath create(
+      PathMetadata metadata, InetAddress dstIP, int dstPort, LocalAS localAS) {
     // path length 0 means "local AS"
     InetSocketAddress firstHop;
     if (metadata.getRawPath().length == 0) {
       firstHop = new InetSocketAddress(dstIP, dstPort);
     } else {
-      firstHop = IPHelper.toInetSocketAddress(metadata.getLocalInterface().getAddress());
+      firstHop = localAS.getBorderRouterAddress((int) metadata.getInterfaces().get(0).getId());
     }
-    long srcIsdAs = metadata.getSrcIdsAs();
-    long dstIsdAs = metadata.getDstIdsAs();
-    return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    return create(metadata, dstIP, dstPort, firstHop);
   }
 
   @Override

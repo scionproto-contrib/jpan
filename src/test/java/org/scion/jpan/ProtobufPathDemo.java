@@ -153,8 +153,9 @@ public class ProtobufPathDemo {
     System.out.println("Paths found: " + paths.size());
     for (PathMetadata path : paths) {
       System.out.println("Path:  exp=" + path.getExpiration() + "  mtu=" + path.getMtu());
-      System.out.println("Path: interfaces = " + path.getLocalInterface().getAddress());
-      System.out.println("Path: first hop = " + path.getLocalInterface().getAddress());
+      // System.out.println("Path: interfaces = " + PackageVisibilityHelper.getFirstHop(ss, path));
+      System.out.println(
+          "Path: first hop = " + PackageVisibilityHelper.getFirstHop(csService, path));
       int i = 0;
       for (PathMetadata.PathInterface pathIf : path.getInterfaces()) {
         System.out.println(

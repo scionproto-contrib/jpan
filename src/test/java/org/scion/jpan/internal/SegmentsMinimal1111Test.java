@@ -120,7 +120,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1460, path.getMtu());
-      assertEquals(firstHop, path.getLocalInterface().getAddress());
+      assertEquals(firstHop, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
       checkInterface(path, 2, 111, "1-ff00:0:111");
@@ -172,7 +172,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.41:31024", path.getLocalInterface().getAddress());
+      assertEquals("127.0.0.41:31024", PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
       checkInterface(path, 2, 1112, "1-ff00:0:111");
@@ -220,7 +220,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1472, path.getMtu());
-      assertEquals("127.0.0.41:31024", path.getLocalInterface().getAddress());
+      assertEquals("127.0.0.41:31024", PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
       assertEquals(2, path.getInterfaces().size());
@@ -282,7 +282,7 @@ class SegmentsMinimal1111Test extends AbstractSegmentsTest {
       checkRaw(raw, path.getRawPath());
 
       assertEquals(1450, path.getMtu());
-      assertEquals(firstHop, path.getLocalInterface().getAddress());
+      assertEquals(firstHop, PackageVisibilityHelper.getFirstHop(ss, path));
       checkInterface(path, 0, 123, "1-ff00:0:1111");
       checkInterface(path, 1, 1111, "1-ff00:0:111");
       checkInterface(path, 2, 111, "1-ff00:0:111");

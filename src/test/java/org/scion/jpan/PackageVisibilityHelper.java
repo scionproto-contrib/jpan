@@ -24,6 +24,7 @@ import java.util.List;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.testutil.ExamplePacket;
@@ -134,7 +135,7 @@ public class PackageVisibilityHelper {
             .setSrcIsdAs(srcIsdAs)
             .setDstIsdAs(dstIsdAs)
             .build();
-    return RequestPath.create(path, dstHost, dstPort);
+    return RequestPath.create(path, dstHost, dstPort, IPHelper.toInetSocketAddress(firstHopString));
   }
 
   public static ResponsePath createDummyResponsePath(
@@ -158,7 +159,8 @@ public class PackageVisibilityHelper {
   public static RequestPath createRequestPath110_110(
       PathMetadata.Builder builder, long isdAs, InetAddress dstHost, int dstPort) {
     builder.setSrcIsdAs(isdAs).setDstIsdAs(isdAs);
-    return RequestPath.create(builder.build(), dstHost, dstPort);
+    InetSocketAddress firstHop = new InetSocketAddress(dstHost, dstPort);
+    return RequestPath.create(builder.build(), dstHost, dstPort, firstHop);
   }
 
   public static RequestPath createRequestPath110_112(
@@ -174,17 +176,19 @@ public class PackageVisibilityHelper {
             .addInterfaces(PathMetadata.PathInterface.create(srcIsdAs, 2))
             .addInterfaces(PathMetadata.PathInterface.create(dstIsdAs, 1))
             .build();
-    return RequestPath.create(path, dstHost, dstPort);
+    return RequestPath.create(path, dstHost, dstPort, IPHelper.toInetSocketAddress(firstHopString));
   }
 
   public static RequestPath createRequestPath(PathMetadata path, InetSocketAddress dst) {
-    return RequestPath.create(path, dst.getAddress(), dst.getPort());
+    InetSocketAddress firstHop = IPHelper.toInetSocketAddress("127.0.0.1:22311");
+    return RequestPath.create(path, dst.getAddress(), dst.getPort(), firstHop);
   }
 
   public static Path createExpiredPath(Path base, int expiredSinceSecs) {
     long time = Instant.now().getEpochSecond() - expiredSinceSecs;
     PathMetadata m = PathMetadata.newBuilder().from(base.getMetadata()).setExpiration(time).build();
-    return RequestPath.create(m, base.getRemoteAddress(), base.getRemotePort());
+    InetSocketAddress firstHop = IPHelper.toInetSocketAddress("127.0.0.1:22311");
+    return RequestPath.create(m, base.getRemoteAddress(), base.getRemotePort(), firstHop);
   }
 
   public static ScionSocketAddress toSSA(long isdAs, InetSocketAddress dstAddr) {
@@ -193,6 +197,11 @@ public class PackageVisibilityHelper {
 
   public static ScionSocketAddress toSSA(String isdAs, InetSocketAddress dstAddr) {
     return toSSA(ScionUtil.parseIA(isdAs), dstAddr);
+  }
+
+  public static String getFirstHop(ScionService ss, PathMetadata path) {
+    int id = (int) path.getInterfaces().get(0).getId();
+    return IPHelper.toString(ss.getLocalAS().getBorderRouterAddress(id));
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {

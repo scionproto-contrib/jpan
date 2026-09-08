@@ -119,12 +119,11 @@ public class PathBuilder {
     // For CORE we ensure that dstIsdAs is at the END of a segment, not somewhere in the middle
     if (endsWithIsdAs(segmentsCore, dstIsdAs)) {
       // dst is CORE
-      return combineSegments(
-          segmentsUp, segmentsCore, Collections.emptyList(), srcIsdAs, dstIsdAs, localAS);
+      return combineSegments(segmentsUp, segmentsCore, Collections.emptyList(), srcIsdAs, dstIsdAs);
     }
 
     List<PathSegment> segmentsDown = getSegments(service, dstWildcard, dstIsdAs);
-    return combineSegments(segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+    return combineSegments(segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
   }
 
   private static List<PathSegment> getSegments(
@@ -184,7 +183,7 @@ public class PathBuilder {
     }
 
     List<PathSegment>[] segments = getSegments(service, srcIsdAs, dstIsdAs);
-    return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs, localAS);
+    return combineSegments(segments[0], segments[1], segments[2], srcIsdAs, dstIsdAs);
   }
 
   @SuppressWarnings("unchecked")
@@ -220,39 +219,37 @@ public class PathBuilder {
       List<PathSegment> segmentsCore,
       List<PathSegment> segmentsDown,
       long srcIsdAs,
-      long dstIsdAs,
-      LocalAS localAS) {
+      long dstIsdAs) {
     int code = !segmentsUp.isEmpty() ? 4 : 0;
     code |= !segmentsCore.isEmpty() ? 2 : 0;
     code |= !segmentsDown.isEmpty() ? 1 : 0;
     PathDuplicationFilter paths = new PathDuplicationFilter();
     switch (code) {
       case 7:
-        combineThreeSegments(
-            paths, segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+        combineThreeSegments(paths, segmentsUp, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
         if (ScionUtil.extractIsd(srcIsdAs) == ScionUtil.extractIsd(dstIsdAs)) {
-          combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+          combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs);
         }
         break;
       case 6:
-        combineTwoSegments(paths, segmentsUp, segmentsCore, srcIsdAs, dstIsdAs, localAS);
-        combineSegment(paths, filterForIsdAs(segmentsUp, dstIsdAs), localAS, srcIsdAs, dstIsdAs);
+        combineTwoSegments(paths, segmentsUp, segmentsCore, srcIsdAs, dstIsdAs);
+        combineSegment(paths, filterForIsdAs(segmentsUp, dstIsdAs), srcIsdAs, dstIsdAs);
         break;
       case 5:
-        combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs, localAS);
+        combineTwoSegments(paths, segmentsUp, segmentsDown, srcIsdAs, dstIsdAs);
         break;
       case 4:
-        combineSegment(paths, segmentsUp, localAS, srcIsdAs, dstIsdAs);
+        combineSegment(paths, segmentsUp, srcIsdAs, dstIsdAs);
         break;
       case 3:
-        combineTwoSegments(paths, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs, localAS);
-        combineSegment(paths, filterForIsdAs(segmentsDown, srcIsdAs), localAS, srcIsdAs, dstIsdAs);
+        combineTwoSegments(paths, segmentsCore, segmentsDown, srcIsdAs, dstIsdAs);
+        combineSegment(paths, filterForIsdAs(segmentsDown, srcIsdAs), srcIsdAs, dstIsdAs);
         break;
       case 2:
-        combineSegment(paths, segmentsCore, localAS, srcIsdAs, dstIsdAs);
+        combineSegment(paths, segmentsCore, srcIsdAs, dstIsdAs);
         break;
       case 1:
-        combineSegment(paths, segmentsDown, localAS, srcIsdAs, dstIsdAs);
+        combineSegment(paths, segmentsDown, srcIsdAs, dstIsdAs);
         break;
       default:
         // We found segments, but they don't form a path. This can happen, for example,
@@ -263,14 +260,10 @@ public class PathBuilder {
   }
 
   private static void combineSegment(
-      PathDuplicationFilter paths,
-      List<PathSegment> segments,
-      LocalAS localAS,
-      long srcIsdAs,
-      long dstIsdAs) {
+      PathDuplicationFilter paths, List<PathSegment> segments, long srcIsdAs, long dstIsdAs) {
     for (PathSegment pathSegment : segments) {
       if (containsIsdAses(pathSegment, srcIsdAs, dstIsdAs)) {
-        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment);
+        buildPath(paths, srcIsdAs, dstIsdAs, pathSegment);
       }
     }
   }
@@ -282,22 +275,20 @@ public class PathBuilder {
    * @param segments1 Core or Down segments
    * @param srcIsdAs src ISD/AS
    * @param dstIsdAs src ISD/AS
-   * @param localAS border router lookup resource
    */
   private static void combineTwoSegments(
       PathDuplicationFilter paths,
       List<PathSegment> segments0,
       List<PathSegment> segments1,
       long srcIsdAs,
-      long dstIsdAs,
-      LocalAS localAS) {
+      long dstIsdAs) {
     // Map IsdAs to pathSegment
     MultiMap<Long, PathSegment> segmentsMap1 = createSegmentsMap(segments1, dstIsdAs);
 
     for (PathSegment pathSegment0 : segments0) {
       long middleIsdAs = getOtherIsdAs(srcIsdAs, pathSegment0);
       for (PathSegment pathSegment1 : segmentsMap1.get(middleIsdAs)) {
-        buildPath(paths, localAS, srcIsdAs, dstIsdAs, pathSegment0, pathSegment1);
+        buildPath(paths, srcIsdAs, dstIsdAs, pathSegment0, pathSegment1);
       }
     }
   }
@@ -308,8 +299,7 @@ public class PathBuilder {
       List<PathSegment> segmentsCore,
       List<PathSegment> segmentsDown,
       long srcIsdAs,
-      long dstIsdAs,
-      LocalAS localAS) {
+      long dstIsdAs) {
     // Map IsdAs to pathSegment
     MultiMap<Long, PathSegment> upSegments = createSegmentsMap(segmentsUp, srcIsdAs);
     MultiMap<Long, PathSegment> downSegments = createSegmentsMap(segmentsDown, dstIsdAs);
@@ -322,7 +312,6 @@ public class PathBuilder {
             upSegments.get(endIAs[0]),
             pathSeg,
             downSegments.get(endIAs[1]),
-            localAS,
             srcIsdAs,
             dstIsdAs);
       }
@@ -332,7 +321,6 @@ public class PathBuilder {
             upSegments.get(endIAs[1]),
             pathSeg,
             downSegments.get(endIAs[0]),
-            localAS,
             srcIsdAs,
             dstIsdAs);
       }
@@ -344,22 +332,17 @@ public class PathBuilder {
       List<PathSegment> segmentsUp,
       PathSegment segCore,
       List<PathSegment> segmentsDown,
-      LocalAS localAS,
       long srcIsdAs,
       long dstIA) {
     for (PathSegment segUp : segmentsUp) {
       for (PathSegment segDown : segmentsDown) {
-        buildPath(paths, localAS, srcIsdAs, dstIA, segUp, segCore, segDown);
+        buildPath(paths, srcIsdAs, dstIA, segUp, segCore, segDown);
       }
     }
   }
 
   private static void buildPath(
-      PathDuplicationFilter paths,
-      LocalAS localAS,
-      long srcIsdAs,
-      long dstIsdAs,
-      PathSegment... segments) {
+      PathDuplicationFilter paths, long srcIsdAs, long dstIsdAs, PathSegment... segments) {
     PathMetadata.Builder path = PathMetadata.newBuilder();
     ByteBuffer raw = ByteBuffer.allocate(1000);
 
@@ -409,11 +392,6 @@ public class PathBuilder {
 
     raw.flip();
     path.setRaw(raw);
-
-    // First hop
-    String firstHop =
-        localAS.getBorderRouterAddressString((int) path.getInterfaces().get(0).getId());
-    path.setLocalInterface(PathMetadata.Interface.create(firstHop));
 
     // Metadata
     SegmentMetadataAccumulator.writeStaticInfoMetadata(path, segments, ranges);

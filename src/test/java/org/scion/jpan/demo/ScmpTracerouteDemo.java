@@ -159,7 +159,7 @@ public class ScmpTracerouteDemo {
     sb.append("Using path:").append(nl);
     sb.append("  Hops: ").append(ScionUtil.toStringPath(path.getMetadata()));
     sb.append(" MTU: ").append(path.getMetadata().getMtu());
-    sb.append(" NextHop: ").append(path.getMetadata().getLocalInterface().getAddress()).append(nl);
+    sb.append(" NextHop: ").append(path.getFirstHopAddress()).append(nl);
     println(sb.toString());
   }
 
