@@ -29,10 +29,10 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.internal.snap.AAService;
 import org.scion.jpan.internal.snap.SnapControlClient;
-import org.scion.jpan.internal.snap.SnapService;
+import org.scion.jpan.internal.snap.SnapDataplaneAccess;
 import org.scion.jpan.internal.snap.SnapTunnelSession;
-import org.scion.jpan.internal.snap.TokenFetcher;
 import org.scion.jpan.testutil.MockSnapApiTokenService;
 import org.scion.jpan.testutil.MockSnapService;
 
@@ -107,14 +107,14 @@ class SnapScionDatagramChannelTest {
 
       // Fetch the token from the mock AA service using the known API key.
       String token =
-          TokenFetcher.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+          AAService.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, token);
 
       System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, token);
       try {
         // Obtain dataplane info through the authenticated SNAP control API.
         SnapControlClient controlClient = new SnapControlClient(snapService.getControlUrl());
-        SnapService dataPlane = controlClient.getDataPlaneAddress();
+        SnapDataplaneAccess dataPlane = controlClient.getDataPlaneAddress();
 
         SnapTunnelSession session =
             new SnapTunnelSession(

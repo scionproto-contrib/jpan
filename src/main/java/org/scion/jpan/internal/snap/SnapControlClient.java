@@ -46,7 +46,7 @@ public class SnapControlClient {
     this.baseUrl = normalizeBaseUrl(endpoint);
   }
 
-  public SnapService getDataPlaneAddress() {
+  public SnapDataplaneAccess getDataPlaneAddress() {
     try {
       byte[] responseBytes =
           post(
@@ -64,7 +64,8 @@ public class SnapControlClient {
       if (serverStaticX25519 != null && serverStaticX25519.length != 32) {
         throw new IOException("server static x25519 key must be 32 bytes");
       }
-      return new SnapService((InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519);
+      return new SnapDataplaneAccess(
+          (InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519);
     } catch (IOException e) {
       throw new ScionRuntimeException("SNAP GetSnapDataPlaneAddress failed", e);
     }

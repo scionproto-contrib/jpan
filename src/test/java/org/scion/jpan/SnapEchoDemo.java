@@ -242,8 +242,7 @@ public class SnapEchoDemo {
         }
       }
 
-      if (destination == null
-          || (snapTokenFile == null && authKeyFile == null)) {
+      if (destination == null || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
       }
 

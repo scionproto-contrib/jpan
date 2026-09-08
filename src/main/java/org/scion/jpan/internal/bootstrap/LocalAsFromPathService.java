@@ -39,7 +39,7 @@ public class LocalAsFromPathService {
   public static LocalAS create(String pathService, TrcStore trcStore) {
     List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
     Underlays.ListUnderlaysResponse u = query(snList, pathService);
-    List<LocalAS.SnapNode> snapNodeList = getSnapNodeList(u);
+    List<LocalAS.SnapControlNode> snapControlNodeList = getSnapControlNodes(u);
 
     // TODO SNAP
     if (Config.preferSnapUnderlay()) { // isUnderlaySnapAllowed()) {
@@ -56,7 +56,7 @@ public class LocalAsFromPathService {
             snList,
             Collections.emptyList(),
             brList,
-            snapNodeList,
+            snapControlNodeList,
             trcStore);
       }
       if (Config.getUnderlayMode() == Config.UnderlayMode.SNAP) {
@@ -81,7 +81,7 @@ public class LocalAsFromPathService {
         snList,
         Collections.emptyList(),
         brList,
-        snapNodeList,
+        snapControlNodeList,
         trcStore);
   }
 
@@ -106,18 +106,20 @@ public class LocalAsFromPathService {
     return list;
   }
 
-  private static List<LocalAS.SnapNode> getSnapNodeList(Underlays.ListUnderlaysResponse u) {
+  private static List<LocalAS.SnapControlNode> getSnapControlNodes(
+      Underlays.ListUnderlaysResponse u) {
     if (!u.hasSnap()) {
       LOG.debug("ListUnderlays response has no snap field");
       return Collections.emptyList();
     }
-    List<LocalAS.SnapNode> snaps = new ArrayList<>();
+    List<LocalAS.SnapControlNode> snaps = new ArrayList<>();
     for (Underlays.Snap snap : u.getSnap().getSnapsList()) {
       LOG.debug(
           "ListUnderlays snap node: address={} isd_ases={}",
           snap.getAddress(),
           snap.getIsdAsesList());
-      snaps.add(new LocalAS.SnapNode(snap.getAddress(), new ArrayList<>(snap.getIsdAsesList())));
+      snaps.add(
+          new LocalAS.SnapControlNode(snap.getAddress(), new ArrayList<>(snap.getIsdAsesList())));
     }
     if (snaps.isEmpty()) {
       LOG.debug("ListUnderlays snap field present but snap list is empty");

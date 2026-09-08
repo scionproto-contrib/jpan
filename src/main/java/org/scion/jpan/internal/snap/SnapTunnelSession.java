@@ -236,7 +236,7 @@ public class SnapTunnelSession {
     log.debug("Registered identity, PSK share null={}", pskShare == null);
   }
 
-  public synchronized void ensureConnected() throws IOException {
+  public synchronized void ensureConnected() {
     if (established) {
       long ageSeconds = (System.nanoTime() - establishedAtNanos) / 1_000_000_000L;
       if (ageSeconds < 120) {
@@ -347,7 +347,7 @@ public class SnapTunnelSession {
       established = true;
       establishedAtNanos = System.nanoTime();
       log.info("SNAP tunnel established, assigned address: {}", localTunnelAddress);
-    } catch (InvalidCipherTextException e) {
+    } catch (IOException | InvalidCipherTextException e) {
       throw new ScionRuntimeException("failed to establish SNAP tunnel", e);
     }
   }

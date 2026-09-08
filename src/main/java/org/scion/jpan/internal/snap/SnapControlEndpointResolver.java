@@ -29,10 +29,10 @@ public final class SnapControlEndpointResolver {
       return explicit;
     }
 
-    List<LocalAS.SnapNode> snapNodes = localAS.getSnapNodes();
-    if (snapNodes.isEmpty()) {
+    List<LocalAS.SnapControlNode> snapControlNodes = localAS.getSnapControlNodes();
+    if (snapControlNodes.isEmpty()) {
       return null;
     }
-    return snapNodes.get(0).getAddress();
+    return snapControlNodes.get(0).getAddress();
   }
 }

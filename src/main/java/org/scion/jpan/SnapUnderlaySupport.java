@@ -20,7 +20,7 @@ import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
 import org.scion.jpan.internal.snap.SnapControlClient;
 import org.scion.jpan.internal.snap.SnapControlEndpointResolver;
-import org.scion.jpan.internal.snap.SnapService;
+import org.scion.jpan.internal.snap.SnapDataplaneAccess;
 import org.scion.jpan.internal.snap.SnapUnderlay;
 
 /**
@@ -60,7 +60,7 @@ final class SnapUnderlaySupport {
     if (service == null || !service.preferSnapUnderlay()) {
       return null;
     }
-    SnapService dp = service.getSnapDataPlane();
+    SnapDataplaneAccess dp = service.getSnapDataPlane();
     if (dp == null || dp.getSnapStaticX25519() == null) {
       throw new ScionRuntimeException(
           "SNAP mode requested but no SNAP dataplane/static key available");

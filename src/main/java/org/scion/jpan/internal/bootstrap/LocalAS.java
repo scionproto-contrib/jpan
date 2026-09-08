@@ -26,13 +26,14 @@ public class LocalAS {
   private final List<ServiceNode> controlServices;
   private final List<ServiceNode> discoveryServices;
   private final List<BorderRouter> borderRouters;
-  private final List<SnapNode> snapNodes;
+  private final List<SnapControlNode> snapControlNodes;
   private final Map<Integer, BorderRouter> interfaceIDs;
   private final Set<Long> localIsdAs;
   private final boolean isCoreAs;
   private final int localMtu;
   private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
+  private InetSocketAddress snapFirstHopAddress;
 
   LocalAS(
       Set<Long> localIsdAs,
@@ -42,7 +43,7 @@ public class LocalAS {
       List<ServiceNode> controlServices,
       List<ServiceNode> discoveryServices,
       List<BorderRouter> borderRouters,
-      List<SnapNode> snapNodes,
+      List<SnapControlNode> snapControlNodes,
       TrcStore trcStore) {
     this.localIsdAs = Collections.unmodifiableSet(localIsdAs);
     this.isCoreAs = isCoreAs;
@@ -51,7 +52,7 @@ public class LocalAS {
     this.controlServices = controlServices;
     this.discoveryServices = discoveryServices;
     this.borderRouters = borderRouters;
-    this.snapNodes = snapNodes;
+    this.snapControlNodes = snapControlNodes;
     this.interfaceIDs = initInterfaceIDs(borderRouters);
     this.trcStore = trcStore;
   }
@@ -112,6 +113,30 @@ public class LocalAS {
   }
 
   /**
+   * The SNAP dataplane address to use as the first hop for an AS with no local border routers at
+   * all (a SNAP-only tenant AS). Deliberately separate from {@link #getFirstHopAddress(int)}: that
+   * method's contract is "throw if the interface ID isn't a real border router", which must stay
+   * strict, while this one is an optional, narrowly-scoped fallback for the one case where there is
+   * genuinely no border-router data to look up in the first place. Set once, after construction, by
+   * {@code ScionService} once it resolves the SNAP dataplane -- {@link LocalAS} is otherwise
+   * immutable, but this can't be a constructor argument: {@link LocalAS} is built first and the
+   * SNAP dataplane is resolved afterwards, from {@link #getSnapControlNodes()} on this very
+   * instance.
+   *
+   * @return the SNAP dataplane address, or {@code null} if SNAP is not enabled or not yet resolved.
+   * @deprecated
+   */
+  @Deprecated
+  public InetSocketAddress getSnapFirstHopAddress() {
+    // TODO remove this!!
+    return snapFirstHopAddress;
+  }
+
+  public void setSnapFirstHopAddress(InetSocketAddress snapFirstHopAddress) {
+    this.snapFirstHopAddress = snapFirstHopAddress;
+  }
+
+  /**
    * @return mtu
    * @deprecated This is not available in the new endhost API
    */
@@ -147,8 +172,8 @@ public class LocalAS {
     return Collections.unmodifiableList(borderRouters);
   }
 
-  public List<SnapNode> getSnapNodes() {
-    return Collections.unmodifiableList(snapNodes);
+  public List<SnapControlNode> getSnapControlNodes() {
+    return Collections.unmodifiableList(snapControlNodes);
   }
 
   public static class BorderRouter {
@@ -191,11 +216,11 @@ public class LocalAS {
     }
   }
 
-  public static class SnapNode {
+  public static class SnapControlNode {
     private final String address;
     private final List<Long> isdAses;
 
-    SnapNode(String address, List<Long> isdAses) {
+    SnapControlNode(String address, List<Long> isdAses) {
       this.address = address;
       this.isdAses = isdAses == null ? Collections.emptyList() : isdAses;
     }

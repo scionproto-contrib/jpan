@@ -38,9 +38,11 @@ public class SnapTracerouteDemo {
 
     Path path = service.getPaths(destinationIa, cli.destinationIp, Constants.SCMP_PORT).get(0);
     run(path, service, cli);
-    //    List<Path> paths = service.getPaths(destinationIa, cli.destinationIp, Constants.SCMP_PORT);
+    //    List<Path> paths = service.getPaths(destinationIa, cli.destinationIp,
+    // Constants.SCMP_PORT);
     //    for (Path path : paths) {
-    //      System.out.println("Paths: " + paths.size() + "  -> " + ScionUtil.toStringPath(path.getMetadata()));
+    //      System.out.println("Paths: " + paths.size() + "  -> " +
+    // ScionUtil.toStringPath(path.getMetadata()));
     //      run(path, service, cli);
     //    }
   }
@@ -216,8 +218,7 @@ public class SnapTracerouteDemo {
         }
       }
 
-      if (destination == null
-          || (snapTokenFile == null && authKeyFile == null)) {
+      if (destination == null || (snapTokenFile == null && authKeyFile == null)) {
         throw new IllegalArgumentException(usage());
       }
 

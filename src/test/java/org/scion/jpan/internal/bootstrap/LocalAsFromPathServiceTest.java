@@ -159,7 +159,8 @@ class LocalAsFromPathServiceTest {
     // SNAP nodes -- JPAN only ever looks at the first one (LocalAsFromPathService uses
     // u.getSnap().getSnaps(0) exclusively). The second node's ISD/AS set is silently dropped from
     // localAS.getIsdAses(), even though both nodes are preserved in localAS.getSnapNodes(). A real
-    // fix would need ScionService to resolve and hold a dataplane connection per SnapNode (keyed by
+    // fix would need ScionService to resolve and hold a dataplane connection per SnapControlNode
+    // (keyed by
     // reachable ISD/AS), not a single one -- which is a bigger change than where this address is
     // stored (see LocalASTest for the fix to the separate, now-resolved "single global first-hop
     // address" problem).
@@ -186,7 +187,7 @@ class LocalAsFromPathServiceTest {
     LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
 
     // Both SNAP nodes are preserved as raw data...
-    assertEquals(2, localAS.getSnapNodes().size());
+    assertEquals(2, localAS.getSnapControlNodes().size());
     // ...but only the first one's ISD/AS actually becomes reachable. The second SNAP node's AS is
     // silently unreachable through this LocalAS/ScionService instance.
     assertEquals(Collections.singleton(SNAP_ISD_AS), localAS.getIsdAses());

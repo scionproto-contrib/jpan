@@ -36,8 +36,8 @@ import org.scion.jpan.testutil.MockSnapService;
 
 /**
  * Covers two independent SNAP tunnels -- each backed by its own {@link MockSnapService} with a
- * distinct dataplane address and a distinct, randomly generated static key -- being handshaked
- * and used concurrently from two separate {@link ScionDatagramChannel}s in the same process. This
+ * distinct dataplane address and a distinct, randomly generated static key -- being handshaked and
+ * used concurrently from two separate {@link ScionDatagramChannel}s in the same process. This
  * guards against per-tunnel state (crypto session, assigned tunnel address, transport channel)
  * accidentally leaking across independent SNAP channels, since {@code SnapUnderlay}/{@code
  * SnapTunnelSession} state is meant to be per-instance rather than global/static.

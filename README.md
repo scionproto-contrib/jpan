@@ -445,7 +445,7 @@ So, to activate SNAP, do one of the following:
 | SNAP authentication key (API key)         | `org.scion.snap.auth.key`     | `SCION_SNAP_AUTH_KEY`      |               | 
 | SNAP authentication service (address/url) | `org.scion.snap.auth.service` | `SCION_SNAP_AUTH_SERVICE`  |               | 
 | SNAP control plane endpoint (host:port)   | `org.scion.snap.controlPlane` | `SCION_SNAP_CONTROL_PLANE` |               | 
-| SNAP authentication token                 | `org.scion.snap.authToken`    | `SCION_SNAP_AUTH_TOKEN`    |               | 
+| SNAP authentication token (dataplane)     | `org.scion.snap.authToken`    | `SCION_SNAP_AUTH_TOKEN`    |               | 
 | SNAP endhost API discovery endpoint       | `org.scion.snap.psDiscovery`  | `SCION_SNAP_PS_DISCOVERY`  |               |
 
 ### Other Options

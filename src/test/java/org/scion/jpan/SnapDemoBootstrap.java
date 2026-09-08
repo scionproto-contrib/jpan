@@ -22,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import org.scion.jpan.internal.bootstrap.EndhostApiDiscoveryClient;
-import org.scion.jpan.internal.snap.TokenFetcher;
+import org.scion.jpan.internal.snap.AAService;
 
 /**
  * Shared {@code --endhost-api}/{@code --discovery} resolution for the SNAP demos ({@link
@@ -100,7 +100,7 @@ final class SnapDemoBootstrap {
   /**
    * Resolves the SNAP auth token, either directly from a token file or by exchanging an API key
    * with the AA auth service. In the latter case, the AA response may include a discovery-service
-   * URL scoped to the authenticated user (see {@link TokenFetcher.Result#endhostApiDiscoveryUrl}),
+   * URL scoped to the authenticated user (see {@link AAService.Result#endhostApiDiscoveryUrl}),
    * which callers should use as a fallback {@code --discovery} endpoint when neither {@code
    * --endhost-api} nor {@code --discovery} was given explicitly on the command line.
    */
@@ -119,7 +119,7 @@ final class SnapDemoBootstrap {
     if (authKey.isEmpty()) {
       throw new IllegalArgumentException("Auth key file is empty: " + authKeyFile);
     }
-    TokenFetcher.Result result = TokenFetcher.fetchAll(authKey, "auth.scion.anapaya.net");
+    AAService.Result result = AAService.fetchAll(authKey, "auth.scion.anapaya.net");
     return new TokenResolution(authKey, result.snapToken, result.endhostApiDiscoveryUrl);
   }
 

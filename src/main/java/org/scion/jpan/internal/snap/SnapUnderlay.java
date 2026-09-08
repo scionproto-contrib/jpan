@@ -70,7 +70,7 @@ public final class SnapUnderlay {
   }
 
   /** Ensures the handshake has completed and returns the SNAP-assigned source address. */
-  public InetSocketAddress ensureConnectedSourceAddress() throws IOException {
+  public InetSocketAddress ensureConnectedSourceAddress() {
     session.ensureConnected();
     return session.localTunnelAddress();
   }
