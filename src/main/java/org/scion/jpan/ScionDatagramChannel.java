@@ -25,6 +25,7 @@ import java.nio.channels.NotYetConnectedException;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.snap.SnapUnderlay;
+import org.scion.jpan.internal.snap.SnapUnderlaySupport;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
@@ -36,9 +37,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
 
   // Store one path per (non-Scion-)destination address
   // We do not use a WeakHashMap here.
-  // One reason is that if PathSelectors get GC'd their timer taks may not get cleaned up.
-  // Timer tasks should diappear over time when they get executed.
-  // Also, if entries are removed due to GC pressure, recreating them may actuall add to the
+  // One reason is that if PathSelectors get GC'd their timer tasks may not get cleaned up.
+  // Timer tasks should disappear over time when they get executed.
+  // Also, if entries are removed due to GC pressure, recreating them may actually add to the
   // pressure because restoring an entry causes additional objects to be created.
   //
   // Overall, a predictable SimpleCache seems better.
@@ -56,7 +57,9 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         channel,
         connectSelector,
         factory,
-        SnapUnderlaySupport.createFor(service, channel));
+        service == null
+            ? null
+            : SnapUnderlaySupport.createFor(service.getSnapDataPlane(), channel));
   }
 
   ScionDatagramChannel(

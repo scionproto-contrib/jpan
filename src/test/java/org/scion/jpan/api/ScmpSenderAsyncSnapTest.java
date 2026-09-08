@@ -22,7 +22,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionService;
@@ -74,7 +73,6 @@ class ScmpSenderAsyncSnapTest {
       long dstIA = ScionUtil.parseIA("1-ff00:0:111");
       InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
       ScionService service = Scion.defaultService();
-      assertTrue(PackageVisibilityHelper.preferSnapUnderlay(service));
       Path path = service.getPaths(dstIA, dstAddress).get(0);
       assertNotNull(path);
 

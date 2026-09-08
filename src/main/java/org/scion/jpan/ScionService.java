@@ -159,7 +159,7 @@ public class ScionService {
     SnapControlClient snapControlClient = SnapControlClient.create(localAS);
     if (snapControlClient == null) {
       throw new ScionRuntimeException(
-              "SNAP mode is enabled but no SNAP control endpoint is available");
+          "SNAP mode is enabled but no SNAP control endpoint is available");
     }
     SnapDataplaneDetails dataPlane = snapControlClient.getDataPlaneAddress();
     LOG.info(
@@ -532,10 +532,6 @@ public class ScionService {
 
   List<LocalAS.SnapControlNode> getSnapControlNodes() {
     return localAS.getSnapControlNodes();
-  }
-
-  boolean preferSnapUnderlay() {
-    return Config.preferSnapUnderlay();
   }
 
   SnapDataplaneDetails getSnapDataPlane() {

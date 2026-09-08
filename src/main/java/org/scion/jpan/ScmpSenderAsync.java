@@ -29,6 +29,7 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.PathHeaderParser;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.snap.SnapUnderlaySupport;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.selectors.PathSelectorNull;
 import org.slf4j.Logger;
@@ -213,7 +214,7 @@ public class ScmpSenderAsync implements AutoCloseable {
           channel,
           PathSelectorNull.instance(),
           PathSelectorNull.Factory.instance(),
-          SnapUnderlaySupport.createFor(service, channel));
+          SnapUnderlaySupport.createFor(service.getSnapDataPlane(), channel));
 
       try {
         // selector

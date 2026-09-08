@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package org.scion.jpan;
+package org.scion.jpan.internal.snap;
 
 import java.io.IOException;
 import java.net.StandardProtocolFamily;
 import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
-import org.scion.jpan.internal.snap.SnapControlClient;
-import org.scion.jpan.internal.snap.SnapDataplaneDetails;
-import org.scion.jpan.internal.snap.SnapUnderlay;
+import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.ScionService;
+import org.scion.jpan.internal.util.Config;
 
 /**
  * Bridges a {@link ScionService}'s SNAP configuration to a {@link SnapUnderlay}. This lives in
@@ -29,7 +29,7 @@ import org.scion.jpan.internal.snap.SnapUnderlay;
  * preferSnapUnderlay()}, {@code getSnapDataPlane()}, {@code getLocalAS()}), which are not visible
  * from a sub-package.
  */
-final class SnapUnderlaySupport {
+public final class SnapUnderlaySupport {
 
   private SnapUnderlaySupport() {}
 
@@ -44,8 +44,8 @@ final class SnapUnderlaySupport {
    * it just times out. A non-SNAP channel keeps the platform default, e.g. for genuine IPv6 SCION
    * deployments.
    */
-  static DatagramChannel openChannelFor(ScionService service) throws IOException {
-    if (service != null && service.preferSnapUnderlay()) {
+  public static DatagramChannel openChannelFor(ScionService service) throws IOException {
+    if (service != null && Config.isUnderlaySnapAllowed()) {
       return DatagramChannel.open(StandardProtocolFamily.INET);
     }
     return DatagramChannel.open();
@@ -55,11 +55,10 @@ final class SnapUnderlaySupport {
    * @return {@code null} if {@code service} does not have SNAP mode enabled -- callers should treat
    *     that as "use a plain UDP underlay instead."
    */
-  static SnapUnderlay createFor(ScionService service, DatagramChannel channel) {
-    if (service == null || !service.preferSnapUnderlay()) {
+  public static SnapUnderlay createFor(SnapDataplaneDetails dp, DatagramChannel channel) {
+    if (!Config.isUnderlaySnapAllowed()) {
       return null;
     }
-    SnapDataplaneDetails dp = service.getSnapDataPlane();
     if (dp == null || dp.getSnapStaticX25519() == null) {
       throw new ScionRuntimeException(
           "SNAP mode requested but no SNAP dataplane/static key available");

@@ -49,10 +49,6 @@ public class PackageVisibilityHelper {
     return ss.getControlServiceConnection();
   }
 
-  public static boolean preferSnapUnderlay(ScionService ss) {
-    return ss.preferSnapUnderlay();
-  }
-
   public static List<PathMetadata> getPaths(ScionService ss, long srcIsdAs, long dstIsdAs) {
     return ss.getPathList(srcIsdAs, dstIsdAs);
   }
